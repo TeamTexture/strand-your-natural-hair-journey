@@ -25,6 +25,8 @@
 //
 // Pure string logic. No Deno APIs, no network — unit-testable from Vitest.
 
+import { hasInstructingVerb } from "./tip-action.ts";
+
 type UnknownRecord = Record<string, unknown>;
 
 export type TipTarget =
@@ -321,6 +323,12 @@ export function enforceTipSetIntegrity(
   //     deterministic manuscript tip that has one.
   const withReason: string[] = [];
   for (const tip of candidates) {
+    // ACTION FLOOR — the same rule the single-tip surfaces use. A tip that
+    // never instructs the member to do anything is an observation, not a tip.
+    if (!hasInstructingVerb(tip)) {
+      dropped.push({ tip, reasons: ["no_action_verb"] });
+      continue;
+    }
     if (!hasReasonClause(tip)) {
       dropped.push({ tip, reasons: ["no_reason_clause"] });
       continue;

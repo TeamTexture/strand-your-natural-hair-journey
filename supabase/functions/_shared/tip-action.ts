@@ -35,6 +35,13 @@ const HEDGES = [
 const IMPERATIVE =
   /\b(apply|rinse|cleanse|wash|shampoo|condition|detangle|section|part|clip|smooth|seal|saturate|soak|dampen|spritz|mist|massage|work|comb|finger[- ]?comb|tuck|wrap|braid|re[- ]?braid|band|stretch|blot|squeeze|towel|air[- ]?dry|leave|sit|set|clarify|clean|wipe|swipe|dab|refresh|trim|book|log|swap|switch|start|stop|skip|add|use|keep|hold|check|feel|time|repeat|split|reduce|lower|raise|loosen|space|schedule)\b/i;
 
+/** Does this text actually instruct the member to do something?
+ *  Shared with the SET-level floor in tip-set-integrity.ts so both surfaces
+ *  judge "is there an action here" with the same rule. */
+export function hasInstructingVerb(text: string): boolean {
+  return IMPERATIVE.test(String(text ?? ""));
+}
+
 export interface ActionValidationInput {
   /** The single action sentence. */
   action: string;

@@ -46,6 +46,7 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
 import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
+import { hasInstructingVerb } from "../_shared/tip-action.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -97,6 +98,22 @@ const FORBIDDEN_GUIDANCE_PATTERNS: RegExp[] = [
   /\bteamtexture\b/i,
   /\btt\s+heat\b/i,
 ];
+
+// ACTION FLOOR (shared with the goal tip and wash day tip surfaces) — usage
+// guidance that never instructs the member to do anything is an observation,
+// not a tip. We never blank the card, so failures are logged for audit and the
+// tip is kept; the prompt above is what raises quality.
+function auditGuidanceActionFloor(analysis: AnalysisPayload, productKey: string): void {
+  for (const tip of analysis.personalised_guidance ?? []) {
+    const text = `${tip?.title ?? ""} ${tip?.body ?? ""}`;
+    if (!hasInstructingVerb(text)) {
+      console.warn("[ingredient-analysis] guidance tip has no action verb", {
+        productKey,
+        title: tip?.title ?? "",
+      });
+    }
+  }
+}
 
 function guidanceReferencesOtherProduct(analysis: AnalysisPayload): boolean {
   const tips = analysis.personalised_guidance ?? [];
@@ -603,6 +620,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`
         level: tipsLevel,
       });
       analysis = scrubGuidance(analysis);
+      auditGuidanceActionFloor(analysis, productKey);
       analysis._provider = "lovable";
       analysis._generated_at = new Date().toISOString();
       // Note: no _model_version stamp on Lovable path — back-compat.

@@ -22,7 +22,15 @@ import {
   methodRetryDirective,
   validateTipSubstance,
 } from "../_shared/tip-method.ts";
-import { logTipRejection } from "../_shared/tip-action.ts";
+import {
+  logTipRejection,
+  memberAttributeTokens,
+  retryDirective,
+  validateTipAction,
+  validateTipReason,
+} from "../_shared/tip-action.ts";
+import { proseStyleText } from "../_shared/style-prose.ts";
+
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
@@ -349,7 +357,7 @@ ${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 Build the single tip on this pillar — the strongest, most holistic one for her right now: "${pillar}".
 ${styleLine ? `HER SITUATION RIGHT NOW: ${styleLine}\n` : ""}- Stay inside the goal's territory. Never wander to an unrelated topic.
 - The tip MUST be doable in the style she is in TODAY. If she is in an install, never tell her to do something that assumes loose hair (wet styling, full detangle, length checks) unless the pillar is take-down or preparation.
-- The body MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
+- The action and its reason MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
 - The RECENT ADVICE ledger below shows what she has already been told. Take a different angle on today's pillar from anything listed there — a different action, a different moment in her routine, or a progression on a habit she already has ("your deep condition habit is set — now seal your ends after each wash").
 - Never repeat a headline or action that appears in the ledger.`,
   };
@@ -396,15 +404,17 @@ Rules:
  * Home card contract: EXACTLY ONE tip. Supersedes the 3-tip contract for this
  * surface only — the Style Journal still asks for the multi-tip playbook.
  */
-const SINGLE_TIP_TASK = `TASK — STRAND TIP (EXACTLY ONE TIP)
+const SINGLE_TIP_TASK = `TASK — STRAND TIP (EXACTLY ONE TIP: ONE ACTION + ONE REASON)
 Write the single most valuable, most holistic action she can take towards her stated goal, personalised through her hair type and characteristics. Use blood markers ONLY when a flagged marker genuinely changes what she should do today; otherwise leave them out entirely.
 
 Output EXACTLY these fields and nothing more:
-- "headline": the action itself, max 8 words, imperative, no emoji, no colon-prefixed label.
-- "body": ONE sentence, max 30 words: the action detail plus WHY it works for HER, naming a real characteristic from her profile (curl pattern, porosity, density, strand diameter, elasticity, scalp, current style + how long she's been in it, or a flagged marker that actually matters here). A line that could be written for any user is invalid — rewrite it.
+- "headline": max 8 words naming the focus, imperative, no emoji, no colon-prefixed label.
+- "action": ONE complete sentence, max 30 words. THE INSTRUCTION. It must open with an instruction verb and tell her exactly what to do: what she physically does, where on the head, with what TYPE of product or tool, and the frequency or timing where the passages support one. A headline with no action is an invalid tip. Never open with "consider", "be mindful", "it's important to", "you may want to" or "remember to". Never name a brand or a branded product — product types and tools only.
+- "reason": ONE sentence, max 28 words. WHY it matters for HER — the mechanism or the consequence of skipping it — naming a real characteristic from her profile (curl pattern, porosity, density, strand diameter, elasticity, scalp, current style + how long she's been in it, or a flagged marker that actually matters here). It must EXPLAIN the action, never restate it. A line that could be written for any user is invalid — rewrite it.
 - "key_fact": OPTIONAL, max 4 words — a single concrete parameter only if one genuinely applies: a frequency ("Every wash day"), a duration ("20 minutes"), or a tool ("TT Heat Hat"). Omit the field entirely when there isn't a real one. Never invent one.
 
-NO lists. NO actions array. NO extra education block. NO second sentence in the body. One idea, once.
+NO "body" field. NO lists. NO actions array. NO extra education block. One idea, once: the action and the reason are the same single idea, instructed then explained.
+
 
 Everything else in this prompt still applies: the persona and voice, the core teachings, the wash-day baseline, the retrieved manuscript passages as the source of truth, the relevance gate (never cite a signal the advice does not actually act on), never naming the book/chapters/pages, and never inventing profile data.`;
 
@@ -603,12 +613,16 @@ Deno.serve(async (req) => {
                       type: "object",
                       properties: {
                         headline: { type: "string" },
-                        body: { type: "string" },
+                        // THE ACTION FLOOR — the instruction is required, not
+                        // optional. A headline plus a reason is not a tip.
+                        action: { type: "string" },
+                        reason: { type: "string" },
                         key_fact: { type: "string" },
                       },
-                      required: ["headline", "body"],
+                      required: ["headline", "action", "reason"],
                       additionalProperties: false,
                     }
+
 
                   : {
                   type: "object",
@@ -669,6 +683,10 @@ Deno.serve(async (req) => {
 
     type GoalTipShape = {
       headline?: string;
+      /** Single-tip surface: the instruction. Never dropped. */
+      action?: string;
+      /** Single-tip surface: why it matters for her. Never dropped. */
+      reason?: string;
       body?: string;
       key_fact?: string;
       actions?: unknown[];
@@ -676,6 +694,7 @@ Deno.serve(async (req) => {
       caution?: string;
       signals?: unknown[];
     };
+
     const parseResponse = async (resp: Response): Promise<GoalTipShape | null> => {
       const aiJson = await resp.json();
       const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
@@ -699,12 +718,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── METHOD + ANTI-TAUTOLOGY FLOOR ────────────────────────────────
-    // Every tip must name a method and must not restate its own goal as its
-    // justification. One corrective regeneration, then the best available
-    // output is served (never a blank card) and the failure is audited.
-    const substanceOf = (t: GoalTipShape | null) => {
+    // ── QUALITY FLOOR (shared with the wash day tip) ─────────────────
+    // Every tip must carry a real ACTION and a real REASON (tip-action.ts),
+    // must name a method, and must not restate its own goal as its
+    // justification (tip-method.ts). One corrective regeneration, then the best
+    // available output is served — action and reason never degrade, and an
+    // empty card is never rendered.
+    const ctxAny = (body.context ?? {}) as Record<string, unknown>;
+    const hairCtx = (ctxAny.hair ?? {}) as Record<string, unknown>;
+    const flat = (v: unknown) => (Array.isArray(v) ? v.join(" ") : v);
+    const attributeTokens = memberAttributeTokens({
+      hairProfile: {
+        hair_type: flat(hairCtx.curl_pattern ?? hairCtx.hair_type),
+        porosity: flat(hairCtx.porosity),
+        density: flat(hairCtx.density),
+        scalp: flat(hairCtx.scalp),
+      },
+      currentStyle: (ctxAny.currentStyle ?? null) as Record<string, unknown> | null,
+      goals: [
+        { title: body.goal?.target_text ?? "" },
+        ...challengesOf(body.goal).map((c) => ({ title: c })),
+      ],
+      challenges: challengesOf(body.goal),
+    });
+
+    const floorOf = (t: GoalTipShape | null) => {
       const bodyParts = [
+        String(t?.action ?? ""),
+        String(t?.reason ?? ""),
         String(t?.body ?? ""),
         String(t?.key_fact ?? ""),
         String(t?.overview ?? ""),
@@ -714,53 +755,127 @@ Deno.serve(async (req) => {
             )
           : []),
       ].filter(Boolean);
-      return validateTipSubstance({
+      const substance = validateTipSubstance({
         headline: String(t?.headline ?? ""),
         body: bodyParts.join(" "),
       });
+      const reasons = [...substance.reasons];
+      let ok = substance.ok;
+
+      if (single) {
+        const action = String(t?.action ?? "");
+        const reason = String(t?.reason ?? "");
+        const av = validateTipAction({
+          action,
+          supporting: [String(t?.headline ?? ""), reason],
+          attributeTokens,
+        });
+        const rv = validateTipReason({ reason, action });
+        ok = ok && av.ok && rv.ok;
+        reasons.push(...av.reasons, ...rv.reasons);
+      } else if (!journal && Array.isArray(t?.actions)) {
+        // The multi-tip playbook: the same floors, per item.
+        for (const raw of t!.actions as Array<string | { action?: string; why?: string }>) {
+          const action = typeof raw === "string" ? raw : String(raw?.action ?? "");
+          const why = typeof raw === "string" ? "" : String(raw?.why ?? "");
+          const av = validateTipAction({ action, supporting: [why], attributeTokens });
+          const rv = validateTipReason({ reason: why, action });
+          ok = ok && av.ok && rv.ok;
+          reasons.push(...av.reasons, ...rv.reasons);
+        }
+      }
+      return { ok, reasons: Array.from(new Set(reasons)) };
     };
-    let verdict = substanceOf(tip);
+
+    let verdict = floorOf(tip);
     if (!verdict.ok) {
       await logTipRejection("goal-tip", verdict.reasons, JSON.stringify(tip).slice(0, 4000));
       try {
-        const retryResp = await callModel(methodRetryDirective(verdict.reasons));
+        const directive = journal
+          ? methodRetryDirective(verdict.reasons)
+          : `${retryDirective(verdict.reasons, attributeTokens)}\n\n${methodRetryDirective(verdict.reasons)}`;
+        const retryResp = await callModel(directive);
         if (retryResp.ok) {
           const retried = await parseResponse(retryResp);
-          const retryVerdict = substanceOf(retried);
-          if (retried && (retryVerdict.ok || !verdict.ok)) {
-            // Prefer the retry when it clears the floor; otherwise keep the
-            // richer of the two rather than showing nothing.
+          if (retried) {
+            const retryVerdict = floorOf(retried);
             if (retryVerdict.ok) {
+              // The retry cleared the floor — serve it.
+              tip = retried;
+              verdict = retryVerdict;
+            } else if (
+              // Otherwise prefer whichever output actually carries an action.
+              single &&
+              !String(tip?.action ?? "").trim() &&
+              String(retried.action ?? "").trim()
+            ) {
               tip = retried;
               verdict = retryVerdict;
             }
           }
         }
       } catch (e) {
-        console.warn("[goal-tip] method retry failed", e);
+        console.warn("[goal-tip] quality-floor retry failed", e);
       }
     }
 
+    // GRACEFUL DEGRADATION — the action never degrades. If the retry still has
+    // no instruction at all we fail loudly rather than serve a headline-only
+    // tip; anything else is served with the reason it produced and audited.
+    if (single && !verdict.ok) {
+      if (!String(tip?.action ?? "").trim()) {
+        await logTipRejection("goal-tip", ["action_missing_after_retry", ...verdict.reasons], JSON.stringify(tip).slice(0, 4000));
+        return new Response(
+          JSON.stringify({ error: "tip_failed_action_floor", reasons: verdict.reasons }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      await logTipRejection("goal-tip", ["served_degraded", ...verdict.reasons], JSON.stringify(tip).slice(0, 4000));
+    }
+
+
+
+    // PROSE-FRIENDLY STYLE LABELS — "Passion / rope twists" is one legitimate
+    // style whose label carries a slash. The stored value and the picker label
+    // are untouched; only generated prose is rewritten ("passion or rope
+    // twists") so it reads properly mid-sentence.
+    const prose = (v: unknown) => proseStyleText(String(v ?? "")).trim();
 
     if (journal) {
       // Hard guarantee of the overview + caution shape regardless of drift.
       tip = {
-        overview: String(tip.overview ?? "").trim(),
-        caution: String(tip.caution ?? "").trim(),
+        overview: prose(tip.overview),
+        caution: prose(tip.caution),
         signals: (Array.isArray(tip.signals) ? tip.signals : [])
-          .map((s) => String(s ?? "").trim())
+          .map((s) => prose(s))
           .filter(Boolean)
           .slice(0, 3),
         actions: [],
       };
     } else if (single) {
-      // Hard guarantee of the one-tip shape regardless of model drift.
-      const keyFact = typeof tip.key_fact === "string" ? tip.key_fact.trim() : "";
+      // Hard guarantee of the one-tip shape regardless of model drift. The
+      // action and the reason are both required and both rendered.
+      const keyFact = typeof tip.key_fact === "string" ? prose(tip.key_fact) : "";
       tip = {
-        headline: String(tip.headline ?? "").trim(),
-        body: String(tip.body ?? "").trim(),
+        headline: prose(tip.headline),
+        action: prose(tip.action),
+        reason: prose(tip.reason) || prose(tip.body),
         ...(keyFact ? { key_fact: keyFact } : {}),
         actions: [],
+      };
+    } else {
+      tip = {
+        ...tip,
+        headline: prose(tip.headline),
+        body: prose(tip.body),
+        actions: (Array.isArray(tip.actions) ? tip.actions : []).map((a) =>
+          typeof a === "string"
+            ? prose(a)
+            : {
+                action: prose((a as { action?: string })?.action),
+                why: prose((a as { why?: string })?.why),
+              },
+        ),
       };
     }
 
@@ -773,10 +888,11 @@ Deno.serve(async (req) => {
       await recordAdvice(ledgerUserId, "goal-tip", [
         ...(tip.headline ? [tip.headline] : []),
         ...(journal ? [tip.overview ?? "", tip.caution ?? ""] : []),
-        ...(single && tip.body ? [tip.body] : []),
+        ...(single ? [tip.action ?? "", tip.reason ?? ""] : []),
         ...actionLines,
       ].filter(Boolean));
     }
+
 
 
     return new Response(

@@ -794,7 +794,36 @@ const Home = () => {
                   >
                     {goalTip ? (
                       <>
-                        <AiProse text={goalTip.body} />
+                        {/* THE ACTION FLOOR — the instruction is rendered
+                            distinctly from the reason, the same pattern as the
+                            wash day tip card. A headline plus a reason is not a
+                            tip; the action always shows. */}
+                        {(goalTip.action ?? "").trim() ? (
+                          <div className="flex gap-2 rounded-[10px] border border-primary/20 bg-primary/[0.06] px-2.5 py-2">
+                            <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                              <Sparkles className="size-2.5 text-primary" aria-hidden />
+                            </span>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <p className="text-[11.5px] leading-[1.55] font-body text-foreground break-words">
+                                <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
+                                  Do this
+                                </span>
+                                {goalTip.action!.trim()}
+                              </p>
+                              {(goalTip.reason ?? "").trim() && (
+                                <p className="text-[11px] leading-[1.55] font-body text-foreground/75 break-words">
+                                  <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-foreground/50 mr-1.5">
+                                    Why
+                                  </span>
+                                  {goalTip.reason!.trim()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          /* Legacy cached tips only carried prose. */
+                          <AiProse text={goalTip.reason || goalTip.body} />
+                        )}
                         {goalTip.key_fact && (
                           <KeyFactChips
                             className="mt-2"
@@ -803,6 +832,7 @@ const Home = () => {
                         )}
                       </>
                     ) : tipLoading ? (
+
                       <div className="flex items-center gap-2">
                         <span className="block size-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
                         <p className="text-xs text-muted-foreground italic">
