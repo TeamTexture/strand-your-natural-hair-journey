@@ -351,13 +351,16 @@ Deno.serve(async (req) => {
     user_context: body.context ?? {},
   });
 
-  // Surface framing. `wash_day` is the sponsored card that sits beneath the
-  // STRAND wash day tip, so the read must speak to the member's NEXT wash day.
-  // The brand never supplies or edits this text — only the product facts.
+  // Surface framing. `wash_day` is the sponsored wash day tip card, which now
+  // REPLACES the educational tip when it renders, so it must be one succinct,
+  // personalised read for the member's next wash day. The brand never supplies
+  // or edits this text — only the product facts.
+  const surface = (body as { surface?: string }).surface;
   const surfaceBlock =
-    (body as { surface?: string }).surface === "wash_day"
-      ? `\n\nSURFACE: WASH DAY\nWrite this as a suggestion for the member's NEXT wash day. Ground it in their most recent logged wash day, the style they are in and the style they are moving into, plus their goals and challenges. fit_line must say how THEY specifically would benefit on that next wash day. Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim about the product the manuscript does not support.`
+    surface === "wash_day"
+      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested — longer output is rejected.\n- One short personalised tip for their NEXT wash day using this product, drawing on their hair characteristics, their recorded goal and their most recent logged wash day.\n- If a benefit is worth stating, it belongs inside those two sentences — there are no separate bullets on this surface.\n- Name the product once. Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance.\n- Make no claim about the product the manuscript does not support.`
       : "";
+
 
   const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
