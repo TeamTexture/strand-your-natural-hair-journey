@@ -4,14 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-import { ChevronDown, ChevronUp, ChevronRight, ExternalLink, Plus, Check, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useLogAdEvent, useAdViewTracker } from "@/hooks/useBrandOffers";
-import { useAuth } from "@/hooks/useAuth";
-import { useUserProducts } from "@/hooks/useUserProducts";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
-import AdFitLine from "@/components/guidance/AdFitLine";
-import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
+import BannerProductBlock from "@/components/brand/BannerProductBlock";
 
 
 
@@ -36,7 +33,7 @@ export type BannerOffer = {
   external_url?: string | null;
   discount_code?: string | null;
   brand_user_id?: string | null;
-  /** ONE PRODUCT PER ADVERT — the array carries a single row. */
+  /** ONE OR TWO PRODUCTS PER ADVERT — never more. Ordered by `position`. */
   brand_products?: BannerProductRow[] | null;
 };
 
@@ -79,13 +76,9 @@ interface Props {
  *  card again in the brand directory with the same features. */
 const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null, brandName: brandNameProp = null, collapsedCta = null }: Props) => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
-  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [shelfBusy, setShelfBusy] = useState(false);
   const logEvent = useLogAdEvent();
   const nav = useNavigate();
-  const { user } = useAuth();
-  const { allProducts, upsert } = useUserProducts();
 
 
   // `view` fires only after the banner has been ≥50% visible for a continuous
@@ -95,13 +88,12 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
     match_reason: matchReason ? { codes: matchReason } : null,
   });
 
-  // ONE PRODUCT PER ADVERT. The junction rows are ordered by `position` in the
-  // query, so this is the advertised product — there is no list to choose from.
-  const product = offer.brand_products?.[0] ?? null;
-  // The advert's product is read against this member's own hair — generated on
-  // expand (a deliberate action), never on a passing impression.
-  const { guidance: productGuidance, loading: productGuidanceLoading } =
-    useBrandProductGuidance(product, { enabled: expanded });
+  // ONE OR TWO PRODUCTS PER ADVERT. The junction rows arrive ordered by
+  // `position`; both attached products render, each with its OWN personalised
+  // tip inside its own block. Hard-capped at two so a bad row can never make
+  // the card unreadable.
+  const products = useMemo(() => (offer.brand_products ?? []).slice(0, 2), [offer.brand_products]);
+  const product = products[0] ?? null;
 
   const { data: brandRow } = useQuery({
     queryKey: ["banner-brand-name", offer.brand_user_id],
@@ -123,8 +115,6 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
     if (offer.hero_image_path) {
       void getSignedUrl("brand-assets", offer.hero_image_path).then(setHeroUrl);
     }
-    const first = product?.image_urls?.[0];
-    if (first) setProductImageUrl(first);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer.id]);
 
@@ -137,59 +127,6 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
       nav(`/offers/${offer.id}?slot=${slot}`);
     }
   };
-
-  const openProduct = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
-    if (product) {
-      nav(`/offers/${offer.id}/product/${product.id}?slot=${slot}`);
-    } else {
-      nav(`/offers/${offer.id}?slot=${slot}`);
-    }
-  };
-
-  // ADD TO SHELF lives here, in the advert's product block — it used to be
-  // duplicated in the wash day sponsored tip card. One place only.
-  const shelfRow = useMemo(() => {
-    if (!product) return null;
-    return (
-      allProducts.find(
-        (row) =>
-          row.linked_brand_product_id === product.id ||
-          row.product_key === `brand-offer:${product.id}` ||
-          (row.name.trim().toLowerCase() === product.name.trim().toLowerCase() &&
-            (row.brand ?? "").trim().toLowerCase() === (brandName ?? "").trim().toLowerCase()),
-      ) ?? null
-    );
-  }, [allProducts, product, brandName]);
-  const onShelf = !!shelfRow?.on_shelf;
-
-  const addToShelf = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user || !product) return;
-    setShelfBusy(true);
-    try {
-      const row = await upsert({
-        product_key: shelfRow?.product_key ?? `brand-offer:${product.id}`,
-        name: product.name,
-        brand: brandName,
-        ingredients: (product.ingredients ?? []) as string[],
-        image_url: product.image_urls?.[0] ?? null,
-        linked_brand_offer_id: offer.id,
-        linked_brand_product_id: product.id,
-        on_shelf: true,
-        on_wishlist: false,
-      });
-      if (!row) throw new Error("Could not add to your shelf");
-      logEvent.mutate({ offer_id: offer.id, brand_product_id: product.id, slot, event_type: "shelf_add" });
-      toast.success("Added to your shelf");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not add to your shelf");
-    } finally {
-      setShelfBusy(false);
-    }
-  };
-
 
   const toggleExpand = () => {
     setExpanded((v) => {
@@ -281,75 +218,26 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
                 />
               </div>
             )}
-            {product && (
-              <>
-                <AdFitLine
-                  text={productGuidance?.fit_line}
-                  loading={productGuidanceLoading}
-                  className="mt-4"
-                />
-                {/* The one advertised product — full width, 12px padding,
-                 *  12px thumbnail gap, 16px clear above and below. */}
-                <div className="mt-4 rounded-[12px] border border-border bg-background/60 p-3 min-w-0">
-                  <button
-                    type="button"
-                    tabIndex={expanded ? 0 : -1}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={openProduct}
-                    className="w-full text-left flex items-start gap-3 min-w-0"
-                  >
-                    <div className="size-[72px] shrink-0 rounded-[10px] overflow-hidden bg-muted border border-border">
-                      {productImageUrl && (
-                        <img src={productImageUrl} alt="" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display text-[13.5px] leading-snug line-clamp-2 [overflow-wrap:anywhere]">
-                        {product.name}
-                      </p>
-                      {brandName && (
-                        <p className="mt-1 text-[11px] font-body text-muted-foreground leading-tight [overflow-wrap:anywhere]">
-                          {brandName}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                  <div className="mt-3 -mb-1 flex items-center gap-2 border-t border-border pt-2.5">
-                    <button
-                      type="button"
-                      tabIndex={expanded ? 0 : -1}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={openProduct}
-                      className="flex-1 min-w-0 flex items-center justify-between gap-2 text-left"
-                    >
-                      <span className="text-[12px] font-body text-foreground/90">How to use it for your hair</span>
-                      <ChevronRight className="size-4 text-primary shrink-0" />
-                    </button>
-                    {/* The only add-to-shelf in an advert. Beside the guidance
-                     *  row, never duplicated in the sponsored tip above. */}
-                    <button
-                      type="button"
-                      tabIndex={expanded ? 0 : -1}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={addToShelf}
-                      disabled={shelfBusy || onShelf}
-                      aria-label={onShelf ? "On your shelf" : "Add to my shelf"}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-pill border border-primary/40 px-2.5 py-1 text-[11px] font-body font-semibold text-primary disabled:opacity-60"
-                    >
-                      {shelfBusy ? (
-                        <Loader2 className="size-3 animate-spin" />
-                      ) : onShelf ? (
-                        <Check className="size-3" />
-                      ) : (
-                        <Plus className="size-3" />
-                      )}
-                      {onShelf ? "On shelf" : "Add"}
-                    </button>
+            {products.length > 0 && (
+              <div className="mt-4 space-y-4">
+                {/* ONE OR TWO PRODUCT BLOCKS — the only repeating part of the
+                 *  advert. Full width, stacked, never columns: 16px between
+                 *  blocks with a hairline separator, and each block carries its
+                 *  own personalised tip. */}
+                {products.map((p, i) => (
+                  <div key={p.id} className={i > 0 ? "border-t border-border pt-4" : undefined}>
+                    <BannerProductBlock
+                      offerId={offer.id}
+                      slot={slot}
+                      product={p}
+                      brandName={brandName}
+                      expanded={expanded}
+                    />
                   </div>
-
-                </div>
-              </>
+                ))}
+              </div>
             )}
+
             <button
               type="button"
               tabIndex={expanded ? 0 : -1}
