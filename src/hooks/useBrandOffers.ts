@@ -40,8 +40,9 @@ export type BrandProduct = Database["public"]["Tables"]["brand_products"]["Row"]
 export type PlacementSlot = Database["public"]["Enums"]["brand_placement_slot"];
 export type BrandOfferStatus = Database["public"]["Enums"]["brand_offer_status"];
 
-/** Revision row shape (creative-only edit awaiting review). Generated types will
- *  catch up on next codegen; keep this local type in sync with the migration. */
+/** Revision row shape (creative edit — and, on a live campaign, an audience
+ *  change — awaiting review). Generated types will catch up on next codegen;
+ *  keep this local type in sync with the migration. */
 export interface BrandOfferRevision {
   id: string;
   offer_id: string;
@@ -59,6 +60,21 @@ export interface BrandOfferRevision {
   reviewed_by: string | null;
   created_at: string;
   updated_at: string;
+  /** Proposed audience snapshot ({} = broad). Null when the revision is
+   *  creative-only and the live campaign's audience is untouched. */
+  targeting: Record<string, string[]> | null;
+  targeting_changed: boolean;
+  tier_before: "broad" | "targeted" | null;
+  tier_after: "broad" | "targeted" | null;
+  /** Placement days not yet delivered at the time of submission. */
+  remaining_days: number;
+  uplift_pence: number;
+  payment_required: boolean;
+  paid_at: string | null;
+  payment_waived: boolean;
+  /** EXACT member counts — admin-facing only. Brand-facing UI must band these. */
+  reach_before: number | null;
+  reach_after: number | null;
 }
 
 export interface RevisionProductSnapshot {
@@ -541,6 +557,9 @@ export function useSubmitBrandOfferRevision() {
       external_url: string | null;
       hero_image_path: string | null;
       products: RevisionProductSnapshot[];
+      /** Proposed audience. Omit (undefined) for a creative-only revision — the
+       *  live campaign then keeps its current audience untouched. */
+      targeting?: Record<string, string[]> | null;
     }) => {
       const { data, error } = await supabase.rpc("submit_brand_offer_revision" as never, {
         _offer_id: args.offer_id,
@@ -550,6 +569,7 @@ export function useSubmitBrandOfferRevision() {
         _external_url: args.external_url,
         _hero_image_path: args.hero_image_path,
         _products: args.products as unknown as never,
+        _targeting: (args.targeting ?? null) as unknown as never,
       } as never);
       if (error) throw error;
       return data as unknown as string;
@@ -561,6 +581,55 @@ export function useSubmitBrandOfferRevision() {
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+    },
+  });
+}
+
+/** Admin: record the audience uplift as received, or waive it. A broad →
+ *  targeted revision cannot be approved until one of the two has happened. */
+export function useMarkRevisionPaid() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ revision_id, waive }: { revision_id: string; offer_id: string; waive: boolean }) => {
+      const { error } = await supabase.rpc("mark_brand_offer_revision_paid" as never, {
+        _revision_id: revision_id,
+        _waive: waive,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: (_r, args) => {
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+    },
+  });
+}
+
+export interface SplitTotalsRow extends AdTotals {
+  phase: "before" | "after";
+  changed_at: string;
+}
+
+/** Performance either side of a mid-campaign audience change. Empty when the
+ *  campaign's audience never changed. */
+export function useOfferSplitTotals(offerId: string | undefined) {
+  return useQuery({
+    queryKey: ["brand-offer-split-totals", offerId],
+    enabled: !!offerId,
+    staleTime: 20_000,
+    queryFn: async (): Promise<SplitTotalsRow[]> => {
+      const { data, error } = await supabase.rpc("brand_offer_split_totals" as never, { _offer_id: offerId } as never);
+      if (error) throw error;
+      return ((data ?? []) as Array<Record<string, string | number>>).map((row) => ({
+        phase: String(row.phase) === "before" ? "before" : "after",
+        changed_at: String(row.changed_at),
+        impressions: Number(row.impressions ?? 0),
+        raw_views: Number(row.raw_views ?? 0),
+        expands: Number(row.expands ?? 0),
+        link_clicks: Number(row.link_clicks ?? 0),
+        code_copies: Number(row.code_copies ?? 0),
+        wishlist_adds: Number(row.wishlist_adds ?? 0),
+      }));
     },
   });
 }
@@ -580,6 +649,7 @@ export function useWithdrawBrandOfferRevision() {
     },
   });
 }
+
 
 export function useApproveBrandOfferRevision() {
   const qc = useQueryClient();

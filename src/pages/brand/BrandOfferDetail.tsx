@@ -18,7 +18,7 @@ import {
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
   usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
-  useRelaunchBrandOffer,
+  useRelaunchBrandOffer, useOfferSplitTotals,
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
@@ -58,6 +58,7 @@ const BrandOfferDetail = () => {
   const { isAdmin } = useRoles();
   const showExact = isAdmin;
   const { data: offerReach } = useOfferReach(id);
+  const { data: splitTotals } = useOfferSplitTotals(id);
 
   // When the owner (or admin) opens an ended offer, clear the "new interest"
   // badge on the past card by stamping brand_last_interest_seen_at = now.
@@ -378,6 +379,34 @@ const BrandOfferDetail = () => {
               Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
               site. {showExact ? "" : "Figures are shown as approximate ranges. "}{STATS_METHOD_NOTE}
             </p>
+          </>
+        )}
+
+        {/* A mid-campaign audience change is a natural before/after test. ad_events
+            rows are timestamped, so the split is read straight from them. */}
+        {splitTotals && splitTotals.length === 2 && (
+          <>
+            <SectionLabel className="!px-0">Before &amp; after your audience change</SectionLabel>
+            <SurfaceCard className="space-y-2.5">
+              <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
+                Your audience changed on {format(new Date(splitTotals[0].changed_at), "d MMM 'at' HH:mm")}. Here's how the campaign performed
+                either side of that.
+              </p>
+              {splitTotals.map((row) => (
+                <div key={row.phase} className="space-y-1.5">
+                  <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">
+                    {row.phase === "before" ? "Before the change" : "Since the change"}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <StatBox icon={Eye} label="Impressions" value={row.impressions} exact={showExact} />
+                    <StatBox icon={Maximize2} label="Expands" value={row.expands} exact={showExact} />
+                    <StatBox icon={Ticket} label="Code copies" value={row.code_copies} exact={showExact} />
+                    <StatBox icon={ExternalLink} label="Link clicks" value={row.link_clicks} exact={showExact} />
+                    <StatBox icon={Heart} label="Wishlist" value={row.wishlist_adds} exact={showExact} />
+                  </div>
+                </div>
+              ))}
+            </SurfaceCard>
           </>
         )}
 
