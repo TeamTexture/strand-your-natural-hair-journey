@@ -49,6 +49,7 @@ const ShelfProductCard = ({
   matchScore,
   chips,
   meta,
+  banner,
   thumbBadge,
   leading,
   headerActions,
