@@ -14,6 +14,10 @@ import {
 } from "../_shared/grounding.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import {
+  methodRetryDirective,
+  validateTipSubstance,
+} from "../_shared/tip-method.ts";
+import {
   memberAttributeTokens,
   validateTipAction,
   validateTipReason,
@@ -484,7 +488,10 @@ Do not substitute other cleansing or sealing methods for these two.`
               content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
             },
             { role: "assistant", content: raw },
-            { role: "user", content: retryDirective(verdict.reasons, attributeTokens) },
+            {
+              role: "user",
+              content: `${retryDirective(verdict.reasons, attributeTokens)}\n\n${methodRetryDirective(verdict.reasons)}`,
+            },
           ],
           response_format: { type: "json_object" },
         }),
