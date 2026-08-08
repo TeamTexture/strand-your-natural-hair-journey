@@ -386,6 +386,9 @@ const ProSetup = () => {
         return "Please add the name members will see.";
       if (form.bio.trim().length < 40)
         return "Please write at least a couple of sentences about your practice.";
+      if (form.bio.trim().length > BIO_MAX_CHARS)
+        return `Please keep your bio under ${BIO_MAX_CHARS} characters — you can add more detail to your listing once accepted.`;
+
       if (!form.avatar_path) return "Please upload a headshot.";
     }
     if (i === 1) {
