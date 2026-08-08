@@ -107,14 +107,29 @@ export async function loadResponsiveSignals(userId: string): Promise<ResponsiveS
 /**
  * The signature fragments contributed by the responsive signals plus the
  * calendar day. Order is stable so the hash is stable.
+ *
+ * Surfaces that must stay STATIC until the member's picture actually changes
+ * (the Strand tip on Home) opt out of the calendar day and of the recent
+ * wash day / appointment fragments, so no AI call is spent on a rollover.
  */
-export const responsiveSignatureParts = (signals: ResponsiveSignals): string[] => [
-  `day:${londonDayKey()}`,
-  `challenges:${[...signals.challenges].sort().join("|")}`,
-  `concerns:${[...signals.areasOfConcern].sort().join("|")}`,
-  `wash:${signals.recentWashDay ? `${signals.recentWashDay.id}@${signals.recentWashDay.date}` : ""}`,
-  `appt:${signals.recentAppointment ? `${signals.recentAppointment.id}@${signals.recentAppointment.date}` : ""}`,
-];
+export const responsiveSignatureParts = (
+  signals: ResponsiveSignals,
+  opts?: { includeDay?: boolean; includeEvents?: boolean },
+): string[] => {
+  const parts: string[] = [];
+  if (opts?.includeDay !== false) parts.push(`day:${londonDayKey()}`);
+  parts.push(
+    `challenges:${[...signals.challenges].sort().join("|")}`,
+    `concerns:${[...signals.areasOfConcern].sort().join("|")}`,
+  );
+  if (opts?.includeEvents !== false) {
+    parts.push(
+      `wash:${signals.recentWashDay ? `${signals.recentWashDay.id}@${signals.recentWashDay.date}` : ""}`,
+      `appt:${signals.recentAppointment ? `${signals.recentAppointment.id}@${signals.recentAppointment.date}` : ""}`,
+    );
+  }
+  return parts;
+};
 
 /** Style fields that must always contribute — current AND planned, with attrs. */
 export const styleSignatureParts = (
