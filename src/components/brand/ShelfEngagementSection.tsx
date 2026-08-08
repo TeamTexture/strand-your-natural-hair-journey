@@ -10,6 +10,7 @@ import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
 import { bandMemberCount } from "@/lib/adTargeting";
 import { useRoles } from "@/hooks/useRoles";
+import { useBrandShelf } from "@/hooks/useBrandShelf";
 import {
   useBrandShelfEngagement,
   shelfEngagementTotals,
@@ -41,7 +42,17 @@ const rowFigures = (r: {
   { label: "Buy link clicked", value: r.link_clicks },
 ];
 
-const ProductRow = ({ row, exact }: { row: ShelfEngagementRow; exact: boolean }) => {
+const Thumb = ({ src, name }: { src: string | null; name: string }) => (
+  <span className="size-10 shrink-0 overflow-hidden rounded-[9px] border border-border/70 bg-muted/40 flex items-center justify-center">
+    {src ? (
+      <img src={src} alt={name} loading="lazy" className="h-full w-full object-cover" />
+    ) : (
+      <span className="font-display text-[13px] text-primary/50">✦</span>
+    )}
+  </span>
+);
+
+const ProductRow = ({ row, exact, imageUrl }: { row: ShelfEngagementRow; exact: boolean; imageUrl: string | null }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-[12px] border border-border/70 bg-card overflow-hidden">
@@ -50,6 +61,7 @@ const ProductRow = ({ row, exact }: { row: ShelfEngagementRow; exact: boolean })
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-2 p-3 text-left"
       >
+        <Thumb src={imageUrl} name={row.name} />
         <span className="flex-1 min-w-0 font-body text-[13px] leading-snug [overflow-wrap:anywhere] line-clamp-2">
           {row.name}
         </span>
@@ -71,6 +83,8 @@ const ProductRow = ({ row, exact }: { row: ShelfEngagementRow; exact: boolean })
 const ShelfEngagementSection = () => {
   const { data: rows = [], isLoading } = useBrandShelfEngagement();
   const { isAdmin } = useRoles();
+  const { data: shelf = [] } = useBrandShelf();
+  const imageById = new Map(shelf.map((i) => [i.id, i.image_urls?.[0] ?? null]));
   const exact = isAdmin;
   if (isLoading || rows.length === 0) return null;
 
@@ -91,7 +105,12 @@ const ShelfEngagementSection = () => {
         </div>
         <div className="space-y-1.5 pt-1">
           {rows.map((r) => (
-            <ProductRow key={r.brand_product_id} row={r} exact={exact} />
+            <ProductRow
+              key={r.brand_product_id}
+              row={r}
+              exact={exact}
+              imageUrl={imageById.get(r.brand_product_id) ?? null}
+            />
           ))}
         </div>
         {!exact && (
