@@ -5,6 +5,7 @@ import {
   responsiveSignatureParts,
   styleSignatureParts,
   type ResponsiveSignals,
+  strandTipSignatureParts,
 } from "@/lib/tipSignature";
 
 const base: ResponsiveSignals = {
@@ -79,5 +80,38 @@ describe("responsive tip signature", () => {
       planned_next_style: "Box braids",
     });
     expect(changedPlan.join("::")).not.toBe(parts.join("::"));
+  });
+});
+
+describe("strandTipSignatureParts (home STRAND tip — static)", () => {
+  const style = { current_hairstyle: "cornrows", planned_next_style: "twists" };
+  const goal = { id: "g1", title: "Length", target_text: "4 inches", target_date: "2026-12-01" };
+
+  it("depends only on current style, planned style and the goal", () => {
+    expect(strandTipSignatureParts(style, goal)).toEqual([
+      "cur:cornrows",
+      "plan:twists",
+      "goal:g1",
+      "goalTitle:Length",
+      "goalTarget:4 inches",
+      "goalDate:2026-12-01",
+    ]);
+  });
+
+  it("carries no calendar day and ignores wash days, appointments, challenges and concerns", () => {
+    const parts = strandTipSignatureParts(
+      { ...style, current_style_tension: "tight", areas_of_concern: ["breakage"] },
+      goal,
+    ).join("::");
+    expect(parts).not.toMatch(/day:/);
+    expect(parts).not.toMatch(/wash|appt|challenge|concern|tension/i);
+  });
+
+  it("changes when planned_next_style changes, and only then", () => {
+    const before = strandTipSignatureParts(style, goal).join("::");
+    const same = strandTipSignatureParts({ ...style }, { ...goal }).join("::");
+    const after = strandTipSignatureParts({ ...style, planned_next_style: "bantu knots" }, goal).join("::");
+    expect(same).toBe(before);
+    expect(after).not.toBe(before);
   });
 });
