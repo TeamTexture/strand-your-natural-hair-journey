@@ -242,18 +242,14 @@ export function pickDominantColours(
   const avg = (x: { count: number; r: number; g: number; b: number }) =>
     rgbToHex(x.r / x.count, x.g / x.count, x.b / x.count);
   const primary = avg(ranked[0]);
-  const [pr, pg, pb] = hexToRgb(primary) ?? [0, 0, 0];
-  const runnerUp = ranked
-    .slice(1)
-    .find((bucket) => {
-      const [r, g, b] = hexToRgb(avg(bucket)) ?? [0, 0, 0];
-      return Math.abs(r - pr) + Math.abs(g - pg) + Math.abs(b - pb) > 120;
-    });
+  // Second highest count = secondary. Strictly area order, same as the primary.
+  const runnerUp = ranked[1];
   return {
     primary,
     secondary: runnerUp ? avg(runnerUp) : shift(primary, -0.25),
     share: ranked[0].count / considered,
     secondaryShare: runnerUp ? runnerUp.count / considered : 0,
   };
+
 }
 
