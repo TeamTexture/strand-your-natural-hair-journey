@@ -407,9 +407,9 @@ export function useActiveBrandOffer(slot: PlacementSlot, opts?: { enabled?: bool
       const chosen = delivery?.[0];
       if (!chosen) return null;
 
-      // ONE ADVERTISED PRODUCT. The junction rows are ordered by `position`
-      // (then created_at) so the brand controls which single product is
-      // promoted by ordering their shelf; the card renders only the first.
+      // ONE ADVERTISED PRODUCT — enforced at submission. Ordering by
+      // `position` (then created_at) keeps legacy multi-attach offers
+      // deterministic: the first row is the one that renders.
       const { data, error } = await supabase
         .from("brand_offers")
         .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))")
