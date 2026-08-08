@@ -168,6 +168,8 @@ const RevisionDiff = ({ offer, revision }: {
           upliftPence={revision.uplift_pence}
           paymentRequired={revision.payment_required}
           paidAt={revision.paid_at}
+          status={revision.status}
+
         />
       )}
 
