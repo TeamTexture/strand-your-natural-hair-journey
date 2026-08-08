@@ -630,6 +630,59 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_offer_admin_overrides: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          ends_on: string | null
+          fee_charged_pence: number
+          id: string
+          offer_id: string
+          placement_changed: boolean
+          placements_added: number
+          placements_removed: number
+          slots: string[] | null
+          starts_on: string | null
+          targeting_changed: boolean
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          ends_on?: string | null
+          fee_charged_pence?: number
+          id?: string
+          offer_id: string
+          placement_changed?: boolean
+          placements_added?: number
+          placements_removed?: number
+          slots?: string[] | null
+          starts_on?: string | null
+          targeting_changed?: boolean
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          ends_on?: string | null
+          fee_charged_pence?: number
+          id?: string
+          offer_id?: string
+          placement_changed?: boolean
+          placements_added?: number
+          placements_removed?: number
+          slots?: string[] | null
+          starts_on?: string | null
+          targeting_changed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_admin_overrides_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_offer_interest: {
         Row: {
           created_at: string
@@ -4793,6 +4846,16 @@ export type Database = {
       admin_notifications_mark_read: {
         Args: { _ids: string[] }
         Returns: undefined
+      }
+      admin_override_brand_offer: {
+        Args: {
+          _ends_on?: string
+          _offer_id: string
+          _slots?: Database["public"]["Enums"]["brand_placement_slot"][]
+          _starts_on?: string
+          _targeting?: Json
+        }
+        Returns: Json
       }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
