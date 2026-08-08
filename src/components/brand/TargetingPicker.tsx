@@ -95,7 +95,7 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
   }, [term, grouped]);
 
   const reach = estimate?.reach ?? null;
-  const progress = Math.min(100, Math.round(((reach ?? 0) / REACH_REPORTING_MILESTONE) * 100));
+
 
   return (
     <SurfaceCard className="space-y-3.5">
