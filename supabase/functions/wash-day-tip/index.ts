@@ -305,6 +305,13 @@ Do not substitute other cleansing or sealing methods for these two.`
     ragK: 5,
   });
 
+  // PAID-MEDIA WALL + minimal caps. The exclusion list is resolved from the
+  // database with the service client — never from anything the client sent.
+  const guard = await buildEditorialProductGuard(admin as never, body.shelfProducts ?? []);
+  const editorialBlock = editorialProductBlock(guard);
+  const minimalBlock = requestedLevel === 1 ? minimalPromptBlock() : "";
+  const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${editorialBlock}${minimalBlock}`;
+
   let aiResp: Response;
   try {
     aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -316,7 +323,8 @@ Do not substitute other cleansing or sealing methods for these two.`
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+          { role: "system", content: systemPrompt },
+
           {
             role: "user",
             content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
