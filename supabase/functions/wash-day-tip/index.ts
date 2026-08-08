@@ -314,10 +314,10 @@ Do not substitute other cleansing or sealing methods for these two.`
     ragK: 5,
   });
 
-  // PAID-MEDIA WALL + minimal caps. The exclusion list is resolved from the
-  // database with the service client — never from anything the client sent.
-  const guard = await buildEditorialProductGuard(admin as never, body.shelfProducts ?? []);
-  const editorialBlock = editorialProductBlock(guard);
+  // NO PRODUCT NAMES + minimal caps. The forbidden-name index is resolved from
+  // the database with the service client — never from anything the client sent.
+  const wall = await buildProductNameWall(admin as never, user.id, body.shelfProducts ?? []);
+  const editorialBlock = noProductNamesBlock();
   const minimalBlock = tipLevelPromptBlock(requestedLevel);
   const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${editorialBlock}${minimalBlock}`;
 
