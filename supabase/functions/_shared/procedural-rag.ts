@@ -74,7 +74,7 @@ export interface ProceduralRetrievalResult {
 /**
  * Retrieve `k` passages, biased toward procedure.
  *
- * Blend: 0.6 × cosine similarity + 0.4 × procedural density. Then, if fewer
+ * Blend: 0.5 × cosine similarity + 0.5 × procedural density. Then, if fewer
  * than two of the winners clear the procedural bar, swap in the highest-scoring
  * procedural candidates that were left behind.
  */
@@ -86,9 +86,13 @@ export async function retrieveProceduralPassages(
   const wanted = Math.max(1, Math.min(k, 10));
   const biasedQuery = `${query} — ${PROCEDURAL_INTENT}`;
 
-  let candidates = await retrievePassages(biasedQuery, 10, chapterFilter);
+  // Over-fetch WIDE. Measured against the live corpus, only about one chunk in
+  // seven is strongly procedural (verbs plus a timing or a frequency), so a
+  // 10-candidate pool often contained no real method to re-rank toward.
+  const POOL = 24;
+  let candidates = await retrievePassages(biasedQuery, POOL, chapterFilter);
   if (candidates.length === 0 && chapterFilter && chapterFilter.length > 0) {
-    candidates = await retrievePassages(biasedQuery, 10);
+    candidates = await retrievePassages(biasedQuery, POOL);
   }
   if (candidates.length === 0) {
     return { passages: [], considered: 0, procedural: 0 };
@@ -96,13 +100,13 @@ export async function retrieveProceduralPassages(
 
   const scored = candidates.map((p) => {
     const proc = proceduralScore(p.body);
-    return { p, proc, blended: p.similarity * 0.6 + proc * 0.4 };
+    return { p, proc, blended: p.similarity * 0.5 + proc * 0.5 };
   });
   scored.sort((a, b) => b.blended - a.blended);
 
   const chosen = scored.slice(0, wanted);
   const rest = scored.slice(wanted);
-  const minProcedural = Math.min(2, wanted);
+  const minProcedural = Math.min(3, wanted);
   let proceduralCount = chosen.filter((c) => c.proc >= PROCEDURAL_BAR).length;
   if (proceduralCount < minProcedural) {
     const spare = rest
