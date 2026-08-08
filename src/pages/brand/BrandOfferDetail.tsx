@@ -27,6 +27,8 @@ import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBra
 import { Users } from "lucide-react";
 import { money as baseMoney, TRIAL_PRICING_NOTE } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
+import { bandMemberCount } from "@/lib/adTargeting";
+import { useRoles } from "@/hooks/useRoles";
 
 const money = baseMoney;
 
@@ -51,6 +53,9 @@ const BrandOfferDetail = () => {
   const markSeen = useMarkOfferInterestSeen();
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
   const interest = id ? interestMap[id] : undefined;
+  // Admins see exact performance figures; brands see approximate ranges.
+  const { isAdmin } = useRoles();
+  const showExact = isAdmin;
 
   // When the owner (or admin) opens an ended offer, clear the "new interest"
   // badge on the past card by stamping brand_last_interest_seen_at = now.
@@ -71,11 +76,10 @@ const BrandOfferDetail = () => {
 
   if (isLoading || !offer) return <LoadingDot />;
 
-  // Performance for a targeted campaign is suppressed by the database until at
-  // members are in the audience — exact figures are reported at any audience size.
-  // back with NULL metrics rather than being hidden.
+  // Performance is always reported at any audience size. Brands see approximate
+  // ranges (banded), admins see exact figures.
   const statRows = offer.brand_offer_stats ?? [];
-  const statsSuppressed = statRows.length > 0 && statRows.every((s) => s.impressions === null);
+  const statsSuppressed = statRows.length === 0;
   const stats = statRows.reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
@@ -315,7 +319,7 @@ const BrandOfferDetail = () => {
         {statsSuppressed ? (
           <SurfaceCard className="py-3">
             <p className="text-[12px] font-body leading-snug">
-              Your campaign is running. Performance numbers will appear here as members see it.
+              Your campaign is running. Performance figures will appear here as members see it.
             </p>
           </SurfaceCard>
         ) : (

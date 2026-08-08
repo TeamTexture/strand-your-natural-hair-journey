@@ -2,7 +2,7 @@
 //
 // Deliberately separate from campaign metrics: these figures are about the
 // permanent shelf and stay meaningful when nothing is running. Figures come from
-// public.brand_shelf_engagement and are exact at any size.
+// public.brand_shelf_engagement; brands see approximate ranges, admins exact figures.
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
