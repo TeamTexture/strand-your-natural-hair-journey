@@ -718,10 +718,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── METHOD + ANTI-TAUTOLOGY FLOOR ────────────────────────────────
-    // Every tip must name a method and must not restate its own goal as its
-    // justification. One corrective regeneration, then the best available
-    // output is served (never a blank card) and the failure is audited.
     // ── QUALITY FLOOR (shared with the wash day tip) ─────────────────
     // Every tip must carry a real ACTION and a real REASON (tip-action.ts),
     // must name a method, and must not restate its own goal as its
