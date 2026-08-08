@@ -275,15 +275,21 @@ function validate(
     }
   });
 
-  // Repetition gate — each stated characteristic at most once in the whole card.
-  const assembled = [
-    headline,
-    fitLine,
-    intro,
-    ...benefits.map((b) => `${b.label} ${b.text}`),
-    ...steps,
-    ...watchOuts,
-  ].join(" ");
+  // Repetition gate — each stated characteristic at most once in the copy that
+  // is actually rendered on this surface.
+  const assembled = (
+    isWashDay
+      ? [headline, washDayTip]
+      : [
+          headline,
+          fitLine,
+          intro,
+          ...benefits.map((b) => `${b.label} ${b.text}`),
+          ...steps,
+          ...watchOuts,
+        ]
+  ).join(" ");
+
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
     if (n > 1) {
