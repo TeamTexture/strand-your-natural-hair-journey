@@ -198,19 +198,22 @@ const BrandDetailPage = () => {
           .maybeSingle(),
         supabase
           .from("brand_offers")
-          .select("id, headline, body_copy, hero_image_path, external_url, discount_code, starts_on, ends_on, status, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url)")
+          .select("id, headline, body_copy, hero_image_path, external_url, discount_code, starts_on, ends_on, status, brand_user_id, brand_offer_products(position, created_at, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))")
           .eq("brand_user_id", brandUserId!)
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
           .gte("ends_on", today)
-          .order("starts_on"),
+          .order("starts_on")
+          .order("position", { referencedTable: "brand_offer_products", ascending: true })
+          .order("created_at", { referencedTable: "brand_offer_products", ascending: true }),
         supabase
           .from("brand_offers")
-          .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_products(name)")
+          .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_offer_products(position, brand_products(name))")
           .eq("brand_user_id", brandUserId!)
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
           .limit(10),
+
         supabase.rpc("brand_public_catalogue", { _brand_user_id: brandUserId! }),
       ]);
 
