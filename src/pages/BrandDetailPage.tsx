@@ -370,7 +370,7 @@ const BrandDetailPage = () => {
                   key={o.id}
                   offer={o as unknown as BannerOffer}
                   slot="brand_page"
-                  showDismissControls={false}
+                  
                 />
               ))}
             </div>

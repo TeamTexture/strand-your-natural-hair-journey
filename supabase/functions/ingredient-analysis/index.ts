@@ -46,11 +46,16 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
 import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
-import { hasInstructingVerb } from "../_shared/tip-action.ts";
+import {
+  hasInstructingVerb,
+  memberAttributeTokens,
+  validateTipAction,
+  validateTipReason,
+} from "../_shared/tip-action.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v12-detailed-guidance";
+const MODEL_VERSION = "claude-sonnet-4-6@v13-guidance-floors";
 
 
 interface IngredientCard {
@@ -99,10 +104,52 @@ const FORBIDDEN_GUIDANCE_PATTERNS: RegExp[] = [
   /\btt\s+heat\b/i,
 ];
 
-// ACTION FLOOR (shared with the goal tip and wash day tip surfaces) — usage
-// guidance that never instructs the member to do anything is an observation,
-// not a tip. We never blank the card, so failures are logged for audit and the
-// tip is kept; the prompt above is what raises quality.
+// ACTION + REASON FLOORS (the same shared helpers the goal tip, routine tips
+// and the sponsored advert tip use). Usage guidance that never instructs the
+// member to do anything is an observation, not a tip; guidance whose "why"
+// merely restates the action is a tautology. Both now trigger ONE regeneration
+// with the failures echoed back. We still never blank the card — if the retry
+// also fails we log and serve, because a weak tip beats an empty product page.
+function guidanceFloorProblems(
+  analysis: AnalysisPayload,
+  attributeTokens: string[],
+): string[] {
+  const problems: string[] = [];
+  for (const tip of analysis.personalised_guidance ?? []) {
+    const title = String(tip?.title ?? "").trim();
+    const body = String(tip?.body ?? "").trim();
+    if (!body) continue;
+    // The first sentence carries the instruction; what follows is the why.
+    const sentences = body.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
+    const action = sentences[0] ?? body;
+    const reason = sentences.slice(1).join(" ");
+    const label = title || action.slice(0, 40);
+
+    const actionCheck = validateTipAction({
+      action,
+      supporting: [title, reason],
+      attributeTokens,
+    });
+    if (!actionCheck.ok)
+      problems.push(
+        `the tip "${label}" fails the action floor (${actionCheck.reasons.join(", ")}). Its FIRST sentence must be a direct instruction for using THIS product — the physical action, where on the head, how much, and when — and must name one of this member's recorded details.`,
+      );
+
+    if (!reason)
+      problems.push(
+        `the tip "${label}" gives an instruction with no reason. Add ONE sentence after the instruction explaining why it matters for this member's hair — the mechanism or the consequence.`,
+      );
+    else {
+      const reasonCheck = validateTipReason({ reason, action });
+      if (!reasonCheck.ok)
+        problems.push(
+          `the tip "${label}" fails the reason floor (${reasonCheck.reasons.join(", ")}). The explanation must not restate the instruction in different words.`,
+        );
+    }
+  }
+  return problems;
+}
+
 function auditGuidanceActionFloor(analysis: AnalysisPayload, productKey: string): void {
   for (const tip of analysis.personalised_guidance ?? []) {
     const text = `${tip?.title ?? ""} ${tip?.body ?? ""}`;
@@ -114,6 +161,7 @@ function auditGuidanceActionFloor(analysis: AnalysisPayload, productKey: string)
     }
   }
 }
+
 
 function guidanceReferencesOtherProduct(analysis: AnalysisPayload): boolean {
   const tips = analysis.personalised_guidance ?? [];
@@ -560,6 +608,17 @@ Deno.serve(async (req) => {
       context: body.context ?? null,
     };
 
+    // Tokens for the shared action floor — the member's own recorded details.
+    const guidanceTokens = memberAttributeTokens({
+      hairProfile: (hairProfile ?? null) as Record<string, unknown> | null,
+      currentStyle: (currentStyle ?? null) as Record<string, unknown> | null,
+      goals: (goals && goals.length ? goals : dbGoals) as Array<{ title?: string }>,
+      challenges: (challenges ?? []) as string[],
+      recentWashDay: null,
+    });
+
+
+
     const ingredientCount = (ingredients ?? []).length;
     const avoidList = Array.isArray(body.context?.avoid_ingredients)
       ? body.context!.avoid_ingredients as string[]
@@ -577,18 +636,27 @@ Deno.serve(async (req) => {
         avoidList,
         level: tipsLevel,
       });
-      // Guard: if the tip references another product/step, retry once with
-      // a hardened payload that echoes the violation back to the model.
-      if (guidanceReferencesOtherProduct(analysis)) {
+      // Guard: if the tip references another product/step, or fails the shared
+      // action/reason floors, retry once with the failures echoed back.
+      const claudeProblems = [
+        ...(guidanceReferencesOtherProduct(analysis)
+          ? [
+            "the tip referenced another product, product type, brand, accessory, or wash-day step. Describe ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution).",
+          ]
+          : []),
+        ...guidanceFloorProblems(analysis, guidanceTokens),
+      ];
+      if (claudeProblems.length) {
         console.log(JSON.stringify({
           function: "ingredient-analysis",
-          violation: "other_product_reference",
+          violation: "guidance_floor",
+          problems: claudeProblems,
           retry: true,
         }));
         const retryPayload = {
           ...userPayload,
           _retry_reason:
-            "Previous tip referenced another product, product type, brand, accessory, or wash-day step. Regenerate the personalised_guidance tip so it describes ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution). Do not mention any other product, category, brand, hat, cap, towel, or routine step.",
+            `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${claudeProblems.join("\n- ")}`,
         };
         analysis = await runClaude({
           productName,
@@ -604,6 +672,10 @@ Deno.serve(async (req) => {
       // Last line of defence: scrub any lingering forbidden phrases from
       // the tip so a stubborn model can't leak them into the UI.
       analysis = scrubGuidance(analysis);
+      auditGuidanceActionFloor(analysis, productKey);
+      const remaining = guidanceFloorProblems(analysis, guidanceTokens);
+      if (remaining.length)
+        console.warn("[ingredient-analysis] guidance served below floor after retry", { productKey, remaining });
       // Stamp provenance — required for cache_version invalidation.
       analysis._model_version = MODEL_VERSION;
       analysis._generated_at = new Date().toISOString();
@@ -620,10 +692,31 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`
         level: tipsLevel,
       });
       analysis = scrubGuidance(analysis);
+      const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
+      if (lovableProblems.length) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "guidance_floor",
+          problems: lovableProblems,
+          retry: true,
+        }));
+        analysis = await runLovable({
+          systemPrompt,
+          userPayload: {
+            ...userPayload,
+            _retry_reason:
+              `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${lovableProblems.join("\n- ")}`,
+          },
+          ingredientCount,
+          level: tipsLevel,
+        });
+        analysis = scrubGuidance(analysis);
+      }
       auditGuidanceActionFloor(analysis, productKey);
       analysis._provider = "lovable";
       analysis._generated_at = new Date().toISOString();
       // Note: no _model_version stamp on Lovable path — back-compat.
+
     }
 
     // ── Score reasons: normalise + keep match_score honest, and reduce the
