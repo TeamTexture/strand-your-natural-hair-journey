@@ -836,19 +836,8 @@ const BrandCreateOffer = () => {
               Choose from your shelf
             </Button>
           </div>
-          <div className="rounded-[12px] border border-border p-3">
-            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
-              <PackagePlus className="size-3 text-primary" /> Browse app catalogue
-            </Label>
-            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-              Search anonymised products and tools already used in STRAND, then attach the item to this advert.
-              Only items matching your own brand name are shown — you can't tag another brand's product.
-            </p>
-            <Button type="button" variant="outline" size="pill" onClick={() => setCatalogueOpen(true)} className="mt-2 w-full px-4">
-              Browse products &amp; tools
-            </Button>
-          </div>
           <div>
+
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
               <Sparkles className="size-3 text-primary" /> AI page from a link
             </Label>
