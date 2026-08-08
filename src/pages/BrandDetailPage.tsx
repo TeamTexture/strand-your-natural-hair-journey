@@ -225,7 +225,7 @@ const BrandDetailPage = () => {
           return {
             ...(r as Record<string, unknown>),
             brand_products: (row.brand_offer_products ?? []).map((j) => j.brand_products).filter(Boolean),
-          } as Record<string, unknown> & { id: string };
+          } as unknown as Record<string, unknown> & { id: string };
         });
 
 
