@@ -68,20 +68,22 @@ RESPONSE SHAPE
 Return ONLY valid JSON with this exact shape (no prose, no code fences):
 {
   "headline": string — ONE line, MAXIMUM 8 words,
-  "fit_line": string — exactly ONE sentence, MAXIMUM 16 words,
+  "fit_line": string — exactly ONE sentence, MAXIMUM 22 words,
   "intro": string — exactly ONE sentence, MAXIMUM 20 words,
   "benefits": array of EXACTLY 3 objects (2 is acceptable ONLY if a third cannot be grounded) — { "label": 1-2 words, "text": ONE sentence, MAXIMUM 15 words },
   "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words
 }
 
-FIT LINE — THE PERSONALISED HOOK
-- This is the one line shown on the advert itself, before the member opens anything.
-- It must name ONE real thing about THEIR hair (from their profile data) and the ONE concrete benefit this product gives that thing. Nothing else.
-- No greetings, no brand hype, no "this product is great", no imperatives — it is an observation, not an instruction.
-- If nothing in their profile supports a benefit, say plainly what it would suit instead — never invent a fit.
+FIT LINE — WHY THIS MEMBER IS SEEING THIS PRODUCT
+- This is the only line shown on the advert itself, so it must answer one question: why does STRAND think THIS product is a good fit for THIS member?
+- Build it from their own data, choosing whichever is strongest: a stated goal, a logged challenge or concern, their current or planned style, wash-day history, or a hair characteristic (porosity, texture, density, length, scalp state).
+- Prefer a goal or challenge over a raw characteristic when both are available — the reason should feel like STRAND remembered what they are working on.
+- Shape: their situation → the concrete thing this product does for it. One sentence, ≤ 22 words, no lists.
+- Write it as STRAND's reasoning about them ("Your length goal...", "Since you're wearing cornrows...", "With your protein-light wash routine...") — never generic marketing, never brand hype, never an instruction, never a greeting.
+- Do not invent a goal, challenge or trait that is not in their data. If their profile genuinely supports nothing, state plainly the situation this product suits instead.
 
 HARD LIMITS — output that breaks any of these is rejected and regenerated:
-- headline ≤ 8 words. fit_line ≤ 16 words, one sentence. intro ≤ 20 words, one sentence.
+- headline ≤ 8 words. fit_line ≤ 22 words, one sentence. intro ≤ 20 words, one sentence.
 - benefits: 3 items (2 only if the third would be unsupported). label 1-2 words, Title Case, ideally ONE noun ("Penetration", "Moisture", "Retention"). text ≤ 15 words, ONE sentence.
 - steps: 3 items, each ≤ 25 words, ONE sentence each, sequential and concrete.
 
@@ -181,7 +183,7 @@ function validate(
 
   if (!fitLine) problems.push("fit_line is missing.");
   else {
-    if (words(fitLine) > 16) problems.push(`fit_line is ${words(fitLine)} words — maximum 16.`);
+    if (words(fitLine) > 22) problems.push(`fit_line is ${words(fitLine)} words — maximum 22.`);
     if (sentenceCount(fitLine) > 1) problems.push("fit_line must be exactly one sentence.");
   }
 
