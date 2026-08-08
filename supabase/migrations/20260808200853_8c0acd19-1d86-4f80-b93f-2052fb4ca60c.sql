@@ -1,0 +1,1 @@
+DELETE FROM public.hair_strand_summaries WHERE id IN ('28126337-a6fc-4115-9e4c-79851db66628','04cfd5d9-af80-4618-91fb-f9bc780398fc','c9ff804e-d628-4ebd-b72f-343728d14043','21b10bc0-2ac1-43ed-99a1-a9a7ebda3805','20e5a92c-5529-4cfd-92b3-13a30147d250','d539cc55-6274-4605-972c-5c5fd1b81d26');

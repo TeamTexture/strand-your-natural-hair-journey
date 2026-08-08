@@ -1,4 +1,6 @@
 import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
+import { enforceTipSetIntegrity } from "./tip-set-integrity.ts";
+
 // Deterministic STRAND routine guardrails.
 //
 // Prompts tell the model what to do; this file makes the most important
@@ -91,13 +93,16 @@ const styleFamily = (style: string):
 
 const containsAny = (tips: string[], re: RegExp): boolean => tips.some((tip) => re.test(tip));
 
-function coreCleanseTip(context: UnknownRecord): string {
-  const style = styleLabel(context);
-  const family = styleFamily(style);
-  if (["braids", "locs", "cornrows", "wig", "weave"].includes(family)) {
-    const label = style || "your current style";
-    return `Cleanse your scalp every 7 days while wearing ${label} with diluted cleansing shampoo through the parts, then use a moisturising shampoo where your natural hair can be reached before conditioning — protective styling still needs clean scalp and hair.`;
-  }
+const PROTECTIVE_FAMILIES = ["braids", "locs", "cornrows", "wig", "weave"];
+
+/** The cleansing tip for a member NOT in a protective style. In a protective
+ *  style the cleansing method is the in-style method returned by
+ *  styleRoutineTips(), and there must only ever be ONE cleansing method in the
+ *  set — so this returns null there rather than adding a second, conflicting
+ *  method. */
+function coreCleanseTip(context: UnknownRecord): string | null {
+  const family = styleFamily(styleLabel(context));
+  if (PROTECTIVE_FAMILIES.includes(family)) return null;
   return "Cleanse every 7 days with two shampoos before conditioning — a scalp-focused cleansing shampoo first, then a moisturising shampoo through the hair — so both scalp and strands are properly clean before conditioner.";
 }
 
@@ -109,45 +114,79 @@ function consistencyTip(context: UnknownRecord): string {
   return `Keep your core wash-day products steady for 3–4 wash cycles unless you log irritation, build-up, persistent dryness, stiffness or increased breakage — ${suffix}.`;
 }
 
-function styleRoutineTip(context: UnknownRecord): string | null {
+/** One idea per tip: each entry addresses a single target and a single task. */
+function styleRoutineTips(context: UnknownRecord): string[] {
   const style = styleLabel(context);
   const planned = plannedStyleLabel(context);
   const days = daysInStyle(context);
   const family = styleFamily(style);
-  const weekText = days == null ? "" : ` at ${Math.floor(days / 7)} weeks in`;
+  const weekText = days == null ? "" : ` (you are ${Math.floor(days / 7)} weeks in)`;
 
   if (family === "braids") {
-    return `Plan ${style || "braids"} around a 4–6 week ceiling${weekText}, keep the scalp cleansed during the install, and deep-condition with the ${HEAT_HAT_LINK} after takedown — tension and trapped build-up turn protection into breakage.`;
+    return [
+      `Cleanse the scalp through the parts every 7 days while your ${style || "braids"} are in, using diluted cleansing shampoo or a scalp cleanser on a cotton pad — build-up sits against the scalp between infrequent washes, and that is when itching and irritation start.`,
+      `Take ${style || "braids"} down by the 4–6 week ceiling${weekText} — tension held past that point is where protective styling turns into breakage at the roots.`,
+      `Deep-condition with the ${HEAT_HAT_LINK} for 20–30 minutes at takedown — hair that has been installed for weeks comes out water-depleted and snaps while it is being detangled.`,
+    ];
   }
   if (family === "cornrows") {
-    return `Clean the exposed scalp between your cornrows with a scalp cleanser on a cotton pad or scalp cleansing pads, and keep your ends tucked under or coated with a thick gel or emollient-based leave-in — on the ends and length only, never on the scalp — to slow moisture loss${weekText} — refresh rather than re-tighten the front around 2–3 weeks.`;
+    return [
+      `Clean the exposed scalp between your cornrows with a scalp cleanser on a cotton pad or scalp cleansing pads on your 7-day rhythm${weekText} — nothing else goes on the scalp — oils, butters and heavy creams belong on the ends and length only, and between infrequent washes they sit there and build up.`,
+      `Keep your ends tucked under or coated with a thick gel or emollient leave-in on the ends and length only — exposed ends in a long-worn style lose water fastest and are the first place breakage shows.`,
+      `Refresh the front rather than re-tightening it around 2–3 weeks — re-tightening reloads tension on the same hairline that is already holding the style.`,
+    ];
   }
   if (family === "locs") {
-    return `Wash locs every 7 days by cleansing the scalp first and rinsing through the locs thoroughly before drying fully — locs should not go months without cleansing.`;
+    return [
+      `Wash your locs every 7 days by cleansing the scalp first and rinsing right through the locs — locs left months between washes hold residue and grime inside the loc itself.`,
+      `Dry your locs fully after every wash before wrapping them — moisture held inside a loc is where mustiness and scalp irritation start.`,
+    ];
   }
   if (family === "wig") {
-    return `Take your wig off at night and wash the braid-down underneath by 4–6 weeks, with a moisture-focused ${HEAT_HAT_LINK} reset between installs — the natural hair underneath is the priority.`;
+    return [
+      `Wash the braid-down under your wig by the 4–6 week mark${weekText} with a cleansing shampoo through the cornrows — the hair underneath is what you are actually growing.`,
+      `Take the wig off at night rather than sleeping in it — a unit worn round the clock keeps friction and tension on the same hairline.`,
+      `Give the natural hair a moisture-focused ${HEAT_HAT_LINK} reset for 20–30 minutes between installs — weeks flat under a unit leave the strands water-depleted.`,
+    ];
   }
   if (family === "weave") {
-    return `Keep weave installs within 6–8 weeks, cleanse through the parts with diluted shampoo, and detangle slowly with slippery conditioner at takedown — the base hair is under tension the whole time.`;
+    return [
+      `Cleanse through the parts of your weave with diluted shampoo every 7 days — the base hair sits under wefts where build-up cannot rinse away on its own.`,
+      `Keep the install within 6–8 weeks — the base hair is under continuous tension for the whole wear, and past that window the tension is what costs you length.`,
+      `Detangle slowly with a slippery conditioner at takedown — weeks of shed hair are still woven in, and dry detangling tears through it.`,
+    ];
   }
   if (family === "wash-go") {
-    return "Set your wash-and-go on wash day, then leave it alone as much as possible until the next 7-day wash — low manipulation and product consistency protect length better than daily restyling.";
+    return [
+      "Set your wash-and-go on wash day and then leave it alone until the next 7-day wash — every dry restyle adds friction the strands do not recover from.",
+    ];
   }
   if (family === "twist-out") {
-    return "Set twist-outs on damp, freshly conditioned hair with slip, then refresh only the front if needed — repeating the whole set dry adds friction to your ends.";
+    return [
+      "Set twist-outs on damp, freshly conditioned hair with slip — twisting dry hair drags the cuticle and roughs up the ends.",
+      "Refresh only the front between sets rather than re-doing the whole head — repeating the full set on dry hair is where the friction accumulates.",
+    ];
   }
   if (family === "silk-press") {
-    return `Use your next wash as a moisture recovery reset after a silk press, with conditioner and the ${HEAT_HAT_LINK} where dryness shows — repeating heat to stretch the style is the risk point.`;
+    return [
+      `Use your next wash as a moisture recovery reset after a silk press, with conditioner and the ${HEAT_HAT_LINK} where dryness shows — direct heat leaves the strand short of water.`,
+      "Avoid re-applying heat to stretch the style out for longer — repeated passes over the same strand are the point where heat damage becomes permanent.",
+    ];
   }
   if (family === "chemical") {
-    return `Use moisture-focused conditioning with the ${HEAT_HAT_LINK} on your wash rhythm and avoid overlapping chemical services — chemically treated hair is more porous and breaks faster when it dries out.`;
+    return [
+      `Condition with a moisture-focused deep conditioner and the ${HEAT_HAT_LINK} on your 7-day rhythm — chemically treated hair is more porous, so it loses water faster than untreated hair.`,
+      "Leave clear space between chemical services rather than overlapping them — overlapping processes on the same strand is what causes it to break mid-shaft.",
+    ];
   }
   if (planned) {
-    return `Before moving into ${planned}, do one full recovery wash with the two-cleanse routine, slippery detangling and moisture-focused conditioning — the next style should start on clean, hydrated hair.`;
+    return [
+      `Before you move into ${planned}, do one full recovery wash with the two-cleanse routine and moisture-focused conditioning — a new style should start on clean, hydrated hair, not on build-up.`,
+    ];
   }
-  return null;
+  return [];
 }
+
 
 function moistureTip(context: UnknownRecord): string | null {
   const relevant =
@@ -170,13 +209,13 @@ function healthTip(context: UnknownRecord): string | null {
     .filter(Boolean)
     .slice(0, 2);
   if (flagged.length === 0) return null;
-  return `Keep the routine gentle and consistent while ${flagged.join(" and ")} is flagged — follicles recover better with clean scalp, low tension, moisture-first conditioning and professional follow-up where needed.`;
+  return `Keep the routine gentle and consistent while ${flagged.join(" and ")} sits outside range — that means a clean scalp, low tension and moisture-first conditioning as your baseline, and the marker itself is one to take to your GP.`;
 }
 
 function cleanseModelTip(tip: string): string {
   return tip
     .replace(/\bheat\s+cap\b/gi, "TT Heat Hat")
-    .replace(/\bheat\s+hat\b/gi, "TT Heat Hat")
+    .replace(/(?<!TT\s)\bheat\s+hat\b/gi, "TT Heat Hat")
     .replace(/\bheated\s+cap\b/gi, "TT Heat Hat")
     .replace(/\bsteamer\b/gi, "TT Heat Hat")
     .replace(/\bwarm\s+towel\b/gi, "TT Heat Hat");
@@ -214,15 +253,23 @@ export function applyRoutineTipGuardrails(
   const tips = dedupeTips(rawTips);
   const required: string[] = [];
 
-  if (!containsAny(tips, /two shampoos|two cleanses|scalp-focused|scalp focused|cleansing shampoo.*moisturi[sz]ing shampoo/i)) {
-    required.push(coreCleanseTip(context));
-  }
-  if (!containsAny(tips, /3.?4 wash cycles|three.?four wash cycles|product consistency|keep.*products steady/i)) {
-    required.push(consistencyTip(context));
-  }
-  const styleTip = styleRoutineTip(context);
-  if (styleTip && !containsAny(tips, /4.?6 week|6.?8 week|2.?3 week|tension|braid|loc|wig|weave|wash-and-go|twist-out|silk press|planned next|next style/i)) {
-    required.push(styleTip);
+  // The deterministic manuscript tips are always offered as preferred
+  // candidates. Set integrity then resolves any clash with the model's own
+  // version of the same advice in favour of the stronger (manuscript) tip,
+  // so a model tip that lacks a reason can never leave the set short.
+  const cleanse = coreCleanseTip(context);
+  if (cleanse) required.push(cleanse);
+  required.push(consistencyTip(context));
+  const styleTips = styleRoutineTips(context);
+  // Protective-style guidance is always authoritative: it carries the in-style
+  // cleansing method, so it must win any conflict against generic wash advice.
+  const protective = PROTECTIVE_FAMILIES.includes(styleFamily(styleLabel(context)));
+  if (
+    styleTips.length > 0 &&
+    (protective ||
+      !containsAny(tips, /4.?6 week|6.?8 week|2.?3 week|tension|braid|loc|wig|weave|wash-and-go|twist-out|silk press|planned next|next style/i))
+  ) {
+    required.push(...styleTips);
   }
   const moisture = moistureTip(context);
   if (moisture && !containsAny(tips, /moisture-focused|deep condition|deep-condition|TT Heat Hat|slip|moisture first/i)) {
@@ -233,8 +280,26 @@ export function applyRoutineTipGuardrails(
     required.push(health);
   }
 
-  return dedupeTips([...required, ...tips]).slice(0, maxTips);
+  const merged = dedupeTips([...required, ...tips]);
+  // Set-level floor: one idea per tip, no contradictions or duplicates across
+  // the set, a reason on every tip, and the member's own recorded goal as the
+  // benefit.
+  const report = enforceTipSetIntegrity(merged, context, {
+    max: maxTips,
+    preferred: required,
+  });
+  if (report.dropped.length > 0) {
+    console.log(
+      "routine tip set integrity",
+      JSON.stringify({
+        split: report.split,
+        dropped: report.dropped.map((d) => ({ reasons: d.reasons, tip: d.tip.slice(0, 90) })),
+      }),
+    );
+  }
+  return report.tips.length > 0 ? report.tips : merged.slice(0, maxTips);
 }
+
 
 export const CORE_ROUTINE_GUARDRAILS_PROMPT = `CORE ROUTINE GUARDRAILS — NON-NEGOTIABLE
 
