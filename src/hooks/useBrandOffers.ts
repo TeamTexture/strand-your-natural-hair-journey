@@ -11,8 +11,12 @@ import { BROAD_DAILY_RATE_PENCE } from "@/lib/adPricing";
 function useBrandOfferLiveSync() {
   const qc = useQueryClient();
   useEffect(() => {
+    // Unique channel name per subscriber — two ad surfaces on one page (the
+    // sponsored wash day tip and the advert beneath it) would otherwise reuse
+    // one channel and Supabase rejects the second set of callbacks.
     const channel = supabase
-      .channel("brand-offers-live-sync")
+      .channel(`brand-offers-live-sync-${Math.random().toString(36).slice(2)}`)
+
       .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offers" }, () => {
         qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
         qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
@@ -765,6 +769,7 @@ export function useLogAdEvent() {
       event_type,
       was_matched,
       match_reason,
+      unit,
     }: {
       offer_id?: string | null;
       brand_product_id?: string | null;
@@ -772,10 +777,14 @@ export function useLogAdEvent() {
       event_type: AdEventType;
       was_matched?: boolean | null;
       match_reason?: Record<string, unknown> | null;
+      /** Which on-page unit produced this event. `advert` is the approved
+       *  advert placement; `wash_day_tip` is the sponsored wash day tip card,
+       *  which sits on the same page and must stay distinguishable. */
+      unit?: "advert" | "wash_day_tip";
     }) => {
       if (!offer_id && !brand_product_id) return;
       // Fire-and-forget. Server-side dedupe caps billable views at one per
-      // (user, offer, slot) per hour, so the client never has to guess.
+      // (user, offer, slot, unit) per hour, so the client never has to guess.
       const { error } = await supabase.rpc("record_ad_event" as never, {
         p_offer_id: offer_id ?? null,
         p_brand_product_id: brand_product_id ?? null,
@@ -783,11 +792,13 @@ export function useLogAdEvent() {
         p_slot: slot ?? "unknown",
         p_was_matched: was_matched ?? null,
         p_match_reason: match_reason ?? null,
+        p_unit: unit ?? "advert",
       } as never);
       if (error) console.warn("ad event log failed", error);
     },
   });
 }
+
 
 
 /** Viewability gate for the `view` event: the element must be at least
@@ -801,13 +812,19 @@ export const VIEW_DWELL_MS = 1000;
 export function useAdViewTracker(
   offerId: string | null | undefined,
   slot: PlacementSlot | null,
-  opts?: { was_matched?: boolean | null; match_reason?: Record<string, unknown> | null },
+  opts?: {
+    was_matched?: boolean | null;
+    match_reason?: Record<string, unknown> | null;
+    unit?: "advert" | "wash_day_tip";
+  },
 ) {
   const ref = useRef<HTMLDivElement | null>(null);
   const log = useLogAdEvent();
   const firedRef = useRef(false);
   const matched = opts?.was_matched ?? null;
   const reason = opts?.match_reason ?? null;
+  const unit = opts?.unit ?? "advert";
+
 
   useEffect(() => {
     firedRef.current = false;
@@ -833,7 +850,7 @@ export function useAdViewTracker(
             timer = null;
             if (firedRef.current) return;
             firedRef.current = true;
-            log.mutate({ offer_id: offerId, slot, event_type: "view", was_matched: matched, match_reason: reason });
+            log.mutate({ offer_id: offerId, slot, event_type: "view", was_matched: matched, match_reason: reason, unit });
             observer.disconnect();
           }, VIEW_DWELL_MS);
         } else {

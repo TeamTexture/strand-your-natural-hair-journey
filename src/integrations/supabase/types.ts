@@ -49,6 +49,7 @@ export type Database = {
           offer_id: string | null
           session_id: string | null
           slot: string
+          unit: string
           user_id: string | null
           was_matched: boolean | null
         }
@@ -62,6 +63,7 @@ export type Database = {
           offer_id?: string | null
           session_id?: string | null
           slot?: string
+          unit?: string
           user_id?: string | null
           was_matched?: boolean | null
         }
@@ -75,6 +77,7 @@ export type Database = {
           offer_id?: string | null
           session_id?: string | null
           slot?: string
+          unit?: string
           user_id?: string | null
           was_matched?: boolean | null
         }
@@ -5209,17 +5212,30 @@ export type Database = {
       }
       purge_ad_events: { Args: never; Returns: number }
       queue_appointment_reminders: { Args: never; Returns: number }
-      record_ad_event: {
-        Args: {
-          p_brand_product_id?: string
-          p_event_type?: string
-          p_match_reason?: Json
-          p_offer_id?: string
-          p_slot?: string
-          p_was_matched?: boolean
-        }
-        Returns: undefined
-      }
+      record_ad_event:
+        | {
+            Args: {
+              p_brand_product_id?: string
+              p_event_type?: string
+              p_match_reason?: Json
+              p_offer_id?: string
+              p_slot?: string
+              p_was_matched?: boolean
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_brand_product_id?: string
+              p_event_type?: string
+              p_match_reason?: Json
+              p_offer_id?: string
+              p_slot?: string
+              p_unit?: string
+              p_was_matched?: boolean
+            }
+            Returns: undefined
+          }
       record_consents: {
         Args: {
           _consents: Json

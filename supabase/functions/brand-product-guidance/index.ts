@@ -55,7 +55,11 @@ interface GuidancePayload {
   steps: string[];
   /** Optional factual "be aware of" notes — max 2, educational not alarmist. */
   watch_outs: string[];
+  /** WASH DAY SURFACE ONLY. The whole sponsored tip body: at most two
+   *  sentences and 45 words, validated (not merely requested). */
+  wash_day_tip?: string;
 }
+
 
 
 const SYSTEM = `${STRAND_PERSONA}
@@ -182,9 +186,12 @@ function countTerm(haystack: string, term: string): number {
 function validate(
   p: unknown,
   context: Record<string, unknown> | null,
+  surface?: string,
 ): { ok: true; value: GuidancePayload } | { ok: false; problems: string[] } {
   const problems: string[] = [];
+  const isWashDay = surface === "wash_day";
   const raw = (p ?? {}) as Record<string, unknown>;
+
 
   const headline = String(raw.headline ?? "").trim();
   const fitLine = String(raw.fit_line ?? raw.fitLine ?? "").trim();
@@ -219,7 +226,10 @@ function validate(
     })
     .filter((b) => b.label && b.text);
 
-  if (benefits.length < 2 || benefits.length > 3) {
+  // WASH DAY SURFACE: the card shows ONE succinct tip, so benefits and steps
+  // are not required there — a hard 3-item floor would only cause needless
+  // regeneration failures for copy that is never rendered.
+  if (!isWashDay && (benefits.length < 2 || benefits.length > 3)) {
     problems.push(`benefits has ${benefits.length} valid items — return exactly 3 (2 only if the third cannot be grounded).`);
   }
   benefits.forEach((b, i) => {
@@ -230,11 +240,24 @@ function validate(
   });
 
   const steps = stepsRaw.map((s) => String(s ?? "").trim()).filter(Boolean);
-  if (steps.length !== 3) problems.push(`steps has ${steps.length} items — return exactly 3.`);
+  if (!isWashDay && steps.length !== 3) problems.push(`steps has ${steps.length} items — return exactly 3.`);
   steps.forEach((s, i) => {
     if (words(s) > 25) problems.push(`steps[${i}] is ${words(s)} words — maximum 25.`);
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
+
+  // The sponsored wash day tip body — enforced, not requested.
+  const washDayTip = String(raw.wash_day_tip ?? raw.washDayTip ?? "").trim();
+  if (isWashDay) {
+    if (!washDayTip) problems.push("wash_day_tip is missing — it is required on the wash day surface.");
+    else {
+      if (words(washDayTip) > 45)
+        problems.push(`wash_day_tip is ${words(washDayTip)} words — maximum 45 words in total.`);
+      if (sentenceCount(washDayTip) > 2)
+        problems.push(`wash_day_tip is ${sentenceCount(washDayTip)} sentences — maximum 2 sentences.`);
+    }
+  }
+
 
   const watchRaw = Array.isArray(raw.watch_outs)
     ? raw.watch_outs
@@ -252,15 +275,21 @@ function validate(
     }
   });
 
-  // Repetition gate — each stated characteristic at most once in the whole card.
-  const assembled = [
-    headline,
-    fitLine,
-    intro,
-    ...benefits.map((b) => `${b.label} ${b.text}`),
-    ...steps,
-    ...watchOuts,
-  ].join(" ");
+  // Repetition gate — each stated characteristic at most once in the copy that
+  // is actually rendered on this surface.
+  const assembled = (
+    isWashDay
+      ? [headline, washDayTip]
+      : [
+          headline,
+          fitLine,
+          intro,
+          ...benefits.map((b) => `${b.label} ${b.text}`),
+          ...steps,
+          ...watchOuts,
+        ]
+  ).join(" ");
+
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
     if (n > 1) {
@@ -280,6 +309,8 @@ function validate(
       benefits: benefits.slice(0, 3),
       steps: steps.slice(0, 3),
       watch_outs: watchOuts,
+      wash_day_tip: washDayTip || undefined,
+
     },
   };
 
@@ -320,13 +351,16 @@ Deno.serve(async (req) => {
     user_context: body.context ?? {},
   });
 
-  // Surface framing. `wash_day` is the sponsored card that sits beneath the
-  // STRAND wash day tip, so the read must speak to the member's NEXT wash day.
-  // The brand never supplies or edits this text — only the product facts.
+  // Surface framing. `wash_day` is the sponsored wash day tip card, which now
+  // REPLACES the educational tip when it renders, so it must be one succinct,
+  // personalised read for the member's next wash day. The brand never supplies
+  // or edits this text — only the product facts.
+  const surface = (body as { surface?: string }).surface;
   const surfaceBlock =
-    (body as { surface?: string }).surface === "wash_day"
-      ? `\n\nSURFACE: WASH DAY\nWrite this as a suggestion for the member's NEXT wash day. Ground it in their most recent logged wash day, the style they are in and the style they are moving into, plus their goals and challenges. fit_line must say how THEY specifically would benefit on that next wash day. Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim about the product the manuscript does not support.`
+    surface === "wash_day"
+      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested — longer output is rejected.\n- One short personalised tip for their NEXT wash day using this product, drawing on their hair characteristics, their recorded goal and their most recent logged wash day.\n- If a benefit is worth stating, it belongs inside those two sentences — there are no separate bullets on this surface.\n- Name the product once. Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance.\n- Make no claim about the product the manuscript does not support.`
       : "";
+
 
   const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
@@ -386,7 +420,7 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
-      const result = validate(parsed, body.context ?? null);
+      const result = validate(parsed, body.context ?? null, surface);
       if (result.ok) {
         clean = result.value;
         break;

@@ -54,9 +54,14 @@ export interface SponsoredWashDayTipCardProps {
   preview?: boolean;
   /** Which offer to preview. Defaults to the most recent offer with a product. */
   previewOfferId?: string;
+  /** Reports whether this card actually rendered. The wash day page uses it to
+   *  suppress the educational tip (Card 1) ONLY when a sponsored tip is shown —
+   *  a member without consent, or on a day with no wash day campaign, still
+   *  gets their educational tip. */
+  onRendered?: (rendered: boolean) => void;
 }
 
-const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredWashDayTipCardProps = {}) => {
+const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }: SponsoredWashDayTipCardProps = {}) => {
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: consented } = usePersonalisedOffersConsent();
@@ -162,6 +167,8 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
   const viewRef = useAdViewTracker(enabled && !preview ? offer!.id : undefined, SLOT as never, {
     was_matched: delivery?.was_matched ? true : null,
     match_reason: delivery?.match_reason ? { codes: delivery.match_reason } : null,
+    // Separate attribution unit: tip impressions never merge with advert ones.
+    unit: "wash_day_tip",
   });
 
   const shelfRow = useMemo(() => {
@@ -182,12 +189,21 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
     setExpanded(false);
   }, [offer?.id]);
 
-  if (!enabled || !offer || !product) return null;
+  const rendering = enabled && !!offer && !!product;
+  useEffect(() => {
+    onRendered?.(rendering);
+    return () => onRendered?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rendering]);
+
+  if (!rendering || !offer || !product) return null;
 
   /** Every ad_event goes through here so preview mode can silence all of them. */
   const track = (event: Parameters<typeof logEvent.mutate>[0]) => {
     if (preview) return;
-    logEvent.mutate(event);
+    // Every event from this card is tagged `wash_day_tip` so a tap on the tip is
+    // never indistinguishable from a tap on the advert beneath it.
+    logEvent.mutate({ ...event, unit: "wash_day_tip" });
   };
 
   const toggle = () => {
@@ -259,7 +275,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
             className="text-[10px] uppercase tracking-[0.18em] font-bold font-body"
             style={{ color: colours.accent }}
           >
-            {brandName ? `Paid partnership with ${brandName}` : "Sponsored"}
+            Sponsored Wash Day Tip
           </p>
           <span
             className="text-[9px] uppercase tracking-[0.16em] font-bold font-body rounded px-1.5 py-0.5"
@@ -273,9 +289,25 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
           {guidance?.headline || offer.headline || product.name}
         </h3>
 
-        {/* TRY THIS — a sponsor suggests; STRAND instructs. */}
-        <div className="mt-2.5 rounded-[10px] bg-card/70 px-2.5 py-2">
-          <p className="text-[11.5px] leading-[1.55] font-body text-foreground break-words">
+        {/* TRY THIS — one succinct personalised read (max two sentences, 45
+            words, enforced server-side), beside the product's own thumbnail.
+            The thumbnail treatment is the brand shelf card one, unchanged. */}
+        <div className="mt-2.5 flex gap-2.5 rounded-[10px] bg-card/70 px-2.5 py-2">
+          <div className="size-[58px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted/40">
+            {product.image_urls?.[0] ? (
+              <img
+                src={product.image_urls[0]}
+                alt={product.name}
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center font-display text-lg text-primary/50">
+                ✦
+              </div>
+            )}
+          </div>
+          <p className="min-w-0 text-[11.5px] leading-[1.55] font-body text-foreground break-words">
             <span
               className="text-[9.5px] uppercase tracking-[0.18em] font-bold mr-1.5"
               style={{ color: colours.accent }}
@@ -285,36 +317,11 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
             {loading && !guidance ? (
               <span className="text-foreground/60">Working out how this fits your wash day…</span>
             ) : (
-              guidance?.fit_line || guidance?.intro || product.description || ""
+              guidance?.wash_day_tip || guidance?.fit_line || product.description || ""
             )}
           </p>
-          {guidance?.steps?.[0] && (
-            <p className="mt-1.5 text-[11px] leading-[1.55] font-body text-foreground/75 break-words">
-              {guidance.steps[0]}
-            </p>
-          )}
         </div>
 
-        {guidance?.benefits?.length ? (
-          <ul className="mt-2 space-y-1">
-            {guidance.benefits
-              .filter((b) => (b?.label ?? "").trim() && (b?.text ?? "").trim())
-              .slice(0, 3)
-              .map((b, i) => (
-              <li key={i} className="flex gap-1.5 text-[11px] leading-[1.5] font-body text-foreground/80">
-                <span
-                  className="mt-[5px] size-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: colours.primary }}
-                  aria-hidden
-                />
-                <span className="min-w-0 break-words">
-                  <span className="font-semibold text-foreground">{b.label}: </span>
-                  {b.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
 
         <button
           type="button"
@@ -322,7 +329,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
           className="mt-3 w-full min-h-[44px] rounded-full font-body font-semibold text-[12.5px] inline-flex items-center justify-center gap-1.5"
           style={{ backgroundColor: colours.accent, color: colours.onAccent }}
         >
-          Learn more about {product.name.length > 22 ? "this product" : product.name}
+          Learn more
           <ExternalLink className="size-3.5" aria-hidden />
         </button>
 

@@ -17,6 +17,7 @@ import { AlertTriangle } from "lucide-react";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 import SponsoredWashDayTipCard from "@/components/washday/SponsoredWashDayTipCard";
+import BrandBanner from "@/components/BrandBanner";
 import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
 import { Sparkles } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
@@ -415,6 +416,8 @@ const WashDayHub = () => {
   // Cadence reasoning appears at most once per page. Priority:
   // overdue alert > AI tip card > wash rhythm "why".
   const [dynamicTipShown, setDynamicTipShown] = useState(false);
+  // True only while a sponsored wash day tip is actually on screen.
+  const [sponsoredTipShown, setSponsoredTipShown] = useState(false);
   const cadenceReasoningTaken = Boolean(overdue) || dynamicTipShown;
 
   // Suggested next wash date — used to prefill the STRAND scheduling box.
@@ -488,12 +491,18 @@ const WashDayHub = () => {
         )}
 
 
-        {/* Two stacked cards. Card 1 is STRAND's own tip and always renders
-            when a tip exists. Card 2 is the sponsored suggestion — it sits
-            beneath, never replaces Card 1, and renders nothing at all without
-            personalised-offers consent and a live wash day campaign. */}
-        <DynamicWashTipCard onShown={setDynamicTipShown} />
-        <SponsoredWashDayTipCard />
+        {/* ONE tip, never two. The sponsored wash day tip REPLACES the
+            educational tip when it renders (consent granted, a live wash_day
+            placement today, an attached product, targeting matched). When it
+            does not render, the educational tip renders exactly as before — a
+            member is never left without a tip. */}
+        <SponsoredWashDayTipCard onRendered={setSponsoredTipShown} />
+        {!sponsoredTipShown && <DynamicWashTipCard onShown={setDynamicTipShown} />}
+
+        {/* The brand's approved advert in full, beneath the tip. Same component
+            as the home page — the tip is added value, not a substitute for the
+            placement they paid for. */}
+        <BrandBanner slot="wash_day" />
 
 
         <div id="wash-calendar">
