@@ -4985,6 +4985,14 @@ export type Database = {
         }
         Returns: string
       }
+      confirm_brand_offer_revision_payment: {
+        Args: {
+          _payment_intent_id: string
+          _revision_id: string
+          _session_id: string
+        }
+        Returns: boolean
+      }
       forum_author_info: {
         Args: { _user_ids: string[] }
         Returns: {
@@ -5052,10 +5060,6 @@ export type Database = {
       }
       mark_booking_click_prompted: {
         Args: { _click_id: string }
-        Returns: undefined
-      }
-      mark_brand_offer_revision_paid: {
-        Args: { _revision_id: string; _waive?: boolean }
         Returns: undefined
       }
       match_manuscript_chunks: {

@@ -111,7 +111,32 @@ Deno.serve(async (req) => {
         // events handle them so we don't double-write.
         if (session.mode === "subscription") break;
 
-        const offerId = (session.metadata as Record<string, string> | null)?.offer_id;
+        const meta = (session.metadata as Record<string, string> | null) ?? {};
+
+        // ── Targeting-uplift revision ────────────────────────────────────────
+        // The ONLY place a revision moves from pending_payment → pending
+        // (admin review). Never driven from the browser. Idempotent: the RPC
+        // no-ops when the revision has already been transitioned.
+        if (meta.kind === "revision_uplift" && meta.revision_id) {
+          if (session.payment_status === "paid") {
+            const { data: moved, error } = await admin.rpc(
+              "confirm_brand_offer_revision_payment",
+              {
+                _revision_id: meta.revision_id,
+                _session_id: session.id,
+                _payment_intent_id:
+                  typeof session.payment_intent === "string"
+                    ? session.payment_intent
+                    : session.payment_intent?.id ?? null,
+              },
+            );
+            if (error) console.error("revision uplift confirm failed", error);
+            else console.log("revision uplift confirmed", meta.revision_id, "transitioned:", moved);
+          }
+          break;
+        }
+
+        const offerId = meta.offer_id;
         if (offerId && session.payment_status === "paid") {
           const { data: cur } = await admin
             .from("brand_offers")

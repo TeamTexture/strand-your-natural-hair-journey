@@ -24,7 +24,7 @@ import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { scanProductLink, normaliseProductUrl } from "@/lib/brandLinkScan";
 import { useAuth } from "@/hooks/useAuth";
-import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
+import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, useRevisionUpliftCheckout, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useBrandShelf } from "@/hooks/useBrandShelf";
@@ -120,6 +120,7 @@ const BrandCreateOffer = () => {
   const { data: existing } = useBrandOffer(existingId);
   const { data: pendingRevision } = usePendingRevision(existingId);
   const submitRevision = useSubmitBrandOfferRevision();
+  const upliftCheckout = useRevisionUpliftCheckout();
   const { isActive: proSubActive } = useProSubscription();
 
   // Revision mode = editing an already-live or paid-scheduled offer. Creative
@@ -500,7 +501,7 @@ const BrandCreateOffer = () => {
           linked_product_id: p.linked_product_id ?? null,
           position: i,
         }));
-        await submitRevision.mutateAsync({
+        const revisionId = await submitRevision.mutateAsync({
           offer_id: existingId,
           headline: headline.trim() || null,
           body_copy: bodyCopy.trim() || null,
@@ -512,12 +513,32 @@ const BrandCreateOffer = () => {
           // edit never touches the live campaign's targeting.
           targeting: targetingDirty ? cleanTargeting : undefined,
         });
+
+        // A positive uplift parks the revision in `pending_payment`: money first,
+        // review second. Zero-uplift changes never touch Stripe.
+        if (targetingDirty && upliftQuote.paymentRequired && revisionId) {
+          try {
+            const url = await upliftCheckout.mutateAsync({ revision_id: revisionId });
+            window.location.href = url;
+            return;
+          } catch (e) {
+            toast.error(
+              e instanceof Error
+                ? `${e.message} — your changes are saved, you can pay from the campaign page.`
+                : "Checkout could not be started — your changes are saved.",
+            );
+            nav(`/brand/offers/${existingId}`);
+            return;
+          }
+        }
+
         toast.success(
           targetingDirty
             ? "Creative and audience changes submitted for review"
             : "Changes submitted for review",
         );
         nav(`/brand/offers/${existingId}`);
+
 
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Submit failed";
@@ -1049,13 +1070,15 @@ const BrandCreateOffer = () => {
                           ))}
                         </div>
                         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 font-medium">
-                          <span>To pay before this goes live</span>
+                          <span>Total to pay now</span>
                           <span className="tabular-nums">{money(upliftQuote.totalPence)}</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          Submit the change and we'll confirm payment with you. Your admin reviewer can't approve the new audience until the
-                          difference is settled.
+                          Submitting takes you straight to secure checkout for {money(upliftQuote.totalPence)}. Your edits are saved either
+                          way — if you don't finish paying you can come back and pay or discard them. The new audience goes to admin review
+                          once payment clears.
                         </p>
+
                       </div>
                     ) : upliftQuote.isRemoval ? (
                       <p className="text-[12px] font-body text-foreground/85 leading-snug">{NO_REFUND_NOTE}</p>

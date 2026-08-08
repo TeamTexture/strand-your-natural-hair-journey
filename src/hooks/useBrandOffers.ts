@@ -47,7 +47,9 @@ export interface BrandOfferRevision {
   id: string;
   offer_id: string;
   brand_user_id: string;
-  status: "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
+  /** `pending_payment` = a positive targeting uplift is awaiting Stripe Checkout.
+   *  Only the Stripe webhook moves it to `pending` (admin review). */
+  status: "pending" | "pending_payment" | "approved" | "rejected" | "withdrawn" | "superseded";
   headline: string | null;
   body_copy: string | null;
   discount_code: string | null;
@@ -450,7 +452,8 @@ export function usePendingBrandOffersCount() {
   });
 }
 
-/** Pending revision for a single offer (0 or 1). */
+/** Pending revision for a single offer (0 or 1). Awaiting-payment revisions are
+ *  deliberately excluded — they are not in review and must never render as one. */
 export function usePendingRevision(offerId: string | undefined) {
   return useQuery({
     queryKey: ["brand-offer-revision", "pending", offerId],
@@ -467,6 +470,26 @@ export function usePendingRevision(offerId: string | undefined) {
     },
   });
 }
+
+/** Revision parked awaiting the brand's uplift payment (0 or 1). The brand's
+ *  audience edits are preserved here so an abandoned Checkout loses nothing. */
+export function useAwaitingPaymentRevision(offerId: string | undefined) {
+  return useQuery({
+    queryKey: ["brand-offer-revision", "pending_payment", offerId],
+    enabled: !!offerId,
+    queryFn: async (): Promise<BrandOfferRevision | null> => {
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: BrandOfferRevision | null; error: { message: string } | null }> } } };
+        };
+      };
+      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("offer_id", offerId!).eq("status", "pending_payment").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+}
+
 
 /** All revision history for a single offer (newest first). */
 export function useOfferRevisions(offerId: string | undefined) {
@@ -577,6 +600,7 @@ export function useSubmitBrandOfferRevision() {
     },
     onSuccess: (_id, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
@@ -586,25 +610,23 @@ export function useSubmitBrandOfferRevision() {
   });
 }
 
-/** Admin: record the audience uplift as received, or waive it. A broad →
- *  targeted revision cannot be approved until one of the two has happened. */
-export function useMarkRevisionPaid() {
-  const qc = useQueryClient();
+/** Brand: open Stripe Checkout for a `pending_payment` revision's uplift.
+ *  The revision only reaches admin review when the Stripe webhook confirms the
+ *  session — nothing here transitions state. */
+export function useRevisionUpliftCheckout() {
   return useMutation({
-    mutationFn: async ({ revision_id, waive }: { revision_id: string; offer_id: string; waive: boolean }) => {
-      const { error } = await supabase.rpc("mark_brand_offer_revision_paid" as never, {
-        _revision_id: revision_id,
-        _waive: waive,
-      } as never);
+    mutationFn: async ({ revision_id }: { revision_id: string }) => {
+      const { data, error } = await supabase.functions.invoke("brand-revision-checkout", {
+        body: { revision_id },
+      });
       if (error) throw error;
-    },
-    onSuccess: (_r, args) => {
-      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error("Checkout could not be started");
+      return url;
     },
   });
 }
+
 
 export interface SplitTotalsRow extends AdTotals {
   phase: "before" | "after";
@@ -644,6 +666,7 @@ export function useWithdrawBrandOfferRevision() {
     },
     onSuccess: (_r, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
@@ -663,6 +686,7 @@ export function useApproveBrandOfferRevision() {
       qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
@@ -682,6 +706,7 @@ export function useRejectBrandOfferRevision() {
     },
     onSuccess: (_r, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });

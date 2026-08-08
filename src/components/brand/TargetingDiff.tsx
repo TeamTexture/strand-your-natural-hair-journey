@@ -4,7 +4,8 @@
 // need real numbers to judge a tier change). Brand-facing surfaces must keep
 // using bandMemberCount — do not reuse this component outside admin screens.
 
-import { AlertTriangle, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
+import { format } from "date-fns";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { useTargetingOptions } from "@/hooks/useAdTargeting";
@@ -23,8 +24,8 @@ interface Props {
   remainingDays: number;
   upliftPence: number;
   paymentRequired: boolean;
+  /** Set by the Stripe webhook before the revision ever reaches review. */
   paidAt: string | null;
-  paymentWaived: boolean;
 }
 
 const TargetingDiff = ({
@@ -38,7 +39,6 @@ const TargetingDiff = ({
   upliftPence,
   paymentRequired,
   paidAt,
-  paymentWaived,
 }: Props) => {
   const { data: options = [] } = useTargetingOptions();
   const labelFor = (attribute: string, code: string) =>
@@ -66,33 +66,23 @@ const TargetingDiff = ({
     .filter((r) => r.added.length > 0 || r.removed.length > 0);
 
   const tierChange = tierBefore !== tierAfter;
-  const settled = !paymentRequired || !!paidAt || paymentWaived;
 
   return (
     <>
       <SectionLabel className="!px-0">Audience change requested</SectionLabel>
 
       {tierChange && (
-        <SurfaceCard
-          className={
-            paymentRequired && !settled
-              ? "bg-warn/5 border-warn/40 space-y-1.5"
-              : "bg-primary/5 border-primary/30 space-y-1.5"
-          }
-        >
-          <p className="font-display text-[14px] flex items-center gap-1.5">
-            {paymentRequired && !settled && <AlertTriangle className="size-4 text-warn" />}
+        <SurfaceCard className="bg-primary/5 border-primary/30 space-y-1.5">
+          <p className="font-display text-[14px]">
             {tierBefore === "broad" ? "Broad → targeted (rate increase)" : "Targeted → broad (no refund)"}
           </p>
           {paymentRequired ? (
+            /* Quiet confirmation only — an unpaid uplift can no longer reach
+             * review, so there is nothing for an admin to action here. */
             <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
-              {money(upliftPence)} due for the {remainingDays} remaining day{remainingDays === 1 ? "" : "s"}. Days already delivered keep the
-              rate they were sold at.{" "}
-              {settled ? (
-                <strong>{paymentWaived ? "Waived by admin — approvable." : "Payment received — approvable."}</strong>
-              ) : (
-                <strong>Not paid yet — approval is blocked until it is settled or waived.</strong>
-              )}
+              Uplift of {money(upliftPence)} paid
+              {paidAt ? ` on ${format(new Date(paidAt), "d MMM yyyy · HH:mm")}` : ""} for the {remainingDays} remaining
+              day{remainingDays === 1 ? "" : "s"}. Days already delivered keep the rate they were sold at.
             </p>
           ) : (
             <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
@@ -102,6 +92,7 @@ const TargetingDiff = ({
           )}
         </SurfaceCard>
       )}
+
 
       <SurfaceCard className="space-y-2">
         <div className="flex items-baseline justify-between gap-2 text-[12px] font-body">
