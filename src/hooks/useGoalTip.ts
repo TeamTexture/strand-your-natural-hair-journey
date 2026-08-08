@@ -39,12 +39,15 @@ export interface GoalTip {
 
 
 /**
- * Live personalisation signature — the Strand Tip of the Day must move the
- * moment the reasoning behind it moves. It folds in the calendar day, the
- * goal (id + wording + target), every challenge, current + planned style
- * (with extensions/tension), areas of concern and the latest wash day /
- * appointment. Any change here produces a new cache key, so the tip is
- * regenerated against the new picture instead of waiting for midnight.
+ * STATIC signature for the home STRAND tip.
+ *
+ * Three data points only: `current_hairstyle`, `planned_next_style` and the
+ * member's goal (id + wording + target). There is deliberately NO calendar day
+ * and no responsive input — logging a wash day, booking an appointment, editing
+ * challenges/concerns or adding blood results must NOT regenerate this tip.
+ * Once generated, the same tip persists indefinitely until one of the three
+ * changes. The support level is a rendering variant, not a data trigger, so it
+ * keys the cache without ever forcing a fresh generation at the same level.
  */
 const useTipSignature = (goal: UserGoal | null, level: number) => {
   const { user } = useAuth();
@@ -56,45 +59,34 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
       goal?.target_text,
       goal?.target_date,
       goal?.title,
-      goal?.updated_at,
       level,
     ],
     enabled: !!user?.id && !!goal,
-    staleTime: 1000 * 30,
+    // The three inputs are read once and then held — nothing about this tip is
+    // time-based, so there is no reason to keep re-reading the profile.
+    staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 60,
     queryFn: async (): Promise<string> => {
       if (!user?.id) return "anon";
-      const [signals, styleRes] = await Promise.all([
-        loadResponsiveSignals(user.id),
-        supabase
-          .from("user_style_profile")
-          .select(
-            "current_hairstyle, planned_next_style, current_style_extensions, current_style_tension, planned_style_extensions, planned_style_tension",
-          )
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
+      const styleRes = await supabase
+        .from("user_style_profile")
+        .select(strandTipStyleColumns)
+        .eq("user_id", user.id)
+        .maybeSingle();
       return hashString(
         [
-          "goal-tip-sig-v3-scalp",
-          `goal:${goal?.id ?? ""}`,
-          `target:${goal?.target_text ?? ""}`,
-          `date:${goal?.target_date ?? ""}`,
-          `title:${goal?.title ?? ""}`,
-          `goalChallenges:${challengesOf(goal as UserGoal).sort().join("|")}`,
-          ...styleSignatureParts(
+          "goal-tip-sig-v4-static",
+          ...strandTipSignatureParts(
             (styleRes.data as Record<string, unknown> | null) ?? null,
+            goal,
           ),
-          // Static tip: no calendar day, no recent wash/appointment churn. It
-          // only moves when the style, goal, challenges, concerns or hair
-          // characteristics move.
-          ...responsiveSignatureParts(signals, { includeDay: false, includeEvents: false }),
           `tl${level}`,
         ].join("::"),
       );
     },
   });
 };
+
 
 /**
  * Fetches a personalised AI tip for a single goal. Cached per goal +
