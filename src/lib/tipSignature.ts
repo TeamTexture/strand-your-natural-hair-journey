@@ -156,3 +156,46 @@ export const styleSignatureParts = (
     `planTen:${v("planned_style_tension")}`,
   ];
 };
+
+// ---------------------------------------------------------------------------
+// The home STRAND tip — STATIC signature.
+//
+// Exactly three inputs, and nothing else:
+//   1. user_style_profile.current_hairstyle
+//   2. user_style_profile.planned_next_style
+//   3. the member's goal (id + wording + target)
+//
+// No calendar day, no wash days, no appointments, no challenges, no concerns,
+// no blood results. Once generated the tip persists indefinitely until one of
+// the three above changes. Do NOT route this through
+// `responsiveSignatureParts` — that helper serves the responsive tips.
+// ---------------------------------------------------------------------------
+
+export interface StrandTipGoalFields {
+  id?: string | null;
+  title?: string | null;
+  target_text?: string | null;
+  target_date?: string | null;
+}
+
+/** The ONLY style fields the static STRAND tip watches. */
+export const strandTipStyleColumns = "current_hairstyle, planned_next_style";
+
+export const strandTipSignatureParts = (
+  style: Record<string, unknown> | null,
+  goal: StrandTipGoalFields | null,
+): string[] => {
+  const s = (k: string) => {
+    const x = style?.[k];
+    return x === null || x === undefined ? "" : String(x);
+  };
+  const g = (v: string | null | undefined) => v ?? "";
+  return [
+    `cur:${s("current_hairstyle")}`,
+    `plan:${s("planned_next_style")}`,
+    `goal:${g(goal?.id)}`,
+    `goalTitle:${g(goal?.title)}`,
+    `goalTarget:${g(goal?.target_text)}`,
+    `goalDate:${g(goal?.target_date)}`,
+  ];
+};
