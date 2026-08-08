@@ -522,9 +522,7 @@ Deno.serve(async (req) => {
       grounded = false;
     }
 
-    } catch {
-      grounded = false;
-    }
+
     if (!grounded) {
       console.error(JSON.stringify({
         event: "manuscript_grounding_failed",
