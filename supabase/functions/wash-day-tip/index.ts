@@ -452,7 +452,11 @@ Do not substitute other cleansing or sealing methods for these two.`
   // blocks — that floor stands. Any reason-only failure is logged and the
   // tip is served anyway.
   if (!verdict.ok) {
-    const actionOnly = verdict.reasons.filter((r) => r.startsWith("action_") || r === "output_unparseable_or_incomplete");
+    // A cap overrun is repairable by trimming, so it never blocks serving.
+    const actionOnly = verdict.reasons.filter(
+      (r) => (r.startsWith("action_") && r !== "action_over_minimal_cap") ||
+        r === "output_unparseable_or_incomplete",
+    );
     const hasUsableAction = Boolean(String(parsed.action ?? "").trim()) && actionOnly.length === 0;
     if (!hasUsableAction) {
       return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
