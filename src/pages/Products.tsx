@@ -209,9 +209,23 @@ const Products = () => {
                     imageUrl={p.image_url}
                     storagePath={p.storage_path}
                     matchScore={matchScoreOf(p)}
-                    onOpen={() =>
-                      batch.selectMode ? batch.toggle(p.id) : navigate(`/products/profile/${p.id}`)
+                    thumbBadge={
+                      sponsoredById[p.id] ? (
+                        <span className="inline-flex items-center gap-1 rounded-pill bg-primary px-2 py-[3px] text-[9px] font-body font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-sm">
+                          <Tag className="size-2.5" /> Offer
+                        </span>
+                      ) : undefined
                     }
+                    onOpen={() => {
+                      if (batch.selectMode) { batch.toggle(p.id); return; }
+                      const sp = sponsoredById[p.id];
+                      if (sp && p.linked_brand_product_id) {
+                        navigate(`/offers/${sp.offerId}/product/${p.linked_brand_product_id}`);
+                        return;
+                      }
+                      if (sp) { navigate(`/offers/${sp.offerId}`); return; }
+                      navigate(`/products/profile/${p.id}`);
+                    }}
                     leading={
                       batch.selectMode ? (
                         <button
@@ -232,13 +246,19 @@ const Products = () => {
                           </span>
                         )}
                         {sponsoredById[p.id] && (
-                          <span className="text-[9.5px] leading-snug basis-full">
-                            <span className="uppercase tracking-wider text-muted-foreground">Sponsored</span>
-                            <span className="text-primary font-body font-medium">
-                              {" · On offer"}
-                              {sponsoredById[p.id].discountCode ? ` — code ${sponsoredById[p.id].discountCode}` : ""}
-                              {sponsoredById[p.id].endsOn ? ` until ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                          <span className="basis-full mt-1 flex items-center gap-1.5 rounded-[10px] border border-primary/35 bg-primary/[0.09] px-2.5 py-1.5">
+                            <Tag className="size-3 text-primary shrink-0" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[11px] font-body font-semibold text-primary leading-tight">
+                                Live offer
+                                {sponsoredById[p.id].discountCode ? ` · code ${sponsoredById[p.id].discountCode}` : ""}
+                              </span>
+                              <span className="block text-[9.5px] text-muted-foreground leading-tight">
+                                Tap to view the offer &amp; buy
+                                {sponsoredById[p.id].endsOn ? ` — ends ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                              </span>
                             </span>
+                            <ChevronRight className="size-3.5 text-primary shrink-0" />
                           </span>
                         )}
                       </>
