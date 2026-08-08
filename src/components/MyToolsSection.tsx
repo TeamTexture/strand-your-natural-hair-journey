@@ -3,6 +3,7 @@
 // so there's no match score, no AI scan, no URL paste, and no ingredient
 // detail navigation. Photos + name/brand/category/rating + voicenotes only.
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronDown, Heart, Link2, Loader2, Sparkles, Trash2, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +71,7 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
 );
 
 const MyToolsSection = () => {
+  const navigate = useNavigate();
   const { tools: allTools, loading, addTool, updateTool, setFavourite, deleteTool, reload } = useUserTools();
   // Wishlisted tools live on the Wishlist screen, not in My Tools (owned).
   const tools = allTools.filter((t) => !t.on_wishlist);
@@ -295,7 +297,23 @@ const MyToolsSection = () => {
                       {t.name}
                     </p>
                     <p className="text-[11px] text-muted-foreground/90 font-medium tracking-wide mt-0.5 break-words">
-                      {[t.brand, normaliseToolCategory(t.category)].filter(Boolean).join(" · ") || "Tool"}
+                      {t.brand ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/products/brand/${encodeURIComponent(t.brand!)}`);
+                            }}
+                            className="text-primary underline underline-offset-2 hover:opacity-80"
+                          >
+                            {t.brand}
+                          </button>
+                          {normaliseToolCategory(t.category) ? ` · ${normaliseToolCategory(t.category)}` : ""}
+                        </>
+                      ) : (
+                        normaliseToolCategory(t.category) || "Tool"
+                      )}
                     </p>
                     {(() => {
                       const score = matchScoreOf(t) ?? aiScores[t.id] ?? null;
