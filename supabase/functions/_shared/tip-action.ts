@@ -165,6 +165,61 @@ export function validateTipReason(input: {
   return { ok: reasons.length === 0, reasons };
 }
 
+/** The TECHNIQUE role check — `technique` must say HOW to do the action well,
+ *  not repeat WHAT the action already said.
+ *
+ *  An empty technique is VALID: a missing technique block is better than a
+ *  duplicated one. A technique is rejected only when it overlaps the action
+ *  heavily AND introduces none of the specifics that make a "how" useful:
+ *  a new body area, a direction, a pressure/grip cue, a quantity, a section
+ *  order, a timing, or a caution.
+ */
+export function validateTipTechnique(input: {
+  technique: string;
+  action: string;
+}): ActionValidationResult {
+  const technique = (input.technique ?? "").replace(/\s+/g, " ").trim();
+  // Omission is allowed and preferred over restatement.
+  if (!technique) return { ok: true, reasons: [] };
+  const action = (input.action ?? "").replace(/\s+/g, " ").trim();
+
+  const tokenise = (s: string) =>
+    new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
+  const tTokens = tokenise(technique);
+  const aTokens = tokenise(action);
+  let shared = 0;
+  for (const t of tTokens) if (aTokens.has(t)) shared++;
+  const overlap = tTokens.size === 0 ? 1 : shared / tTokens.size;
+
+  // Specifics the ACTION does not already contain.
+  const NEW_SPECIFIC_PATTERNS: RegExp[] = [
+    // direction / path
+    /\b(from|towards?|downwards?|upwards?|outwards?|inwards?|root to tip|hairline to nape|nape|crown|front to back|back to front|left|right)\b/i,
+    // grip / pressure
+    /\b(gently|firmly|light(?:ly)?|press|pressure|grip|hold|pinch|glide|tension|no tension|without tugging|don'?t tug|avoid)\b/i,
+    // quantity / amount
+    /\b(\d+|a pea|pea[- ]sized|coin[- ]sized|dime|palmful|two pumps|a pump|generous|sparing(?:ly)?|thin layer|small amount)\b/i,
+    // sectioning / order
+    /\b(section|sections|quadrants?|row by row|one row at a time|part by part|in four|work in|order)\b/i,
+    // timing
+    /\b(minutes?|seconds?|until|before|after|first|then|finally|overnight)\b/i,
+    // body area
+    /\b(scalp|parting|partings|ends|mid[- ]lengths?|lengths?|hairline|edges|nape|roots?|shaft)\b/i,
+  ];
+  const actionLower = action.toLowerCase();
+  const newSpecifics = NEW_SPECIFIC_PATTERNS.filter((re) => {
+    const hit = technique.match(re)?.[0];
+    if (!hit) return false;
+    // Only counts as NEW when the same wording is not already in the action.
+    return !actionLower.includes(hit.toLowerCase());
+  }).length;
+
+  const reasons: string[] = [];
+  if (overlap > 0.5 && newSpecifics < 2) reasons.push("technique_duplicates_action");
+  return { ok: reasons.length === 0, reasons };
+}
+
+
 /** Corrective instruction fed back to the model on the retry pass. */
 export function retryDirective(reasons: string[], attributeTokens: string[]): string {
   const named = attributeTokens.slice(0, 8).join(", ");
@@ -188,6 +243,13 @@ export function retryDirective(reasons: string[], attributeTokens: string[]): st
     ...(reasons.includes("technique_over_level_cap")
       ? ['- "technique" is TOO LONG for this member\'s support level. Cut words to fit the stated cap, keep the how.']
       : []),
+    ...(reasons.includes("technique_duplicates_action")
+      ? ['- "technique" repeats "action" in different words. "action" is WHAT to do; "technique" is HOW to do it well — grip, direction, pressure, section order, how much product, what to avoid. Either rewrite it with specifics the action does NOT contain, or return "technique" as an EMPTY STRING. An omitted technique is better than a restated one.']
+      : []),
+    ...(reasons.includes("reason_missing") || reasons.includes("reason_restates_action") || reasons.includes("reason_too_short")
+      ? ['- "reason" is the highest-priority field after "action" and is REQUIRED at every support level. One sentence, explaining the mechanism or the consequence of skipping the action, grounded in the supplied manuscript passages. Do not join a blood marker to a hair outcome, and do not use physiological mechanism wording that is not in the supplied passages.']
+      : []),
+
     ...(reasons.includes("reason_not_one_sentence")
       ? ['- "reason" must be EXACTLY ONE sentence.']
       : []),
