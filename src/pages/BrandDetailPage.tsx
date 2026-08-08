@@ -370,8 +370,9 @@ const BrandDetailPage = () => {
                   key={o.id}
                   offer={o as unknown as BannerOffer}
                   slot="brand_page"
-                  
+                  brandName={brand.brand_name ?? null}
                 />
+
               ))}
             </div>
           ) : (
