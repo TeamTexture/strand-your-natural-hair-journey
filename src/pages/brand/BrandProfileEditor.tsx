@@ -56,6 +56,11 @@ import { smartBack } from "@/lib/smartBack";
  * socials, website, contact, category). Fields left blank simply don't render
  * on the public page — the empty-state grace pattern.
  */
+/** Maximum brand description length. The public brand page clamps the
+ *  description to two lines before "read more", and 300 characters is about all
+ *  a member reads in that space — beyond it the clamp hides the rest. */
+const ABOUT_MAX = 300;
+
 const BrandProfileEditor = () => {
   const nav = useNavigate();
   const { user } = useAuth();
@@ -114,11 +119,47 @@ const BrandProfileEditor = () => {
     return () => { cancelled = true; };
   }, [logoPath]);
 
+  // Self-heal for logos uploaded BEFORE colour extraction existed: if a logo is
+  // stored but no colours are, quantise it once here and persist on next save.
+  // Extraction still never runs on a member-facing render path.
+  useEffect(() => {
+    if (!logoUrl || logoColours) return;
+    if ((profile as { brand_colour_primary?: string | null } | null)?.brand_colour_primary) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(logoUrl);
+        const blob = await res.blob();
+        const extracted = await extractBrandColoursFromBlob(blob);
+        if (!cancelled && extracted) {
+          setLogoColours(extracted);
+          await supabase
+            .from("brand_profiles")
+            .update({
+              brand_colour_primary: extracted.primary,
+              brand_colour_secondary: extracted.secondary,
+              brand_colour_on_primary: extracted.onPrimary,
+              brand_colour_source: extracted.source,
+              brand_colour_updated_at: new Date().toISOString(),
+            } as never)
+            .eq("user_id", user!.id);
+        }
+      } catch {
+        /* Silent — the sponsored card falls back to STRAND gold. */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logoUrl, profile]);
+
   const save = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in required");
       if (!brandName.trim()) throw new Error("Brand name is required");
       if (!category) throw new Error("Please pick a brand category");
+      if (about.trim().length > ABOUT_MAX) {
+        throw new Error(`Description must be ${ABOUT_MAX} characters or fewer`);
+      }
       if (!about.trim() || about.trim().length < 30) {
         throw new Error("Please add a short description (30+ characters)");
       }
@@ -258,13 +299,16 @@ const BrandProfileEditor = () => {
               About your brand *
             </Label>
             <Textarea
+              maxLength={ABOUT_MAX}
               value={about}
               onChange={(e) => setAbout(e.target.value)}
               rows={5}
               placeholder="What you make, who you make it for, and what makes it worth a place in a natural hair routine."
             />
             <p className="text-[10.5px] text-muted-foreground font-body">
-              Shown as your description on the STRAND Brands page. {about.trim().length}/30 min.
+              Shown as your description on the STRAND Brands page. Members see the
+              first two lines before tapping to expand, so keep it tight.{" "}
+              {about.trim().length}/{ABOUT_MAX} · 30 minimum
             </p>
           </div>
 

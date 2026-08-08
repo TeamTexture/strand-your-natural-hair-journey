@@ -184,9 +184,13 @@ const SponsoredWashDayTipCard = () => {
       ref={viewRef}
       className="rounded-[14px] border overflow-hidden"
       style={{
-        // 7% tint of the brand primary over the card surface — a whisper, not a flood.
+        // 7% tint of the ORIGINAL extracted brand colour over the card surface
+        // — the tint must look like the brand, so it never uses the darkened
+        // text-safe accent. A whisper, not a flood.
         backgroundColor: tint(colours.primary, 0.07),
         borderColor: tint(colours.primary, 0.35),
+        // Left edge accent: the extracted brand colour at full strength. No text
+        // sits on it, so it stays exactly as the logo gave it.
         borderLeft: `3px solid ${colours.primary}`,
       }}
     >
@@ -195,13 +199,13 @@ const SponsoredWashDayTipCard = () => {
         <div className="flex items-center justify-between gap-2">
           <p
             className="text-[10px] uppercase tracking-[0.18em] font-bold font-body"
-            style={{ color: colours.primary }}
+            style={{ color: colours.accent }}
           >
             {brandName ? `Paid partnership with ${brandName}` : "Sponsored"}
           </p>
           <span
             className="text-[9px] uppercase tracking-[0.16em] font-bold font-body rounded px-1.5 py-0.5"
-            style={{ backgroundColor: colours.primary, color: colours.onPrimary }}
+            style={{ backgroundColor: colours.accent, color: colours.onAccent }}
           >
             Ad
           </span>
@@ -216,7 +220,7 @@ const SponsoredWashDayTipCard = () => {
           <p className="text-[11.5px] leading-[1.55] font-body text-foreground break-words">
             <span
               className="text-[9.5px] uppercase tracking-[0.18em] font-bold mr-1.5"
-              style={{ color: colours.primary }}
+              style={{ color: colours.accent }}
             >
               Try this
             </span>
@@ -255,7 +259,7 @@ const SponsoredWashDayTipCard = () => {
           type="button"
           onClick={openProduct}
           className="mt-3 w-full min-h-[44px] rounded-full font-body font-semibold text-[12.5px] inline-flex items-center justify-center gap-1.5"
-          style={{ backgroundColor: colours.primary, color: colours.onPrimary }}
+          style={{ backgroundColor: colours.accent, color: colours.onAccent }}
         >
           Learn more about {product.name.length > 22 ? "this product" : product.name}
           <ExternalLink className="size-3.5" aria-hidden />
@@ -267,7 +271,7 @@ const SponsoredWashDayTipCard = () => {
           onClick={toggle}
           aria-expanded={expanded}
           className="mt-2 w-full min-h-[40px] inline-flex items-center justify-center gap-1 text-[11.5px] font-body font-semibold"
-          style={{ color: colours.primary }}
+          style={{ color: colours.accent }}
         >
           {expanded ? "Hide offer details" : "See offer details"}
           {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
@@ -308,7 +312,7 @@ const SponsoredWashDayTipCard = () => {
                 onClick={addToShelf}
                 disabled={busy || onShelf}
                 className="mt-1.5 min-h-[40px] w-full rounded-full border font-body font-semibold text-[12px] inline-flex items-center justify-center gap-1.5 disabled:opacity-70"
-                style={{ borderColor: colours.primary, color: colours.primary }}
+                style={{ borderColor: colours.accent, color: colours.accent }}
               >
                 {busy ? (
                   <Loader2 className="size-3.5 animate-spin" />
