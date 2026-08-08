@@ -309,6 +309,8 @@ function validate(
       benefits: benefits.slice(0, 3),
       steps: steps.slice(0, 3),
       watch_outs: watchOuts,
+      wash_day_tip: washDayTip || undefined,
+
     },
   };
 
