@@ -414,9 +414,11 @@ const BrandCreateOffer = () => {
   };
 
 
-  // Attaching from the brand's OWN shelf. The shelf item is copied into the
-  // advert draft (adverts keep their own snapshot of a product) and tagged with
-  // linked_product_id so the shelf item it came from stays traceable.
+  // Attaching from the brand's OWN shelf. ONE PRODUCT PER ADVERT: picking an
+  // item REPLACES whatever was attached — the shelf sheet is a swap, not a
+  // multi-select. The shelf item is copied into the advert draft (adverts keep
+  // their own snapshot) and tagged with linked_product_id so the shelf item it
+  // came from stays traceable.
   const isShelfItemAttached = (id: string) =>
     products.some((p) => p.linked_product_id === id);
 
@@ -438,8 +440,8 @@ const BrandCreateOffer = () => {
       return;
     }
     const kind: AttachKind = item.kind === "tool" ? "tool" : "product";
-    setProducts((prev) => [
-      ...prev,
+    const replaced = products.length > 0;
+    setProducts([
       {
         kind,
         name: item.name,
@@ -454,8 +456,10 @@ const BrandCreateOffer = () => {
         linked_product_id: item.id,
       },
     ]);
-    toast.success("Attached from your shelf");
+    setShelfOpen(false);
+    toast.success(replaced ? "Product swapped — this advert promotes one product" : "Attached from your shelf");
   };
+
 
 
   const { isActive: brandSubActive } = useBrandSubscription();
