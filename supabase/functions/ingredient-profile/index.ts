@@ -269,8 +269,9 @@ Deno.serve(async (req) => {
     ) {
       throw new Error("invalid tool args shape");
     }
+    const rawWhatItIs = String(args.what_it_is).trim();
     parsed = await sanitiseAndLog({
-      what_it_is: String(args.what_it_is).trim(),
+      what_it_is: rawWhatItIs,
       deep_dive: [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
       personal_notes: [],
@@ -281,6 +282,12 @@ Deno.serve(async (req) => {
       _model_version: MODEL_VERSION,
       _generated_at: new Date().toISOString(),
     }, "ingredient-profile");
+    // A guardrail must never leave the definition blank — that renders as an
+    // empty "What it is" card. Fall back to the model's own sentence.
+    if (parsed && !parsed.what_it_is?.trim()) {
+      parsed = { ...parsed, what_it_is: rawWhatItIs };
+    }
+    if (!parsed?.what_it_is?.trim()) throw new Error("empty what_it_is");
   } catch (e) {
     console.error("ingredient-profile parse failed", e);
     return json(502, { error: "ai response could not be parsed" });
