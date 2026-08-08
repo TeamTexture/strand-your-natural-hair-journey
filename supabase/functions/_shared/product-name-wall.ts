@@ -90,8 +90,58 @@ export async function buildProductNameWall(
     console.warn("[product-name-wall] shelf read failed (open-fail):", e);
   }
 
-  return { names: dedupe(names) };
+  return { names: dedupe([...names, ...ALWAYS_FORBIDDEN_NAMES]) };
 }
+
+/**
+ * Brand names that are NOT rows in `brand_products` but must still never appear
+ * in Card 1 (rule 2: no brand and no branded product). The persona mandates the
+ * TT Heat Hat everywhere else in the app — Card 1 is the one surface that stays
+ * brand-free, so heat is described as a step, never as a named device.
+ */
+export const ALWAYS_FORBIDDEN_NAMES = [
+  "TT Heat Hat",
+  "Team Texture",
+  "teamtexture.co.uk",
+  "teamtexture",
+];
+
+/**
+ * ONE OUTPUT CONVENTION: plain text. The tip cards render strings as text, so a
+ * markdown link, bold or heading arrives as literal characters. Generators are
+ * told never to emit markdown; this strips it if they do.
+ */
+export function stripMarkdown<T>(value: T): T {
+  const clean = (s: string) =>
+    s
+      // [label](url) -> label
+      .replace(/\[([^\]\n]+)\]\((?:[^)\s]+)(?:\s+"[^"]*")?\)/g, "$1")
+      // bare autolinks and stray urls in prose
+      .replace(/<((?:https?:\/\/|mailto:)[^>\s]+)>/g, "$1")
+      // **bold** / __bold__ / *italic* / _italic_ / `code`
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/__([^_]+)__/g, "$1")
+      .replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, "$1")
+      .replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, "$1")
+      .replace(/`([^`\n]+)`/g, "$1")
+      // leading markdown headings / list bullets
+      .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+      .replace(/^\s{0,3}[-*+]\s+/gm, "")
+      .replace(/[ \t]{2,}/g, " ")
+      .trim();
+  const walk = (v: unknown): unknown => {
+    if (typeof v === "string") return clean(v);
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) out[k] = walk(val);
+      return out;
+    }
+    return v;
+  };
+  return walk(value) as T;
+}
+
 
 /** The prompt block. A rule, not a list — the list would be far too long to
  *  send and the rule admits no exceptions anyway. */
