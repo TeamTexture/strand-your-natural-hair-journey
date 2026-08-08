@@ -217,12 +217,24 @@ const BrandDetailPage = () => {
         supabase.rpc("brand_public_catalogue", { _brand_user_id: brandUserId! }),
       ]);
 
+      // Flatten the junction into `brand_products` — ONE PRODUCT PER ADVERT, so
+      // the first row by `position` is the advertised product.
+      const flatten = (rows: unknown[]) =>
+        (rows ?? []).map((r) => {
+          const row = r as { brand_offer_products?: Array<{ brand_products: unknown }> | null };
+          return {
+            ...(r as Record<string, unknown>),
+            brand_products: (row.brand_offer_products ?? []).map((j) => j.brand_products).filter(Boolean),
+          };
+        });
+
       return {
         brand: brandRes.data,
-        live: liveRes.data ?? [],
-        past: (pastRes.data ?? []) as PastOffer[],
+        live: flatten(liveRes.data ?? []),
+        past: flatten(pastRes.data ?? []) as unknown as PastOffer[],
         catalogue: ((catRes.data ?? []) as CatalogueItem[]),
       };
+
     },
   });
 
