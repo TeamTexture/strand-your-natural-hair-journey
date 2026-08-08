@@ -77,3 +77,98 @@ export function buildCostBreakdown(
     totalPence: lines.reduce((sum, l) => sum + l.subtotalPence, 0),
   };
 }
+
+
+/* ── Mid-campaign tier changes ────────────────────────────────────────────────
+ * A live campaign can change its audience. If that moves it from broad to
+ * targeted the rate goes up — but ONLY for days that have not been delivered
+ * yet. Days already delivered keep the rate they were sold at, which is why the
+ * quote below is calculated from the individual placement rows (one row per slot
+ * per day, each carrying its own snapshotted daily_rate_pence).
+ *
+ * Removing targeting (targeted → broad) is allowed and is NEVER refunded — no
+ * rate is ever lowered, so there is no credit to give back. */
+
+export type CampaignTier = "broad" | "targeted";
+
+export const tierOf = (targeted: boolean): CampaignTier => (targeted ? "targeted" : "broad");
+
+export interface UpliftLine {
+  slot: PricedSlot;
+  days: number;
+  oldRatePence: number;
+  newRatePence: number;
+  differencePence: number;
+}
+
+export interface UpliftQuote {
+  tierBefore: CampaignTier;
+  tierAfter: CampaignTier;
+  /** Distinct remaining placement days (today included). */
+  remainingDays: number;
+  lines: UpliftLine[];
+  totalPence: number;
+  /** True only for broad → targeted with a real difference to collect. */
+  paymentRequired: boolean;
+  /** True for targeted → broad: allowed, applied on approval, never refunded. */
+  isRemoval: boolean;
+}
+
+export interface QuotePlacement {
+  slot: string;
+  placement_date: string;
+  daily_rate_pence: number;
+}
+
+/** Quote the cost of changing a live campaign's tier, for remaining days only. */
+export function buildUpliftQuote(
+  placements: QuotePlacement[],
+  today: string,
+  targetedBefore: boolean,
+  targetedAfter: boolean,
+): UpliftQuote {
+  const tierBefore = tierOf(targetedBefore);
+  const tierAfter = tierOf(targetedAfter);
+  const remaining = placements.filter((p) => p.placement_date >= today);
+  const remainingDays = new Set(remaining.map((p) => p.placement_date)).size;
+  const isRemoval = targetedBefore && !targetedAfter;
+  const chargeable = !targetedBefore && targetedAfter;
+
+  const bySlot = new Map<PricedSlot, { days: number; oldRatePence: number }>();
+  for (const p of remaining) {
+    const slot = p.slot as PricedSlot;
+    const cur = bySlot.get(slot) ?? { days: 0, oldRatePence: p.daily_rate_pence };
+    cur.days += 1;
+    // The sold rate for a slot is uniform across its booked days.
+    cur.oldRatePence = Math.min(cur.oldRatePence, p.daily_rate_pence);
+    bySlot.set(slot, cur);
+  }
+
+  const lines: UpliftLine[] = chargeable
+    ? [...bySlot.entries()].map(([slot, { days, oldRatePence }]) => {
+        const newRatePence = dailyRatePence(slot, true);
+        return {
+          slot,
+          days,
+          oldRatePence,
+          newRatePence,
+          differencePence: Math.max(newRatePence - oldRatePence, 0) * days,
+        };
+      })
+    : [];
+
+  const totalPence = lines.reduce((sum, l) => sum + l.differencePence, 0);
+  return {
+    tierBefore,
+    tierAfter,
+    remainingDays,
+    lines,
+    totalPence,
+    paymentRequired: chargeable && totalPence > 0,
+    isRemoval,
+  };
+}
+
+/** Shown to a brand before they submit a targeting removal. */
+export const NO_REFUND_NOTE =
+  "Removing your audience takes effect when an admin approves it. The targeted rate you have already paid is not refunded — no part of this campaign is credited back.";

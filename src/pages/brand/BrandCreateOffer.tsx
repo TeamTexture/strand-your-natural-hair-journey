@@ -32,11 +32,14 @@ import { AlertTriangle } from "lucide-react";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
 import {
   buildCostBreakdown,
+  buildUpliftQuote,
   dailyRatePence,
   money,
+  NO_REFUND_NOTE,
   TRIAL_PRICING_NOTE,
 
   type PricedSlot,
+  type QuotePlacement,
 } from "@/lib/adPricing";
 
 import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
@@ -119,10 +122,10 @@ const BrandCreateOffer = () => {
   const submitRevision = useSubmitBrandOfferRevision();
   const { isActive: proSubActive } = useProSubscription();
 
-  // Revision mode = editing an already-live or paid-scheduled offer. Only creative
-  // fields (title, body, code, URL, banner, attached products/tools) can change;
-  // placements/dates are locked, no Stripe interaction, admin re-approves before
-  // consumers see the new creative.
+  // Revision mode = editing an already-live or paid-scheduled offer. Creative
+  // fields AND the audience can change; placements/dates stay locked. Everything
+  // goes through the same revision → admin review flow, and the live campaign
+  // keeps its current creative and its current audience until approval.
   const isRevisionMode = existing?.status === "paid_scheduled" || existing?.status === "live";
 
   // Audience targeting (optional). Empty = broad campaign shown to everyone.
@@ -132,6 +135,27 @@ const BrandCreateOffer = () => {
   const cleanTargeting = cleanRules(targeting);
   const targetingEmpty = rulesAreEmpty(cleanTargeting);
   // Reach is displayed as an approximate band inside TargetingPicker itself.
+
+  // ── Live audience change (revision mode) ──────────────────────────────────
+  const liveTargeting = cleanRules(savedTargeting ?? {});
+  const liveTargetedBefore = !rulesAreEmpty(liveTargeting);
+  const targetingDirty =
+    isRevisionMode && JSON.stringify(liveTargeting) !== JSON.stringify(cleanTargeting);
+  const londonTodayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
+  const campaignEnded =
+    !!existing?.ends_on && existing.ends_on < londonTodayStr;
+  const upliftQuote = useMemo(
+    () =>
+      buildUpliftQuote(
+        (existing?.brand_offer_placements ?? []) as QuotePlacement[],
+        londonTodayStr,
+        liveTargetedBefore,
+        !targetingEmpty,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [existing?.brand_offer_placements, londonTodayStr, liveTargetedBefore, targetingEmpty],
+  );
+
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
@@ -451,10 +475,14 @@ const BrandCreateOffer = () => {
 
     // ── Revision path ──────────────────────────────────────────────────────────
     // Editing an already-paid/live offer: submit a pending revision for admin
-    // review. No Stripe. No placement changes. Original creative stays live.
+    // review. No placement changes. The original creative AND the original
+    // audience keep running until an admin approves.
     if (isRevisionMode && existingId) {
       if (!headline.trim()) return toast.error("A headline is required.");
       if (!heroPath) return toast.error("A banner image is required.");
+      if (targetingDirty && campaignEnded) {
+        return toast.error("This campaign has ended — its audience can no longer be changed.");
+      }
       setSubmitting(true);
       try {
         const productSnapshots: RevisionProductSnapshot[] = products.map((p, i) => ({
@@ -480,9 +508,17 @@ const BrandCreateOffer = () => {
           external_url: externalUrl.trim() || null,
           hero_image_path: heroPath,
           products: productSnapshots,
+          // Only sent when the audience actually changed, so a creative-only
+          // edit never touches the live campaign's targeting.
+          targeting: targetingDirty ? cleanTargeting : undefined,
         });
-        toast.success("Changes submitted for review");
+        toast.success(
+          targetingDirty
+            ? "Creative and audience changes submitted for review"
+            : "Changes submitted for review",
+        );
         nav(`/brand/offers/${existingId}`);
+
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Submit failed";
         toast.error(msg);
@@ -966,21 +1002,78 @@ const BrandCreateOffer = () => {
         ))}
 
         {isRevisionMode ? (
-          <div className="rounded-[12px] border border-warn/40 bg-warn/5 p-3 text-[12px] font-body text-foreground/85 leading-snug flex gap-2">
-            <AlertTriangle className="size-4 text-warn shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium">You're editing a live campaign</p>
-              <p className="mt-1">
-                You can update creative content — banner, headline, body copy, discount code, link and attached products/tools. The date
-                window, placements and stats stay exactly as booked. Changes go to admin for approval and appear on next member load. No new
-                payment.
-              </p>
+          <>
+            <div className="rounded-[12px] border border-warn/40 bg-warn/5 p-3 text-[12px] font-body text-foreground/85 leading-snug flex gap-2">
+              <AlertTriangle className="size-4 text-warn shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">You're editing a live campaign</p>
+                <p className="mt-1">
+                  You can update creative content — banner, headline, body copy, discount code, link and attached products/tools — and your
+                  audience. The date window, placements and stats stay exactly as booked. Changes go to admin for approval; your campaign keeps
+                  running exactly as it is now until then.
+                </p>
+              </div>
             </div>
-          </div>
+
+            <SectionLabel className="!px-0">Audience</SectionLabel>
+            {campaignEnded ? (
+              <p className="text-[12px] font-body text-muted-foreground px-1 leading-snug">
+                This campaign has ended, so its audience can no longer be changed.
+              </p>
+            ) : (
+              <>
+                <TargetingPicker value={targeting} onChange={setTargeting} />
+
+                {targetingDirty && (
+                  <SurfaceCard className="space-y-2 border-primary/30">
+                    <p className="font-display text-[14px] text-foreground">Audience change</p>
+
+                    {upliftQuote.paymentRequired ? (
+                      <div className="space-y-2 text-[12px] font-body text-foreground/85 leading-snug">
+                        <p>
+                          You booked this campaign at the broad rate. Adding an audience moves it to the targeted rate for the{" "}
+                          <strong>
+                            {upliftQuote.remainingDays} day{upliftQuote.remainingDays === 1 ? "" : "s"}
+                          </strong>{" "}
+                          still to run — days already delivered stay at the rate you paid.
+                        </p>
+                        <div className="space-y-1">
+                          {upliftQuote.lines.map((line) => (
+                            <div key={line.slot} className="flex items-baseline justify-between gap-2">
+                              <span className="text-muted-foreground">
+                                {SLOT_LABEL[line.slot] ?? line.slot} · {line.days} day{line.days === 1 ? "" : "s"} ·{" "}
+                                {money(line.oldRatePence)} → {money(line.newRatePence)}
+                              </span>
+                              <span className="tabular-nums">{money(line.differencePence)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 font-medium">
+                          <span>To pay before this goes live</span>
+                          <span className="tabular-nums">{money(upliftQuote.totalPence)}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Submit the change and we'll confirm payment with you. Your admin reviewer can't approve the new audience until the
+                          difference is settled.
+                        </p>
+                      </div>
+                    ) : upliftQuote.isRemoval ? (
+                      <p className="text-[12px] font-body text-foreground/85 leading-snug">{NO_REFUND_NOTE}</p>
+                    ) : (
+                      <p className="text-[12px] font-body text-foreground/85 leading-snug">
+                        You're changing which members this reaches, but staying on the same rate — nothing more to pay.
+                      </p>
+                    )}
+                  </SurfaceCard>
+                )}
+              </>
+            )}
+          </>
         ) : (
           <>
             <SectionLabel className="!px-0">Audience</SectionLabel>
-            <TargetingPicker value={targeting} onChange={setTargeting} disabled={isRevisionMode} />
+            <TargetingPicker value={targeting} onChange={setTargeting} />
+
 
             <SectionLabel className="!px-0">Placements &amp; calendar</SectionLabel>
             <p className="text-[11px] font-body text-muted-foreground -mt-1 px-1 leading-snug">

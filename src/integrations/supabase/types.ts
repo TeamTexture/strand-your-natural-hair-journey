@@ -744,13 +744,26 @@ export type Database = {
           hero_image_path: string | null
           id: string
           offer_id: string
+          paid_at: string | null
+          payment_required: boolean
+          payment_waived: boolean
           products: Json
+          reach_after: number | null
+          reach_before: number | null
           rejection_reason: string | null
+          remaining_days: number
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           submitted_at: string
+          targeting: Json | null
+          targeting_changed: boolean
+          tier_after: string | null
+          tier_before: string | null
           updated_at: string
+          uplift_pence: number
         }
         Insert: {
           body_copy?: string | null
@@ -762,13 +775,26 @@ export type Database = {
           hero_image_path?: string | null
           id?: string
           offer_id: string
+          paid_at?: string | null
+          payment_required?: boolean
+          payment_waived?: boolean
           products?: Json
+          reach_after?: number | null
+          reach_before?: number | null
           rejection_reason?: string | null
+          remaining_days?: number
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           submitted_at?: string
+          targeting?: Json | null
+          targeting_changed?: boolean
+          tier_after?: string | null
+          tier_before?: string | null
           updated_at?: string
+          uplift_pence?: number
         }
         Update: {
           body_copy?: string | null
@@ -780,13 +806,26 @@ export type Database = {
           hero_image_path?: string | null
           id?: string
           offer_id?: string
+          paid_at?: string | null
+          payment_required?: boolean
+          payment_waived?: boolean
           products?: Json
+          reach_after?: number | null
+          reach_before?: number | null
           rejection_reason?: string | null
+          remaining_days?: number
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           submitted_at?: string
+          targeting?: Json | null
+          targeting_changed?: boolean
+          tier_after?: string | null
+          tier_before?: string | null
           updated_at?: string
+          uplift_pence?: number
         }
         Relationships: [
           {
@@ -915,6 +954,7 @@ export type Database = {
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
           submitted_at: string | null
+          targeting_changed_at: string | null
           total_price_pence: number
           updated_at: string
         }
@@ -945,6 +985,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           submitted_at?: string | null
+          targeting_changed_at?: string | null
           total_price_pence?: number
           updated_at?: string
         }
@@ -975,6 +1016,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           submitted_at?: string | null
+          targeting_changed_at?: string | null
           total_price_pence?: number
           updated_at?: string
         }
@@ -4663,6 +4705,13 @@ export type Database = {
       }
       ad_offer_reportable: { Args: { _offer_id: string }; Returns: boolean }
       ad_offer_rules: { Args: { _offer_id: string }; Returns: Json }
+      ad_slot_daily_rate: {
+        Args: {
+          _slot: Database["public"]["Enums"]["brand_placement_slot"]
+          _targeted: boolean
+        }
+        Returns: number
+      }
       ad_style_code: { Args: { _style: string }; Returns: string }
       admin_event_rsvps: {
         Args: { _event_id: string }
@@ -4787,6 +4836,19 @@ export type Database = {
           offer_id: string
           total: number
           unread: number
+        }[]
+      }
+      brand_offer_split_totals: {
+        Args: { _offer_id: string }
+        Returns: {
+          changed_at: string
+          code_copies: number
+          expands: number
+          impressions: number
+          link_clicks: number
+          phase: string
+          raw_views: number
+          wishlist_adds: number
         }[]
       }
       brand_offer_totals: {
@@ -4975,6 +5037,10 @@ export type Database = {
       }
       mark_booking_click_prompted: {
         Args: { _click_id: string }
+        Returns: undefined
+      }
+      mark_brand_offer_revision_paid: {
+        Args: { _revision_id: string; _waive?: boolean }
         Returns: undefined
       }
       match_manuscript_chunks: {
@@ -5170,6 +5236,7 @@ export type Database = {
           _hero_image_path: string
           _offer_id: string
           _products: Json
+          _targeting?: Json
         }
         Returns: string
       }

@@ -22,11 +22,14 @@ import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBad
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, STAT_SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
+  useMarkRevisionPaid,
   useBrandOfferTotals,
   STATS_METHOD_NOTE,
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
+import { useOfferTargeting } from "@/hooks/useAdTargeting";
+import TargetingDiff from "@/components/brand/TargetingDiff";
 import { useQueryClient } from "@tanstack/react-query";
 
 const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
@@ -71,9 +74,11 @@ const RevisionDiff = ({ offer, revision }: {
 }) => {
   const qc = useQueryClient();
   const markEntityRead = useMarkAdminEntityRead();
+  const { data: liveTargeting } = useOfferTargeting(offer.id);
 
   const approve = useApproveBrandOfferRevision();
   const reject = useRejectBrandOfferRevision();
+  const markPaid = useMarkRevisionPaid();
   const [rejectReason, setRejectReason] = useState("");
   const afterHero = useSignedUrl(revision.hero_image_path ?? offer.hero_image_path);
   const heroChanged = (revision.hero_image_path ?? null) !== (offer.hero_image_path ?? null);
@@ -100,15 +105,23 @@ const RevisionDiff = ({ offer, revision }: {
     );
   });
   const productsChanged = changedProducts.length > 0 || beforeProducts.length !== afterProducts.length;
-  const hasChanges = heroChanged || textChanges.length > 0 || productsChanged;
+  const targetingChanged = !!revision.targeting_changed;
+  const hasChanges = heroChanged || textChanges.length > 0 || productsChanged || targetingChanged;
+
+  // Broad → targeted costs more for the days still to run. Until that
+  // difference is settled (or explicitly waived) the revision is not approvable.
+  const paymentOutstanding = !!revision.payment_required && !revision.paid_at && !revision.payment_waived;
 
   return (
     <>
       <SurfaceCard className="bg-warn/5 border-warn/40 space-y-1">
         <p className="font-display text-[15px]">Pending revision</p>
         <p className="text-[11.5px] text-foreground/80 font-body leading-snug">
-          Submitted {format(new Date(revision.submitted_at), "d MMM · HH:mm")}. Approve = new creative replaces what members see on next
-          load. Reject = original creative continues running. No payment, dates unchanged, stats continue on the same offer.
+          Submitted {format(new Date(revision.submitted_at), "d MMM · HH:mm")}. Approve = new creative
+          {targetingChanged ? " and audience" : ""} replaces what members see on next load
+          {targetingChanged ? " (the audience is re-resolved straight away, not on the nightly refresh)" : ""}. Reject = original
+          {targetingChanged ? " creative and audience continue" : " creative continues"} running. Dates unchanged, stats continue on the same
+          offer.
         </p>
       </SurfaceCard>
 
@@ -116,7 +129,7 @@ const RevisionDiff = ({ offer, revision }: {
 
       {!hasChanges && (
         <SurfaceCard className="py-2.5">
-          <p className="text-[12px] text-muted-foreground font-body">No creative change was detected. Reject this revision or ask the brand to resubmit with updates.</p>
+          <p className="text-[12px] text-muted-foreground font-body">No change was detected. Reject this revision or ask the brand to resubmit with updates.</p>
         </SurfaceCard>
       )}
 
@@ -148,17 +161,75 @@ const RevisionDiff = ({ offer, revision }: {
         </>
       )}
 
+      {targetingChanged && (
+        <>
+          <TargetingDiff
+            before={liveTargeting ?? {}}
+            after={revision.targeting ?? {}}
+            reachBefore={revision.reach_before}
+            reachAfter={revision.reach_after}
+            tierBefore={revision.tier_before}
+            tierAfter={revision.tier_after}
+            remainingDays={revision.remaining_days}
+            upliftPence={revision.uplift_pence}
+            paymentRequired={revision.payment_required}
+            paidAt={revision.paid_at}
+            paymentWaived={revision.payment_waived}
+          />
+
+          {revision.payment_required && (
+            <div className="flex gap-2">
+              <Button
+                variant={paymentOutstanding ? "gold" : "outline"}
+                size="pill"
+                disabled={!paymentOutstanding || markPaid.isPending}
+                onClick={async () => {
+                  try {
+                    await markPaid.mutateAsync({ revision_id: revision.id, offer_id: offer.id, waive: false });
+                    toast.success("Uplift marked as received");
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Update failed");
+                  }
+                }}
+                className="flex-1"
+              >
+                Mark uplift paid
+              </Button>
+              <Button
+                variant="outline"
+                size="pill"
+                disabled={!paymentOutstanding || markPaid.isPending}
+                onClick={async () => {
+                  try {
+                    await markPaid.mutateAsync({ revision_id: revision.id, offer_id: offer.id, waive: true });
+                    toast.success("Uplift waived");
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Update failed");
+                  }
+                }}
+                className="flex-1"
+              >
+                Waive uplift
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
       <SectionLabel className="!px-0">Decision</SectionLabel>
       <div className="space-y-2">
         <Button
           variant="gold"
           size="pill"
+          disabled={paymentOutstanding}
           onClick={async () => {
             try {
               await approve.mutateAsync({ revision_id: revision.id, offer_id: offer.id });
               void markEntityRead("brand_offer_revision", revision.id);
-              toast.success("Revision approved — creative updated");
+              toast.success(targetingChanged ? "Revision approved — creative and audience updated" : "Revision approved — creative updated");
               qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
+              qc.invalidateQueries({ queryKey: ["offer-targeting", offer.id] });
+              qc.invalidateQueries({ queryKey: ["offer-reach", offer.id] });
             } catch (e) {
               toast.error(e instanceof Error ? e.message : "Approve failed");
             }
@@ -167,6 +238,12 @@ const RevisionDiff = ({ offer, revision }: {
         >
           <Check className="size-4 mr-1.5" /> Approve revision
         </Button>
+        {paymentOutstanding && (
+          <p className="text-[11px] font-body text-warn text-center leading-snug">
+            Uplift of {money(revision.uplift_pence)} is outstanding — mark it paid or waive it before approving.
+          </p>
+        )}
+
         <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Rejection reason (shown to brand)" rows={2} />
         <Button
           variant="outline"
