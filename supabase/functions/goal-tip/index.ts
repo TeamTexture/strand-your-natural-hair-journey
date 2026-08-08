@@ -722,8 +722,34 @@ Deno.serve(async (req) => {
     // Every tip must name a method and must not restate its own goal as its
     // justification. One corrective regeneration, then the best available
     // output is served (never a blank card) and the failure is audited.
-    const substanceOf = (t: GoalTipShape | null) => {
+    // ── QUALITY FLOOR (shared with the wash day tip) ─────────────────
+    // Every tip must carry a real ACTION and a real REASON (tip-action.ts),
+    // must name a method, and must not restate its own goal as its
+    // justification (tip-method.ts). One corrective regeneration, then the best
+    // available output is served — action and reason never degrade, and an
+    // empty card is never rendered.
+    const ctxAny = (body.context ?? {}) as Record<string, unknown>;
+    const hairCtx = (ctxAny.hair ?? {}) as Record<string, unknown>;
+    const flat = (v: unknown) => (Array.isArray(v) ? v.join(" ") : v);
+    const attributeTokens = memberAttributeTokens({
+      hairProfile: {
+        hair_type: flat(hairCtx.curl_pattern ?? hairCtx.hair_type),
+        porosity: flat(hairCtx.porosity),
+        density: flat(hairCtx.density),
+        scalp: flat(hairCtx.scalp),
+      },
+      currentStyle: (ctxAny.currentStyle ?? null) as Record<string, unknown> | null,
+      goals: [
+        { title: body.goal?.target_text ?? "" },
+        ...challengesOf(body.goal).map((c) => ({ title: c })),
+      ],
+      challenges: challengesOf(body.goal),
+    });
+
+    const floorOf = (t: GoalTipShape | null) => {
       const bodyParts = [
+        String(t?.action ?? ""),
+        String(t?.reason ?? ""),
         String(t?.body ?? ""),
         String(t?.key_fact ?? ""),
         String(t?.overview ?? ""),
@@ -733,32 +759,84 @@ Deno.serve(async (req) => {
             )
           : []),
       ].filter(Boolean);
-      return validateTipSubstance({
+      const substance = validateTipSubstance({
         headline: String(t?.headline ?? ""),
         body: bodyParts.join(" "),
       });
+      const reasons = [...substance.reasons];
+      let ok = substance.ok;
+
+      if (single) {
+        const action = String(t?.action ?? "");
+        const reason = String(t?.reason ?? "");
+        const av = validateTipAction({
+          action,
+          supporting: [String(t?.headline ?? ""), reason],
+          attributeTokens,
+        });
+        const rv = validateTipReason({ reason, action });
+        ok = ok && av.ok && rv.ok;
+        reasons.push(...av.reasons, ...rv.reasons);
+      } else if (!journal && Array.isArray(t?.actions)) {
+        // The multi-tip playbook: the same floors, per item.
+        for (const raw of t!.actions as Array<string | { action?: string; why?: string }>) {
+          const action = typeof raw === "string" ? raw : String(raw?.action ?? "");
+          const why = typeof raw === "string" ? "" : String(raw?.why ?? "");
+          const av = validateTipAction({ action, supporting: [why], attributeTokens });
+          const rv = validateTipReason({ reason: why, action });
+          ok = ok && av.ok && rv.ok;
+          reasons.push(...av.reasons, ...rv.reasons);
+        }
+      }
+      return { ok, reasons: Array.from(new Set(reasons)) };
     };
-    let verdict = substanceOf(tip);
+
+    let verdict = floorOf(tip);
     if (!verdict.ok) {
       await logTipRejection("goal-tip", verdict.reasons, JSON.stringify(tip).slice(0, 4000));
       try {
-        const retryResp = await callModel(methodRetryDirective(verdict.reasons));
+        const directive = journal
+          ? methodRetryDirective(verdict.reasons)
+          : `${retryDirective(verdict.reasons, attributeTokens)}\n\n${methodRetryDirective(verdict.reasons)}`;
+        const retryResp = await callModel(directive);
         if (retryResp.ok) {
           const retried = await parseResponse(retryResp);
-          const retryVerdict = substanceOf(retried);
-          if (retried && (retryVerdict.ok || !verdict.ok)) {
-            // Prefer the retry when it clears the floor; otherwise keep the
-            // richer of the two rather than showing nothing.
+          if (retried) {
+            const retryVerdict = floorOf(retried);
             if (retryVerdict.ok) {
+              // The retry cleared the floor — serve it.
+              tip = retried;
+              verdict = retryVerdict;
+            } else if (
+              // Otherwise prefer whichever output actually carries an action.
+              single &&
+              !String(tip?.action ?? "").trim() &&
+              String(retried.action ?? "").trim()
+            ) {
               tip = retried;
               verdict = retryVerdict;
             }
           }
         }
       } catch (e) {
-        console.warn("[goal-tip] method retry failed", e);
+        console.warn("[goal-tip] quality-floor retry failed", e);
       }
     }
+
+    // GRACEFUL DEGRADATION — the action never degrades. If the retry still has
+    // no instruction at all we fail loudly rather than serve a headline-only
+    // tip; anything else is served with the reason it produced and audited.
+    if (single && !verdict.ok) {
+      if (!String(tip?.action ?? "").trim()) {
+        await logTipRejection("goal-tip", ["action_missing_after_retry", ...verdict.reasons], JSON.stringify(tip).slice(0, 4000));
+        return new Response(
+          JSON.stringify({ error: "tip_failed_action_floor", reasons: verdict.reasons }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      await logTipRejection("goal-tip", ["served_degraded", ...verdict.reasons], JSON.stringify(tip).slice(0, 4000));
+    }
+
 
 
     if (journal) {
