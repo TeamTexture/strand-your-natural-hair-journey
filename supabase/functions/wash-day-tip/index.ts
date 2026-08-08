@@ -21,6 +21,17 @@ import {
   logTipRejection,
 } from "../_shared/tip-action.ts";
 import {
+  buildEditorialProductGuard,
+  editorialProductBlock,
+  findExcludedProducts,
+  redactProductNames,
+  minimalCapViolations,
+  minimalPromptBlock,
+  trimToCap,
+  MINIMAL_ACTION_WORD_CAP,
+  MINIMAL_REASON_WORD_CAP,
+} from "../_shared/editorial-products.ts";
+import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
   recordAdvice,
@@ -43,7 +54,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v8-action-plus-reason";
+const MODEL_VERSION = "wash-tip@v9-editorial-wall-minimal-caps";
 
 interface TipPayload {
   headline: string;
@@ -294,6 +305,13 @@ Do not substitute other cleansing or sealing methods for these two.`
     ragK: 5,
   });
 
+  // PAID-MEDIA WALL + minimal caps. The exclusion list is resolved from the
+  // database with the service client — never from anything the client sent.
+  const guard = await buildEditorialProductGuard(admin as never, body.shelfProducts ?? []);
+  const editorialBlock = editorialProductBlock(guard);
+  const minimalBlock = requestedLevel === 1 ? minimalPromptBlock() : "";
+  const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${editorialBlock}${minimalBlock}`;
+
   let aiResp: Response;
   try {
     aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -305,7 +323,8 @@ Do not substitute other cleansing or sealing methods for these two.`
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+          { role: "system", content: systemPrompt },
+
           {
             role: "user",
             content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
@@ -362,11 +381,27 @@ Do not substitute other cleansing or sealing methods for these two.`
       reason: String(p?.reason ?? ""),
       action: String(p?.action ?? ""),
     });
+    // PAID-MEDIA WALL: the editorial card may never name a product that is
+    // the subject of a live campaign, nor a catalogue product she doesn't own.
+    const sponsoredHits = findExcludedProducts(p, guard.sponsored);
+    const unownedHits = findExcludedProducts(p, guard.unownedCatalogue);
+    // Minimal level word caps, validated.
+    const capHits = requestedLevel === 1
+      ? minimalCapViolations({ action: String(p?.action ?? ""), reason: String(p?.reason ?? "") })
+      : [];
     return {
-      ok: actionVerdict.ok && reasonVerdict.ok,
-      reasons: [...actionVerdict.reasons, ...reasonVerdict.reasons],
+      ok: actionVerdict.ok && reasonVerdict.ok && sponsoredHits.length === 0 &&
+        unownedHits.length === 0 && capHits.length === 0,
+      reasons: [
+        ...actionVerdict.reasons,
+        ...reasonVerdict.reasons,
+        ...(sponsoredHits.length ? ["names_sponsored_product"] : []),
+        ...(unownedHits.length ? ["names_unowned_product"] : []),
+        ...capHits,
+      ],
     };
   };
+
 
   let verdict = parsed?.headline && parsed?.why
     ? check(parsed)
@@ -383,7 +418,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            { role: "system", content: systemPrompt },
             {
               role: "user",
               content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
@@ -425,7 +460,11 @@ Do not substitute other cleansing or sealing methods for these two.`
   // blocks — that floor stands. Any reason-only failure is logged and the
   // tip is served anyway.
   if (!verdict.ok) {
-    const actionOnly = verdict.reasons.filter((r) => r.startsWith("action_") || r === "output_unparseable_or_incomplete");
+    // A cap overrun is repairable by trimming, so it never blocks serving.
+    const actionOnly = verdict.reasons.filter(
+      (r) => (r.startsWith("action_") && r !== "action_over_minimal_cap") ||
+        r === "output_unparseable_or_incomplete",
+    );
     const hasUsableAction = Boolean(String(parsed.action ?? "").trim()) && actionOnly.length === 0;
     if (!hasUsableAction) {
       return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
@@ -441,14 +480,22 @@ Do not substitute other cleansing or sealing methods for these two.`
   // The next-wash suggestion is optional by design — an empty/absent value
   // means the section is omitted from the card rather than padded.
   const nextTime = isStyle ? "" : String(parsed.next_time ?? "").trim();
+  const minimal = requestedLevel === 1;
 
   const payload: TipPayload = {
     headline: String(parsed.headline).trim(),
     why: String(parsed.why).trim(),
-    action: String(parsed.action ?? "").trim(),
-    reason: String(parsed.reason ?? "").trim(),
-    technique: String(parsed.technique ?? "").trim(),
-    next_time: nextTime,
+    // MINIMAL LEVEL: the caps are enforced here, not merely requested. If the
+    // model overran after its retry the copy is trimmed rather than dropped.
+    action: minimal
+      ? trimToCap(String(parsed.action ?? ""), MINIMAL_ACTION_WORD_CAP)
+      : String(parsed.action ?? "").trim(),
+    reason: minimal
+      ? trimToCap(String(parsed.reason ?? ""), MINIMAL_REASON_WORD_CAP)
+      : String(parsed.reason ?? "").trim(),
+    // Nothing beyond action + reason is shown at minimal level.
+    technique: minimal ? "" : String(parsed.technique ?? "").trim(),
+    next_time: minimal ? "" : nextTime,
     fingerprint: body.fingerprint,
     _model_version: MODEL_VERSION,
     tipsLevel: requestedLevel,
@@ -456,17 +503,33 @@ Do not substitute other cleansing or sealing methods for these two.`
     _rag_passages: grounding.passages,
   };
 
+  // PAID-MEDIA WALL, last line of defence. If a sponsored product name
+  // survived both passes it is replaced with a neutral phrase — the editorial
+  // card never advertises, and it never renders empty either.
+  const stillNamed = findExcludedProducts(payload, guard.sponsored);
+  const finalPayload = stillNamed.length > 0
+    ? redactProductNames(payload, stillNamed)
+    : payload;
+  if (stillNamed.length > 0) {
+    await logTipRejection(
+      isStyle ? "style-tip" : "wash-day-tip",
+      ["redacted_sponsored_product", ...stillNamed.map((n) => n.slice(0, 60))],
+      raw.slice(0, 4000),
+    );
+  }
+
   await admin
     .from("ai_summaries")
     .upsert(
-      { user_id: user.id, kind, payload },
+      { user_id: user.id, kind, payload: finalPayload },
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.action, payload.reason, payload.technique, payload.next_time ?? ""]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.technique, finalPayload.next_time ?? ""]);
 
   return json(200, {
-    tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body, grounding: grounding.block }),
+    tip: await sanitiseAndLog(finalPayload, "wash-day-tip", { context: body, grounding: grounding.block }),
     cached: false,
   });
 });
+
