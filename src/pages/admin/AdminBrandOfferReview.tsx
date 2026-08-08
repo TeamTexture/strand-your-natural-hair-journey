@@ -29,6 +29,8 @@ import {
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useOfferTargeting } from "@/hooks/useAdTargeting";
 import TargetingDiff from "@/components/brand/TargetingDiff";
+import AdminOfferOverride from "@/components/admin/AdminOfferOverride";
+
 import { useQueryClient } from "@tanstack/react-query";
 
 const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
