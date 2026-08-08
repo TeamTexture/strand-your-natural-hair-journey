@@ -21,6 +21,10 @@ import {
 } from "./knowledge/index.ts";
 import type { FunctionKind, TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import {
+  METHOD_AND_TIMING_RULE,
+  retrieveProceduralPassages,
+} from "./procedural-rag.ts";
 import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 
 /** The single wording used everywhere a passages block is injected. */
