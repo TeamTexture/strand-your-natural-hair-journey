@@ -50,6 +50,13 @@ export interface GroundingInput {
   ragK?: number;
   /** Optional chapter scoping. When it returns nothing we retry unscoped. */
   chapterFilter?: number[];
+  /**
+   * TIP SURFACES: bias retrieval toward PROCEDURAL passages (steps, timings,
+   * frequencies, treatments) instead of thematic ones, and append the method
+   * rule to the prompt. Without this the model only has themes and produces
+   * tautologies. See _shared/procedural-rag.ts.
+   */
+  proceduralBias?: boolean;
 }
 
 /** Retrieve with one retry, plus the unscoped fallback when a chapter
@@ -58,8 +65,13 @@ async function retrieveWithRetry(
   query: string,
   k: number,
   chapterFilter?: number[],
+  proceduralBias?: boolean,
 ): Promise<Awaited<ReturnType<typeof retrievePassages>>> {
   const attempt = async () => {
+    if (proceduralBias) {
+      const res = await retrieveProceduralPassages(query, k, chapterFilter);
+      return res.passages;
+    }
     let passages = await retrievePassages(query, k, chapterFilter);
     if (passages.length === 0 && chapterFilter && chapterFilter.length > 0) {
       passages = await retrievePassages(query, k);
@@ -93,11 +105,13 @@ export async function buildGroundingBlock(
       input.ragQuery,
       input.ragK ?? 4,
       input.chapterFilter,
+      input.proceduralBias,
     );
     passageBlocks = passages.map(renderPassageBlock);
     grounded = passageBlocks.length > 0;
   } catch {
     grounded = false;
+
   }
 
   if (!grounded) {
