@@ -245,23 +245,28 @@ const BrandProductPage = () => {
   };
 
   if (isLoading) return <LoadingDot />;
-  if (!product || !offer) {
+  // Only a missing PRODUCT is a dead end. A missing or ended offer still shows
+  // the product — the product is the thing the member cares about.
+  if (!product) {
     return (
       <ScreenLayout>
-        <TitleBar title="Product" />
-        <div className="px-5 pt-4">
+        <TitleBar title="Product" onBack={() => nav("/products")} />
+        <div className="px-5 pt-4 space-y-3">
           <SurfaceCard>
             <p className="text-sm text-muted-foreground">
               This product is no longer available.
             </p>
           </SurfaceCard>
+          <Button variant="goldOutline" size="pill" className="w-full" onClick={() => nav("/products")}>
+            Back to my products
+          </Button>
         </div>
       </ScreenLayout>
     );
   }
 
   const heroImage = product.image_urls?.[0] ?? null;
-  const validUntil = formatDate(offer.ends_on);
+  const validUntil = formatDate(offer?.ends_on);
 
   return (
     <ScreenLayout>
