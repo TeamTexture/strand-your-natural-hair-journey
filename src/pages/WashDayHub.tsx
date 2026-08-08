@@ -640,12 +640,31 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
       icon={Sparkles}
       headline={tip.headline}
     >
-      <AiProse text={tip.why} />
+      {/* THE ACTION FLOOR — never level-gated. At the most minimal support
+          level the card is headline + this one instruction; minimal means
+          fewer words, never no content. */}
+      {tip.action && tip.action.trim() && (
+        <div className="flex gap-2 rounded-[10px] border border-primary/20 bg-primary/[0.06] px-2.5 py-2">
+          <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <Sparkles className="size-2.5 text-primary" aria-hidden />
+          </span>
+          <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body text-foreground break-words">
+            <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
+              Do this
+            </span>
+            {tip.action.trim()}
+          </p>
+        </div>
+      )}
+      <LevelGate min={2}>
+        <AiProse text={tip.why} />
+      </LevelGate>
       {tip.technique && (
         <LevelGate min={2}>
           <AiProse text={`Technique: ${tip.technique}`} />
         </LevelGate>
       )}
+
       {/* Optional — one thing to try on the NEXT wash day, given where her hair
           is now and the style she is moving into. Same panel treatment as the
           "why" and "Technique" blocks (a labelled GuidanceBody segment), so it
