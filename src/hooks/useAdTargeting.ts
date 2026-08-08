@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cleanRules, rulesAreEmpty, type TargetingOption, type TargetingRules } from "@/lib/adTargeting";
-import { recordConsents, withdrawConsent } from "@/lib/consent";
+import { recordConsents, withdrawConsent, type ConsentSource } from "@/lib/consent";
 
 type Rpc = (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = (supabase as unknown as { rpc: Rpc }).rpc.bind(supabase);
@@ -126,12 +126,15 @@ export function useSetPersonalisedOffersConsent() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (on: boolean) => {
-      const { error } = await rpc("set_personalised_offers_consent", { _on: on, _source: "settings" });
+    mutationFn: async (input: boolean | { on: boolean; source?: ConsentSource }) => {
+      const on = typeof input === "boolean" ? input : input.on;
+      const source: ConsentSource =
+        typeof input === "boolean" ? "settings" : input.source ?? "settings";
+      const { error } = await rpc("set_personalised_offers_consent", { _on: on, _source: source });
       if (error) throw new Error(error.message);
       // Append-only consent ledger: a withdrawal writes a NEW granted=false row.
-      if (on) await recordConsents({ personalised_offers: true });
-      else await withdrawConsent("personalised_offers");
+      if (on) await recordConsents({ personalised_offers: true }, source);
+      else await withdrawConsent("personalised_offers", source);
       return on;
     },
     onSuccess: () => {

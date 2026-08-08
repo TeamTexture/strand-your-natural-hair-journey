@@ -69,26 +69,37 @@ export function outstandingMandatory(rows: ConsentRow[]): ConsentKey[] {
   });
 }
 
+/** Which surface a consent decision came from — stored on `user_consents.source`. */
+export type ConsentSource = "consent_gate" | "hair_profile_prompt" | "settings";
+
 const rpc = (name: string, args: Record<string, unknown>) =>
   (supabase as unknown as {
     rpc: (n: string, a: Record<string, unknown>) => Promise<{ error: unknown }>;
   }).rpc(name, args);
 
 /** Append consent decisions. Never updates — each call writes new rows. */
-export async function recordConsents(consents: Partial<Record<ConsentKey, boolean>>) {
+export async function recordConsents(
+  consents: Partial<Record<ConsentKey, boolean>>,
+  source: ConsentSource = "consent_gate",
+) {
   const { error } = await rpc("record_consents", {
     _version: CONSENT_DOCUMENT_VERSION,
     _consents: consents,
     _user_agent: typeof navigator === "undefined" ? null : navigator.userAgent,
+    _source: source,
   });
   if (error) throw error;
 }
 
 /** Withdraw an optional consent (writes a new granted = false row). */
-export async function withdrawConsent(key: "personalised_offers" | "marketing_email") {
+export async function withdrawConsent(
+  key: "personalised_offers" | "marketing_email",
+  source: ConsentSource = "settings",
+) {
   const { error } = await rpc("withdraw_consent", {
     _key: key,
     _version: CONSENT_DOCUMENT_VERSION,
+    _source: source,
   });
   if (error) throw error;
 }

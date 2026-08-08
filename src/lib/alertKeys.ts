@@ -39,6 +39,9 @@ export const ALERT_KEYS = {
   PLUS_MESSAGE: "plus_message",
   PLUS_LIBRARY_ITEM: "plus_library_item",
   PLUS_LIBRARY_COLLECTION: "plus_library_collection",
+
+  // One-time optional-consent ask, shown once after the hair profile is done
+  PERSONALISED_OFFERS_ASK: "personalised_offers_ask",
 } as const;
 
 export type AlertKey = (typeof ALERT_KEYS)[keyof typeof ALERT_KEYS];
