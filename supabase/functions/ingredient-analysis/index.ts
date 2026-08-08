@@ -46,7 +46,12 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
 import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
-import { hasInstructingVerb } from "../_shared/tip-action.ts";
+import {
+  hasInstructingVerb,
+  memberAttributeTokens,
+  validateTipAction,
+  validateTipReason,
+} from "../_shared/tip-action.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
