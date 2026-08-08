@@ -22,7 +22,6 @@ import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBad
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, STAT_SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
-  useMarkRevisionPaid,
   useBrandOfferTotals,
   STATS_METHOD_NOTE,
   BrandOfferRevision,
@@ -78,7 +77,6 @@ const RevisionDiff = ({ offer, revision }: {
 
   const approve = useApproveBrandOfferRevision();
   const reject = useRejectBrandOfferRevision();
-  const markPaid = useMarkRevisionPaid();
   const [rejectReason, setRejectReason] = useState("");
   const afterHero = useSignedUrl(revision.hero_image_path ?? offer.hero_image_path);
   const heroChanged = (revision.hero_image_path ?? null) !== (offer.hero_image_path ?? null);
@@ -108,9 +106,6 @@ const RevisionDiff = ({ offer, revision }: {
   const targetingChanged = !!revision.targeting_changed;
   const hasChanges = heroChanged || textChanges.length > 0 || productsChanged || targetingChanged;
 
-  // Broad → targeted costs more for the days still to run. Until that
-  // difference is settled (or explicitly waived) the revision is not approvable.
-  const paymentOutstanding = !!revision.payment_required && !revision.paid_at && !revision.payment_waived;
 
   return (
     <>
