@@ -97,7 +97,7 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
  * personalisation signature so a style, goal or challenge edit refreshes the
  * tip immediately, while normal page navigation reuses the cached tip.
  */
-const CACHE_VERSION = "v11-scalp-rule";
+const CACHE_VERSION = "v12-procedural-method";
 
 const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>
   `strand:goal-tip:${CACHE_VERSION}:${sig}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;

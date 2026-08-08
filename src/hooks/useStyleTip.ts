@@ -31,7 +31,7 @@ export function useStyleTip() {
   const { level } = useTipsLevel();
 
   return useQuery({
-    queryKey: ["style_tip_v1", user?.id, level],
+    queryKey: ["style_tip_v2_procedural", user?.id, level],
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,

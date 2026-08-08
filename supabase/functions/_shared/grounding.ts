@@ -21,6 +21,10 @@ import {
 } from "./knowledge/index.ts";
 import type { FunctionKind, TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import {
+  METHOD_AND_TIMING_RULE,
+  retrieveProceduralPassages,
+} from "./procedural-rag.ts";
 import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 
 /** The single wording used everywhere a passages block is injected. */
@@ -50,6 +54,13 @@ export interface GroundingInput {
   ragK?: number;
   /** Optional chapter scoping. When it returns nothing we retry unscoped. */
   chapterFilter?: number[];
+  /**
+   * TIP SURFACES: bias retrieval toward PROCEDURAL passages (steps, timings,
+   * frequencies, treatments) instead of thematic ones, and append the method
+   * rule to the prompt. Without this the model only has themes and produces
+   * tautologies. See _shared/procedural-rag.ts.
+   */
+  proceduralBias?: boolean;
 }
 
 /** Retrieve with one retry, plus the unscoped fallback when a chapter
@@ -58,8 +69,13 @@ async function retrieveWithRetry(
   query: string,
   k: number,
   chapterFilter?: number[],
+  proceduralBias?: boolean,
 ): Promise<Awaited<ReturnType<typeof retrievePassages>>> {
   const attempt = async () => {
+    if (proceduralBias) {
+      const res = await retrieveProceduralPassages(query, k, chapterFilter);
+      return res.passages;
+    }
     let passages = await retrievePassages(query, k, chapterFilter);
     if (passages.length === 0 && chapterFilter && chapterFilter.length > 0) {
       passages = await retrievePassages(query, k);
@@ -93,11 +109,13 @@ export async function buildGroundingBlock(
       input.ragQuery,
       input.ragK ?? 4,
       input.chapterFilter,
+      input.proceduralBias,
     );
     passageBlocks = passages.map(renderPassageBlock);
     grounded = passageBlocks.length > 0;
   } catch {
     grounded = false;
+
   }
 
   if (!grounded) {
@@ -129,6 +147,8 @@ export async function buildGroundingBlock(
     );
   }
   if (parts.length > 0) parts.push(GROUNDING_INSTRUCTION);
+  if (input.proceduralBias) parts.push(METHOD_AND_TIMING_RULE);
+
 
   return {
     block: parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "",

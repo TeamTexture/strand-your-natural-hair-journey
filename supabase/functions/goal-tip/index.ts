@@ -12,8 +12,17 @@ import {
   renderTopicBlock,
 } from "../_shared/knowledge/index.ts";
 import type { TopicId } from "../_shared/knowledge/types.ts";
-import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { renderPassageBlock } from "../_shared/rag.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
+import {
+  METHOD_AND_TIMING_RULE,
+  retrieveProceduralPassages,
+} from "../_shared/procedural-rag.ts";
+import {
+  methodRetryDirective,
+  validateTipSubstance,
+} from "../_shared/tip-method.ts";
+import { logTipRejection } from "../_shared/tip-action.ts";
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
@@ -483,36 +492,37 @@ Deno.serve(async (req) => {
     const goalText = [challengeText(body.goal), body.goal.target_text].filter(Boolean).join(" ");
     const chapterFilter = selectGoalChapters(goalText);
     const ragQuery = buildRagQuery(body);
+    // PROCEDURAL BIAS: retrieval is re-ranked toward passages that describe a
+    // method — steps, timings, frequencies, treatments — not passages merely
+    // *about* the goal's theme. Thematic passages were the root cause of
+    // tautological tips ("protecting your hair prevents damage to your hair").
     // Retry once, then fall back to the full corpus. Never block the user:
     // if retrieval still fails we generate anyway and stamp the payload so
     // ungrounded outputs are visible in the logs.
     let ragBlock = "";
     let ragPassageCount = 0;
+    let ragProceduralCount = 0;
     let grounded = false;
-    const retrieve = async () => {
-      let passages = await retrievePassages(ragQuery, 6, chapterFilter);
-      // Fallback: if the chapter-scoped query returned nothing (e.g. missing
-      // embeddings for those chapters), fall back to the full corpus.
-      if (passages.length === 0) {
-        passages = await retrievePassages(ragQuery, 6);
-      }
-      return passages;
-    };
+    const retrieve = async () => await retrieveProceduralPassages(ragQuery, 6, chapterFilter);
     try {
-      let passages: Awaited<ReturnType<typeof retrieve>>;
+      let result: Awaited<ReturnType<typeof retrieve>>;
       try {
-        passages = await retrieve();
+        result = await retrieve();
       } catch {
-        passages = await retrieve();
+        result = await retrieve();
       }
+      const passages = result.passages;
       ragPassageCount = passages.length;
+      ragProceduralCount = result.procedural;
       grounded = passages.length > 0;
       if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}`;
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
       }
     } catch {
       grounded = false;
     }
+
+
     if (!grounded) {
       console.error(JSON.stringify({
         event: "manuscript_grounding_failed",
@@ -551,7 +561,7 @@ Deno.serve(async (req) => {
       : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
     const finalSystemPrompt = `${systemPrompt}${singleSuffix}${cornrowSuffix}`;
 
-    const aiResp = await fetch(
+    const callModel = (extraDirective = "") => fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
@@ -562,7 +572,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${withCount(finalSystemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            { role: "system", content: `${withCount(finalSystemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${extraDirective ? `\n\n${extraDirective}` : ""}` },
+
             { role: "user", content: userPayload },
           ],
           tools: [
@@ -633,6 +644,8 @@ Deno.serve(async (req) => {
       },
     );
 
+    const aiResp = await callModel();
+
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
@@ -654,17 +667,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const aiJson = await aiResp.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("goal-tip no tool call", JSON.stringify(aiJson).slice(0, 400));
-      return new Response(JSON.stringify({ error: "Malformed AI output" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let tip: {
+    type GoalTipShape = {
       headline?: string;
       body?: string;
       key_fact?: string;
@@ -673,15 +676,71 @@ Deno.serve(async (req) => {
       caution?: string;
       signals?: unknown[];
     };
-    try {
-      tip = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("goal-tip bad JSON", e);
-      return new Response(JSON.stringify({ error: "Bad AI JSON" }), {
+    const parseResponse = async (resp: Response): Promise<GoalTipShape | null> => {
+      const aiJson = await resp.json();
+      const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      if (!args) {
+        console.error("goal-tip no tool call", JSON.stringify(aiJson).slice(0, 400));
+        return null;
+      }
+      try {
+        return JSON.parse(args) as GoalTipShape;
+      } catch (e) {
+        console.error("goal-tip bad JSON", e);
+        return null;
+      }
+    };
+
+    let tip = await parseResponse(aiResp);
+    if (!tip) {
+      return new Response(JSON.stringify({ error: "Malformed AI output" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ── METHOD + ANTI-TAUTOLOGY FLOOR ────────────────────────────────
+    // Every tip must name a method and must not restate its own goal as its
+    // justification. One corrective regeneration, then the best available
+    // output is served (never a blank card) and the failure is audited.
+    const substanceOf = (t: GoalTipShape | null) => {
+      const bodyParts = [
+        String(t?.body ?? ""),
+        String(t?.key_fact ?? ""),
+        String(t?.overview ?? ""),
+        ...(Array.isArray(t?.actions)
+          ? (t?.actions as Array<string | { action?: string; why?: string }>).map((a) =>
+              typeof a === "string" ? a : `${a?.action ?? ""} ${a?.why ?? ""}`,
+            )
+          : []),
+      ].filter(Boolean);
+      return validateTipSubstance({
+        headline: String(t?.headline ?? ""),
+        body: bodyParts.join(" "),
+      });
+    };
+    let verdict = substanceOf(tip);
+    if (!verdict.ok) {
+      await logTipRejection("goal-tip", verdict.reasons, JSON.stringify(tip).slice(0, 4000));
+      try {
+        const retryResp = await callModel(methodRetryDirective(verdict.reasons));
+        if (retryResp.ok) {
+          const retried = await parseResponse(retryResp);
+          const retryVerdict = substanceOf(retried);
+          if (retried && (retryVerdict.ok || !verdict.ok)) {
+            // Prefer the retry when it clears the floor; otherwise keep the
+            // richer of the two rather than showing nothing.
+            if (retryVerdict.ok) {
+              tip = retried;
+              verdict = retryVerdict;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[goal-tip] method retry failed", e);
+      }
+    }
+
 
     if (journal) {
       // Hard guarantee of the overview + caution shape regardless of drift.
@@ -726,6 +785,8 @@ Deno.serve(async (req) => {
           ...(await sanitiseAndLog(tip, "goal-tip", { context: body.context ?? body })),
           _manuscript_grounded: grounded,
           _rag_passages: ragPassageCount,
+          _rag_procedural: ragProceduralCount,
+          _method_floor: verdict.ok,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },

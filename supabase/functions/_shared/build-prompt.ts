@@ -27,6 +27,10 @@ import {
 } from "./knowledge/index.ts";
 import type { TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
+import {
+  METHOD_AND_TIMING_RULE,
+  retrieveProceduralPassages,
+} from "./procedural-rag.ts";
 import { GROUNDING_INSTRUCTION } from "./grounding.ts";
 import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
@@ -92,6 +96,10 @@ export interface BuildPromptInput {
    *  is called and the passages are rendered into systemBlocks[2]. */
   rag_query?: string;
   rag_k?: number;
+  /** TIP/GUIDANCE surfaces: re-rank retrieval toward PROCEDURAL passages
+   *  (steps, timings, frequencies, treatments) and append the method rule, so
+   *  the model has a method to give rather than only a theme to restate. */
+  procedural_bias?: boolean;
   /** Pre-rendered RAG blocks. Bypasses retrieval. */
   rag_blocks?: string[];
   /** Tool definition for structured-output (tool_use). When set, also pass toolChoice. */
@@ -167,11 +175,16 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     // stamp the payload from `grounded` below so ungrounded generations
     // are visible in logs.
     try {
-      let passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
-      if (passages.length === 0) {
-        passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
+      if (input.procedural_bias) {
+        const res = await retrieveProceduralPassages(input.rag_query, input.rag_k ?? 4);
+        ragBlocks = res.passages.map(renderPassageBlock);
+      } else {
+        let passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
+        if (passages.length === 0) {
+          passages = await retrievePassages(input.rag_query, input.rag_k ?? 4);
+        }
+        ragBlocks = passages.map(renderPassageBlock);
       }
-      ragBlocks = passages.map(renderPassageBlock);
     } catch {
       ragBlocks = [];
     }
@@ -189,6 +202,9 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   }
   if (ragBlocks.length > 0 || kbBlocks.length > 0) {
     systemBlocks.push({ type: "text", text: GROUNDING_INSTRUCTION });
+  }
+  if (input.procedural_bias) {
+    systemBlocks.push({ type: "text", text: METHOD_AND_TIMING_RULE });
   }
 
   // ── VOICE PRINCIPLES (every Claude-path function) ────────────────

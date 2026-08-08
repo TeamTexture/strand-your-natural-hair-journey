@@ -14,6 +14,10 @@ import {
 } from "../_shared/grounding.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import {
+  methodRetryDirective,
+  validateTipSubstance,
+} from "../_shared/tip-method.ts";
+import {
   memberAttributeTokens,
   validateTipAction,
   validateTipReason,
@@ -56,7 +60,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v11-reason-floor-technique-roles";
+const MODEL_VERSION = "wash-tip@v12-procedural-method-floor";
 
 interface TipPayload {
   headline: string;
@@ -314,6 +318,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   const ledgerBlock = buildAdviceLedgerBlock(ledger);
 
   const grounding = await buildGroundingBlock({
+    proceduralBias: true,
     fn: isStyle ? "style-tip" : "wash-day-tip",
     functionKind: "wash-day-observation",
     selectorContext: selectorCtx,
@@ -432,6 +437,14 @@ Do not substitute other cleansing or sealing methods for these two.`
     // NO PRODUCT NAMES: the editorial card may never name any product, from
     // any brand, including products this member owns. One hit = regenerate.
     const productHits = findProductNames(p, wall.names);
+    // METHOD + ANTI-TAUTOLOGY floor: the tip must name a method (treatment,
+    // technique, product type, tool, timing, frequency) and must never justify
+    // itself by restating its own headline goal.
+    const substanceVerdict = validateTipSubstance({
+      headline: String(p?.headline ?? ""),
+      body: [String(p?.action ?? ""), String(p?.reason ?? ""), String(p?.technique ?? ""), String(p?.next_time ?? "")]
+        .filter(Boolean).join(" "),
+    });
     // Minimal level word caps, validated.
     const capHits = levelCapViolations(requestedLevel, {
       action: String(p?.action ?? ""),
@@ -440,11 +453,12 @@ Do not substitute other cleansing or sealing methods for these two.`
     });
     return {
       ok: actionVerdict.ok && reasonVerdict.ok && techniqueVerdict.ok &&
-        productHits.length === 0 && capHits.length === 0,
+        substanceVerdict.ok && productHits.length === 0 && capHits.length === 0,
       reasons: [
         ...actionVerdict.reasons,
         ...reasonVerdict.reasons,
         ...techniqueVerdict.reasons,
+        ...substanceVerdict.reasons,
         ...(productHits.length ? ["names_product"] : []),
         ...capHits,
       ],
@@ -474,7 +488,10 @@ Do not substitute other cleansing or sealing methods for these two.`
               content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
             },
             { role: "assistant", content: raw },
-            { role: "user", content: retryDirective(verdict.reasons, attributeTokens) },
+            {
+              role: "user",
+              content: `${retryDirective(verdict.reasons, attributeTokens)}\n\n${methodRetryDirective(verdict.reasons)}`,
+            },
           ],
           response_format: { type: "json_object" },
         }),
