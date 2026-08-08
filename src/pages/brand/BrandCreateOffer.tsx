@@ -1053,13 +1053,13 @@ const BrandCreateOffer = () => {
                           ))}
                         </div>
                         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 font-medium">
-                          <span>Total to pay now</span>
+                          <span>Total to pay if approved</span>
                           <span className="tabular-nums">{money(upliftQuote.totalPence)}</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          Submitting takes you straight to secure checkout for {money(upliftQuote.totalPence)}. Your edits are saved either
-                          way — if you don't finish paying you can come back and pay or discard them. The new audience goes to admin review
-                          once payment clears.
+                          Nothing is charged now. An admin reviews the change first — if it's approved you'll be asked to pay{" "}
+                          {money(upliftQuote.totalPence)} to activate the new audience. Your campaign keeps running on its current audience
+                          and rate until then.
                         </p>
 
                       </div>

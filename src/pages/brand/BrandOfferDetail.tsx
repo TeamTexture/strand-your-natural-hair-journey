@@ -242,19 +242,20 @@ const BrandOfferDetail = () => {
 
 
 
-        {/* Audience edits held safely while the uplift is unpaid. Nothing here
-          * is live to members and the running campaign is untouched. */}
+        {/* Approved but unpaid: the new audience is NOT live. The campaign keeps
+          * running on its original targeting and rate until payment lands. */}
         {awaitingPaymentRevision && (
           <SurfaceCard className="bg-warn/5 border-warn/40">
             <div className="flex items-start gap-2.5">
               <Clock className="size-4 text-warn mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-display text-[14px]">Audience change awaiting payment</p>
+                <p className="font-display text-[14px]">Approved — pay to activate</p>
                 <p className="text-[11.5px] text-muted-foreground font-body mt-0.5 leading-snug">
-                  Your edits are saved. Targeting costs {money(awaitingPaymentRevision.uplift_pence)} more across the{" "}
+                  Your audience change is approved. Targeting costs {money(awaitingPaymentRevision.uplift_pence)} more across the{" "}
                   {awaitingPaymentRevision.remaining_days} day
-                  {awaitingPaymentRevision.remaining_days === 1 ? "" : "s"} still to run. Once payment clears it goes to admin review — until
-                  then your campaign keeps running exactly as booked.
+                  {awaitingPaymentRevision.remaining_days === 1 ? "" : "s"} still to run — days already delivered keep the rate you paid. Pay
+                  to apply it; until then your campaign keeps running on its current audience and rate. If it's still unpaid when the campaign
+                  ends, the change simply lapses.
                 </p>
                 <div className="flex gap-1.5 mt-2">
                   <Button
@@ -283,7 +284,7 @@ const BrandOfferDetail = () => {
                           revision_id: awaitingPaymentRevision.id,
                           offer_id: offer.id,
                         });
-                        toast.success("Audience change discarded");
+                        toast.success("Approved audience change discarded");
                       } catch (e) {
                         toast.error(e instanceof Error ? e.message : "Discard failed");
                       }
