@@ -277,35 +277,17 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Audience</p>
               <p className="font-body text-[12.5px]">
-                {isFetching ? (
-                  "Estimating…"
-                ) : (
-                  <>
-                    <span className="font-medium">{reach ?? "—"}</span>
-                    <span className="text-muted-foreground"> of {REACH_REPORTING_MILESTONE}</span>
-                  </>
-                )}
+                {isFetching ? "Estimating…" : <span className="font-medium">{bandMemberCount(reach)}</span>}
               </p>
             </div>
-            <div
-              className="mt-1.5 h-1.5 rounded-pill bg-border overflow-hidden"
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className="h-full rounded-pill bg-primary transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
             <p className="text-[10.5px] font-body text-muted-foreground mt-1.5 leading-snug">
-              {progress >= 100
-                ? `${REACH_REPORTING_MILESTONE} members reached — full reporting is on for this audience.`
-                : `Your campaign can run at any size. Exact numbers aren't reported below ${REACH_REPORTING_MILESTONE} members, to protect member privacy.`}
+              {isZeroCount(reach)
+                ? WIDEN_AUDIENCE_PROMPT
+                : "An approximate range of matching members. Your campaign can run at any size."}
             </p>
           </>
         )}
+
       </div>
 
       <div className="flex items-start gap-2">
