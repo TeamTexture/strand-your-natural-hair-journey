@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { BookOpen, CheckCircle2, ListChecks, Sparkles } from "lucide-react";
+import { CheckCircle2, ListChecks, Sparkles } from "lucide-react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_LABEL, type TipsLevel } from "@/lib/tipsLevel";
 import { cn } from "@/lib/utils";

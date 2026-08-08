@@ -2,18 +2,18 @@
  * Tips Level — shared rendering rules.
  *
  * Single source of truth for HOW MUCH of any guidance surface is shown at each
- * support level (1 Minimal → 4 Hand-holding). No page may hardcode its own
+ * support level (1 Minimal → 3 Hand-holding). No page may hardcode its own
  * guidance density: every surface goes through the helpers here, or through the
  * components in `src/components/tips/`.
  *
  * Level contract (applies to EVERY consumer surface):
- *  1 Minimal      — essential data + ONE top-priority tip. No explanatory prose.
- *                   AI prose reduced to 1 sentence. Cards = name + one-line relevance.
- *  2 Essentials   — top 2–3 tips, short-form. AI prose = short paragraph (≤3 sentences).
- *                   Cards = what it is + what it means for you, condensed.
- *  3 Guided       — everything with the "why". Full AI prose. Full cards. (default)
- *  4 Hand-holding — level 3 content rebuilt as the illustrated dummies guide:
- *                   plain language, icons, numbered steps, do/don't, timers.
+ *  1 Minimal      — essential data + ONE top-priority tip: action + one-sentence
+ *                   why. No explanatory prose. AI prose reduced to 1 sentence.
+ *  2 Essential    — top 2–3 tips, short-form, WITH the how. AI prose = short
+ *                   paragraph (≤3 sentences). No extended "why" prose. (default)
+ *  3 Hand-holding — everything, rebuilt as the illustrated dummies guide: the
+ *                   extended personalised why, plain language, icons, numbered
+ *                   steps, do/don't, timers.
  */
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { TIPS_LEVEL_MAX, type TipsLevel } from "@/lib/tipsLevel";
@@ -45,13 +45,13 @@ export interface GuidanceTip {
   stage?: GuidanceStage;
   /** Short-form instruction — always shown at every level. */
   short: string;
-  /** The reasoning — shown at level 3+. */
+  /** The extended reasoning — shown at level 3 (Hand-holding) only. */
   why?: string;
-  /** Plain-English definition of a technical term — shown at level 4. */
+  /** Plain-English definition of a technical term — shown at level 3. */
   define?: string;
-  /** Correct practice pairs — shown at level 4 only. */
+  /** Correct practice pairs — shown at level 3 only. */
   dos?: string[];
-  /** Incorrect practice pairs — shown at level 4 only. */
+  /** Incorrect practice pairs — shown at level 3 only. */
   donts?: string[];
   /** Non-negotiable education (two-step cleanse, trim/retention). Never
    *  dropped by the level quantity cap — only its depth changes. */
@@ -90,7 +90,6 @@ export const PROSE_SENTENCES: Record<TipsLevel, number> = {
   1: 1,
   2: 3,
   3: Number.POSITIVE_INFINITY,
-  4: Number.POSITIVE_INFINITY,
 };
 
 /** Split prose into sentences without losing the terminator. */
@@ -127,7 +126,7 @@ function pickGuidance(sentences: string[], max: number): string[] {
 
 /**
  * Trim any block of prose (AI summary, explanation, marker overview) to the
- * verbosity the level allows. Level 4 additionally puts plain-English first for
+ * verbosity the level allows. Level 3 additionally puts plain-English first for
  * technical terms.
  *
  * Condensing keeps the sentences that actually guide the user (action, cadence,
@@ -140,7 +139,7 @@ export function condenseProse(text: string | null | undefined, level: TipsLevel)
   const clean = raw;
   // Same sentence twice is always noise, at every level.
   const unique = dedupeSentences(clean);
-  if (level >= 4) {
+  if (level >= 3) {
     return safeRewrite(unique, plainLanguage(unique));
   }
 
@@ -190,8 +189,7 @@ export function selectTips<T extends { priority: number; alwaysShow?: boolean }>
 export const SUPPORTING_MAX: Record<TipsLevel, number> = {
   1: 0,
   2: 2,
-  3: 6,
-  4: Number.POSITIVE_INFINITY,
+  3: Number.POSITIVE_INFINITY,
 };
 
 export function limitSupporting<T>(items: T[] | null | undefined, level: TipsLevel): T[] {
@@ -205,7 +203,7 @@ export const wantsWhy = (level: TipsLevel) => level >= 3;
 /** True when a surface should render optional/secondary detail at all. */
 export const wantsDetail = (level: TipsLevel) => level >= 2;
 /** True when a surface should render the illustrated beginner presentation. */
-export const wantsBeginner = (level: TipsLevel) => level >= 4;
+export const wantsBeginner = (level: TipsLevel) => level >= 3;
 
 /* ------------------------------------------------------------------ *
  * ONE THEME, ONCE — rendering-level de-duplication.
