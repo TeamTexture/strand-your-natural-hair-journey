@@ -97,10 +97,12 @@ const IngredientResearch = () => {
               </SurfaceCard>
             ) : profile.data ? (
               <div className="space-y-3">
-                <SurfaceCard className="space-y-3">
-                  <SectionHeader icon={FlaskConical} label="What it is" />
-                  <AiProse text={profile.data.what_it_is} />
-                </SurfaceCard>
+                {profile.data.what_it_is?.trim() && (
+                  <SurfaceCard className="space-y-3">
+                    <SectionHeader icon={FlaskConical} label="What it is" />
+                    <AiProse text={profile.data.what_it_is} />
+                  </SurfaceCard>
+                )}
 
                 {profile.data.what_it_means_for_you && (
                   <SurfaceCard tone="gold" className="space-y-3">
