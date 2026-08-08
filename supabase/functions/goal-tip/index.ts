@@ -307,7 +307,7 @@ function cornrowGuidanceBlock(current: string, planned: string): string {
   if (!/cornrow/i.test(`${current} ${planned}`)) return "";
   return `\n\nMANDATORY CORNROW GUIDANCE — she is in (or moving into) cornrows. Whenever the tip touches washing, cleansing, the scalp, moisture or her ends, it MUST follow both points below, in Paige's voice, phrased for her:
 1. Clean the scalp exposed between the cornrows with a scalp cleanser or cleansing solution on a cotton pad, or ready-made scalp cleansing pads — working along each exposed parting rather than lathering shampoo over the whole style.
-2. Keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream, to slow moisture evaporating from the hair shaft.
+2. Keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream — on the ends and length ONLY, never on the scalp or the exposed partings, which stay oil-free and product-free — to slow moisture evaporating from the hair shaft.
 Never substitute other cleansing or sealing methods for these two.`;
 }
 

@@ -13,7 +13,7 @@
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireAuthedUser } from "../_shared/auth.ts";
-import { STRAND_PERSONA } from "../_shared/strand-persona.ts";
+import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardrail.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
     user_context: body.context ?? {},
   });
 
-  const system = `${SYSTEM}\n\n${buildTipsLevelBlock(
+  const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
 

@@ -120,7 +120,7 @@ function styleRoutineTip(context: UnknownRecord): string | null {
     return `Plan ${style || "braids"} around a 4–6 week ceiling${weekText}, keep the scalp cleansed during the install, and deep-condition with the ${HEAT_HAT_LINK} after takedown — tension and trapped build-up turn protection into breakage.`;
   }
   if (family === "cornrows") {
-    return `Clean the exposed scalp between your cornrows with a scalp cleanser on a cotton pad or scalp cleansing pads, and keep your ends tucked under or coated with a thick gel or emollient-based leave-in to slow moisture loss${weekText} — refresh rather than re-tighten the front around 2–3 weeks.`;
+    return `Clean the exposed scalp between your cornrows with a scalp cleanser on a cotton pad or scalp cleansing pads, and keep your ends tucked under or coated with a thick gel or emollient-based leave-in — on the ends and length only, never on the scalp — to slow moisture loss${weekText} — refresh rather than re-tighten the front around 2–3 weeks.`;
   }
   if (family === "locs") {
     return `Wash locs every 7 days by cleansing the scalp first and rinsing through the locs thoroughly before drying fully — locs should not go months without cleansing.`;
@@ -245,4 +245,5 @@ Every advice surface must treat the manuscript routine system as the baseline:
 - Moisture-first: dryness, high porosity, humidity dryness, breakage or straw-like feel calls for water, slip, conditioner technique and a moisture-focused mask/deep conditioner — not scheduled protein.
 - Heat: the only heat tool you may name is ${HEAT_HAT_LINK}.
 - Style-specific care: adapt the baseline to current style, planned next style and days in style; protective styles still need scalp cleansing, tension management, moisture to the natural hair and takedown/recovery within the style's wear window.
+- Scalp stays oil-free and product-free: the only thing that may ever go on the scalp (including the exposed scalp between cornrows/braids) is water or a lightweight water-based serum/tonic, or a scalp cleanser on a cotton pad / cleansing pads. Never oils, butters, gels, edge control, heavy creams or emollient leave-ins on the scalp — they clog follicles and cause itching, irritation and build-up, especially between infrequent washes in protective styles. Richer products are for the ends and length only.
 - User data wins: personalise from profile, goals, blood/health flags, wash logs, products and tools. Never produce generic routine advice when data exists.`;
