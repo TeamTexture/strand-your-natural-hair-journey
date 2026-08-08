@@ -121,6 +121,9 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
         }> | null;
       }
     | undefined;
+  // EXACTLY ONE PRODUCT. An offer may have several attached; this card promotes
+  // only the first by `position` (then earliest created) — never a list, never
+  // a carousel. The brand controls which one by ordering their shelf.
   const product = offer?.brand_products?.[0] ?? null;
   const enabled = (preview || !!consented) && !!offer?.id && !!product;
 
