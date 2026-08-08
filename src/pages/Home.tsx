@@ -85,7 +85,7 @@ const Home = () => {
   const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts({ static: true });
   const { hasPlus } = usePlusAccess();
   const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
-  const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf", { static: true });
+  const { products: shelfProducts, loading: shelfLoading, sponsoredById: shelfSponsoredById } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
@@ -1025,20 +1025,36 @@ const Home = () => {
         ) : (
           <>
             {shelfProducts.slice(0, 4).map((s) => {
+              const sp = shelfSponsoredById[s.id];
+              const goToOffer = () => {
+                if (sp && s.linked_brand_product_id) {
+                  navigate(`/offers/${sp.offerId}/product/${s.linked_brand_product_id}`);
+                  return;
+                }
+                if (sp) { navigate(`/offers/${sp.offerId}`); return; }
+                navigate(`/products/profile/${s.id}`);
+              };
               return (
                 <ListRow
                   key={s.id}
-                  onClick={() => navigate(`/products/profile/${s.id}`)}
+                  onClick={goToOffer}
                   leading={
-                    <ProductThumb
-                      imageUrl={s.image_url}
-                      storagePath={s.storage_path}
-                      brand={s.brand}
-                      name={s.name}
-                      alt={s.name}
-                      cover
-                      wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
-                    />
+                    <span className="relative shrink-0">
+                      <ProductThumb
+                        imageUrl={s.image_url}
+                        storagePath={s.storage_path}
+                        brand={s.brand}
+                        name={s.name}
+                        alt={s.name}
+                        cover
+                        wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
+                      />
+                      {sp && (
+                        <span className="absolute -top-1.5 -left-1.5 inline-flex items-center gap-0.5 rounded-pill bg-primary px-1.5 py-[2px] text-[8px] font-body font-semibold uppercase tracking-[0.1em] text-primary-foreground shadow-sm">
+                          <Tag className="size-2" /> Offer
+                        </span>
+                      )}
+                    </span>
                   }
                   name={
                     <span className="inline-flex items-center gap-1.5">
@@ -1048,7 +1064,18 @@ const Home = () => {
                       )}
                     </span>
                   }
-                  secondary={<BrandLink brand={s.brand} />}
+                  secondary={
+                    sp ? (
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <BrandLink brand={s.brand} />
+                        <span className="inline-flex items-center gap-1 rounded-pill border border-primary/40 bg-primary/10 px-2 py-[1px] text-[10px] font-body font-semibold text-primary">
+                          View offer →
+                        </span>
+                      </span>
+                    ) : (
+                      <BrandLink brand={s.brand} />
+                    )
+                  }
                   trailing={<MatchStars item={s} />}
                 />
               );
