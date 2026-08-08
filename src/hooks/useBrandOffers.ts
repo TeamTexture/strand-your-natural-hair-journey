@@ -47,7 +47,9 @@ export interface BrandOfferRevision {
   id: string;
   offer_id: string;
   brand_user_id: string;
-  status: "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
+  /** `pending_payment` = a positive targeting uplift is awaiting Stripe Checkout.
+   *  Only the Stripe webhook moves it to `pending` (admin review). */
+  status: "pending" | "pending_payment" | "approved" | "rejected" | "withdrawn" | "superseded";
   headline: string | null;
   body_copy: string | null;
   discount_code: string | null;
