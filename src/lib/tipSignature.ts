@@ -1,9 +1,17 @@
-// tipSignature — shared invalidation signals for the responsive `ai_summaries`
-// tip kinds (style_tip, wash_day_tip, wash_day_steps).
+// tipSignature — invalidation signals for the `ai_summaries` tip kinds.
 //
-// Every responsive tip is cached server-side against a signature. A tip
-// regenerates when EITHER the calendar day rolls over (preserving the
-// "tip of the day" cadence) OR the signature changes — whichever comes first.
+// TWO FAMILIES, DELIBERATELY SEPARATE:
+//
+// 1. RESPONSIVE tips (style_tip, wash_day_tip, wash_day_steps) use
+//    `loadResponsiveSignals` + `responsiveSignatureParts`. They regenerate when
+//    the calendar day rolls over OR the signature changes — whichever first.
+//    A logged wash day MUST move these.
+//
+// 2. The STATIC home STRAND tip uses `strandTipSignatureParts` ONLY. It has no
+//    calendar day and no event/challenge/concern inputs: it moves only when the
+//    current style, the planned next style or the goal changes. Never add a
+//    responsive input to it — that is the whole point of the split.
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { allChallenges } from "@/lib/goalChallenges";
@@ -146,5 +154,48 @@ export const styleSignatureParts = (
     `plan:${v("planned_next_style")}`,
     `planExt:${v("planned_style_extensions")}`,
     `planTen:${v("planned_style_tension")}`,
+  ];
+};
+
+// ---------------------------------------------------------------------------
+// The home STRAND tip — STATIC signature.
+//
+// Exactly three inputs, and nothing else:
+//   1. user_style_profile.current_hairstyle
+//   2. user_style_profile.planned_next_style
+//   3. the member's goal (id + wording + target)
+//
+// No calendar day, no wash days, no appointments, no challenges, no concerns,
+// no blood results. Once generated the tip persists indefinitely until one of
+// the three above changes. Do NOT route this through
+// `responsiveSignatureParts` — that helper serves the responsive tips.
+// ---------------------------------------------------------------------------
+
+export interface StrandTipGoalFields {
+  id?: string | null;
+  title?: string | null;
+  target_text?: string | null;
+  target_date?: string | null;
+}
+
+/** The ONLY style fields the static STRAND tip watches. */
+export const strandTipStyleColumns = "current_hairstyle, planned_next_style";
+
+export const strandTipSignatureParts = (
+  style: Record<string, unknown> | null,
+  goal: StrandTipGoalFields | null,
+): string[] => {
+  const s = (k: string) => {
+    const x = style?.[k];
+    return x === null || x === undefined ? "" : String(x);
+  };
+  const g = (v: string | null | undefined) => v ?? "";
+  return [
+    `cur:${s("current_hairstyle")}`,
+    `plan:${s("planned_next_style")}`,
+    `goal:${g(goal?.id)}`,
+    `goalTitle:${g(goal?.title)}`,
+    `goalTarget:${g(goal?.target_text)}`,
+    `goalDate:${g(goal?.target_date)}`,
   ];
 };

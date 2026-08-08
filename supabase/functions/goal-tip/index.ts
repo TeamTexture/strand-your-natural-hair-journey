@@ -453,7 +453,7 @@ interface RequestBody {
   /** How many actions to return (3–5). Legacy multi-tip callers only. */
   maxTips?: number;
   /**
-   * Home's Strand Tip of the Day card. When true the function returns exactly
+   * Home's STRAND tip card. When true the function returns exactly
    * ONE tip — headline + one supporting line + at most one key fact — and no
    * action list at all.
    */

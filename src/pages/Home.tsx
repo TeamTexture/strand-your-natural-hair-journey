@@ -89,7 +89,7 @@ const Home = () => {
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { lengthGoal } = useGoals();
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
-  // Home shows EXACTLY ONE tip — the Strand Tip of the Day. The fuller
+  // Home shows EXACTLY ONE tip — the STRAND tip. The fuller
   // multi-tip "How you'll get there" playbook lives on the Style Journal.
   const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal, { single: true });
   const queryClient = useQueryClient();
@@ -358,7 +358,7 @@ const Home = () => {
     return "Your goal";
   })();
 
-  // Short goal word for the Strand Tip of the Day chip ("Length", "Moisture").
+  // Short goal word for the STRAND tip chip ("Length", "Moisture").
   const goalChipLabel = (() => {
     if (!lengthGoal) return null;
     const kindMap: Record<string, string> = {
@@ -772,11 +772,12 @@ const Home = () => {
                     )}
                   </button>
 
-                  {/* STRAND TIP OF THE DAY — exactly one tip. Eyebrow +
+                  {/* STRAND TIP — exactly one tip, STATIC. Eyebrow +
                       goal chip, one bold action headline, one supporting line
                       through her hair characteristics, and at most one key
                       fact chip. Nothing else: no lists, no education blocks.
-                      The pillar rotates daily inside the goal's territory. */}
+                      It regenerates only when the current style, the planned next
+                      style or the goal changes. */}
                   <GuidanceCard
                     className="mt-3"
                     tone="gold"
@@ -843,7 +844,7 @@ const Home = () => {
                       <p className="text-xs text-muted-foreground italic">
                         {tipsLevel === 1
                           ? "No tip yet."
-                          : "Your next Strand tip will appear once you've logged a wash day or updated your goal."}
+                          : "Your Strand tip will appear once you've set a goal or told us your current style."}
                       </p>
                     )}
                   </GuidanceCard>
