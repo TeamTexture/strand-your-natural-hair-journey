@@ -95,9 +95,36 @@ export function explainMatch(
 
 
 
-/** Milestone at which audience numbers start being reported. Reporting-only —
- *  a campaign can run below it. */
-export const REACH_REPORTING_MILESTONE = 50;
+/* ── Approximate member-count bands ───────────────────────────────────────────
+ * Brands never see exact member counts — they see an approximate range derived
+ * from the real number. Zero is always explicit and actionable (never dressed up
+ * as a band) so a brand knows their targeting is too narrow. Admins are shown
+ * exact figures and must not use these helpers.
+ *
+ *   0        → "No members match yet"
+ *   1–9      → "Fewer than 10"
+ *   10–49    → nearest 10 band  (23 → "20–30")
+ *   50–199   → nearest 50 band  (78 → "50–100")
+ *   200+     → nearest 100 band (340 → "300–400")
+ */
+export const NO_MEMBERS_LABEL = "No members match yet";
+
+/** Prompt shown alongside a zero count. */
+export const WIDEN_AUDIENCE_PROMPT =
+  "Nothing matches this combination yet — remove a filter or add more values to widen your audience.";
+
+export function bandMemberCount(count: number | null | undefined): string {
+  if (count == null || Number.isNaN(count)) return "—";
+  const n = Math.max(0, Math.floor(count));
+  if (n === 0) return NO_MEMBERS_LABEL;
+  if (n < 10) return "Fewer than 10";
+  const step = n < 50 ? 10 : n < 200 ? 50 : 100;
+  const low = Math.floor(n / step) * step;
+  return `${low}–${low + step}`;
+}
+
+export const isZeroCount = (count: number | null | undefined): boolean => count === 0;
+
 
 /** Plain-words description of the current selection, for the state line. */
 export function describeAudience(
