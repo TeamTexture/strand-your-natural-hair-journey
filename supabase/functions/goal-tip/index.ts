@@ -637,6 +637,8 @@ Deno.serve(async (req) => {
       },
     );
 
+    const aiResp = await callModel();
+
     if (!aiResp.ok) {
       if (aiResp.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
@@ -658,17 +660,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const aiJson = await aiResp.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("goal-tip no tool call", JSON.stringify(aiJson).slice(0, 400));
-      return new Response(JSON.stringify({ error: "Malformed AI output" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let tip: {
+    type GoalTipShape = {
       headline?: string;
       body?: string;
       key_fact?: string;
@@ -677,15 +669,71 @@ Deno.serve(async (req) => {
       caution?: string;
       signals?: unknown[];
     };
-    try {
-      tip = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("goal-tip bad JSON", e);
-      return new Response(JSON.stringify({ error: "Bad AI JSON" }), {
+    const parseResponse = async (resp: Response): Promise<GoalTipShape | null> => {
+      const aiJson = await resp.json();
+      const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      if (!args) {
+        console.error("goal-tip no tool call", JSON.stringify(aiJson).slice(0, 400));
+        return null;
+      }
+      try {
+        return JSON.parse(args) as GoalTipShape;
+      } catch (e) {
+        console.error("goal-tip bad JSON", e);
+        return null;
+      }
+    };
+
+    let tip = await parseResponse(aiResp);
+    if (!tip) {
+      return new Response(JSON.stringify({ error: "Malformed AI output" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ── METHOD + ANTI-TAUTOLOGY FLOOR ────────────────────────────────
+    // Every tip must name a method and must not restate its own goal as its
+    // justification. One corrective regeneration, then the best available
+    // output is served (never a blank card) and the failure is audited.
+    const substanceOf = (t: GoalTipShape | null) => {
+      const bodyParts = [
+        String(t?.body ?? ""),
+        String(t?.key_fact ?? ""),
+        String(t?.overview ?? ""),
+        ...(Array.isArray(t?.actions)
+          ? (t?.actions as Array<string | { action?: string; why?: string }>).map((a) =>
+              typeof a === "string" ? a : `${a?.action ?? ""} ${a?.why ?? ""}`,
+            )
+          : []),
+      ].filter(Boolean);
+      return validateTipSubstance({
+        headline: String(t?.headline ?? ""),
+        body: bodyParts.join(" "),
+      });
+    };
+    let verdict = substanceOf(tip);
+    if (!verdict.ok) {
+      await logTipRejection("goal-tip", verdict.reasons, JSON.stringify(tip).slice(0, 4000));
+      try {
+        const retryResp = await callModel(methodRetryDirective(verdict.reasons));
+        if (retryResp.ok) {
+          const retried = await parseResponse(retryResp);
+          const retryVerdict = substanceOf(retried);
+          if (retried && (retryVerdict.ok || !verdict.ok)) {
+            // Prefer the retry when it clears the floor; otherwise keep the
+            // richer of the two rather than showing nothing.
+            if (retryVerdict.ok) {
+              tip = retried;
+              verdict = retryVerdict;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[goal-tip] method retry failed", e);
+      }
+    }
+
 
     if (journal) {
       // Hard guarantee of the overview + caution shape regardless of drift.
