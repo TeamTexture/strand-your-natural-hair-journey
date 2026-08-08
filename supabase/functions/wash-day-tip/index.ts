@@ -515,17 +515,17 @@ Do not substitute other cleansing or sealing methods for these two.`
     _rag_passages: grounding.passages,
   };
 
-  // PAID-MEDIA WALL, last line of defence. If a sponsored product name
-  // survived both passes it is replaced with a neutral phrase — the editorial
+  // NO PRODUCT NAMES, last line of defence. If any product name survived both
+  // passes it is replaced with a generic product-type phrase — the editorial
   // card never advertises, and it never renders empty either.
-  const stillNamed = findExcludedProducts(payload, guard.sponsored);
+  const stillNamed = findProductNames(payload, wall.names);
   const finalPayload = stillNamed.length > 0
     ? redactProductNames(payload, stillNamed)
     : payload;
   if (stillNamed.length > 0) {
     await logTipRejection(
       isStyle ? "style-tip" : "wash-day-tip",
-      ["redacted_sponsored_product", ...stillNamed.map((n) => n.slice(0, 60))],
+      ["redacted_product_name", ...stillNamed.map((n) => n.slice(0, 60))],
       raw.slice(0, 4000),
     );
   }
