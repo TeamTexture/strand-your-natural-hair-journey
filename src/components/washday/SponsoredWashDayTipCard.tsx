@@ -74,9 +74,11 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
       let q = supabase
         .from("brand_offers")
         .select(
-          "id, headline, body_copy, discount_code, external_url, ends_on, brand_user_id, brand_offer_products(brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))",
+          "id, headline, body_copy, discount_code, external_url, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))",
         )
         .order("created_at", { ascending: false })
+        .order("position", { referencedTable: "brand_offer_products", ascending: true })
+        .order("created_at", { referencedTable: "brand_offer_products", ascending: true })
         .limit(10);
       if (previewOfferId) q = q.eq("id", previewOfferId);
       const { data } = await q;
@@ -84,8 +86,10 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
         (o) => (o as { brand_offer_products?: unknown[] }).brand_offer_products?.length,
       );
       if (!row) return null;
+      // Preview shows what members see: the FIRST attached product by
+      // `position`, never a list.
       const products = ((row as { brand_offer_products?: Array<{ brand_products: unknown }> })
-        .brand_offer_products ?? []).map((r) => r.brand_products);
+        .brand_offer_products ?? []).map((r) => r.brand_products).slice(0, 1);
       return { brand_offers: { ...row, brand_products: products }, was_matched: null, match_reason: null };
     },
   });
