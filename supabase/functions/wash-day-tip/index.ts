@@ -420,11 +420,23 @@ Do not substitute other cleansing or sealing methods for these two.`
   if (!parsed?.headline || !parsed?.why) {
     return json(502, { error: "invalid model output" });
   }
+  // ── GRACEFUL DEGRADATION ─────────────────────────────────────────────
+  // A weak "why" is acceptable; no tip is not. Only a MISSING ACTION still
+  // blocks — that floor stands. Any reason-only failure is logged and the
+  // tip is served anyway.
   if (!verdict.ok) {
-    // Never serve a headline with no action. Nothing is cached, so the next
-    // load retries rather than pinning a bad tip.
-    return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
+    const actionOnly = verdict.reasons.filter((r) => r.startsWith("action_") || r === "output_unparseable_or_incomplete");
+    const hasUsableAction = Boolean(String(parsed.action ?? "").trim()) && actionOnly.length === 0;
+    if (!hasUsableAction) {
+      return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
+    }
+    await logTipRejection(
+      isStyle ? "style-tip" : "wash-day-tip",
+      ["served_degraded", ...verdict.reasons],
+      raw.slice(0, 4000),
+    );
   }
+
 
   // The next-wash suggestion is optional by design — an empty/absent value
   // means the section is omitted from the card rather than padded.
