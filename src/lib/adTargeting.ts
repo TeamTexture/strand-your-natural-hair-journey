@@ -51,43 +51,13 @@ export const cleanRules = (rules: TargetingRules): TargetingRules => {
   return out;
 };
 
-/** Short member-facing phrasing for each attribute, used in the
- *  "Why am I seeing this?" line. Never clinical, never health. */
-const REASON_PREFIX: Record<string, string> = {
-  porosity: "your porosity",
-  density: "your density",
-  diameter: "your strand thickness",
-  texture: "your hair's surface texture",
-  length: "your hair length",
-  wash_freq: "how often you wash",
-  product_category: "the kinds of products on your shelf",
-  current_style: "your current style",
-  planned_style: "your planned next style",
-  goal_focus: "your hair goal",
-};
+/* The per-advert "Why am I seeing this?" explainer was removed from the
+ * sponsored banner, so the member-facing reason-code phrasing (`explainMatch`
+ * and its REASON_PREFIX map) went with it. Stored `match_reason` codes are still
+ * logged on ad_events for reporting; they are simply no longer rendered to
+ * members. Members understand and withdraw targeting through the
+ * `personalised_offers` consent and the Personalised offers page. */
 
-/** Turn stored reason codes ("porosity_high") into a member-facing sentence,
- *  using the vocabulary rows so labels always match what brands picked. */
-export function explainMatch(
-  reasons: string[] | null | undefined,
-  options: TargetingOption[] | undefined,
-): string | null {
-  if (!reasons || reasons.length === 0) return null;
-  const parts: string[] = [];
-  for (const code of reasons) {
-    const hit = (options ?? []).find((o) => `${o.attribute_key}_${o.value_code}` === code);
-    if (!hit) continue;
-    const prefix = REASON_PREFIX[hit.attribute_key];
-    if (!prefix) continue;
-    parts.push(`${prefix} (${hit.label.replace(/^(Goal|Uses|Washes)\s*:?\s*/i, "").trim() || hit.label})`);
-  }
-  if (parts.length === 0) return null;
-  const list =
-    parts.length === 1
-      ? parts[0]
-      : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
-  return `This brand asked to reach members based on ${list}. Nothing about your health, blood work or medications is ever used.`;
-}
 
 /* No presets, bundles or suggested audiences — every allowlisted value is
  * selected individually by the brand. Do not reintroduce grouping controls

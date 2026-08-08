@@ -18,6 +18,12 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardrail.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  validateTipAction,
+  validateTipReason,
+  memberAttributeTokens,
+} from "../_shared/tip-action.ts";
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -75,7 +81,9 @@ RESPONSE SHAPE
 Return ONLY valid JSON with this exact shape (no prose, no code fences):
 {
   "headline": string — ONE line, MAXIMUM 8 words,
-  "fit_line": string — exactly ONE sentence, MAXIMUM 22 words,
+  "fit_line_action": string — exactly ONE sentence, MAXIMUM 20 words, starting with an instruction verb,
+  "fit_line_reason": string — exactly ONE sentence, MAXIMUM 18 words, explaining why,
+
   "intro": string — exactly ONE sentence, MAXIMUM 20 words,
   "benefits": array of EXACTLY 3 objects (2 is acceptable ONLY if a third cannot be grounded) — { "label": 1-2 words, "text": ONE sentence, MAXIMUM 15 words },
   "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words,
@@ -91,13 +99,14 @@ WATCH OUTS — WHAT THIS MEMBER SHOULD BE AWARE OF
 
 
 
-FIT LINE — WHY THIS MEMBER IS SEEING THIS PRODUCT
-- This is the only line shown on the advert itself, so it must answer one question: why does STRAND think THIS product is a good fit for THIS member?
-- Build it from their own data, choosing whichever is strongest: a stated goal, a logged challenge or concern, their current or planned style, wash-day history, or a hair characteristic (porosity, texture, density, length, scalp state).
-- Prefer a goal or challenge over a raw characteristic when both are available — the reason should feel like STRAND remembered what they are working on.
-- Shape: their situation → the concrete thing this product does for it. One sentence, ≤ 22 words, no lists.
-- Write it as STRAND's reasoning about them ("Your length goal...", "Since you're wearing cornrows...", "With your protein-light wash routine...") — never generic marketing, never brand hype, never an instruction, never a greeting.
-- Do not invent a goal, challenge or trait that is not in their data. If their profile genuinely supports nothing, state plainly the situation this product suits instead.
+FIT LINE — THE ONLY TIP ON THE ADVERT ITSELF
+Return it as TWO separate fields, "fit_line_action" and "fit_line_reason". They are joined into the single short tip the member reads on the banner, so between them they must be at most TWO sentences.
+- "fit_line_action": ONE sentence, MAXIMUM 20 words, telling this member exactly WHAT TO DO with this product on their NEXT wash day — the physical action, where on the head, and at what point in their routine. It must start with an instruction verb (apply, smooth, seal, spritz, work, section, soak, blot, swap…). A statement of what the product contains or does is NOT an action and is rejected.
+- "fit_line_reason": ONE sentence, MAXIMUM 18 words, explaining WHY that action matters for THIS member — the mechanism or the consequence. It must not restate the action in different words. "Because it hydrates your hair" after an action about hydrating is a tautology and is rejected.
+- Personalise both to their RECORDED state: porosity, density, current or planned style, and their most recent logged wash day. Do not invent a trait.
+- GOALS: you may reference a goal ONLY by the member's recorded goal label, verbatim, from user_context.goals[].title (e.g. "your Length goal"). NEVER write a vague paraphrase — "your goals", "your hair goals", "your retention goals", "your growth goals" and anything similar are BANNED and rejected. If no goal is recorded, reference no goal at all.
+- Never marketing hype, never a greeting, no lists.
+
 
 NAME THE BRAND AND THE PRODUCT
 - Use the brand name and the product name EXACTLY as given in the payload — verbatim, same spelling and capitalisation. Never abbreviate, translate, re-order or invent a variant of either.
@@ -105,7 +114,7 @@ NAME THE BRAND AND THE PRODUCT
 - Never guess at a name that is not in the payload, and never refer to "this product" throughout as if it were unnamed.
 
 HARD LIMITS — output that breaks any of these is rejected and regenerated:
-- headline ≤ 8 words. fit_line ≤ 22 words, one sentence. intro ≤ 20 words, one sentence.
+- headline ≤ 8 words. fit_line_action ≤ 20 words, one sentence. fit_line_reason ≤ 18 words, one sentence. intro ≤ 20 words, one sentence.
 - benefits: 3 items (2 only if the third would be unsupported). label 1-2 words, Title Case, ideally ONE noun ("Penetration", "Moisture", "Retention"). text ≤ 15 words, ONE sentence.
 - steps: 3 items, each ≤ 25 words, ONE sentence each, sequential and concrete.
 
@@ -131,6 +140,60 @@ ${NON_PRESCRIPTIVE_RULES}`;
  * ------------------------------------------------------------------ */
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+
+/** Tokens from the member's recorded data, for the shared personalisation
+ *  check in `validateTipAction`. */
+function attributeTokensFor(context: Record<string, unknown> | null): string[] {
+  const c = (context ?? {}) as Record<string, unknown>;
+  return memberAttributeTokens({
+    hairProfile: (c.hairProfile ?? null) as Record<string, unknown> | null,
+    currentStyle: (c.currentStyle ?? null) as Record<string, unknown> | null,
+    goals: (c.goals ?? []) as Array<{ title?: string; category?: string }>,
+    challenges: (c.challenges ?? []) as string[],
+    recentWashDay: (Array.isArray(c.recentWashDays) ? (c.recentWashDays as Array<{ date?: string }>)[0] : null) ?? null,
+  });
+}
+
+/** The recorded goal labels — the ONLY wording allowed when a goal is named. */
+function recordedGoalLabels(context: Record<string, unknown> | null): string[] {
+  const goals = ((context ?? {}).goals ?? []) as Array<Record<string, unknown>>;
+  const out: string[] = [];
+  for (const g of Array.isArray(goals) ? goals : []) {
+    for (const key of ["title", "kind"]) {
+      const v = g?.[key];
+      if (typeof v === "string" && v.trim().length >= 3) out.push(v.trim().toLowerCase());
+    }
+  }
+  return [...new Set(out)];
+}
+
+/** Generic goal references are banned outright: a goal is named with the
+ *  member's own recorded label or it is not referenced at all. */
+const GENERIC_GOAL_PATTERNS: RegExp[] = [
+  /\byour\s+(?:hair\s+|retention\s+|growth\s+|overall\s+|personal\s+|current\s+|main\s+|stated\s+)?goals?\b/i,
+  /\byour\s+\w+\s+goals?\b/i,
+  /\bthe\s+goals?\s+you\b/i,
+];
+
+function goalReferenceProblem(
+  text: string,
+  context: Record<string, unknown> | null,
+): string | null {
+  if (!/\bgoals?\b/i.test(text)) return null;
+  const labels = recordedGoalLabels(context);
+  const lower = text.toLowerCase();
+  // A recorded label appearing verbatim next to the word "goal" is the only
+  // acceptable form.
+  const named = labels.some((l) => lower.includes(l));
+  if (named) return null;
+  if (GENERIC_GOAL_PATTERNS.some((re) => re.test(text)) || !named) {
+    return labels.length
+      ? `the advert tip references a goal generically. Name the member's recorded goal label verbatim — one of: ${labels.join(", ")} (e.g. "your ${labels[0]} goal") — or remove the goal reference entirely. "your goals", "your hair goals" and "your retention goals" are banned.`
+      : `the advert tip references a goal, but this member has no recorded goal. Remove the goal reference entirely.`;
+  }
+  return null;
+}
+
 
 const sentenceCount = (s: string) =>
   s.trim().replace(/([.!?])\s*$/, "$1").split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean).length;
@@ -194,7 +257,13 @@ function validate(
 
 
   const headline = String(raw.headline ?? "").trim();
-  const fitLine = String(raw.fit_line ?? raw.fitLine ?? "").trim();
+  // The advert tip is generated as an action + a reason and joined into the one
+  // short line the banner renders. Legacy single-field output is still accepted
+  // as the action so a cached/older payload never crashes validation.
+  const fitAction = String(raw.fit_line_action ?? raw.fitLineAction ?? raw.fit_line ?? raw.fitLine ?? "").trim();
+  const fitReason = String(raw.fit_line_reason ?? raw.fitLineReason ?? "").trim();
+  const fitLine = [fitAction, fitReason].filter(Boolean).join(" ");
+
   const intro = String(raw.intro ?? raw.fit_summary ?? "").trim();
   const benefitsRaw = Array.isArray(raw.benefits) ? raw.benefits : [];
   const stepsRaw = Array.isArray(raw.steps)
@@ -206,11 +275,52 @@ function validate(
   if (!headline) problems.push("headline is missing.");
   else if (words(headline) > 8) problems.push(`headline is ${words(headline)} words — maximum 8.`);
 
-  if (!fitLine) problems.push("fit_line is missing.");
-  else {
-    if (words(fitLine) > 22) problems.push(`fit_line is ${words(fitLine)} words — maximum 22.`);
-    if (sentenceCount(fitLine) > 1) problems.push("fit_line must be exactly one sentence.");
+  // THE ADVERT TIP FLOORS — the same shared helpers the goal tip and routine
+  // tips use. An advert tip with no action, or a tautological reason, is
+  // rejected and regenerated exactly like any other STRAND tip.
+  //
+  // Not applied on the wash day surface: that card renders `wash_day_tip`, which
+  // carries its own contract (a sponsored suggestion, not STRAND instruction),
+  // and fit_line is never shown there.
+  if (!isWashDay) {
+    if (!fitAction) problems.push("fit_line_action is missing — the advert tip must tell the member what to do.");
+    else {
+      if (words(fitAction) > 20) problems.push(`fit_line_action is ${words(fitAction)} words — maximum 20.`);
+      if (sentenceCount(fitAction) > 1) problems.push("fit_line_action must be exactly one sentence.");
+    }
+    if (!fitReason) problems.push("fit_line_reason is missing — the advert tip must explain why the action matters.");
+    else {
+      if (words(fitReason) > 18) problems.push(`fit_line_reason is ${words(fitReason)} words — maximum 18.`);
+      if (sentenceCount(fitReason) > 1) problems.push("fit_line_reason must be exactly one sentence.");
+    }
+    if (fitLine && sentenceCount(fitLine) > 2)
+      problems.push("the advert tip must be at most TWO sentences in total.");
   }
+
+  if (!isWashDay && (fitAction || fitReason)) {
+
+    const tokens = attributeTokensFor(context);
+    const actionCheck = validateTipAction({
+      action: fitAction,
+      supporting: [fitReason],
+      attributeTokens: tokens,
+    });
+    if (!actionCheck.ok) {
+      problems.push(
+        `the advert tip failed the shared action floor (${actionCheck.reasons.join(", ")}) — "fit_line_action" must be one instruction telling this member what to physically do with the product on their next wash day, and it must reference at least one of their recorded details (${tokens.slice(0, 8).join(", ") || "their recorded profile"}).`,
+      );
+    }
+    const reasonCheck = validateTipReason({ reason: fitReason, action: fitAction });
+    if (!reasonCheck.ok) {
+      problems.push(
+        `the advert tip failed the shared reason floor (${reasonCheck.reasons.join(", ")}) — "fit_line_reason" must explain the mechanism or the consequence for this member, never restate the action.`,
+      );
+    }
+    // GOAL LABELS. A goal may only be named by its recorded label.
+    const goalIssue = goalReferenceProblem(fitLine, context);
+    if (goalIssue) problems.push(goalIssue);
+  }
+
 
   if (!intro) problems.push("intro is missing.");
   else {
@@ -255,6 +365,9 @@ function validate(
         problems.push(`wash_day_tip is ${words(washDayTip)} words — maximum 45 words in total.`);
       if (sentenceCount(washDayTip) > 2)
         problems.push(`wash_day_tip is ${sentenceCount(washDayTip)} sentences — maximum 2 sentences.`);
+      const goalIssue = goalReferenceProblem(washDayTip, context);
+      if (goalIssue) problems.push(goalIssue.replace("the advert tip", "wash_day_tip"));
+
     }
   }
 

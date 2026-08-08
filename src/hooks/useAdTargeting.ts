@@ -144,14 +144,8 @@ export function useSetPersonalisedOffersConsent() {
   });
 }
 
-/** Permanent "not relevant to my hair" signal for one campaign. */
-export function useDismissAdOffer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (offerId: string) => {
-      const { error } = await rpc("ad_dismiss_offer", { _offer_id: offerId });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["active-brand-offer"] }),
-  });
-}
+/* The per-advert "not relevant to my hair" dismissal was removed along with the
+ * banner controls. Members manage targeting globally through the
+ * `personalised_offers` consent and the Personalised offers page, so there is no
+ * client path to `ad_dismiss_offer` any more. */
+

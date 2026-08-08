@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, ExternalLink, Info, ThumbsDown } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useLogAdEvent, useAdViewTracker } from "@/hooks/useBrandOffers";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
-import { useTargetingOptions, useDismissAdOffer } from "@/hooks/useAdTargeting";
-import { explainMatch } from "@/lib/adTargeting";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
-import { toast } from "sonner";
+
 
 export type BannerProductRow = {
   id: string;
@@ -39,27 +37,27 @@ interface Props {
   slot: string;
   wasMatched?: boolean;
   matchReason?: string[] | null;
-  /** Off on surfaces the member navigated to deliberately (brand page). */
-  showDismissControls?: boolean;
 }
 
 /** The advert exactly as it renders in a consumer placement: collapsed strip
  *  (~96px) plus a drop-down carrying the body copy, discount code, the
  *  member-specific product read and the attached product thumbnail.
  *
+ *  The "SPONSORED" label is the disclosure and always renders. There are no
+ *  per-advert member controls here: understanding and withdrawing personalised
+ *  targeting is handled globally by the `personalised_offers` consent and the
+ *  Personalised offers preferences page.
+ *
  *  Shared by the in-app placements (`BrandBanner`, which resolves delivery) and
  *  the public brand page, so a member who closes an advert can find the same
  *  card again in the brand directory with the same features. */
-const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null, showDismissControls = true }: Props) => {
+const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null }: Props) => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const logEvent = useLogAdEvent();
   const nav = useNavigate();
-  const [showWhy, setShowWhy] = useState(false);
-  const { data: targetingOptions } = useTargetingOptions();
-  const dismissOffer = useDismissAdOffer();
-  const whyText = explainMatch(matchReason, targetingOptions);
+
   // `view` fires only after the banner has been ≥50% visible for a continuous
   // 1s — never on mount/render.
   const viewRef = useAdViewTracker(offer.id, slot as never, {
@@ -181,44 +179,8 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
                     />
                   </div>
                 )}
-                {wasMatched && showDismissControls && (
-                  <div className="mt-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      tabIndex={expanded ? 0 : -1}
-                      onClick={() => setShowWhy((v) => !v)}
-                      className="inline-flex items-center gap-1 text-[10.5px] font-body text-muted-foreground underline underline-offset-2"
-                    >
-                      <Info className="size-3" /> Why am I seeing this?
-                    </button>
-                    {showWhy && whyText && (
-                      <p className="text-[10.5px] font-body text-muted-foreground leading-snug">
-                        {whyText}{" "}
-                        <button
-                          type="button"
-                          onClick={() => nav("/profile/personalised-offers")}
-                          className="underline underline-offset-2"
-                        >
-                          Manage personalised offers
-                        </button>
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      tabIndex={expanded ? 0 : -1}
-                      onClick={() => {
-                        dismissOffer.mutate(offer.id, {
-                          onSuccess: () => toast.success("We won't show you that one again."),
-                          onError: () => toast.error("Could not save that — try again."),
-                        });
-                      }}
-                      className="inline-flex items-center gap-1 text-[10.5px] font-body text-muted-foreground underline underline-offset-2"
-                    >
-                      <ThumbsDown className="size-3" /> Not relevant to my hair
-                    </button>
-                  </div>
-                )}
                 {product && (
+
                   <AdFitLine
                     text={productGuidance?.fit_line}
                     loading={productGuidanceLoading}
