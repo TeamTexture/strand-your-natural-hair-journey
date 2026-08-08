@@ -477,6 +477,14 @@ const BrandCreateOffer = () => {
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
+    // ONE PRODUCT PER ADVERT — blocked on submission (drafts may still carry a
+    // legacy extra row so nothing the brand entered is lost). The database
+    // enforces the same rule on the status change to `under_review`.
+    if (!asDraft && products.length > 1) {
+      return toast.error("An advert can promote only one product. Remove the extra attached item.");
+    }
+
+
 
     // ── Revision path ──────────────────────────────────────────────────────────
     // Editing an already-paid/live offer: submit a pending revision for admin
