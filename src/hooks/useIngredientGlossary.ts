@@ -3,6 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { normaliseInciKey } from "@/lib/inci";
 
+/**
+ * NEVER TOKENISE — everyday English words that also exist as a glossary
+ * display name or alias. "Actives" carries the alias "active", so every
+ * "active ingredient", "stay active", "active phase" in prose was turning
+ * into a tappable chip. A term only earns a chip when the word itself is
+ * technical; a word that reads as ordinary English in a sentence does not.
+ */
+const TOKEN_STOPLIST = new Set([
+  "active", "actives", "acid", "acids", "base", "bases", "balance", "barrier",
+  "build", "buildup", "build-up", "clean", "clear", "coat", "coating", "cold",
+  "colour", "color", "cool", "cover", "damage", "damp", "dense", "dry",
+  "fine", "free", "gentle", "hard", "heat", "heavy", "hold", "light", "mild",
+  "natural", "naturals", "neutral", "rich", "rinse", "seal", "shine", "slip",
+  "smooth", "soft", "strong", "thick", "warm", "wash", "water", "weight",
+  "wet", "product", "products", "treatment", "treatments", "volume",
+]);
+
 export type GlossaryKind = "molecule" | "class" | "concept";
 
 export interface GlossaryRow {
@@ -63,23 +80,6 @@ export function useIngredientGlossary() {
     }
     return map;
   }, [rows]);
-
-  /**
-   * NEVER TOKENISE — everyday English words that also exist as a glossary
-   * display name or alias. "Actives" carries the alias "active", so every
-   * "active ingredient", "stay active", "active phase" in prose was turning
-   * into a tappable chip. A term only earns a chip when the word itself is
-   * technical; a word that reads as ordinary English in a sentence does not.
-   */
-  const TOKEN_STOPLIST = new Set([
-    "active", "actives", "acid", "acids", "base", "bases", "balance", "barrier",
-    "build", "buildup", "build-up", "clean", "clear", "coat", "coating", "cold",
-    "colour", "color", "cool", "cover", "damage", "damp", "dense", "dry",
-    "fine", "free", "gentle", "hard", "heat", "heavy", "hold", "light", "mild",
-    "natural", "naturals", "neutral", "rich", "rinse", "seal", "shine", "slip",
-    "smooth", "soft", "strong", "thick", "warm", "wash", "water", "weight",
-    "wet", "product", "products", "treatment", "treatments", "volume",
-  ]);
 
   const tokenNames = useMemo(() => {
     const seen = new Set<string>();
