@@ -325,16 +325,16 @@ const BrandOfferDetail = () => {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-              <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
-              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
-              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
-              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
+              <StatBox icon={Eye} label="Impressions" value={stats.impressions} exact={showExact} />
+              <StatBox icon={Maximize2} label="Expands" value={stats.expands} exact={showExact} />
+              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} exact={showExact} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} exact={showExact} />
+              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} exact={showExact} />
             </div>
             <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
               Impressions = distinct members who saw the advert (at least half of it, for a full second).
               Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
-              site. {STATS_METHOD_NOTE}
+              site. {showExact ? "" : "Figures are shown as approximate ranges. "}{STATS_METHOD_NOTE}
             </p>
           </>
         )}
@@ -529,10 +529,12 @@ const BrandOfferDetail = () => {
   );
 };
 
-const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
+const StatBox = ({ icon: Icon, label, value, exact }: { icon: React.ElementType; label: string; value: number; exact: boolean }) => (
   <SurfaceCard className="text-center py-3">
     <Icon className="size-4 text-primary mx-auto" />
-    <p className="font-display text-xl mt-1">{value}</p>
+    <p className="font-display text-[15px] mt-1 leading-tight [overflow-wrap:anywhere]">
+      {exact ? value : bandMemberCount(value)}
+    </p>
     <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
   </SurfaceCard>
 );
