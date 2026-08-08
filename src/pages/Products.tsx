@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart } from "lucide-react";
+import { ChevronDown, ChevronRight, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart, Tag } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
