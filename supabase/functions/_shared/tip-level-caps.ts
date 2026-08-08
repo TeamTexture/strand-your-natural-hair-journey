@@ -7,6 +7,15 @@
 //   3 hand-holding — everything: action, reason, extended `why`, technique,
 //                    next_time. No caps beyond the global output budgets.
 //
+// DEGRADATION ORDER — what gives way first as the level drops or as a field
+// fails validation:
+//   1. next_time      (dropped first)
+//   2. extended why
+//   3. technique
+//   4. — nothing else. `action` and `reason` are present at EVERY level and are
+//        NEVER the fields that degrade. A member told what to do without being
+//        told why has learned nothing.
+//
 // EVERY LEVEL IS A WHOLE TIP. Minimal means briefer, not thinner: the action
 // floor and the reason floor in _shared/tip-action.ts apply unchanged at every
 // level, so a minimal tip is still a specific action plus a real, grounded,
@@ -14,6 +23,7 @@
 //
 // The caps below are validated against the model's output and trimmed on the
 // way out; they are never merely requested in the prompt.
+
 
 import { trimToCap, wordCount } from "./product-name-wall.ts";
 
@@ -101,7 +111,9 @@ export function tipLevelPromptBlock(level: unknown): string {
     "",
     "TIP FIELD ROLES AND HARD WORD CAPS FOR THIS MEMBER'S SUPPORT LEVEL — VALIDATED, NOT ADVISORY.",
     '- "action" and "reason" are required at EVERY level. "reason" is ALWAYS exactly ONE sentence, and it explains — it never restates the action.',
+    '- FIELD ROLES ARE DISTINCT AND VALIDATED: "action" = WHAT to do (the instruction). "technique" = HOW to do it well — grip, direction, pressure, section order, how much product, what to avoid. "technique" MUST contain specifics "action" does NOT contain. If it cannot, return "technique" as an EMPTY STRING; an omitted technique is better than the action said twice.',
   ];
+
   if (caps.action === 20) {
     lines.push(
       '- MINIMAL LEVEL. "action": ONE sentence, MAXIMUM 20 words. "reason": ONE sentence, MAXIMUM 18 words.',
