@@ -506,9 +506,9 @@ Do not substitute other cleansing or sealing methods for these two.`
     return json(502, { error: "invalid model output" });
   }
   // ── GRACEFUL DEGRADATION ─────────────────────────────────────────────
-  // A weak "why" is acceptable; no tip is not. Only a MISSING ACTION still
-  // blocks — that floor stands. Any reason-only failure is logged and the
-  // tip is served anyway.
+  // Order of degradation (see _shared/tip-level-caps.ts): next_time, then the
+  // extended why, then technique. `action` and `reason` NEVER degrade.
+  // Only a MISSING ACTION still blocks — that floor stands.
   if (!verdict.ok) {
     // A cap overrun is repairable by trimming, so it never blocks serving.
     const actionOnly = verdict.reasons.filter(
@@ -518,6 +518,11 @@ Do not substitute other cleansing or sealing methods for these two.`
     const hasUsableAction = Boolean(String(parsed.action ?? "").trim()) && actionOnly.length === 0;
     if (!hasUsableAction) {
       return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
+    }
+    // A technique that only restates the action is DROPPED, never served. The
+    // card loses a block; it does not gain a duplicate.
+    if (verdict.reasons.includes("technique_duplicates_action")) {
+      parsed = { ...parsed, technique: "" };
     }
     await logTipRejection(
       isStyle ? "style-tip" : "wash-day-tip",
@@ -533,7 +538,8 @@ Do not substitute other cleansing or sealing methods for these two.`
   // THE GRADUATION, ENFORCED SERVER-SIDE. Each level's word budgets are applied
   // here, not merely requested in the prompt, and the fields a level does not
   // show are emptied so they cannot render: the extended `why` and `next_time`
-  // are hand-holding only, and `technique` starts at Essential.
+  // are hand-holding only, and `technique` starts at Essential. `reason` is
+  // trimmed but never emptied at any level.
   const capped = applyLevelCaps(requestedLevel, {
     action: String(parsed.action ?? ""),
     reason: String(parsed.reason ?? ""),
@@ -560,7 +566,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   // passes it is replaced with a generic product-type phrase — the editorial
   // card never advertises, and it never renders empty either.
   const stillNamed = findProductNames(payload, wall.names);
-  const finalPayload = stillNamed.length > 0
+  let finalPayload = stillNamed.length > 0
     ? redactProductNames(payload, stillNamed)
     : payload;
   if (stillNamed.length > 0) {
@@ -569,6 +575,81 @@ Do not substitute other cleansing or sealing methods for these two.`
       ["redacted_product_name", ...stillNamed.map((n) => n.slice(0, 60))],
       raw.slice(0, 4000),
     );
+  }
+
+  // SANITISE BEFORE CACHING. Citation stripping, style-verbatim repair and the
+  // blood guardrail all run here, against THIS generation's grounding passages,
+  // and the sanitised result is what gets stored and served. Sanitising on read
+  // instead (with no grounding to hand) is what was deleting the `reason`.
+  finalPayload = await sanitiseAndLog(finalPayload, "wash-day-tip", {
+    context: body,
+    grounding: grounding.block,
+  });
+
+  // THE REASON IS NEVER THE FIELD THAT GOES. If the guardrail emptied it (an
+  // ungrounded mechanism phrase, or a blood/hair bridge), ask for ONE
+  // replacement sentence written without either, and sanitise that too.
+  if (!String(finalPayload.reason ?? "").trim() && String(capped.reason ?? "").trim()) {
+    await logTipRejection(
+      isStyle ? "style-tip" : "wash-day-tip",
+      ["reason_removed_by_guardrail", "repair_attempted"],
+      String(capped.reason ?? "").slice(0, 1000),
+    );
+    try {
+      const repairResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
+        body: JSON.stringify({
+          model: "google/gemini-3.6-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                `The action for this member is: "${finalPayload.action}"`,
+                "Write ONE sentence giving the WHY behind that action for this member — the consequence of skipping it, in plain hair-care terms.",
+                "HARD RULES: no physiological mechanism wording (no follicle, cell division, hair shaft, cuticle layer, anagen, protein synthesis, sebum production and the like). Never link a blood marker to a hair outcome. No product or brand names. Grounded in the supplied manuscript passages.",
+                'Return JSON only: {"reason": string}',
+              ].join("\n"),
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (repairResp.ok) {
+        const rj = await repairResp.json();
+        const repaired = parseTip(rj?.choices?.[0]?.message?.content ?? "{}");
+        const candidate = String(repaired?.reason ?? "").trim();
+        if (candidate) {
+          const safe = await sanitiseAndLog({ reason: candidate }, "wash-day-tip", {
+            context: body,
+            grounding: grounding.block,
+          });
+          const safeReason = String(safe.reason ?? "").trim();
+          if (safeReason) {
+            finalPayload = {
+              ...finalPayload,
+              reason: applyLevelCaps(requestedLevel, {
+                action: finalPayload.action,
+                reason: safeReason,
+                technique: finalPayload.technique,
+                why: finalPayload.why,
+                next_time: finalPayload.next_time ?? "",
+              }).reason,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[wash-day-tip] reason repair pass failed:", err);
+    }
+    if (!String(finalPayload.reason ?? "").trim()) {
+      await logTipRejection(
+        isStyle ? "style-tip" : "wash-day-tip",
+        ["reason_unrecoverable_after_repair"],
+        raw.slice(0, 2000),
+      );
+    }
   }
 
   await admin
@@ -580,9 +661,7 @@ Do not substitute other cleansing or sealing methods for these two.`
 
   await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.technique, finalPayload.next_time ?? ""]);
 
-  return json(200, {
-    tip: await sanitiseAndLog(finalPayload, "wash-day-tip", { context: body, grounding: grounding.block }),
-    cached: false,
-  });
+  return json(200, { tip: finalPayload, cached: false });
 });
+
 
