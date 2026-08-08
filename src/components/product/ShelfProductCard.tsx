@@ -123,6 +123,12 @@ const ShelfProductCard = ({
         )}
       </div>
 
+      {banner && (
+        <div onClick={(e) => e.stopPropagation()} className="px-3.5 pb-3">
+          {banner}
+        </div>
+      )}
+
       {footer && (
         <div
           onClick={(e) => e.stopPropagation()}
