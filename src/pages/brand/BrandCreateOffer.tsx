@@ -500,7 +500,7 @@ const BrandCreateOffer = () => {
           linked_product_id: p.linked_product_id ?? null,
           position: i,
         }));
-        await submitRevision.mutateAsync({
+        const revisionId = await submitRevision.mutateAsync({
           offer_id: existingId,
           headline: headline.trim() || null,
           body_copy: bodyCopy.trim() || null,
@@ -512,12 +512,32 @@ const BrandCreateOffer = () => {
           // edit never touches the live campaign's targeting.
           targeting: targetingDirty ? cleanTargeting : undefined,
         });
+
+        // A positive uplift parks the revision in `pending_payment`: money first,
+        // review second. Zero-uplift changes never touch Stripe.
+        if (targetingDirty && upliftQuote.paymentRequired && revisionId) {
+          try {
+            const url = await upliftCheckout.mutateAsync({ revision_id: revisionId });
+            window.location.href = url;
+            return;
+          } catch (e) {
+            toast.error(
+              e instanceof Error
+                ? `${e.message} — your changes are saved, you can pay from the campaign page.`
+                : "Checkout could not be started — your changes are saved.",
+            );
+            nav(`/brand/offers/${existingId}`);
+            return;
+          }
+        }
+
         toast.success(
           targetingDirty
             ? "Creative and audience changes submitted for review"
             : "Changes submitted for review",
         );
         nav(`/brand/offers/${existingId}`);
+
 
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Submit failed";
