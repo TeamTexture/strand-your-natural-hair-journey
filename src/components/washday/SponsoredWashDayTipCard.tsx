@@ -297,7 +297,10 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
 
         {guidance?.benefits?.length ? (
           <ul className="mt-2 space-y-1">
-            {guidance.benefits.slice(0, 3).map((b, i) => (
+            {guidance.benefits
+              .filter((b) => (b?.label ?? "").trim() && (b?.text ?? "").trim())
+              .slice(0, 3)
+              .map((b, i) => (
               <li key={i} className="flex gap-1.5 text-[11px] leading-[1.5] font-body text-foreground/80">
                 <span
                   className="mt-[5px] size-1.5 rounded-full shrink-0"
