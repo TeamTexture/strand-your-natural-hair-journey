@@ -700,12 +700,7 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
       <LevelGate min={3}>
         <AiProse text={tip.why} />
       </LevelGate>
-      {/* THE HOW — from Essential upwards. */}
-      {tip.technique && (
-        <LevelGate min={2}>
-          <AiProse text={`Technique: ${tip.technique}`} />
-        </LevelGate>
-      )}
+      {/* No separate technique block — the action carries the how. */}
 
       {/* Optional — one thing to try on the NEXT wash day. Hand-holding only:
           at the lower levels the card is deliberately this wash day only. */}

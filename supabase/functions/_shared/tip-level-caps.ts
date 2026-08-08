@@ -111,24 +111,24 @@ export function tipLevelPromptBlock(level: unknown): string {
     "",
     "TIP FIELD ROLES AND HARD WORD CAPS FOR THIS MEMBER'S SUPPORT LEVEL — VALIDATED, NOT ADVISORY.",
     '- "action" and "reason" are required at EVERY level. "reason" is ALWAYS exactly ONE sentence, and it explains — it never restates the action.',
-    '- FIELD ROLES ARE DISTINCT AND VALIDATED: "action" = WHAT to do (the instruction). "technique" = HOW to do it well — grip, direction, pressure, section order, how much product, what to avoid. "technique" MUST contain specifics "action" does NOT contain. If it cannot, return "technique" as an EMPTY STRING; an omitted technique is better than the action said twice.',
+    '- There is NO "technique" field. Everything the member must physically do belongs in "action". Always return "technique" as an EMPTY STRING.',
   ];
 
   if (caps.action === 20) {
     lines.push(
       '- MINIMAL LEVEL. "action": ONE sentence, MAXIMUM 20 words. "reason": ONE sentence, MAXIMUM 18 words.',
-      '- Return "why", "technique" and "next_time" as empty strings — nothing else is shown at this level.',
+      '- Return "why" and "next_time" as empty strings — nothing else is shown at this level.',
       "- Briefer is not thinner: the action stays a specific instruction, the reason stays a real grounded why, and both still name this member's own recorded detail. Cut words, never substance.",
     );
   } else if (caps.action === 35) {
     lines.push(
-      '- ESSENTIAL LEVEL. "action": at most 2 sentences, MAXIMUM 35 words. "reason": ONE sentence, MAXIMUM 25 words. "technique": at most 2 sentences, MAXIMUM 40 words.',
+      '- ESSENTIAL LEVEL. "action": at most 2 sentences, MAXIMUM 35 words. "reason": ONE sentence, MAXIMUM 25 words.',
       '- Return "why" and "next_time" as EMPTY STRINGS. The extended personalised prose is NOT shown at this level and duplicates "reason".',
       "- The tip must still be complete: a specific action, a real grounded why, and personalisation to their recorded state.",
     );
   } else {
     lines.push(
-      '- HAND-HOLDING LEVEL. Return every field: "action", "reason", the extended "why" (2-3 sentences of personalised context tying the tip to their profile and their logged wash days), "technique" (the step-by-step how) and "next_time".',
+      '- HAND-HOLDING LEVEL. Return "action", "reason", the extended "why" (2-3 sentences of personalised context tying the tip to their profile and their logged wash days) and "next_time". The action carries all step detail.',
       '- "why" must add NEW context — the fuller explanation against their own data. It must never simply restate "reason" in more words.',
     );
   }
