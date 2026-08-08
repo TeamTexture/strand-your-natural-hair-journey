@@ -207,8 +207,15 @@ Deno.serve(async (req) => {
     cachedPayload._model_version === MODEL_VERSION &&
     (cachedPayload.tipsLevel ?? null) === requestedLevel
   ) {
-    return json(200, { tip: await sanitiseAndLog(cachedPayload, "wash-day-tip", { context: body }), cached: true });
+    // The cached payload was ALREADY sanitised (citations, style verbatim, blood
+    // guardrail) against the grounding passages that produced it before it was
+    // stored. Re-running the guardrail here with an empty grounding string was
+    // silently deleting the `reason` sentence on every cache hit, because any
+    // mechanism wording it contained read as "unsourced" without the passages.
+    // Cached tips are served verbatim.
+    return json(200, { tip: cachedPayload, cached: true });
   }
+
 
   // Build a compact context blob for the model. Style first — the tip must
   // speak to what she is wearing NOW and what she is moving to next.
