@@ -7,7 +7,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
-import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
   buildGroundingBlock,
   flaggedMarkerPhrase,
@@ -28,7 +27,7 @@ import {
 
 import {
   buildProductNameWall,
-  noProductNamesBlock,
+  stripMarkdown,
   findProductNames,
   redactProductNames,
 } from "../_shared/product-name-wall.ts";
@@ -60,7 +59,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v12-procedural-method-floor";
+const MODEL_VERSION = "wash-tip@v13-consolidated-spec";
 
 interface TipPayload {
   headline: string;
@@ -614,6 +613,10 @@ Do not substitute other cleansing or sealing methods for these two.`
   // blood guardrail all run here, against THIS generation's grounding passages,
   // and the sanitised result is what gets stored and served. Sanitising on read
   // instead (with no grounding to hand) is what was deleting the `reason`.
+  // ONE OUTPUT CONVENTION — plain text. The cards render strings as text, so a
+  // markdown link arrived on screen as literal "[TT Heat Hat](https://…)".
+  finalPayload = stripMarkdown(finalPayload);
+
   finalPayload = await sanitiseAndLog(finalPayload, "wash-day-tip", {
     context: body,
     grounding: grounding.block,
