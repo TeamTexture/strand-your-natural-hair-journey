@@ -26,6 +26,9 @@ export interface BrandGuidance {
   steps: string[];
   /** Factual "be aware of" notes — 0-2 items, educational not alarmist. */
   watch_outs?: string[];
+  /** WASH DAY SURFACE ONLY. The whole sponsored tip body — at most two
+   *  sentences and 45 words, enforced server-side. */
+  wash_day_tip?: string;
 }
 
 /** Which surface the guidance is written for. `wash_day` asks for the read to
@@ -80,7 +83,7 @@ function fingerprintContext(context: Record<string, unknown>): string {
 }
 
 const cacheKind = (productId: string, fingerprint: string, surface: string) =>
-  `brand_product_guidance_v5:${surface}:${productId}:${fingerprint}`;
+  `brand_product_guidance_v6:${surface}:${productId}:${fingerprint}`;
 
 /** In-memory guard so two surfaces mounting at once don't both generate. */
 const inflight = new Map<string, Promise<BrandGuidance | null>>();
@@ -104,7 +107,10 @@ async function loadGuidance(
       .eq("kind", kind)
       .maybeSingle();
     const cachedPayload = cached?.payload as unknown as BrandGuidance | null;
-    if (cachedPayload && Array.isArray(cachedPayload.benefits)) return cachedPayload;
+    // The wash day surface returns a single tip body and no benefit rows, so a
+    // cached payload is valid if it carries either shape.
+    if (cachedPayload && (Array.isArray(cachedPayload.benefits) || cachedPayload.wash_day_tip))
+      return cachedPayload;
 
     const { data: res, error } = await supabase.functions.invoke("brand-product-guidance", {
       body: {
