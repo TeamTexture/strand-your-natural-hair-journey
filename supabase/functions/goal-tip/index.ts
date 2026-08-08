@@ -835,25 +835,47 @@ Deno.serve(async (req) => {
 
 
 
+    // PROSE-FRIENDLY STYLE LABELS — "Passion / rope twists" is one legitimate
+    // style whose label carries a slash. The stored value and the picker label
+    // are untouched; only generated prose is rewritten ("passion or rope
+    // twists") so it reads properly mid-sentence.
+    const prose = (v: unknown) => proseStyleText(String(v ?? "")).trim();
+
     if (journal) {
       // Hard guarantee of the overview + caution shape regardless of drift.
       tip = {
-        overview: String(tip.overview ?? "").trim(),
-        caution: String(tip.caution ?? "").trim(),
+        overview: prose(tip.overview),
+        caution: prose(tip.caution),
         signals: (Array.isArray(tip.signals) ? tip.signals : [])
-          .map((s) => String(s ?? "").trim())
+          .map((s) => prose(s))
           .filter(Boolean)
           .slice(0, 3),
         actions: [],
       };
     } else if (single) {
-      // Hard guarantee of the one-tip shape regardless of model drift.
-      const keyFact = typeof tip.key_fact === "string" ? tip.key_fact.trim() : "";
+      // Hard guarantee of the one-tip shape regardless of model drift. The
+      // action and the reason are both required and both rendered.
+      const keyFact = typeof tip.key_fact === "string" ? prose(tip.key_fact) : "";
       tip = {
-        headline: String(tip.headline ?? "").trim(),
-        body: String(tip.body ?? "").trim(),
+        headline: prose(tip.headline),
+        action: prose(tip.action),
+        reason: prose(tip.reason) || prose(tip.body),
         ...(keyFact ? { key_fact: keyFact } : {}),
         actions: [],
+      };
+    } else {
+      tip = {
+        ...tip,
+        headline: prose(tip.headline),
+        body: prose(tip.body),
+        actions: (Array.isArray(tip.actions) ? tip.actions : []).map((a) =>
+          typeof a === "string"
+            ? prose(a)
+            : {
+                action: prose((a as { action?: string })?.action),
+                why: prose((a as { why?: string })?.why),
+              },
+        ),
       };
     }
 
@@ -866,10 +888,11 @@ Deno.serve(async (req) => {
       await recordAdvice(ledgerUserId, "goal-tip", [
         ...(tip.headline ? [tip.headline] : []),
         ...(journal ? [tip.overview ?? "", tip.caution ?? ""] : []),
-        ...(single && tip.body ? [tip.body] : []),
+        ...(single ? [tip.action ?? "", tip.reason ?? ""] : []),
         ...actionLines,
       ].filter(Boolean));
     }
+
 
 
     return new Response(
