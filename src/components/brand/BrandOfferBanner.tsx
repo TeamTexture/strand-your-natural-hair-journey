@@ -70,11 +70,29 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
     match_reason: matchReason ? { codes: matchReason } : null,
   });
 
+  // ONE PRODUCT PER ADVERT. The junction rows are ordered by `position` in the
+  // query, so this is the advertised product — there is no list to choose from.
   const product = offer.brand_products?.[0] ?? null;
   // The advert's product is read against this member's own hair — generated on
   // expand (a deliberate action), never on a passing impression.
   const { guidance: productGuidance, loading: productGuidanceLoading } =
     useBrandProductGuidance(product, { enabled: expanded });
+
+  const { data: brandRow } = useQuery({
+    queryKey: ["banner-brand-name", offer.brand_user_id],
+    enabled: !brandNameProp && !!offer.brand_user_id && expanded,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("brand_profiles")
+        .select("brand_name")
+        .eq("user_id", offer.brand_user_id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const brandName = brandNameProp ?? brandRow?.brand_name ?? null;
+
 
   useEffect(() => {
     if (offer.hero_image_path) {
