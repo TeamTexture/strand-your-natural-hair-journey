@@ -21,6 +21,10 @@ export interface GoalTipAction {
 
 export interface GoalTip {
   headline?: string;
+  /** Single-tip (Home) mode: the instruction. Required — never rendered empty. */
+  action?: string;
+  /** Single-tip (Home) mode: why it matters for this member. Required. */
+  reason?: string;
   body?: string;
   /** Single-tip (Home) mode only: one optional frequency/duration/tool chip. */
   key_fact?: string;
@@ -97,7 +101,7 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
  * personalisation signature so a style, goal or challenge edit refreshes the
  * tip immediately, while normal page navigation reuses the cached tip.
  */
-const CACHE_VERSION = "v12-procedural-method";
+const CACHE_VERSION = "v13-action-reason-floor";
 
 const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>
   `strand:goal-tip:${CACHE_VERSION}:${sig}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
