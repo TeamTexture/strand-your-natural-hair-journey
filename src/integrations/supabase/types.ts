@@ -1150,7 +1150,6 @@ export type Database = {
           linked_product_id: string | null
           materials: string[]
           name: string
-          offer_id: string | null
           position: number
           rejection_reason: string | null
           source_type: string
@@ -1176,7 +1175,6 @@ export type Database = {
           linked_product_id?: string | null
           materials?: string[]
           name: string
-          offer_id?: string | null
           position?: number
           rejection_reason?: string | null
           source_type: string
@@ -1202,7 +1200,6 @@ export type Database = {
           linked_product_id?: string | null
           materials?: string[]
           name?: string
-          offer_id?: string | null
           position?: number
           rejection_reason?: string | null
           source_type?: string
@@ -1210,15 +1207,7 @@ export type Database = {
           tool_kind?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "brand_products_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "brand_offers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       brand_profiles: {
         Row: {
@@ -4241,7 +4230,22 @@ export type Database = {
           use_count?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_products_linked_brand_offer_fk"
+            columns: ["linked_brand_offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_products_linked_brand_product_fk"
+            columns: ["linked_brand_product_id"]
+            isOneToOne: false
+            referencedRelation: "brand_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_professionals: {
         Row: {
