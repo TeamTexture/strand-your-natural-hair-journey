@@ -121,6 +121,7 @@ const AdminMessages = lazyRetry(() => import("./pages/admin/AdminMessages"));
 const AdminBrandOffers = lazyRetry(() => import("./pages/admin/AdminBrandOffers"));
 const AdminShelfReview = lazyRetry(() => import("./pages/admin/AdminShelfReview"));
 const AdminBrandCalendar = lazyRetry(() => import("./pages/admin/AdminBrandCalendar"));
+const AdminSponsoredTipPreview = lazyRetry(() => import("./pages/admin/AdminSponsoredTipPreview"));
 const AdminBrandOfferReview = lazyRetry(() => import("./pages/admin/AdminBrandOfferReview"));
 const AdminModeration = lazyRetry(() => import("./pages/admin/AdminModeration"));
 const AdminLibrary = lazyRetry(() => import("./pages/admin/AdminLibrary"));
@@ -563,6 +564,8 @@ const App = () => (
               <Route path="/admin/brand-offers" element={<RoleGate allow={["admin"]}><AdminBrandOffers /></RoleGate>} />
               <Route path="/admin/brand-offers/:id" element={<RoleGate allow={["admin"]}><AdminBrandOfferReview /></RoleGate>} />
               <Route path="/admin/brand-calendar" element={<RoleGate allow={["admin"]}><AdminBrandCalendar /></RoleGate>} />
+              <Route path="/admin/sponsored-tip-preview" element={<RoleGate allow={["admin"]}><AdminSponsoredTipPreview /></RoleGate>} />
+              <Route path="/admin/sponsored-tip-preview/:offerId" element={<RoleGate allow={["admin"]}><AdminSponsoredTipPreview /></RoleGate>} />
               <Route path="/admin/moderation" element={<RoleGate allow={["admin"]}><AdminModeration /></RoleGate>} />
               <Route path="/admin/data-protection" element={<RoleGate allow={["admin"]}><AdminDataProtection /></RoleGate>} />
               <Route path="/admin/library" element={<RoleGate allow={["admin"]}><AdminLibrary /></RoleGate>} />
