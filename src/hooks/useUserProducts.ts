@@ -108,35 +108,40 @@ export function useUserProducts(filter: Filter = "all", opts?: { static?: boolea
       }
 
       setProducts(list);
-      // Fetch sponsored context for any wishlist rows still linked to a live
-      // brand offer. Silent when nothing is linked.
-      const offerIds = Array.from(
-        new Set(list.map((p) => p.linked_brand_offer_id).filter((x): x is string => !!x)),
+      // Sponsored context is resolved from the BRAND PRODUCT, never from a
+      // stored offer id: offers end and are relaunched, the product persists.
+      const brandProductIds = Array.from(
+        new Set(list.map((p) => p.linked_brand_product_id).filter((x): x is string => !!x)),
       );
-      if (offerIds.length) {
-        const { data: offers } = await supabase
-          .from("brand_offers")
-          .select("id, headline, discount_code, ends_on, status, starts_on")
-          .in("id", offerIds);
+      if (brandProductIds.length) {
+        const { data: links } = await supabase
+          .from("brand_offer_products")
+          .select("brand_product_id, offer_id, brand_offers!inner(id, headline, discount_code, ends_on, starts_on, status)")
+          .in("brand_product_id", brandProductIds);
         const today = new Date().toISOString().slice(0, 10);
-        const byOffer: Record<string, SponsoredNote> = {};
-        for (const o of offers ?? []) {
+        const byBrandProduct: Record<string, SponsoredNote> = {};
+        for (const link of (links ?? []) as unknown as Array<{
+          brand_product_id: string;
+          brand_offers: { id: string; headline: string | null; discount_code: string | null; ends_on: string | null; starts_on: string | null; status: string };
+        }>) {
+          const o = link.brand_offers;
+          if (!o) continue;
           const live = o.status === "live"
             && (!o.starts_on || o.starts_on <= today)
             && (!o.ends_on || o.ends_on >= today);
           if (!live) continue;
-          byOffer[o.id] = {
+          byBrandProduct[link.brand_product_id] = {
             offerId: o.id,
-            headline: o.headline,
+            brandProductId: link.brand_product_id,
+            headline: o.headline ?? "",
             discountCode: o.discount_code,
             endsOn: o.ends_on,
           };
         }
         const byUserProduct: Record<string, SponsoredNote> = {};
         for (const p of list) {
-          if (p.linked_brand_offer_id && byOffer[p.linked_brand_offer_id]) {
-            byUserProduct[p.id] = byOffer[p.linked_brand_offer_id];
-          }
+          const note = p.linked_brand_product_id ? byBrandProduct[p.linked_brand_product_id] : undefined;
+          if (note) byUserProduct[p.id] = note;
         }
         setSponsoredById(byUserProduct);
       } else {
