@@ -219,12 +219,20 @@ export function useBrandOffer(id: string | undefined) {
       return {
         ...data,
         brand_offer_stats: (statRows ?? []) as OfferStatRow[],
+        stats_fetched_at: new Date().toISOString(),
       };
     },
-
-
+    // While a campaign is actually running, poll so the brand sees figures
+    // climb in near real time (and refresh whenever they come back to the tab).
+    refetchInterval: (query) => {
+      const o = query.state.data as { status?: string; starts_on?: string | null; ends_on?: string | null } | null;
+      if (!o) return false;
+      return deriveBrandOfferStatus(o as Parameters<typeof deriveBrandOfferStatus>[0]) === "live" ? 20_000 : false;
+    },
+    refetchOnWindowFocus: true,
   });
 }
+
 
 /** Broad (untargeted) daily rates. Reads from the single pricing config in
  *  src/lib/adPricing.ts — never from platform_settings, so one edit changes
