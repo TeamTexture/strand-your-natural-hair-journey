@@ -55,7 +55,11 @@ interface GuidancePayload {
   steps: string[];
   /** Optional factual "be aware of" notes — max 2, educational not alarmist. */
   watch_outs: string[];
+  /** WASH DAY SURFACE ONLY. The whole sponsored tip body: at most two
+   *  sentences and 45 words, validated (not merely requested). */
+  wash_day_tip?: string;
 }
+
 
 
 const SYSTEM = `${STRAND_PERSONA}
