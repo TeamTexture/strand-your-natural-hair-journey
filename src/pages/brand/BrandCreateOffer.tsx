@@ -61,23 +61,6 @@ interface ProductDraft {
   linked_product_id?: string | null;
 }
 
-interface CatalogueItem {
-  kind: AttachKind;
-  source_id: string;
-  name: string;
-  brand: string | null;
-  category: string | null;
-  image_url: string | null;
-  ingredients: string[] | null;
-  tool_kind: string | null;
-  key_features: string[] | null;
-  materials: string[] | null;
-  source_url: string | null;
-  user_count: number;
-}
-
-type CatalogueFilter = "all" | AttachKind;
-
 const emptyProduct = (kind: AttachKind = "product"): ProductDraft => ({
   kind,
   name: "",
@@ -204,9 +187,6 @@ const BrandCreateOffer = () => {
   const [previewMode, setPreviewMode] = useState<"collapsed" | "expanded">("collapsed");
   const [showSafeArea, setShowSafeArea] = useState(true);
   const [shelfOpen, setShelfOpen] = useState(false);
-  const [catalogueOpen, setCatalogueOpen] = useState(false);
-  const [catalogueKind, setCatalogueKind] = useState<CatalogueFilter>("all");
-  const [catalogueSearch, setCatalogueSearch] = useState("");
 
   // Cropper state — one dialog reused for banner or a specific product image.
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -292,22 +272,6 @@ const BrandCreateOffer = () => {
 
   const { data: shelfAll = [] } = useBrandShelf();
   const shelfItems = shelfAll.filter((i) => i.approval_status === "approved");
-
-  const catalogueQuery = useQuery({
-    queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
-    enabled: catalogueOpen,
-    queryFn: async (): Promise<CatalogueItem[]> => {
-      const { data, error } = await supabase.functions.invoke("brand-catalogue", {
-        body: {
-          _kind: catalogueKind,
-          _search: catalogueSearch.trim() || null,
-          _limit: 80,
-        },
-      });
-      if (error) throw new Error(error.message ?? "Catalogue unavailable");
-      return Array.isArray(data?.items) ? data.items : [];
-    },
-  });
 
   const enabledSlotList = useMemo(
     () => SLOTS.filter((s) => enabledSlots[s]),
@@ -469,35 +433,6 @@ const BrandCreateOffer = () => {
     toast.success("Attached from your shelf");
   };
 
-  const isCatalogueItemAttached = (item: CatalogueItem) =>
-    products.some((p) => p.linked_product_id === item.source_id && p.kind === item.kind);
-
-  const attachCatalogueItem = (item: CatalogueItem) => {
-    if (isCatalogueItemAttached(item)) {
-      setProducts((prev) => prev.filter((p) => !(p.linked_product_id === item.source_id && p.kind === item.kind)));
-      toast.success(`${item.kind === "tool" ? "Tool" : "Product"} removed`);
-      return;
-    }
-    const label = item.kind === "tool" ? "tool" : "product";
-    setProducts((prev) => [
-      ...prev,
-      {
-        kind: item.kind,
-        name: item.name,
-        description: item.brand ? `${item.brand}${item.category ? ` · ${item.category}` : ""}` : (item.category ?? ""),
-        external_url: item.source_url ?? "",
-        image_urls: item.image_url ? [item.image_url] : [],
-        ingredients: item.kind === "product" ? (item.ingredients ?? []) : [],
-        tool_kind: item.kind === "tool" ? (toToolKind(item.tool_kind ?? item.category) ?? item.tool_kind) : null,
-        key_features: item.kind === "tool" ? (item.key_features ?? []) : [],
-        materials: item.kind === "tool" ? (item.materials ?? []) : [],
-        source_type: "linked",
-        source_url: item.source_url,
-        linked_product_id: item.source_id,
-      },
-    ]);
-    toast.success(`${label === "tool" ? "Tool" : "Product"} attached`);
-  };
 
   const { isActive: brandSubActive } = useBrandSubscription();
 
@@ -836,19 +771,8 @@ const BrandCreateOffer = () => {
               Choose from your shelf
             </Button>
           </div>
-          <div className="rounded-[12px] border border-border p-3">
-            <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
-              <PackagePlus className="size-3 text-primary" /> Browse app catalogue
-            </Label>
-            <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-              Search anonymised products and tools already used in STRAND, then attach the item to this advert.
-              Only items matching your own brand name are shown — you can't tag another brand's product.
-            </p>
-            <Button type="button" variant="outline" size="pill" onClick={() => setCatalogueOpen(true)} className="mt-2 w-full px-4">
-              Browse products &amp; tools
-            </Button>
-          </div>
           <div>
+
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
               <Sparkles className="size-3 text-primary" /> AI page from a link
             </Label>
@@ -1237,111 +1161,6 @@ const BrandCreateOffer = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={catalogueOpen} onOpenChange={setCatalogueOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[343px] max-h-[82vh] overflow-hidden rounded-[14px] p-0">
-          <DialogHeader className="p-4 pb-2 text-left">
-            <DialogTitle className="font-display text-lg">App catalogue</DialogTitle>
-          </DialogHeader>
-          <div className="px-4 pb-4 space-y-3 overflow-hidden">
-            <div className="flex flex-wrap gap-1.5 text-[11px]">
-              {(["all", "product", "tool"] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setCatalogueKind(k)}
-                  className={`px-3 py-1 rounded-pill border capitalize ${
-                    catalogueKind === k ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
-                  }`}
-                >
-                  {k === "all" ? "All" : `${k}s`}
-                </button>
-              ))}
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                value={catalogueSearch}
-                onChange={(e) => setCatalogueSearch(e.target.value)}
-                placeholder="Search products or tools"
-                className="pl-9"
-              />
-            </div>
-            <div className="max-h-[54vh] overflow-y-auto pr-1 space-y-2">
-              {catalogueQuery.isLoading ? (
-                <div className="py-8"><LoadingDot /></div>
-              ) : catalogueQuery.isError ? (
-                <div className="rounded-[12px] border border-destructive/30 bg-destructive/5 px-3 py-4 text-center">
-                  <p className="text-[12px] font-medium text-destructive">Catalogue could not load.</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {catalogueQuery.error instanceof Error ? catalogueQuery.error.message : "Please try again."}
-                  </p>
-                  <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => catalogueQuery.refetch()}>
-                    Try again
-                  </Button>
-                </div>
-              ) : catalogueQuery.data?.length ? (
-                catalogueQuery.data.map((item) => {
-                  const attached = isCatalogueItemAttached(item);
-                  return (
-                    <button
-                      key={`${item.kind}-${item.source_id}`}
-                      type="button"
-                      onClick={() => attachCatalogueItem(item)}
-                      aria-pressed={attached}
-                      className={`w-full text-left rounded-[12px] border p-2.5 transition-colors ${
-                        attached
-                          ? "border-primary bg-primary/10 ring-1 ring-primary"
-                          : "border-border bg-card hover:border-primary/40"
-                      }`}
-                    >
-                      <div className="flex gap-2.5 min-w-0">
-                        <div className={`size-12 shrink-0 rounded-lg border overflow-hidden flex items-center justify-center text-primary ${attached ? "border-primary bg-primary/5" : "bg-muted border-border"}`}>
-                          {item.image_url ? (
-                            <img src={item.image_url} alt="" className="size-full object-cover" />
-                          ) : item.kind === "tool" ? (
-                            <Wrench className="size-5" />
-                          ) : (
-                            <PackagePlus className="size-5" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className={`font-display text-[14px] leading-tight truncate ${attached ? "text-primary" : ""}`}>{item.name}</p>
-                            <span className={`shrink-0 text-[8px] uppercase tracking-wider rounded-pill px-1.5 py-[1px] border ${attached ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>
-                              {item.kind === "tool" ? "Tool" : "Product"}
-                            </span>
-                            {attached ? (
-                              <span className="shrink-0 text-[8px] uppercase tracking-wider rounded-pill px-1.5 py-[1px] bg-primary text-primary-foreground">
-                                Attached
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {[item.brand, item.category].filter(Boolean).join(" · ") || "STRAND catalogue item"}
-                          </p>
-                          <p className="text-[10px] text-primary font-body mt-0.5">
-                            {item.user_count} member{item.user_count === 1 ? "" : "s"} have added this
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="text-[12px] text-muted-foreground text-center py-8">No catalogue matches yet.</p>
-              )}
-            </div>
-          </div>
-          <div className="border-t border-border bg-background/95 backdrop-blur px-4 py-3 flex items-center justify-between gap-2">
-            <p className="text-[11px] text-muted-foreground">
-              {products.filter((p) => p.source_type === "linked").length} attached
-            </p>
-            <Button type="button" size="sm" onClick={() => setCatalogueOpen(false)} className="rounded-pill px-5">
-              Save
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <ImageCropDialog
         file={cropFile}
