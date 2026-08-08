@@ -642,6 +642,14 @@ const AdminBrandOfferReview = () => {
               </SurfaceCard>
             ))}
 
+            <AdminOfferOverride
+              offerId={offer.id}
+              startsOn={offer.starts_on}
+              endsOn={offer.ends_on}
+              currentSlots={Object.keys(bySlot) as PlacementSlot[]}
+            />
+
+
             {(offer.brand_products ?? []).length > 0 && (
               <>
                 <SectionLabel className="!px-0">Products &amp; AI drafts</SectionLabel>
