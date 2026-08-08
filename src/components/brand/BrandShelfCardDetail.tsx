@@ -7,7 +7,7 @@
 // citation checks live in that function and are untouched.
 
 import { useEffect } from "react";
-import { ExternalLink } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Sparkles } from "lucide-react";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { useLogAdEvent } from "@/hooks/useBrandOffers";
