@@ -22,7 +22,15 @@ import {
   methodRetryDirective,
   validateTipSubstance,
 } from "../_shared/tip-method.ts";
-import { logTipRejection } from "../_shared/tip-action.ts";
+import {
+  logTipRejection,
+  memberAttributeTokens,
+  retryDirective,
+  validateTipAction,
+  validateTipReason,
+} from "../_shared/tip-action.ts";
+import { proseStyleText } from "../_shared/style-prose.ts";
+
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "../_shared/routine-guidance.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
