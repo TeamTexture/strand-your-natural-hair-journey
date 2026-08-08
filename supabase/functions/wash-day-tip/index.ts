@@ -96,7 +96,8 @@ interface Body {
   washHistory?: Record<string, unknown> | null;
   /** How her hair has felt, newest first (voice notes are transcribed into these). */
   hairFeelNotes?: Array<{ date?: string; note?: string }>;
-  /** Products on her shelf — suggestions must come from these. */
+  /** Products on her shelf. Used ONLY to reason about what TYPES she already
+   *  has — their names never reach the model (see product-name-wall.ts). */
   shelfProducts?: Array<{ name?: string; brand?: string | null; category?: string | null }>;
   tipsLevel?: number | null;
   /**
