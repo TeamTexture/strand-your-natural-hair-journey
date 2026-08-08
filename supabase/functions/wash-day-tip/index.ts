@@ -126,7 +126,7 @@ RULES:
 - Do NOT invent user data. If a slice is missing, ground the tip in what IS present.
 - Reason from PATTERNS across all their logs (recurring breakage, how often heat appears, how their cadence is drifting, which products they rotate) rather than from the most recent wash alone.
 - Where their own words about how their hair feels are present, reflect them back accurately. Never overwrite what they said with an assumption.
-- PRODUCTS: only ever name a product that appears in shelfProducts. Prefer what they already own. If nothing on the shelf fits, describe the product TYPE (e.g. "a creamy leave-in") and name no brand at all. Never invent a product, never name a product they do not own.
+- PRODUCTS: name NO products and NO brands, ever. This card is purely educational. Refer to product TYPES generically ("a water-based scalp cleanser", "a leave-in conditioner", "an emollient cream") — never a branded product, not even one this member owns.
 - If bloodFlags include ferritin/iron/vitD-low, connect wash-day scalp care to the regrowth environment.
 - If hair porosity is high, lead with sealing/moisture-lock; if low, lead with clarifying/heat-assisted penetration.
 - Never prescribe pre-poo as a scheduled ritual. Never say "use protein weekly". Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
