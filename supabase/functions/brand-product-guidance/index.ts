@@ -226,7 +226,10 @@ function validate(
     })
     .filter((b) => b.label && b.text);
 
-  if (benefits.length < 2 || benefits.length > 3) {
+  // WASH DAY SURFACE: the card shows ONE succinct tip, so benefits and steps
+  // are not required there — a hard 3-item floor would only cause needless
+  // regeneration failures for copy that is never rendered.
+  if (!isWashDay && (benefits.length < 2 || benefits.length > 3)) {
     problems.push(`benefits has ${benefits.length} valid items — return exactly 3 (2 only if the third cannot be grounded).`);
   }
   benefits.forEach((b, i) => {
@@ -237,11 +240,24 @@ function validate(
   });
 
   const steps = stepsRaw.map((s) => String(s ?? "").trim()).filter(Boolean);
-  if (steps.length !== 3) problems.push(`steps has ${steps.length} items — return exactly 3.`);
+  if (!isWashDay && steps.length !== 3) problems.push(`steps has ${steps.length} items — return exactly 3.`);
   steps.forEach((s, i) => {
     if (words(s) > 25) problems.push(`steps[${i}] is ${words(s)} words — maximum 25.`);
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
+
+  // The sponsored wash day tip body — enforced, not requested.
+  const washDayTip = String(raw.wash_day_tip ?? raw.washDayTip ?? "").trim();
+  if (isWashDay) {
+    if (!washDayTip) problems.push("wash_day_tip is missing — it is required on the wash day surface.");
+    else {
+      if (words(washDayTip) > 45)
+        problems.push(`wash_day_tip is ${words(washDayTip)} words — maximum 45 words in total.`);
+      if (sentenceCount(washDayTip) > 2)
+        problems.push(`wash_day_tip is ${sentenceCount(washDayTip)} sentences — maximum 2 sentences.`);
+    }
+  }
+
 
   const watchRaw = Array.isArray(raw.watch_outs)
     ? raw.watch_outs
