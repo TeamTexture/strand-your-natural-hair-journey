@@ -39,7 +39,7 @@ const BrandOfferDetail = () => {
   const ownerMode = useOwnerMode();
   const homeRoute = ownerHomeRoute(ownerMode);
   const editRoute = (oid: string) => `${ownerOfferRoute(ownerMode, oid)}/edit`;
-  const { data: offer, isLoading } = useBrandOffer(id);
+  const { data: offer, isLoading, isFetching, refetch } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
   const { data: allRevisions = [] } = useOfferRevisions(id);
   const withdrawRevision = useWithdrawBrandOfferRevision();
