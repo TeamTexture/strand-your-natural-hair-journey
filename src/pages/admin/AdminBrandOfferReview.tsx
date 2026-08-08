@@ -570,6 +570,15 @@ const AdminBrandOfferReview = () => {
     <ScreenLayout>
       <TitleBar title={showRevisionDiff ? "Review revision" : "Review offer"} onBack={smartBack(nav, "/admin/brand-offers")} />
       <div className="px-5 pb-8 space-y-4">
+        {/* Card 2 (the sponsored wash day tip) can't be seen without consent and
+            a delivery match, so review it here. Preview logs no ad_events. */}
+        <button
+          type="button"
+          onClick={() => nav(`/admin/sponsored-tip-preview/${offer.id}`)}
+          className="w-full min-h-[44px] rounded-full border border-primary/60 text-primary font-body font-semibold text-[12.5px]"
+        >
+          Preview the sponsored wash day tip
+        </button>
         {showRevisionDiff ? (
           <RevisionDiff offer={offer} revision={pendingRevision!} />
         ) : (
