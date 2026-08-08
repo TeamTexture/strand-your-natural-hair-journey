@@ -55,7 +55,7 @@ import {
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v12-detailed-guidance";
+const MODEL_VERSION = "claude-sonnet-4-6@v13-guidance-floors";
 
 
 interface IngredientCard {
