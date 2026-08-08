@@ -17,9 +17,11 @@ import {
   memberAttributeTokens,
   validateTipAction,
   validateTipReason,
+  validateTipTechnique,
   retryDirective,
   logTipRejection,
 } from "../_shared/tip-action.ts";
+
 import {
   buildProductNameWall,
   noProductNamesBlock,
@@ -420,6 +422,12 @@ Do not substitute other cleansing or sealing methods for these two.`
       reason: String(p?.reason ?? ""),
       action: String(p?.action ?? ""),
     });
+    // ROLE SEPARATION: `technique` must add HOW-specifics the action does not
+    // already contain, or be omitted. A restated technique is rejected.
+    const techniqueVerdict = validateTipTechnique({
+      technique: String(p?.technique ?? ""),
+      action: String(p?.action ?? ""),
+    });
     // NO PRODUCT NAMES: the editorial card may never name any product, from
     // any brand, including products this member owns. One hit = regenerate.
     const productHits = findProductNames(p, wall.names);
@@ -430,16 +438,18 @@ Do not substitute other cleansing or sealing methods for these two.`
       technique: String(p?.technique ?? ""),
     });
     return {
-      ok: actionVerdict.ok && reasonVerdict.ok && productHits.length === 0 &&
-        capHits.length === 0,
+      ok: actionVerdict.ok && reasonVerdict.ok && techniqueVerdict.ok &&
+        productHits.length === 0 && capHits.length === 0,
       reasons: [
         ...actionVerdict.reasons,
         ...reasonVerdict.reasons,
+        ...techniqueVerdict.reasons,
         ...(productHits.length ? ["names_product"] : []),
         ...capHits,
       ],
     };
   };
+
 
 
   let verdict = isUsable(parsed)
