@@ -6,12 +6,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useTargetingOptions, useReachEstimate } from "@/hooks/useAdTargeting";
 import {
   ATTRIBUTE_ORDER,
-  REACH_REPORTING_MILESTONE,
+  bandMemberCount,
+  isZeroCount,
+  WIDEN_AUDIENCE_PROMPT,
   cleanRules,
   rulesAreEmpty,
   type TargetingRules,
   type TargetingOption,
 } from "@/lib/adTargeting";
+
 
 interface Props {
   value: TargetingRules;
