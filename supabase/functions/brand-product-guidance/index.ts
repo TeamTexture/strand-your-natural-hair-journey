@@ -74,8 +74,18 @@ Return ONLY valid JSON with this exact shape (no prose, no code fences):
   "fit_line": string — exactly ONE sentence, MAXIMUM 22 words,
   "intro": string — exactly ONE sentence, MAXIMUM 20 words,
   "benefits": array of EXACTLY 3 objects (2 is acceptable ONLY if a third cannot be grounded) — { "label": 1-2 words, "text": ONE sentence, MAXIMUM 15 words },
-  "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words
+  "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words,
+  "watch_outs": array of 0-2 strings — each ONE sentence, MAXIMUM 18 words
 }
+
+WATCH OUTS — WHAT THIS MEMBER SHOULD BE AWARE OF
+- Return 1-2 only when there is something genuinely worth knowing for THIS member given what the item DOES (its mechanism: heat, tension, surface contact, materials, cadence of use) intersected with their real data. Otherwise return an empty array.
+- Educate, never scare. State the mechanism and the factual consequence, then the practical adjustment — no dramatic language, no "damage warnings", no absolutes like "never", no implied harm that isn't established.
+- Science-based and factual only. No medical claims, no diagnoses, no invented mechanisms, nothing the manuscript framework doesn't support.
+- Tie each one to something real in their profile (a trait, goal, challenge, current style, or wash-day cadence). Drop it rather than inventing a reason.
+- Do not repeat a benefit or a step in different words.
+
+
 
 FIT LINE — WHY THIS MEMBER IS SEEING THIS PRODUCT
 - This is the only line shown on the advert itself, so it must answer one question: why does STRAND think THIS product is a good fit for THIS member?
