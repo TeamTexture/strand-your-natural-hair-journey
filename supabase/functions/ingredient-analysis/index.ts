@@ -608,6 +608,17 @@ Deno.serve(async (req) => {
       context: body.context ?? null,
     };
 
+    // Tokens for the shared action floor — the member's own recorded details.
+    const guidanceTokens = memberAttributeTokens({
+      hairProfile: (hairProfile ?? null) as Record<string, unknown> | null,
+      currentStyle: (currentStyle ?? null) as Record<string, unknown> | null,
+      goals: (goals && goals.length ? goals : dbGoals) as Array<{ title?: string }>,
+      challenges: (challenges ?? []) as string[],
+      recentWashDay: null,
+    });
+
+
+
     const ingredientCount = (ingredients ?? []).length;
     const avoidList = Array.isArray(body.context?.avoid_ingredients)
       ? body.context!.avoid_ingredients as string[]
