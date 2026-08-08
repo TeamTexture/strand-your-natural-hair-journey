@@ -374,10 +374,11 @@ export function londonToday(): string {
  *  the member matches (consent required), otherwise falls back to a broad,
  *  untargeted campaign holding the slot. Permanently dismissed campaigns are
  *  excluded. No LLM, no per-request resolution, no health attributes. */
-export function useActiveBrandOffer(slot: PlacementSlot) {
+export function useActiveBrandOffer(slot: PlacementSlot, opts?: { enabled?: boolean }) {
   useBrandOfferLiveSync();
   return useQuery({
     queryKey: ["active-brand-offer", slot, londonToday()],
+    enabled: opts?.enabled ?? true,
     staleTime: 15_000,
     queryFn: async () => {
       const { data: delivery, error: deliveryError } = await (

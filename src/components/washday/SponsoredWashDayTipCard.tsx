@@ -60,7 +60,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId }: SponsoredW
   const nav = useNavigate();
   const { user } = useAuth();
   const { data: consented } = usePersonalisedOffersConsent();
-  const { data: liveDelivery } = useActiveBrandOffer(preview ? (undefined as never) : SLOT);
+  const { data: liveDelivery } = useActiveBrandOffer(SLOT, { enabled: !preview });
   const logEvent = useLogAdEvent();
 
   // Preview source: an explicit offer, else the newest offer that has a
