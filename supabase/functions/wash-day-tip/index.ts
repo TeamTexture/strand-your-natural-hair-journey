@@ -54,7 +54,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v9-editorial-wall-minimal-caps";
+const MODEL_VERSION = "wash-tip@v10-no-product-names";
 
 interface TipPayload {
   headline: string;
