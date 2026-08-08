@@ -14,6 +14,12 @@ import {
 } from "../_shared/grounding.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import {
+  memberAttributeTokens,
+  validateTipAction,
+  retryDirective,
+  logTipRejection,
+} from "../_shared/tip-action.ts";
+import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
   recordAdvice,
@@ -36,12 +42,15 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v6-full-history";
+const MODEL_VERSION = "wash-tip@v7-action-floor";
 
 interface TipPayload {
   headline: string;
   why: string;
   technique: string;
+  /** REQUIRED at every support level — one concrete instruction for the next
+   *  wash day. A headline alone is never a tip. */
+  action: string;
   /** Optional "try this next wash day" section. Empty string = omitted. */
   next_time?: string;
   fingerprint: string;
@@ -91,6 +100,7 @@ TASK — Produce ONE personalised wash-day tip for this specific user, grounded 
 OUTPUT — JSON object only, no prose outside it:
 {
   "headline": string,   // 3-7 words, Title Case, no trailing punctuation. Names the WHOLE tip.
+  "action": string,     // REQUIRED. Exactly ONE sentence, starting with an instruction verb, telling THIS member what to physically do on their NEXT wash day — where on the head, with what type of product, and how long or how often. Must name at least one of their own recorded details (their current style, porosity, density, a goal, a challenge or their last wash). This sentence is shown at EVERY support level, including the most minimal, so it must stand alone as usable guidance.
   "why": string,        // 2-3 sentences. Ties the tip to THIS user's data (name a specific trait, pattern across their logs, marker, or goal). No filler.
   "technique": string,  // 1-2 sentences. The concrete "how" — sequence, product type, tool, timing.
   "next_time": string   // OPTIONAL. 1-2 sentences framed as ONE option to try on their NEXT wash day, given where their hair is now and the style they are moving into. Return "" when there is nothing genuinely worth suggesting — never pad it.
@@ -106,6 +116,8 @@ RULES:
 - Never prescribe pre-poo as a scheduled ritual. Never say "use protein weekly". Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
 - Never contradict the Chapter 13 wash-day protocol (cleanse scalp → cleanse hair → condition).
 - No book/chapter citations. No emojis. No pleasantries.
+- ACTION FLOOR — non-negotiable: "action" is never empty, never a topic statement, and never a hedge. Do not open it with "consider", "be mindful", "it's important to", "you may want to" or "try to remember". It is an instruction they can follow on their next wash day.
+- Everything you write must stay grounded in the supplied manuscript passages. If an action cannot be grounded, choose a different grounded action — never emit an ungrounded one, and never fall back to a headline with no action.
 `;
 
 const STYLE_SYSTEM = `${STRAND_PERSONA_WITH_RULES}
@@ -115,6 +127,7 @@ TASK — Produce ONE personalised styling tip for this specific user, grounded i
 OUTPUT — JSON object only, no prose outside it:
 {
   "headline": string,   // 3-7 words, Title Case, no trailing punctuation.
+  "action": string,     // REQUIRED. Exactly ONE sentence, starting with an instruction verb, telling THIS member what to physically do next — naming at least one of their own recorded details. Shown at EVERY support level, so it must stand alone as usable guidance. Never a hedge ("consider", "be mindful", "it's important to").
   "why": string,        // 2-3 sentences. Ties the tip to THIS user's style, tension, extensions or a goal they set.
   "technique": string   // 1-2 sentences. The concrete "how" for wearing, maintaining or taking down this style.
 }
@@ -306,15 +319,93 @@ Do not substitute other cleansing or sealing methods for these two.`
   }
 
   const j = await aiResp.json();
-  const raw = j?.choices?.[0]?.message?.content ?? "{}";
-  let parsed: { headline?: string; why?: string; technique?: string; next_time?: string };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return json(502, { error: "invalid model output" });
+  let raw = j?.choices?.[0]?.message?.content ?? "{}";
+  type Parsed = { headline?: string; why?: string; technique?: string; action?: string; next_time?: string };
+  const parseTip = (text: string): Parsed | null => {
+    try {
+      return JSON.parse(text) as Parsed;
+    } catch {
+      return null;
+    }
+  };
+  let parsed = parseTip(raw);
+
+  // ── QUALITY FLOOR ────────────────────────────────────────────────────
+  // Every tip, at every support level, must carry one concrete action that
+  // references this member's own recorded data. Reject and regenerate once,
+  // then log the failure so the rejection rate is visible.
+  const attributeTokens = memberAttributeTokens({
+    hairProfile: body.hairProfile ?? null,
+    currentStyle: body.currentStyle ?? null,
+    goals: body.goals,
+    challenges: body.challenges,
+    areasOfConcern: body.areasOfConcern,
+    bloodFlags: body.bloodFlags,
+    recentWashDay: body.recentWashDay ?? null,
+  });
+  const check = (p: Parsed | null) =>
+    validateTipAction({
+      action: String(p?.action ?? ""),
+      supporting: [String(p?.headline ?? ""), String(p?.why ?? ""), String(p?.technique ?? "")],
+      attributeTokens,
+    });
+
+  let verdict = parsed?.headline && parsed?.why
+    ? check(parsed)
+    : { ok: false, reasons: ["output_unparseable_or_incomplete"] };
+
+  if (!verdict.ok) {
+    await logTipRejection(isStyle ? "style-tip" : "wash-day-tip", verdict.reasons, raw.slice(0, 4000));
+    // One regeneration pass with the corrective directive. Grounding block is
+    // resent unchanged — the retry never relaxes it.
+    try {
+      const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
+        body: JSON.stringify({
+          model: "google/gemini-3.6-flash",
+          messages: [
+            { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            {
+              role: "user",
+              content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,
+            },
+            { role: "assistant", content: raw },
+            { role: "user", content: retryDirective(verdict.reasons, attributeTokens) },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (retryResp.ok) {
+        const rj = await retryResp.json();
+        raw = rj?.choices?.[0]?.message?.content ?? raw;
+        const retried = parseTip(raw);
+        if (retried?.headline && retried?.why) {
+          const retryVerdict = check(retried);
+          if (retryVerdict.ok) {
+            parsed = retried;
+            verdict = retryVerdict;
+          } else {
+            await logTipRejection(
+              isStyle ? "style-tip" : "wash-day-tip",
+              ["retry_failed", ...retryVerdict.reasons],
+              raw.slice(0, 4000),
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[wash-day-tip] retry pass failed:", err);
+    }
   }
+
   if (!parsed?.headline || !parsed?.why) {
     return json(502, { error: "invalid model output" });
+  }
+  if (!verdict.ok) {
+    // Never serve a headline with no action. Nothing is cached, so the next
+    // load retries rather than pinning a bad tip.
+    return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
   }
 
   // The next-wash suggestion is optional by design — an empty/absent value
@@ -324,6 +415,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   const payload: TipPayload = {
     headline: String(parsed.headline).trim(),
     why: String(parsed.why).trim(),
+    action: String(parsed.action ?? "").trim(),
     technique: String(parsed.technique ?? "").trim(),
     next_time: nextTime,
     fingerprint: body.fingerprint,
@@ -340,7 +432,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.technique, payload.next_time ?? ""]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.action, payload.technique, payload.next_time ?? ""]);
 
   return json(200, {
     tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body, grounding: grounding.block }),
