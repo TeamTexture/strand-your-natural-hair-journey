@@ -52,7 +52,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
       "Wear window is 4–6 weeks maximum. Beyond six weeks, new growth at the roots creates matting, the braid weight pulls harder on the follicle, and moisture reaches the strand less and less — the protection turns into damage.",
       "Tension check is the single biggest lever. If the braids were painfully tight on install, that is traction on every follicle at the hairline and part. Small bumps, tenderness, or a headache in the first 48 hours are signs the style should be loosened at the front by the braider — not left to settle.",
       "The scalp still needs cleansing on a regular rhythm. Diluted shampoo applied directly to the scalp with an applicator bottle, or an appropriate scalp cleanser, keeps sebum and product residue from turning into flake and folliculitis. Where the natural hair can be reached, follow the same principle as the standard routine: scalp cleanse first, then a gentler moisturising cleanse through the accessible hair before conditioning or misting. Never skip washing for the whole install.",
-      "Moisture goes to the natural hair inside the braid, not the extension fibre. A light water + leave-in mist to the scalp and length 2–3× per week keeps the underlying strand supple; heavy creams cause build-up.",
+      "Moisture goes to the natural hair inside the braid, not the extension fibre. A light water + leave-in mist to the natural hair and length 2–3× per week (mist the hair, not the scalp — the scalp stays product-free) keeps the underlying strand supple; heavy creams cause build-up.",
       "Nightly satin/silk. The friction of a cotton pillow against synthetic hair splits ends and lifts the cuticle on the natural hair inside.",
       "Edges and hairline are the vulnerable zone. Never re-tighten the front, avoid gels that flake and drag, and stop wearing high tight ponytail-style updos on top of the braids.",
       "Before install: deep-condition and hydrate. Before wearing extensions, the manuscript recommends a heat treatment under the TT Heat Hat so the cuticle is sealed and moisture is fully absorbed. After takedown: an extended detangling session in slippery conditioner, section by section, then another moisture-focused deep condition under the TT Heat Hat before the next style.",
@@ -67,7 +67,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
       "Same 4–6 week ceiling as box braids. The manuscript is explicit that faux-loc installs carry the same risk profile — natural hair is pulled tightly into the extension on install, and synthetic fibres rubbing against the cuticle can dehydrate the strand.",
       "Weight matters. Long or heavy faux locs pull harder at the roots. If the scalp is sore for more than 24 hours, that is traction — not the style 'settling in'.",
       "Scalp cleansing continues while installed. Dilute shampoo at the scalp with an applicator bottle, or an appropriate scalp cleanser, on the user's normal wash rhythm; where the natural hair can be reached, follow with a gentler moisturising cleanse through the accessible hair before conditioning or misting.",
-      "Moisture: light water + leave-in mist at the roots and along the natural hair inside the loc. Heavy oils will not penetrate the wrap and create build-up.",
+      "Moisture: light water + leave-in mist along the natural hair inside the loc, not onto the scalp itself. Heavy oils will not penetrate the wrap and create build-up.",
       "Before install: deep condition and TT Heat Hat treatment so the strand is fully hydrated going in. After takedown: unravel gently in sections, expect shed hair (that is 4–6 weeks of normal shed collected in one place, not breakage), then a full moisture-focused deep condition under the TT Heat Hat before the next style.",
     ],
   },
@@ -79,7 +79,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     playbook: [
       "Cornrows on their own hair are shorter-window than box braids — 2–3 weeks before new growth loosens the base and frizz sets in. Reinstalling on tired hair is worse than washing and refreshing first.",
       "Chunky, well-parted cornrows with medium-to-loose tension are the low-manipulation ideal the book endorses. Micro-cornrows scraped tight at the base are high-tension — the risk is at the hairline and along the part.",
-      "UNIVERSAL CORNROW RULE — always give these two instructions to anyone wearing cornrows, whatever their hair type, tension or extension status: (1) clean the exposed scalp between the cornrows with a scalp cleanser or cleansing solution applied on a cotton pad, or with ready-made scalp cleansing pads, working along each exposed parting rather than lathering shampoo over the whole style; (2) keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream, to slow the evaporation of moisture from the hair shaft.",
+      "UNIVERSAL CORNROW RULE — always give these two instructions to anyone wearing cornrows, whatever their hair type, tension or extension status: (1) clean the exposed scalp between the cornrows with a scalp cleanser or cleansing solution applied on a cotton pad, or with ready-made scalp cleansing pads, working along each exposed parting rather than lathering shampoo over the whole style; (2) keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream applied to the ENDS AND LENGTH ONLY — never to the scalp or the exposed partings, which must stay oil-free and product-free — to slow the evaporation of moisture from the hair shaft.",
       "Scalp is easy to access — cleansing on the user's normal wash rhythm is straightforward. Use the cotton-pad/scalp-pad cleanse along each exposed parting; where the natural hair can be reached, follow with a gentler moisturising cleanse before conditioning or sealing lightly.",
       "Nightly satin/silk scarf preserves the front and reduces frizz between wash days.",
 
@@ -105,7 +105,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     playbook: [
       "The natural hair underneath is the priority — the wig is just cover. If the braid-down base is scraped tight, or the wig comb grips the perimeter, the damage is happening under the wig where the user can't see it.",
       "Take the wig OFF at night. Continuous 24/7 wear traps sweat, product, and heat against the scalp and prevents any moisture reaching the hair below.",
-      "The braid-down base needs a mid-install refresh. Every 2–3 weeks, take the wig off, spray a diluted leave-in and light oil onto the cornrows underneath, and rebraid any that have loosened. A full wash of the natural hair should happen at least every 4–6 weeks.",
+      "The braid-down base needs a mid-install refresh. Every 2–3 weeks, take the wig off, spray a diluted leave-in onto the braided hair underneath (hair only — nothing oily on the scalp), and rebraid any that have loosened. A full wash of the natural hair should happen at least every 4–6 weeks.",
       "Glue and long-term lace adhesive around the hairline are the biggest risk factor for edge loss. Any glue applied should be lifted the same day, never worn multiple days.",
       "Between installs, the natural hair needs recovery — a wash, a moisture-focused deep condition under the TT Heat Hat, and at least one wash cycle worn out (loose natural, twist-out) before the next install.",
     ],
@@ -129,7 +129,7 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     refreshWeeks: 1,
     playbook: [
       "One of the lowest-manipulation styles the manuscript endorses — apply styler at wash, then let the hair rest practically untouched until the next wash.",
-      "The design brief is: pack all the moisture in at wash day, seal it well, and touch the hair as little as possible between washes. Refresh sprays (water + leave-in) at the roots only, not the length.",
+      "The design brief is: pack all the moisture in at wash day, seal it well, and touch the hair as little as possible between washes. Refresh sprays (water + leave-in) on the hair at the roots only, not the length — and not onto the scalp itself.",
       "For high-porosity hair the wash-and-go can dry out fast — a moisture-focused deep condition under the TT Heat Hat every 2–3 wash days keeps the curl pattern springy for longer.",
       "Nightly pineapple + satin/silk bonnet preserves the curl definition and avoids friction on the length.",
       "This is where product consistency matters most: 3–4 wash cycles with the same leave-in and styler before judging whether it works. Switching products every wash is the biggest reason wash-and-gos 'stop working'.",
