@@ -113,7 +113,7 @@ const BrandProductPage = () => {
   // Reaching this page is a deliberate expand of the advert — not a view.
   useEffect(() => {
     if (!offer?.id) return;
-    logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
+    if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer?.id]);
 
@@ -202,7 +202,7 @@ const BrandProductPage = () => {
             source_url: product.external_url ?? null,
             on_shelf: toShelf,
             on_wishlist: !toShelf,
-            linked_brand_offer_id: offer.id,
+            linked_brand_offer_id: offer?.id ?? null,
             linked_brand_product_id: product.id,
           };
           const { error } = await supabase.from("user_tools").insert(insertRow as never);
@@ -217,14 +217,14 @@ const BrandProductPage = () => {
           brand: brandName,
           ingredients: (product.ingredients ?? existing?.ingredients ?? []) as string[],
           image_url: product.image_urls?.[0] ?? existing?.image_url ?? null,
-          linked_brand_offer_id: offer.id,
+          linked_brand_offer_id: offer?.id ?? null,
           linked_brand_product_id: product.id,
           ...(toShelf ? { on_shelf: true, on_wishlist: false } : { on_wishlist: true }),
         };
         const row = await upsert(payload);
         if (!row) throw new Error(toShelf ? "Could not add to your shelf" : "Could not save to wishlist");
       }
-      logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
+      if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
       toast.success(toShelf ? "Added to your shelf" : "Added to your wishlist");
       nav(toShelf ? "/products" : "/products/wishlist");
     } catch (e) {
@@ -240,7 +240,7 @@ const BrandProductPage = () => {
 
   const openExternal = () => {
     if (!offer || !product?.external_url) return;
-    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
+    if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
     window.open(product.external_url, "_blank", "noopener,noreferrer");
   };
 
@@ -313,7 +313,7 @@ const BrandProductPage = () => {
               <DiscountCodeChip
                 code={offer.discount_code}
                 variant="block"
-                onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
+                onCopy={() => if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
               />
             )}
             {validUntil && (
