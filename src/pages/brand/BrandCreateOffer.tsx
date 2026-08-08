@@ -388,8 +388,8 @@ const BrandCreateOffer = () => {
       // implementation only — the old brand-product-scrape is deleted.
       const item = await scanProductLink(normalised);
       const kind: AttachKind = scrapeKind === "tool" ? "tool" : "product";
-      setProducts((prev) => [
-        ...prev,
+      // ONE PRODUCT PER ADVERT — a fresh draft replaces the attached item.
+      setProducts([
         {
           kind,
           name: item.name ?? "",
@@ -404,6 +404,7 @@ const BrandCreateOffer = () => {
           source_url: normalised,
         },
       ]);
+
       setScrapeUrl("");
       toast.success(kind === "tool" ? "Tool draft added — review and edit below" : "Product draft added — review and edit below");
     } catch (e) {
