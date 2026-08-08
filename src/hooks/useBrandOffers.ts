@@ -692,7 +692,13 @@ export function useRejectBrandOfferRevision() {
 /** Ad delivery event taxonomy — mirrors public.ad_events.event_type.
  *  There is deliberately no "tap": it conflated render, expand and click and
  *  has been retired, not renamed. */
-export type AdEventType = "view" | "expand" | "link_click" | "code_copy" | "wishlist";
+export type AdEventType =
+  | "view"
+  | "expand"
+  | "link_click"
+  | "code_copy"
+  | "wishlist"
+  | "shelf_add";
 
 /** Writes one row to the append-only public.ad_events log via the
  *  record_ad_event RPC. Nothing here increments a counter and nothing fires on

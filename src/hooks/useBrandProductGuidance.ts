@@ -28,6 +28,10 @@ export interface BrandGuidance {
   watch_outs?: string[];
 }
 
+/** Which surface the guidance is written for. `wash_day` asks for the read to
+ *  be framed around the member's NEXT wash day. */
+export type GuidanceSurface = "product" | "wash_day";
+
 export interface BrandGuidanceProduct {
   id: string;
   name: string;
@@ -75,8 +79,8 @@ function fingerprintContext(context: Record<string, unknown>): string {
   return djb2Hex(JSON.stringify(slice));
 }
 
-const cacheKind = (productId: string, fingerprint: string) =>
-  `brand_product_guidance_v4:${productId}:${fingerprint}`;
+const cacheKind = (productId: string, fingerprint: string, surface: string) =>
+  `brand_product_guidance_v4:${surface}:${productId}:${fingerprint}`;
 
 /** In-memory guard so two surfaces mounting at once don't both generate. */
 const inflight = new Map<string, Promise<BrandGuidance | null>>();
@@ -84,9 +88,10 @@ const inflight = new Map<string, Promise<BrandGuidance | null>>();
 async function loadGuidance(
   userId: string,
   product: BrandGuidanceProduct,
+  surface: GuidanceSurface,
 ): Promise<BrandGuidance | null> {
   const context = (await sharedContext(userId)) as unknown as Record<string, unknown>;
-  const kind = cacheKind(product.id, fingerprintContext(context));
+  const kind = cacheKind(product.id, fingerprintContext(context), surface);
 
   const existing = inflight.get(kind);
   if (existing) return existing;
@@ -116,6 +121,7 @@ async function loadGuidance(
           materials: product.materials ?? [],
         },
         context,
+        surface,
       },
     });
     if (error) throw error;
@@ -148,9 +154,9 @@ async function loadGuidance(
  *  generation until the member actually engages (e.g. expands a banner). */
 export function useBrandProductGuidance(
   product: BrandGuidanceProduct | null | undefined,
-  opts: { enabled?: boolean } = {},
+  opts: { enabled?: boolean; surface?: GuidanceSurface } = {},
 ) {
-  const { enabled = true } = opts;
+  const { enabled = true, surface = "product" } = opts;
   const { user } = useAuth();
   const [guidance, setGuidance] = useState<BrandGuidance | null>(null);
   const [loading, setLoading] = useState(false);
@@ -159,7 +165,7 @@ export function useBrandProductGuidance(
     if (!enabled || !product?.id || !user?.id) return;
     let cancelled = false;
     setLoading(true);
-    loadGuidance(user.id, product)
+    loadGuidance(user.id, product, surface)
       .then((g) => {
         if (!cancelled && g) setGuidance(g);
       })
@@ -173,7 +179,7 @@ export function useBrandProductGuidance(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, product?.id, user?.id]);
+  }, [enabled, product?.id, user?.id, surface]);
 
   return { guidance, loading };
 }

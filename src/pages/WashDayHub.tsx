@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AlertTriangle } from "lucide-react";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
-import BrandBanner from "@/components/BrandBanner";
+import SponsoredWashDayTipCard from "@/components/washday/SponsoredWashDayTipCard";
 import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
 import { Sparkles } from "lucide-react";
 import AiProse from "@/components/tips/AiProse";
@@ -426,7 +426,6 @@ const WashDayHub = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back={false} tips />
       <div className="px-5 space-y-4 pb-6">
-        <BrandBanner slot="wash_day" />
         <StyleProfilePrompt />
         {overdue && (
 
@@ -489,8 +488,12 @@ const WashDayHub = () => {
         )}
 
 
-        {/* ONE AI tip card only — the generated wash day tip. */}
+        {/* Two stacked cards. Card 1 is STRAND's own tip and always renders
+            when a tip exists. Card 2 is the sponsored suggestion — it sits
+            beneath, never replaces Card 1, and renders nothing at all without
+            personalised-offers consent and a live wash day campaign. */}
         <DynamicWashTipCard onShown={setDynamicTipShown} />
+        <SponsoredWashDayTipCard />
 
 
         <div id="wash-calendar">
@@ -648,12 +651,24 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
           <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15">
             <Sparkles className="size-2.5 text-primary" aria-hidden />
           </span>
-          <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body text-foreground break-words">
-            <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
-              Do this
-            </span>
-            {tip.action.trim()}
-          </p>
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-[11.5px] leading-[1.55] font-body text-foreground break-words">
+              <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
+                Do this
+              </span>
+              {tip.action.trim()}
+            </p>
+            {/* THE WHY — required at every support level, never gated. An
+                instruction without a reason teaches nothing. */}
+            {tip.reason && tip.reason.trim() && (
+              <p className="text-[11px] leading-[1.55] font-body text-foreground/75 break-words">
+                <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-foreground/50 mr-1.5">
+                  Why
+                </span>
+                {tip.reason.trim()}
+              </p>
+            )}
+          </div>
         </div>
       )}
       <LevelGate min={2}>

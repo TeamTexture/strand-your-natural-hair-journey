@@ -28,6 +28,10 @@ export interface DynamicWashTip {
   /** One concrete instruction for the next wash day. Present at every support
    *  level — the card renders it ungated. */
   action: string;
+  /** WHY that action matters for this member — the mechanism or the
+   *  consequence of skipping it. Required at every support level and rendered
+   *  ungated beside the action. */
+  reason: string;
   why: string;
   technique: string;
   /**
@@ -125,7 +129,7 @@ export function useDynamicWashTip() {
   const { level } = useTipsLevel();
 
   return useQuery({
-    queryKey: ["wash_day_tip_v3_action", user?.id, level],
+    queryKey: ["wash_day_tip_v4_reason", user?.id, level],
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -147,7 +151,7 @@ export function useDynamicWashTip() {
       } | null;
       const fingerprint = hashString(
         [
-          "wash-tip-v3",
+          "wash-tip-v4-reason",
           h?.hair_type ?? "",
           h?.porosity ?? "",
           h?.density ?? "",

@@ -118,6 +118,53 @@ export function validateTipAction(input: ActionValidationInput): ActionValidatio
   return { ok: reasons.length === 0, reasons };
 }
 
+/** The REASON floor — every tip must explain WHY, not only what.
+ *
+ *  Rejected when the reason is missing, too short, or is a restatement of the
+ *  action rather than an explanation of it (high token overlap with the action
+ *  and no explanatory framing).
+ */
+export function validateTipReason(input: {
+  reason: string;
+  action: string;
+}): ActionValidationResult {
+  const reasons: string[] = [];
+  const reason = (input.reason ?? "").replace(/\s+/g, " ").trim();
+  const action = (input.action ?? "").replace(/\s+/g, " ").trim();
+
+  if (!reason) {
+    reasons.push("reason_missing");
+    return { ok: false, reasons };
+  }
+  const words = reason.split(/\s+/).filter(Boolean);
+  if (words.length < 6) reasons.push("reason_too_short");
+
+  const tokenise = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length >= 4),
+    );
+  const rTokens = tokenise(reason);
+  const aTokens = tokenise(action);
+  let shared = 0;
+  for (const t of rTokens) if (aTokens.has(t)) shared++;
+  const overlap = rTokens.size === 0 ? 1 : shared / rTokens.size;
+
+  // Explanatory framing — a reason explains a mechanism or consequence.
+  const explanatory =
+    /\b(because|since|so that|which|helps|prevents|keeps|allows|means|reduces|protects|holds|slows|leaves|otherwise|left|builds|traps|weakens|strengthens|supports|makes|lets|why)\b/i.test(
+      reason,
+    );
+  // A near-copy of the action with imperative phrasing is a restatement.
+  const imperativeOpener = IMPERATIVE.test(words.slice(0, 2).join(" "));
+  if (overlap > 0.6 && !explanatory) reasons.push("reason_restates_action");
+  else if (imperativeOpener && !explanatory) reasons.push("reason_restates_action");
+
+  return { ok: reasons.length === 0, reasons };
+}
+
 /** Corrective instruction fed back to the model on the retry pass. */
 export function retryDirective(reasons: string[], attributeTokens: string[]): string {
   const named = attributeTokens.slice(0, 8).join(", ");
@@ -127,6 +174,7 @@ export function retryDirective(reasons: string[], attributeTokens: string[]): st
     '- "action" MUST be one complete sentence that starts with an instruction verb and tells this member exactly what to do on their NEXT wash day (what they physically do, where on the head, and with what type of product).',
     '- Never open with "consider", "be mindful", "it\'s important to", "you may want to" or "try to remember".',
     "- The tip must name at least one of this member's own recorded details: " + (named || "their recorded profile") + ".",
+    '- "reason" MUST explain WHY the action matters for this member — the mechanism or the consequence of not doing it — grounded in the supplied manuscript passages. It must never restate the action in different words. If the why cannot be grounded, choose a DIFFERENT tip whose why can be.',
     "- Keep it grounded in the manuscript passages supplied. If the action cannot be grounded, choose a DIFFERENT grounded action rather than weakening it.",
   ].join("\n");
 }
