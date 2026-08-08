@@ -630,13 +630,35 @@ const WashDayHub = () => {
 };
 
 const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void }) => {
-  const { data: tip, isLoading } = useDynamicWashTip();
+  const { data: tip, isLoading, isFetching, refetch } = useDynamicWashTip();
   useEffect(() => {
     onShown?.(Boolean(tip));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tip]);
-  if (isLoading && !tip) return null;
-  if (!tip) return null;
+  // NEVER an empty gap. While the tip is generating, or if generation failed,
+  // the member sees a visible one-line state with a retry rather than a hole
+  // in the page.
+  if (!tip) {
+    return (
+      <GuidanceCard tone="gold" eyebrow="Your wash day tip" icon={Sparkles} headline="Your tip is being prepared">
+        <p className="text-[11.5px] leading-[1.55] font-body text-foreground/70">
+          {isLoading || isFetching
+            ? "We're putting together the one thing that will help your hair most on your next wash day."
+            : "We couldn't finish your tip just now."}
+        </p>
+        {!isLoading && !isFetching && (
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="text-[11px] font-body font-semibold text-primary underline underline-offset-2"
+          >
+            Try again
+          </button>
+        )}
+      </GuidanceCard>
+    );
+  }
+
   return (
     <GuidanceCard
       tone="gold"
