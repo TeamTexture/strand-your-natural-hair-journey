@@ -53,7 +53,10 @@ interface GuidancePayload {
   intro: string;
   benefits: Benefit[];
   steps: string[];
+  /** Optional factual "be aware of" notes — max 2, educational not alarmist. */
+  watch_outs: string[];
 }
+
 
 const SYSTEM = `${STRAND_PERSONA}
 
