@@ -594,13 +594,18 @@ Do not substitute other cleansing or sealing methods for these two.`
     _rag_passages: grounding.passages,
   };
 
-  // NO PRODUCT NAMES, last line of defence. If any product name survived both
-  // passes it is replaced with a generic product-type phrase — the editorial
-  // card never advertises, and it never renders empty either.
-  const stillNamed = findProductNames(payload, wall.names);
+  // ONE OUTPUT CONVENTION — plain text. The cards render strings as text, so a
+  // markdown link arrived on screen as literal "[TT Heat Hat](https://…)". This
+  // runs BEFORE the name wall so the link's label is checked too.
+  const plain = stripMarkdown(payload);
+
+  // NO BRAND NAMES, last line of defence. If any product or brand name survived
+  // both passes it is replaced with a generic product-type phrase — the
+  // editorial card never advertises, and it never renders empty either.
+  const stillNamed = findProductNames(plain, wall.names);
   let finalPayload = stillNamed.length > 0
-    ? redactProductNames(payload, stillNamed)
-    : payload;
+    ? redactProductNames(plain, stillNamed)
+    : plain;
   if (stillNamed.length > 0) {
     await logTipRejection(
       isStyle ? "style-tip" : "wash-day-tip",
@@ -613,11 +618,8 @@ Do not substitute other cleansing or sealing methods for these two.`
   // blood guardrail all run here, against THIS generation's grounding passages,
   // and the sanitised result is what gets stored and served. Sanitising on read
   // instead (with no grounding to hand) is what was deleting the `reason`.
-  // ONE OUTPUT CONVENTION — plain text. The cards render strings as text, so a
-  // markdown link arrived on screen as literal "[TT Heat Hat](https://…)".
-  finalPayload = stripMarkdown(finalPayload);
-
   finalPayload = await sanitiseAndLog(finalPayload, "wash-day-tip", {
+
     context: body,
     grounding: grounding.block,
   });
