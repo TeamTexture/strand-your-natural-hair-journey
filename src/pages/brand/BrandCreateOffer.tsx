@@ -619,30 +619,55 @@ const BrandCreateOffer = () => {
       }
 
       if (products.length > 0) {
-        const productRows = products
-          .filter((p) => asDraft || p.name.trim() || p.description.trim() || p.external_url.trim() || p.image_urls.length > 0)
-          .map((p, i) => ({
-          offer_id: offerId!,
-          name: p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product"),
-          description: p.description || null,
-          external_url: p.external_url || null,
-          image_urls: p.image_urls,
-          ingredients: p.kind === "product" ? p.ingredients : [],
-          kind: p.kind,
-          tool_kind: p.kind === "tool" ? p.tool_kind : null,
-          key_features: p.kind === "tool" ? p.key_features : [],
-          materials: p.kind === "tool" ? p.materials : [],
-          source_type: p.source_type,
-          source_url: p.source_url ?? null,
-          linked_product_id: p.linked_product_id ?? null,
-          position: i,
-        }));
-        // Cast: brand_products was just extended with kind/tool_kind/key_features/materials;
-        // generated types will catch up on the next codegen.
-        if (productRows.length > 0) {
-          const { error } = await supabase
-            .from("brand_products")
-            .insert(productRows as unknown as never);
+        const chosen = products.filter(
+          (p) => asDraft || p.name.trim() || p.description.trim() || p.external_url.trim() || p.image_urls.length > 0,
+        );
+        // An advert only ever REFERENCES a brand shelf product. If a legacy
+        // entry has no shelf product behind it, reuse the brand's canonical row
+        // for that name, creating it once if it doesn't exist yet.
+        const links: { offer_id: string; brand_product_id: string; position: number }[] = [];
+        for (let i = 0; i < chosen.length; i++) {
+          const p = chosen[i];
+          let brandProductId = p.linked_product_id ?? null;
+          if (!brandProductId) {
+            const name = p.name || (p.kind === "tool" ? "Untitled tool" : "Untitled product");
+            const { data: found } = await supabase
+              .from("brand_products")
+              .select("id")
+              .eq("brand_user_id", user.id)
+              .ilike("name", name)
+              .limit(1)
+              .maybeSingle();
+            if (found?.id) {
+              brandProductId = found.id;
+            } else {
+              const { data: created, error } = await supabase
+                .from("brand_products")
+                .insert({
+                  brand_user_id: user.id,
+                  name,
+                  description: p.description || null,
+                  external_url: p.external_url || null,
+                  image_urls: p.image_urls,
+                  ingredients: p.kind === "product" ? p.ingredients : [],
+                  kind: p.kind,
+                  tool_kind: p.kind === "tool" ? p.tool_kind : null,
+                  key_features: p.kind === "tool" ? p.key_features : [],
+                  materials: p.kind === "tool" ? p.materials : [],
+                  source_type: p.source_type,
+                  source_url: p.source_url ?? null,
+                  position: i,
+                } as unknown as never)
+                .select("id")
+                .single();
+              if (error) throw error;
+              brandProductId = (created as { id: string }).id;
+            }
+          }
+          links.push({ offer_id: offerId!, brand_product_id: brandProductId!, position: i });
+        }
+        if (links.length > 0) {
+          const { error } = await supabase.from("brand_offer_products").insert(links);
           if (error) throw error;
         }
       }
