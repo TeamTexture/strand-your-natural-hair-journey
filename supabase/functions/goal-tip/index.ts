@@ -396,15 +396,17 @@ Rules:
  * Home card contract: EXACTLY ONE tip. Supersedes the 3-tip contract for this
  * surface only — the Style Journal still asks for the multi-tip playbook.
  */
-const SINGLE_TIP_TASK = `TASK — STRAND TIP (EXACTLY ONE TIP)
+const SINGLE_TIP_TASK = `TASK — STRAND TIP (EXACTLY ONE TIP: ONE ACTION + ONE REASON)
 Write the single most valuable, most holistic action she can take towards her stated goal, personalised through her hair type and characteristics. Use blood markers ONLY when a flagged marker genuinely changes what she should do today; otherwise leave them out entirely.
 
 Output EXACTLY these fields and nothing more:
-- "headline": the action itself, max 8 words, imperative, no emoji, no colon-prefixed label.
-- "body": ONE sentence, max 30 words: the action detail plus WHY it works for HER, naming a real characteristic from her profile (curl pattern, porosity, density, strand diameter, elasticity, scalp, current style + how long she's been in it, or a flagged marker that actually matters here). A line that could be written for any user is invalid — rewrite it.
+- "headline": max 8 words naming the focus, imperative, no emoji, no colon-prefixed label.
+- "action": ONE complete sentence, max 30 words. THE INSTRUCTION. It must open with an instruction verb and tell her exactly what to do: what she physically does, where on the head, with what TYPE of product or tool, and the frequency or timing where the passages support one. A headline with no action is an invalid tip. Never open with "consider", "be mindful", "it's important to", "you may want to" or "remember to". Never name a brand or a branded product — product types and tools only.
+- "reason": ONE sentence, max 28 words. WHY it matters for HER — the mechanism or the consequence of skipping it — naming a real characteristic from her profile (curl pattern, porosity, density, strand diameter, elasticity, scalp, current style + how long she's been in it, or a flagged marker that actually matters here). It must EXPLAIN the action, never restate it. A line that could be written for any user is invalid — rewrite it.
 - "key_fact": OPTIONAL, max 4 words — a single concrete parameter only if one genuinely applies: a frequency ("Every wash day"), a duration ("20 minutes"), or a tool ("TT Heat Hat"). Omit the field entirely when there isn't a real one. Never invent one.
 
-NO lists. NO actions array. NO extra education block. NO second sentence in the body. One idea, once.
+NO "body" field. NO lists. NO actions array. NO extra education block. One idea, once: the action and the reason are the same single idea, instructed then explained.
+
 
 Everything else in this prompt still applies: the persona and voice, the core teachings, the wash-day baseline, the retrieved manuscript passages as the source of truth, the relevance gate (never cite a signal the advice does not actually act on), never naming the book/chapters/pages, and never inventing profile data.`;
 
