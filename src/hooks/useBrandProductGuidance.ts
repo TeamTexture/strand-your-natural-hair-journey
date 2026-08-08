@@ -24,6 +24,8 @@ export interface BrandGuidance {
   intro: string;
   benefits: BenefitRow[];
   steps: string[];
+  /** Factual "be aware of" notes — 0-2 items, educational not alarmist. */
+  watch_outs?: string[];
 }
 
 export interface BrandGuidanceProduct {
@@ -74,7 +76,7 @@ function fingerprintContext(context: Record<string, unknown>): string {
 }
 
 const cacheKind = (productId: string, fingerprint: string) =>
-  `brand_product_guidance_v3:${productId}:${fingerprint}`;
+  `brand_product_guidance_v4:${productId}:${fingerprint}`;
 
 /** In-memory guard so two surfaces mounting at once don't both generate. */
 const inflight = new Map<string, Promise<BrandGuidance | null>>();
