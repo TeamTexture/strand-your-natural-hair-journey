@@ -15,7 +15,7 @@
 // The caps below are validated against the model's output and trimmed on the
 // way out; they are never merely requested in the prompt.
 
-import { trimToCap, wordCount } from "./editorial-products.ts";
+import { trimToCap, wordCount } from "./product-name-wall.ts";
 
 export type TipLevel = 1 | 2 | 3;
 

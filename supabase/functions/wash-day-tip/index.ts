@@ -21,11 +21,11 @@ import {
   logTipRejection,
 } from "../_shared/tip-action.ts";
 import {
-  buildEditorialProductGuard,
-  editorialProductBlock,
-  findExcludedProducts,
+  buildProductNameWall,
+  noProductNamesBlock,
+  findProductNames,
   redactProductNames,
-} from "../_shared/editorial-products.ts";
+} from "../_shared/product-name-wall.ts";
 import {
   applyLevelCaps,
   levelCapViolations,
@@ -54,7 +54,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v9-editorial-wall-minimal-caps";
+const MODEL_VERSION = "wash-tip@v10-no-product-names";
 
 interface TipPayload {
   headline: string;
@@ -96,7 +96,8 @@ interface Body {
   washHistory?: Record<string, unknown> | null;
   /** How her hair has felt, newest first (voice notes are transcribed into these). */
   hairFeelNotes?: Array<{ date?: string; note?: string }>;
-  /** Products on her shelf — suggestions must come from these. */
+  /** Products on her shelf. Used ONLY to reason about what TYPES she already
+   *  has — their names never reach the model (see product-name-wall.ts). */
   shelfProducts?: Array<{ name?: string; brand?: string | null; category?: string | null }>;
   tipsLevel?: number | null;
   /**
@@ -126,7 +127,7 @@ RULES:
 - Do NOT invent user data. If a slice is missing, ground the tip in what IS present.
 - Reason from PATTERNS across all their logs (recurring breakage, how often heat appears, how their cadence is drifting, which products they rotate) rather than from the most recent wash alone.
 - Where their own words about how their hair feels are present, reflect them back accurately. Never overwrite what they said with an assumption.
-- PRODUCTS: only ever name a product that appears in shelfProducts. Prefer what they already own. If nothing on the shelf fits, describe the product TYPE (e.g. "a creamy leave-in") and name no brand at all. Never invent a product, never name a product they do not own.
+- PRODUCTS: name NO products and NO brands, ever. This card is purely educational. Refer to product TYPES generically ("a water-based scalp cleanser", "a leave-in conditioner", "an emollient cream") — never a branded product, not even one this member owns.
 - If bloodFlags include ferritin/iron/vitD-low, connect wash-day scalp care to the regrowth environment.
 - If hair porosity is high, lead with sealing/moisture-lock; if low, lead with clarifying/heat-assisted penetration.
 - Never prescribe pre-poo as a scheduled ritual. Never say "use protein weekly". Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
@@ -225,7 +226,15 @@ Deno.serve(async (req) => {
     // Aggregate across ALL logged wash days, not just the latest one.
     washHistoryAcrossAllLogs: body.washHistory ?? null,
     hairFeelInHerWords: (body.hairFeelNotes ?? []).slice(0, 6),
-    shelfProducts: (body.shelfProducts ?? []).slice(0, 40),
+    // NO PRODUCT NAMES reach the model for this card — only the TYPES of
+    // product she already has, so the technique can assume what's on hand.
+    shelfProductTypes: Array.from(
+      new Set(
+        (body.shelfProducts ?? [])
+          .map((p) => String(p?.category ?? "").trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ).slice(0, 20),
   };
 
   // ── Manuscript grounding: knowledge topics + retrieved passages ────
@@ -305,10 +314,10 @@ Do not substitute other cleansing or sealing methods for these two.`
     ragK: 5,
   });
 
-  // PAID-MEDIA WALL + minimal caps. The exclusion list is resolved from the
-  // database with the service client — never from anything the client sent.
-  const guard = await buildEditorialProductGuard(admin as never, body.shelfProducts ?? []);
-  const editorialBlock = editorialProductBlock(guard);
+  // NO PRODUCT NAMES + minimal caps. The forbidden-name index is resolved from
+  // the database with the service client — never from anything the client sent.
+  const wall = await buildProductNameWall(admin as never, user.id, body.shelfProducts ?? []);
+  const editorialBlock = noProductNamesBlock();
   const minimalBlock = tipLevelPromptBlock(requestedLevel);
   const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${editorialBlock}${minimalBlock}`;
 
@@ -381,10 +390,9 @@ Do not substitute other cleansing or sealing methods for these two.`
       reason: String(p?.reason ?? ""),
       action: String(p?.action ?? ""),
     });
-    // PAID-MEDIA WALL: the editorial card may never name a product that is
-    // the subject of a live campaign, nor a catalogue product she doesn't own.
-    const sponsoredHits = findExcludedProducts(p, guard.sponsored);
-    const unownedHits = findExcludedProducts(p, guard.unownedCatalogue);
+    // NO PRODUCT NAMES: the editorial card may never name any product, from
+    // any brand, including products this member owns. One hit = regenerate.
+    const productHits = findProductNames(p, wall.names);
     // Minimal level word caps, validated.
     const capHits = levelCapViolations(requestedLevel, {
       action: String(p?.action ?? ""),
@@ -392,13 +400,12 @@ Do not substitute other cleansing or sealing methods for these two.`
       technique: String(p?.technique ?? ""),
     });
     return {
-      ok: actionVerdict.ok && reasonVerdict.ok && sponsoredHits.length === 0 &&
-        unownedHits.length === 0 && capHits.length === 0,
+      ok: actionVerdict.ok && reasonVerdict.ok && productHits.length === 0 &&
+        capHits.length === 0,
       reasons: [
         ...actionVerdict.reasons,
         ...reasonVerdict.reasons,
-        ...(sponsoredHits.length ? ["names_sponsored_product"] : []),
-        ...(unownedHits.length ? ["names_unowned_product"] : []),
+        ...(productHits.length ? ["names_product"] : []),
         ...capHits,
       ],
     };
@@ -508,17 +515,17 @@ Do not substitute other cleansing or sealing methods for these two.`
     _rag_passages: grounding.passages,
   };
 
-  // PAID-MEDIA WALL, last line of defence. If a sponsored product name
-  // survived both passes it is replaced with a neutral phrase — the editorial
+  // NO PRODUCT NAMES, last line of defence. If any product name survived both
+  // passes it is replaced with a generic product-type phrase — the editorial
   // card never advertises, and it never renders empty either.
-  const stillNamed = findExcludedProducts(payload, guard.sponsored);
+  const stillNamed = findProductNames(payload, wall.names);
   const finalPayload = stillNamed.length > 0
     ? redactProductNames(payload, stillNamed)
     : payload;
   if (stillNamed.length > 0) {
     await logTipRejection(
       isStyle ? "style-tip" : "wash-day-tip",
-      ["redacted_sponsored_product", ...stillNamed.map((n) => n.slice(0, 60))],
+      ["redacted_product_name", ...stillNamed.map((n) => n.slice(0, 60))],
       raw.slice(0, 4000),
     );
   }

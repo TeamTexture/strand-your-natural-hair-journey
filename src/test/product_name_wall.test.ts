@@ -1,41 +1,76 @@
 import { describe, it, expect } from "vitest";
 import {
-  findExcludedProducts,
+  findProductNames,
   redactProductNames,
+  noProductNamesBlock,
   minimalCapViolations,
   trimToCap,
   MINIMAL_ACTION_WORD_CAP,
   MINIMAL_REASON_WORD_CAP,
   wordCount,
-} from "../../supabase/functions/_shared/editorial-products";
+} from "../../supabase/functions/_shared/product-name-wall";
 
-const SPONSORED = ["Ultra Moisture Nourishing Leave-In Conditioner"];
+// The forbidden set is EVERY product name — catalogue and the member's own
+// shelf alike. There is no exclusion list any more.
+const NAMES = [
+  "Ultra Moisture Nourishing Leave-In Conditioner",
+  "Thrive Triple Action Hair Growth Serum",
+  "Morte Súbita Mask",
+];
 
-describe("paid-media wall", () => {
-  it("catches a sponsored product named anywhere in the tip payload", () => {
+describe("no product names in the editorial tip", () => {
+  it("catches a sponsored product named anywhere in the payload", () => {
     const payload = {
       headline: "Seal your ends",
       action:
         "Smooth your CANTU Ultra Moisture Nourishing Leave-In Conditioner over your ends before banding.",
       reason: "High porosity ends lose water fastest.",
     };
-    expect(findExcludedProducts(payload, SPONSORED)).toEqual(SPONSORED);
+    expect(findProductNames(payload, NAMES)).toEqual([NAMES[0]]);
   });
 
-  it("passes a clean tip that names nothing sponsored", () => {
-    const payload = { action: "Smooth a creamy leave-in over your ends.", reason: "why" };
-    expect(findExcludedProducts(payload, SPONSORED)).toEqual([]);
+  it("catches a product the member owns — owning it is no longer a licence to name it", () => {
+    expect(
+      findProductNames({ technique: "Use your Morte Súbita Mask midweek." }, NAMES),
+    ).toEqual([NAMES[2]]);
+  });
+
+  it("catches every named product when more than one leaks", () => {
+    const payload = {
+      action:
+        "Apply the Thrive Triple Action Hair Growth Serum to your edges and smooth the Ultra Moisture Nourishing Leave-In Conditioner onto your ends.",
+    };
+    expect(findProductNames(payload, NAMES).sort()).toEqual(
+      [NAMES[0], NAMES[1]].sort(),
+    );
+  });
+
+  it("passes a purely educational tip that names only product types", () => {
+    const payload = {
+      headline: "Clean Between The Rows",
+      action:
+        "Wipe a water-based scalp cleanser along each exposed cornrow parting with a cotton pad, then seal your ends with an emollient leave-in.",
+      reason: "Cleaning the exposed partings keeps the follicles clear while the style stays in.",
+      technique: "Work row by row, ends only for the leave-in — nothing on the scalp.",
+    };
+    expect(findProductNames(payload, NAMES)).toEqual([]);
   });
 
   it("redacts the product name and the brand word glued to it", () => {
     const out = redactProductNames(
       { action: "Smooth your CANTU Ultra Moisture Nourishing Leave-In Conditioner onto your ends." },
-      SPONSORED,
+      [NAMES[0]],
     );
     expect(out.action).not.toMatch(/cantu/i);
     expect(out.action).not.toMatch(/ultra moisture/i);
-    expect(out.action).toContain("your own shelf");
+    expect(out.action).toContain("a suitable product of that type");
     expect(out.action.endsWith("onto your ends.")).toBe(true);
+  });
+
+  it("states the rule without shipping an exclusion list", () => {
+    const block = noProductNamesBlock();
+    expect(block).toMatch(/NO PRODUCT NAMES/);
+    expect(block).not.toMatch(/paid campaign/i);
   });
 });
 
