@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ToolAdviceDialog } from "@/components/ToolAdviceDialog";
+import ToolGuidanceCard from "@/components/tools/ToolGuidanceCard";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
 import { buildAiContext } from "@/lib/aiContext";
@@ -316,7 +317,8 @@ const MyToolsSection = () => {
 
 
                 {isOpen && (
-                  <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
+                  <div className="px-3.5 pb-3.5 pt-2.5 border-t border-border/60 space-y-3">
+                    <ToolGuidanceCard tool={t} enabled={isOpen} />
                     {t.notes && (
                       <p className="text-xs text-muted-foreground whitespace-pre-line">
                         {t.notes}
