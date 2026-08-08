@@ -125,6 +125,7 @@ Return JSON only via the return_rationale tool.`;
     user_context: args.context,
     selector_context: buildSelectorContext(args.context),
     force_topic_ids: ["heat-and-moisture", "porosity", "wash-day-mechanics"],
+    procedural_bias: true,
     rag_query: "heat application deep conditioning moisture retention porosity Afro hair TT Heat Hat",
     rag_k: 4,
     tool: {
