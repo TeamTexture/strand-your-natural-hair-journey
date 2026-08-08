@@ -403,19 +403,29 @@ export function useActiveBrandOffer(slot: PlacementSlot, opts?: { enabled?: bool
       const chosen = delivery?.[0];
       if (!chosen) return null;
 
+      // ONE ADVERTISED PRODUCT. The junction rows are ordered by `position`
+      // (then created_at) so the brand controls which single product is
+      // promoted by ordering their shelf; the card renders only the first.
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, starts_on, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))")
         .eq("id", chosen.offer_id)
+        .order("position", { referencedTable: "brand_offer_products", ascending: true })
+        .order("created_at", { referencedTable: "brand_offer_products", ascending: true })
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
+      const products = ((data as unknown as {
+        brand_offer_products?: Array<{ brand_products: unknown }> | null;
+      }).brand_offer_products ?? [])
+        .map((r) => r.brand_products)
+        .filter(Boolean);
       return {
         offer_id: chosen.offer_id,
         slot,
         was_matched: chosen.was_matched ?? false,
         match_reason: chosen.match_reason ?? null,
-        brand_offers: data,
+        brand_offers: { ...(data as Record<string, unknown>), brand_products: products },
       };
     },
   });
