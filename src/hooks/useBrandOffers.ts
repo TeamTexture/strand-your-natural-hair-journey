@@ -600,6 +600,7 @@ export function useSubmitBrandOfferRevision() {
     },
     onSuccess: (_id, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
@@ -665,6 +666,7 @@ export function useWithdrawBrandOfferRevision() {
     },
     onSuccess: (_r, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
@@ -684,6 +686,7 @@ export function useApproveBrandOfferRevision() {
       qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
@@ -703,6 +706,7 @@ export function useRejectBrandOfferRevision() {
     },
     onSuccess: (_r, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
