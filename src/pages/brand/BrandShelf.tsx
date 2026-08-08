@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { normaliseProductUrl } from "@/lib/brandLinkScan";
+import { bandMemberCount } from "@/lib/adTargeting";
+import { useRoles } from "@/hooks/useRoles";
 import { toast } from "sonner";
 import {
   useBrandShelf,
@@ -85,6 +87,7 @@ const BrandShelf = () => {
   const nav = useNavigate();
   const { data: items = [], isLoading } = useBrandShelf();
   const { data: counts = {} } = useBrandMemberCounts();
+  const { isAdmin } = useRoles();
   const setPublished = useSetShelfPublished();
   const remove = useDeleteShelfItem();
   const reorder = useReorderShelf();
@@ -229,7 +232,7 @@ const BrandShelf = () => {
                       </p>
                     )}
                     <div className="px-3.5 pb-3.5">
-                      <MemberActivity c={c} />
+                      <MemberActivity c={c} exact={isAdmin} />
                     </div>
                   </ShelfProductCard>
 
