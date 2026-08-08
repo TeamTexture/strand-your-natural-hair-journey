@@ -24,8 +24,10 @@ interface Props {
   remainingDays: number;
   upliftPence: number;
   paymentRequired: boolean;
-  /** Set by the Stripe webhook before the revision ever reaches review. */
+  /** Set by the Stripe webhook when the uplift is paid and the new audience applied. */
   paidAt: string | null;
+  /** Revision status — drives which of the three stages is shown. */
+  status?: string;
 }
 
 const TargetingDiff = ({
@@ -39,6 +41,7 @@ const TargetingDiff = ({
   upliftPence,
   paymentRequired,
   paidAt,
+  status,
 }: Props) => {
   const { data: options = [] } = useTargetingOptions();
   const labelFor = (attribute: string, code: string) =>
@@ -77,13 +80,27 @@ const TargetingDiff = ({
             {tierBefore === "broad" ? "Broad → targeted (rate increase)" : "Targeted → broad (no refund)"}
           </p>
           {paymentRequired ? (
-            /* Quiet confirmation only — an unpaid uplift can no longer reach
-             * review, so there is nothing for an admin to action here. */
-            <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
-              Uplift of {money(upliftPence)} paid
-              {paidAt ? ` on ${format(new Date(paidAt), "d MMM yyyy · HH:mm")}` : ""} for the {remainingDays} remaining
-              day{remainingDays === 1 ? "" : "s"}. Days already delivered keep the rate they were sold at.
-            </p>
+            /* Three stages, none of them actionable by the admin: what it will
+             * cost the brand if approved, that it's approved and awaiting
+             * payment, and that it's paid. Approval is never payment-gated. */
+            paidAt ? (
+              <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
+                Uplift of {money(upliftPence)} paid on {format(new Date(paidAt), "d MMM yyyy · HH:mm")} for the {remainingDays} remaining
+                day{remainingDays === 1 ? "" : "s"}. The new audience is live. Days already delivered keep the rate they were sold at.
+              </p>
+            ) : status === "approved_pending_payment" ? (
+              <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
+                Approved and awaiting the brand's payment of {money(upliftPence)}. Nothing for you to do — the new audience applies
+                automatically once they pay, and lapses if they don't before the campaign ends. The campaign is still running on its original
+                audience and rate.
+              </p>
+            ) : (
+              <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
+                Approving will require the brand to pay {money(upliftPence)} to activate this audience — the difference between the broad and
+                targeted rate for the {remainingDays} remaining day{remainingDays === 1 ? "" : "s"}. Nothing has been charged, so rejecting
+                costs them nothing. Approval isn't blocked by payment.
+              </p>
+            )
           ) : (
             <p className="text-[11.5px] font-body text-foreground/85 leading-snug">
               No payment due. Removing targeting applies from approval onward and is not refunded; the rate already charged for delivered days
