@@ -171,10 +171,15 @@ const StylistEditorSheet = ({
               <Textarea
                 rows={3}
                 value={draft.bio}
-                onChange={(e) => patch({ bio: e.target.value })}
-                maxLength={800}
+                onChange={(e) => patch({ bio: e.target.value.slice(0, 300) })}
+                maxLength={300}
+                placeholder="Two or three sentences on their focus and who they love working with."
               />
+              <p className="text-[11px] font-body text-muted-foreground text-right mt-1">
+                {(draft.bio ?? "").trim().length}/300 characters
+              </p>
             </Field>
+
           </section>
 
           <section className="space-y-2">

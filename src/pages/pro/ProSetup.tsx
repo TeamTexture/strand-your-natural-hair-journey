@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import CapabilityClaimFields from "@/components/pro/CapabilityClaimFields";
+import BioGuidance, { BIO_MAX_CHARS } from "@/components/pro/BioGuidance";
 import {
   claimFromRow,
   claimPayload,
@@ -385,6 +386,9 @@ const ProSetup = () => {
         return "Please add the name members will see.";
       if (form.bio.trim().length < 40)
         return "Please write at least a couple of sentences about your practice.";
+      if (form.bio.trim().length > BIO_MAX_CHARS)
+        return `Please keep your bio under ${BIO_MAX_CHARS} characters — you can add more detail to your listing once accepted.`;
+
       if (!form.avatar_path) return "Please upload a headshot.";
     }
     if (i === 1) {
@@ -657,17 +661,22 @@ const ProSetup = () => {
             <Field
               label="Bio"
               required
-              hint="A few sentences on your training, your approach and who you love working with."
+              hint="Three or four short sentences on your focus, your approach and who you love working with."
             >
               <Textarea
                 rows={6}
+                maxLength={BIO_MAX_CHARS}
                 value={form.bio}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, bio: e.target.value }))
+                  setForm((f) => ({ ...f, bio: e.target.value.slice(0, BIO_MAX_CHARS) }))
                 }
                 placeholder="Tell members about your practice."
               />
+              <div className="mt-2">
+                <BioGuidance value={form.bio} applicationStage />
+              </div>
             </Field>
+
           </>
         )}
 
