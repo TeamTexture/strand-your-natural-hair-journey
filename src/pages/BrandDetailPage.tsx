@@ -219,14 +219,15 @@ const BrandDetailPage = () => {
 
       // Flatten the junction into `brand_products` — ONE PRODUCT PER ADVERT, so
       // the first row by `position` is the advertised product.
-      const flatten = (rows: unknown[]) =>
+      const flatten = (rows: unknown[]): Array<Record<string, unknown> & { id: string }> =>
         (rows ?? []).map((r) => {
           const row = r as { brand_offer_products?: Array<{ brand_products: unknown }> | null };
           return {
             ...(r as Record<string, unknown>),
             brand_products: (row.brand_offer_products ?? []).map((j) => j.brand_products).filter(Boolean),
-          };
+          } as Record<string, unknown> & { id: string };
         });
+
 
       return {
         brand: brandRes.data,
