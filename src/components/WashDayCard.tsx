@@ -1,16 +1,19 @@
-import { Package, Clock, Mic, ListChecks, Sparkles } from "lucide-react";
+import { Package, Clock, Mic, ListChecks, Sparkles, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { anchorProps } from "@/lib/scrollMemory";
 import { stripStaleDates } from "@/lib/stripStaleDates";
 import type { WashDay } from "@/hooks/useWashDays";
 import { washStepLabel } from "@/lib/washSteps";
 import { useSmartInline } from "@/lib/smartInline";
+import { transcriptPreview } from "@/lib/formatTranscript";
 
 interface Props {
   washDay: WashDay;
   sequenceNumber: number;
   previousWashDate: string | null;
   onClick: () => void;
+  /** Opens the full wash day log scrolled to the full transcript. */
+  onSeeAll?: () => void;
   /** Stable record id used for scroll restoration anchoring. */
   anchorId?: string;
 }
@@ -20,7 +23,7 @@ interface Props {
  * date, style, products used, steps taken, duration, health chips, and a
  * one-line key insight distilled from the AI observation / next-wash tip.
  */
-export const WashDayCard = ({ washDay, sequenceNumber, onClick, anchorId }: Props) => {
+export const WashDayCard = ({ washDay, sequenceNumber, onClick, onSeeAll, anchorId }: Props) => {
   // ---------- Relative time ----------
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -70,6 +73,9 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick, anchorId }: Prop
   // `next_wash_tip` is deprecated and no longer read — its card was removed.
   const insightRaw = washDay.ai_insight || washDay.hair_feel_note || null;
   const insight = insightRaw ? stripStaleDates(stripMd(insightRaw)) : null;
+  // Transcribed voice notes run long, so the card shows whole sentences up to a
+  // budget and hands the rest to the full log page via "See all".
+  const preview = transcriptPreview(insight);
   const renderInline = useSmartInline();
 
 
@@ -174,9 +180,34 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick, anchorId }: Prop
             </span>
           </div>
           <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words whitespace-pre-line">
-            {renderInline(insight, `wd-insight-${washDay.id}`)}
+            {renderInline(preview?.text ?? insight, `wd-insight-${washDay.id}`)}
           </p>
-
+          {preview?.truncated && (
+            <span
+              role="link"
+              tabIndex={0}
+              onClick={(e) => {
+                if (!onSeeAll) return;
+                e.stopPropagation();
+                onSeeAll();
+              }}
+              onKeyDown={(e) => {
+                if (!onSeeAll) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSeeAll();
+                }
+              }}
+              className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-primary font-body hover:underline cursor-pointer"
+            >
+              See all
+              <span className="normal-case tracking-normal font-medium text-foreground/50">
+                ({preview.words} words)
+              </span>
+              <ChevronRight className="w-3 h-3" strokeWidth={2.5} />
+            </span>
+          )}
         </div>
       )}
 
