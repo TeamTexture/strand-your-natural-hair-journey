@@ -358,12 +358,35 @@ Do not substitute other cleansing or sealing methods for these two.`
   let raw = j?.choices?.[0]?.message?.content ?? "{}";
   type Parsed = { headline?: string; why?: string; reason?: string; technique?: string; action?: string; next_time?: string };
   const parseTip = (text: string): Parsed | null => {
-    try {
-      return JSON.parse(text) as Parsed;
-    } catch {
-      return null;
+    const attempt = (s: string): Parsed | null => {
+      try {
+        const v = JSON.parse(s);
+        return v && typeof v === "object" ? (v as Parsed) : null;
+      } catch {
+        return null;
+      }
+    };
+    const direct = attempt(text);
+    if (direct) return direct;
+    // Tolerate ```json fences or prose around the object.
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+    if (fenced) {
+      const v = attempt(fenced.trim());
+      if (v) return v;
     }
+    const braced = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+    return braced.length > 1 ? attempt(braced) : null;
   };
+  /** A tip is usable when it has a headline plus at least one body field.
+   *  `why` is HAND-HOLDING ONLY, so requiring it 502'd every minimal/essential
+   *  request where the model correctly omitted it. */
+  const isUsable = (p: Parsed | null) =>
+    Boolean(
+      String(p?.headline ?? "").trim() &&
+        (String(p?.action ?? "").trim() || String(p?.reason ?? "").trim() ||
+          String(p?.why ?? "").trim()),
+    );
+
   let parsed = parseTip(raw);
 
   // ── QUALITY FLOOR ────────────────────────────────────────────────────
