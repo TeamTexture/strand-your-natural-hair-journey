@@ -554,7 +554,7 @@ Deno.serve(async (req) => {
       : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
     const finalSystemPrompt = `${systemPrompt}${singleSuffix}${cornrowSuffix}`;
 
-    const aiResp = await fetch(
+    const callModel = (extraDirective = "") => fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
@@ -565,7 +565,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${withCount(finalSystemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+            { role: "system", content: `${withCount(finalSystemPrompt)}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${extraDirective ? `\n\n${extraDirective}` : ""}` },
+
             { role: "user", content: userPayload },
           ],
           tools: [
