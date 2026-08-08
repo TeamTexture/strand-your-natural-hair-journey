@@ -107,12 +107,20 @@ const BrandsDirectory = () => {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return brands.filter((b) => {
-      if (cat && (b.category ?? "") !== cat) return false;
-      if (!term) return true;
-      return b.brand_name.toLowerCase().includes(term) || (b.category ?? "").toLowerCase().includes(term);
-    });
+    return brands
+      .filter((b) => {
+        if (cat && (b.category ?? "") !== cat) return false;
+        if (!term) return true;
+        return b.brand_name.toLowerCase().includes(term) || (b.category ?? "").toLowerCase().includes(term);
+      })
+      // Brands with an advert running today sit at the top, most offers first;
+      // everything else keeps alphabetical order.
+      .sort(
+        (a, b) =>
+          b.live_offers - a.live_offers || a.brand_name.localeCompare(b.brand_name),
+      );
   }, [brands, q, cat]);
+
 
   return (
     <ScreenLayout>
