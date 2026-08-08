@@ -24,6 +24,7 @@ import {
   applyRoutineTipGuardrails,
   CORE_ROUTINE_GUARDRAILS_PROMPT,
 } from "../_shared/routine-guidance.ts";
+import { TIP_SET_INTEGRITY_PROMPT } from "../_shared/tip-set-integrity.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -86,6 +87,8 @@ Each item MUST be a single sentence that follows this shape:
 - SCOPE — NO WASH TECHNIQUE STEPS: the strand summary covers who this hair is (characteristics and what they mean), its current state, the user's goals, and her personalised weekly rhythm. It must NOT teach the step-by-step wash process — no ordered cleanse/condition/detangle/rinse instructions, no "first ... then ..." wash sequences, no product-application technique. Those live on the user's wash day steps. When a routine tip needs to point at the wash itself, refer to "your wash day steps" in the app instead of restating them.
 - REQUIRED ROUTINE COVERAGE: routine_tips must cover the weekly rhythm (how often to wash, condition and rest the hair), the 3–4 wash-cycle product consistency rule, and style-specific guidance when currentStyle or planned_next_style exists. If blood/health markers are flagged, include how that changes the rhythm.
 - Every tip MUST be grounded in the manuscript teachings provided below. Do not invent guidance outside them. If porosity, scalp condition, protective style, heat use, or a flagged blood marker is present in the data, at least one tip must reference it directly.
+
+${TIP_SET_INTEGRITY_PROMPT}
 
 ${CORE_ROUTINE_GUARDRAILS_PROMPT}
 
@@ -151,10 +154,31 @@ Deno.serve(async (req: Request) => {
 
     // Retrieve manuscript passages tailored to this user's key signals so
     // the summary is grounded in the actual book text, not just KB summaries.
+    // STYLE-AWARE: a member in a protective style needs the passages about
+    // cleansing and caring for hair *in* that style, not the passages about
+    // washing loose natural hair.
     const hair = (context.hairProfile ?? {}) as Record<string, unknown>;
+    const styleCtx = (context.currentStyle ?? {}) as Record<string, unknown>;
+    const currentStyleText = String(styleCtx.current_hairstyle ?? "").trim();
+    const plannedStyleText = String(styleCtx.planned_next_style ?? "").trim();
+    const protectiveStyle =
+      /braid|cornrow|loc|twist|wig|weave|sew[- ]?in|faux|knotless|bantu|crochet|extension/i.test(
+        currentStyleText,
+      );
+    const styleQuery = [
+      currentStyleText ? `wearing ${currentStyleText}` : "",
+      plannedStyleText ? `preparing for ${plannedStyleText}` : "",
+      protectiveStyle
+        ? "cleansing the scalp while in a protective style, washing with the style still in, scalp access between the rows, tension, wear window, takedown and recovery"
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     const ragQuery = `Afro hair porosity ${hair.porosity ?? ""} density ${hair.density ?? ""} ${
       hair.hair_type ?? ""
-    } routine wash day moisture retention scalp ${flaggedMarkerPhrase(context.bloodResults)}`.trim();
+    } routine wash day moisture retention scalp ${styleQuery} ${flaggedMarkerPhrase(context.bloodResults)}`
+      .replace(/\s+/g, " ")
+      .trim();
 
     // No dedicated function_kind for the strand summary — reuse
     // wash-day-observation so wash-day-mechanics (moisture-first) is always
@@ -167,8 +191,9 @@ Deno.serve(async (req: Request) => {
       selectorContext: selectorCtx,
       forceTopics: ["wash-day-mechanics", "protein-and-strengthening"],
       ragQuery,
-      ragK: 5,
+      ragK: 6,
     });
+
 
     const cs = (context.currentStyle ?? null) as Record<string, unknown> | null;
     const styleBlock = cs
