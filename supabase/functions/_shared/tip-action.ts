@@ -176,11 +176,8 @@ export function retryDirective(reasons: string[], attributeTokens: string[]): st
     "- The tip must name at least one of this member's own recorded details: " + (named || "their recorded profile") + ".",
     '- "reason" MUST explain WHY the action matters for this member — the mechanism or the consequence of not doing it — grounded in the supplied manuscript passages. It must never restate the action in different words. If the why cannot be grounded, choose a DIFFERENT tip whose why can be.',
     "- Keep it grounded in the manuscript passages supplied. If the action cannot be grounded, choose a DIFFERENT grounded action rather than weakening it.",
-    ...(reasons.includes("names_sponsored_product")
-      ? ['- You named a product that is the subject of a paid campaign. Remove that name completely and describe the product TYPE instead. This tip is editorial, never an advert.']
-      : []),
-    ...(reasons.includes("names_unowned_product")
-      ? ['- You named a product this member does not own. Only ever name something on her own shelf, or name nothing and describe the product type.']
+    ...(reasons.includes("names_product")
+      ? ['- You named a product. This card names NO products and NO brands, ever — not even ones this member owns. Remove the name and describe the product TYPE instead ("a water-based scalp cleanser", "a leave-in conditioner", "an emollient cream").']
       : []),
     ...(reasons.includes("action_over_minimal_cap") || reasons.includes("action_over_level_cap")
       ? ['- "action" is TOO LONG for this member\'s support level. Cut words to fit the stated cap, keep the instruction.']
