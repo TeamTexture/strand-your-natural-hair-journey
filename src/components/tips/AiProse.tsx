@@ -11,7 +11,7 @@ import GuidanceBody from "@/components/guidance/GuidanceBody";
  * Level 1 — first sentence only (the direct answer), one tight paragraph.
  * Level 2 — up to three sentences, compact labelled lines.
  * Level 3 — the full text, structured into lead + segment blocks.
- * Level 4 — the full text, maximally chunked in plain language.
+ * Level 3 (Hand-holding) — the full text, maximally chunked in plain language.
  */
 const AiProse = ({
   text,
