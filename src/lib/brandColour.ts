@@ -17,12 +17,24 @@ export const STRAND_GOLD = "#c69739";
 export const STRAND_GOLD_DARK = "#8a6a26";
 
 export interface BrandColours {
+  /** The colour as extracted from the logo — UNMODIFIED. Used for tints,
+   *  borders and the left edge accent so the card looks like the brand. Never
+   *  used behind or as text. */
   primary: string;
   secondary: string;
   /** Text colour that clears 4.5:1 on `primary`. */
   onPrimary: string;
+  /** The text-safe version of `primary`: darkened (or lightened) until it
+   *  clears 4.5:1 as text on the cream card surface AND carries readable text
+   *  when used as a filled button. Every text-bearing surface uses this. */
+  accent: string;
+  /** Text colour that clears 4.5:1 on `accent`. */
+  onAccent: string;
   source: "logo" | "fallback";
 }
+
+/** The cream card surface brand-coloured text sits on — hsl(36 67% 97%). */
+export const CARD_SURFACE = "#fdf8f1";
 
 /* ── colour maths ───────────────────────────────────────────────────────── */
 
@@ -102,10 +114,38 @@ export function ensureReadable(
                 : { colour: "#ffffff", text: DARK_TEXT, adjusted: true };
 }
 
+/**
+ * Darkens (or lightens) a colour until it clears `target` contrast AS TEXT on
+ * the cream card surface. A vivid brand orange reads at ~3.4:1 on cream, so
+ * every brand-coloured label and filled button uses this deeper version while
+ * the tint keeps the original.
+ */
+export function textSafeAccent(hex: string, target = 4.5): string {
+  if (contrastRatio(hex, CARD_SURFACE) >= target) return hex;
+  const goDark = relativeLuminance(hex) > 0.06;
+  for (let step = 1; step <= 20; step++) {
+    const c = shift(hex, goDark ? -0.05 * step : 0.05 * step);
+    if (contrastRatio(c, CARD_SURFACE) >= target) return c;
+  }
+  return goDark ? "#1f1a14" : "#ffffff";
+}
+
+/** Assembles the full palette from one base colour, applying every guardrail. */
+function palette(base: string, secondary: string, source: BrandColours["source"]): BrandColours {
+  const accent = textSafeAccent(base);
+  return {
+    primary: base,
+    secondary,
+    onPrimary: ensureReadable(base).text,
+    accent,
+    onAccent: ensureReadable(accent).text,
+    source,
+  };
+}
+
 /** The fallback identity when a brand has no logo or extraction failed. */
 export function fallbackBrandColours(): BrandColours {
-  const { colour, text } = ensureReadable(STRAND_GOLD);
-  return { primary: colour, secondary: STRAND_GOLD_DARK, onPrimary: text, source: "fallback" };
+  return palette(STRAND_GOLD, STRAND_GOLD_DARK, "fallback");
 }
 
 /** Normalise stored DB values into a guaranteed-readable palette. */
@@ -116,13 +156,10 @@ export function resolveBrandColours(row: {
 } | null | undefined): BrandColours {
   const raw = row?.brand_colour_primary ?? null;
   if (!raw || !hexToRgb(raw)) return fallbackBrandColours();
-  const { colour, text } = ensureReadable(raw);
   const secondary = row?.brand_colour_secondary && hexToRgb(row.brand_colour_secondary)
     ? row.brand_colour_secondary
-    : shift(colour, -0.25);
-  const stored = row?.brand_colour_on_primary;
-  const onPrimary = stored && contrastRatio(colour, stored) >= 4.5 ? stored : text;
-  return { primary: colour, secondary, onPrimary, source: "logo" };
+    : shift(raw, -0.25);
+  return palette(raw, secondary, "logo");
 }
 
 /** rgba() string for a soft tint of a hex colour. */
@@ -151,34 +188,62 @@ export async function extractBrandColoursFromBlob(blob: Blob): Promise<BrandColo
     ctx.drawImage(bitmap, 0, 0, size, size);
     const { data } = ctx.getImageData(0, 0, size, size);
 
-    const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
-    for (let i = 0; i < data.length; i += 4) {
-      const a = data[i + 3];
-      if (a < 200) continue;
-      const r = data[i], g = data[i + 1], b = data[i + 2];
-      const max = Math.max(r, g, b), min = Math.min(r, g, b);
-      const lum = (max + min) / 2;
-      const sat = max === 0 ? 0 : (max - min) / max;
-      // Skip paper white, near black and washed-out greys.
-      if (lum > 242 || lum < 14) continue;
-      if (sat < 0.12 && lum > 200) continue;
-      const key = `${r >> 4}-${g >> 4}-${b >> 4}`;
-      const cur = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
-      cur.count += 1 + (sat > 0.35 ? 1 : 0); // favour chromatic pixels
-      cur.r += r; cur.g += g; cur.b += b;
-      buckets.set(key, cur);
-    }
-    if (buckets.size === 0) return null;
-
-    const ranked = [...buckets.values()].sort((a, b) => b.count - a.count);
-    const avg = (x: { count: number; r: number; g: number; b: number }) =>
-      rgbToHex(x.r / x.count, x.g / x.count, x.b / x.count);
-    const primaryRaw = avg(ranked[0]);
-    const secondaryRaw = ranked[1] ? avg(ranked[1]) : shift(primaryRaw, -0.25);
-
-    const { colour, text } = ensureReadable(primaryRaw);
-    return { primary: colour, secondary: secondaryRaw, onPrimary: text, source: "logo" };
+    const picked = pickDominantColours(data);
+    if (!picked) return null;
+    return palette(picked.primary, picked.secondary, "logo");
   } catch {
     return null;
   }
+}
+
+/**
+ * Pure, testable quantiser. Buckets RGBA pixel data at 4 bits per channel and
+ * ranks strictly by PIXEL-COUNT SHARE, so the dominant AREA wins and a small
+ * accent stripe can never outrank the field it sits on. Near-white (the
+ * wordmark), near-black and washed-out greys are ignored.
+ *
+ * Returns the dominant colour plus the most prominent bucket from a
+ * *different* hue family as the secondary, so a brand with an accent stripe
+ * gets a genuine second colour rather than a neighbouring shade of the first.
+ */
+export function pickDominantColours(
+  data: Uint8ClampedArray | number[],
+): { primary: string; secondary: string; share: number } | null {
+  const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+  let considered = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 200) continue;
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const lum = (max + min) / 2;
+    const sat = max === 0 ? 0 : (max - min) / max;
+    // Paper white (and the white wordmark), near black, washed-out greys.
+    if (lum > 242 || lum < 14) continue;
+    if (sat < 0.12 && lum > 200) continue;
+    const key = `${r >> 4}-${g >> 4}-${b >> 4}`;
+    const cur = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+    cur.count += 1; // strictly area — no saturation weighting
+    cur.r += r; cur.g += g; cur.b += b;
+    buckets.set(key, cur);
+    considered += 1;
+  }
+  if (buckets.size === 0 || considered === 0) return null;
+
+  const ranked = [...buckets.values()].sort((a, b) => b.count - a.count);
+  const avg = (x: { count: number; r: number; g: number; b: number }) =>
+    rgbToHex(x.r / x.count, x.g / x.count, x.b / x.count);
+  const primary = avg(ranked[0]);
+  const [pr, pg, pb] = hexToRgb(primary) ?? [0, 0, 0];
+  const distinct = ranked
+    .slice(1)
+    .map(avg)
+    .find((hex) => {
+      const [r, g, b] = hexToRgb(hex) ?? [0, 0, 0];
+      return Math.abs(r - pr) + Math.abs(g - pg) + Math.abs(b - pb) > 120;
+    });
+  return {
+    primary,
+    secondary: distinct ?? shift(primary, -0.25),
+    share: ranked[0].count / considered,
+  };
 }
