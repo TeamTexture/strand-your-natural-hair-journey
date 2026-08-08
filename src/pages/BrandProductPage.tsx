@@ -282,7 +282,7 @@ const BrandProductPage = () => {
           )}
           <div className="p-4">
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-body">
-              Sponsored · {isTool ? "Tool" : "Product"}
+              {offer ? "Sponsored · " : ""}{isTool ? "Tool" : "Product"}
             </p>
             <p className="font-display text-xl mt-1 leading-tight">{product.name}</p>
             {brandName && (
@@ -303,7 +303,7 @@ const BrandProductPage = () => {
         </SurfaceCard>
 
         {/* Offer context */}
-        {(offer.discount_code || validUntil) && (
+        {offer && (offer.discount_code || validUntil) && (
           <SurfaceCard className="space-y-2.5">
             <SectionLabel className="!px-0 !mt-0">Offer</SectionLabel>
             {offer.headline && (
@@ -377,7 +377,7 @@ const BrandProductPage = () => {
           {product.external_url && (
             <Button variant="gold" size="pill" onClick={openExternal} className="w-full">
               <ExternalLink className="size-4 mr-1.5" />
-              {offer.discount_code ? `Get offer${brandName ? ` at ${brandName}` : ""}` : "Visit product"}
+              {offer?.discount_code ? `Get offer${brandName ? ` at ${brandName}` : ""}` : "Visit product"}
             </Button>
           )}
           <Button
