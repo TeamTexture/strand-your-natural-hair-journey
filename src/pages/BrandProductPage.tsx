@@ -239,7 +239,7 @@ const BrandProductPage = () => {
 
 
   const openExternal = () => {
-    if (!offer || !product?.external_url) return;
+    if (!product?.external_url) return;
     if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
     window.open(product.external_url, "_blank", "noopener,noreferrer");
   };
