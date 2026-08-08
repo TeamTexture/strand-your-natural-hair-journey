@@ -220,7 +220,7 @@ const Products = () => {
                       if (batch.selectMode) { batch.toggle(p.id); return; }
                       const sp = sponsoredById[p.id];
                       if (sp && p.linked_brand_product_id) {
-                        navigate(`/offers/${sp.offerId}/product/${p.linked_brand_product_id}`);
+                        navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
                         return;
                       }
                       if (sp) { navigate(`/offers/${sp.offerId}`); return; }
@@ -253,7 +253,7 @@ const Products = () => {
                           type="button"
                           onClick={() => {
                             const sp = sponsoredById[p.id];
-                            if (p.linked_brand_product_id) navigate(`/offers/${sp.offerId}/product/${p.linked_brand_product_id}`);
+                            if (p.linked_brand_product_id) navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
                             else navigate(`/offers/${sp.offerId}`);
                           }}
                           className="w-full flex items-center gap-2.5 rounded-[12px] border border-primary/35 bg-primary/[0.08] px-3 py-2.5 text-left hover:bg-primary/[0.13] transition-colors"

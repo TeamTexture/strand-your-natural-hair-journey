@@ -49,31 +49,57 @@ const BrandProductPage = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["brand-product-page", offerId, productId],
-    enabled: !!offerId && !!productId,
+    enabled: !!productId,
     queryFn: async () => {
+      // The product is the stable entity — fetch it by id alone. An offer id in
+      // the route is only a hint; offers end and relaunch, the product persists.
       const { data: prod, error: pe } = await supabase
         .from("brand_products")
         .select("*")
         .eq("id", productId!)
-        .eq("offer_id", offerId!)
         .maybeSingle();
       if (pe) throw pe;
-      const { data: off, error: oe } = await supabase
-        .from("brand_offers")
-        .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id")
-        .eq("id", offerId!)
-        .maybeSingle();
-      if (oe) throw oe;
+
+      // Resolve the offer to show from the product's current live/scheduled
+      // link, falling back to the route's offer id.
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: links } = await supabase
+        .from("brand_offer_products")
+        .select("offer_id, brand_offers!inner(id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, status)")
+        .eq("brand_product_id", productId!);
+      type Row = {
+        offer_id: string;
+        brand_offers: {
+          id: string; headline: string | null; body_copy: string | null; discount_code: string | null;
+          external_url: string | null; ends_on: string | null; starts_on: string | null;
+          brand_user_id: string; status: string;
+        };
+      };
+      const rows = ((links ?? []) as unknown as Row[]).map((r) => r.brand_offers).filter(Boolean);
+      const isLive = (o: Row["brand_offers"]) =>
+        o.status === "live" && (!o.starts_on || o.starts_on <= today) && (!o.ends_on || o.ends_on >= today);
+      let off = rows.find(isLive) ?? rows.find((o) => o.id === offerId) ?? null;
+
+      if (!off && offerId) {
+        const { data: fallback } = await supabase
+          .from("brand_offers")
+          .select("id, headline, body_copy, discount_code, external_url, ends_on, starts_on, brand_user_id, status")
+          .eq("id", offerId)
+          .maybeSingle();
+        off = (fallback as Row["brand_offers"] | null) ?? null;
+      }
+
       let brand: { brand_name: string | null } | null = null;
-      if (off?.brand_user_id) {
+      const brandOwner = off?.brand_user_id ?? prod?.brand_user_id ?? null;
+      if (brandOwner) {
         const { data: bp } = await supabase
           .from("brand_profiles")
           .select("brand_name")
-          .eq("user_id", off.brand_user_id)
+          .eq("user_id", brandOwner)
           .maybeSingle();
         brand = bp ?? null;
       }
-      return { product: prod, offer: off ? { ...off, brand_profiles: brand } : null };
+      return { product: prod, offer: off ? { ...off, brand_profiles: brand } : null, brand };
     },
   });
 
@@ -87,7 +113,7 @@ const BrandProductPage = () => {
   // Reaching this page is a deliberate expand of the advert — not a view.
   useEffect(() => {
     if (!offer?.id) return;
-    logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
+    if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "expand" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer?.id]);
 
@@ -176,7 +202,7 @@ const BrandProductPage = () => {
             source_url: product.external_url ?? null,
             on_shelf: toShelf,
             on_wishlist: !toShelf,
-            linked_brand_offer_id: offer.id,
+            linked_brand_offer_id: offer?.id ?? null,
             linked_brand_product_id: product.id,
           };
           const { error } = await supabase.from("user_tools").insert(insertRow as never);
@@ -191,14 +217,14 @@ const BrandProductPage = () => {
           brand: brandName,
           ingredients: (product.ingredients ?? existing?.ingredients ?? []) as string[],
           image_url: product.image_urls?.[0] ?? existing?.image_url ?? null,
-          linked_brand_offer_id: offer.id,
+          linked_brand_offer_id: offer?.id ?? null,
           linked_brand_product_id: product.id,
           ...(toShelf ? { on_shelf: true, on_wishlist: false } : { on_wishlist: true }),
         };
         const row = await upsert(payload);
         if (!row) throw new Error(toShelf ? "Could not add to your shelf" : "Could not save to wishlist");
       }
-      logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
+      if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
       toast.success(toShelf ? "Added to your shelf" : "Added to your wishlist");
       nav(toShelf ? "/products" : "/products/wishlist");
     } catch (e) {
@@ -213,29 +239,34 @@ const BrandProductPage = () => {
 
 
   const openExternal = () => {
-    if (!offer || !product?.external_url) return;
-    logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
+    if (!product?.external_url) return;
+    if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "link_click" });
     window.open(product.external_url, "_blank", "noopener,noreferrer");
   };
 
   if (isLoading) return <LoadingDot />;
-  if (!product || !offer) {
+  // Only a missing PRODUCT is a dead end. A missing or ended offer still shows
+  // the product — the product is the thing the member cares about.
+  if (!product) {
     return (
       <ScreenLayout>
-        <TitleBar title="Product" />
-        <div className="px-5 pt-4">
+        <TitleBar title="Product" onBack={() => nav("/products")} />
+        <div className="px-5 pt-4 space-y-3">
           <SurfaceCard>
             <p className="text-sm text-muted-foreground">
               This product is no longer available.
             </p>
           </SurfaceCard>
+          <Button variant="goldOutline" size="pill" className="w-full" onClick={() => nav("/products")}>
+            Back to my products
+          </Button>
         </div>
       </ScreenLayout>
     );
   }
 
   const heroImage = product.image_urls?.[0] ?? null;
-  const validUntil = formatDate(offer.ends_on);
+  const validUntil = formatDate(offer?.ends_on);
 
   return (
     <ScreenLayout>
@@ -251,7 +282,7 @@ const BrandProductPage = () => {
           )}
           <div className="p-4">
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-body">
-              Sponsored · {isTool ? "Tool" : "Product"}
+              {offer ? "Sponsored · " : ""}{isTool ? "Tool" : "Product"}
             </p>
             <p className="font-display text-xl mt-1 leading-tight">{product.name}</p>
             {brandName && (
@@ -272,7 +303,7 @@ const BrandProductPage = () => {
         </SurfaceCard>
 
         {/* Offer context */}
-        {(offer.discount_code || validUntil) && (
+        {offer && (offer.discount_code || validUntil) && (
           <SurfaceCard className="space-y-2.5">
             <SectionLabel className="!px-0 !mt-0">Offer</SectionLabel>
             {offer.headline && (
@@ -282,7 +313,7 @@ const BrandProductPage = () => {
               <DiscountCodeChip
                 code={offer.discount_code}
                 variant="block"
-                onCopy={() => logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
+                onCopy={() => { if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" }); }}
               />
             )}
             {validUntil && (
@@ -346,7 +377,7 @@ const BrandProductPage = () => {
           {product.external_url && (
             <Button variant="gold" size="pill" onClick={openExternal} className="w-full">
               <ExternalLink className="size-4 mr-1.5" />
-              {offer.discount_code ? `Get offer${brandName ? ` at ${brandName}` : ""}` : "Visit product"}
+              {offer?.discount_code ? `Get offer${brandName ? ` at ${brandName}` : ""}` : "Visit product"}
             </Button>
           )}
           <Button

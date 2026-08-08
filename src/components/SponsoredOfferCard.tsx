@@ -55,13 +55,13 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
-        .from("brand_products")
-        .select("id")
+        .from("brand_offer_products")
+        .select("brand_product_id")
         .eq("offer_id", offer.id)
         .order("position", { ascending: true })
         .limit(1)
         .maybeSingle();
-      return data;
+      return data ? { id: data.brand_product_id } : null;
     },
   });
 

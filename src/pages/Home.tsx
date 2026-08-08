@@ -1059,7 +1059,7 @@ const Home = () => {
               const sp = shelfSponsoredById[s.id];
               const goToOffer = () => {
                 if (sp && s.linked_brand_product_id) {
-                  navigate(`/offers/${sp.offerId}/product/${s.linked_brand_product_id}`);
+                  navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
                   return;
                 }
                 if (sp) { navigate(`/offers/${sp.offerId}`); return; }
