@@ -12,7 +12,7 @@ import {
   renderTopicBlock,
 } from "../_shared/knowledge/index.ts";
 import type { TopicId } from "../_shared/knowledge/types.ts";
-import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
+import { renderPassageBlock } from "../_shared/rag.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 import {
   METHOD_AND_TIMING_RULE,
