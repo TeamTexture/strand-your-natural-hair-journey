@@ -231,6 +231,22 @@ function validate(
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
 
+  const watchRaw = Array.isArray(raw.watch_outs)
+    ? raw.watch_outs
+    : Array.isArray(raw.watchOuts)
+      ? raw.watchOuts
+      : [];
+  const watchOuts = watchRaw.map((s) => String(s ?? "").trim()).filter(Boolean).slice(0, 2);
+  watchOuts.forEach((s, i) => {
+    if (words(s) > 18) problems.push(`watch_outs[${i}] is ${words(s)} words — maximum 18.`);
+    if (sentenceCount(s) > 1) problems.push(`watch_outs[${i}] must be one sentence.`);
+    if (/\bnever\b|\bdamage\b|\bruin|\bdestroy|irreversib/i.test(s)) {
+      problems.push(
+        `watch_outs[${i}] uses alarmist wording — state the mechanism and the practical adjustment factually instead.`,
+      );
+    }
+  });
+
   // Repetition gate — each stated characteristic at most once in the whole card.
   const assembled = [
     headline,
@@ -238,6 +254,7 @@ function validate(
     intro,
     ...benefits.map((b) => `${b.label} ${b.text}`),
     ...steps,
+    ...watchOuts,
   ].join(" ");
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
@@ -257,8 +274,10 @@ function validate(
       intro,
       benefits: benefits.slice(0, 3),
       steps: steps.slice(0, 3),
+      watch_outs: watchOuts,
     },
   };
+
 }
 
 Deno.serve(async (req) => {
