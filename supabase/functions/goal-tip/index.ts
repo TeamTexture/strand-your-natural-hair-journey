@@ -605,12 +605,16 @@ Deno.serve(async (req) => {
                       type: "object",
                       properties: {
                         headline: { type: "string" },
-                        body: { type: "string" },
+                        // THE ACTION FLOOR — the instruction is required, not
+                        // optional. A headline plus a reason is not a tip.
+                        action: { type: "string" },
+                        reason: { type: "string" },
                         key_fact: { type: "string" },
                       },
-                      required: ["headline", "body"],
+                      required: ["headline", "action", "reason"],
                       additionalProperties: false,
                     }
+
 
                   : {
                   type: "object",
