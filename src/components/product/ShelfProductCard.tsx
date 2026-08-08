@@ -24,6 +24,8 @@ export interface ShelfProductCardProps {
   chips?: ReactNode;
   /** Stars, note counts, sponsored line — sits under the brand line. */
   meta?: ReactNode;
+  /** Badge pinned over the top-left of the thumbnail (live offer flag). */
+  thumbBadge?: ReactNode;
   /** Selection checkbox or similar, pinned left of the thumbnail. */
   leading?: ReactNode;
   /** Icon buttons top-right (favourite, reorder, expand). */
@@ -47,6 +49,7 @@ const ShelfProductCard = ({
   matchScore,
   chips,
   meta,
+  thumbBadge,
   leading,
   headerActions,
   footer,
