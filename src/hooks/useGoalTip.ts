@@ -123,7 +123,7 @@ export const useGoalTip = (
   goal: UserGoal | null,
   opts?: { maxTips?: number; single?: boolean; variant?: "journal" },
 ) => {
-  // Home's Strand Tip of the Day asks for EXACTLY ONE tip (single: true).
+  // Home's STRAND tip asks for EXACTLY ONE tip (single: true).
   // The Style Journal asks for ONE overview + ONE caution (variant: "journal").
   // The variant is part of the key so the two surfaces never share a cached
   // answer.
@@ -133,10 +133,10 @@ export const useGoalTip = (
     ? 1
     : Math.min(5, Math.max(3, Math.round(opts?.maxTips ?? 3)));
   const variantKey = journal ? "journal" : `n${maxTips}`;
-  // The tip rolls over daily AND regenerates the moment the personalisation
-  // signature moves (style, goal wording, challenges, concerns, latest wash
-  // day/appointment, support level) — whichever happens first.
-  // No day is sent — the tip must not rotate on a calendar rollover.
+  // STATIC. The tip regenerates only when the current style, the planned next
+  // style or the goal changes. No calendar rollover, no wash day, no
+  // appointment — those belong to the responsive tip surfaces.
+
   const { level } = useTipsLevel();
   const { data: signature } = useTipSignature(goal, level);
   return useQuery({
