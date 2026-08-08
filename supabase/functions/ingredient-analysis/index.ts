@@ -636,18 +636,27 @@ Deno.serve(async (req) => {
         avoidList,
         level: tipsLevel,
       });
-      // Guard: if the tip references another product/step, retry once with
-      // a hardened payload that echoes the violation back to the model.
-      if (guidanceReferencesOtherProduct(analysis)) {
+      // Guard: if the tip references another product/step, or fails the shared
+      // action/reason floors, retry once with the failures echoed back.
+      const claudeProblems = [
+        ...(guidanceReferencesOtherProduct(analysis)
+          ? [
+            "the tip referenced another product, product type, brand, accessory, or wash-day step. Describe ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution).",
+          ]
+          : []),
+        ...guidanceFloorProblems(analysis, guidanceTokens),
+      ];
+      if (claudeProblems.length) {
         console.log(JSON.stringify({
           function: "ingredient-analysis",
-          violation: "other_product_reference",
+          violation: "guidance_floor",
+          problems: claudeProblems,
           retry: true,
         }));
         const retryPayload = {
           ...userPayload,
           _retry_reason:
-            "Previous tip referenced another product, product type, brand, accessory, or wash-day step. Regenerate the personalised_guidance tip so it describes ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution). Do not mention any other product, category, brand, hat, cap, towel, or routine step.",
+            `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${claudeProblems.join("\n- ")}`,
         };
         analysis = await runClaude({
           productName,
@@ -663,6 +672,10 @@ Deno.serve(async (req) => {
       // Last line of defence: scrub any lingering forbidden phrases from
       // the tip so a stubborn model can't leak them into the UI.
       analysis = scrubGuidance(analysis);
+      auditGuidanceActionFloor(analysis, productKey);
+      const remaining = guidanceFloorProblems(analysis, guidanceTokens);
+      if (remaining.length)
+        console.warn("[ingredient-analysis] guidance served below floor after retry", { productKey, remaining });
       // Stamp provenance — required for cache_version invalidation.
       analysis._model_version = MODEL_VERSION;
       analysis._generated_at = new Date().toISOString();
@@ -679,10 +692,31 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`
         level: tipsLevel,
       });
       analysis = scrubGuidance(analysis);
+      const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
+      if (lovableProblems.length) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "guidance_floor",
+          problems: lovableProblems,
+          retry: true,
+        }));
+        analysis = await runLovable({
+          systemPrompt,
+          userPayload: {
+            ...userPayload,
+            _retry_reason:
+              `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${lovableProblems.join("\n- ")}`,
+          },
+          ingredientCount,
+          level: tipsLevel,
+        });
+        analysis = scrubGuidance(analysis);
+      }
       auditGuidanceActionFloor(analysis, productKey);
       analysis._provider = "lovable";
       analysis._generated_at = new Date().toISOString();
       // Note: no _model_version stamp on Lovable path — back-compat.
+
     }
 
     // ── Score reasons: normalise + keep match_score honest, and reduce the
