@@ -3727,6 +3727,7 @@ export type Database = {
           granted_at: string
           id: string
           ip_address: string | null
+          source: string | null
           user_agent: string | null
           user_id: string
         }
@@ -3737,6 +3738,7 @@ export type Database = {
           granted_at?: string
           id?: string
           ip_address?: string | null
+          source?: string | null
           user_agent?: string | null
           user_id: string
         }
@@ -3747,6 +3749,7 @@ export type Database = {
           granted_at?: string
           id?: string
           ip_address?: string | null
+          source?: string | null
           user_agent?: string | null
           user_id?: string
         }
@@ -5065,7 +5068,12 @@ export type Database = {
         Returns: undefined
       }
       record_consents: {
-        Args: { _consents: Json; _user_agent?: string; _version: string }
+        Args: {
+          _consents: Json
+          _source?: string
+          _user_agent?: string
+          _version: string
+        }
         Returns: undefined
       }
       refresh_ad_audiences: { Args: never; Returns: number }
@@ -5170,7 +5178,7 @@ export type Database = {
         Returns: undefined
       }
       withdraw_consent: {
-        Args: { _key: string; _version?: string }
+        Args: { _key: string; _source?: string; _version?: string }
         Returns: undefined
       }
     }

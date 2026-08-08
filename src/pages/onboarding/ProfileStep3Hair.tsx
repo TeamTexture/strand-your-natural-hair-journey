@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import HairLengthPicker from "@/components/HairLengthPicker";
 import { toast } from "sonner";
+import PersonalisedOffersPrompt from "@/components/consent/PersonalisedOffersPrompt";
+import { usePersonalisedOffersAsk } from "@/hooks/usePersonalisedOffersAsk";
 
 interface TGProps {
   label: string;
@@ -53,6 +55,13 @@ const ProfileStep3Hair = () => {
   const [areas, setAreas] = useState(["Edges / hairline"]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
+  const { shouldAsk } = usePersonalisedOffersAsk();
+  const [askOffers, setAskOffers] = useState(false);
+
+  const goNext = () => {
+    localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
+    navigate("/onboarding/profile-step-4-colour");
+  };
 
 
   return (
@@ -132,11 +141,22 @@ const ProfileStep3Hair = () => {
             toast.error("Could not save your hair profile. Check your connection.");
             return;
           }
-          localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
-          navigate("/onboarding/profile-step-4-colour");
+          // One-time optional ask, at the moment the hair profile is complete.
+          if (shouldAsk) {
+            setAskOffers(true);
+            return;
+          }
+          goNext();
         }}>
           Continue →
         </Button>
+        <PersonalisedOffersPrompt
+          open={askOffers}
+          onFinish={() => {
+            setAskOffers(false);
+            goNext();
+          }}
+        />
       </div>
     </ScreenLayout>
   );

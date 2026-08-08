@@ -59,6 +59,10 @@ const PersonalisedOffers = () => {
           <div className="min-w-0 flex-1">
             <p className="font-display text-[15px] leading-tight">Show me offers matched to my hair</p>
             <p className="text-[11.5px] font-body text-muted-foreground leading-snug mt-1">
+              Uses details of your hair like porosity and length — never your health information or
+              blood results.
+            </p>
+            <p className="text-[11.5px] font-body text-muted-foreground leading-snug mt-1">
               Brands never see who you are, and never receive your data. They only ever see
               aggregate counts.
             </p>
