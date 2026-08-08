@@ -22,11 +22,11 @@ const routeLabel = (path: string): string => {
 };
 
 const densityCopy: Record<TipsLevel, { icon: typeof CheckCircle2; label: string; body: string }> = {
-  1: { icon: CheckCircle2, label: "One clear next step", body: "Key data stays first; extra explanation is tucked away." },
-  2: { icon: ListChecks, label: "Essentials only", body: "You get the top few actions with short context." },
-  3: { icon: BookOpen, label: "Guided detail", body: "Actions include the reason behind them." },
-  4: { icon: Sparkles, label: "Step-by-step support", body: "Plain-language guidance, icons and beginner framing appear where helpful." },
+  1: { icon: CheckCircle2, label: "One clear next step", body: "The single thing that matters most, and why — nothing else." },
+  2: { icon: ListChecks, label: "Essentials only", body: "The top few actions, each with the why and how to do it." },
+  3: { icon: Sparkles, label: "Step-by-step support", body: "Everything in full: extended explanations, plain language and what to avoid." },
 };
+
 
 const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
   const { level } = useTipsLevel();
