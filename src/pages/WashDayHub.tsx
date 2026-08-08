@@ -550,6 +550,7 @@ const WashDayHub = () => {
                 sequenceNumber={sequenceNumber}
                 previousWashDate={previous?.wash_date ?? null}
                 onClick={() => navigate(`/wash-day/${wd.id}`)}
+                onSeeAll={() => navigate(`/wash-day/${wd.id}#transcript`)}
               />
             );
           })

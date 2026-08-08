@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Pencil,
   Trash2,
@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import BrandLink from "@/components/BrandLink";
 import { stripStaleDates } from "@/lib/stripStaleDates";
+import { toParagraphs } from "@/lib/formatTranscript";
 import AiProse from "@/components/tips/AiProse";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import LevelGate from "@/components/tips/LevelGate";
@@ -189,6 +190,21 @@ const WashDayDetail = () => {
   const [stylingProducts, setStylingProducts] = useState<ProductLookup[]>([]);
   const [stylingPhotoUrls, setStylingPhotoUrls] = useState<string[]>([]);
   const [stylingAudioUrl, setStylingAudioUrl] = useState<string | null>(null);
+  const { hash } = useLocation();
+
+  // Arriving from a card's "See all" lands on #transcript — scroll the full note
+  // into view once it has rendered.
+  useEffect(() => {
+    if (hash !== "#transcript" || loading || !wd) return;
+    const el = document.getElementById("transcript");
+    if (!el) return;
+    const t = window.setTimeout(
+      () => el.scrollIntoView({ behavior: "smooth", block: "center" }),
+      120,
+    );
+    return () => window.clearTimeout(t);
+  }, [hash, loading, wd]);
+
 
   useEffect(() => {
     if (!user || !id) return;
@@ -688,13 +704,19 @@ const WashDayDetail = () => {
 
         {/* ── Hair feel note + voice ─────────── */}
         {!editing && (wd.hair_feel_note || voiceUrl) && (
-          <SurfaceCard>
+          <SurfaceCard id="transcript">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
               {voiceUrl ? <Mic className="size-3" /> : null} Your hair feel note
             </p>
             <div className="space-y-2">
               {wd.hair_feel_note && (
-                <p className="text-sm leading-relaxed">{wd.hair_feel_note}</p>
+                /* Transcribed speech arrives as one block — break it into
+                   paragraphs so the full note is readable, not word vomit. */
+                <div className="space-y-3">
+                  {toParagraphs(wd.hair_feel_note).map((para, i) => (
+                    <p key={i} className="text-sm leading-relaxed">{para}</p>
+                  ))}
+                </div>
               )}
               {voiceUrl && <audio controls src={voiceUrl} className="w-full" />}
             </div>
