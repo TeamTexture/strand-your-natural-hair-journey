@@ -21,11 +21,11 @@ import {
   logTipRejection,
 } from "../_shared/tip-action.ts";
 import {
-  buildEditorialProductGuard,
-  editorialProductBlock,
-  findExcludedProducts,
+  buildProductNameWall,
+  noProductNamesBlock,
+  findProductNames,
   redactProductNames,
-} from "../_shared/editorial-products.ts";
+} from "../_shared/product-name-wall.ts";
 import {
   applyLevelCaps,
   levelCapViolations,
