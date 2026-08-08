@@ -435,7 +435,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   };
 
 
-  let verdict = parsed?.headline && parsed?.why
+  let verdict = isUsable(parsed)
     ? check(parsed)
     : { ok: false, reasons: ["output_unparseable_or_incomplete"] };
 
@@ -465,7 +465,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         const rj = await retryResp.json();
         raw = rj?.choices?.[0]?.message?.content ?? raw;
         const retried = parseTip(raw);
-        if (retried?.headline && retried?.why) {
+        if (isUsable(retried)) {
           const retryVerdict = check(retried);
           if (retryVerdict.ok) {
             parsed = retried;
@@ -484,7 +484,8 @@ Do not substitute other cleansing or sealing methods for these two.`
     }
   }
 
-  if (!parsed?.headline || !parsed?.why) {
+  if (!isUsable(parsed)) {
+    console.error("[wash-day-tip] unusable model output:", raw.slice(0, 500));
     return json(502, { error: "invalid model output" });
   }
   // ── GRACEFUL DEGRADATION ─────────────────────────────────────────────
