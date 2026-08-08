@@ -56,7 +56,7 @@ interface Props {
  *  Shared by the in-app placements (`BrandBanner`, which resolves delivery) and
  *  the public brand page, so a member who closes an advert can find the same
  *  card again in the brand directory with the same features. */
-const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null }: Props) => {
+const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null, brandName: brandNameProp = null }: Props) => {
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
