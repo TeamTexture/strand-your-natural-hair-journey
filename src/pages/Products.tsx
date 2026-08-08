@@ -245,23 +245,33 @@ const Products = () => {
                             <Mic className="size-3" /> {noteCount}
                           </span>
                         )}
-                        {sponsoredById[p.id] && (
-                          <span className="basis-full mt-1 flex items-center gap-1.5 rounded-[10px] border border-primary/35 bg-primary/[0.09] px-2.5 py-1.5">
-                            <Tag className="size-3 text-primary shrink-0" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-[11px] font-body font-semibold text-primary leading-tight">
-                                Live offer
-                                {sponsoredById[p.id].discountCode ? ` · code ${sponsoredById[p.id].discountCode}` : ""}
-                              </span>
-                              <span className="block text-[9.5px] text-muted-foreground leading-tight">
-                                Tap to view the offer &amp; buy
-                                {sponsoredById[p.id].endsOn ? ` — ends ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
-                              </span>
-                            </span>
-                            <ChevronRight className="size-3.5 text-primary shrink-0" />
-                          </span>
-                        )}
                       </>
+                    }
+                    banner={
+                      sponsoredById[p.id] ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const sp = sponsoredById[p.id];
+                            if (p.linked_brand_product_id) navigate(`/offers/${sp.offerId}/product/${p.linked_brand_product_id}`);
+                            else navigate(`/offers/${sp.offerId}`);
+                          }}
+                          className="w-full flex items-center gap-2.5 rounded-[12px] border border-primary/35 bg-primary/[0.08] px-3 py-2.5 text-left hover:bg-primary/[0.13] transition-colors"
+                        >
+                          <Tag className="size-4 text-primary shrink-0" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[12px] font-body font-semibold text-primary leading-tight truncate">
+                              Live offer
+                              {sponsoredById[p.id].discountCode ? ` · code ${sponsoredById[p.id].discountCode}` : ""}
+                            </span>
+                            <span className="block text-[10.5px] text-muted-foreground leading-tight truncate mt-0.5">
+                              Tap to view the offer &amp; buy
+                              {sponsoredById[p.id].endsOn ? ` — ends ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                            </span>
+                          </span>
+                          <ChevronRight className="size-4 text-primary shrink-0" />
+                        </button>
+                      ) : undefined
                     }
                     headerActions={
                       !batch.selectMode ? (
