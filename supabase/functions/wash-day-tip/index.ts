@@ -390,10 +390,9 @@ Do not substitute other cleansing or sealing methods for these two.`
       reason: String(p?.reason ?? ""),
       action: String(p?.action ?? ""),
     });
-    // PAID-MEDIA WALL: the editorial card may never name a product that is
-    // the subject of a live campaign, nor a catalogue product she doesn't own.
-    const sponsoredHits = findExcludedProducts(p, guard.sponsored);
-    const unownedHits = findExcludedProducts(p, guard.unownedCatalogue);
+    // NO PRODUCT NAMES: the editorial card may never name any product, from
+    // any brand, including products this member owns. One hit = regenerate.
+    const productHits = findProductNames(p, wall.names);
     // Minimal level word caps, validated.
     const capHits = levelCapViolations(requestedLevel, {
       action: String(p?.action ?? ""),
@@ -401,13 +400,12 @@ Do not substitute other cleansing or sealing methods for these two.`
       technique: String(p?.technique ?? ""),
     });
     return {
-      ok: actionVerdict.ok && reasonVerdict.ok && sponsoredHits.length === 0 &&
-        unownedHits.length === 0 && capHits.length === 0,
+      ok: actionVerdict.ok && reasonVerdict.ok && productHits.length === 0 &&
+        capHits.length === 0,
       reasons: [
         ...actionVerdict.reasons,
         ...reasonVerdict.reasons,
-        ...(sponsoredHits.length ? ["names_sponsored_product"] : []),
-        ...(unownedHits.length ? ["names_unowned_product"] : []),
+        ...(productHits.length ? ["names_product"] : []),
         ...capHits,
       ],
     };
