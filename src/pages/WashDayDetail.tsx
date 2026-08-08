@@ -190,6 +190,21 @@ const WashDayDetail = () => {
   const [stylingProducts, setStylingProducts] = useState<ProductLookup[]>([]);
   const [stylingPhotoUrls, setStylingPhotoUrls] = useState<string[]>([]);
   const [stylingAudioUrl, setStylingAudioUrl] = useState<string | null>(null);
+  const { hash } = useLocation();
+
+  // Arriving from a card's "See all" lands on #transcript — scroll the full note
+  // into view once it has rendered.
+  useEffect(() => {
+    if (hash !== "#transcript" || loading || !wd) return;
+    const el = document.getElementById("transcript");
+    if (!el) return;
+    const t = window.setTimeout(
+      () => el.scrollIntoView({ behavior: "smooth", block: "center" }),
+      120,
+    );
+    return () => window.clearTimeout(t);
+  }, [hash, loading, wd]);
+
 
   useEffect(() => {
     if (!user || !id) return;
