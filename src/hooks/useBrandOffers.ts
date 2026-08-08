@@ -47,9 +47,17 @@ export interface BrandOfferRevision {
   id: string;
   offer_id: string;
   brand_user_id: string;
-  /** `pending_payment` = a positive targeting uplift is awaiting Stripe Checkout.
-   *  Only the Stripe webhook moves it to `pending` (admin review). */
-  status: "pending" | "pending_payment" | "approved" | "rejected" | "withdrawn" | "superseded";
+  /** `approved_pending_payment` = admin approved, but the targeting uplift is
+   *  unpaid so the new audience is NOT live. Only the Stripe webhook applies it
+   *  (→ `approved`). Expires at campaign end if never paid. */
+  status:
+    | "pending"
+    | "approved_pending_payment"
+    | "approved"
+    | "rejected"
+    | "withdrawn"
+    | "superseded"
+    | "expired";
   headline: string | null;
   body_copy: string | null;
   discount_code: string | null;
@@ -471,11 +479,12 @@ export function usePendingRevision(offerId: string | undefined) {
   });
 }
 
-/** Revision parked awaiting the brand's uplift payment (0 or 1). The brand's
- *  audience edits are preserved here so an abandoned Checkout loses nothing. */
+/** Approved revision awaiting the brand's uplift payment (0 or 1). The live
+ *  campaign keeps its original audience and rate until payment lands, and the
+ *  brand's edits are preserved so an abandoned Checkout loses nothing. */
 export function useAwaitingPaymentRevision(offerId: string | undefined) {
   return useQuery({
-    queryKey: ["brand-offer-revision", "pending_payment", offerId],
+    queryKey: ["brand-offer-revision", "awaiting-payment", offerId],
     enabled: !!offerId,
     queryFn: async (): Promise<BrandOfferRevision | null> => {
       const client = supabase as unknown as {
@@ -483,7 +492,7 @@ export function useAwaitingPaymentRevision(offerId: string | undefined) {
           select: (c: string) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: BrandOfferRevision | null; error: { message: string } | null }> } } };
         };
       };
-      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("offer_id", offerId!).eq("status", "pending_payment").maybeSingle();
+      const { data, error } = await client.from("brand_offer_revisions").select("*").eq("offer_id", offerId!).eq("status", "approved_pending_payment").maybeSingle();
       if (error) throw new Error(error.message);
       return data;
     },
@@ -600,7 +609,7 @@ export function useSubmitBrandOfferRevision() {
     },
     onSuccess: (_id, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "awaiting-payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
@@ -610,8 +619,8 @@ export function useSubmitBrandOfferRevision() {
   });
 }
 
-/** Brand: open Stripe Checkout for a `pending_payment` revision's uplift.
- *  The revision only reaches admin review when the Stripe webhook confirms the
+/** Brand: open Stripe Checkout for an approved revision's targeting uplift.
+ *  The new audience only goes live when the Stripe webhook confirms the
  *  session — nothing here transitions state. */
 export function useRevisionUpliftCheckout() {
   return useMutation({
@@ -666,7 +675,7 @@ export function useWithdrawBrandOfferRevision() {
     },
     onSuccess: (_r, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "awaiting-payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
@@ -686,7 +695,7 @@ export function useApproveBrandOfferRevision() {
       qc.invalidateQueries({ queryKey: ["brand-offer", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offers"] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "awaiting-payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
@@ -706,7 +715,7 @@ export function useRejectBrandOfferRevision() {
     },
     onSuccess: (_r, args) => {
       qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending_payment", args.offer_id] });
+      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "awaiting-payment", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
       qc.invalidateQueries({ queryKey: ["admin", "pending-brand-offers"] });
       qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });

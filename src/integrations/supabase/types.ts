@@ -4819,6 +4819,10 @@ export type Database = {
             Returns: string
           }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
+      apply_brand_offer_revision_targeting: {
+        Args: { _revision_id: string }
+        Returns: undefined
+      }
       approve_brand_offer_revision: {
         Args: { _revision_id: string }
         Returns: undefined
@@ -4993,6 +4997,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      expire_unpaid_brand_offer_revisions: { Args: never; Returns: number }
       forum_author_info: {
         Args: { _user_ids: string[] }
         Returns: {

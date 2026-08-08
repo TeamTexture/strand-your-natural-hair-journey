@@ -114,9 +114,10 @@ Deno.serve(async (req) => {
         const meta = (session.metadata as Record<string, string> | null) ?? {};
 
         // ── Targeting-uplift revision ────────────────────────────────────────
-        // The ONLY place a revision moves from pending_payment → pending
-        // (admin review). Never driven from the browser. Idempotent: the RPC
-        // no-ops when the revision has already been transitioned.
+        // The ONLY place an approved revision's targeting is applied
+        // (approved_pending_payment → approved, cached audience re-resolved).
+        // Never driven from the browser. Idempotent: the RPC no-ops when the
+        // revision has already been applied.
         if (meta.kind === "revision_uplift" && meta.revision_id) {
           if (session.payment_status === "paid") {
             const { data: moved, error } = await admin.rpc(
@@ -131,7 +132,7 @@ Deno.serve(async (req) => {
               },
             );
             if (error) console.error("revision uplift confirm failed", error);
-            else console.log("revision uplift confirmed", meta.revision_id, "transitioned:", moved);
+            else console.log("revision uplift confirmed", meta.revision_id, "applied:", moved);
           }
           break;
         }

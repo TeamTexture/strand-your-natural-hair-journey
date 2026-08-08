@@ -24,7 +24,7 @@ import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { scanProductLink, normaliseProductUrl } from "@/lib/brandLinkScan";
 import { useAuth } from "@/hooks/useAuth";
-import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, useRevisionUpliftCheckout, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
+import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useBrandShelf } from "@/hooks/useBrandShelf";
@@ -120,7 +120,6 @@ const BrandCreateOffer = () => {
   const { data: existing } = useBrandOffer(existingId);
   const { data: pendingRevision } = usePendingRevision(existingId);
   const submitRevision = useSubmitBrandOfferRevision();
-  const upliftCheckout = useRevisionUpliftCheckout();
   const { isActive: proSubActive } = useProSubscription();
 
   // Revision mode = editing an already-live or paid-scheduled offer. Creative
@@ -501,7 +500,7 @@ const BrandCreateOffer = () => {
           linked_product_id: p.linked_product_id ?? null,
           position: i,
         }));
-        const revisionId = await submitRevision.mutateAsync({
+        await submitRevision.mutateAsync({
           offer_id: existingId,
           headline: headline.trim() || null,
           body_copy: bodyCopy.trim() || null,
@@ -514,24 +513,8 @@ const BrandCreateOffer = () => {
           targeting: targetingDirty ? cleanTargeting : undefined,
         });
 
-        // A positive uplift parks the revision in `pending_payment`: money first,
-        // review second. Zero-uplift changes never touch Stripe.
-        if (targetingDirty && upliftQuote.paymentRequired && revisionId) {
-          try {
-            const url = await upliftCheckout.mutateAsync({ revision_id: revisionId });
-            window.location.href = url;
-            return;
-          } catch (e) {
-            toast.error(
-              e instanceof Error
-                ? `${e.message} — your changes are saved, you can pay from the campaign page.`
-                : "Checkout could not be started — your changes are saved.",
-            );
-            nav(`/brand/offers/${existingId}`);
-            return;
-          }
-        }
-
+        // Nothing is charged here. Admin reviews first; a positive uplift is
+        // only payable once the change has been approved.
         toast.success(
           targetingDirty
             ? "Creative and audience changes submitted for review"
@@ -1070,13 +1053,13 @@ const BrandCreateOffer = () => {
                           ))}
                         </div>
                         <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 font-medium">
-                          <span>Total to pay now</span>
+                          <span>Total to pay if approved</span>
                           <span className="tabular-nums">{money(upliftQuote.totalPence)}</span>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          Submitting takes you straight to secure checkout for {money(upliftQuote.totalPence)}. Your edits are saved either
-                          way — if you don't finish paying you can come back and pay or discard them. The new audience goes to admin review
-                          once payment clears.
+                          Nothing is charged now. An admin reviews the change first — if it's approved you'll be asked to pay{" "}
+                          {money(upliftQuote.totalPence)} to activate the new audience. Your campaign keeps running on its current audience
+                          and rate until then.
                         </p>
 
                       </div>

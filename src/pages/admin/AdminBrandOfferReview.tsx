@@ -114,7 +114,11 @@ const RevisionDiff = ({ offer, revision }: {
         <p className="text-[11.5px] text-foreground/80 font-body leading-snug">
           Submitted {format(new Date(revision.submitted_at), "d MMM · HH:mm")}. Approve = new creative
           {targetingChanged ? " and audience" : ""} replaces what members see on next load
-          {targetingChanged ? " (the audience is re-resolved straight away, not on the nightly refresh)" : ""}. Reject = original
+          {targetingChanged
+            ? revision.payment_required
+              ? " (the audience only applies once the brand pays the uplift — approving charges nothing)"
+              : " (the audience is re-resolved straight away, not on the nightly refresh)"
+            : ""}. Reject = original
           {targetingChanged ? " creative and audience continue" : " creative continues"} running. Dates unchanged, stats continue on the same
           offer.
         </p>
@@ -168,6 +172,8 @@ const RevisionDiff = ({ offer, revision }: {
           upliftPence={revision.uplift_pence}
           paymentRequired={revision.payment_required}
           paidAt={revision.paid_at}
+          status={revision.status}
+
         />
       )}
 
