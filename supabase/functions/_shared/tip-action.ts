@@ -182,11 +182,23 @@ export function retryDirective(reasons: string[], attributeTokens: string[]): st
     ...(reasons.includes("names_unowned_product")
       ? ['- You named a product this member does not own. Only ever name something on her own shelf, or name nothing and describe the product type.']
       : []),
-    ...(reasons.includes("action_over_minimal_cap")
-      ? ['- "action" is TOO LONG: one sentence, MAXIMUM 20 words. Cut words, keep the instruction.']
+    ...(reasons.includes("action_over_minimal_cap") || reasons.includes("action_over_level_cap")
+      ? ['- "action" is TOO LONG for this member\'s support level. Cut words to fit the stated cap, keep the instruction.']
       : []),
-    ...(reasons.includes("reason_over_minimal_cap")
-      ? ['- "reason" is TOO LONG: one sentence, MAXIMUM 18 words. Cut words, keep the why.']
+    ...(reasons.includes("reason_over_minimal_cap") || reasons.includes("reason_over_level_cap")
+      ? ['- "reason" is TOO LONG for this member\'s support level. Cut words to fit the stated cap, keep the why.']
+      : []),
+    ...(reasons.includes("technique_over_level_cap")
+      ? ['- "technique" is TOO LONG for this member\'s support level. Cut words to fit the stated cap, keep the how.']
+      : []),
+    ...(reasons.includes("reason_not_one_sentence")
+      ? ['- "reason" must be EXACTLY ONE sentence.']
+      : []),
+    ...(reasons.includes("action_not_one_sentence")
+      ? ['- "action" must be EXACTLY ONE sentence at this support level.']
+      : []),
+    ...(reasons.includes("action_over_two_sentences")
+      ? ['- "action" must be at most TWO sentences at this support level.']
       : []),
   ].join("\n");
 

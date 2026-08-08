@@ -25,7 +25,6 @@ import {
   editorialProductBlock,
   findExcludedProducts,
   redactProductNames,
-  trimToCap,
 } from "../_shared/editorial-products.ts";
 import {
   applyLevelCaps,

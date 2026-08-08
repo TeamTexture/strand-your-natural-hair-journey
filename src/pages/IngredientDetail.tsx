@@ -1036,7 +1036,7 @@ const IngredientDetail = () => {
                     idPrefix="pg"
                     showWhy
                     actions={analysis.personalised_guidance
-                      .slice(0, tipsLevel === 1 ? 1 : tipsLevel === 2 ? 2 : tipsLevel === 3 ? 4 : 6)
+                      .slice(0, tipsLevel === 1 ? 1 : tipsLevel === 2 ? 3 : 6)
                       .map((tip) => ({ action: tip.title, why: tip.body }))}
                   />
                 </SurfaceCard>
