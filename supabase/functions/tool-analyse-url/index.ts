@@ -37,9 +37,9 @@ import { coerceTipsLevel, buildTipsLevelBlock, type TipsLevel } from "../_shared
 
 /** Level-aware depth cap — identical to the product analysis paths. */
 function levelCap(level: TipsLevel): number {
-  if (level >= 4) return 4;
-  if (level === 3) return 3;
-  return 2;
+  if (level >= 3) return 4;
+  if (level === 2) return 3;
+  return 1;
 }
 
 declare const Deno: {

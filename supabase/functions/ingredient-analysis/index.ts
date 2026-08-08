@@ -153,22 +153,20 @@ interface RequestBody {
 }
 
 // ── Tool schema (shared between providers) ──────────────────────────────
-/** How many usage tips each support level wants. Level 4 always shows the
- *  most; level 1 the single highest-impact one. */
+/** How many usage tips each support level wants. Hand-holding always shows the
+ *  most; Minimal the single highest-impact one. */
 function guidanceCount(level: TipsLevel): number {
-  if (level >= 4) return 6;
-  if (level === 3) return 4;
-  if (level === 2) return 2;
+  if (level >= 3) return 6;
+  if (level === 2) return 3;
   return 1;
 }
 
 /** How much prose each tip body gets. Higher levels want a genuinely detailed
  *  explanation, not a single sentence. */
 function guidanceDepth(level: TipsLevel): { sentences: string; words: number } {
-  if (level >= 4) return { sentences: "4-6 sentences", words: 130 };
-  if (level === 3) return { sentences: "3-4 sentences", words: 90 };
-  if (level === 2) return { sentences: "2-3 sentences", words: 60 };
-  return { sentences: "2 sentences", words: 45 };
+  if (level >= 3) return { sentences: "4-6 sentences", words: 130 };
+  if (level === 2) return { sentences: "2-3 sentences", words: 65 };
+  return { sentences: "1-2 sentences", words: 40 };
 }
 
 
@@ -256,7 +254,7 @@ RULES — STRICT:
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
-5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. Each tip body must be a DETAILED, multi-sentence explanation (${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words) — never a single sentence. Within each tip, give the action in full (amount, placement, sectioning, hair state, temperature, dwell time, rinse, frequency), the reason it fits one NAMED trait of this user, what it should look or feel like when done right, and the mistake to avoid. ${level >= 4 ? "This user is at support level 4 (hand-holding): the fullest, most explanatory version — plain words, reading age 9-10, timings scaled to their hair, everything spelled out." : level === 3 ? "This user is at support level 3: full reasoning behind each tip." : "Keep the wording efficient but still explain the why and the sign to watch for."}
+5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. Each tip body must be a DETAILED, multi-sentence explanation (${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words) — never a single sentence. Within each tip, give the action in full (amount, placement, sectioning, hair state, temperature, dwell time, rinse, frequency), the reason it fits one NAMED trait of this user, what it should look or feel like when done right, and the mistake to avoid. ${level >= 3 ? "This user is at support level 3 (hand-holding): the fullest, most explanatory version — plain words, reading age 9-10, timings scaled to their hair, everything spelled out." : level === 2 ? "This user is at support level 2 (essential): the action, one sentence of why, and the concrete how. No extended explanatory passage." : "This user is at support level 1 (minimal): the action plus one short sentence of why, and nothing more."}
 
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
    - Do NOT recommend, name, pair with, "follow with", "layer with", "use alongside", "then apply", or otherwise suggest ANY other product, product type, or step (no "deep conditioner", "leave-in", "oil", "mask", "clarifying wash", "protein treatment", "styler", etc.). Even generic categories are banned.
