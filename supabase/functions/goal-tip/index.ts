@@ -483,33 +483,36 @@ Deno.serve(async (req) => {
     const goalText = [challengeText(body.goal), body.goal.target_text].filter(Boolean).join(" ");
     const chapterFilter = selectGoalChapters(goalText);
     const ragQuery = buildRagQuery(body);
+    // PROCEDURAL BIAS: retrieval is re-ranked toward passages that describe a
+    // method — steps, timings, frequencies, treatments — not passages merely
+    // *about* the goal's theme. Thematic passages were the root cause of
+    // tautological tips ("protecting your hair prevents damage to your hair").
     // Retry once, then fall back to the full corpus. Never block the user:
     // if retrieval still fails we generate anyway and stamp the payload so
     // ungrounded outputs are visible in the logs.
     let ragBlock = "";
     let ragPassageCount = 0;
+    let ragProceduralCount = 0;
     let grounded = false;
-    const retrieve = async () => {
-      let passages = await retrievePassages(ragQuery, 6, chapterFilter);
-      // Fallback: if the chapter-scoped query returned nothing (e.g. missing
-      // embeddings for those chapters), fall back to the full corpus.
-      if (passages.length === 0) {
-        passages = await retrievePassages(ragQuery, 6);
-      }
-      return passages;
-    };
+    const retrieve = async () => await retrieveProceduralPassages(ragQuery, 6, chapterFilter);
     try {
-      let passages: Awaited<ReturnType<typeof retrieve>>;
+      let result: Awaited<ReturnType<typeof retrieve>>;
       try {
-        passages = await retrieve();
+        result = await retrieve();
       } catch {
-        passages = await retrieve();
+        result = await retrieve();
       }
+      const passages = result.passages;
       ragPassageCount = passages.length;
+      ragProceduralCount = result.procedural;
       grounded = passages.length > 0;
       if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}`;
+        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
       }
+    } catch {
+      grounded = false;
+    }
+
     } catch {
       grounded = false;
     }
