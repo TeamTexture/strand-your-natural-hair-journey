@@ -185,7 +185,13 @@ Deno.serve(async (req) => {
       .eq("kind", kind)
       .maybeSingle();
     const payload = cached?.payload as ProfilePayload | null;
-    if (payload && payload._model_version === MODEL_VERSION) {
+    // A cached row with a blank definition is a bad cache — regenerate.
+    if (
+      payload &&
+      payload._model_version === MODEL_VERSION &&
+      typeof payload.what_it_is === "string" &&
+      payload.what_it_is.trim().length > 0
+    ) {
       return json(200, { profile: payload, cached: true });
     }
   }
