@@ -535,10 +535,27 @@ Deno.serve(async (req) => {
 
       const result = validate(parsed, body.context ?? null, surface);
       if (result.ok) {
-        clean = result.value;
-        break;
+        // Sanitise INSIDE the loop. The blood guardrail can strip a whole
+        // sentence, and a stripped reason would otherwise ship an action-only
+        // tip — the exact defect the floors exist to prevent. If the guardrail
+        // removes the reason, regenerate instead of degrading the tip.
+        const candidate = await sanitiseAndLog(result.value, "brand-product-guidance", {
+          context: body.context,
+        });
+        const survivedFloors =
+          surface === "wash_day"
+            ? !!String(candidate.wash_day_tip ?? "").trim()
+            : sentenceCount(String(candidate.fit_line ?? "")) >= 2;
+        if (survivedFloors) {
+          clean = candidate;
+          break;
+        }
+        lastProblems = [
+          'part of your advert tip was removed by the blood-claim guardrail, leaving it without a reason. Rewrite "fit_line_reason" so it explains the hair-care mechanism only — never bridge a blood marker, medication or health value to a hair outcome.',
+        ];
+      } else {
+        lastProblems = parsed === null ? ["Output was not valid JSON."] : result.problems;
       }
-      lastProblems = parsed === null ? ["Output was not valid JSON."] : result.problems;
       messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
       messages.push({
         role: "user",
@@ -556,10 +573,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const safe = await sanitiseAndLog(clean, "brand-product-guidance", { context: body.context });
-    return new Response(JSON.stringify({ guidance: safe }), {
+    return new Response(JSON.stringify({ guidance: clean }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e) {
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
