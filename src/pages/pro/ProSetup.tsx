@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import CapabilityClaimFields from "@/components/pro/CapabilityClaimFields";
+import BioGuidance, { BIO_MAX_CHARS } from "@/components/pro/BioGuidance";
 import {
   claimFromRow,
   claimPayload,

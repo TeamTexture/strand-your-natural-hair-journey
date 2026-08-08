@@ -29,6 +29,7 @@ import { useProSubscription } from "@/hooks/useProSubscription";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
 import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
 import CapabilityClaimFields from "@/components/pro/CapabilityClaimFields";
+import BioGuidance, { BIO_MAX_CHARS } from "@/components/pro/BioGuidance";
 import {
   claimFromRow,
   claimPayload,
