@@ -4794,6 +4794,16 @@ export type Database = {
         Args: { _ids: string[] }
         Returns: undefined
       }
+      admin_override_brand_offer: {
+        Args: {
+          _ends_on?: string
+          _offer_id: string
+          _slots?: Database["public"]["Enums"]["brand_placement_slot"][]
+          _starts_on?: string
+          _targeting?: Json
+        }
+        Returns: Json
+      }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
       admin_role_history: {
