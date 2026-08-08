@@ -61,23 +61,6 @@ interface ProductDraft {
   linked_product_id?: string | null;
 }
 
-interface CatalogueItem {
-  kind: AttachKind;
-  source_id: string;
-  name: string;
-  brand: string | null;
-  category: string | null;
-  image_url: string | null;
-  ingredients: string[] | null;
-  tool_kind: string | null;
-  key_features: string[] | null;
-  materials: string[] | null;
-  source_url: string | null;
-  user_count: number;
-}
-
-type CatalogueFilter = "all" | AttachKind;
-
 const emptyProduct = (kind: AttachKind = "product"): ProductDraft => ({
   kind,
   name: "",
@@ -204,9 +187,6 @@ const BrandCreateOffer = () => {
   const [previewMode, setPreviewMode] = useState<"collapsed" | "expanded">("collapsed");
   const [showSafeArea, setShowSafeArea] = useState(true);
   const [shelfOpen, setShelfOpen] = useState(false);
-  const [catalogueOpen, setCatalogueOpen] = useState(false);
-  const [catalogueKind, setCatalogueKind] = useState<CatalogueFilter>("all");
-  const [catalogueSearch, setCatalogueSearch] = useState("");
 
   // Cropper state — one dialog reused for banner or a specific product image.
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -292,22 +272,6 @@ const BrandCreateOffer = () => {
 
   const { data: shelfAll = [] } = useBrandShelf();
   const shelfItems = shelfAll.filter((i) => i.approval_status === "approved");
-
-  const catalogueQuery = useQuery({
-    queryKey: ["brand-catalogue-items", catalogueKind, catalogueSearch],
-    enabled: catalogueOpen,
-    queryFn: async (): Promise<CatalogueItem[]> => {
-      const { data, error } = await supabase.functions.invoke("brand-catalogue", {
-        body: {
-          _kind: catalogueKind,
-          _search: catalogueSearch.trim() || null,
-          _limit: 80,
-        },
-      });
-      if (error) throw new Error(error.message ?? "Catalogue unavailable");
-      return Array.isArray(data?.items) ? data.items : [];
-    },
-  });
 
   const enabledSlotList = useMemo(
     () => SLOTS.filter((s) => enabledSlots[s]),
@@ -469,35 +433,6 @@ const BrandCreateOffer = () => {
     toast.success("Attached from your shelf");
   };
 
-  const isCatalogueItemAttached = (item: CatalogueItem) =>
-    products.some((p) => p.linked_product_id === item.source_id && p.kind === item.kind);
-
-  const attachCatalogueItem = (item: CatalogueItem) => {
-    if (isCatalogueItemAttached(item)) {
-      setProducts((prev) => prev.filter((p) => !(p.linked_product_id === item.source_id && p.kind === item.kind)));
-      toast.success(`${item.kind === "tool" ? "Tool" : "Product"} removed`);
-      return;
-    }
-    const label = item.kind === "tool" ? "tool" : "product";
-    setProducts((prev) => [
-      ...prev,
-      {
-        kind: item.kind,
-        name: item.name,
-        description: item.brand ? `${item.brand}${item.category ? ` · ${item.category}` : ""}` : (item.category ?? ""),
-        external_url: item.source_url ?? "",
-        image_urls: item.image_url ? [item.image_url] : [],
-        ingredients: item.kind === "product" ? (item.ingredients ?? []) : [],
-        tool_kind: item.kind === "tool" ? (toToolKind(item.tool_kind ?? item.category) ?? item.tool_kind) : null,
-        key_features: item.kind === "tool" ? (item.key_features ?? []) : [],
-        materials: item.kind === "tool" ? (item.materials ?? []) : [],
-        source_type: "linked",
-        source_url: item.source_url,
-        linked_product_id: item.source_id,
-      },
-    ]);
-    toast.success(`${label === "tool" ? "Tool" : "Product"} attached`);
-  };
 
   const { isActive: brandSubActive } = useBrandSubscription();
 
