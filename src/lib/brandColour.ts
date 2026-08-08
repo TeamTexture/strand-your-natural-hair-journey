@@ -170,23 +170,31 @@ export function tint(hex: string, alpha: number): string {
 
 /* ── extraction (canvas quantisation, upload time only) ─────────────────── */
 
+/** Lightness cut-offs, as a fraction of full range. Anything lighter than
+ *  NEAR_WHITE (white plates, white wordmarks) or darker than NEAR_BLACK
+ *  (outlines, drop shadows) is discarded BEFORE any counting, so it can never
+ *  win on area. */
+export const NEAR_WHITE = 0.92;
+export const NEAR_BLACK = 0.08;
+
+/** Working resolution for extraction. */
+export const SAMPLE_SIZE = 100;
+
 /**
- * Quantises an image into a 4-bit-per-channel histogram and returns the two
- * most prominent chromatic buckets. Near-white / near-black / low-saturation
- * pixels are ignored so a logo on a white plate still yields its brand colour.
+ * Extracts the brand palette from a logo blob: downscale → quantise → discard
+ * near-white/near-black → count pixels → largest area wins.
  * Returns null when nothing usable is found (caller falls back to gold).
  */
 export async function extractBrandColoursFromBlob(blob: Blob): Promise<BrandColours | null> {
   try {
     const bitmap = await createImageBitmap(blob);
-    const size = 64;
     const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = SAMPLE_SIZE;
+    canvas.height = SAMPLE_SIZE;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(bitmap, 0, 0, size, size);
-    const { data } = ctx.getImageData(0, 0, size, size);
+    ctx.drawImage(bitmap, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
+    const { data } = ctx.getImageData(0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
 
     const picked = pickDominantColours(data);
     if (!picked) return null;
@@ -197,32 +205,33 @@ export async function extractBrandColoursFromBlob(blob: Blob): Promise<BrandColo
 }
 
 /**
- * Pure, testable quantiser. Buckets RGBA pixel data at 4 bits per channel and
- * ranks strictly by PIXEL-COUNT SHARE, so the dominant AREA wins and a small
- * accent stripe can never outrank the field it sits on. Near-white (the
- * wordmark), near-black and washed-out greys are ignored.
+ * Pure, testable quantiser. THE RULE: the brand primary is the colour
+ * occupying the LARGEST AREA of the logo — decided by pixel count and nothing
+ * else. No saturation, vibrancy or "importance" weighting is applied anywhere
+ * in this function; every surviving pixel contributes exactly 1.
  *
- * Returns the dominant colour plus the most prominent bucket from a
- * *different* hue family as the secondary, so a brand with an accent stripe
- * gets a genuine second colour rather than a neighbouring shade of the first.
+ * Steps: quantise to 4 bits per channel (so anti-aliasing and gradients don't
+ * fragment one flat field into dozens of near-identical shades) → discard
+ * near-white and near-black → count → highest count is primary, next highest
+ * visually distinct bucket is secondary.
+ *
+ * `share` is the winning bucket's fraction of all counted pixels, so callers
+ * (and tests) can verify area share decided the outcome.
  */
 export function pickDominantColours(
   data: Uint8ClampedArray | number[],
-): { primary: string; secondary: string; share: number } | null {
+): { primary: string; secondary: string; share: number; secondaryShare: number } | null {
   const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
   let considered = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 200) continue;
     const r = data[i], g = data[i + 1], b = data[i + 2];
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const lum = (max + min) / 2;
-    const sat = max === 0 ? 0 : (max - min) / max;
-    // Paper white (and the white wordmark), near black, washed-out greys.
-    if (lum > 242 || lum < 14) continue;
-    if (sat < 0.12 && lum > 200) continue;
+    // HSL lightness: the midpoint of the channel range.
+    const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255;
+    if (lightness > NEAR_WHITE || lightness < NEAR_BLACK) continue;
     const key = `${r >> 4}-${g >> 4}-${b >> 4}`;
     const cur = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
-    cur.count += 1; // strictly area — no saturation weighting
+    cur.count += 1; // pure area — one pixel, one vote
     cur.r += r; cur.g += g; cur.b += b;
     buckets.set(key, cur);
     considered += 1;
@@ -234,16 +243,17 @@ export function pickDominantColours(
     rgbToHex(x.r / x.count, x.g / x.count, x.b / x.count);
   const primary = avg(ranked[0]);
   const [pr, pg, pb] = hexToRgb(primary) ?? [0, 0, 0];
-  const distinct = ranked
+  const runnerUp = ranked
     .slice(1)
-    .map(avg)
-    .find((hex) => {
-      const [r, g, b] = hexToRgb(hex) ?? [0, 0, 0];
+    .find((bucket) => {
+      const [r, g, b] = hexToRgb(avg(bucket)) ?? [0, 0, 0];
       return Math.abs(r - pr) + Math.abs(g - pg) + Math.abs(b - pb) > 120;
     });
   return {
     primary,
-    secondary: distinct ?? shift(primary, -0.25),
+    secondary: runnerUp ? avg(runnerUp) : shift(primary, -0.25),
     share: ranked[0].count / considered,
+    secondaryShare: runnerUp ? runnerUp.count / considered : 0,
   };
 }
+
