@@ -452,14 +452,22 @@ Do not substitute other cleansing or sealing methods for these two.`
   // The next-wash suggestion is optional by design — an empty/absent value
   // means the section is omitted from the card rather than padded.
   const nextTime = isStyle ? "" : String(parsed.next_time ?? "").trim();
+  const minimal = requestedLevel === 1;
 
   const payload: TipPayload = {
     headline: String(parsed.headline).trim(),
     why: String(parsed.why).trim(),
-    action: String(parsed.action ?? "").trim(),
-    reason: String(parsed.reason ?? "").trim(),
-    technique: String(parsed.technique ?? "").trim(),
-    next_time: nextTime,
+    // MINIMAL LEVEL: the caps are enforced here, not merely requested. If the
+    // model overran after its retry the copy is trimmed rather than dropped.
+    action: minimal
+      ? trimToCap(String(parsed.action ?? ""), MINIMAL_ACTION_WORD_CAP)
+      : String(parsed.action ?? "").trim(),
+    reason: minimal
+      ? trimToCap(String(parsed.reason ?? ""), MINIMAL_REASON_WORD_CAP)
+      : String(parsed.reason ?? "").trim(),
+    // Nothing beyond action + reason is shown at minimal level.
+    technique: minimal ? "" : String(parsed.technique ?? "").trim(),
+    next_time: minimal ? "" : nextTime,
     fingerprint: body.fingerprint,
     _model_version: MODEL_VERSION,
     tipsLevel: requestedLevel,
@@ -467,17 +475,33 @@ Do not substitute other cleansing or sealing methods for these two.`
     _rag_passages: grounding.passages,
   };
 
+  // PAID-MEDIA WALL, last line of defence. If a sponsored product name
+  // survived both passes it is replaced with a neutral phrase — the editorial
+  // card never advertises, and it never renders empty either.
+  const stillNamed = findExcludedProducts(payload, guard.sponsored);
+  const finalPayload = stillNamed.length > 0
+    ? redactProductNames(payload, stillNamed)
+    : payload;
+  if (stillNamed.length > 0) {
+    await logTipRejection(
+      isStyle ? "style-tip" : "wash-day-tip",
+      ["redacted_sponsored_product", ...stillNamed.map((n) => n.slice(0, 60))],
+      raw.slice(0, 4000),
+    );
+  }
+
   await admin
     .from("ai_summaries")
     .upsert(
-      { user_id: user.id, kind, payload },
+      { user_id: user.id, kind, payload: finalPayload },
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.action, payload.reason, payload.technique, payload.next_time ?? ""]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.technique, finalPayload.next_time ?? ""]);
 
   return json(200, {
-    tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body, grounding: grounding.block }),
+    tip: await sanitiseAndLog(finalPayload, "wash-day-tip", { context: body, grounding: grounding.block }),
     cached: false,
   });
 });
+
