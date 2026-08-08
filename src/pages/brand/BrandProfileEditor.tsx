@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBrandProfile } from "@/hooks/useBrandOffers";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { extractBrandColoursFromBlob, type BrandColours } from "@/lib/brandColour";
 import BloodPanelsEditor from "@/components/brand/BloodPanelsEditor";
 import SupplementsClaimEditor from "@/components/brand/SupplementsClaimEditor";
 
@@ -72,6 +73,9 @@ const BrandProfileEditor = () => {
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Extracted ONCE at upload time and stored on brand_profiles — never
+  // re-derived at render.
+  const [logoColours, setLogoColours] = useState<BrandColours | null>(null);
   // Claim only. The verified flag is admin-only and never written from here.
   const [bloodClaimed, setBloodClaimed] = useState(false);
   const [supplementsClaimed, setSupplementsClaimed] = useState(false);
@@ -129,6 +133,15 @@ const BrandProfileEditor = () => {
           tiktok_handle: tiktok.trim().replace(/^@/, "") || null,
           contact_email: contactEmail.trim() || null,
           logo_path: logoPath,
+          ...(logoColours
+            ? {
+                brand_colour_primary: logoColours.primary,
+                brand_colour_secondary: logoColours.secondary,
+                brand_colour_on_primary: logoColours.onPrimary,
+                brand_colour_source: logoColours.source,
+                brand_colour_updated_at: new Date().toISOString(),
+              }
+            : {}),
           offers_at_home_blood_tests_claimed: bloodClaimed,
           sells_supplements_claimed: supplementsClaimed,
         } as never)
@@ -156,6 +169,9 @@ const BrandProfileEditor = () => {
         .upload(path, blob, { contentType: "image/webp", upsert: true });
       if (error) throw error;
       setLogoPath(path);
+      // Brand colour extraction happens here, once, on the resized logo blob.
+      // A failure is silent — the sponsored card falls back to STRAND gold.
+      setLogoColours(await extractBrandColoursFromBlob(blob));
       toast.success("Logo uploaded — remember to save");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");

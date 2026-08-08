@@ -315,7 +315,15 @@ Deno.serve(async (req) => {
     user_context: body.context ?? {},
   });
 
-  const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}\n\n${buildTipsLevelBlock(
+  // Surface framing. `wash_day` is the sponsored card that sits beneath the
+  // STRAND wash day tip, so the read must speak to the member's NEXT wash day.
+  // The brand never supplies or edits this text — only the product facts.
+  const surfaceBlock =
+    (body as { surface?: string }).surface === "wash_day"
+      ? `\n\nSURFACE: WASH DAY\nWrite this as a suggestion for the member's NEXT wash day. Ground it in their most recent logged wash day, the style they are in and the style they are moving into, plus their goals and challenges. fit_line must say how THEY specifically would benefit on that next wash day. Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim about the product the manuscript does not support.`
+      : "";
+
+  const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
 

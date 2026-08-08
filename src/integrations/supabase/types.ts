@@ -1169,6 +1169,11 @@ export type Database = {
           about: string | null
           blood_tests_verified_at: string | null
           blood_tests_verified_by: string | null
+          brand_colour_on_primary: string | null
+          brand_colour_primary: string | null
+          brand_colour_secondary: string | null
+          brand_colour_source: string | null
+          brand_colour_updated_at: string | null
           brand_name: string
           category: string | null
           contact_email: string | null
@@ -1192,6 +1197,11 @@ export type Database = {
           about?: string | null
           blood_tests_verified_at?: string | null
           blood_tests_verified_by?: string | null
+          brand_colour_on_primary?: string | null
+          brand_colour_primary?: string | null
+          brand_colour_secondary?: string | null
+          brand_colour_source?: string | null
+          brand_colour_updated_at?: string | null
           brand_name: string
           category?: string | null
           contact_email?: string | null
@@ -1215,6 +1225,11 @@ export type Database = {
           about?: string | null
           blood_tests_verified_at?: string | null
           blood_tests_verified_by?: string | null
+          brand_colour_on_primary?: string | null
+          brand_colour_primary?: string | null
+          brand_colour_secondary?: string | null
+          brand_colour_source?: string | null
+          brand_colour_updated_at?: string | null
           brand_name?: string
           category?: string | null
           contact_email?: string | null

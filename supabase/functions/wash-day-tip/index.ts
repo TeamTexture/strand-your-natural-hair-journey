@@ -16,6 +16,7 @@ import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import {
   memberAttributeTokens,
   validateTipAction,
+  validateTipReason,
   retryDirective,
   logTipRejection,
 } from "../_shared/tip-action.ts";
@@ -42,7 +43,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v7-action-floor";
+const MODEL_VERSION = "wash-tip@v8-action-plus-reason";
 
 interface TipPayload {
   headline: string;
@@ -51,6 +52,9 @@ interface TipPayload {
   /** REQUIRED at every support level — one concrete instruction for the next
    *  wash day. A headline alone is never a tip. */
   action: string;
+  /** REQUIRED at every support level — WHY the action matters for this member.
+   *  Never a restatement of the action. */
+  reason: string;
   /** Optional "try this next wash day" section. Empty string = omitted. */
   next_time?: string;
   fingerprint: string;
@@ -101,6 +105,7 @@ OUTPUT — JSON object only, no prose outside it:
 {
   "headline": string,   // 3-7 words, Title Case, no trailing punctuation. Names the WHOLE tip.
   "action": string,     // REQUIRED. Exactly ONE sentence, starting with an instruction verb, telling THIS member what to physically do on their NEXT wash day — where on the head, with what type of product, and how long or how often. Must name at least one of their own recorded details (their current style, porosity, density, a goal, a challenge or their last wash). This sentence is shown at EVERY support level, including the most minimal, so it must stand alone as usable guidance.
+  "reason": string,     // REQUIRED. ONE sentence explaining WHY that action matters for THIS member — the mechanism it works through, or what happens to their hair if it is skipped. It must EXPLAIN, never restate the action. Grounded in the supplied manuscript passages. Shown at EVERY support level alongside the action.
   "why": string,        // 2-3 sentences. Ties the tip to THIS user's data (name a specific trait, pattern across their logs, marker, or goal). No filler.
   "technique": string,  // 1-2 sentences. The concrete "how" — sequence, product type, tool, timing.
   "next_time": string   // OPTIONAL. 1-2 sentences framed as ONE option to try on their NEXT wash day, given where their hair is now and the style they are moving into. Return "" when there is nothing genuinely worth suggesting — never pad it.
@@ -116,6 +121,8 @@ RULES:
 - Never prescribe pre-poo as a scheduled ritual. Never say "use protein weekly". Never recommend shower caps, plastic caps, warm towels, or steamers — the only heat tool referenced is the TT Heat Hat (teamtexture.co.uk).
 - Never contradict the Chapter 13 wash-day protocol (cleanse scalp → cleanse hair → condition).
 - No book/chapter citations. No emojis. No pleasantries.
+- REASON FLOOR — non-negotiable: "reason" is never empty and never a reworded version of "action". It explains the mechanism or the consequence, and it must be supported by the supplied manuscript passages. If the WHY cannot be grounded, choose a DIFFERENT tip whose why CAN be grounded — never drop the why.
+- The minimum shape at every support level is: headline + action + reason. Two sentences is enough at the most minimal level.
 - ACTION FLOOR — non-negotiable: "action" is never empty, never a topic statement, and never a hedge. Do not open it with "consider", "be mindful", "it's important to", "you may want to" or "try to remember". It is an instruction they can follow on their next wash day.
 - Everything you write must stay grounded in the supplied manuscript passages. If an action cannot be grounded, choose a different grounded action — never emit an ungrounded one, and never fall back to a headline with no action.
 `;
@@ -128,6 +135,7 @@ OUTPUT — JSON object only, no prose outside it:
 {
   "headline": string,   // 3-7 words, Title Case, no trailing punctuation.
   "action": string,     // REQUIRED. Exactly ONE sentence, starting with an instruction verb, telling THIS member what to physically do next — naming at least one of their own recorded details. Shown at EVERY support level, so it must stand alone as usable guidance. Never a hedge ("consider", "be mindful", "it's important to").
+  "reason": string,     // REQUIRED. ONE sentence explaining WHY that action matters for THIS member — the mechanism, or what happens if it is skipped. Explains, never restates the action. Grounded in the supplied manuscript passages. Shown at EVERY support level.
   "why": string,        // 2-3 sentences. Ties the tip to THIS user's style, tension, extensions or a goal they set.
   "technique": string   // 1-2 sentences. The concrete "how" for wearing, maintaining or taking down this style.
 }
@@ -320,7 +328,7 @@ Do not substitute other cleansing or sealing methods for these two.`
 
   const j = await aiResp.json();
   let raw = j?.choices?.[0]?.message?.content ?? "{}";
-  type Parsed = { headline?: string; why?: string; technique?: string; action?: string; next_time?: string };
+  type Parsed = { headline?: string; why?: string; reason?: string; technique?: string; action?: string; next_time?: string };
   const parseTip = (text: string): Parsed | null => {
     try {
       return JSON.parse(text) as Parsed;
@@ -343,12 +351,22 @@ Do not substitute other cleansing or sealing methods for these two.`
     bloodFlags: body.bloodFlags,
     recentWashDay: body.recentWashDay ?? null,
   });
-  const check = (p: Parsed | null) =>
-    validateTipAction({
+  const check = (p: Parsed | null) => {
+    const actionVerdict = validateTipAction({
       action: String(p?.action ?? ""),
-      supporting: [String(p?.headline ?? ""), String(p?.why ?? ""), String(p?.technique ?? "")],
+      supporting: [String(p?.headline ?? ""), String(p?.why ?? ""), String(p?.reason ?? ""), String(p?.technique ?? "")],
       attributeTokens,
     });
+    // The WHY floor: the tip must justify itself, not only instruct.
+    const reasonVerdict = validateTipReason({
+      reason: String(p?.reason ?? ""),
+      action: String(p?.action ?? ""),
+    });
+    return {
+      ok: actionVerdict.ok && reasonVerdict.ok,
+      reasons: [...actionVerdict.reasons, ...reasonVerdict.reasons],
+    };
+  };
 
   let verdict = parsed?.headline && parsed?.why
     ? check(parsed)
@@ -416,6 +434,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     headline: String(parsed.headline).trim(),
     why: String(parsed.why).trim(),
     action: String(parsed.action ?? "").trim(),
+    reason: String(parsed.reason ?? "").trim(),
     technique: String(parsed.technique ?? "").trim(),
     next_time: nextTime,
     fingerprint: body.fingerprint,
@@ -432,7 +451,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.action, payload.technique, payload.next_time ?? ""]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [payload.headline, payload.action, payload.reason, payload.technique, payload.next_time ?? ""]);
 
   return json(200, {
     tip: await sanitiseAndLog(payload, "wash-day-tip", { context: body, grounding: grounding.block }),
