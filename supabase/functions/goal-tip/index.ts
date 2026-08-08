@@ -357,7 +357,7 @@ ${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 Build the single tip on this pillar — the strongest, most holistic one for her right now: "${pillar}".
 ${styleLine ? `HER SITUATION RIGHT NOW: ${styleLine}\n` : ""}- Stay inside the goal's territory. Never wander to an unrelated topic.
 - The tip MUST be doable in the style she is in TODAY. If she is in an install, never tell her to do something that assumes loose hair (wet styling, full detangle, length checks) unless the pillar is take-down or preparation.
-- The body MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
+- The action and its reason MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
 - The RECENT ADVICE ledger below shows what she has already been told. Take a different angle on today's pillar from anything listed there — a different action, a different moment in her routine, or a progression on a habit she already has ("your deep condition habit is set — now seal your ends after each wash").
 - Never repeat a headline or action that appears in the ledger.`,
   };
