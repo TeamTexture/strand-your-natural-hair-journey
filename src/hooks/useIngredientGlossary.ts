@@ -65,10 +65,22 @@ export function useIngredientGlossary() {
   }, [rows]);
 
   /**
-   * Surface forms worth tokenising inside prose, longest first so greedy
-   * matching wins. Common everyday ingredients (water, fragrance, citric acid)
-   * are never tokenised — tapping them teaches nothing.
+   * NEVER TOKENISE — everyday English words that also exist as a glossary
+   * display name or alias. "Actives" carries the alias "active", so every
+   * "active ingredient", "stay active", "active phase" in prose was turning
+   * into a tappable chip. A term only earns a chip when the word itself is
+   * technical; a word that reads as ordinary English in a sentence does not.
    */
+  const TOKEN_STOPLIST = new Set([
+    "active", "actives", "acid", "acids", "base", "bases", "balance", "barrier",
+    "build", "buildup", "build-up", "clean", "clear", "coat", "coating", "cold",
+    "colour", "color", "cool", "cover", "damage", "damp", "dense", "dry",
+    "fine", "free", "gentle", "hard", "heat", "heavy", "hold", "light", "mild",
+    "natural", "naturals", "neutral", "rich", "rinse", "seal", "shine", "slip",
+    "smooth", "soft", "strong", "thick", "warm", "wash", "water", "weight",
+    "wet", "product", "products", "treatment", "treatments", "volume",
+  ]);
+
   const tokenNames = useMemo(() => {
     const seen = new Set<string>();
     const out: string[] = [];
@@ -78,6 +90,8 @@ export function useIngredientGlossary() {
         const text = (form ?? "").trim();
         if (text.length < 4) continue;
         const lower = text.toLowerCase();
+        // Single everyday words are never chips, however they were indexed.
+        if (!lower.includes(" ") && TOKEN_STOPLIST.has(lower)) continue;
         if (seen.has(lower)) continue;
         seen.add(lower);
         out.push(text);
@@ -85,6 +99,7 @@ export function useIngredientGlossary() {
     }
     return out.sort((a, b) => b.length - a.length).slice(0, 600);
   }, [rows]);
+
 
   const lookup = (name: string) => byKey.get(normaliseInciKey(name)) ?? null;
 
