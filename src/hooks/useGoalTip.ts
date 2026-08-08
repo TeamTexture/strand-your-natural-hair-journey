@@ -89,11 +89,12 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
 
 
 /**
- * Fetches a personalised AI tip for a single goal. Cached per goal +
- * personalisation signature so a style, goal or challenge edit refreshes the
- * tip immediately, while normal page navigation reuses the cached tip.
+ * Fetches a personalised AI tip for a single goal. Cached against the static
+ * signature, so it is generated once and then reused indefinitely until the
+ * current style, the planned next style or the goal changes.
  */
-const CACHE_VERSION = "v13-action-reason-floor";
+const CACHE_VERSION = "v14-static-signature";
+
 
 const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>
   `strand:goal-tip:${CACHE_VERSION}:${sig}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
