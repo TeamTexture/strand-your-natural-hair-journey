@@ -143,6 +143,8 @@ export async function buildGroundingBlock(
     );
   }
   if (parts.length > 0) parts.push(GROUNDING_INSTRUCTION);
+  if (input.proceduralBias) parts.push(METHOD_AND_TIMING_RULE);
+
 
   return {
     block: parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "",
