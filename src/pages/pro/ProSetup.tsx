@@ -657,17 +657,22 @@ const ProSetup = () => {
             <Field
               label="Bio"
               required
-              hint="A few sentences on your training, your approach and who you love working with."
+              hint="Three or four short sentences on your focus, your approach and who you love working with."
             >
               <Textarea
                 rows={6}
+                maxLength={BIO_MAX_CHARS}
                 value={form.bio}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, bio: e.target.value }))
+                  setForm((f) => ({ ...f, bio: e.target.value.slice(0, BIO_MAX_CHARS) }))
                 }
                 placeholder="Tell members about your practice."
               />
+              <div className="mt-2">
+                <BioGuidance value={form.bio} applicationStage />
+              </div>
             </Field>
+
           </>
         )}
 
