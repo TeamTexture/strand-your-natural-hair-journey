@@ -24,7 +24,7 @@ import ImageCropDialog from "@/components/brand/ImageCropDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { scanProductLink, normaliseProductUrl } from "@/lib/brandLinkScan";
 import { useAuth } from "@/hooks/useAuth";
-import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
+import { PlacementSlot, SLOT_LABEL, useBrandOffer, usePendingRevision, useSubmitBrandOfferRevision, useRevisionUpliftCheckout, RevisionProductSnapshot } from "@/hooks/useBrandOffers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useBrandShelf } from "@/hooks/useBrandShelf";
@@ -120,6 +120,7 @@ const BrandCreateOffer = () => {
   const { data: existing } = useBrandOffer(existingId);
   const { data: pendingRevision } = usePendingRevision(existingId);
   const submitRevision = useSubmitBrandOfferRevision();
+  const upliftCheckout = useRevisionUpliftCheckout();
   const { isActive: proSubActive } = useProSubscription();
 
   // Revision mode = editing an already-live or paid-scheduled offer. Creative
