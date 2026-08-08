@@ -24,6 +24,8 @@ export interface ShelfProductCardProps {
   chips?: ReactNode;
   /** Stars, note counts, sponsored line — sits under the brand line. */
   meta?: ReactNode;
+  /** Badge pinned over the top-left of the thumbnail (live offer flag). */
+  thumbBadge?: ReactNode;
   /** Selection checkbox or similar, pinned left of the thumbnail. */
   leading?: ReactNode;
   /** Icon buttons top-right (favourite, reorder, expand). */
@@ -47,6 +49,7 @@ const ShelfProductCard = ({
   matchScore,
   chips,
   meta,
+  thumbBadge,
   leading,
   headerActions,
   footer,
@@ -79,14 +82,20 @@ const ShelfProductCard = ({
         className={cn("p-3.5 flex items-start gap-3", openable && "cursor-pointer text-left")}
       >
         {leading}
-        <ProductThumb
-          imageUrl={imageUrl}
-          storagePath={storagePath}
-          alt={name}
-          name={name}
-          cover={!!storagePath}
-          wrapperClassName="size-[66px] rounded-[10px] overflow-hidden bg-muted shrink-0"
-        />
+        <div className="relative shrink-0">
+          <ProductThumb
+            imageUrl={imageUrl}
+            storagePath={storagePath}
+            alt={name}
+            name={name}
+            cover={!!storagePath}
+            wrapperClassName="size-[66px] rounded-[10px] overflow-hidden bg-muted shrink-0"
+          />
+          {thumbBadge && (
+            <div className="absolute -top-1.5 -left-1.5 z-10">{thumbBadge}</div>
+          )}
+        </div>
+
         <div className="flex-1 min-w-0">
           <p className="font-display text-[15px] leading-tight line-clamp-2 [overflow-wrap:anywhere]">
             {name}
