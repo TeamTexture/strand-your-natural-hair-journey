@@ -630,6 +630,59 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_offer_admin_overrides: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          ends_on: string | null
+          fee_charged_pence: number
+          id: string
+          offer_id: string
+          placement_changed: boolean
+          placements_added: number
+          placements_removed: number
+          slots: string[] | null
+          starts_on: string | null
+          targeting_changed: boolean
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          ends_on?: string | null
+          fee_charged_pence?: number
+          id?: string
+          offer_id: string
+          placement_changed?: boolean
+          placements_added?: number
+          placements_removed?: number
+          slots?: string[] | null
+          starts_on?: string | null
+          targeting_changed?: boolean
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          ends_on?: string | null
+          fee_charged_pence?: number
+          id?: string
+          offer_id?: string
+          placement_changed?: boolean
+          placements_added?: number
+          placements_removed?: number
+          slots?: string[] | null
+          starts_on?: string | null
+          targeting_changed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_offer_admin_overrides_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "brand_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_offer_interest: {
         Row: {
           created_at: string
