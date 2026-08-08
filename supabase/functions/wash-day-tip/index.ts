@@ -25,12 +25,13 @@ import {
   editorialProductBlock,
   findExcludedProducts,
   redactProductNames,
-  minimalCapViolations,
-  minimalPromptBlock,
   trimToCap,
-  MINIMAL_ACTION_WORD_CAP,
-  MINIMAL_REASON_WORD_CAP,
 } from "../_shared/editorial-products.ts";
+import {
+  applyLevelCaps,
+  levelCapViolations,
+  tipLevelPromptBlock,
+} from "../_shared/tip-level-caps.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
@@ -309,7 +310,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   // database with the service client — never from anything the client sent.
   const guard = await buildEditorialProductGuard(admin as never, body.shelfProducts ?? []);
   const editorialBlock = editorialProductBlock(guard);
-  const minimalBlock = requestedLevel === 1 ? minimalPromptBlock() : "";
+  const minimalBlock = tipLevelPromptBlock(requestedLevel);
   const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${editorialBlock}${minimalBlock}`;
 
   let aiResp: Response;
@@ -386,9 +387,11 @@ Do not substitute other cleansing or sealing methods for these two.`
     const sponsoredHits = findExcludedProducts(p, guard.sponsored);
     const unownedHits = findExcludedProducts(p, guard.unownedCatalogue);
     // Minimal level word caps, validated.
-    const capHits = requestedLevel === 1
-      ? minimalCapViolations({ action: String(p?.action ?? ""), reason: String(p?.reason ?? "") })
-      : [];
+    const capHits = levelCapViolations(requestedLevel, {
+      action: String(p?.action ?? ""),
+      reason: String(p?.reason ?? ""),
+      technique: String(p?.technique ?? ""),
+    });
     return {
       ok: actionVerdict.ok && reasonVerdict.ok && sponsoredHits.length === 0 &&
         unownedHits.length === 0 && capHits.length === 0,
@@ -480,22 +483,25 @@ Do not substitute other cleansing or sealing methods for these two.`
   // The next-wash suggestion is optional by design — an empty/absent value
   // means the section is omitted from the card rather than padded.
   const nextTime = isStyle ? "" : String(parsed.next_time ?? "").trim();
-  const minimal = requestedLevel === 1;
+  // THE GRADUATION, ENFORCED SERVER-SIDE. Each level's word budgets are applied
+  // here, not merely requested in the prompt, and the fields a level does not
+  // show are emptied so they cannot render: the extended `why` and `next_time`
+  // are hand-holding only, and `technique` starts at Essential.
+  const capped = applyLevelCaps(requestedLevel, {
+    action: String(parsed.action ?? ""),
+    reason: String(parsed.reason ?? ""),
+    technique: String(parsed.technique ?? ""),
+    why: String(parsed.why ?? ""),
+    next_time: nextTime,
+  });
 
   const payload: TipPayload = {
     headline: String(parsed.headline).trim(),
-    why: String(parsed.why).trim(),
-    // MINIMAL LEVEL: the caps are enforced here, not merely requested. If the
-    // model overran after its retry the copy is trimmed rather than dropped.
-    action: minimal
-      ? trimToCap(String(parsed.action ?? ""), MINIMAL_ACTION_WORD_CAP)
-      : String(parsed.action ?? "").trim(),
-    reason: minimal
-      ? trimToCap(String(parsed.reason ?? ""), MINIMAL_REASON_WORD_CAP)
-      : String(parsed.reason ?? "").trim(),
-    // Nothing beyond action + reason is shown at minimal level.
-    technique: minimal ? "" : String(parsed.technique ?? "").trim(),
-    next_time: minimal ? "" : nextTime,
+    why: capped.why,
+    action: capped.action,
+    reason: capped.reason,
+    technique: capped.technique,
+    next_time: capped.next_time,
     fingerprint: body.fingerprint,
     _model_version: MODEL_VERSION,
     tipsLevel: requestedLevel,
