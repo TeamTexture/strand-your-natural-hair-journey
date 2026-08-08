@@ -45,6 +45,8 @@ import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserToo
 import { buildAiContext } from "@/lib/aiContext";
 import { cn } from "@/lib/utils";
 import MatchStars from "@/components/MatchStars";
+import { useToolMatchScores } from "@/hooks/useToolMatchScores";
+import { matchScoreOf } from "@/lib/matchStars";
 
 const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) => (
   <span className="inline-flex items-center gap-0.5">
@@ -68,11 +70,15 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
 );
 
 const MyToolsSection = () => {
-  const { tools: allTools, loading, addTool, updateTool, setFavourite, deleteTool } = useUserTools();
+  const { tools: allTools, loading, addTool, updateTool, setFavourite, deleteTool, reload } = useUserTools();
   // Wishlisted tools live on the Wishlist screen, not in My Tools (owned).
   const tools = allTools.filter((t) => !t.on_wishlist);
   // Voicenote counts keyed off the tool_key (ProductVoicenotes works for any key).
   const { counts } = useVoicenoteCounts(tools.map((t) => t.tool_key));
+  // Tools have no ingredient label, so any tool added without a link starts
+  // unscored. This scores them against the member's profile (same 0–100 scale
+  // and star mapping as products) and persists the result on the row.
+  const { scores: aiScores, scoring } = useToolMatchScores(tools, reload);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -292,18 +298,19 @@ const MyToolsSection = () => {
                       {[t.brand, normaliseToolCategory(t.category)].filter(Boolean).join(" · ") || "Tool"}
                     </p>
                     {(() => {
-                      const aiScoreRaw = (t.ai_analysis as Record<string, unknown> | null)?.match_score;
-                      const aiScore = typeof aiScoreRaw === "number" ? aiScoreRaw : null;
-                      const score =
-                        typeof t.match_score === "number" ? t.match_score : aiScore;
+                      const score = matchScoreOf(t) ?? aiScores[t.id] ?? null;
                       return (
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           <MatchStars score={score} />
-                          {score != null && (
+                          {score != null ? (
                             <span className="text-[9px] uppercase tracking-[0.12em] text-primary/80 font-semibold">
                               Strand
                             </span>
-                          )}
+                          ) : scoring ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
+                              <Loader2 className="size-2.5 animate-spin" /> Rating
+                            </span>
+                          ) : null}
                           {noteCount > 0 && (
                             <span className="text-[10px] text-primary font-medium">
                               🎙 {noteCount}
