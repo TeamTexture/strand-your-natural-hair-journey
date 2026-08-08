@@ -246,6 +246,19 @@ Deno.serve(async (req) => {
         : "",
   ].filter(Boolean).join(" — ");
 
+  // Universal cornrow guidance — applies to anyone wearing cornrows (any
+  // variant), regardless of tension, extensions or hair type.
+  const wearingCornrows = /cornrow/i.test(
+    `${style.current_hairstyle ?? ""} ${style.planned_next_style ?? ""}`,
+  );
+  const cornrowBlock = wearingCornrows
+    ? `\n\nMANDATORY CORNROW GUIDANCE — this user is in (or moving into) cornrows. Both points below MUST appear in the tip, in Paige's voice, phrased for this user:
+1. Clean the scalp that is exposed between the cornrows using a scalp cleanser or cleansing solution on a cotton pad, or ready-made scalp cleansing pads — working along each exposed parting rather than lathering shampoo over the whole style.
+2. Keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream, to slow the evaporation of moisture from the hair shaft.
+Do not substitute other cleansing or sealing methods for these two.`
+    : "";
+
+
   const ledger = await fetchAdviceLedger(user.id);
   const ledgerBlock = buildAdviceLedgerBlock(ledger);
 
@@ -271,7 +284,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
+          { role: "system", content: `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}` },
           {
             role: "user",
             content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.`,

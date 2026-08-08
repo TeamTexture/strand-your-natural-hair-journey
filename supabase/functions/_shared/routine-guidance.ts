@@ -120,7 +120,7 @@ function styleRoutineTip(context: UnknownRecord): string | null {
     return `Plan ${style || "braids"} around a 4–6 week ceiling${weekText}, keep the scalp cleansed during the install, and deep-condition with the ${HEAT_HAT_LINK} after takedown — tension and trapped build-up turn protection into breakage.`;
   }
   if (family === "cornrows") {
-    return `Refresh or redo cornrows around 2–3 weeks${weekText} instead of tightening the front, and cleanse along each part every 7 days — the hairline and partings are the pressure points.`;
+    return `Clean the exposed scalp between your cornrows with a scalp cleanser on a cotton pad or scalp cleansing pads, and keep your ends tucked under or coated with a thick gel or emollient-based leave-in to slow moisture loss${weekText} — refresh rather than re-tighten the front around 2–3 weeks.`;
   }
   if (family === "locs") {
     return `Wash locs every 7 days by cleansing the scalp first and rinsing through the locs thoroughly before drying fully — locs should not go months without cleansing.`;

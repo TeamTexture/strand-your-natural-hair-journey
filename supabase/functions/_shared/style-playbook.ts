@@ -79,8 +79,10 @@ const PLAYBOOK: Record<string, StylePlaybookEntry> = {
     playbook: [
       "Cornrows on their own hair are shorter-window than box braids — 2–3 weeks before new growth loosens the base and frizz sets in. Reinstalling on tired hair is worse than washing and refreshing first.",
       "Chunky, well-parted cornrows with medium-to-loose tension are the low-manipulation ideal the book endorses. Micro-cornrows scraped tight at the base are high-tension — the risk is at the hairline and along the part.",
-      "Scalp is easy to access — cleansing on the user's normal wash rhythm is straightforward. Apply diluted shampoo directly along each part for the scalp cleanse, then use a gentler moisturising cleanse through the accessible hair before conditioning or sealing lightly.",
+      "UNIVERSAL CORNROW RULE — always give these two instructions to anyone wearing cornrows, whatever their hair type, tension or extension status: (1) clean the exposed scalp between the cornrows with a scalp cleanser or cleansing solution applied on a cotton pad, or with ready-made scalp cleansing pads, working along each exposed parting rather than lathering shampoo over the whole style; (2) keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream, to slow the evaporation of moisture from the hair shaft.",
+      "Scalp is easy to access — cleansing on the user's normal wash rhythm is straightforward. Use the cotton-pad/scalp-pad cleanse along each exposed parting; where the natural hair can be reached, follow with a gentler moisturising cleanse before conditioning or sealing lightly.",
       "Nightly satin/silk scarf preserves the front and reduces frizz between wash days.",
+
     ],
   },
   "Locs": {

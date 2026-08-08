@@ -44,7 +44,7 @@ export function useStyleTip() {
 
       const fingerprint = hashString(
         [
-          "style-tip-v2",
+          "style-tip-v3-cornrow",
           String(h?.hair_type ?? ""),
           String(h?.porosity ?? ""),
           String(h?.density ?? ""),
