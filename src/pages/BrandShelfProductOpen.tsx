@@ -81,6 +81,10 @@ const BrandShelfProductOpen = () => {
             brand_product_id: product.id,
             external_url: product.external_url ?? null,
             intent: "shelf",
+            // The brand shelf only supplies catalogue facts. The page must still
+            // run the member's own ingredient analysis so the score, verdict and
+            // guidance are personalised — never the brand's marketing copy.
+            needs_analysis: true,
           },
         },
       );
