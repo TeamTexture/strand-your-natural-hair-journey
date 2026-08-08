@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
               },
             );
             if (error) console.error("revision uplift confirm failed", error);
-            else console.log("revision uplift confirmed", meta.revision_id, "transitioned:", moved);
+            else console.log("revision uplift confirmed", meta.revision_id, "applied:", moved);
           }
           break;
         }

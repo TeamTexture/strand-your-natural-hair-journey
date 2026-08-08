@@ -1,8 +1,9 @@
 // Brand — Stripe Checkout for a targeting-uplift revision (mode: payment).
 //
 // A live campaign moving broad → targeted costs the rate difference for the
-// REMAINING days only. That difference is collected BEFORE an admin ever sees
-// the revision: the revision sits in `pending_payment` until the
+// REMAINING days only. An admin approves FIRST — nothing is charged before
+// approval, so a rejection needs no refund. The approved revision sits in
+// `approved_pending_payment` and its targeting is NOT live until the
 // brand-stripe-webhook confirms the session. Nothing here transitions state.
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
@@ -50,8 +51,11 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!rev) return json({ error: "Revision not found" }, 404);
     if (rev.brand_user_id !== userId) return json({ error: "Not your revision" }, 403);
-    if (rev.status !== "pending_payment") {
-      return json({ error: `Revision status is ${rev.status}, not pending_payment` }, 400);
+    if (rev.status !== "approved_pending_payment") {
+      return json(
+        { error: `Revision status is ${rev.status} — only an approved revision awaiting payment can be paid for` },
+        400,
+      );
     }
     if (!rev.uplift_pence || rev.uplift_pence <= 0) {
       return json({ error: "No uplift to collect" }, 400);
