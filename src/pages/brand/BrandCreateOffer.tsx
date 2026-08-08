@@ -46,6 +46,10 @@ import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day", "pro_welcome"];
 
+/** ONE OR TWO PRODUCTS PER ADVERT — never more. Enforced here, on submission,
+ *  and again in the database on the move to `under_review`. */
+const MAX_ADVERT_PRODUCTS = 2;
+
 type AttachKind = "product" | "tool";
 
 interface ProductDraft {
@@ -388,8 +392,13 @@ const BrandCreateOffer = () => {
       // implementation only — the old brand-product-scrape is deleted.
       const item = await scanProductLink(normalised);
       const kind: AttachKind = scrapeKind === "tool" ? "tool" : "product";
-      // ONE PRODUCT PER ADVERT — a fresh draft replaces the attached item.
-      setProducts([
+      // ONE OR TWO PRODUCTS PER ADVERT — a fresh draft is appended.
+      if (products.length >= MAX_ADVERT_PRODUCTS) {
+        toast.error("Two products is the maximum for one advert. Remove one to draft another.");
+        return;
+      }
+      setProducts((prev) => [
+        ...prev,
         {
           kind,
           name: item.name ?? "",
@@ -416,8 +425,8 @@ const BrandCreateOffer = () => {
 
 
   // Attaching from the brand's OWN shelf. ONE PRODUCT PER ADVERT: picking an
-  // item REPLACES whatever was attached — the shelf sheet is a swap, not a
-  // multi-select. The shelf item is copied into the advert draft (adverts keep
+  // item is APPENDED, up to a maximum of two per advert — the shelf sheet is a
+  // multi-select capped at two. The shelf item is copied into the advert draft (adverts keep
   // their own snapshot) and tagged with linked_product_id so the shelf item it
   // came from stays traceable.
   const isShelfItemAttached = (id: string) =>
@@ -441,8 +450,13 @@ const BrandCreateOffer = () => {
       return;
     }
     const kind: AttachKind = item.kind === "tool" ? "tool" : "product";
-    const replaced = products.length > 0;
-    setProducts([
+    // ONE OR TWO PRODUCTS PER ADVERT — attaching a third is refused.
+    if (products.length >= MAX_ADVERT_PRODUCTS) {
+      toast.error("Two products is the maximum for one advert. Remove one to attach another.");
+      return;
+    }
+    setProducts((prev) => [
+      ...prev,
       {
         kind,
         name: item.name,
@@ -458,7 +472,7 @@ const BrandCreateOffer = () => {
       },
     ]);
     setShelfOpen(false);
-    toast.success(replaced ? "Product swapped — this advert promotes one product" : "Attached from your shelf");
+    toast.success("Attached from your shelf");
   };
 
 
@@ -472,16 +486,20 @@ const BrandCreateOffer = () => {
     }
   }, [savedTargeting, targetingLoaded]);
 
+  const atProductMax = products.length >= MAX_ADVERT_PRODUCTS;
   const firstProduct = products[0];
   const firstProductImage = firstProduct?.image_urls?.[0] ?? null;
 
   const submit = async (asDraft: boolean) => {
     if (!user) return;
-    // ONE PRODUCT PER ADVERT — blocked on submission (drafts may still carry a
-    // legacy extra row so nothing the brand entered is lost). The database
-    // enforces the same rule on the status change to `under_review`.
-    if (!asDraft && products.length > 1) {
-      return toast.error("An advert can promote only one product. Remove the extra attached item.");
+    // ONE OR TWO PRODUCTS PER ADVERT — blocked on submission (drafts may still
+    // carry extras so nothing the brand entered is lost). The database enforces
+    // the same rule on the status change to `under_review`.
+    if (!asDraft && products.length === 0) {
+      return toast.error("Attach at least one product or tool before submitting for review.");
+    }
+    if (!asDraft && products.length > MAX_ADVERT_PRODUCTS) {
+      return toast.error("An advert can promote at most two products. Remove the extras.");
     }
 
 
@@ -837,11 +855,11 @@ const BrandCreateOffer = () => {
         )}
 
 
-        <SectionLabel className="!px-0">Attach one product or tool</SectionLabel>
+        <SectionLabel className="!px-0">Attach one or two products</SectionLabel>
         <SurfaceCard className="space-y-3">
           <p className="text-[11px] text-muted-foreground leading-snug">
-            An advert promotes exactly one product or tool. Attaching another replaces the one
-            currently attached.
+            An advert can promote one or two products or tools — two is the maximum. Each one gets
+            its own personalised STRAND tip when a member opens the advert.
           </p>
           <div className="rounded-[12px] border border-primary/25 bg-primary/5 p-3">
             <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-1.5">
@@ -851,9 +869,21 @@ const BrandCreateOffer = () => {
               Your approved shelf products and tools. Attaching one here also lets members copy the
               advert's discount code straight from your brand page.
             </p>
-            <Button type="button" variant="outline" size="pill" onClick={() => setShelfOpen(true)} className="mt-2 w-full px-4">
-              {products.length > 0 ? "Change product" : "Choose from your shelf"}
+            <Button
+              type="button"
+              variant="outline"
+              size="pill"
+              onClick={() => setShelfOpen(true)}
+              disabled={atProductMax}
+              className="mt-2 w-full px-4"
+            >
+              {products.length > 0 ? "Attach another" : "Choose from your shelf"}
             </Button>
+            {atProductMax && (
+              <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug">
+                Two products is the maximum for one advert. Remove one below to attach another.
+              </p>
+            )}
           </div>
           <div>
 
@@ -889,23 +919,25 @@ const BrandCreateOffer = () => {
           <div className="flex flex-wrap gap-3 pt-1">
             <button
               type="button"
-              onClick={() => setProducts([emptyProduct("product")])}
-              className="text-[12px] text-primary underline underline-offset-2"
+              onClick={() => setProducts((prev) => [...prev, emptyProduct("product")])}
+              disabled={atProductMax}
+              className="text-[12px] text-primary underline underline-offset-2 disabled:opacity-50 disabled:no-underline"
             >
-              {products.length > 0 ? "Replace with a manual product" : "+ Add product manually"}
+              + Add product manually
             </button>
             <button
               type="button"
-              onClick={() => setProducts([emptyProduct("tool")])}
-              className="text-[12px] text-primary underline underline-offset-2"
+              onClick={() => setProducts((prev) => [...prev, emptyProduct("tool")])}
+              disabled={atProductMax}
+              className="text-[12px] text-primary underline underline-offset-2 disabled:opacity-50 disabled:no-underline"
             >
-              {products.length > 0 ? "Replace with a manual tool" : "+ Add tool manually"}
+              + Add tool manually
             </button>
           </div>
-          {products.length > 1 && (
+          {products.length > MAX_ADVERT_PRODUCTS && (
             <p className="text-[11px] font-body text-destructive leading-snug">
-              This advert has {products.length} items attached from an earlier version. Members see
-              only the first. Remove the extras before submitting for review.
+              This advert has {products.length} items attached. Members see the first two only —
+              remove the extras before submitting for review.
             </p>
           )}
         </SurfaceCard>
@@ -1272,8 +1304,9 @@ const BrandCreateOffer = () => {
                     key={item.id}
                     type="button"
                     onClick={() => toggleShelfItem(item)}
+                    disabled={!attached && atProductMax}
                     className={`w-full text-left rounded-[12px] border p-3 flex items-center gap-2 ${
-                      attached ? "border-primary bg-primary/5" : "border-border"
+                      attached ? "border-primary bg-primary/5" : atProductMax ? "border-border opacity-50" : "border-border"
                     }`}
                   >
                     {item.image_urls?.[0] ? (
@@ -1296,7 +1329,7 @@ const BrandCreateOffer = () => {
                     </span>
 
                     <span className="text-[11px] font-body text-primary shrink-0">
-                      {attached ? "Attached" : "Attach"}
+                      {attached ? "Attached" : atProductMax ? "Max 2" : "Attach"}
                     </span>
                   </button>
                 );
