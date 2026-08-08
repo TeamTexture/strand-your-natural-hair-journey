@@ -586,25 +586,23 @@ export function useSubmitBrandOfferRevision() {
   });
 }
 
-/** Admin: record the audience uplift as received, or waive it. A broad →
- *  targeted revision cannot be approved until one of the two has happened. */
-export function useMarkRevisionPaid() {
-  const qc = useQueryClient();
+/** Brand: open Stripe Checkout for a `pending_payment` revision's uplift.
+ *  The revision only reaches admin review when the Stripe webhook confirms the
+ *  session — nothing here transitions state. */
+export function useRevisionUpliftCheckout() {
   return useMutation({
-    mutationFn: async ({ revision_id, waive }: { revision_id: string; offer_id: string; waive: boolean }) => {
-      const { error } = await supabase.rpc("mark_brand_offer_revision_paid" as never, {
-        _revision_id: revision_id,
-        _waive: waive,
-      } as never);
+    mutationFn: async ({ revision_id }: { revision_id: string }) => {
+      const { data, error } = await supabase.functions.invoke("brand-revision-checkout", {
+        body: { revision_id },
+      });
       if (error) throw error;
-    },
-    onSuccess: (_r, args) => {
-      qc.invalidateQueries({ queryKey: ["brand-offer-revision", "pending", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["brand-offer-revisions", args.offer_id] });
-      qc.invalidateQueries({ queryKey: ["admin", "all-pending-brand-revisions"] });
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error("Checkout could not be started");
+      return url;
     },
   });
 }
+
 
 export interface SplitTotalsRow extends AdTotals {
   phase: "before" | "after";
