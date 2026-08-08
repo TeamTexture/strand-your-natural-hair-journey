@@ -291,10 +291,24 @@ function stableHash(input: string): number {
   return Math.abs(h);
 }
 
-/** Days since epoch for the caller's local day string (YYYY-MM-DD). */
+/**
+ * Days since epoch for the caller's local day string (YYYY-MM-DD).
+ * The Strand tip no longer sends a day — it is STATIC until her picture
+ * changes — so an absent/invalid day contributes 0 and the pillar choice is
+ * fully deterministic from the profile fingerprint.
+ */
 function dayIndexOf(day: string | null | undefined): number {
-  const d = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T00:00:00Z`) : new Date();
-  return Math.floor(d.getTime() / 86_400_000);
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return 0;
+  return Math.floor(new Date(`${day}T00:00:00Z`).getTime() / 86_400_000);
+}
+
+/** Universal cornrow guidance — any cornrow variant, current or planned. */
+function cornrowGuidanceBlock(current: string, planned: string): string {
+  if (!/cornrow/i.test(`${current} ${planned}`)) return "";
+  return `\n\nMANDATORY CORNROW GUIDANCE — she is in (or moving into) cornrows. Whenever the tip touches washing, cleansing, the scalp, moisture or her ends, it MUST follow both points below, in Paige's voice, phrased for her:
+1. Clean the scalp exposed between the cornrows with a scalp cleanser or cleansing solution on a cotton pad, or ready-made scalp cleansing pads — working along each exposed parting rather than lathering shampoo over the whole style.
+2. Keep the ends tucked under safely, or protected with a thick gel or an emollient-based leave-in or cream, to slow moisture evaporating from the hair shaft.
+Never substitute other cleansing or sealing methods for these two.`;
 }
 
 function buildRotationBlock(body: RequestBody, goalText: string): {
@@ -306,7 +320,12 @@ function buildRotationBlock(body: RequestBody, goalText: string): {
   const planned = String(cs?.planned_next_style ?? "");
   const pillars = pillarsForGoal(goalText, current, planned);
   const seed = stableHash(`${goalText}|${current}|${planned}|${body.profileFingerprint ?? ""}`);
-  const pillar = pillars[(dayIndexOf(body.day) + seed) % pillars.length];
+  // With no day sent, this resolves to the strongest, most holistic pillar for
+  // her picture (style-aware pillars lead) and stays there until her style,
+  // goal or hair characteristics change.
+  const pillar = body.day
+    ? pillars[(dayIndexOf(body.day) + seed) % pillars.length]
+    : pillars[0];
   const styleLine = [
     current ? `She is currently in: ${current}.` : "",
     planned ? `Her planned next style is: ${planned}.` : "",
@@ -314,11 +333,11 @@ function buildRotationBlock(body: RequestBody, goalText: string): {
   ].filter(Boolean).join(" ");
   return {
     pillar,
-    block: `TODAY'S PILLAR — ROTATION (do not ignore):
+    block: `HER PILLAR (do not ignore):
 This goal's territory is made of these pillars:
 ${pillars.map((p, i) => `${i + 1}. ${p}`).join("\n")}
 
-TODAY you must build the single tip on this pillar: "${pillar}".
+Build the single tip on this pillar — the strongest, most holistic one for her right now: "${pillar}".
 ${styleLine ? `HER SITUATION RIGHT NOW: ${styleLine}\n` : ""}- Stay inside the goal's territory. Never wander to an unrelated topic.
 - The tip MUST be doable in the style she is in TODAY. If she is in an install, never tell her to do something that assumes loose hair (wet styling, full detangle, length checks) unless the pillar is take-down or preparation.
 - The body MUST name at least one of: her current style, her planned next style, or her goal in her own words — alongside a real hair characteristic. Generic advice about heat or deep conditioning with no link to her current style and goal is invalid.
@@ -368,8 +387,8 @@ Rules:
  * Home card contract: EXACTLY ONE tip. Supersedes the 3-tip contract for this
  * surface only — the Style Journal still asks for the multi-tip playbook.
  */
-const SINGLE_TIP_TASK = `TASK — STRAND TIP OF THE DAY (EXACTLY ONE TIP)
-Write the single most valuable action she can take TODAY towards her stated goal, personalised through her hair type and characteristics. Use blood markers ONLY when a flagged marker genuinely changes what she should do today; otherwise leave them out entirely.
+const SINGLE_TIP_TASK = `TASK — STRAND TIP (EXACTLY ONE TIP)
+Write the single most valuable, most holistic action she can take towards her stated goal, personalised through her hair type and characteristics. Use blood markers ONLY when a flagged marker genuinely changes what she should do today; otherwise leave them out entirely.
 
 Output EXACTLY these fields and nothing more:
 - "headline": the action itself, max 8 words, imperative, no emoji, no colon-prefixed label.
@@ -515,6 +534,10 @@ Deno.serve(async (req) => {
     // Home's one-tip card: swap the multi-tip task for the single-tip contract
     // and append today's rotating pillar.
     const rotation = single ? buildRotationBlock(body, goalText) : null;
+    const cornrowSuffix = cornrowGuidanceBlock(
+      String(cs?.current_hairstyle ?? ""),
+      String(cs?.planned_next_style ?? ""),
+    );
     const singleSuffix = rotation
       ? `\n\n${SINGLE_TIP_TASK}\n\n${rotation.block}`
       : journal
@@ -526,7 +549,7 @@ Deno.serve(async (req) => {
     const systemPrompt = teachings.length > 0
       ? `${baseSystemPrompt}\n\nSTRAND CORE TEACHINGS (curate the tip from these — do not go outside them):\n\n${teachings.join("\n\n")}${ragBlock}${styleSuffix}`
       : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
-    const finalSystemPrompt = `${systemPrompt}${singleSuffix}`;
+    const finalSystemPrompt = `${systemPrompt}${singleSuffix}${cornrowSuffix}`;
 
     const aiResp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",

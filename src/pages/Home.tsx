@@ -781,7 +781,7 @@ const Home = () => {
                     className="mt-3"
                     tone="gold"
                     compact
-                    eyebrow="Strand tip of the day"
+                    eyebrow="Strand tip"
                     icon={Lightbulb}
                     headerRight={
                       goalChipLabel ? (
