@@ -66,41 +66,78 @@ const BrandShelfCardDetail = ({
   const ingredients = (product.ingredients ?? []).filter(Boolean);
   const buyUrl = offer?.external_url ?? product.external_url ?? null;
 
+  const benefits = (guidance?.benefits ?? []).filter((b) => b?.label && b?.text);
+  const shortIngredients = ingredients.slice(0, 8);
+
   return (
-    <div className="px-3.5 pb-3.5 pt-1 space-y-3 border-t border-border/60">
+    <div className="px-3.5 pb-3.5 pt-2 space-y-3.5 border-t border-border/60">
       {product.description && (
-        <p className="text-[12px] font-body text-foreground/80 leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
+        <p className="border-l-2 border-primary/30 pl-2.5 text-[12px] font-body italic text-foreground/70 leading-snug [overflow-wrap:anywhere] whitespace-pre-wrap">
           {product.description}
         </p>
       )}
 
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-          For your hair
-        </p>
+      {/* Personalised read — the hero of this block */}
+      <div className="rounded-[14px] bg-primary/[0.06] border border-primary/20 p-3">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="size-3.5 text-primary" />
+          <p className="text-[10px] uppercase tracking-[0.16em] font-body text-primary">
+            Why this suits you
+          </p>
+        </div>
         {loading && !analysis ? (
-          <p className="mt-1 text-[12px] font-body text-muted-foreground">Reading your profile…</p>
+          <p className="mt-1.5 text-[12px] font-body text-muted-foreground">Reading your profile…</p>
         ) : analysis ? (
-          <p className="mt-1 text-[12px] font-body text-foreground/85 leading-snug [overflow-wrap:anywhere]">
+          <p className="mt-1.5 text-[12.5px] font-body text-foreground leading-relaxed [overflow-wrap:anywhere]">
             {analysis}
           </p>
         ) : (
-          <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug">
+          <p className="mt-1.5 text-[12px] font-body text-muted-foreground leading-snug">
             Open the product page for the full read.
           </p>
+        )}
+
+        {benefits.length > 0 && (
+          <ul className="mt-2.5 space-y-1.5 border-t border-primary/15 pt-2.5">
+            {benefits.map((b) => (
+              <li key={b.label} className="flex gap-2">
+                <Check className="mt-[3px] size-3 shrink-0 text-primary" />
+                <p className="text-[11.5px] font-body text-foreground/85 leading-snug [overflow-wrap:anywhere]">
+                  <span className="font-display text-[12.5px] text-foreground">{b.label}</span>
+                  {" — "}
+                  {b.text}
+                </p>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
       {ingredients.length > 0 && (
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.14em] font-body text-muted-foreground">
-            Ingredients
+        <details className="group rounded-[14px] border border-border/60 bg-background/40 px-3 py-2.5">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] font-body text-muted-foreground">
+              Ingredients · {ingredients.length}
+            </span>
+            <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-2 hidden flex-wrap gap-1.5 group-open:flex">
+            {ingredients.map((ing, i) => (
+              <span
+                key={`${ing}-${i}`}
+                className="rounded-pill border border-border/70 bg-card px-2 py-[3px] text-[10.5px] font-body text-foreground/75 [overflow-wrap:anywhere]"
+              >
+                {ing}
+              </span>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug [overflow-wrap:anywhere] group-open:hidden">
+            {shortIngredients.join(", ")}
+            {ingredients.length > shortIngredients.length ? "…" : ""}
           </p>
-          <p className="mt-1 text-[11.5px] font-body text-foreground/75 leading-snug [overflow-wrap:anywhere]">
-            {ingredients.join(", ")}
-          </p>
-        </div>
+        </details>
       )}
+
 
       {offer?.discount_code && (
         <div className="rounded-[12px] border border-primary/25 bg-primary/5 p-2.5 space-y-2">
