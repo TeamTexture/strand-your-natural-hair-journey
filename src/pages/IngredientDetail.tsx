@@ -523,6 +523,9 @@ const IngredientDetail = () => {
             productKey,
             productName,
             productBrand,
+            // Catalogue ingredients for a product the member hasn't saved yet
+            // (opened from a brand's shelf) — otherwise the model has to infer.
+            ingredients: freshAnalysis?.ingredients ?? undefined,
             hairProfile,
             healthProfile,
             heritage,
@@ -561,7 +564,7 @@ const IngredientDetail = () => {
         setLoading(false);
       }
     },
-    [productKey, productName, productBrand, reload],
+    [productKey, productName, productBrand, freshAnalysis, reload],
   );
 
   // One analysis request per product, once the profile check has resolved.
