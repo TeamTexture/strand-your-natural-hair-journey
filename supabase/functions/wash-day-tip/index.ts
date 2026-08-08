@@ -373,11 +373,27 @@ Do not substitute other cleansing or sealing methods for these two.`
       reason: String(p?.reason ?? ""),
       action: String(p?.action ?? ""),
     });
+    // PAID-MEDIA WALL: the editorial card may never name a product that is
+    // the subject of a live campaign, nor a catalogue product she doesn't own.
+    const sponsoredHits = findExcludedProducts(p, guard.sponsored);
+    const unownedHits = findExcludedProducts(p, guard.unownedCatalogue);
+    // Minimal level word caps, validated.
+    const capHits = requestedLevel === 1
+      ? minimalCapViolations({ action: String(p?.action ?? ""), reason: String(p?.reason ?? "") })
+      : [];
     return {
-      ok: actionVerdict.ok && reasonVerdict.ok,
-      reasons: [...actionVerdict.reasons, ...reasonVerdict.reasons],
+      ok: actionVerdict.ok && reasonVerdict.ok && sponsoredHits.length === 0 &&
+        unownedHits.length === 0 && capHits.length === 0,
+      reasons: [
+        ...actionVerdict.reasons,
+        ...reasonVerdict.reasons,
+        ...(sponsoredHits.length ? ["names_sponsored_product"] : []),
+        ...(unownedHits.length ? ["names_unowned_product"] : []),
+        ...capHits,
+      ],
     };
   };
+
 
   let verdict = parsed?.headline && parsed?.why
     ? check(parsed)
