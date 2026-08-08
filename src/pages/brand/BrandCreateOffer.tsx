@@ -131,7 +131,7 @@ const BrandCreateOffer = () => {
   const { data: savedTargeting } = useOfferTargeting(existingId);
   const cleanTargeting = cleanRules(targeting);
   const targetingEmpty = rulesAreEmpty(cleanTargeting);
-  // Reach is displayed (and privacy-suppressed) inside TargetingPicker itself.
+  // Reach is displayed as an approximate band inside TargetingPicker itself.
 
   const [headline, setHeadline] = useState(existing?.headline ?? "");
   const [bodyCopy, setBodyCopy] = useState(existing?.body_copy ?? "");
@@ -498,8 +498,8 @@ const BrandCreateOffer = () => {
     if (!asDraft && !heroPath) return toast.error("Upload a banner image (1500×320) before submitting.");
 
     if (!asDraft && (enabledSlotList.length === 0 || totalDays === 0)) return toast.error("Select at least one slot and one date.");
-    // Targeted campaigns may be submitted at any audience size. The 50-member
-    // floor only suppresses REPORTING (reach + performance), never delivery.
+    // Targeted campaigns may be submitted at any audience size — reporting is
+    // banded for privacy, never suppressed, and delivery is unaffected.
     if (!asDraft && ownerMode === "brand" && !brandSubActive) {
       toast("Annual brand membership required to submit for review.");
       nav(`/brand/subscribe?next=${encodeURIComponent(`/brand/offers/${existingId ?? "new"}`)}`);

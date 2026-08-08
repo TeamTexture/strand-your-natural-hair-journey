@@ -27,7 +27,8 @@ import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBra
 import { Users } from "lucide-react";
 import { money as baseMoney, TRIAL_PRICING_NOTE } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
-import { bandMemberCount } from "@/lib/adTargeting";
+import { bandMemberCount, isZeroCount, WIDEN_AUDIENCE_PROMPT } from "@/lib/adTargeting";
+import { useOfferReach } from "@/hooks/useAdTargeting";
 import { useRoles } from "@/hooks/useRoles";
 
 const money = baseMoney;
@@ -56,6 +57,7 @@ const BrandOfferDetail = () => {
   // Admins see exact performance figures; brands see approximate ranges.
   const { isAdmin } = useRoles();
   const showExact = isAdmin;
+  const { data: offerReach } = useOfferReach(id);
 
   // When the owner (or admin) opens an ended offer, clear the "new interest"
   // badge on the past card by stamping brand_last_interest_seen_at = now.
@@ -314,6 +316,24 @@ const BrandOfferDetail = () => {
             </p>
           </SurfaceCard>
         ))}
+
+        {offerReach?.is_targeted && (
+          <>
+            <SectionLabel className="!px-0">Audience</SectionLabel>
+            <SurfaceCard className="py-2.5">
+              <p className="font-body text-[13px]">
+                {showExact ? offerReach.reach ?? "—" : bandMemberCount(offerReach.reach)}
+              </p>
+              <p className="text-[10.5px] text-muted-foreground font-body mt-1 leading-snug">
+                {isZeroCount(offerReach.reach)
+                  ? WIDEN_AUDIENCE_PROMPT
+                  : showExact
+                    ? "Members matching this campaign's targeting."
+                    : "An approximate range of members matching this campaign's targeting."}
+              </p>
+            </SurfaceCard>
+          </>
+        )}
 
         <SectionLabel className="!px-0">Performance</SectionLabel>
         {statsSuppressed ? (
