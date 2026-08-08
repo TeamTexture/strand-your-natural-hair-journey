@@ -183,8 +183,11 @@ const IngredientDetail = () => {
     /** Set when opened from a brand's shelf (see BrandShelfProductOpen). */
     brand_product_id?: string;
     external_url?: string | null;
+    /** Seed payload only — run the member's own analysis on top of it. */
+    needs_analysis?: boolean;
   } | null;
   const freshAnalysis = navState?.analysis ?? null;
+  const needsAnalysis = navState?.needs_analysis ?? false;
   const navIntent: "shelf" | "wishlist" = navState?.intent ?? "shelf";
   const autoSave = navState?.auto_save ?? false;
   const returnTo = navState?.returnTo ?? null;
@@ -226,10 +229,10 @@ const IngredientDetail = () => {
 
   // Initial loading state: only show the spinner when we have no fresh
   // analysis to render immediately.
-  const [loading, setLoading] = useState(!freshAnalysis);
+  const [loading, setLoading] = useState(!freshAnalysis || needsAnalysis);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(
-    freshAnalysis ? freshToAnalysis(freshAnalysis) : null,
+    freshAnalysis && !needsAnalysis ? freshToAnalysis(freshAnalysis) : null,
   );
   // THE score for this page. Always the stored column via the shared accessor,
   // so this page can never show a number that differs from the product card,
@@ -565,7 +568,7 @@ const IngredientDetail = () => {
   const ranForRef = useRef<string | null>(null);
   useEffect(() => {
     // Fresh-scan path: analysis is already in state, no need to re-fetch.
-    if (freshAnalysis) return;
+    if (freshAnalysis && !needsAnalysis) return;
     if (!productKey || !profileChecked) return;
     // Support level is part of the identity: guidance depth is level-specific,
     // so changing level re-runs the analysis instead of showing stale depth.
@@ -573,7 +576,7 @@ const IngredientDetail = () => {
     if (ranForRef.current === runKey) return;
     ranForRef.current = runKey;
     runAnalysis(false);
-  }, [runAnalysis, productKey, freshAnalysis, profileChecked, tipsLevel]);
+  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel]);
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the
