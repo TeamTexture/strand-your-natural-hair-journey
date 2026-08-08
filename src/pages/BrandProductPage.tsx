@@ -313,7 +313,7 @@ const BrandProductPage = () => {
               <DiscountCodeChip
                 code={offer.discount_code}
                 variant="block"
-                onCopy={() => if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" })}
+                onCopy={() => { if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "code_copy" }); }}
               />
             )}
             {validUntil && (
