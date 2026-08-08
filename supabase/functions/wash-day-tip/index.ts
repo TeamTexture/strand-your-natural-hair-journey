@@ -20,7 +20,6 @@ import {
   memberAttributeTokens,
   validateTipAction,
   validateTipReason,
-  validateTipTechnique,
   retryDirective,
   logTipRejection,
 } from "../_shared/tip-action.ts";
@@ -59,7 +58,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const MODEL_VERSION = "wash-tip@v13-consolidated-spec";
+const MODEL_VERSION = "wash-tip@v14-no-technique";
 
 interface TipPayload {
   headline: string;
@@ -141,7 +140,6 @@ OUTPUT — a JSON object only, no prose outside it, PLAIN TEXT in every field:
   "action": string,     // REQUIRED. What to DO. One instruction verb first. Shown at EVERY support level, so it must stand alone as usable guidance.
   "reason": string,     // REQUIRED. ONE sentence. WHY that action matters for THIS member — the mechanism or the consequence of skipping it. Explains; never restates the action.
   "why": string,        // Extended personalised context. HAND-HOLDING LEVEL ONLY — return "" otherwise.
-  "technique": string,  // HOW to do the action well. Must contain specifics "action" does not. Return "" if it cannot.
   "next_time": string   // ONE option to try next time. HAND-HOLDING LEVEL ONLY${isStyle ? " and never on this surface — always return \"\"" : ""} — return "" otherwise.
 }
 
@@ -165,7 +163,6 @@ THE RULES, IN PRIORITY ORDER. A lower number always beats a higher one.
 
 7. LEVEL-APPROPRIATE LENGTH. The support-level caps below are hard and are validated after generation. Write to the level you are given: brief does not mean thin, and full does not mean padded.
 
-8. TECHNIQUE ADDS SPECIFICS OR IS OMITTED. "action" = WHAT. "technique" = HOW WELL: grip, direction, pressure, section order, how much product, what to avoid. If "technique" would only reword the action, return "" — an omitted block beats a duplicated one.
 
 FORMAT — ONE CONVENTION: plain text. No markdown of any kind: no square-bracket links, no URLs, no asterisks, no bold, no headings, no bullet characters. No emojis. No pleasantries. No book, chapter or page citations.
 ${
@@ -434,18 +431,12 @@ Do not substitute other cleansing or sealing methods for these two.`
   const check = (p: Parsed | null) => {
     const actionVerdict = validateTipAction({
       action: String(p?.action ?? ""),
-      supporting: [String(p?.headline ?? ""), String(p?.why ?? ""), String(p?.reason ?? ""), String(p?.technique ?? "")],
+      supporting: [String(p?.headline ?? ""), String(p?.why ?? ""), String(p?.reason ?? "")],
       attributeTokens,
     });
     // The WHY floor: the tip must justify itself, not only instruct.
     const reasonVerdict = validateTipReason({
       reason: String(p?.reason ?? ""),
-      action: String(p?.action ?? ""),
-    });
-    // ROLE SEPARATION: `technique` must add HOW-specifics the action does not
-    // already contain, or be omitted. A restated technique is rejected.
-    const techniqueVerdict = validateTipTechnique({
-      technique: String(p?.technique ?? ""),
       action: String(p?.action ?? ""),
     });
     // NO PRODUCT NAMES: the editorial card may never name any product, from
@@ -456,22 +447,20 @@ Do not substitute other cleansing or sealing methods for these two.`
     // itself by restating its own headline goal.
     const substanceVerdict = validateTipSubstance({
       headline: String(p?.headline ?? ""),
-      body: [String(p?.action ?? ""), String(p?.reason ?? ""), String(p?.technique ?? ""), String(p?.next_time ?? "")]
+      body: [String(p?.action ?? ""), String(p?.reason ?? ""), String(p?.next_time ?? "")]
         .filter(Boolean).join(" "),
     });
     // Minimal level word caps, validated.
     const capHits = levelCapViolations(requestedLevel, {
       action: String(p?.action ?? ""),
       reason: String(p?.reason ?? ""),
-      technique: String(p?.technique ?? ""),
     });
     return {
-      ok: actionVerdict.ok && reasonVerdict.ok && techniqueVerdict.ok &&
+      ok: actionVerdict.ok && reasonVerdict.ok &&
         substanceVerdict.ok && productHits.length === 0 && capHits.length === 0,
       reasons: [
         ...actionVerdict.reasons,
         ...reasonVerdict.reasons,
-        ...techniqueVerdict.reasons,
         ...substanceVerdict.reasons,
         ...(productHits.length ? ["names_product"] : []),
         ...capHits,
@@ -551,11 +540,6 @@ Do not substitute other cleansing or sealing methods for these two.`
     if (!hasUsableAction) {
       return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
     }
-    // A technique that only restates the action is DROPPED, never served. The
-    // card loses a block; it does not gain a duplicate.
-    if (verdict.reasons.includes("technique_duplicates_action")) {
-      parsed = { ...(parsed as Parsed), technique: "" };
-    }
     await logTipRejection(
       isStyle ? "style-tip" : "wash-day-tip",
       ["served_degraded", ...verdict.reasons],
@@ -575,7 +559,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   const capped = applyLevelCaps(requestedLevel, {
     action: String(parsed.action ?? ""),
     reason: String(parsed.reason ?? ""),
-    technique: String(parsed.technique ?? ""),
+    technique: "",
     why: String(parsed.why ?? ""),
     next_time: nextTime,
   });
@@ -585,7 +569,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     why: capped.why,
     action: capped.action,
     reason: capped.reason,
-    technique: capped.technique,
+    technique: "",
     next_time: capped.next_time,
     fingerprint: body.fingerprint,
     _model_version: MODEL_VERSION,
@@ -670,7 +654,7 @@ Do not substitute other cleansing or sealing methods for these two.`
               reason: applyLevelCaps(requestedLevel, {
                 action: finalPayload.action,
                 reason: safeReason,
-                technique: finalPayload.technique,
+                technique: "",
                 why: finalPayload.why,
                 next_time: finalPayload.next_time ?? "",
               }).reason,
@@ -697,7 +681,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       { onConflict: "user_id,kind" },
     );
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.technique, finalPayload.next_time ?? ""]);
+  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.next_time ?? ""]);
 
   return json(200, { tip: finalPayload, cached: false });
 });
