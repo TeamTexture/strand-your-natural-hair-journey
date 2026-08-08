@@ -808,13 +808,19 @@ export const VIEW_DWELL_MS = 1000;
 export function useAdViewTracker(
   offerId: string | null | undefined,
   slot: PlacementSlot | null,
-  opts?: { was_matched?: boolean | null; match_reason?: Record<string, unknown> | null },
+  opts?: {
+    was_matched?: boolean | null;
+    match_reason?: Record<string, unknown> | null;
+    unit?: "advert" | "wash_day_tip";
+  },
 ) {
   const ref = useRef<HTMLDivElement | null>(null);
   const log = useLogAdEvent();
   const firedRef = useRef(false);
   const matched = opts?.was_matched ?? null;
   const reason = opts?.match_reason ?? null;
+  const unit = opts?.unit ?? "advert";
+
 
   useEffect(() => {
     firedRef.current = false;
