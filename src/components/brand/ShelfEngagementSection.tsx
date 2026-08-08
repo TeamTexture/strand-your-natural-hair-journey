@@ -8,15 +8,19 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
+import { bandMemberCount } from "@/lib/adTargeting";
+import { useRoles } from "@/hooks/useRoles";
 import {
   useBrandShelfEngagement,
   shelfEngagementTotals,
   type ShelfEngagementRow,
 } from "@/hooks/useBrandProductEngagement";
 
-const Figure = ({ label, value }: { label: string; value: number | null }) => (
+const Figure = ({ label, value, exact }: { label: string; value: number | null; exact: boolean }) => (
   <div className="min-w-0">
-    <p className="font-display text-[17px] leading-none">{value == null ? "—" : value}</p>
+    <p className="font-display text-[15px] leading-tight [overflow-wrap:anywhere]">
+      {value == null ? "—" : exact ? value : bandMemberCount(value)}
+    </p>
     <p className="mt-1 text-[10.5px] font-body text-muted-foreground leading-snug">{label}</p>
   </div>
 );
@@ -37,7 +41,7 @@ const rowFigures = (r: {
   { label: "Buy link clicked", value: r.link_clicks },
 ];
 
-const ProductRow = ({ row }: { row: ShelfEngagementRow }) => {
+const ProductRow = ({ row, exact }: { row: ShelfEngagementRow; exact: boolean }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-[12px] border border-border/70 bg-card overflow-hidden">
@@ -56,7 +60,7 @@ const ProductRow = ({ row }: { row: ShelfEngagementRow }) => {
       {open && (
         <div className="px-3 pb-3 grid grid-cols-3 gap-x-2 gap-y-3">
           {rowFigures(row).map((f) => (
-            <Figure key={f.label} label={f.label} value={f.value} />
+            <Figure key={f.label} label={f.label} value={f.value} exact={exact} />
           ))}
         </div>
       )}
@@ -66,11 +70,11 @@ const ProductRow = ({ row }: { row: ShelfEngagementRow }) => {
 
 const ShelfEngagementSection = () => {
   const { data: rows = [], isLoading } = useBrandShelfEngagement();
+  const { isAdmin } = useRoles();
+  const exact = isAdmin;
   if (isLoading || rows.length === 0) return null;
 
   const totals = shelfEngagementTotals(rows);
-  const anySuppressed = rows.some((r) => r.suppressed);
-  const threshold = rows[0]?.min_threshold ?? 50;
 
   return (
     <div>
@@ -82,18 +86,17 @@ const ShelfEngagementSection = () => {
       <SurfaceCard className="space-y-3">
         <div className="grid grid-cols-3 gap-x-2 gap-y-3">
           {rowFigures(totals).map((f) => (
-            <Figure key={f.label} label={f.label} value={f.value} />
+            <Figure key={f.label} label={f.label} value={f.value} exact={exact} />
           ))}
         </div>
         <div className="space-y-1.5 pt-1">
           {rows.map((r) => (
-            <ProductRow key={r.brand_product_id} row={r} />
+            <ProductRow key={r.brand_product_id} row={r} exact={exact} />
           ))}
         </div>
-        {anySuppressed && (
+        {!exact && (
           <p className="text-[11px] font-body text-muted-foreground leading-snug">
-            Figures appear once at least {threshold} members are behind them. You always see counts,
-            never individual members.
+            Figures are shown as approximate ranges. You never see individual members.
           </p>
         )}
       </SurfaceCard>
