@@ -25,6 +25,9 @@ import {
 
 export interface DynamicWashTip {
   headline: string;
+  /** One concrete instruction for the next wash day. Present at every support
+   *  level — the card renders it ungated. */
+  action: string;
   why: string;
   technique: string;
   /**
@@ -122,7 +125,7 @@ export function useDynamicWashTip() {
   const { level } = useTipsLevel();
 
   return useQuery({
-    queryKey: ["wash_day_tip_v2", user?.id, level],
+    queryKey: ["wash_day_tip_v3_action", user?.id, level],
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
