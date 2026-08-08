@@ -27,6 +27,9 @@ import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBra
 import { Users } from "lucide-react";
 import { money as baseMoney, TRIAL_PRICING_NOTE } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
+import { bandMemberCount, isZeroCount, WIDEN_AUDIENCE_PROMPT } from "@/lib/adTargeting";
+import { useOfferReach } from "@/hooks/useAdTargeting";
+import { useRoles } from "@/hooks/useRoles";
 
 const money = baseMoney;
 
@@ -51,6 +54,10 @@ const BrandOfferDetail = () => {
   const markSeen = useMarkOfferInterestSeen();
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
   const interest = id ? interestMap[id] : undefined;
+  // Admins see exact performance figures; brands see approximate ranges.
+  const { isAdmin } = useRoles();
+  const showExact = isAdmin;
+  const { data: offerReach } = useOfferReach(id);
 
   // When the owner (or admin) opens an ended offer, clear the "new interest"
   // badge on the past card by stamping brand_last_interest_seen_at = now.
@@ -71,11 +78,10 @@ const BrandOfferDetail = () => {
 
   if (isLoading || !offer) return <LoadingDot />;
 
-  // Performance for a targeted campaign is suppressed by the database until at
-  // members are in the audience — exact figures are reported at any audience size.
-  // back with NULL metrics rather than being hidden.
+  // Performance is always reported at any audience size. Brands see approximate
+  // ranges (banded), admins see exact figures.
   const statRows = offer.brand_offer_stats ?? [];
-  const statsSuppressed = statRows.length > 0 && statRows.every((s) => s.impressions === null);
+  const statsSuppressed = statRows.length === 0;
   const stats = statRows.reduce(
     (acc, s) => ({
       impressions: acc.impressions + (s.impressions ?? 0),
@@ -311,26 +317,44 @@ const BrandOfferDetail = () => {
           </SurfaceCard>
         ))}
 
+        {offerReach?.is_targeted && (
+          <>
+            <SectionLabel className="!px-0">Audience</SectionLabel>
+            <SurfaceCard className="py-2.5">
+              <p className="font-body text-[13px]">
+                {showExact ? offerReach.reach ?? "—" : bandMemberCount(offerReach.reach)}
+              </p>
+              <p className="text-[10.5px] text-muted-foreground font-body mt-1 leading-snug">
+                {isZeroCount(offerReach.reach)
+                  ? WIDEN_AUDIENCE_PROMPT
+                  : showExact
+                    ? "Members matching this campaign's targeting."
+                    : "An approximate range of members matching this campaign's targeting."}
+              </p>
+            </SurfaceCard>
+          </>
+        )}
+
         <SectionLabel className="!px-0">Performance</SectionLabel>
         {statsSuppressed ? (
           <SurfaceCard className="py-3">
             <p className="text-[12px] font-body leading-snug">
-              Your campaign is running. Performance numbers will appear here as members see it.
+              Your campaign is running. Performance figures will appear here as members see it.
             </p>
           </SurfaceCard>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-              <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
-              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} />
-              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} />
-              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} />
+              <StatBox icon={Eye} label="Impressions" value={stats.impressions} exact={showExact} />
+              <StatBox icon={Maximize2} label="Expands" value={stats.expands} exact={showExact} />
+              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} exact={showExact} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} exact={showExact} />
+              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} exact={showExact} />
             </div>
             <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
               Impressions = distinct members who saw the advert (at least half of it, for a full second).
               Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
-              site. {STATS_METHOD_NOTE}
+              site. {showExact ? "" : "Figures are shown as approximate ranges. "}{STATS_METHOD_NOTE}
             </p>
           </>
         )}
@@ -525,10 +549,12 @@ const BrandOfferDetail = () => {
   );
 };
 
-const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
+const StatBox = ({ icon: Icon, label, value, exact }: { icon: React.ElementType; label: string; value: number; exact: boolean }) => (
   <SurfaceCard className="text-center py-3">
     <Icon className="size-4 text-primary mx-auto" />
-    <p className="font-display text-xl mt-1">{value}</p>
+    <p className="font-display text-[15px] mt-1 leading-tight [overflow-wrap:anywhere]">
+      {exact ? value : bandMemberCount(value)}
+    </p>
     <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
   </SurfaceCard>
 );

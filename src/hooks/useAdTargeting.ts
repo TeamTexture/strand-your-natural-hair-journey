@@ -2,7 +2,8 @@
 //
 // Every privacy rule is enforced in the database:
 //  - matching only ever considers members with personalised_offers_consent = true
-//  - reach counts below the 50-member floor come back as NULL
+//  - reach counts are banded for display (see bandMemberCount); brands never
+//    see exact member numbers
 //  - the resolved audience list is never readable by a brand
 // The hooks here are thin wrappers over those RPCs.
 
@@ -39,7 +40,7 @@ export interface ReachEstimate {
   audience_floor: number;
 }
 
-/** Live reach estimate for an in-progress rule set. Suppressed below the floor. */
+/** Live reach estimate for an in-progress rule set. Displayed as a band. */
 export function useReachEstimate(rules: TargetingRules) {
   const clean = cleanRules(rules);
   const empty = rulesAreEmpty(clean);

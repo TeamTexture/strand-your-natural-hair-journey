@@ -195,7 +195,7 @@ const DOCS: Record<string, LegalDoc> = {
           `Brands pay to show offers inside STRAND. Some are shown to everyone.`,
           `If you turn personalised offers on, we may show you offers matched to non-health details: your porosity, density, strand thickness, surface texture, hair length, how often you wash, the categories of product on your shelf, your current and planned styles, and your hair goal.`,
           `We never use your health information for advertising. Blood results, medications, diagnosed conditions, scalp conditions and areas of concern are excluded, and cannot be used for advertising in any circumstances.`,
-          `Brands never receive your personal data and never learn who you are. They see only aggregate counts.`,
+          `Brands never receive your personal data and never learn who you are. They see only approximate ranges rather than exact numbers, and nothing that could identify an individual.`,
           `This setting is off unless you turn it on. You can turn it off at any time in your profile, and it takes effect immediately. Turning it off does not affect your access to STRAND.`,
         ],
       },

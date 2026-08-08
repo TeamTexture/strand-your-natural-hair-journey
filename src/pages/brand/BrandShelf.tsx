@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { normaliseProductUrl } from "@/lib/brandLinkScan";
+import { bandMemberCount } from "@/lib/adTargeting";
+import { useRoles } from "@/hooks/useRoles";
 import { toast } from "sonner";
 import {
   useBrandShelf,
@@ -42,45 +44,50 @@ const ApprovalPill = ({ item }: { item: BrandShelfItem }) => {
   );
 };
 
-const CountLine = ({ label, value }: { label: string; value: number }) => (
-  <div className="flex items-baseline justify-between">
+const CountLine = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex items-baseline justify-between gap-2">
     <span className="text-[11px] font-body text-muted-foreground">{label}</span>
-    <span className="font-body text-[13px]">{value}</span>
+    <span className="font-body text-[13px] text-right">{value}</span>
   </div>
 );
 
 /**
- * Member activity. The 50-member privacy threshold is enforced in the
- * database — anything below it comes back NULL. Rather than repeat an absent
- * number three times, we show one quiet line until there's something real.
+ * Member activity. Brands see approximate ranges, never exact counts — admins
+ * see the exact figures. Zero is stated plainly rather than hidden.
  */
-const MemberActivity = ({ c }: { c: BrandMemberCount | undefined }) => {
-  const shown = [
-    { label: "On members' shelves", value: c?.shelf_count },
-    { label: "Saved to wishlists", value: c?.wishlist_count },
-    { label: "Marked a favourite", value: c?.favourite_count },
-  ].filter((r) => typeof r.value === "number") as { label: string; value: number }[];
+const MemberActivity = ({ c, exact }: { c: BrandMemberCount | undefined; exact: boolean }) => {
+  const rows = [
+    { label: "On members' shelves", value: c?.shelf_count ?? 0 },
+    { label: "Saved to wishlists", value: c?.wishlist_count ?? 0 },
+    { label: "Marked a favourite", value: c?.favourite_count ?? 0 },
+  ];
 
-  if (c?.suppressed !== false || shown.length === 0) {
+  if (!c) {
     return (
       <p className="text-[11px] font-body text-muted-foreground leading-snug">
-        Member activity will appear here once enough members have engaged.
+        Member activity will appear here as members engage.
       </p>
     );
   }
   return (
     <div className="space-y-1">
-      {shown.map((r) => (
-        <CountLine key={r.label} label={r.label} value={r.value} />
+      {rows.map((r) => (
+        <CountLine
+          key={r.label}
+          label={r.label}
+          value={exact ? String(r.value) : bandMemberCount(r.value)}
+        />
       ))}
     </div>
   );
 };
 
+
 const BrandShelf = () => {
   const nav = useNavigate();
   const { data: items = [], isLoading } = useBrandShelf();
   const { data: counts = {} } = useBrandMemberCounts();
+  const { isAdmin } = useRoles();
   const setPublished = useSetShelfPublished();
   const remove = useDeleteShelfItem();
   const reorder = useReorderShelf();
@@ -225,7 +232,7 @@ const BrandShelf = () => {
                       </p>
                     )}
                     <div className="px-3.5 pb-3.5">
-                      <MemberActivity c={c} />
+                      <MemberActivity c={c} exact={isAdmin} />
                     </div>
                   </ShelfProductCard>
 
