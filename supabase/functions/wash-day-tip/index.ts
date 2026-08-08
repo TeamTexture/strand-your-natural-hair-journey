@@ -343,9 +343,13 @@ Do not substitute other cleansing or sealing methods for these two.`
   // NO PRODUCT NAMES + minimal caps. The forbidden-name index is resolved from
   // the database with the service client — never from anything the client sent.
   const wall = await buildProductNameWall(admin as never, user.id, body.shelfProducts ?? []);
-  const editorialBlock = noProductNamesBlock();
-  const minimalBlock = tipLevelPromptBlock(requestedLevel);
-  const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}\n\n${buildTipsLevelBlock((body as unknown as Record<string, unknown>).tipsLevel)}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${editorialBlock}${minimalBlock}`;
+  // ONE spec + grounding + the mandatory cornrow guidance + the validated level
+  // caps + the anti-repetition ledger. The generic app-wide verbosity block and
+  // the separate no-product-names block are NOT appended any more: both are now
+  // stated once inside the spec above (rules 2 and 7), which is what stopped the
+  // model receiving three different instructions about the same thing.
+  const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${tipLevelPromptBlock(requestedLevel)}`;
+
 
   let aiResp: Response;
   try {
