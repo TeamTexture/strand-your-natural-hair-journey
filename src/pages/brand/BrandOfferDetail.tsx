@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
-  usePendingRevision, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
+  usePendingRevision, useAwaitingPaymentRevision, useRevisionUpliftCheckout, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
   useRelaunchBrandOffer, useOfferSplitTotals,
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,8 @@ const BrandOfferDetail = () => {
   const editRoute = (oid: string) => `${ownerOfferRoute(ownerMode, oid)}/edit`;
   const { data: offer, isLoading, isFetching, refetch } = useBrandOffer(id);
   const { data: pendingRevision } = usePendingRevision(id);
+  const { data: awaitingPaymentRevision } = useAwaitingPaymentRevision(id);
+  const upliftCheckout = useRevisionUpliftCheckout();
   const { data: allRevisions = [] } = useOfferRevisions(id);
   const withdrawRevision = useWithdrawBrandOfferRevision();
   const [paying, setPaying] = useState(false);
