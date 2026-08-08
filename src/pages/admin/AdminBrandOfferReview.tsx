@@ -162,58 +162,18 @@ const RevisionDiff = ({ offer, revision }: {
       )}
 
       {targetingChanged && (
-        <>
-          <TargetingDiff
-            before={liveTargeting ?? {}}
-            after={revision.targeting ?? {}}
-            reachBefore={revision.reach_before}
-            reachAfter={revision.reach_after}
-            tierBefore={revision.tier_before}
-            tierAfter={revision.tier_after}
-            remainingDays={revision.remaining_days}
-            upliftPence={revision.uplift_pence}
-            paymentRequired={revision.payment_required}
-            paidAt={revision.paid_at}
-            paymentWaived={revision.payment_waived}
-          />
-
-          {revision.payment_required && (
-            <div className="flex gap-2">
-              <Button
-                variant={paymentOutstanding ? "gold" : "outline"}
-                size="pill"
-                disabled={!paymentOutstanding || markPaid.isPending}
-                onClick={async () => {
-                  try {
-                    await markPaid.mutateAsync({ revision_id: revision.id, offer_id: offer.id, waive: false });
-                    toast.success("Uplift marked as received");
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Update failed");
-                  }
-                }}
-                className="flex-1"
-              >
-                Mark uplift paid
-              </Button>
-              <Button
-                variant="outline"
-                size="pill"
-                disabled={!paymentOutstanding || markPaid.isPending}
-                onClick={async () => {
-                  try {
-                    await markPaid.mutateAsync({ revision_id: revision.id, offer_id: offer.id, waive: true });
-                    toast.success("Uplift waived");
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Update failed");
-                  }
-                }}
-                className="flex-1"
-              >
-                Waive uplift
-              </Button>
-            </div>
-          )}
-        </>
+        <TargetingDiff
+          before={liveTargeting ?? {}}
+          after={revision.targeting ?? {}}
+          reachBefore={revision.reach_before}
+          reachAfter={revision.reach_after}
+          tierBefore={revision.tier_before}
+          tierAfter={revision.tier_after}
+          remainingDays={revision.remaining_days}
+          upliftPence={revision.uplift_pence}
+          paymentRequired={revision.payment_required}
+          paidAt={revision.paid_at}
+        />
       )}
 
       <SectionLabel className="!px-0">Decision</SectionLabel>
@@ -221,7 +181,6 @@ const RevisionDiff = ({ offer, revision }: {
         <Button
           variant="gold"
           size="pill"
-          disabled={paymentOutstanding}
           onClick={async () => {
             try {
               await approve.mutateAsync({ revision_id: revision.id, offer_id: offer.id });
@@ -238,11 +197,7 @@ const RevisionDiff = ({ offer, revision }: {
         >
           <Check className="size-4 mr-1.5" /> Approve revision
         </Button>
-        {paymentOutstanding && (
-          <p className="text-[11px] font-body text-warn text-center leading-snug">
-            Uplift of {money(revision.uplift_pence)} is outstanding — mark it paid or waive it before approving.
-          </p>
-        )}
+
 
         <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Rejection reason (shown to brand)" rows={2} />
         <Button
