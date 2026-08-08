@@ -40,6 +40,8 @@ export interface UserProduct {
 
 export interface SponsoredNote {
   offerId: string;
+  /** The canonical brand product this offer promotes — route by this, not the offer. */
+  brandProductId: string;
   headline: string;
   discountCode: string | null;
   endsOn: string | null;
