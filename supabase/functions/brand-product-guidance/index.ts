@@ -420,7 +420,7 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
-      const result = validate(parsed, body.context ?? null);
+      const result = validate(parsed, body.context ?? null, surface);
       if (result.ok) {
         clean = result.value;
         break;
