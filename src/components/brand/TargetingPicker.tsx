@@ -265,30 +265,8 @@ const TargetingPicker = ({ value, onChange, disabled }: Props) => {
         })}
       </div>
 
-      {/* Reach */}
-      <div className="rounded-[12px] border border-border bg-muted/40 p-3">
-        {empty ? (
-          <p className="font-body text-[12.5px] flex items-center gap-2">
-            <Users className="size-4 text-primary shrink-0" />
-            Broad campaign — shown to all members in the slots you book.
-          </p>
-        ) : (
-          <>
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Audience</p>
-              <p className="font-body text-[12.5px]">
-                {isFetching ? "Estimating…" : <span className="font-medium">{bandMemberCount(reach)}</span>}
-              </p>
-            </div>
-            <p className="text-[10.5px] font-body text-muted-foreground mt-1.5 leading-snug">
-              {isZeroCount(reach)
-                ? WIDEN_AUDIENCE_PROMPT
-                : "An approximate range of matching members. Your campaign can run at any size."}
-            </p>
-          </>
-        )}
 
-      </div>
+
 
       <div className="flex items-start gap-2">
         <Info className="size-3.5 text-primary shrink-0 mt-[3px]" />
