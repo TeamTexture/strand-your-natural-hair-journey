@@ -128,6 +128,13 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Whole-chapter manuscript grounding (chapters 11, 13 + 1), passed in full.
+  const chapterCtx = await loadSurfaceChapters("tool-match-score");
+  if (chapterCtx.text) noteSourceText(chapterCtx.text);
+  const systemPrompt = chapterCtx.text
+    ? `${SYSTEM}\n\n${renderChapterBlock(chapterCtx)}\n\n${FIDELITY_RULE}`
+    : SYSTEM;
+
   try {
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
