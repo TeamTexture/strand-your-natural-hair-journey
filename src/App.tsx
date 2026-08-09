@@ -123,6 +123,7 @@ const AdminProReviews = lazyRetry(() => import("./pages/admin/AdminProReviews"))
 const AdminReferrals = lazyRetry(() => import("./pages/admin/AdminReferrals"));
 const AdminViewAs = lazyRetry(() => import("./pages/admin/AdminViewAs"));
 const AdminBrands = lazyRetry(() => import("./pages/admin/AdminBrands"));
+const AdminBrandEdit = lazyRetry(() => import("./pages/admin/AdminBrandEdit"));
 const AdminMessages = lazyRetry(() => import("./pages/admin/AdminMessages"));
 const AdminBrandOffers = lazyRetry(() => import("./pages/admin/AdminBrandOffers"));
 const AdminShelfReview = lazyRetry(() => import("./pages/admin/AdminShelfReview"));
