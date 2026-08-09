@@ -266,7 +266,7 @@ export const FIDELITY_RULE =
    - Do NOT present LOC/LCO as a daily or necessary practice. It is to be avoided daily; weekly, after wash day, is fine.
    - Cleansing is TWO cleanses: the first focuses on the SCALP with a cleansing or all-purpose shampoo, using the pads of the fingers; the second uses a conditioning or moisturising shampoo and focuses on the HAIR. Do NOT reverse that.
    - Washing while in a protective style uses a scalp cleanser — a solution on cotton pads, or preformulated scalp cleansing pads — not general shampooing of the braids.
-   - Do NOT tell anyone to use their nails on the scalp. Scalp agitation uses the pads of the fingertips.
+   - Do NOT tell anyone to use their nails on the scalp. Scalp agitation uses the pads of the fingertips.`;
 
 
 // ---------------------------------------------------------------------------
