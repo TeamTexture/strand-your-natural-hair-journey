@@ -406,33 +406,45 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
       <div className="px-5 pb-10 space-y-3">
         {/* ── Header ─────────────────────────── */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            {dateLabel && (
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
-                <CalendarDays className="size-3" /> {dateLabel}
-              </p>
-            )}
-            <h1 className="font-display text-[22px] font-bold leading-tight mt-0.5 [overflow-wrap:anywhere]">
-              {entry.style_name || "Style record"}
-            </h1>
-            <p className="text-[11px] text-muted-foreground mt-1">
+        {coverUrl && (
+          <div className="relative -mx-5 mb-1">
+            <div className="relative h-44 overflow-hidden bg-secondary">
+              <img
+                src={coverUrl}
+                alt={entry.style_name ? `${entry.style_name} cover` : "Journal cover"}
+                className="absolute inset-0 size-full object-cover object-[center_25%]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          {dateLabel && (
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
+              <CalendarDays className="size-3" /> {dateLabel}
+            </p>
+          )}
+          <h1 className="font-display text-[26px] font-bold leading-[1.15] w-full text-balance [overflow-wrap:anywhere]">
+            {entry.style_name || "Style record"}
+          </h1>
+          <div className="flex items-center justify-between gap-3 pt-0.5">
+            <p className="text-[11px] text-muted-foreground">
               {complete ? "Finished" : "In progress"}
               {steps.length ? ` · ${steps.length} step${steps.length === 1 ? "" : "s"}` : ""}
             </p>
-
+            <button
+              type="button"
+              onClick={() => (reviewing ? setMode("edit") : guardExit(() => setMode("review")))}
+              className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
+            >
+              {reviewing ? (
+                <><Pencil className="size-3.5" /> Edit</>
+              ) : (
+                <><Eye className="size-3.5" /> Review</>
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => (reviewing ? setMode("edit") : guardExit(() => setMode("review")))}
-            className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
-          >
-            {reviewing ? (
-              <><Pencil className="size-3.5" /> Edit</>
-            ) : (
-              <><Eye className="size-3.5" /> Review</>
-            )}
-          </button>
         </div>
 
         {reviewing && steps.length > 0 && (
@@ -453,6 +465,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
             {entry.cover_media_id || entry.cover_path ? "Change journal cover" : "Choose journal cover"}
           </button>
         )}
+
 
         <CoverPicker
           entryId={entry.id}
