@@ -171,62 +171,32 @@ const BrandProductPage = () => {
   );
 
 
+  // Adding is NOT conditional on a live advert. This screen is also reached
+  // straight from a brand's permanent shelf (/brands/:id/product/:id), where
+  // `offer` is null — the old `!offer` guard made those adds do nothing at all,
+  // which is why no brand tool ever reached a member's shelf.
+  // One shared writer handles products (user_products) and tools (user_tools),
+  // so the link, the de-duplication and the offer credit can never drift.
   const save = async (destination: "shelf" | "wishlist") => {
-    if (!user || !product || !offer) return;
+    if (!user || !product) return;
     const toShelf = destination === "shelf";
     setBusy(true);
     try {
-      if (isTool) {
-        const existing = findExistingTool() as
-          | { id: string; on_shelf?: boolean | null; on_wishlist?: boolean | null }
-          | undefined;
-        if (existing) {
-          const { error } = await supabase
-            .from("user_tools")
-            .update(
-              (toShelf
-                ? { on_shelf: true, on_wishlist: false }
-                : { on_wishlist: true }) as never,
-            )
-            .eq("id", existing.id);
-          if (error) throw error;
-        } else {
-          const insertRow = {
-            user_id: user.id,
-            tool_key: toolKeyFor(product.id),
-            name: product.name,
-            brand: brandName,
-            // Keep the tool's kind so it files correctly in My Tools.
-            category: (product as { tool_kind?: string | null }).tool_kind ?? null,
-            image_url: product.image_urls?.[0] ?? null,
-            notes: product.description ?? null,
-            source_url: product.external_url ?? null,
-            on_shelf: toShelf,
-            on_wishlist: !toShelf,
-            linked_brand_offer_id: offer?.id ?? null,
-            linked_brand_product_id: product.id,
-          };
-          const { error } = await supabase.from("user_tools").insert(insertRow as never);
-          if (error) throw error;
-        }
-        await reloadTools();
-      } else {
-        const existing = findExistingProduct();
-        const payload: Partial<UserProduct> & { product_key: string; name: string } = {
-          product_key: existing?.product_key ?? productKeyFor(product.id),
-          name: product.name,
-          brand: brandName,
-          ingredients: (product.ingredients ?? existing?.ingredients ?? []) as string[],
-          image_url: product.image_urls?.[0] ?? existing?.image_url ?? null,
-          linked_brand_offer_id: offer?.id ?? null,
-          linked_brand_product_id: product.id,
-          ...(toShelf ? { on_shelf: true, on_wishlist: false } : { on_wishlist: true }),
-        };
-        const row = await upsert(payload);
-        if (!row) throw new Error(toShelf ? "Could not add to your shelf" : "Could not save to wishlist");
-      }
+      const added = await addBrandProductToShelf({
+        userId: user.id,
+        brandName,
+        product: product as unknown as BrandShelfProduct,
+        destination,
+        offerId: offer?.id ?? null,
+      });
+      if (!added) throw new Error(toShelf ? "Could not add to your shelf" : "Could not save to wishlist");
+      if (added.kind === "tool") await reloadTools();
       if (offer) logEvent.mutate({ offer_id: offer.id, slot, event_type: "wishlist" });
       toast.success(toShelf ? "Added to your shelf" : "Added to your wishlist");
+      if (added.kind === "tool") {
+        nav(`/tools/${added.toolId}`);
+        return;
+      }
       nav(toShelf ? "/products" : "/products/wishlist");
     } catch (e) {
       toast.error(
@@ -236,6 +206,7 @@ const BrandProductPage = () => {
       setBusy(false);
     }
   };
+
 
 
 
