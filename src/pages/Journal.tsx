@@ -160,7 +160,7 @@ const Journal = () => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, title, style_name, style_date, status, entry_date, photo_paths, cover_media_id")
+        .select("id, title, style_name, style_date, status, entry_date, photo_paths, cover_media_id, cover_path")
         .eq("user_id", user.id)
         .order("style_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
