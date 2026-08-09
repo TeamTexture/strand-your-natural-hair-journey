@@ -375,7 +375,11 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           variant={complete ? "goldGhost" : "gold"}
           size="pill"
           className="w-full"
-          onClick={() => void setStatus(complete ? "in_progress" : "complete")}
+          onClick={() =>
+            complete
+              ? void setStatus("in_progress")
+              : guardExit(() => void setStatus("complete"))
+          }
         >
           {complete ? (
             <><RotateCcw className="size-4 mr-1.5" /> Add more steps</>
@@ -384,9 +388,62 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           )}
         </Button>
       </div>
+
+      <AlertDialog open={guardOpen} onOpenChange={setGuardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save your notes first?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've written {dirtyCount === 1 ? "a note" : `notes on ${dirtyCount} steps`} that
+              hasn't been saved yet. Save it, or leave and lose it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              type="button"
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={async () => {
+                const go = pendingExit.current;
+                pendingExit.current = null;
+                setGuardOpen(false);
+                await saveDrafts();
+                toast.success("Saved");
+                go?.();
+              }}
+            >
+              Save and continue
+            </Button>
+            <Button
+              type="button"
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => {
+                const go = pendingExit.current;
+                pendingExit.current = null;
+                setDrafts({});
+                setDiscardSignal((v) => v + 1);
+                setGuardOpen(false);
+                go?.();
+              }}
+            >
+              Discard changes
+            </Button>
+            <AlertDialogCancel
+              className="w-full m-0"
+              onClick={() => { pendingExit.current = null; }}
+            >
+              Keep editing
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
+
 
 const StyleRecord = () => {
   const { id = "" } = useParams();
