@@ -129,13 +129,26 @@ Rules:
 - Extract at least one passage for each distinct thing this reader might reasonably be told to do, given her recorded style and goal.
 - Return between 8 and 16 items. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
 
-Reply with JSON only: {"evidence":[{"n":<number>,"passage":"...","relevance":"..."}]}`;
+THEN CLASSIFY COVERAGE of this reader's situation by the supplied chapters. Exactly one of:
+- "explicit": the author directly addresses this reader's situation — her style, her stated goal or challenge, the thing being asked about. Prefer this classification. The book covers language, styling, scalp health, wash day, moisture retention, ingredients, length retention, treatments and colouring thoroughly, so most situations ARE explicit.
+- "extension": the author establishes a principle that plainly applies, but never names this specific situation.
+- "supplement": the author does not cover the subject at all and outside knowledge would be required.
+
+Return alongside the evidence:
+- "coverage": one of the three words above.
+- "coverage_reason": ONE line justifying the classification, naming what the author does or does not address.
+- "principle": for "extension" and "supplement", the author's governing principle that must control the reasoning, stated in her terms and drawn from the passages you extracted. Required for those two. Empty string for "explicit".
+
+Never classify "supplement" merely because the author does not use the reader's exact wording, or because you believe there is more to say. Classify "supplement" only when the subject itself is absent from the supplied text.
+
+Reply with JSON only: {"coverage":"...","coverage_reason":"...","principle":"...","evidence":[{"n":<number>,"passage":"...","relevance":"..."}]}`;
 
 interface Stage1Raw {
   n?: number;
   passage?: string;
   relevance?: string;
 }
+
 
 /**
  * STAGE 1. Reads the authoritative chapters for the surface IN FULL (chapter 1
