@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { BadgeCheck, MessageSquarePlus } from "lucide-react";
+import { BadgeCheck, MessageSquarePlus, Users } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -127,6 +127,12 @@ const AdminMessages = () => {
         <p className="text-xs text-muted-foreground font-body leading-snug">
           Chat directly with any member, professional or brand. They see this as "STRAND Team".
         </p>
+      </div>
+
+      <div className="px-5 pb-4">
+        <Button variant="gold" size="pill" className="w-full" onClick={() => nav("/admin/broadcast")}>
+          <Users className="size-3.5 mr-1.5" /> Send a group message
+        </Button>
       </div>
 
       <div className="px-5 pb-3 grid grid-cols-3 gap-2">

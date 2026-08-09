@@ -236,6 +236,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_broadcasts: {
+        Row: {
+          admin_user_id: string
+          audience: string
+          body: string
+          created_at: string
+          id: string
+          recipient_count: number
+        }
+        Insert: {
+          admin_user_id: string
+          audience: string
+          body: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+        }
+        Update: {
+          admin_user_id?: string
+          audience?: string
+          body?: string
+          created_at?: string
+          id?: string
+          recipient_count?: number
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -5413,6 +5440,10 @@ export type Database = {
         Returns: number
       }
       ad_style_code: { Args: { _style: string }; Returns: string }
+      admin_broadcast_message: {
+        Args: { _audience: string; _body: string }
+        Returns: Json
+      }
       admin_event_rsvps: {
         Args: { _event_id: string }
         Returns: {
