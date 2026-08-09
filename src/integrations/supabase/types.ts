@@ -2585,6 +2585,42 @@ export type Database = {
           },
         ]
       }
+      journal_step_tools: {
+        Row: {
+          created_at: string
+          id: string
+          step_id: string
+          user_tool_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          step_id: string
+          user_tool_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          step_id?: string
+          user_tool_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_step_tools_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "journal_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_step_tools_user_tool_id_fkey"
+            columns: ["user_tool_id"]
+            isOneToOne: false
+            referencedRelation: "user_tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_steps: {
         Row: {
           created_at: string
