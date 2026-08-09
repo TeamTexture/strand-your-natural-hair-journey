@@ -360,9 +360,8 @@ const JournalStepCard = ({
                 <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
                 <div className="flex items-center gap-1.5 min-w-0">
                   {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
-                  {typeof p?.rating === "number" && p.rating > 0 && (
-                    <StarRating value={p.rating} size="size-3" />
-                  )}
+                  <MatchStars item={p ?? null} size="sm" showValue={false} />
+
                 </div>
               </div>
               <ChevronRight className="size-4 text-muted-foreground shrink-0" />
