@@ -186,6 +186,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     addMedia,
     removeMedia,
     toggleProduct,
+    reload,
+
   } = useJournalSteps(entryId);
 
   useEffect(() => {
