@@ -414,6 +414,56 @@ async function fetchOgImageOnly(url: string): Promise<string | null> {
   }
 }
 
+/** Follow retailer short links (amzn.eu/d/..., amzn.to, bit.ly, a.co) to the
+ *  canonical product URL so scrapers and the model see a real product page. */
+async function resolveShortLink(url: string): Promise<string> {
+  let host = "";
+  try { host = new URL(url).host.toLowerCase(); } catch { return url; }
+  const isShort = /^(amzn\.(eu|to|asia|com))$|^a\.co$|^bit\.ly$|^t\.co$|^tinyurl\.com$|^s\.click\.aliexpress\.com$/.test(host);
+  if (!isShort) return url;
+  try {
+    const resp = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(8_000),
+    });
+    const finalUrl = resp.url && resp.url !== url ? resp.url : url;
+    try { await resp.body?.cancel(); } catch { /* ignore */ }
+    console.log(JSON.stringify({ tag: "tool-debug", phase: "shortlink resolved", from: url, to: finalUrl }));
+    return finalUrl;
+  } catch {
+    return url;
+  }
+}
+
+/** Retrieve the page for the Claude path. Firecrawl first (renders JS and gets
+ *  past retailer anti-bot walls such as Amazon's), plain fetch as a fallback. */
+async function prefetchPage(
+  url: string,
+): Promise<{ imageUrl: string | null; title: string; text: string }> {
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  let scraped: ScrapeResult | null = null;
+  if (firecrawlKey) scraped = await scrapeWithFirecrawl(url, firecrawlKey);
+  if (!scraped || (scraped.text ?? "").length < 300) {
+    const plain = await scrapeWithFetch(url);
+    if (plain && (plain.text ?? "").length > (scraped?.text?.length ?? 0)) scraped = plain;
+  }
+  console.log(JSON.stringify({
+    tag: "tool-debug", phase: "prefetch done",
+    source: scraped?.source ?? "none",
+    text_len: scraped?.text?.length ?? 0,
+    has_image: scraped?.image_url ? "yes" : "no",
+  }));
+  if (!scraped) return { imageUrl: null, title: "", text: "" };
+  return { imageUrl: scraped.image_url, title: scraped.title, text: scraped.text };
+}
+
+
+
 async function runLovable(args: {
   url: string;
   context: Record<string, unknown>;
