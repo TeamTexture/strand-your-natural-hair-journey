@@ -506,10 +506,16 @@ Deno.serve(async (req) => {
 
     const userPayload = JSON.stringify(body);
 
-    const ledgerUserId = userIdFromRequest(req);
+    // Diagnostic/harness runs generate and report only — they never write to
+    // any member-facing store (here: the advice ledger).
+    const isDiagnostic =
+      (body as { diagnostic?: boolean }).diagnostic === true ||
+      String(body.profileFingerprint ?? "").startsWith("harness-");
+    const ledgerUserId = isDiagnostic ? null : userIdFromRequest(req);
     const ledgerBlock = ledgerUserId
       ? buildAdviceLedgerBlock(await fetchAdviceLedger(ledgerUserId))
       : "";
+
 
     const teachings = selectGoalTopics(body);
 
