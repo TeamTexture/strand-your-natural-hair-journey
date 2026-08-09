@@ -228,6 +228,7 @@ interface EntryRow {
   style_date: string | null;
   status: string | null;
   cover_media_id: string | null;
+  cover_path: string | null;
 }
 
 /** Screen two — the numbered steps. */
@@ -314,7 +315,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, style_name, style_date, status, cover_media_id")
+        .select("id, style_name, style_date, status, cover_media_id, cover_path")
         .eq("id", entryId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -449,7 +450,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
             className="w-full flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5"
           >
             <Images className="size-3.5" />
-            {entry.cover_media_id ? "Change journal cover" : "Choose journal cover"}
+            {entry.cover_media_id || entry.cover_path ? "Change journal cover" : "Choose journal cover"}
           </button>
         )}
 
@@ -459,7 +460,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           coverMediaId={entry.cover_media_id}
           open={coverOpen}
           onClose={() => setCoverOpen(false)}
-          onSaved={(id) => setEntry((e) => (e ? { ...e, cover_media_id: id } : e))}
+          onSaved={(id) => setEntry((e) => (e ? { ...e, cover_media_id: id, cover_path: null } : e))}
           onMediaAdded={() => reload()}
         />
 
