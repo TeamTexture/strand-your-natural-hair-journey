@@ -175,7 +175,7 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
           .from("chat_messages")
           .select("thread_id, body, sender_id, sender_role, read_at, kind, created_at")
           .in("thread_id", ids)
-          .in("kind", ["text", "booking_request"])
+          .in("kind", ["text", "booking_request", "image", "voice"])
           .order("created_at", { ascending: false })
           .limit(Math.min(400, ids.length * 12)),
         supabase
