@@ -74,8 +74,13 @@ interface Props {
   onToggleTool: (userToolId: string) => void;
   /** Called after a background link scan attaches a product to this step. */
   onProductsChanged?: () => void;
+  /** Reports this step's unsaved note text (null when nothing is pending). */
+  onDraftChange?: (stepId: string, draft: string | null) => void;
+  /** Bumping this discards any unsaved note text. */
+  discardSignal?: number;
 
 }
+
 
 /**
  * One step of a style record — the note (typed or spoken), its photos and
@@ -94,10 +99,24 @@ const JournalStepCard = ({
   onToggleProduct,
   onToggleTool,
   onProductsChanged,
+  onDraftChange,
+  discardSignal = 0,
 }: Props) => {
   const { user } = useAuth();
   const { startStepLinkScan } = useStepLinkScan();
   const { tools: toolCatalogue, reload: reloadTools } = useUserTools();
+
+  // The note is a DRAFT until saved. Media, products, tools and voice notes
+  // still commit immediately — only typed text can be lost.
+  const [noteDraft, setNoteDraft] = useState(step.note ?? "");
+  useEffect(() => { setNoteDraft(step.note ?? ""); }, [step.id, step.note, discardSignal]);
+  const noteDirty = noteDraft !== (step.note ?? "");
+  useEffect(() => {
+    onDraftChange?.(step.id, noteDirty ? noteDraft : null);
+  }, [step.id, noteDirty, noteDraft, onDraftChange]);
+  useEffect(() => () => onDraftChange?.(step.id, null), [step.id, onDraftChange]);
+
+
   const [toolPickerOpen, setToolPickerOpen] = useState(false);
   const selectedToolIds = step.tools
     .map((t) => t.user_tool_id)
@@ -242,14 +261,36 @@ const JournalStepCard = ({
           <VoiceNoteField
             label="Short note"
             placeholder="Cleansed, blow dried on cool, sealed the ends…"
-            value={step.note ?? ""}
-            onChange={(next) => onUpdate({ note: next })}
+            value={noteDraft}
+            onChange={setNoteDraft}
             audioPath={step.voice_path}
             onAudioPathChange={(path) => onUpdate({ voice_path: path })}
             onTranscript={(text) => onUpdate({ voice_transcript: text })}
             folder={`journal-steps/${step.id}`}
             rows={3}
           />
+          {noteDirty && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="gold"
+                size="sm"
+                className="flex-1"
+                onClick={() => onUpdate({ note: noteDraft })}
+              >
+                Save note
+              </Button>
+              <Button
+                type="button"
+                variant="goldGhost"
+                size="sm"
+                onClick={() => setNoteDraft(step.note ?? "")}
+              >
+                Discard
+              </Button>
+            </div>
+          )}
+
           {step.voice_transcript?.trim() && (
             <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">

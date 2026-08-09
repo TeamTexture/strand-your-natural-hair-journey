@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { CheckCircle2, Plus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -14,7 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { safeBack } from "@/lib/smartBack";
 import { STYLE_GROUPS } from "@/lib/hairstyles";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useJournalSteps } from "@/hooks/useJournalSteps";
@@ -194,6 +205,25 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const { user } = useAuth();
   const [entry, setEntry] = useState<EntryRow | null>(null);
   const [loading, setLoading] = useState(true);
+  // Unsaved note text per step, plus the exit guard it feeds.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [discardSignal, setDiscardSignal] = useState(0);
+  const [guardOpen, setGuardOpen] = useState(false);
+  const pendingExit = useRef<(() => void) | null>(null);
+  const onDraftChange = useCallback((stepId: string, draft: string | null) => {
+    setDrafts((prev) => {
+      if (draft === null) {
+        if (!(stepId in prev)) return prev;
+        const next = { ...prev };
+        delete next[stepId];
+        return next;
+      }
+      if (prev[stepId] === draft) return prev;
+      return { ...prev, [stepId]: draft };
+    });
+  }, []);
+  const dirtyCount = Object.keys(drafts).length;
+
   const {
     steps,
     loading: stepsLoading,
@@ -237,6 +267,27 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.search, location.state, navigate, toggleProduct]);
 
+  // Warn before a browser/tab close while notes are unsaved.
+  useEffect(() => {
+    if (!dirtyCount) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirtyCount]);
+
+  const saveDrafts = async () => {
+    const entries = Object.entries(drafts);
+    setDrafts({});
+    await Promise.all(entries.map(([stepId, note]) => updateStep(stepId, { note })));
+  };
+
+  /** Runs `go` immediately when nothing is pending, otherwise asks first. */
+  const guardExit = (go: () => void) => {
+    if (!dirtyCount) { go(); return; }
+    pendingExit.current = go;
+    setGuardOpen(true);
+  };
+
   const complete = entry?.status === "complete";
 
   const setStatus = async (status: "in_progress" | "complete") => {
@@ -250,6 +301,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     }
     if (status === "complete") navigate("/journal");
   };
+
 
   if (loading) {
     return (
@@ -274,7 +326,11 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={entry.style_name || "Style record"} backFallback="/journal" />
+      <TitleBar
+        title={entry.style_name || "Style record"}
+        backFallback="/journal"
+        onBack={() => guardExit(() => safeBack(navigate, "/journal"))}
+      />
       <div className="px-5 pb-10 space-y-3">
         {dateLabel && (
           <p className="text-[11px] text-muted-foreground">{dateLabel}</p>
@@ -303,12 +359,15 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 onRemoveMedia={(id) => void removeMedia(id)}
                 onToggleProduct={(pid) => void toggleProduct(s.id, pid)}
                 onToggleTool={(tid) => void toggleTool(s.id, tid)}
+                onDraftChange={onDraftChange}
+                discardSignal={discardSignal}
 
                 onProductsChanged={() => void reload()}
               />
             ))}
           </div>
         )}
+
 
 
         <Button
@@ -327,7 +386,11 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           variant={complete ? "goldGhost" : "gold"}
           size="pill"
           className="w-full"
-          onClick={() => void setStatus(complete ? "in_progress" : "complete")}
+          onClick={() =>
+            complete
+              ? void setStatus("in_progress")
+              : guardExit(() => void setStatus("complete"))
+          }
         >
           {complete ? (
             <><RotateCcw className="size-4 mr-1.5" /> Add more steps</>
@@ -336,9 +399,62 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           )}
         </Button>
       </div>
+
+      <AlertDialog open={guardOpen} onOpenChange={setGuardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save your notes first?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've written {dirtyCount === 1 ? "a note" : `notes on ${dirtyCount} steps`} that
+              hasn't been saved yet. Save it, or leave and lose it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              type="button"
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={async () => {
+                const go = pendingExit.current;
+                pendingExit.current = null;
+                setGuardOpen(false);
+                await saveDrafts();
+                toast.success("Saved");
+                go?.();
+              }}
+            >
+              Save and continue
+            </Button>
+            <Button
+              type="button"
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => {
+                const go = pendingExit.current;
+                pendingExit.current = null;
+                setDrafts({});
+                setDiscardSignal((v) => v + 1);
+                setGuardOpen(false);
+                go?.();
+              }}
+            >
+              Discard changes
+            </Button>
+            <AlertDialogCancel
+              className="w-full m-0"
+              onClick={() => { pendingExit.current = null; }}
+            >
+              Keep editing
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
+
 
 const StyleRecord = () => {
   const { id = "" } = useParams();
