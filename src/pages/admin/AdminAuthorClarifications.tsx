@@ -177,7 +177,7 @@ const AdminAuthorClarifications = () => {
       {rows === null ? (
         <LoadingDot />
       ) : rows.length === 0 ? (
-        <EmptyState title="No clarifications yet" description="Add your first position above." />
+        <EmptyState message="No clarifications yet" hint="Add your first position above." />
       ) : (
         <div className="space-y-3">
           {rows.map((row, i) => (
