@@ -208,7 +208,7 @@ type OfferProductJoin = { position: number | null; created_at: string | null; br
 
 /** Flatten the join-table embed back to the `brand_products` array every offer
  *  consumer reads, ordered by the position the brand chose. */
-export function flattenOfferProducts<T extends Record<string, unknown>>(offer: T) {
+export function flattenOfferProducts<T extends object>(offer: T): T & { brand_products: BrandProduct[] } {
   const rows = ((offer as { brand_offer_products?: OfferProductJoin[] | null }).brand_offer_products ?? [])
     .slice()
     .sort((a, b) =>
@@ -234,7 +234,7 @@ export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
         .eq("owner_type", ownerType)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((o) => flattenOfferProducts(o as Record<string, unknown>));
+      return (data ?? []).map((o) => flattenOfferProducts(o));
     },
   });
 }
@@ -271,7 +271,7 @@ export function useBrandOffer(id: string | undefined) {
         .select("*")
         .eq("offer_id", id!);
       return {
-        ...flattenOfferProducts(data as Record<string, unknown>),
+        ...flattenOfferProducts(data),
         brand_offer_stats: (statRows ?? []) as OfferStatRow[],
         stats_fetched_at: new Date().toISOString(),
       };
