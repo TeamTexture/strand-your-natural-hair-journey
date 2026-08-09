@@ -410,6 +410,7 @@ async function runLovable(args: {
 
   // Manuscript grounding parity with the Claude path.
   const grounding = await buildGroundingBlock({
+    surface: "product-analyse",
     fn: "product-analyse",
     functionKind: "product-analyse",
     selectorContext: selectorFromAiContext(args.context),

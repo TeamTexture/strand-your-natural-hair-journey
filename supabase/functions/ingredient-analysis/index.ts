@@ -471,6 +471,7 @@ async function runLovable(args: {
 
   const groundingCtx = ((args.userPayload.context ?? args.userPayload) as Record<string, unknown>) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
+    surface: "ingredient-analysis",
     fn: "ingredient-analysis",
     functionKind: "ingredient-analysis",
     selectorContext: selectorFromAiContext(groundingCtx),

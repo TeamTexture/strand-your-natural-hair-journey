@@ -384,6 +384,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
 
   const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
+    surface: "nutrition-plan",
     fn: "nutrition-plan",
     functionKind: "nutrition-plan",
     selectorContext: selectorFromAiContext(groundingCtx),

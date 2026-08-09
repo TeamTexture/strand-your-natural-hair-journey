@@ -281,6 +281,7 @@ async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
     bloodResults: body.bloodResults ?? [],
   } as Record<string, unknown>;
   const grounding = await buildGroundingBlock({
+    surface: "blood-ai-summary",
     fn: "blood-ai-summary",
     functionKind: "blood-ai-summary",
     selectorContext: selectorFromAiContext(groundingCtx),

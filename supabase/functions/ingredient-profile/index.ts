@@ -205,6 +205,7 @@ Deno.serve(async (req) => {
   // Knowledge topics + manuscript passages about this ingredient / its class.
   const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
+    surface: "ingredient-profile",
     fn: "ingredient-profile",
     functionKind: "ingredient-analysis",
     selectorContext: selectorFromAiContext(groundingCtx),

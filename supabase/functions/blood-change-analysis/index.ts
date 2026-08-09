@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
 
     const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
     const grounding = await buildGroundingBlock({
+    surface: "blood-change-analysis",
       fn: "blood-change-analysis",
       functionKind: "blood-ai-summary",
       selectorContext: selectorFromAiContext(groundingCtx),

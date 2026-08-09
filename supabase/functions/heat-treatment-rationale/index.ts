@@ -182,6 +182,7 @@ Rules:
 
   const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
+    surface: "heat-treatment-rationale",
     fn: "heat-treatment-rationale",
     functionKind: "heat-treatment-rationale",
     selectorContext: selectorFromAiContext(groundingCtx),
