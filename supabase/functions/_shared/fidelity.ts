@@ -143,8 +143,14 @@ const SEALS_MOISTURE_IN: DeterministicRule = {
       if (
         /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+(?:the\s+)?(?:moisture|hydration|water)\s+(?:in|into|inside)\b/
           .test(l) ||
+        /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+in\s+(?:the\s+)?(?:moisture|hydration|water)\b/
+          .test(l) ||
+        /\b(?:moisture|water|hydration)[-\s]?(?:seal|lock|trap)(?:ing|s|ed)?\b/.test(l) ||
         /\b(?:loc|lco)\s+method\b/.test(l)
       ) {
+        return s;
+      }
+
         return s;
       }
     }
