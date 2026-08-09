@@ -1,0 +1,301 @@
+import { useEffect, useRef, useState } from "react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { uuid } from "@/lib/uuid";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import VoiceNoteField from "@/components/VoiceNoteField";
+import ProductPickerSheet from "@/components/ProductPickerSheet";
+import ProductThumb from "@/components/ProductThumb";
+import StepVideoCapture from "@/components/journal/StepVideoCapture";
+import { useUserProducts } from "@/hooks/useUserProducts";
+import type { JournalStep } from "@/hooks/useJournalSteps";
+
+const PHOTO_BUCKET = "journal-photos";
+const VIDEO_BUCKET = "journal-videos";
+
+interface Props {
+  step: JournalStep;
+  index: number;
+  total: number;
+  editing: boolean;
+  onUpdate: (patch: Partial<Pick<JournalStep, "note" | "voice_path" | "voice_transcript">>) => void;
+  onDelete: () => void;
+  onMove: (direction: "up" | "down") => void;
+  onAddMedia: (media: { kind: "photo" | "video"; storage_path: string; duration_seconds?: number | null }) => void;
+  onRemoveMedia: (mediaId: string) => void;
+  onToggleProduct: (userProductId: string) => void;
+}
+
+/**
+ * One step of a style record — the note (typed or spoken), its photos and
+ * videos, and the products used at that point in the process.
+ */
+const JournalStepCard = ({
+  step,
+  index,
+  total,
+  editing,
+  onUpdate,
+  onDelete,
+  onMove,
+  onAddMedia,
+  onRemoveMedia,
+  onToggleProduct,
+}: Props) => {
+  const { user } = useAuth();
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const { products: shelf } = useUserProducts("shelf");
+  const { products: wishlist } = useUserProducts("wishlist");
+  const catalogue = [...shelf, ...wishlist];
+
+  const selectedIds = step.products
+    .map((p) => p.user_product_id)
+    .filter((v): v is string => !!v);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const m of step.media) {
+        const bucket = m.kind === "photo" ? PHOTO_BUCKET : VIDEO_BUCKET;
+        const { data } = await supabase.storage.from(bucket).createSignedUrl(m.storage_path, 3600);
+        if (data?.signedUrl) next[m.id] = data.signedUrl;
+      }
+      if (alive) setUrls(next);
+    })();
+    return () => { alive = false; };
+  }, [step.media]);
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length || !user) return;
+    setPhotoBusy(true);
+    try {
+      for (const raw of Array.from(files)) {
+        const file = await convertHeicToJpeg(raw);
+        const path = `${user.id}/steps/${step.id}/${uuid()}.jpg`;
+        const { error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+        if (error) throw error;
+        onAddMedia({ kind: "photo", storage_path: path });
+      }
+    } catch (e) {
+      console.error("step photo upload failed", e);
+      toast.error("Couldn't upload that photo");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-[14px] border border-border bg-card p-3.5 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Step {index + 1}
+        </span>
+        {editing && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Move step up"
+              disabled={index === 0}
+              onClick={() => onMove("up")}
+              className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+            >
+              <ChevronUp className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Move step down"
+              disabled={index === total - 1}
+              onClick={() => onMove("down")}
+              className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+            >
+              <ChevronDown className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Delete step"
+              onClick={onDelete}
+              className="size-7 rounded-full border border-border flex items-center justify-center text-destructive"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <VoiceNoteField
+          label="What you did"
+          placeholder="Cleansed, blow dried on cool, sealed the ends…"
+          value={step.note ?? ""}
+          onChange={(next) => onUpdate({ note: next })}
+          audioPath={step.voice_path}
+          onAudioPathChange={(path) => onUpdate({ voice_path: path })}
+          onTranscript={(text) => onUpdate({ voice_transcript: text })}
+          folder={`journal-steps/${step.id}`}
+          rows={3}
+        />
+      ) : (
+        <>
+          {step.note?.trim() ? (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{step.note}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">No note for this step.</p>
+          )}
+          {step.voice_transcript?.trim() && (
+            <div className="rounded-[10px] bg-secondary/60 p-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+                Voice note
+              </p>
+              <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{step.voice_transcript}</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Media */}
+      {(step.media.length > 0 || editing) && (
+        <div className="space-y-2">
+          {step.media.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {step.media.map((m) => (
+                <div key={m.id} className="relative rounded-[10px] overflow-hidden bg-secondary aspect-square">
+                  {m.kind === "photo" ? (
+                    urls[m.id] ? (
+                      <img src={urls[m.id]} alt={`Step ${index + 1} photo`} className="size-full object-cover" />
+                    ) : null
+                  ) : urls[m.id] ? (
+                    <video
+                      src={urls[m.id]}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="size-full object-cover"
+                    />
+                  ) : null}
+                  {m.kind === "video" && m.duration_seconds ? (
+                    <span className="absolute bottom-1 left-1 rounded-pill bg-background/85 px-1.5 text-[10px] tabular-nums">
+                      {m.duration_seconds}s
+                    </span>
+                  ) : null}
+                  {editing && (
+                    <button
+                      type="button"
+                      aria-label="Remove media"
+                      onClick={() => onRemoveMedia(m.id)}
+                      className="absolute top-1 right-1 size-5 rounded-full bg-background/90 flex items-center justify-center"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {editing && (
+            <>
+              <Button
+                type="button"
+                variant="goldGhost"
+                size="sm"
+                className="h-10 w-full"
+                disabled={photoBusy}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                <ImagePlus className="size-4 mr-1.5" />
+                {photoBusy ? "Uploading…" : "Add photos"}
+              </Button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => { void addPhotos(e.target.files); e.currentTarget.value = ""; }}
+              />
+              <StepVideoCapture
+                folder={`steps/${step.id}`}
+                onUploaded={(m) =>
+                  onAddMedia({ kind: "video", storage_path: m.storage_path, duration_seconds: m.duration_seconds })
+                }
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Products used at this step */}
+      {(selectedIds.length > 0 || editing) && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Products used
+          </p>
+          {selectedIds.length > 0 ? (
+            <div className="space-y-1.5">
+              {selectedIds.map((pid) => {
+                const p = catalogue.find((c) => c.id === pid);
+                return (
+                  <div key={pid} className="flex items-center gap-2.5">
+                    <ProductThumb
+                      imageUrl={p?.image_url ?? null}
+                      storagePath={p?.storage_path ?? null}
+                      alt={p?.name ?? "Product"}
+                      cover
+                      wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
+                      {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
+                    </div>
+                    {editing && (
+                      <button
+                        type="button"
+                        aria-label="Remove product"
+                        onClick={() => onToggleProduct(pid)}
+                        className="size-6 rounded-full border border-border flex items-center justify-center"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">None recorded.</p>
+          )}
+          {editing && (
+            <Button
+              type="button"
+              variant="goldGhost"
+              size="sm"
+              className="h-10 w-full"
+              onClick={() => setPickerOpen(true)}
+            >
+              <Package className="size-4 mr-1.5" />
+              Add products
+            </Button>
+          )}
+        </div>
+      )}
+
+      <ProductPickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        selectedIds={selectedIds}
+        onToggle={onToggleProduct}
+      />
+    </div>
+  );
+};
+
+export default JournalStepCard;
