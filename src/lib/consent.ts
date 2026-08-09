@@ -214,6 +214,20 @@ const rpc = (name: string, args: Record<string, unknown>) =>
     rpc: (n: string, a: Record<string, unknown>) => Promise<{ error: unknown }>;
   }).rpc(name, args);
 
+/**
+ * Turn a PostgREST/Postgres error object into a real Error carrying the
+ * underlying message. Consent failures used to surface as a generic toast,
+ * which made them undiagnosable without a database query.
+ */
+function consentError(context: string, error: unknown): Error {
+  const e = (error ?? {}) as { message?: string; details?: string; hint?: string; code?: string };
+  const parts = [e.message, e.details, e.hint].filter(Boolean).join(" — ");
+  const msg = parts || "Unknown database error";
+  // eslint-disable-next-line no-console
+  console.error(`[consent] ${context} failed`, { code: e.code, error });
+  return new Error(`${context}: ${msg}${e.code ? ` (${e.code})` : ""}`);
+}
+
 /** Append consent decisions. Never updates — each call writes new rows. */
 export async function recordConsents(
   consents: Partial<Record<ConsentKey, boolean>>,
@@ -225,7 +239,7 @@ export async function recordConsents(
     _user_agent: typeof navigator === "undefined" ? null : navigator.userAgent,
     _source: source,
   });
-  if (error) throw error;
+  if (error) throw consentError("Could not save your choices", error);
 }
 
 /** Withdraw an optional consent (writes a new granted = false row). */
@@ -238,8 +252,9 @@ export async function withdrawConsent(
     _version: CONSENT_DOCUMENT_VERSION,
     _source: source,
   });
-  if (error) throw error;
+  if (error) throw consentError("Could not withdraw that consent", error);
 }
+
 
 export async function fetchConsentRows(userId: string): Promise<ConsentRow[]> {
   const { data, error } = await (supabase as unknown as {
