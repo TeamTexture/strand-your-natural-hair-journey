@@ -394,10 +394,11 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   return (
     <ScreenLayout>
       <TitleBar
-        title={entry.style_name || "Style record"}
+        title="Style record"
         backFallback="/journal"
         onBack={() => guardExit(() => safeBack(navigate, "/journal"))}
       />
+
       <div className="px-5 pb-10 space-y-3">
         {/* ── Header ─────────────────────────── */}
         <div className="flex items-start justify-between gap-3">
