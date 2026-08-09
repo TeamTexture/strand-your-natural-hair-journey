@@ -548,6 +548,26 @@ const JournalStepCard = ({
         </div>
       )}
 
+      {collapsible && (
+        <Button
+          type="button"
+          variant="gold"
+          size="pill"
+          className="w-full"
+          onClick={() => {
+            if (noteDirty) onUpdate({ note: noteDraft });
+            onToggleExpand?.();
+          }}
+        >
+          <Check className="size-4 mr-1.5" />
+          Save step {index + 1}
+        </Button>
+      )}
+      </>
+      )}
+
+
+
       <ToolPickerSheet
         open={toolPickerOpen}
         onOpenChange={setToolPickerOpen}
