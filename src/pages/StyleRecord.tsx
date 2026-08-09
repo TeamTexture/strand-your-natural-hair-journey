@@ -315,7 +315,11 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={entry.style_name || "Style record"} backFallback="/journal" />
+      <TitleBar
+        title={entry.style_name || "Style record"}
+        backFallback="/journal"
+        onBack={() => guardExit(() => safeBack(navigate, "/journal"))}
+      />
       <div className="px-5 pb-10 space-y-3">
         {dateLabel && (
           <p className="text-[11px] text-muted-foreground">{dateLabel}</p>
@@ -344,12 +348,15 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 onRemoveMedia={(id) => void removeMedia(id)}
                 onToggleProduct={(pid) => void toggleProduct(s.id, pid)}
                 onToggleTool={(tid) => void toggleTool(s.id, tid)}
+                onDraftChange={onDraftChange}
+                discardSignal={discardSignal}
 
                 onProductsChanged={() => void reload()}
               />
             ))}
           </div>
         )}
+
 
 
         <Button
