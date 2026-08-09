@@ -29,6 +29,18 @@ const ToolProfile = () => {
   const tool = useMemo(() => tools.find((t) => t.id === id) ?? null, [tools, id]);
   const score = matchScoreOf(tool);
   const analysis = (tool?.ai_analysis ?? null) as Record<string, unknown> | null;
+  // The saved scan already carries the personalised detail — show it on the page
+  // instead of hiding all of it behind the dialog.
+  const scoreReasons = useMemo(() => analysisScoreReasons(analysis?.score_reasons), [analysis]);
+  const features = useMemo(() => analysisFeatures(analysis?.key_features), [analysis]);
+  const useCases = useMemo(
+    () => (analysisStrings(analysis?.use_cases, 3).length
+      ? analysisStrings(analysis?.use_cases, 3)
+      : analysisSentences(analysis?.how_to_use, 4)),
+    [analysis],
+  );
+  const cautions = useMemo(() => analysisStrings(analysis?.warnings, 3), [analysis]);
+
 
   if (loading) {
     return (
