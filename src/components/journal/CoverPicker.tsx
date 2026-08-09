@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, ImageIcon, Video } from "lucide-react";
+import { Camera, Check, ImageIcon, Loader2, Upload, Video } from "lucide-react";
+import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { JournalStep } from "@/hooks/useJournalSteps";
@@ -17,6 +19,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSaved: (coverMediaId: string | null) => void;
+  /** Called after a freshly uploaded photo is attached, so steps reload. */
+  onMediaAdded?: () => void | Promise<void>;
 }
 
 interface Thumb {
@@ -31,10 +35,15 @@ interface Thumb {
  * the Style Journal list. Clearing the choice returns the card to auto mode —
  * the first piece of media in step order.
  */
-const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved }: Props) => {
+const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onMediaAdded }: Props) => {
+  const { user } = useAuth();
   const [thumbs, setThumbs] = useState<Thumb[]>([]);
   const [selected, setSelected] = useState<string | null>(coverMediaId);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (open) setSelected(coverMediaId); }, [open, coverMediaId]);
 
@@ -57,6 +66,61 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved }: P
     })();
     return () => { cancelled = true; };
   }, [open, steps]);
+
+  /**
+   * A cover can be a brand-new photo. It still has to live on a step (media is
+   * owned by steps), so it attaches to the first step — creating one if the
+   * record has none yet — and is selected straight away.
+   */
+  const uploadPhoto = async (raw: File) => {
+    if (!user) return;
+    if (!raw.type.startsWith("image/") && !/\.(heic|heif)$/i.test(raw.name)) {
+      toast.error("Choose a photo");
+      return;
+    }
+    setUploading(true);
+    try {
+      const file = await convertHeicToJpeg(raw);
+      let stepId = steps[0]?.id;
+      if (!stepId) {
+        const { data, error } = await supabase
+          .from("journal_steps")
+          .insert({ entry_id: entryId, step_order: 0 })
+          .select("id")
+          .single();
+        if (error || !data) throw error ?? new Error("no step");
+        stepId = data.id;
+      }
+      const path = `${user.id}/steps/${stepId}/${crypto.randomUUID()}.jpg`;
+      const up = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+      if (up.error) throw up.error;
+      const existing = steps.find((s) => s.id === stepId)?.media.length ?? 0;
+      const { data: inserted, error: insErr } = await supabase
+        .from("journal_step_media")
+        .insert({ step_id: stepId, kind: "photo", storage_path: path, sort_order: existing })
+        .select("id")
+        .single();
+      if (insErr || !inserted) throw insErr ?? new Error("no media");
+      const { data: signed } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(path, 3600);
+      const stepIndex = Math.max(0, steps.findIndex((s) => s.id === stepId));
+      setThumbs((prev) => [
+        { id: inserted.id, kind: "photo", stepIndex, url: signed?.signedUrl ?? null },
+        ...prev,
+      ]);
+      setSelected(inserted.id);
+      await onMediaAdded?.();
+      toast.success("Photo added — tap “Use this cover” to set it");
+    } catch (e) {
+      console.error("cover upload failed", e);
+      toast.error("Couldn't upload that photo");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const save = async (value: string | null) => {
     setSaving(true);
@@ -85,9 +149,78 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved }: P
           </p>
         </DialogHeader>
 
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) void uploadPhoto(f);
+          }}
+          className={`rounded-[14px] border border-dashed p-3 text-center transition ${
+            dragging ? "border-primary bg-primary/5" : "border-border"
+          }`}
+        >
+          {uploading ? (
+            <span className="inline-flex items-center gap-2 text-[12px] font-body text-foreground/70">
+              <Loader2 className="size-3.5 animate-spin" /> Uploading…
+            </span>
+          ) : (
+            <>
+              <p className="text-[11.5px] font-body text-foreground/60 leading-snug">
+                Drag a photo here, or
+              </p>
+              <div className="flex gap-2 justify-center mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-pill text-[11px]"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <Upload className="size-3.5" /> Upload
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-pill text-[11px]"
+                  onClick={() => cameraInput.current?.click()}
+                >
+                  <Camera className="size-3.5" /> Take a photo
+                </Button>
+              </div>
+            </>
+          )}
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*,.heic,.heif"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void uploadPhoto(f);
+            }}
+          />
+          <input
+            ref={cameraInput}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void uploadPhoto(f);
+            }}
+          />
+        </div>
+
         {thumbs.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground py-6 text-center">
-            Add a photo or video to a step first.
+          <p className="text-[12px] text-muted-foreground py-4 text-center">
+            No photos or video yet — add one above.
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-2 max-h-[46vh] overflow-y-auto">
