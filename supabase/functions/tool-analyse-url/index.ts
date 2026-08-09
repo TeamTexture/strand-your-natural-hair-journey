@@ -47,8 +47,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v3-manuscript-2026-08-09";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v3-manuscript-2026-08-09";
+const MODEL_VERSION = "claude-haiku-4-5@v4-image-2026-08-09";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v4-image-2026-08-09";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
@@ -317,31 +317,84 @@ interface ScrapeResult {
   source: "firecrawl" | "fetch";
 }
 
+/** Page chrome — flags, payment badges, logos, social icons, support widgets —
+ * is never the hero product shot. Mirrors product-analyse-url so tools get the
+ * same quality of image extraction as hair care products. */
+const CHROME_RE =
+  /(flag|union[-_]?jack|\bicon\b|icons?\/|logo|sprite|badge|payment|visa|mastercard|amex|paypal|klarna|applepay|gpay|trustpilot|\bstar\b|rating|placeholder|avatar|profile[-_]?pic|spinner|loader|pixel|1x1|blank|transparent|social|instagram|facebook|tiktok|twitter|youtube|pinterest|cart|search|menu|arrow|chevron|close|burger|currency|country|locale|lang|shipping|delivery|van|truck|newsletter|cookie|banner|footer|header|nav|support|24[-_]?7|help|chat|contact|guarantee|warranty|award|secure|ssl)/i;
+
+function isLikelyProductImage(u: string | null | undefined): boolean {
+  if (!u) return false;
+  if (/^data:/i.test(u)) return false;
+  const clean = u.split("?")[0];
+  if (/\.(svg|gif)$/i.test(clean)) return false;
+  if (CHROME_RE.test(u)) return false;
+  const dim = u.match(/(?:^|[^\d])(\d{1,3})\s*[x×]\s*(\d{1,3})(?:[^\d]|$)/);
+  if (dim && Number(dim[1]) < 200 && Number(dim[2]) < 200) return false;
+  const w = u.match(/[?&](?:w|width)=(\d+)/i);
+  if (w && Number(w[1]) < 200) return false;
+  return true;
+}
+
+function firstMarkdownImage(md: string): string | null {
+  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(md)) !== null) {
+    if (isLikelyProductImage(m[1])) return m[1];
+  }
+  return null;
+}
+
+function firstUsableImage(...candidates: Array<string | null | undefined>): string | null {
+  return candidates.find((c) => isLikelyProductImage(c)) ?? null;
+}
+
 function extractImageFromHtml(html: string, baseUrl: string): string | null {
+  const abs = (candidate: string | null | undefined): string | null => {
+    if (!candidate) return null;
+    try {
+      const u = new URL(candidate.trim(), baseUrl).toString();
+      return u.startsWith("http://") ? "https://" + u.slice(7) : u;
+    } catch {
+      return null;
+    }
+  };
   const pick = (re: RegExp): string | null => {
     const m = html.match(re);
     return m && m[1] ? m[1].trim() : null;
   };
-  let candidate =
-    pick(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
-    pick(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i) ||
-    pick(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i) ||
-    pick(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i);
-  if (!candidate) {
-    const imgs = html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi);
-    for (const m of imgs) {
-      const src = m[1];
-      if (!src) continue;
-      if (/^data:/.test(src)) continue;
-      if (/(?:1x1|pixel|sprite|placeholder|loading|spacer)/i.test(src)) continue;
-      candidate = src; break;
-    }
+
+  // Structured product data outranks social metadata.
+  const catalogImage = pick(/["']productImageURL["']\s*:\s*["']([^"']+)["']/i);
+  if (isLikelyProductImage(catalogImage)) return abs(catalogImage);
+
+  const productContainer = pick(
+    /<div[^>]+class=["'][^"']*\bproduct-image\b[^"']*["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["']/i,
+  );
+  if (isLikelyProductImage(productContainer)) return abs(productContainer);
+
+  const meta = firstUsableImage(
+    pick(/<meta[^>]+property=["']og:image:secure_url["'][^>]+content=["']([^"']+)["']/i),
+    pick(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i),
+    pick(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i),
+    pick(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i),
+    pick(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i),
+  );
+  if (meta) return abs(meta);
+
+  const container = html.match(/<(?:main|article)[^>]*>([\s\S]*?)<\/(?:main|article)>/i);
+  const scope = container ? container[1] : html;
+  const marked = scope.match(
+    /<img[^>]+(?:data-product-image|itemprop=["']image["'])[^>]*src=["']([^"']+)["']/i,
+  );
+  if (marked && isLikelyProductImage(marked[1])) return abs(marked[1]);
+
+  const imgRe = /<img[^>]+src=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = imgRe.exec(scope)) !== null) {
+    if (isLikelyProductImage(m[1])) return abs(m[1]);
   }
-  if (!candidate) return null;
-  try {
-    const u = new URL(candidate, baseUrl).toString();
-    return u.startsWith("http://") ? "https://" + u.slice(7) : u;
-  } catch { return null; }
+  return null;
 }
 
 async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeResult | null> {
@@ -358,12 +411,16 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<ScrapeR
     const inner = (data?.data as Record<string, unknown> | undefined) ?? data;
     const markdown = (inner?.markdown as string | undefined) ?? undefined;
     const html = (inner?.html as string | undefined) ?? "";
-    const metadata = inner?.metadata as { title?: string; ogImage?: string; "og:image"?: string } | undefined;
+    const metadata = inner?.metadata as
+      | { title?: string; ogImage?: string; "og:image"?: string; image?: string }
+      | undefined;
     if (!markdown) return null;
+    // Filter metadata through the same chrome test, then fall back to the
+    // page HTML and finally the first usable image in the main content.
     const image_url =
-      (metadata?.ogImage as string | undefined) ||
-      (metadata?.["og:image"] as string | undefined) ||
+      firstUsableImage(metadata?.ogImage, metadata?.["og:image"], metadata?.image) ||
       (html ? extractImageFromHtml(html, url) : null) ||
+      firstMarkdownImage(markdown) ||
       null;
     return { title: metadata?.title ?? "", text: markdown, image_url, source: "firecrawl" };
   } catch (e) {
