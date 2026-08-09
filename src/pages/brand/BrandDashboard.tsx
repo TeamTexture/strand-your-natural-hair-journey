@@ -76,7 +76,7 @@ const BrandDashboard = () => {
     () => offers.filter((o) => ["live", "paid_scheduled", "ended"].includes(o.status)).map((o) => o.id),
     [offers],
   );
-  const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
+  const { data: metrics = {} } = useBrandOfferMetrics(trackedOfferIds);
   const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
   const { data: revisionCounts = {} } = useOfferRevisionCounts(offers.map((o) => o.id));
   const pastIds = useMemo(
