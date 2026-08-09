@@ -31,7 +31,48 @@ import {
   validateTipAction,
   validateTipReason,
   memberAttributeTokens,
+  hasInstructingVerb,
 } from "../_shared/tip-action.ts";
+
+/**
+ * SOFT SIGNALS (2026-08-09, author's correction). Three simultaneous hard
+ * requirements plus two-stage generation made the sponsored wash day tip slow
+ * and same-shaped. Only three things block now: an action, a mechanism reason,
+ * and personalisation to something the member has recorded. Everything else —
+ * naming a declared ingredient, quoting a trait verbatim, the repetition gate —
+ * is a PREFERENCE: it is logged, fed into the single retry, and never rejects.
+ */
+async function logSoft(
+  userId: string | null,
+  notes: string[],
+  attempt: number,
+  offending: string,
+): Promise<void> {
+  if (!notes.length) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  console.log(JSON.stringify({ event: "sponsored_tip_soft_miss", notes, attempt }));
+  if (!url || !svc) return;
+  try {
+    // @ts-ignore Deno-native URL import
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+    const admin = createClient(url, svc, { auth: { persistSession: false } });
+    await admin.from("tip_generation_rejections").insert(
+      notes.map((rule) => ({
+        function_name: "brand-product-guidance",
+        surface: "sponsored-wash-day-tip",
+        user_id: userId,
+        stage: "soft",
+        rule,
+        detail: "preferred, not required — did not block",
+        offending_text: offending.slice(0, 500),
+        attempt,
+      })),
+    );
+  } catch {
+    /* logging must never break generation */
+  }
+}
 
 
 declare const Deno: {
@@ -267,8 +308,12 @@ function validate(
   p: unknown,
   context: Record<string, unknown> | null,
   surface?: string,
-): { ok: true; value: GuidancePayload } | { ok: false; problems: string[] } {
+  declared: string[] = [],
+):
+  | { ok: true; value: GuidancePayload; soft: string[] }
+  | { ok: false; problems: string[]; soft: string[] } {
   const problems: string[] = [];
+  const soft: string[] = [];
   const isWashDay = surface === "wash_day";
   const raw = (p ?? {}) as Record<string, unknown>;
 
@@ -387,7 +432,13 @@ function validate(
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
 
-  // The sponsored wash day tip body — enforced, not requested.
+  // THE SPONSORED WASH DAY TIP.
+  //
+  // HARD (blocks): an action, a reason that is a mechanism, personalisation to
+  // something recorded, plus the shape cap (2 sentences / 45 words) and the ban
+  // on generic goal references.
+  // SOFT (logged, fed to the one retry, never blocks): naming a declared
+  // ingredient and its function, quoting a trait verbatim, repetition.
   const washDayTip = String(raw.wash_day_tip ?? raw.washDayTip ?? "").trim();
   if (isWashDay) {
     if (!washDayTip) problems.push("wash_day_tip is missing — it is required on the wash day surface.");
@@ -399,18 +450,50 @@ function validate(
       const goalIssue = goalReferenceProblem(washDayTip, context);
       if (goalIssue) problems.push(goalIssue.replace("the advert tip", "wash_day_tip"));
 
-      // PERSONALISATION FLOOR — the sponsored tip must name at least one of this
-      // member's own recorded characteristics, challenges or concerns. A generic
-      // product line is rejected and regenerated.
-      const terms = characteristicTerms(context);
-      if (terms.length && !terms.some((t) => countTerm(washDayTip, t) > 0))
+      const sentences = washDayTip
+        .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      const actionPart = sentences[0] ?? washDayTip;
+      const reasonPart = sentences.slice(1).join(" ") || washDayTip;
+
+      // HARD 1 — an action. Something to DO with the product.
+      if (!hasInstructingVerb(actionPart))
         problems.push(
-          `wash_day_tip does not reference this member's own hair data — name one of: ${terms.slice(0, 8).join(", ")}.`,
+          "wash_day_tip has no action — its first sentence must tell this member what to physically DO with the product on their next wash day (apply, work, smooth, section, swap, spritz…). A description of what the product contains is not an action.",
         );
+
+      // HARD 2 — the reason is a mechanism, not a benefit or outcome.
+      const mech = validateMechanism(reasonPart);
+      if (!mech.ok)
+        problems.push(
+          `wash_day_tip has no mechanism (${mech.reasons.join(", ")}) — say what PHYSICALLY happens on the strand or scalp. "supports your length goal", "keeps hair healthy" and "leaves hair soft" are outcomes, not mechanisms, and are rejected.`,
+        );
+
+      // HARD 3 — personalisation to something recorded. Any recorded signal
+      // counts: a characteristic, a challenge, a concern, a style, a goal label.
+      const recorded = [
+        ...characteristicTerms(context),
+        ...attributeTokensFor(context),
+      ].filter((t) => t.length >= 3);
+      const personalised = recorded.some((t) => countTerm(washDayTip, t) > 0);
+      if (recorded.length && !personalised)
+        problems.push(
+          `wash_day_tip would read the same for any member — connect it to something this member has actually recorded (${recorded.slice(0, 8).join(", ")}). Paraphrasing their data is fine; it does not have to be quoted.`,
+        );
+
+      // SOFT — preferred route to the mechanism: name a declared ingredient (or
+      // a tool's stated material/function). Sequence and technique tips are
+      // equally good guidance and must not be penalised.
+      if (declared.length && !declared.some((d) => countTerm(washDayTip, d) > 0)) {
+        soft.push("no declared ingredient named — a named ingredient and its function is the preferred route to the mechanism, but sequence or technique is equally valid.");
+      }
+      // SOFT — verbatim trait quoting.
+      if (personalised && !characteristicTerms(context).some((t) => countTerm(washDayTip, t) > 0)) {
+        soft.push("personalised without quoting a recorded hair characteristic verbatim — acceptable, verbatim is preferred where it reads naturally.");
+      }
     }
   }
-
-
 
   const watchRaw = Array.isArray(raw.watch_outs)
     ? raw.watch_outs
@@ -446,15 +529,16 @@ function validate(
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
     if (n > 1) {
-      problems.push(
+      (isWashDay ? soft : problems).push(
         `"${term}" appears ${n} times across the card — each hair characteristic may appear at most ONCE in total. Remove the repeats and say "your hair" or nothing.`,
       );
     }
   }
 
-  if (problems.length) return { ok: false, problems };
+  if (problems.length) return { ok: false, problems, soft };
   return {
     ok: true,
+    soft,
     value: {
       headline,
       fit_line: fitLine,
