@@ -14,9 +14,8 @@
  *                  definitions, do/don't pairs and encouragement. This level
  *                  must never show less than level 2.
  *
- * Legacy values: the scale used to run 1–4 with a "Guided" level 3. Old level 3
- * now coerces to Essential and old level 4 to Hand-holding, so stored profiles
- * keep roughly the density their owner chose.
+ * Legacy values: the scale used to run 1–4. Old level 4 coerces to 3
+ * (Hand-holding); 3 is Hand-holding on both scales.
  *
  * Stored on `profiles.tips_level` (smallint) and mirrored into localStorage so
  * the first render doesn't flash the wrong density while the profile loads.
@@ -41,8 +40,8 @@ export function coerceTipsLevel(value: unknown): TipsLevel {
   const n = typeof value === "string" ? Number(value) : value;
   if (n === 1) return 1;
   if (n === 2) return 2;
-  // Legacy: old 3 (Guided) collapses into Essential, old 4 stays Hand-holding.
-  if (n === 3) return 2;
+  if (n === 3) return 3;
+  // Legacy: old 4 (the previous scale's top) maps to Hand-holding.
   if (n === 4) return 3;
   return DEFAULT_TIPS_LEVEL;
 }
