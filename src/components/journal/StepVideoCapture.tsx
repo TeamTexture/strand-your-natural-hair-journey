@@ -96,6 +96,9 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const timerRef = useRef<number | null>(null);
   const stopTimerRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const canvasStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => { setRecorderAvailable(canRecordInApp()); }, []);
 
