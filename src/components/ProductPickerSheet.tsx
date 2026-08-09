@@ -116,6 +116,34 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
   const loading = tab === "shelf" ? loadingShelf : loadingWishlist;
   const isSelected = (id: string) => selectedIds.includes(id);
 
+  // Two escape routes from the bin: keep the product in the app but off the
+  // shelf/wishlist, or delete it from the app entirely. Both detach it from
+  // this step first.
+  const detach = (id: string) => {
+    if (selectedIds.includes(id)) onToggle(id);
+  };
+  const takeOff = async (p: UserProduct) => {
+    setRemoving(true);
+    detach(p.id);
+    if (tab === "shelf") await setShelf(p.id, false);
+    else await setWishlist(p.id, false);
+    await Promise.all([reloadShelf(), reloadWishlist()]);
+    setRemoving(false);
+    setPendingRemove(null);
+    toast.success(tab === "shelf" ? "Taken off your shelf" : "Taken off your wishlist");
+  };
+  const hardDelete = async (p: UserProduct) => {
+    setRemoving(true);
+    detach(p.id);
+    await deleteProduct(p.id);
+    await Promise.all([reloadShelf(), reloadWishlist()]);
+    setRemoving(false);
+    setPendingRemove(null);
+    toast.success("Removed from the app");
+  };
+
+
+
   // Where to send the user back to (so the detail screen can return them
   // to the journal entry / wash step they were on). The detail screen also
   // reads `auto_save` to add the new product straight to the shelf.
