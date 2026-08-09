@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { BROAD_DAILY_RATE_PENCE } from "@/lib/adPricing";
+import { EMPTY_METRICS, type OfferMetrics, type OfferMetricsBundle } from "@/lib/brandMetrics";
 
 
 /** Subscribe to brand_offers/brand_products changes so an admin-approved
