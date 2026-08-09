@@ -254,11 +254,16 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       };
       draw();
 
-      const canvasStream = canvas.captureStream(24);
-      stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
-      canvasStreamRef.current = canvasStream;
+      // Older Safari lacks canvas.captureStream — fall back to the raw camera.
+      let recordStream = stream;
+      if (typeof canvas.captureStream === "function") {
+        const canvasStream = canvas.captureStream(30);
+        stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+        canvasStreamRef.current = canvasStream;
+        recordStream = canvasStream;
+      }
 
-      const rec = new MediaRecorder(canvasStream, {
+      const rec = new MediaRecorder(recordStream, {
         mimeType: mime,
         videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
         audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
