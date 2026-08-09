@@ -30,9 +30,13 @@ import {
   gatherEvidence,
   noteEvidence,
   renderEvidenceBlock,
+  surfaceClarifications,
+  withClarifications,
   type EvidenceSet,
 } from "./evidence.ts";
+import { clarificationsBlock, clarificationSourceText } from "./clarifications.ts";
 import { loadLexicon, terminologyBlock } from "./terminology.ts";
+
 import {
   METHOD_AND_TIMING_RULE,
   retrieveProceduralPassages,
