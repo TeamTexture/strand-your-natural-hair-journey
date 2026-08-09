@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Check, Link2, Loader2 } from "lucide-react";
+import { Check, Link2, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductThumb from "@/components/ProductThumb";
 import StarRating from "@/components/StarRating";
+import ShelfItemRemoveDialog from "@/components/ShelfItemRemoveDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -26,37 +27,57 @@ interface Props {
   onToolsChanged?: () => void;
 }
 
-const Row = ({ t, selected, onClick }: { t: UserTool; selected: boolean; onClick: () => void }) => (
-  <button
-    onClick={onClick}
+const Row = ({
+  t,
+  selected,
+  onClick,
+  onRemove,
+}: {
+  t: UserTool;
+  selected: boolean;
+  onClick: () => void;
+  onRemove: () => void;
+}) => (
+  <div
     className={cn(
-      "w-full p-3 flex items-center gap-3 text-left rounded-[10px] border transition-colors",
-      selected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
+      "w-full p-3 flex items-center gap-3 rounded-[10px] border transition-colors",
+      selected ? "border-primary bg-primary/5" : "border-border bg-card",
     )}
   >
-    <ProductThumb
-      imageUrl={t.image_url}
-      storagePath={t.storage_path}
-      alt={t.name}
-      cover
-      wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
-    />
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium truncate">{t.name}</p>
-      <div className="flex items-center gap-2 min-w-0">
-        {t.brand && <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>}
-        {typeof t.rating === "number" && t.rating > 0 && (
-          <StarRating value={t.rating} size="size-3" />
-        )}
+    <button onClick={onClick} className="flex-1 min-w-0 flex items-center gap-3 text-left">
+      <ProductThumb
+        imageUrl={t.image_url}
+        storagePath={t.storage_path}
+        alt={t.name}
+        cover
+        wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{t.name}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          {t.brand && <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>}
+          {typeof t.rating === "number" && t.rating > 0 && (
+            <StarRating value={t.rating} size="size-3" />
+          )}
+        </div>
       </div>
-    </div>
-    {selected && (
-      <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-        <Check className="size-3" />
-      </span>
-    )}
-  </button>
+      {selected && (
+        <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+          <Check className="size-3" />
+        </span>
+      )}
+    </button>
+    <button
+      type="button"
+      aria-label={`Remove ${t.name}`}
+      onClick={onRemove}
+      className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-destructive"
+    >
+      <Trash2 className="size-4" />
+    </button>
+  </div>
 );
+
 
 /**
  * Tool picker — the tools mirror of ProductPickerSheet. Pick from the tools the
@@ -64,16 +85,45 @@ const Row = ({ t, selected, onClick }: { t: UserTool; selected: boolean; onClick
  * with `tool-analyse-url`, then saved to My Tools and attached straight away).
  */
 const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsChanged }: Props) => {
-  const { tools: allTools, loading, addTool } = useUserTools();
+  const { tools: allTools, loading, addTool, updateTool, deleteTool } = useUserTools();
   const [tab, setTab] = useState<"owned" | "wishlist">("owned");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<UserTool | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   const owned = allTools.filter((t) => !t.on_wishlist);
   const wishlist = allTools.filter((t) => t.on_wishlist);
   const list = tab === "owned" ? owned : wishlist;
   const isSelected = (id: string) => selectedIds.includes(id);
+
+  // Taking a tool off My Tools / the wishlist keeps it in the app; deleting
+  // removes it entirely. Either way it is detached from this step first, so the
+  // step never points at something that is no longer there.
+  const detach = (id: string) => {
+    if (selectedIds.includes(id)) onToggle(id);
+  };
+  const takeOff = async (t: UserTool) => {
+    setRemoving(true);
+    detach(t.id);
+    const ok = await updateTool(t.id, { on_shelf: false, on_wishlist: false, on_favourite: false });
+    setRemoving(false);
+    setPendingRemove(null);
+    if (ok) {
+      toast.success(tab === "wishlist" ? "Taken off your wishlist" : "Taken off My Tools");
+      onToolsChanged?.();
+    }
+  };
+  const hardDelete = async (t: UserTool) => {
+    setRemoving(true);
+    detach(t.id);
+    const ok = await deleteTool(t);
+    setRemoving(false);
+    setPendingRemove(null);
+    if (ok) onToolsChanged?.();
+  };
+
 
   const handleUrl = async () => {
     const raw = linkUrl.trim();
@@ -205,13 +255,32 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsCha
             />
           ) : (
             list.map((t) => (
-              <Row key={t.id} t={t} selected={isSelected(t.id)} onClick={() => onToggle(t.id)} />
+              <Row
+                key={t.id}
+                t={t}
+                selected={isSelected(t.id)}
+                onClick={() => onToggle(t.id)}
+                onRemove={() => setPendingRemove(t)}
+              />
             ))
           )}
         </div>
       </SheetContent>
+      {pendingRemove && (
+        <ShelfItemRemoveDialog
+          open
+          onOpenChange={(o) => { if (!o) setPendingRemove(null); }}
+          name={pendingRemove.name}
+          kind="tool"
+          list={tab === "wishlist" ? "wishlist" : "shelf"}
+          busy={removing}
+          onTakeOff={() => void takeOff(pendingRemove)}
+          onDelete={() => void hardDelete(pendingRemove)}
+        />
+      )}
     </Sheet>
   );
 };
+
 
 export default ToolPickerSheet;
