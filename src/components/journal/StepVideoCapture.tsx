@@ -720,15 +720,17 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
         accept="video/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => { void onPick(e.target.files?.[0]); e.currentTarget.value = ""; }}
+        onChange={(e) => { void onPickMany(e.target.files); e.currentTarget.value = ""; }}
       />
       <input
         ref={fileRef}
         type="file"
         accept="video/*"
+        multiple
         className="hidden"
-        onChange={(e) => { void onPick(e.target.files?.[0]); e.currentTarget.value = ""; }}
+        onChange={(e) => { void onPickMany(e.target.files); e.currentTarget.value = ""; }}
       />
+
     </div>
   );
 };
