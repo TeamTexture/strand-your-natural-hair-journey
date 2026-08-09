@@ -29,7 +29,7 @@ interface Props {
 }
 
 const ProUndertakingSheet = ({ open, onOpenChange, context = "entry", onAccepted }: Props) => {
-  const { accept, dismiss } = useProUndertaking();
+  const { accept, dismiss, inProView } = useProUndertaking();
   const [ticked, setTicked] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -55,7 +55,12 @@ const ProUndertakingSheet = ({ open, onOpenChange, context = "entry", onAccepted
     }
   };
 
+  // HARD VIEW GUARD. This is a professional-view consent: it must never render
+  // in My STRAND, the brand view or the admin view, whatever the account holds.
+  if (!inProView) return null;
+
   return (
+
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(true) : close())}>
       <DialogContent className="max-w-[19.5rem] rounded-[18px] p-5">
         <div className="flex items-center gap-2">
