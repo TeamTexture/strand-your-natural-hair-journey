@@ -378,7 +378,17 @@ const JournalStepCard = ({
         onOpenChange={closePicker}
         selectedIds={selectedIds}
         onToggle={onToggleProduct}
+        onLinkSubmit={(url) =>
+          void startStepLinkScan(url, {
+            entryId: step.entry_id,
+            stepId: step.id,
+            stepNumber: index + 1,
+            onAttached: onProductsChanged,
+          })
+        }
+        linkHint="We'll analyse it in the background — you can leave this screen and it'll appear on this step once it's done."
       />
+
     </div>
   );
 };
