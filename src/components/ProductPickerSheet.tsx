@@ -21,7 +21,16 @@ interface Props {
   selectedIds: string[];
   /** Called when the user toggles a product on/off */
   onToggle: (productId: string) => void;
+  /**
+   * When provided, a pasted link is handed to the caller instead of taking the
+   * member off to the analysis screen — used by style record steps, which
+   * analyse in the background and attach the product when it lands.
+   */
+  onLinkSubmit?: (url: string) => void;
+  /** Copy shown under the link field when the caller analyses in background. */
+  linkHint?: string;
 }
+
 
 const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onClick: () => void }) => (
   <button
@@ -56,7 +65,7 @@ const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onCl
 );
 
 
-const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) => {
+const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint }: Props) => {
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
@@ -84,9 +93,11 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
   const handleUrl = () => {
     if (!linkUrl.trim()) return;
     onOpenChange(false);
-    void startUrlScan(linkUrl, "shelf", navState);
+    if (onLinkSubmit) onLinkSubmit(linkUrl);
+    else void startUrlScan(linkUrl, "shelf", navState);
     setLinkUrl("");
   };
+
 
   const busy = scanBusy || urlBusy;
 
@@ -158,8 +169,10 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props
               </div>
 
               <p className="text-[10px] text-muted-foreground leading-snug">
-                Added products are saved to your shelf automatically — you'll come right back here once we've analysed them.
+                {linkHint ??
+                  "Added products are saved to your shelf automatically — you'll come right back here once we've analysed them."}
               </p>
+
             </div>
           )}
         </div>

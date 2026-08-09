@@ -13,6 +13,8 @@ import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
 import StarRating from "@/components/StarRating";
 import { useUserProducts } from "@/hooks/useUserProducts";
+import { useStepLinkScan } from "@/hooks/useStepLinkScan";
+
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
 import { toParagraphs, transcriptPreview } from "@/lib/formatTranscript";
@@ -60,6 +62,9 @@ interface Props {
   onAddMedia: (media: { kind: "photo" | "video"; storage_path: string; duration_seconds?: number | null }) => void;
   onRemoveMedia: (mediaId: string) => void;
   onToggleProduct: (userProductId: string) => void;
+  /** Called after a background link scan attaches a product to this step. */
+  onProductsChanged?: () => void;
+
 }
 
 /**
@@ -77,8 +82,12 @@ const JournalStepCard = ({
   onAddMedia,
   onRemoveMedia,
   onToggleProduct,
+  onProductsChanged,
 }: Props) => {
   const { user } = useAuth();
+  const { startStepLinkScan } = useStepLinkScan();
+
+
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -378,7 +387,17 @@ const JournalStepCard = ({
         onOpenChange={closePicker}
         selectedIds={selectedIds}
         onToggle={onToggleProduct}
+        onLinkSubmit={(url) =>
+          void startStepLinkScan(url, {
+            entryId: step.entry_id,
+            stepId: step.id,
+            stepNumber: index + 1,
+            onAttached: onProductsChanged,
+          })
+        }
+        linkHint="We'll analyse it in the background — you can leave this screen and it'll appear on this step once it's done."
       />
+
     </div>
   );
 };

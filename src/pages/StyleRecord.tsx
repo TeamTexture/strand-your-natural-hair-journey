@@ -20,6 +20,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useJournalSteps } from "@/hooks/useJournalSteps";
 import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
+import PendingStepProducts from "@/components/journal/PendingStepProducts";
+
 
 /**
  * The style record. Two screens, nothing else.
@@ -184,6 +186,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     addMedia,
     removeMedia,
     toggleProduct,
+    reload,
+
   } = useJournalSteps(entryId);
 
   useEffect(() => {
@@ -256,6 +260,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           <p className="text-[11px] text-muted-foreground">{dateLabel}</p>
         )}
 
+        <PendingStepProducts entryId={entry.id} />
+
         {stepsLoading && steps.length === 0 ? null : steps.length === 0 ? (
           <EmptyState
             message="No steps yet"
@@ -276,10 +282,12 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 onAddMedia={(m) => void addMedia(s.id, m)}
                 onRemoveMedia={(id) => void removeMedia(id)}
                 onToggleProduct={(pid) => void toggleProduct(s.id, pid)}
+                onProductsChanged={() => void reload()}
               />
             ))}
           </div>
         )}
+
 
         <Button
           type="button"
