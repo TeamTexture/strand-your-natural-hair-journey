@@ -22,6 +22,10 @@ import type { JournalStep } from "@/hooks/useJournalSteps";
 
 import { toParagraphs, transcriptPreview } from "@/lib/formatTranscript";
 
+// Set when transcription is refused (e.g. AI credit limit) so background
+// auto-transcription stops instead of retrying on every step render.
+let transcriptionPaused = false;
+
 const PHOTO_BUCKET = "journal-photos";
 const VIDEO_BUCKET = "journal-videos";
 
@@ -255,6 +259,8 @@ const JournalStepCard = ({
   const autoTranscribed = useRef<Set<string>>(new Set());
   useEffect(() => {
     const path = step.voice_path;
+    // Credits exhausted earlier in this session — don't retry (and don't error).
+    if (transcriptionPaused) return;
     if (!path || (step.voice_transcript ?? "").trim()) return;
     if (autoTranscribed.current.has(path)) return;
     autoTranscribed.current.add(path);
@@ -271,9 +277,15 @@ const JournalStepCard = ({
         r.onerror = reject;
         r.readAsDataURL(blob);
       });
-      const { data } = await supabase.functions.invoke("transcribe-audio", {
+      const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: { audioBase64, mimeType: blob.type || "audio/webm" },
       });
+      if (error) {
+        // Credit limit / provider failure: stay quiet, the member can retry
+        // manually from the voice-note field once credits are restored.
+        transcriptionPaused = true;
+        return;
+      }
       const text = (data?.text ?? "").toString().trim();
       if (text && alive) onUpdate({ voice_transcript: text });
     })().catch((e) => console.warn("auto transcribe failed", e));
