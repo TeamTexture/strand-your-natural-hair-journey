@@ -1284,6 +1284,30 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_profile_admin_edits: {
+        Row: {
+          admin_user_id: string
+          brand_user_id: string
+          changes: Json
+          created_at: string
+          id: string
+        }
+        Insert: {
+          admin_user_id: string
+          brand_user_id: string
+          changes: Json
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          admin_user_id?: string
+          brand_user_id?: string
+          changes?: Json
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       brand_profiles: {
         Row: {
           about: string | null
