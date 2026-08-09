@@ -312,7 +312,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, style_name, style_date, status")
+        .select("id, style_name, style_date, status, cover_media_id")
         .eq("id", entryId)
         .eq("user_id", user.id)
         .maybeSingle();
