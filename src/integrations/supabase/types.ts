@@ -5540,6 +5540,21 @@ export type Database = {
           unread: number
         }[]
       }
+      brand_offer_metrics: {
+        Args: { _offer_ids: string[] }
+        Returns: {
+          changed_at: string
+          code_copies: number
+          expands: number
+          interactors: number
+          link_clicks: number
+          offer_id: string
+          phase: string
+          raw_views: number
+          reach: number
+          wishlist_adds: number
+        }[]
+      }
       brand_offer_split_totals: {
         Args: { _offer_id: string }
         Returns: {
