@@ -160,13 +160,14 @@ const BrandDashboard = () => {
           </div>
           {showStats && (
             <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">
-              <span className="inline-flex items-center gap-1" title="Impressions"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
-              <span className="inline-flex items-center gap-1" title="Expands (banner opened)"><Maximize2 className="size-3 text-muted-foreground" /> {t.expands}</span>
-              <span className="inline-flex items-center gap-1" title="Code copies"><Ticket className="size-3 text-muted-foreground" /> {t.code_copies}</span>
-              <span className="inline-flex items-center gap-1" title="Link clicks (visit offer)"><ExternalLink className="size-3 text-muted-foreground" /> {t.link_clicks}</span>
-              <span className="inline-flex items-center gap-1" title="Wishlist adds"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
+              <span className="inline-flex items-center gap-1" title="Reach — distinct members who saw it"><Users className="size-3 text-muted-foreground" /> {engagementFigure(t.reach, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Interactions — distinct members who acted"><Maximize2 className="size-3 text-muted-foreground" /> {engagementFigure(t.interactors, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Codes copied"><Ticket className="size-3 text-muted-foreground" /> {engagementFigure(t.code_copies, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Link clicks"><ExternalLink className="size-3 text-muted-foreground" /> {engagementFigure(t.link_clicks, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Engagement rate — interactors ÷ reach">{formatEngagementRate(t)}</span>
             </div>
           )}
+
           {o._derived === "approved_unpaid" && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
               <CreditCard className="size-3" /> Complete payment to confirm placement
