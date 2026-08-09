@@ -520,12 +520,13 @@ export async function mapClaimsToEvidence(
         reason: String(v.reason ?? "No evidence item supports this claim.").slice(0, 600),
         rule: "unmapped_claim",
       }));
-    // External claims are only ever admitted in supplement mode. If the mapper
-    // returns them in any other mode they are rejected instead of kept.
+    // External claims are admitted in supplement mode (policy A) and always on
+    // sponsored product surfaces (policy B). In any other policy A mode the
+    // mapper returning them is itself the defect, so they are rejected.
     const rawExternal = (Array.isArray(parsed?.external) ? parsed.external : [])
       .filter((v: { claim?: unknown }) => typeof v?.claim === "string" && v.claim.trim())
       .slice(0, 12);
-    if (set.coverage !== "supplement") {
+    if (!sponsored && set.coverage !== "supplement") {
       for (const v of rawExternal) {
         unmapped.push({
           claim: String(v.claim).slice(0, 600),
@@ -535,6 +536,7 @@ export async function mapClaimsToEvidence(
       }
       return { unmapped, external: [], tokens, ran: true };
     }
+
     const external: ExternalClaim[] = rawExternal.map(
       (v: { claim: string; basis?: string; principle?: string }) => ({
         claim: String(v.claim).slice(0, 600),
