@@ -160,8 +160,12 @@ const MyToolsSection = () => {
         if (matched) setCategory(matched);
       }
       if (data?.summary && !notes) setNotes(String(data.summary));
-      if (data?.image_url && !photoPreview && !pickedPhoto) {
-        const img = String(data.image_url);
+       const scannedImage =
+         (typeof data?.image_url === "string" && data.image_url) ||
+         (typeof data?._source_image_url === "string" && data._source_image_url) ||
+         "";
+       if (scannedImage && !photoPreview && !pickedPhoto) {
+         const img = scannedImage;
         setRemoteImageUrl(img);
         setPhotoPreview(img);
       }
