@@ -5565,6 +5565,7 @@ export type Database = {
           wishlist_adds: number
         }[]
       }
+      brand_paid_access: { Args: { _user: string }; Returns: boolean }
       brand_product_match_index: {
         Args: never
         Returns: {
