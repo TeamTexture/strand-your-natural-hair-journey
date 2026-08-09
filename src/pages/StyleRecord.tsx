@@ -281,6 +281,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
     reload,
 
+  } = useJournalSteps(entryId);
 
   // The chosen journal cover, shown as the banner above the title. Same
   // resolution order as the journal card so both surfaces agree.
