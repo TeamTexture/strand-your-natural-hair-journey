@@ -685,6 +685,8 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
+          // Output cap — output tokens drive latency on these interactive surfaces.
+          max_tokens: 1600,
           messages,
           response_format: { type: "json_object" },
         }),
