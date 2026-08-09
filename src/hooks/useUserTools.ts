@@ -147,6 +147,37 @@ export function useUserTools() {
         }
       }
 
+      // One row per real tool. A repeat add of the same link (or the same
+      // brand + name) enriches the existing row rather than creating a twin
+      // with no photo — duplicates are what left step thumbnails blank.
+      const existing = tools.find((t) => {
+        if (input.sourceUrl && t.source_url && t.source_url === input.sourceUrl) return true;
+        return (
+          t.name.trim().toLowerCase() === trimmedName.toLowerCase() &&
+          (t.brand ?? "").trim().toLowerCase() === (input.brand ?? "").trim().toLowerCase()
+        );
+      });
+      if (existing) {
+        const patch: Record<string, unknown> = { on_shelf: true, on_wishlist: false };
+        if (storage_path) patch.storage_path = storage_path;
+        else if (input.imageUrl?.trim() && !existing.image_url && !existing.storage_path)
+          patch.image_url = input.imageUrl.trim();
+        if (input.category && !existing.category) patch.category = input.category;
+        if (input.matchScore != null) patch.match_score = input.matchScore;
+        if (input.aiAnalysis) patch.ai_analysis = input.aiAnalysis;
+        if (input.sourceUrl && !existing.source_url) patch.source_url = input.sourceUrl;
+        if (input.notes?.trim()) patch.notes = input.notes.trim();
+        const { data: merged } = await supabase
+          .from("user_tools")
+          .update(patch)
+          .eq("id", existing.id)
+          .eq("user_id", user.id)
+          .select("*")
+          .single();
+        await load();
+        return (merged ?? existing) as UserTool;
+      }
+
       const tool_key = `${slugify(input.brand ?? "")}-${slugify(trimmedName)}-${crypto
         .randomUUID()
         .slice(0, 6)}`;
