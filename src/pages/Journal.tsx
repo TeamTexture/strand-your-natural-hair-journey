@@ -247,7 +247,13 @@ const Journal = () => {
           // never renders a black rectangle. Photos sign as normal.
           let coverUrl: string | undefined;
           let coverIsVideo = false;
-          if (cover) {
+          if (e.cover_path) {
+            // A cover photo uploaded for the card itself always wins.
+            const { data: sig } = await supabase.storage
+              .from(PHOTO_BUCKET)
+              .createSignedUrl(e.cover_path, 3600);
+            coverUrl = sig?.signedUrl;
+          } else if (cover) {
             const isVideo = cover.kind === "video";
             const usePoster = isVideo && !!cover.poster_path;
             const bucket = isVideo && !usePoster ? "journal-videos" : PHOTO_BUCKET;
