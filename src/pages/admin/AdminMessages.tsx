@@ -1,6 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
-import { useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { BadgeCheck, MessageSquarePlus } from "lucide-react";
@@ -19,8 +20,13 @@ import SectionLabel from "@/components/SectionLabel";
 const AdminMessages = () => {
   const nav = useNavigate();
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  // Deep link from the admin notification email: ?enquiry=<contact_messages.id>
+  const focusEnquiryId = params.get("enquiry");
+  const focusRef = useRef<HTMLDivElement | null>(null);
   const { data: threads, isLoading } = useChatThreads();
   const markEntityRead = useMarkAdminEntityRead();
+
 
   const { data: enquiries } = useQuery({
     queryKey: ["admin", "contact-messages"],
@@ -36,12 +42,48 @@ const AdminMessages = () => {
     },
   });
 
+  // The list is capped at 50, so fetch the deep-linked enquiry directly to be
+  // certain the email link always lands on the message it names.
+  const { data: focusEnquiry } = useQuery({
+    queryKey: ["admin", "contact-message", focusEnquiryId],
+    enabled: !!user?.id && !!focusEnquiryId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_messages")
+        .select("id, name, email, subject, message, created_at")
+        .eq("id", focusEnquiryId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const enquiryList = useMemo(() => {
+    const rows = [...(enquiries ?? [])];
+    if (focusEnquiry && !rows.some((r) => r.id === focusEnquiry.id)) rows.unshift(focusEnquiry);
+    if (focusEnquiryId) {
+      rows.sort((a, b) => Number(b.id === focusEnquiryId) - Number(a.id === focusEnquiryId));
+    }
+    return rows;
+  }, [enquiries, focusEnquiry, focusEnquiryId]);
+
   useEffect(() => {
     (enquiries ?? []).forEach((e) => {
       void markEntityRead("contact_message", e.id);
     });
+    if (focusEnquiryId) void markEntityRead("contact_message", focusEnquiryId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enquiries]);
+  }, [enquiries, focusEnquiryId]);
+
+  // Scroll the named message into view once it has rendered.
+  useEffect(() => {
+    if (!focusEnquiryId) return;
+    const t = window.setTimeout(() => {
+      focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [focusEnquiryId, enquiryList.length]);
+
 
   const support = useMemo(
     () => (threads ?? []).filter((t) => t.thread_type === "admin_support" && t.admin_user_id === user?.id),
@@ -139,12 +181,17 @@ const AdminMessages = () => {
         )}
       </div>
 
-      {(enquiries ?? []).length > 0 && (
+      {enquiryList.length > 0 && (
         <>
           <SectionLabel>Contact enquiries</SectionLabel>
           <div className="px-5 pb-8 space-y-2.5">
-            {(enquiries ?? []).map((e) => (
-              <SurfaceCard key={e.id}>
+            {enquiryList.map((e) => (
+              <SurfaceCard
+                key={e.id}
+                ref={e.id === focusEnquiryId ? focusRef : undefined}
+                className={e.id === focusEnquiryId ? "border-primary ring-2 ring-primary/30" : undefined}
+              >
+
                 <div className="min-w-0">
                   <p className="font-display text-sm font-semibold leading-tight break-words">
                     {e.subject || "Enquiry"}
