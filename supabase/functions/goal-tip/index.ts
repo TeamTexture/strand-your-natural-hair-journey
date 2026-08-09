@@ -424,23 +424,22 @@ NO "body" field. NO lists. NO actions array. NO extra education block. One idea,
 Everything else in this prompt still applies: the persona and voice, the core teachings, the wash-day baseline, the retrieved manuscript passages as the source of truth, the relevance gate (never cite a signal the advice does not actually act on), never naming the book/chapters/pages, and never inventing profile data.`;
 
 /**
- * Style Journal contract: EXACTLY ONE OVERVIEW + ONE CAUTION. Supersedes the
- * multi-tip playbook for that surface. Wash-day technique is explicitly out of
- * scope — it lives on the Wash Day surfaces.
+ * Style Journal contract: "How you'll get there" — a short set of STEPS, each
+ * one a tip on the SHARED TIP CONTRACT (headline + action + reason +
+ * optional extended). Wash-day technique is explicitly out of scope — it
+ * lives on the Wash Day surfaces.
  */
-const JOURNAL_TASK = `TASK — HOW YOU'LL GET THERE (ONE OVERVIEW + ONE CAUTION)
-Write exactly two blocks for the Style Journal goal section.
+const JOURNAL_TASK = `TASK — HOW YOU'LL GET THERE (2–3 STEPS)
+Write the 2–3 steps this specific member takes to reach her stated goal, in the order she should work on them, reasoned through her own characteristics and current style. Her target may be written in her own words rather than as a number — treat a described target as a real target.
 
-Output EXACTLY these fields and nothing more:
-- "overview": 1–2 sentences, max 40 words. HOW this specific user will achieve her stated goal, reasoned through her own characteristics and current style (e.g. protecting the ends on high-porosity loose natural hair to retain length). Start with a short bold lead-in phrase followed by an em-dash, then the explanation (e.g. "Protect your ends — high porosity loses moisture fastest at the oldest part of the strand.").
-- "caution": 1–2 sentences, max 40 words. The SINGLE most important thing that would undermine this goal for HER (e.g. high-tension styling at the edges, skipping trims so splits travel up the strand). Same bold lead-in then em-dash format.
-- "signals": 2–3 items, each max 3 words — the profile characteristics this reasoning actually rests on, humanised for display (e.g. "High porosity", "Loose natural", "4 weeks in braids"). Only signals present in the payload.
+${TIP_CONTRACT_FIELD_SPEC}
+
+Return them as "steps": an array of 2–3 objects, each with the four contract fields.
 
 HARD SCOPE RULES:
-- NO wash-day or routine technique. No numbered steps, no "apply leave-in nightly", no "deep condition for 25 minutes", no product application instructions, no tool timings. That content belongs to the Wash Day surfaces and must not appear here.
-- NO actions array, NO lists, NO headline, NO extra education block.
-- One idea, once: the overview and the caution must be different ideas, and neither may restate anything in the RECENT ADVICE ledger. The advice ledger applies in full to this surface.
-- A line that could be written for any user is invalid — rewrite it through her data.
+- NO wash-day or routine technique: no deep-conditioning timings, no product application instructions, no tool timings. That content belongs to the Wash Day surfaces and must not appear here.
+- One idea per step. No two steps may prescribe different methods for the same task, and no step may restate anything in the RECENT ADVICE ledger.
+- A step that could be written for any member is invalid — rewrite it through her data.
 
 Everything else in this prompt still applies: the persona and voice, the core teachings, the retrieved manuscript passages as the source of truth, the relevance gate, never naming the book/chapters/pages, and never inventing profile data.`;
 
