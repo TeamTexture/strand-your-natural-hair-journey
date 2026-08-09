@@ -30,6 +30,29 @@ function useBrandOfferLiveSync() {
         qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
         qc.invalidateQueries({ queryKey: ["brand-offer"] });
       })
+      // Products attached to an advert live in the join table — an admin adding
+      // or removing one must show on the brand's dashboard immediately.
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offer_products" }, () => {
+        qc.invalidateQueries({ queryKey: ["brand-offers"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer"] });
+        qc.invalidateQueries({ queryKey: ["active-brand-offer"] });
+      })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offer_placements" }, () => {
+        qc.invalidateQueries({ queryKey: ["brand-offers"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer"] });
+      })
+      .on("postgres_changes" as never, { event: "*", schema: "public", table: "brand_offer_revisions" }, () => {
+        qc.invalidateQueries({ queryKey: ["brand-offers"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer-revisions"] });
+      })
+      // Every member interaction writes an ad_event: performance figures update
+      // live while a campaign is running.
+      .on("postgres_changes" as never, { event: "INSERT", schema: "public", table: "ad_events" }, () => {
+        qc.invalidateQueries({ queryKey: ["brand-offer-totals"] });
+        qc.invalidateQueries({ queryKey: ["brand-offer-stats"] });
+        qc.invalidateQueries({ queryKey: ["brand-shelf-engagement"] });
+      })
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
@@ -912,7 +935,11 @@ export function useBrandOfferTotals(offerIds: string[]) {
   return useQuery({
     queryKey: ["brand-offer-totals", key],
     enabled: offerIds.length > 0,
-    staleTime: 30_000,
+    staleTime: 5_000,
+    // Belt-and-braces alongside the realtime ad_events subscription so figures
+    // still tick over if a socket drops.
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("brand_offer_totals" as never, { _offer_ids: offerIds } as never);
       if (error) throw error;
