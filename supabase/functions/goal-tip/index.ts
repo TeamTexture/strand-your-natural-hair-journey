@@ -614,21 +614,7 @@ Deno.serve(async (req) => {
                 name: "return_tip",
                 description: "Return the personalised goal tip.",
                 parameters: journal
-                  ? {
-                      type: "object",
-                      properties: {
-                        overview: { type: "string" },
-                        caution: { type: "string" },
-                        signals: {
-                          type: "array",
-                          items: { type: "string" },
-                          minItems: 2,
-                          maxItems: 3,
-                        },
-                      },
-                      required: ["overview", "caution", "signals"],
-                      additionalProperties: false,
-                    }
+                  ? tipListJsonSchema("steps", 2, 3)
                   : single
                   ? {
                       type: "object",
