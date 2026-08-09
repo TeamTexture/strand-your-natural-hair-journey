@@ -31,9 +31,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v3-tips-level";
+const MODEL_VERSION = "claude-haiku-4-5@v4-manuscript-2026-08-09";
 // One-shot per wash-day save (no cache row) — bump to signal prompt/logic changes.
-const CACHE_VERSION = "v3-tips-level";
+const CACHE_VERSION = "v4-manuscript-2026-08-09";
 
 interface RequestBody {
   steps?: Record<string, unknown>;

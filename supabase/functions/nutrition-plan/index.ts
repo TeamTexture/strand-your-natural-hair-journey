@@ -25,7 +25,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v2-tipslevel-cachekey";
+const MODEL_VERSION = "claude-opus-4-7@v3-manuscript-2026-08-09";
 
 interface RequestBody {
   force?: boolean;

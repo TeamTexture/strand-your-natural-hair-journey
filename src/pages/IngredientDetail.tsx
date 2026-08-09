@@ -613,7 +613,7 @@ const IngredientDetail = () => {
           if (uid) {
             await supabase.from("ai_summaries").insert({
               user_id: uid,
-              kind: `product_analyse:${productKey}`,
+              kind: `product_analyse:v2-manuscript-2026-08-09:${productKey}`,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               payload: freshAnalysis as any,
             });
