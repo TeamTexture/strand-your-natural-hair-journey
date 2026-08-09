@@ -85,13 +85,32 @@ Deno.serve(async (req) => {
   const { data: productRows } = await admin
     .from("brand_products")
     .select(
-      "id, name, brand_name, description, kind, tool_kind, external_url, ingredients, key_features, materials",
+      "id, name, description, kind, tool_kind, external_url, ingredients, key_features, materials, brand_user_id",
     )
     .in("id", productIds);
+  // Brand display name lives on brand_profiles, not on the product row.
+  const brandUserIds = [
+    ...new Set(
+      (productRows ?? [])
+        .map((p: Record<string, unknown>) => String(p.brand_user_id ?? ""))
+        .filter(Boolean),
+    ),
+  ];
+  const brandNames = new Map<string, string>();
+  if (brandUserIds.length) {
+    const { data: bp } = await admin
+      .from("brand_profiles")
+      .select("user_id, brand_name")
+      .in("user_id", brandUserIds);
+    for (const b of (bp ?? []) as Array<{ user_id: string; brand_name: string | null }>) {
+      if (b.brand_name) brandNames.set(b.user_id, b.brand_name);
+    }
+  }
+
   const products: Product[] = (productRows ?? []).map((p: Record<string, unknown>) => ({
     id: String(p.id),
     name: String(p.name ?? ""),
-    brand: (p.brand_name as string) ?? null,
+    brand: brandNames.get(String(p.brand_user_id ?? "")) ?? null,
     description: (p.description as string) ?? null,
     kind: (p.kind as string) ?? null,
     tool_kind: (p.tool_kind as string) ?? null,
@@ -135,7 +154,7 @@ Deno.serve(async (req) => {
       admin.from("user_style_profile").select("*").eq("user_id", userId).maybeSingle(),
       admin
         .from("user_goals")
-        .select("title, kind, challenges, areas_of_concern, status")
+        .select("title, kind, challenges, status")
         .eq("user_id", userId)
         .eq("status", "active")
         .limit(5),
@@ -148,9 +167,6 @@ Deno.serve(async (req) => {
       currentStyle: style.data ?? null,
       goals: goalRows.map((g) => ({ title: g.title, kind: g.kind })),
       challenges: goalRows.flatMap((g) => (Array.isArray(g.challenges) ? g.challenges : [])),
-      areasOfConcern: goalRows.flatMap((g) =>
-        Array.isArray(g.areas_of_concern) ? g.areas_of_concern : [],
-      ),
       bloodFlags: (blood.data ?? [])
         .filter((b: { status: string | null }) => b.status && b.status.toLowerCase() !== "normal")
         .map((b: { marker: string; status: string | null }) => ({
