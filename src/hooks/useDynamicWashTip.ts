@@ -8,6 +8,7 @@
 // changes — consistent with STRAND's static-page behaviour.
 
 import { useQuery } from "@tanstack/react-query";
+import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
@@ -133,6 +134,11 @@ export function useDynamicWashTip() {
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
+    // Stale-while-revalidate: a style change invalidates this tip, so render the
+    // last good one until the freshly personalised tip arrives.
+    placeholderData: () =>
+      readLastGood<DynamicWashTip>("wash-day-tip", level, undefined, (t) =>
+        !!t?.action && !!(t?.reason ?? t?.why)),
     queryFn: async (): Promise<DynamicWashTip | null> => {
       if (!user?.id) return null;
       const [ctx, signals, history] = await Promise.all([
@@ -205,7 +211,10 @@ export function useDynamicWashTip() {
         console.warn("[useDynamicWashTip] invoke failed", error.message);
         return null;
       }
-      return (data as { tip?: DynamicWashTip } | null)?.tip ?? null;
+      const tip = (data as { tip?: DynamicWashTip } | null)?.tip ?? null;
+      writeLastGood<DynamicWashTip>("wash-day-tip", tip, level, undefined, (t) =>
+        !!t?.action && !!(t?.reason ?? t?.why));
+      return tip;
     },
   });
 }

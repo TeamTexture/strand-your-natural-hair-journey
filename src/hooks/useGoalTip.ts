@@ -139,6 +139,33 @@ const readCachedTip = (sig: string, goalId?: string, level?: number, variantKey?
   }
 };
 
+/** LAST-GOOD cache, keyed WITHOUT the signature. When the member changes her
+ *  current or planned style the signature moves and every exact-signature cache
+ *  misses at once, leaving her watching a spinner while a fresh tip is written.
+ *  The last good tip for this goal is rendered in the meantime and swapped out
+ *  the moment the new one lands. */
+const lastGoodKey = (goalId?: string, level?: number, variantKey = "n3") =>
+  `strand:goal-tip:last:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
+
+const readLastGoodTip = (goalId?: string, level?: number, variantKey?: string): GoalTip | undefined => {
+  if (!goalId) return undefined;
+  try {
+    const raw = localStorage.getItem(lastGoodKey(goalId, level, variantKey));
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as GoalTip;
+    return tipHasSubstance(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const writeLastGoodTip = (goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string) => {
+  if (!goalId || !tip || !tipHasSubstance(tip)) return;
+  try {
+    localStorage.setItem(lastGoodKey(goalId, level, variantKey), JSON.stringify(tip));
+  } catch { /* private mode / quota */ }
+};
+
 const writeCachedTip = (sig: string, goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string) => {
   if (!goalId || !tip || !sig) return;
   // WRITE-TIME GUARD — a cache is for good output only.
@@ -183,6 +210,9 @@ export const useGoalTip = (
     refetchOnReconnect: false,
     retry: 1,
     initialData: () => readCachedTip(signature ?? "", goal?.id, level, variantKey),
+    // Stale-while-revalidate: show the last good tip for this goal while a new
+    // signature (style change, goal edit) is being generated.
+    placeholderData: () => readLastGoodTip(goal?.id, level, variantKey),
     queryFn: async (): Promise<GoalTip | null> => {
       if (!goal) return null;
       const context = await buildAiContext();
@@ -210,6 +240,7 @@ export const useGoalTip = (
       if (error) throw error;
       const tip = (data?.tip as GoalTip) ?? null;
       writeCachedTip(signature ?? "", goal.id, tip, level, variantKey);
+      writeLastGoodTip(goal.id, tip, level, variantKey);
       return tip;
     },
 
