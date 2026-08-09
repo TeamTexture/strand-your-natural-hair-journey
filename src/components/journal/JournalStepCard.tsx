@@ -470,6 +470,7 @@ const JournalStepCard = ({
         onOpenChange={setToolPickerOpen}
         selectedIds={selectedToolIds}
         onToggle={onToggleTool}
+        onToolsChanged={() => void reloadTools()}
       />
 
 
