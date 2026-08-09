@@ -60,6 +60,9 @@ interface Props {
   onAddMedia: (media: { kind: "photo" | "video"; storage_path: string; duration_seconds?: number | null }) => void;
   onRemoveMedia: (mediaId: string) => void;
   onToggleProduct: (userProductId: string) => void;
+  /** Called after a background link scan attaches a product to this step. */
+  onProductsChanged?: () => void;
+
 }
 
 /**
