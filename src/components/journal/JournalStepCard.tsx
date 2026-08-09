@@ -149,17 +149,34 @@ const JournalStepCard = ({
       </div>
 
       {editing ? (
-        <VoiceNoteField
-          label="Short note"
-          placeholder="Cleansed, blow dried on cool, sealed the ends…"
-          value={step.note ?? ""}
-          onChange={(next) => onUpdate({ note: next })}
-          audioPath={step.voice_path}
-          onAudioPathChange={(path) => onUpdate({ voice_path: path })}
-          onTranscript={(text) => onUpdate({ voice_transcript: text })}
-          folder={`journal-steps/${step.id}`}
-          rows={3}
-        />
+        <>
+          <VoiceNoteField
+            label="Short note"
+            placeholder="Cleansed, blow dried on cool, sealed the ends…"
+            value={step.note ?? ""}
+            onChange={(next) => onUpdate({ note: next })}
+            audioPath={step.voice_path}
+            onAudioPathChange={(path) => onUpdate({ voice_path: path })}
+            onTranscript={(text) => onUpdate({ voice_transcript: text })}
+            folder={`journal-steps/${step.id}`}
+            rows={3}
+          />
+          {step.voice_transcript?.trim() && (
+            <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Transcript
+              </p>
+              <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{step.voice_transcript}</p>
+              <button
+                type="button"
+                onClick={() => onUpdate({ voice_transcript: null })}
+                className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-warn"
+              >
+                Remove transcript
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <>
           {step.note?.trim() ? (
