@@ -173,11 +173,30 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     });
   }
 
-  // ── RAG passages ──────────────────────────────────────────────────
+  // ── Manuscript source ─────────────────────────────────────────────
+  // FIDELITY PATH (preferred): when `surface` is named, the authoritative
+  // chapters are passed IN FULL (chapter 1 always included) and fragment
+  // retrieval is skipped entirely. See _shared/chapter-context.ts.
   let ragBlocks: string[] = [];
-  if (input.rag_blocks && input.rag_blocks.length > 0) {
+  let wholeChapters = false;
+  if (input.surface) {
+    const ctx = await loadSurfaceChapters(input.surface);
+    if (ctx.text) {
+      wholeChapters = true;
+      noteSourceText(ctx.text);
+      systemBlocks.push({ type: "text", text: renderChapterBlock(ctx) });
+      systemBlocks.push({ type: "text", text: FIDELITY_RULE });
+    } else {
+      console.error(JSON.stringify({
+        event: "chapter_grounding_empty",
+        fn: input.function_kind,
+        surface: input.surface,
+      }));
+    }
+  }
+  if (!wholeChapters && input.rag_blocks && input.rag_blocks.length > 0) {
     ragBlocks = input.rag_blocks.filter((s) => typeof s === "string" && s.length > 0);
-  } else if (input.rag_query && input.rag_query.trim().length > 0) {
+  } else if (!wholeChapters && input.rag_query && input.rag_query.trim().length > 0) {
     // Retry once. Never block the user on a retrieval outage — callers
     // stamp the payload from `grounded` below so ungrounded generations
     // are visible in logs.
