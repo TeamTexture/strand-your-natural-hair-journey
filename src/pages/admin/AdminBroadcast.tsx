@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Send, Users } from "lucide-react";
+import { CheckCircle2, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -56,6 +56,9 @@ const AdminBroadcast = () => {
   const [audience, setAudience] = useState<Audience>("all");
   const [body, setBody] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sent, setSent] = useState<{ recipients: number; audience: Audience; body: string } | null>(
+    null,
+  );
 
   const { data: history } = useQuery({
     queryKey: ["admin", "broadcasts"],
@@ -82,11 +85,7 @@ const AdminBroadcast = () => {
     },
     onSuccess: (res) => {
       const n = res?.recipients ?? 0;
-      toast.success(
-        n === 0
-          ? "No accounts in that audience yet"
-          : `Sent to ${n} ${n === 1 ? "account" : "accounts"} — emails on their way`,
-      );
+      setSent({ recipients: n, audience, body: body.trim() });
       setBody("");
       void qc.invalidateQueries({ queryKey: ["admin", "broadcasts"] });
       void qc.invalidateQueries({ queryKey: ["chat-threads"] });
@@ -96,7 +95,61 @@ const AdminBroadcast = () => {
 
   const canSend = body.trim().length > 1 && !send.isPending;
 
+  if (sent) {
+    return (
+      <ScreenLayout>
+        <TitleBar title="Message sent" onBack={() => setSent(null)} />
+        <div className="px-5 pt-4 pb-8 space-y-5">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="size-7 text-primary" />
+            </div>
+            <h2 className="font-display text-xl leading-tight">
+              {sent.recipients === 0
+                ? "No accounts in that audience yet"
+                : `Delivered to ${sent.recipients} ${
+                    sent.recipients === 1 ? "account" : "accounts"
+                  }`}
+            </h2>
+            <p className="text-xs text-muted-foreground font-body leading-snug max-w-[280px]">
+              {sent.recipients === 0
+                ? "Nothing was sent — there are no accounts in this audience right now."
+                : `Everyone in ${AUDIENCE_LABEL[sent.audience]} now has this message in their private STRAND Team conversation, and an email notification is on its way.`}
+            </p>
+          </div>
+
+          {sent.recipients > 0 && (
+            <SurfaceCard>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
+                {AUDIENCE_LABEL[sent.audience]} · {sent.recipients}{" "}
+                {sent.recipients === 1 ? "recipient" : "recipients"}
+              </p>
+              <p className="text-[12.5px] font-body mt-1.5 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {sent.body}
+              </p>
+            </SurfaceCard>
+          )}
+
+          <div className="space-y-2.5 pt-1">
+            <Button variant="gold" size="pill" className="w-full" onClick={() => setSent(null)}>
+              Send another message
+            </Button>
+            <Button
+              variant="outline"
+              size="pill"
+              className="w-full"
+              onClick={() => nav("/admin/messages")}
+            >
+              Back to messages
+            </Button>
+          </div>
+        </div>
+      </ScreenLayout>
+    );
+  }
+
   return (
+
     <ScreenLayout>
       <TitleBar title="Group message" onBack={smartBack(nav, "/admin/messages")} />
 
@@ -134,7 +187,7 @@ const AdminBroadcast = () => {
       </div>
 
       <SectionLabel>Message</SectionLabel>
-      <div className="px-5 pb-6 space-y-2">
+      <div className="px-5 pb-2 space-y-2">
         <Textarea
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
@@ -142,21 +195,24 @@ const AdminBroadcast = () => {
           placeholder="Write the message everyone in this audience will receive…"
           className="text-[13px]"
         />
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground">
-            {body.length}/{MAX_BODY}
-          </span>
-          <Button
-            variant="gold"
-            size="pill"
-            disabled={!canSend}
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Send className="size-3.5 mr-1.5" />
-            {send.isPending ? "Sending…" : `Send to ${AUDIENCE_LABEL[audience]}`}
-          </Button>
-        </div>
+        <span className="block text-[10px] text-muted-foreground">
+          {body.length}/{MAX_BODY}
+        </span>
       </div>
+
+      <div className="px-5 py-4 flex justify-center">
+        <Button
+          variant="gold"
+          size="pill"
+          className="w-full"
+          disabled={!canSend}
+          onClick={() => setConfirmOpen(true)}
+        >
+          <Send className="size-3.5 mr-1.5" />
+          {send.isPending ? "Sending…" : `Send to ${AUDIENCE_LABEL[audience]}`}
+        </Button>
+      </div>
+
 
       {(history ?? []).length > 0 && (
         <>

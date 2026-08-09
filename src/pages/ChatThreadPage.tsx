@@ -35,6 +35,7 @@ import {
   useSendBookingRequest,
   useMarkThreadRead,
   useSendChatMessage,
+  useSendChatImage,
   type ChatMessage,
 } from "@/hooks/useChat";
 
