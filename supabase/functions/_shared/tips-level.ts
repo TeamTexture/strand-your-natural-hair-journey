@@ -20,7 +20,7 @@ export function coerceTipsLevel(value: unknown): TipsLevel {
   const n = typeof value === "string" ? Number(value) : value;
   if (n === 1) return 1;
   if (n === 2) return 2;
-  if (n === 3) return 2;
+  if (n === 3) return 3;
   if (n === 4) return 3;
   return DEFAULT_TIPS_LEVEL;
 }

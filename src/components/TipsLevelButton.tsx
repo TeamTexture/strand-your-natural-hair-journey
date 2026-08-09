@@ -6,7 +6,6 @@ import {
   TIPS_LEVELS,
   TIPS_LEVEL_HINT,
   TIPS_LEVEL_LABEL,
-  coerceTipsLevel,
   type TipsLevel,
 } from "@/lib/tipsLevel";
 import { cn } from "@/lib/utils";
@@ -116,7 +115,13 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
               min={1}
               max={3}
               step={1}
-              onValueChange={(v) => setLevel(coerceTipsLevel(v[0]))}
+              onValueChange={(v) => {
+                // NOTE: do not run slider output through coerceTipsLevel — that
+                // maps the LEGACY value 3 down to 2, which made Hand-holding
+                // unreachable. Clamp directly instead.
+                const n = Math.round(Number(v[0]));
+                setLevel((n <= 1 ? 1 : n >= 3 ? 3 : 2) as TipsLevel);
+              }}
               aria-label="Guidance level"
             />
 

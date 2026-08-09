@@ -31,7 +31,11 @@ const densityCopy: Record<TipsLevel, { icon: typeof CheckCircle2; label: string;
 const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
   const { level } = useTipsLevel();
   const location = useLocation();
-  const meta = densityCopy[level];
+  // Nutrition/diet guidance ignores the guidance level — always full detail.
+  const isNutrition = location.pathname.startsWith("/nutrition");
+  const meta = isNutrition
+    ? { icon: Sparkles, label: "Always full detail", body: "Your nutrition plan is shown in full — every supplement, meal idea and thing to avoid." }
+    : densityCopy[level];
   const Icon = meta.icon;
   const section = useMemo(() => routeLabel(location.pathname), [location.pathname]);
 
@@ -50,7 +54,7 @@ const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] uppercase tracking-[0.12em] text-primary font-body font-bold leading-none">
-            {section} · {TIPS_LEVEL_LABEL[level]}
+            {section} · {isNutrition ? "Full plan" : TIPS_LEVEL_LABEL[level]}
           </p>
           <p className="mt-1 text-[11.5px] leading-snug text-foreground/80">
             <span className="font-semibold text-foreground">{meta.label}.</span> {meta.body}
