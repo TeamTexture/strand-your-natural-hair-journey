@@ -281,7 +281,46 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
     reload,
 
-  } = useJournalSteps(entryId);
+
+  // The chosen journal cover, shown as the banner above the title. Same
+  // resolution order as the journal card so both surfaces agree.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!entry) {
+        setCoverUrl(null);
+        return;
+      }
+      if (entry.cover_path) {
+        const { data } = await supabase.storage
+          .from("journal-photos")
+          .createSignedUrl(entry.cover_path, 3600);
+        if (!cancelled) setCoverUrl(data?.signedUrl ?? null);
+        return;
+      }
+      const media = steps.flatMap((s) => s.media);
+      const chosen = entry.cover_media_id
+        ? media.find((m) => m.id === entry.cover_media_id)
+        : undefined;
+      const pick =
+        chosen ??
+        media.find((m) => m.kind === "photo") ??
+        media.find((m) => m.kind === "video" && !!m.poster_path);
+      if (!pick) {
+        if (!cancelled) setCoverUrl(null);
+        return;
+      }
+      const usePoster = pick.kind === "video" && !!pick.poster_path;
+      const { data } = await supabase.storage
+        .from(usePoster || pick.kind === "photo" ? "journal-photos" : "journal-videos")
+        .createSignedUrl(usePoster ? pick.poster_path! : pick.storage_path, 3600);
+      if (!cancelled) setCoverUrl(data?.signedUrl ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entry?.cover_path, entry?.cover_media_id, entry, steps]);
+
 
   // Open the most recent step the first time the record loads; after that the
   // member controls which one is open.
