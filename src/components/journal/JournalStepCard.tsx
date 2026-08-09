@@ -105,6 +105,8 @@ const JournalStepCard = ({
 
 
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [posters, setPosters] = useState<Record<string, string>>({});
+
   const [photoBusy, setPhotoBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const location = useLocation();
