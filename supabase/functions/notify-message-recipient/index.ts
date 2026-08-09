@@ -37,12 +37,60 @@ Deno.serve(async (req) => {
     if (thread.thread_type !== "admin_support") return json({ ok: true, skipped: "not_support" });
 
     const fromAdmin = msg.sender_role === "admin" || msg.sender_id === thread.admin_user_id;
-    if (!fromAdmin) return json({ ok: true, skipped: "not_from_admin" });
+
+    // Inbound reply (member / pro / brand → STRAND): email the admin team.
+    if (!fromAdmin) {
+      const recipients = await resolveAdminEmails(admin);
+      if (recipients.length === 0) return json({ ok: true, skipped: "no_admin_recipients" });
+
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", msg.sender_id)
+        .maybeSingle();
+      const { data: proProf } = await admin
+        .from("pro_profiles")
+        .select("display_name")
+        .eq("user_id", msg.sender_id)
+        .maybeSingle();
+
+      const receivedAt = new Date(msg.created_at as string).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+
+      const inbound = await dispatchEmail(
+        {
+          templateKey: "admin-new-message",
+          to: recipients,
+          triggerEvent: "chat_message.reply_received",
+          relatedTable: "chat_messages",
+          relatedId: String(msg.id),
+          idempotencyKey: `admin-new-message:${msg.id}`,
+          data: {
+            fromName:
+              proProf?.display_name || prof?.display_name || "A STRAND member",
+            subject:
+              msg.kind === "voice"
+                ? "Replied with a voice note"
+                : msg.kind === "image"
+                  ? "Replied with a photo"
+                  : "Replied to your message",
+            received: receivedAt,
+            path: `/messages/${msg.thread_id}`,
+          },
+        },
+        admin,
+      );
+      if (!inbound.sent) console.warn("notify-message-recipient: admin not sent", JSON.stringify(inbound));
+      return json({ ok: true, direction: "to_admin", ...inbound });
+    }
 
     const recipientId = thread.subject_user_id;
     if (!recipientId || recipientId === msg.sender_id) {
       return json({ ok: true, skipped: "no_recipient" });
     }
+
 
     const { data: userRes } = await admin.auth.admin.getUserById(recipientId);
     const email = userRes?.user?.email;
