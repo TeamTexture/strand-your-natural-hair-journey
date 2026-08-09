@@ -60,7 +60,7 @@ export interface EncouragementBanner {
   subline: string;
 }
 
-const CACHE_PREFIX = "strand_journal_banner_v2";
+const CACHE_PREFIX = "strand_journal_banner_v3-manuscript-2026-08-09";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 
 interface CacheEntry {
