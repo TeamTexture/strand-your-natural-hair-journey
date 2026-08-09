@@ -49,6 +49,10 @@ export interface GroundingResult {
   passages: number;
   /** Number of knowledge topics injected. */
   topics: number;
+  /** The raw manuscript text supplied to the model — the verifier's source. */
+  sourceText: string;
+  /** Chapters supplied in full (empty on the legacy fragment path). */
+  chapters: number[];
 }
 
 export interface GroundingInput {
@@ -60,8 +64,15 @@ export interface GroundingInput {
   forceTopics?: TopicId[];
   ragQuery: string;
   ragK?: number;
-  /** Optional chapter scoping. When it returns nothing we retry unscoped. */
+  /**
+   * FIDELITY PATH (preferred). Name the surface and its authoritative chapters
+   * are passed IN FULL — chapter 1 always included — and fragment retrieval is
+   * skipped. See _shared/chapter-context.ts.
+   */
+  surface?: SurfaceKey;
+  /** Optional chapter scoping for the legacy fragment path. */
   chapterFilter?: number[];
+
   /**
    * TIP SURFACES: bias retrieval toward PROCEDURAL passages (steps, timings,
    * frequencies, treatments) instead of thematic ones, and append the method
