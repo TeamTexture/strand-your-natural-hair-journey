@@ -389,7 +389,7 @@ function stripSentence(text: string, claim: string): string {
 
 function stripDeep<T>(value: T, claims: string[]): T {
   if (typeof value === "string") {
-    let out = value;
+    let out: string = value;
     for (const c of claims) out = stripSentence(out, c);
     return out as unknown as T;
   }
