@@ -697,9 +697,8 @@ Deno.serve(async (req) => {
       body?: string;
       key_fact?: string;
       actions?: unknown[];
-      overview?: string;
-      caution?: string;
-      signals?: unknown[];
+      /** Journal surface: steps on the shared tip contract. */
+      steps?: ContractTip[];
     };
 
     const parseResponse = async (resp: Response): Promise<GoalTipShape | null> => {
