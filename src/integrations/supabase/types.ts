@@ -1299,6 +1299,7 @@ export type Database = {
           contact_email: string | null
           contact_name: string | null
           created_at: string
+          hidden_from_directory: boolean
           id: string
           instagram_handle: string | null
           logo_path: string | null
@@ -1327,6 +1328,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string
+          hidden_from_directory?: boolean
           id?: string
           instagram_handle?: string | null
           logo_path?: string | null
@@ -1355,6 +1357,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string
+          hidden_from_directory?: boolean
           id?: string
           instagram_handle?: string | null
           logo_path?: string | null
