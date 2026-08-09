@@ -80,7 +80,7 @@ const MyToolsSection = () => {
   // Tools have no ingredient label, so any tool added without a link starts
   // unscored. This scores them against the member's profile (same 0–100 scale
   // and star mapping as products) and persists the result on the row.
-  const { scores: aiScores, scoring } = useToolMatchScores(tools, reload);
+  const { scores: aiScores, scoring, failed: scoringFailed } = useToolMatchScores(tools, reload);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -331,6 +331,10 @@ const MyToolsSection = () => {
                           ) : scoring ? (
                             <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
                               <Loader2 className="size-2.5 animate-spin" /> Rating
+                            </span>
+                          ) : scoringFailed ? (
+                            <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground font-semibold">
+                              Rating pending
                             </span>
                           ) : null}
                           {noteCount > 0 && (
