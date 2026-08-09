@@ -263,8 +263,8 @@ const AdminBroadcast = () => {
           }
           className="text-[13px]"
         />
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] text-muted-foreground shrink-0">
             {body.length}/{MAX_BODY}
           </span>
           <input
@@ -274,15 +274,64 @@ const AdminBroadcast = () => {
             className="hidden"
             onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5"
-          >
-            <ImagePlus className="size-3.5" />
-            {image ? "Change photo" : "Attach photo"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={voice.recording}
+              className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5 disabled:opacity-50"
+            >
+              <ImagePlus className="size-3.5" />
+              {image ? "Change photo" : "Photo"}
+            </button>
+            <button
+              type="button"
+              onClick={voice.recording ? voice.stop : () => void voice.start()}
+              className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] px-3 py-1.5 rounded-full border ${
+                voice.recording
+                  ? "border-warn/50 bg-warn/10 text-warn"
+                  : "border-primary/30 text-primary hover:bg-primary/5"
+              }`}
+            >
+              {voice.recording ? (
+                <>
+                  <Square className="size-3 fill-current" />
+                  Stop {formatVoiceDuration(voice.elapsedMs)}
+                </>
+              ) : (
+                <>
+                  <Mic className="size-3.5" />
+                  {clip ? "Re-record" : "Voice note"}
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {clip && !voice.recording && (
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5">
+            <div className="shrink-0 size-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Mic className="size-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11.5px] font-body leading-snug">
+                Voice note attached · {formatVoiceDuration(clip.durationMs)}
+              </p>
+              <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">
+                Everyone in this audience can play it, and it is transcribed for them on send.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setClip(null)}
+              aria-label="Remove voice note"
+              className="shrink-0 size-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        )}
+
 
         {imagePreview && (
           <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5">
