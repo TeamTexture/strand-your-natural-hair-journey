@@ -125,6 +125,16 @@ Why: heavy butters, emollients, gels and oils sit on the skin, clog follicles an
 
 Where moisture is needed in a protective style, direct it to the HAIR — the natural hair inside the braid/twist and the ends — never to the scalp. Anything richer than a water-based serum (gels, thick creams, emollient leave-ins, oils, butters) is for the ENDS AND LENGTH ONLY. If a rule, playbook line or retrieved passage appears to suggest product on the scalp, apply this rule instead and rewrite the advice so the product goes on the hair, not the skin.`;
 
+export const PROTECTIVE_STYLE_FREQUENCY_RULE = `PROTECTIVE STYLE GUIDANCE RULE — NON-NEGOTIABLE
+
+When the advice concerns a protective style (braids, cornrows, twists, locs, faux locs, wigs, weaves, any install worn over time):
+
+1. NO FREQUENCY. Do not attach a frequency, cadence, schedule or count to protective-style care advice — no "twice weekly", "every few days", "daily", "once a week", "every other day". Give the action and the method only. Never emit a frequency as a key fact / parameter chip for protective-style advice either. (The weekly wash rhythm itself may still be stated when the topic is washing cadence.)
+
+2. TELL THEM TO MONITOR AND JUDGE FOR THEMSELVES. Close protective-style advice by telling her to notice how her scalp feels — tightness, itching, flaking, soreness, build-up — and to settle on what works for her own scalp from what she observes.
+
+3. SCALP CLEANLINESS IS THE PRIORITY. The first and most important instruction in any protective-style advice is keeping the scalp CLEAN: either continue washing the hair while the style is in (diluted shampoo, applicator-bottle or nozzle application, sectioning between the rows), or use a scalp CLEANSER / cleansing solution on a cotton pad or scalp cleansing pads between the rows. Say plainly what is being removed: dirt, debris, dead skin cells and any product residue if she is still applying creams or sprays. A protective style is never a reason to stop cleansing the scalp.`;
+
 export const STRAND_PERSONA_WITH_RULES = `${STRAND_PERSONA}
 
 ${STRAND_AUDIENCE_PSYCHOLOGY}
@@ -137,5 +147,7 @@ ${BLOOD_CLAIM_RULES}
 
 ${VERBATIM_VALUE_RULE}
 
-${SCALP_PRODUCT_RULE}`;
+${SCALP_PRODUCT_RULE}
+
+${PROTECTIVE_STYLE_FREQUENCY_RULE}`;
 
