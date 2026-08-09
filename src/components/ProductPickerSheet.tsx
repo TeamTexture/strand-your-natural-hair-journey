@@ -169,8 +169,10 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
               </div>
 
               <p className="text-[10px] text-muted-foreground leading-snug">
-                Added products are saved to your shelf automatically — you'll come right back here once we've analysed them.
+                {linkHint ??
+                  "Added products are saved to your shelf automatically — you'll come right back here once we've analysed them."}
               </p>
+
             </div>
           )}
         </div>
