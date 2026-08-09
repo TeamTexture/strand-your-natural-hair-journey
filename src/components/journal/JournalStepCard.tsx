@@ -251,6 +251,36 @@ const JournalStepCard = ({
     return () => { alive = false; };
   }, [step.media, step.id, user]);
 
+  // Older voice notes saved before auto-transcription: transcribe once, silently.
+  const autoTranscribed = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const path = step.voice_path;
+    if (!path || (step.voice_transcript ?? "").trim()) return;
+    if (autoTranscribed.current.has(path)) return;
+    autoTranscribed.current.add(path);
+    let alive = true;
+    (async () => {
+      const { data: signed } = await supabase.storage
+        .from("voicenotes")
+        .createSignedUrl(path, 3600);
+      if (!signed?.signedUrl || !alive) return;
+      const blob = await (await fetch(signed.signedUrl)).blob();
+      const audioBase64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onloadend = () => resolve(((r.result as string) || "").split(",")[1] ?? "");
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+      });
+      const { data } = await supabase.functions.invoke("transcribe-audio", {
+        body: { audioBase64, mimeType: blob.type || "audio/webm" },
+      });
+      const text = (data?.text ?? "").toString().trim();
+      if (text && alive) onUpdate({ voice_transcript: text });
+    })().catch((e) => console.warn("auto transcribe failed", e));
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step.voice_path, step.voice_transcript]);
+
   const addPhotos = async (files: FileList | null) => {
     if (!files?.length || !user) return;
     setPhotoBusy(true);
@@ -271,6 +301,17 @@ const JournalStepCard = ({
       setPhotoBusy(false);
     }
   };
+
+  // Collapsed-card thumbnail: the first photo, else the first video's cover frame.
+  const coverMedia =
+    step.media.find((m) => m.kind === "photo" && urls[m.id]) ??
+    step.media.find((m) => m.kind === "video" && posters[m.id]) ??
+    null;
+  const coverUrl = coverMedia
+    ? coverMedia.kind === "photo"
+      ? urls[coverMedia.id]
+      : posters[coverMedia.id]
+    : null;
 
   const mediaCount = step.media.length;
   const photoCount = step.media.filter((m) => m.kind === "photo").length;
@@ -447,6 +488,13 @@ const JournalStepCard = ({
         >
           {index + 1}
         </span>
+        {!isOpen && coverUrl && (
+          <img
+            src={coverUrl}
+            alt={`Step ${index + 1} preview`}
+            className="size-12 shrink-0 rounded-[10px] object-cover ring-1 ring-border/60"
+          />
+        )}
         {collapsible ? (
           <button
             type="button"
