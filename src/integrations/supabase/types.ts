@@ -2362,6 +2362,9 @@ export type Database = {
           note: string | null
           photo_paths: string[]
           products_used: string[]
+          status: string
+          style_date: string | null
+          style_name: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -2374,6 +2377,9 @@ export type Database = {
           note?: string | null
           photo_paths?: string[]
           products_used?: string[]
+          status?: string
+          style_date?: string | null
+          style_name?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -2386,11 +2392,129 @@ export type Database = {
           note?: string | null
           photo_paths?: string[]
           products_used?: string[]
+          status?: string
+          style_date?: string | null
+          style_name?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      journal_step_media: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          kind: string
+          sort_order: number
+          step_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind: string
+          sort_order?: number
+          step_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind?: string
+          sort_order?: number
+          step_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_step_media_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "journal_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_step_products: {
+        Row: {
+          created_at: string
+          id: string
+          step_id: string
+          user_product_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          step_id: string
+          user_product_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          step_id?: string
+          user_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_step_products_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "journal_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_step_products_user_product_id_fkey"
+            columns: ["user_product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_steps: {
+        Row: {
+          created_at: string
+          entry_id: string
+          id: string
+          note: string | null
+          step_order: number
+          updated_at: string
+          voice_path: string | null
+          voice_transcript: string | null
+        }
+        Insert: {
+          created_at?: string
+          entry_id: string
+          id?: string
+          note?: string | null
+          step_order: number
+          updated_at?: string
+          voice_path?: string | null
+          voice_transcript?: string | null
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string
+          id?: string
+          note?: string | null
+          step_order?: number
+          updated_at?: string
+          voice_path?: string | null
+          voice_transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_steps_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       manuscript_chunks: {
         Row: {
