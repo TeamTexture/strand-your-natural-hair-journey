@@ -44,6 +44,29 @@ interface ExternalClaim {
   principle?: string;
 }
 
+/** POLICY B — the source class recorded for every claim in a sponsored tip. */
+interface ClaimSource {
+  text: string;
+  source: "manuscript" | "industry" | "product_fact";
+  basis?: string;
+}
+
+/** POLICY B — where industry consensus diverged from the author's position. */
+interface ConflictRow {
+  id: string;
+  ingredient: string;
+  topic: string | null;
+  manuscript_position: string;
+  manuscript_quote: string | null;
+  chapter: number | null;
+  page_start: number | null;
+  industry_position: string;
+  industry_source: string | null;
+  surface: string | null;
+  occurrences: number;
+  last_seen_at: string;
+}
+
 interface EvidenceRow {
   id: string;
   surface: string;
@@ -56,8 +79,11 @@ interface EvidenceRow {
   coverage_reason: string | null;
   governing_principle: string | null;
   external_claims: ExternalClaim[] | null;
+  policy: "A" | "B" | null;
+  claim_sources: ClaimSource[] | null;
   created_at: string;
 }
+
 
 interface DistRow {
   surface: string;
