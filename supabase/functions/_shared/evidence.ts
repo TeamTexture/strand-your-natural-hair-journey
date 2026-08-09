@@ -192,6 +192,16 @@ export async function gatherEvidence(input: {
   const ck = cacheKey(input.surface, input.memberContext, chapters);
   const cached = stage1Cache.get(ck);
   if (cached) return cached;
+  // Cross-isolate cache. Stage 1 is the single most expensive step in the
+  // pipeline (whole chapters in, a full evidence set out), and edge isolates are
+  // cold constantly, so the in-memory map above almost never hits in
+  // production. Persisting the evidence set removes stage 1 entirely for a
+  // member whose recorded facts have not changed.
+  const persisted = await readPersistedEvidence(ck);
+  if (persisted) {
+    stage1Cache.set(ck, persisted);
+    return persisted;
+  }
 
   let raw: Stage1Raw[] = [];
   let tokens = 0;
@@ -206,7 +216,12 @@ export async function gatherEvidence(input: {
       body: JSON.stringify({
         model: STAGE1_MODEL,
         temperature: 0,
+        // Latency cap. Output tokens, not input tokens, drive stage 1's wall
+        // clock (observed 8,700 out = 33s). A tight set of 6-10 short passages
+        // fits comfortably inside this.
+        max_tokens: 2600,
         response_format: { type: "json_object" },
+
         messages: [
           { role: "system", content: STAGE1_PROMPT },
           {
