@@ -711,19 +711,36 @@ const JournalStepCard = ({
               </div>
 
               {collapsible && (
-                <Button
-                  type="button"
-                  variant="gold"
-                  size="pill"
-                  className="w-full"
-                  onClick={() => {
-                    if (noteDirty) onUpdate({ note: noteDraft });
-                    onToggleExpand?.();
-                  }}
-                >
-                  <Check className="size-4 mr-1.5" />
-                  Save step {index + 1}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="gold"
+                    size="pill"
+                    className="w-full"
+                    onClick={() => {
+                      if (noteDirty) onUpdate({ note: noteDraft });
+                      onToggleExpand?.();
+                    }}
+                  >
+                    <Check className="size-4 mr-1.5" />
+                    Save step {index + 1}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="pill"
+                    className="w-full"
+                    disabled={!noteDirty}
+                    onClick={() => {
+                      setNoteDraft(step.note ?? "");
+                      onDraftChange?.(step.id, null);
+                      onToggleExpand?.();
+                    }}
+                  >
+                    <X className="size-4 mr-1.5" />
+                    Discard changes
+                  </Button>
+                </div>
               )}
             </>
           ) : (
