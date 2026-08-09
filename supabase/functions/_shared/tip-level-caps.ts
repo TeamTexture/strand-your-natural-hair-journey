@@ -42,14 +42,17 @@ export interface TipFieldCaps {
   nextTime: boolean;
 }
 
+// REDUCED 2026-08-09 at the author's instruction: succinct and simple, one
+// action plus ONE sentence of mechanism, and never overwhelming. These are
+// DISPLAY budgets — over-length is trimmed on the way out (applyLevelCaps), it
+// never fails a generation.
 export const TIP_LEVEL_CAPS: Record<TipLevel, TipFieldCaps> = {
-  // Minimal — two sentences that still teach.
-  1: { action: 20, reason: 18, technique: 0, extendedWhy: false, nextTime: false },
-  // Essential — adds the concrete how, and NOTHING else. The extended `why`
-  // prose is the specific bloat this level must not carry.
-  2: { action: 35, reason: 25, technique: 40, extendedWhy: false, nextTime: false },
-  // Hand-holding — the full treatment.
-  3: { action: null, reason: null, technique: null, extendedWhy: true, nextTime: true },
+  // Minimal — two short sentences that still teach.
+  1: { action: 14, reason: 12, technique: 0, extendedWhy: false, nextTime: false },
+  // Essential — the default.
+  2: { action: 22, reason: 16, technique: 30, extendedWhy: false, nextTime: false },
+  // Hand-holding — fuller, but still not a lecture.
+  3: { action: 28, reason: 20, technique: 40, extendedWhy: true, nextTime: true },
 };
 
 export const capsForLevel = (level: unknown): TipFieldCaps =>
@@ -73,8 +76,8 @@ export function levelCapViolations(
   if (caps.action != null && wordCount(input.action) > caps.action) out.push("action_over_level_cap");
   if (caps.reason != null && wordCount(input.reason) > caps.reason) out.push("reason_over_level_cap");
   if (sentenceCount(input.reason) > 1) out.push("reason_not_one_sentence");
-  if (caps.action === 20 && sentenceCount(input.action) > 1) out.push("action_not_one_sentence");
-  if (caps.action === 35 && sentenceCount(input.action) > 2) out.push("action_over_two_sentences");
+  if (caps.technique === 0 && sentenceCount(input.action) > 1) out.push("action_not_one_sentence");
+  if (caps.technique !== 0 && sentenceCount(input.action) > 2) out.push("action_over_two_sentences");
   const technique = (input.technique ?? "").trim();
   if (caps.technique != null && caps.technique > 0 && technique && wordCount(technique) > caps.technique) {
     out.push("technique_over_level_cap");
@@ -114,22 +117,22 @@ export function tipLevelPromptBlock(level: unknown): string {
     '- There is NO "technique" field. Everything the member must physically do belongs in "action". Always return "technique" as an EMPTY STRING.',
   ];
 
-  if (caps.action === 20) {
+  if (caps.extendedWhy === false && caps.technique === 0) {
     lines.push(
-      '- MINIMAL LEVEL. "action": ONE sentence, MAXIMUM 20 words. "reason": ONE sentence, MAXIMUM 18 words.',
+      `- MINIMAL LEVEL. "action": ONE sentence, MAXIMUM ${caps.action} words. "reason": ONE sentence of mechanism, MAXIMUM ${caps.reason} words.`,
       '- Return "why" and "next_time" as empty strings — nothing else is shown at this level.',
-      "- Briefer is not thinner: the action stays a specific instruction, the reason stays a real grounded why, and both still name this member's own recorded detail. Cut words, never substance.",
+      "- Briefer is not thinner: the action stays a specific instruction, the reason stays a real mechanism, and both still name this member's own recorded detail. Cut words, never substance.",
     );
-  } else if (caps.action === 35) {
+  } else if (caps.extendedWhy === false) {
     lines.push(
-      '- ESSENTIAL LEVEL. "action": at most 2 sentences, MAXIMUM 35 words. "reason": ONE sentence, MAXIMUM 25 words.',
+      `- ESSENTIAL LEVEL. "action": at most 2 sentences, MAXIMUM ${caps.action} words. "reason": ONE sentence of mechanism, MAXIMUM ${caps.reason} words.`,
       '- Return "why" and "next_time" as EMPTY STRINGS. The extended personalised prose is NOT shown at this level and duplicates "reason".',
-      "- The tip must still be complete: a specific action, a real grounded why, and personalisation to their recorded state.",
+      "- The tip must still be complete: a specific action, a real mechanism, and personalisation to their recorded state.",
     );
   } else {
     lines.push(
-      '- HAND-HOLDING LEVEL. Return "action", "reason", the extended "why" (2-3 sentences of personalised context tying the tip to their profile and their logged wash days) and "next_time". The action carries all step detail.',
-      '- "why" must add NEW context — the fuller explanation against their own data. It must never simply restate "reason" in more words.',
+      `- HAND-HOLDING LEVEL. "action": MAXIMUM ${caps.action} words. "reason": ONE sentence of mechanism, MAXIMUM ${caps.reason} words. Then the extended "why" (2 sentences of personalised context tying the tip to their profile and their logged wash days) and "next_time".`,
+      '- "why" must add NEW context — the fuller explanation against their own data. It must never simply restate "reason" in more words, and it is never a paragraph.',
     );
   }
   return lines.join("\n");

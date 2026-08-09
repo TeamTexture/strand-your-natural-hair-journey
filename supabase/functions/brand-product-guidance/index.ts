@@ -25,6 +25,8 @@ import {
   policyBBlock,
 } from "../_shared/policy-b.ts";
 
+import { validateMechanism, validateTone } from "../_shared/mechanism.ts";
+
 import {
   validateTipAction,
   validateTipReason,
@@ -88,14 +90,22 @@ RESPONSE SHAPE
 Return ONLY valid JSON with this exact shape (no prose, no code fences):
 {
   "headline": string — ONE line, MAXIMUM 8 words,
-  "fit_line_action": string — exactly ONE sentence, MAXIMUM 20 words, starting with an instruction verb,
-  "fit_line_reason": string — exactly ONE sentence, MAXIMUM 18 words, explaining why,
+  "fit_line_action": string — exactly ONE sentence, MAXIMUM 16 words, starting with an instruction verb,
+  "fit_line_reason": string — exactly ONE sentence, MAXIMUM 14 words, stating the MECHANISM (what physically happens),
 
   "intro": string — exactly ONE sentence, MAXIMUM 20 words,
   "benefits": array of EXACTLY 3 objects (2 is acceptable ONLY if a third cannot be grounded) — { "label": 1-2 words, "text": ONE sentence, MAXIMUM 15 words },
   "steps": array of EXACTLY 3 strings — each ONE sentence, MAXIMUM 25 words,
   "watch_outs": array of 0-2 strings — each ONE sentence, MAXIMUM 18 words
 }
+
+NUANCE, NOT CENSORSHIP — WHERE THE BRAND'S CLAIM NEEDS EXPLAINING
+- A brand claim may be referenced. Do not restate it as bare fact, and do not suppress it either: explain briefly what is actually happening. The standard, verbatim: "It doesn't add water to your hair — water does that on wash day. What it does is coat the strand and slow how fast that water evaporates, so your hair stays hydrated for longer."
+- Accurate, educational, brief, and no swipe at the brand. One sentence. Never say a brand is wrong or misleading.
+
+TONE — SUCCINCT, SIMPLE, NEVER ALARMING
+- Plain words, short sentences, one idea at a time. Do not add more because more is available, and never lecture.
+- No scaremongering: no "toxic", "harmful", "dangerous", no stacked warnings, no implying the product is unsafe. Where a caution genuinely applies to THIS member, state it once, neutrally. Never list allergens.
 
 WATCH OUTS — WHAT THIS MEMBER SHOULD BE AWARE OF
 - Return 1-2 only when there is something genuinely worth knowing for THIS member given what the item DOES (its mechanism: heat, tension, surface contact, materials, cadence of use) intersected with their real data. Otherwise return an empty array.
@@ -108,8 +118,8 @@ WATCH OUTS — WHAT THIS MEMBER SHOULD BE AWARE OF
 
 FIT LINE — THE ONLY TIP ON THE ADVERT ITSELF
 Return it as TWO separate fields, "fit_line_action" and "fit_line_reason". They are joined into the single short tip the member reads on the banner, so between them they must be at most TWO sentences.
-- "fit_line_action": ONE sentence, MAXIMUM 20 words, telling this member exactly WHAT TO DO with this product on their NEXT wash day — the physical action, where on the head, and at what point in their routine. It must start with an instruction verb (apply, smooth, seal, spritz, work, section, soak, blot, swap…). A statement of what the product contains or does is NOT an action and is rejected.
-- "fit_line_reason": ONE sentence, MAXIMUM 18 words, explaining WHY that action matters for THIS member — the mechanism or the consequence. It must not restate the action in different words. "Because it hydrates your hair" after an action about hydrating is a tautology and is rejected.
+- "fit_line_action": ONE sentence, MAXIMUM 16 words, telling this member exactly WHAT TO DO with this product on their NEXT wash day — the physical action, where on the head, and at what point in their routine. It must start with an instruction verb (apply, smooth, seal, spritz, work, section, soak, blot, swap…). A statement of what the product contains or does is NOT an action and is rejected.
+- "fit_line_reason": ONE sentence, MAXIMUM 14 words, stating WHAT PHYSICALLY HAPPENS — the mechanism, not the benefit. "It coats the strand, which slows how fast water evaporates" is a reason. "Keeps your hair healthy", "protects your ends", "supports your length goal" and "helps maintain moisture" are NOT reasons and are rejected. It must not restate the action.
 - Personalise both to their RECORDED state: porosity, density, current or planned style, and their most recent logged wash day. Do not invent a trait.
 - GOALS: you may reference a goal ONLY by the member's recorded goal label, verbatim, from user_context.goals[].title (e.g. "your Length goal"). NEVER write a vague paraphrase — "your goals", "your hair goals", "your retention goals", "your growth goals" and anything similar are BANNED and rejected. If no goal is recorded, reference no goal at all.
 - Never marketing hype, never a greeting, no lists.
@@ -121,7 +131,7 @@ NAME THE BRAND AND THE PRODUCT
 - Never guess at a name that is not in the payload, and never refer to "this product" throughout as if it were unnamed.
 
 HARD LIMITS — output that breaks any of these is rejected and regenerated:
-- headline ≤ 8 words. fit_line_action ≤ 20 words, one sentence. fit_line_reason ≤ 18 words, one sentence. intro ≤ 20 words, one sentence.
+- headline ≤ 8 words. fit_line_action ≤ 16 words, one sentence. fit_line_reason ≤ 14 words, one sentence. intro ≤ 20 words, one sentence.
 - benefits: 3 items (2 only if the third would be unsupported). label 1-2 words, Title Case, ideally ONE noun ("Penetration", "Moisture", "Retention"). text ≤ 15 words, ONE sentence.
 - steps: 3 items, each ≤ 25 words, ONE sentence each, sequential and concrete.
 
@@ -292,12 +302,12 @@ function validate(
   if (!isWashDay) {
     if (!fitAction) problems.push("fit_line_action is missing — the advert tip must tell the member what to do.");
     else {
-      if (words(fitAction) > 20) problems.push(`fit_line_action is ${words(fitAction)} words — maximum 20.`);
+      if (words(fitAction) > 16) problems.push(`fit_line_action is ${words(fitAction)} words — maximum 16.`);
       if (sentenceCount(fitAction) > 1) problems.push("fit_line_action must be exactly one sentence.");
     }
     if (!fitReason) problems.push("fit_line_reason is missing — the advert tip must explain why the action matters.");
     else {
-      if (words(fitReason) > 18) problems.push(`fit_line_reason is ${words(fitReason)} words — maximum 18.`);
+      if (words(fitReason) > 14) problems.push(`fit_line_reason is ${words(fitReason)} words — maximum 14.`);
       if (sentenceCount(fitReason) > 1) problems.push("fit_line_reason must be exactly one sentence.");
     }
     if (fitLine && sentenceCount(fitLine) > 2)
@@ -317,6 +327,13 @@ function validate(
         `the advert tip failed the shared action floor (${actionCheck.reasons.join(", ")}) — "fit_line_action" must be one instruction telling this member what to physically do with the product on their next wash day, and it must reference at least one of their recorded details (${tokens.slice(0, 8).join(", ") || "their recorded profile"}).`,
       );
     }
+    // THE MECHANISM FLOOR — the reason must describe what physically happens.
+    const mech = validateMechanism(fitReason);
+    if (!mech.ok) {
+      problems.push(
+        `"fit_line_reason" is not a mechanism (${mech.reasons.join(", ")}) — say what PHYSICALLY happens (what coats, slows, absorbs, lifts, rubs, evaporates or builds up), not what the member gains. Outcome phrases like "keeps hair healthy", "protects your ends" or "supports your goal" are rejected.`,
+      );
+    }
     const reasonCheck = validateTipReason({ reason: fitReason, action: fitAction });
     if (!reasonCheck.ok) {
       problems.push(
@@ -326,6 +343,13 @@ function validate(
     // GOAL LABELS. A goal may only be named by its recorded label.
     const goalIssue = goalReferenceProblem(fitLine, context);
     if (goalIssue) problems.push(goalIssue);
+    // TONE — succinct, simple, never alarming.
+    const tone = validateTone([fitLine, intro].filter(Boolean).join(" "));
+    if (!tone.ok) {
+      problems.push(
+        `the copy breaks the tone floor (${tone.reasons.join(", ")}) — state things neutrally and once. No alarming language, no stacked warnings, no framing an ingredient as a danger.`,
+      );
+    }
   }
 
 

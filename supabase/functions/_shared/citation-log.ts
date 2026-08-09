@@ -23,16 +23,18 @@ import {
   type RejectionRow,
 } from "./evidence.ts";
 
-import { checkTerminology, loadLexicon } from "./terminology.ts";
+import { explainTerminology, loadLexicon, type TerminologyNote } from "./terminology.ts";
 import {
   classifyClaims,
   detectManuscriptConflicts,
-  detectMarketingClaims,
+  inspectBrandClaims,
   logConflicts,
+  type ClaimNuance,
   type ClaimSource,
   type ConflictHit,
   type CoveredIngredient,
 } from "./policy-b.ts";
+
 
 /** POLICY B input: the product facts the sponsored gates and audit trail need. */
 export interface PolicyBProduct {
@@ -223,20 +225,23 @@ async function verifyStage3<T>(
   let verifyTokens = 0;
   let external: ExternalClaim[] = [];
   let conflicts: ConflictHit[] = [];
+  let termNotes: TerminologyNote[] = [];
+  let claimNotes: ClaimNuance[] = [];
 
   try {
-    // The terminology lexicon binds in ALL THREE coverage modes, supplement
-    // included, AND in policy B: no claim, from any source, may use a word in a
-    // way the author rejects. It runs first and deterministically, so it cannot
-    // be argued around.
-    const term = checkTerminology(text, await loadLexicon());
-    violations = term.map((v) => ({ ...v, stage: "terminology" as const }));
+    // THE TERMINOLOGY LEXICON EXPLAINS, IT DOES NOT REJECT (2026-08-09).
+    // Loose usage of one of her words raises a NOTE carrying the accurate
+    // explanation in her framing. The copy is served as written and the
+    // explanation is rendered briefly alongside it.
+    termNotes = explainTerminology(text, await loadLexicon());
 
     if (policy === "B") {
-      // CONSTRAINT 4 — brand marketing can never enter output. Deterministic.
-      const marketing = detectMarketingClaims(text, opts?.product?.brandCopy ?? null);
+      // CONSTRAINT 4 — brand claims may be referenced with the nuance
+      // explained. Only claims built on unverifiable numbers are removed.
+      const brandClaims = inspectBrandClaims(text, opts?.product?.brandCopy ?? null);
+      claimNotes = brandClaims.notes;
       violations = violations.concat(
-        marketing.map((v) => ({ ...v, stage: "deterministic" as const })),
+        brandClaims.violations.map((v) => ({ ...v, stage: "deterministic" as const })),
       );
       // CONSTRAINT 3 — where industry diverges from her, she governs. The
       // industry-side sentence is removed and the divergence is registered.
@@ -256,8 +261,6 @@ async function verifyStage3<T>(
     console.warn(`[stage3] verification error in ${functionName}:`, e);
   }
 
-  // A sentence that trips the terminology guard is removed even when the mapper
-  // admitted it as established science — the author's lexicon outranks it.
   const stripped = new Set(violations.map((v) => v.claim));
   external = external.filter((e) => !stripped.has(e.claim));
 
@@ -273,6 +276,24 @@ async function verifyStage3<T>(
     );
     out = stripDeep(payload, violations.map((v) => v.claim));
   }
+
+  // NUANCE — the explanation the member sees alongside a loosely used term or
+  // a brand claim. Attached to the payload, never used to remove copy.
+  out = attachNuance(out, [
+    ...termNotes.map((n) => n.explanation),
+    ...claimNotes.map((n) => n.explanation),
+  ]);
+  if (termNotes.length || claimNotes.length) {
+    console.log(
+      JSON.stringify({
+        event: "nuance_explained",
+        fn: functionName,
+        terms: termNotes.map((n) => n.term),
+        brand_claims: claimNotes.length,
+      }),
+    );
+  }
+
 
   // AUDIT TRAIL — on sponsored surfaces every served claim carries its source
   // class, so the author can filter to the `industry` ones she needs to review.
@@ -342,7 +363,22 @@ async function verifyStage3<T>(
 /** Collapse the duplicated "TT" the model sometimes emits immediately before
  *  the TT Heat Hat mention ("under your TT the TT Heat Hat"). Copy fix only —
  *  never changes the meaning of the guidance. */
+/**
+ * Attach the nuance explanations to the payload so the surface can render them
+ * briefly alongside the copy. Additive only — no existing field is altered, and
+ * a payload that already carries its own `nuance` is left alone.
+ */
+function attachNuance<T>(payload: T, explanations: string[]): T {
+  const notes = Array.from(new Set(explanations.map((e) => e.trim()).filter(Boolean))).slice(0, 2);
+  if (!notes.length) return payload;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
+  const obj = payload as Record<string, unknown>;
+  if (typeof obj.nuance === "string" && obj.nuance.trim()) return payload;
+  return { ...obj, nuance: notes[0], nuance_notes: notes } as unknown as T;
+}
+
 function fixHeatHatText(text: string): string {
+
   return text
     .replace(/\bTT\s+(?:the\s+)?TT\s+Heat\s+Hat\b/gi, "the TT Heat Hat")
     .replace(/\b(?:the\s+)?TT\s+Heat\s+Hat\s+(?:TT\s+Heat\s+Hat\s*)+/gi, "the TT Heat Hat")

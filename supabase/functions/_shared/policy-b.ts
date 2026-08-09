@@ -209,17 +209,18 @@ ${governed}
 INGREDIENTS SHE DOES NOT COVER — established cosmetic science may be used for these, and only these, plus general product usage:
 ${outside}
 
-CONSTRAINT 2 — HER TERMINOLOGY BINDS ABSOLUTELY. No claim from any source may use a word in a way she rejects, however well established the industry claim is. "Hydrates" applied to anything other than water is rejected outright.
+CONSTRAINT 2 — HER TERMINOLOGY EXPLAINS, IT DOES NOT CENSOR. Where a word is used loosely — by you or by the brand — say briefly what is actually happening, in her framing. Do not delete the word, do not refuse to name the product, do not call the brand wrong. Her own example: "If a brand says this hydrates — no. What it does is create a barrier around the hair that helps to reduce or slow the evaporation of the moisture for longer, which keeps your hair hydrated for longer."
 
 CONSTRAINT 3 — NEVER CONTRADICT HER. Where industry guidance diverges from her stated position, write HER position. Do not hedge, do not present both, do not split the difference.
 
-CONSTRAINT 4 — BRAND MARKETING IS NEVER A SOURCE. The brand supplies the ingredient list and product facts only. Marketing and packaging language — "clinically proven", "seals in hydration", "continuous hydration", "up to X days of moisture", "salon quality", and every claim of that kind — must never be repeated, paraphrased, softened or implied, even where the brand's own page states it as fact.${
+CONSTRAINT 4 — BRAND CLAIMS MAY BE REFERENCED, WITH THE NUANCE EXPLAINED. The brand is not a source of claims, but its claims are not suppressed either. Never restate a claim as bare fact, and never simply repeat the packaging wording. Where the product page claims something like "continuous hydration", explain the nuance instead — accurately, briefly, and with no swipe at the brand. The standard expected, verbatim: "It doesn't add water to your hair — water does that on wash day. What it does is coat the strand and slow how fast that water evaporates, so your hair stays hydrated for longer." Never reproduce a consumer-panel statistic, a clinical-proof claim or a timed-duration claim at all — those are numbers you cannot verify.${
     input.brandCopy
-      ? `\nThe brand's own copy for this product is reproduced below SOLELY so you can recognise and avoid it. It is not evidence and nothing in it may be restated:\n"""${String(input.brandCopy).slice(0, 1200)}"""`
+      ? `\nThe brand's own copy for this product is reproduced below so you can recognise its claims and explain them rather than restate them. It is not evidence, and its wording must not be lifted:\n"""${String(input.brandCopy).slice(0, 1200)}"""`
       : ""
   }
 
-PERMITTED INDUSTRY SOURCES: ingredient databases of the standard the author herself names — INCIDecoder, Chemists Corner — and peer-reviewed cosmetic chemistry. FORBIDDEN: brand or packaging claims, influencer or community consensus, trends, anything contested. Where the science is uncertain, say less.
+PERMITTED INDUSTRY SOURCES: ingredient databases of the standard the author herself names — INCIDecoder, Chemists Corner — and peer-reviewed cosmetic chemistry. FORBIDDEN AS SOURCES: brand or packaging claims, influencer or community consensus, trends, anything contested. Where the science is uncertain, say less.
+
 
 INGREDIENT POSITION IS A FACT AND MUST BE USED. The declared list is in descending order of concentration, and brands exploit the sub-1% rule to place natural-sounding ingredients high and push preservatives and fragrance down. So where a heavily marketed ingredient sits low on the list, or a functional one sits high, say so plainly. This is true even in a paid placement.
 DECLARED LIST, IN ORDER:
@@ -231,28 +232,64 @@ CLAIM LABELLING. Return an array "claims" alongside your other fields. One entry
 }
 
 /* ------------------------------------------------------------------ *
- * CONSTRAINT 4 — brand marketing can never enter the output
+ * CONSTRAINT 4 — brand claims are EXPLAINED, not suppressed
  * ------------------------------------------------------------------ */
 
-/** Claim shapes that are marketing, not fact, wherever they come from. */
-const MARKETING_PATTERNS: Array<{ re: RegExp; why: string }> = [
-  { re: /\bclinically\s+(?:proven|tested)\b/i, why: "Marketing claim: clinical proof." },
-  { re: /\bdermatologist(?:ally)?\s+(?:tested|approved)\b/i, why: "Marketing claim: dermatologist endorsement." },
-  { re: /\bseals?\s+in\s+(?:hydration|moisture)\b/i, why: "Marketing claim: sealing hydration in." },
-  { re: /\blocks?\s+in\s+(?:hydration|moisture)\b/i, why: "Marketing claim: locking moisture in." },
-  { re: /\bcontinuous\s+(?:hydration|moisture)\b/i, why: "Marketing claim: continuous hydration." },
-  { re: /\bup\s+to\s+\d+\s*(?:-|\s)?(?:hour|hours|hrs|day|days)\b[^.]{0,40}\b(?:hydration|moisture|moisturis)/i, why: "Marketing claim: timed hydration duration." },
-  { re: /\b(?:24|48|72)\s*(?:-|\s)?(?:hour|hr)s?\b[^.]{0,30}\b(?:hydration|moisture)/i, why: "Marketing claim: timed hydration duration." },
-  { re: /\b(?:salon|professional)[- ]quality\b/i, why: "Marketing claim: salon quality." },
-  { re: /\bmiracle\b|\bbreakthrough\b|\brevolutionar/i, why: "Marketing superlative." },
-  { re: /\b\d{1,3}\s*%\s*of\s+(?:users|women|people)\b/i, why: "Marketing consumer-panel statistic." },
-  { re: /\b(?:instantly|immediately)\s+(?:transform|repair|restore)/i, why: "Marketing transformation claim." },
+/**
+ * Loose claim shapes a brand uses. These are NOT rejections any more: when one
+ * appears, the surface renders the accurate explanation alongside it so the
+ * member understands what is actually happening.
+ */
+const CLAIM_SHAPES: Array<{ re: RegExp; nuance: string }> = [
+  {
+    re: /\b(?:continuous|lasting|long[- ]lasting|all[- ]day)\s+(?:hydration|moisture)\b/i,
+    nuance:
+      "It doesn't add water to your hair — water does that on wash day. What it does is coat the strand and slow how fast that water evaporates, so your hair stays hydrated for longer.",
+  },
+  {
+    re: /\b(?:seals?|locks?)\s+in\s+(?:hydration|moisture)\b/i,
+    nuance:
+      "Sealing means it sits on the outside of the strand and slows water leaving it. The water itself came from wash day.",
+  },
+  {
+    re: /\b(?:hydrates?|hydrating|moisturis\w*|moisturiz\w*)\b/i,
+    nuance:
+      "Water is the only thing that puts moisture into the strand. A product like this coats the outside and holds that water in for longer.",
+  },
+  {
+    re: /\b(?:repairs?|repairing|restores?|rebuilds?)\b/i,
+    nuance:
+      "Nothing rebuilds a strand that has already split. What a conditioning formula does is cling to the roughed-up spots on the cuticle so it behaves more smoothly.",
+  },
+  {
+    re: /\b(?:nourish\w*|feeds?|feeding)\b/i,
+    nuance:
+      "Hair isn't fed from the outside. An oil or butter softens and coats the strand, which is what makes it feel better to handle.",
+  },
+];
+
+/** Claims built on numbers no one can verify. These are still removed. */
+const UNVERIFIABLE_PATTERNS: Array<{ re: RegExp; why: string }> = [
+  { re: /\bclinically\s+(?:proven|tested)\b/i, why: "A clinical-proof claim cannot be verified here." },
+  { re: /\bdermatologist(?:ally)?\s+(?:tested|approved)\b/i, why: "An endorsement claim cannot be verified here." },
+  { re: /\b\d{1,3}\s*%\s*of\s+(?:users|women|people)\b/i, why: "A consumer-panel statistic cannot be verified here." },
+  { re: /\bup\s+to\s+\d+\s*(?:-|\s)?(?:hour|hours|hrs|day|days)\b[^.]{0,40}\b(?:hydration|moisture|moisturis)/i, why: "A timed-duration claim cannot be verified here." },
+  { re: /\b(?:24|48|72)\s*(?:-|\s)?(?:hour|hr)s?\b[^.]{0,30}\b(?:hydration|moisture)/i, why: "A timed-duration claim cannot be verified here." },
+  { re: /\bmiracle\b|\bbreakthrough\b|\brevolutionar/i, why: "A superlative is not a product fact." },
 ];
 
 export interface PolicyViolation {
   claim: string;
   reason: string;
   rule: string;
+}
+
+/** A brand claim that needs its nuance explaining alongside it. */
+export interface ClaimNuance {
+  claim: string;
+  explanation: string;
+  /** True when the wording was lifted from the brand's own copy. */
+  lifted: boolean;
 }
 
 const sentencesOf = (text: string): string[] =>
@@ -271,43 +308,50 @@ function shingles(text: string, n: number): Set<string> {
 }
 
 /**
- * Deterministic enforcement of constraint 4. Two mechanisms:
- *   a) a claim-shape blocklist, which catches marketing language even when the
- *      model paraphrases it away from the brand's exact wording;
- *   b) a 6-word shingle overlap against the brand's own copy, which catches
- *      copy that IS lifted from the brand.
- * A sentence caught by either is removed from the output and logged.
+ * Inspect the output against the brand's claims.
+ *
+ *   notes       — loose claim language that needs the accurate explanation
+ *                 rendered alongside it. NOT a rejection: the output stands.
+ *   violations  — claims built on unverifiable numbers (clinical proof, panel
+ *                 statistics, timed durations). These are still removed.
+ *
+ * A sentence that already carries the mechanism needs no note: the nuance is
+ * already in the copy.
  */
-export function detectMarketingClaims(
+export function inspectBrandClaims(
   text: string,
   brandCopy?: string | null,
-): PolicyViolation[] {
-  const out: PolicyViolation[] = [];
-  if (!text.trim()) return out;
+): { notes: ClaimNuance[]; violations: PolicyViolation[] } {
+  const notes: ClaimNuance[] = [];
+  const violations: PolicyViolation[] = [];
+  if (!text.trim()) return { notes, violations };
   const brand = brandCopy ? shingles(brandCopy, 6) : null;
+  const seen = new Set<string>();
 
   for (const s of sentencesOf(text)) {
-    const hit = MARKETING_PATTERNS.find((p) => p.re.test(s));
-    if (hit) {
-      out.push({ claim: s, reason: hit.why + " Brand marketing is never a source.", rule: "marketing_claim" });
+    const bad = UNVERIFIABLE_PATTERNS.find((p) => p.re.test(s));
+    if (bad) {
+      violations.push({ claim: s, reason: bad.why, rule: "unverifiable_claim" });
       continue;
     }
+    const explained =
+      /\b(coats?|coating|seals? (?:the|it)|barrier|slows?|evaporat\w*|film|sits? on|holds? .* in|cling\w*)\b/i.test(s);
+    const shape = CLAIM_SHAPES.find((c) => c.re.test(s));
+    let lifted = false;
     if (brand && brand.size) {
       const mine = shingles(s, 6);
-      for (const g of mine) {
-        if (brand.has(g)) {
-          out.push({
-            claim: s,
-            reason: `Reproduces the brand's own copy ("${g}"). Brands supply the ingredient list and product facts, not claims.`,
-            rule: "brand_copy_reproduced",
-          });
-          break;
-        }
-      }
+      for (const g of mine) if (brand.has(g)) { lifted = true; break; }
+    }
+    if ((shape && !explained) || lifted) {
+      const explanation = shape?.nuance ?? CLAIM_SHAPES[2].nuance;
+      if (seen.has(explanation)) continue;
+      seen.add(explanation);
+      notes.push({ claim: s, explanation, lifted });
     }
   }
-  return out;
+  return { notes, violations };
 }
+
 
 /* ------------------------------------------------------------------ *
  * CONSTRAINT 3 — the manuscript wins, and the divergence is logged
