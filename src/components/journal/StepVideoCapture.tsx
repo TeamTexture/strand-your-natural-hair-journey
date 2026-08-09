@@ -650,7 +650,12 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
             disabled={uploading || preparing}
           >
             {preparing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Camera className="size-4 mr-1.5" />}
-            {preparing ? "Checking your clip…" : "Open phone camera"}
+            {preparing
+              ? compressPct !== null
+                ? `Compressing ${compressPct}%…`
+                : "Checking your clip…"
+              : "Open phone camera"}
+
           </Button>
         )}
 
