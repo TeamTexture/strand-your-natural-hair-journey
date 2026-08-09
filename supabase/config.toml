@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.pro-password-reset]
 verify_jwt = false
+
+[functions.notify-admin-message]
+verify_jwt = false
