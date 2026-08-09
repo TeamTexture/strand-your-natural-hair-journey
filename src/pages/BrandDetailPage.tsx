@@ -252,6 +252,10 @@ const BrandDetailPage = () => {
       nav(`/offers/${item.offer_id}/product/${item.brand_product_id}`);
     } else if (item.viewer_item_id) {
       nav(item.kind === "tool" ? `/tools/${item.viewer_item_id}` : `/products/${item.viewer_item_id}`);
+    } else if (item.brand_product_id) {
+      // Not advertised and not owned yet — open the catalogue item so she can
+      // add it (tools land in My Tools, products on her shelf).
+      nav(`/brands/${brandUserId}/product/${item.brand_product_id}`);
     } else if (item.source_url) {
       window.open(item.source_url, "_blank", "noopener,noreferrer");
     }

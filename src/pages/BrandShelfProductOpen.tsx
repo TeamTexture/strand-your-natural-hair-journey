@@ -37,6 +37,30 @@ const BrandShelfProductOpen = () => {
         return;
       }
 
+      // TOOLS ARE NOT PRODUCTS. A heat hat, dryer or diffuser has no ingredient
+      // list, so the consumer ingredient page can't add it — it wrote nothing at
+      // all, which is why "Add to my tools" appeared to do nothing. Tools go to
+      // the member's own tool page when they already own it, otherwise to the
+      // brand product screen, whose add action writes to user_tools.
+      if (product.kind === "tool") {
+        if (user) {
+          const { data: mineTool } = await supabase
+            .from("user_tools")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("linked_brand_product_id", brandProductId)
+            .limit(1);
+          if (cancelled) return;
+          const owned = (mineTool ?? [])[0] as { id: string } | undefined;
+          if (owned?.id) {
+            nav(`/tools/${owned.id}`, { replace: true });
+            return;
+          }
+        }
+        nav(`/brands/${brandUserId}/catalogue/${brandProductId}`, { replace: true });
+        return;
+      }
+
       // Does the member already own this item? If so, their own page wins.
       if (user) {
         const { data: mine } = await supabase

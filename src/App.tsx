@@ -557,7 +557,10 @@ const App = () => (
               {/* Consumer-facing brand directory */}
               <Route path="/brands" element={<Paid><BrandsDirectory /></Paid>} />
               <Route path="/brands/:brandUserId" element={<Paid><BrandDetailPage /></Paid>} />
-              <Route path="/brands/:brandUserId/product/:brandProductId" element={<Paid><BrandShelfProductOpen /></Paid>} />
+             <Route path="/brands/:brandUserId/product/:brandProductId" element={<Paid><BrandShelfProductOpen /></Paid>} />
+             {/* Brand shelf items with no advert (tools especially) — the add
+                 action here writes tools to My Tools and products to the shelf. */}
+             <Route path="/brands/:brandUserId/catalogue/:brandProductId" element={<Paid><BrandProductPage /></Paid>} />
 
               {/* Brand routes */}
               <Route path="/brand/auth" element={<BrandAuth />} />
