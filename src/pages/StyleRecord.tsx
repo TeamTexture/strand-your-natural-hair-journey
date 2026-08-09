@@ -460,7 +460,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           open={coverOpen}
           onClose={() => setCoverOpen(false)}
           onSaved={(id) => setEntry((e) => (e ? { ...e, cover_media_id: id } : e))}
-          onMediaAdded={() => reloadSteps()}
+          onMediaAdded={() => reload()}
         />
 
         <PendingStepProducts entryId={entry.id} />
