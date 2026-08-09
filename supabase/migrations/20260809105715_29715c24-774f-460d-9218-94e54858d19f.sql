@@ -1,0 +1,1 @@
+ALTER TABLE public.journal_step_media ADD COLUMN IF NOT EXISTS poster_path text;
