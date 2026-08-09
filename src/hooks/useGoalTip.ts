@@ -19,6 +19,14 @@ export interface GoalTipAction {
   why: string;
 }
 
+/** The shared tip contract: every guidance surface returns this shape. */
+export interface GoalTipStep {
+  headline?: string;
+  action?: string;
+  reason?: string;
+  extended?: string;
+}
+
 export interface GoalTip {
   headline?: string;
   /** Single-tip (Home) mode: the instruction. Required — never rendered empty. */
@@ -28,12 +36,8 @@ export interface GoalTip {
   body?: string;
   /** Single-tip (Home) mode only: one optional frequency/duration/tool chip. */
   key_fact?: string;
-  /** Journal variant only: the one overview block. */
-  overview?: string;
-  /** Journal variant only: the one caution block. */
-  caution?: string;
-  /** Journal variant only: the profile signals the reasoning rests on. */
-  signals?: string[];
+  /** Journal variant only: the steps, on the shared tip contract. */
+  steps?: GoalTipStep[];
   actions?: Array<GoalTipAction | string>;
 }
 
@@ -93,7 +97,7 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
  * signature, so it is generated once and then reused indefinitely until the
  * current style, the planned next style or the goal changes.
  */
-const CACHE_VERSION = "v15-manuscript-2026-08-09";
+const CACHE_VERSION = "v16-tip-contract-2026-08-09";
 
 
 const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>
@@ -124,7 +128,7 @@ export const useGoalTip = (
   opts?: { maxTips?: number; single?: boolean; variant?: "journal" },
 ) => {
   // Home's STRAND tip asks for EXACTLY ONE tip (single: true).
-  // The Style Journal asks for ONE overview + ONE caution (variant: "journal").
+  // The Style Journal asks for 2-3 contract steps (variant: "journal").
   // The variant is part of the key so the two surfaces never share a cached
   // answer.
   const journal = opts?.variant === "journal";
