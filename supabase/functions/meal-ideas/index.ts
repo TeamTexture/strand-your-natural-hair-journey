@@ -21,6 +21,8 @@ interface RequestBody {
   diet?: string;
   alcohol?: string;
   flaggedMarkers?: string[];
+  /** Meal names already shown or saved — the model must not repeat them. */
+  exclude?: string[];
 }
 
 import {
@@ -87,6 +89,10 @@ ${JSON.stringify(body.context ?? {}, null, 2)}
 Diet pattern: ${body.diet ?? "unknown"}
 Alcohol pattern: ${body.alcohol ?? "unknown"}
 Flagged blood markers to prioritise: ${JSON.stringify(body.flaggedMarkers ?? [])}
+Already seen or saved meals — DO NOT return any of these, and do not return a
+near-variant of them (same headline protein or same dish with a different name).
+Give six genuinely different dishes: ${JSON.stringify((body.exclude ?? []).slice(0, 60))}
+Variation token (ignore its meaning, use it only to make this batch different from the last): ${crypto.randomUUID()}
 
 Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
 
@@ -111,6 +117,8 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
         },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
+          // Regeneration must produce a visibly different batch each time.
+          temperature: 1.1,
           messages: [
             { role: "system", content: `${systemPrompt}${grounding.block}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
             { role: "user", content: userPayload },
@@ -216,7 +224,23 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
       });
     }
 
-    const sanitised = await sanitiseAndLog(parsed, "meal-ideas");
+    const sanitised = await sanitiseAndLog(parsed, "meal-ideas") as { meals?: unknown[] };
+
+    // The fidelity filter can strip a meal's summary sentence. A blank summary
+    // renders as an empty card, so fall back to a plain factual line built from
+    // the meal's own target tags (no new claim is introduced).
+    if (Array.isArray(sanitised?.meals)) {
+      for (const m of sanitised.meals as Record<string, unknown>[]) {
+        const summary = typeof m.summary === "string" ? m.summary.trim() : "";
+        if (summary) continue;
+        const targets = Array.isArray(m.targets)
+          ? (m.targets as unknown[]).map((t) => String(t).trim()).filter(Boolean)
+          : [];
+        m.summary = targets.length
+          ? `Chosen for ${targets.join(", ").toLowerCase()}.`
+          : "Built around everyday ingredients that suit your recorded profile.";
+      }
+    }
 
     return new Response(JSON.stringify(sanitised), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
