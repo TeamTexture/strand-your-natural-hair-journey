@@ -245,6 +245,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const [openStepId, setOpenStepId] = useState<string | null>(null);
   // Cover chooser — which photo/video represents this record in the journal.
   const [coverOpen, setCoverOpen] = useState(false);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const openedOnce = useRef(false);
 
   // Unsaved note text per step, plus the exit guard it feeds.
@@ -281,6 +282,46 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     reload,
 
   } = useJournalSteps(entryId);
+
+  // The chosen journal cover, shown as the banner above the title. Same
+  // resolution order as the journal card so both surfaces agree.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!entry) {
+        setCoverUrl(null);
+        return;
+      }
+      if (entry.cover_path) {
+        const { data } = await supabase.storage
+          .from("journal-photos")
+          .createSignedUrl(entry.cover_path, 3600);
+        if (!cancelled) setCoverUrl(data?.signedUrl ?? null);
+        return;
+      }
+      const media = steps.flatMap((s) => s.media);
+      const chosen = entry.cover_media_id
+        ? media.find((m) => m.id === entry.cover_media_id)
+        : undefined;
+      const pick =
+        chosen ??
+        media.find((m) => m.kind === "photo") ??
+        media.find((m) => m.kind === "video" && !!m.poster_path);
+      if (!pick) {
+        if (!cancelled) setCoverUrl(null);
+        return;
+      }
+      const usePoster = pick.kind === "video" && !!pick.poster_path;
+      const { data } = await supabase.storage
+        .from(usePoster || pick.kind === "photo" ? "journal-photos" : "journal-videos")
+        .createSignedUrl(usePoster ? pick.poster_path! : pick.storage_path, 3600);
+      if (!cancelled) setCoverUrl(data?.signedUrl ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entry?.cover_path, entry?.cover_media_id, entry, steps]);
+
 
   // Open the most recent step the first time the record loads; after that the
   // member controls which one is open.
@@ -406,33 +447,45 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
       <div className="px-5 pb-10 space-y-3">
         {/* ── Header ─────────────────────────── */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            {dateLabel && (
-              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
-                <CalendarDays className="size-3" /> {dateLabel}
-              </p>
-            )}
-            <h1 className="font-display text-[22px] font-bold leading-tight mt-0.5 [overflow-wrap:anywhere]">
-              {entry.style_name || "Style record"}
-            </h1>
-            <p className="text-[11px] text-muted-foreground mt-1">
+        {coverUrl && (
+          <div className="relative -mx-5 mb-1">
+            <div className="relative h-44 overflow-hidden bg-secondary">
+              <img
+                src={coverUrl}
+                alt={entry.style_name ? `${entry.style_name} cover` : "Journal cover"}
+                className="absolute inset-0 size-full object-cover object-[center_25%]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/25 to-transparent" />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          {dateLabel && (
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
+              <CalendarDays className="size-3" /> {dateLabel}
+            </p>
+          )}
+          <h1 className="font-display text-[26px] font-bold leading-[1.15] w-full text-balance [overflow-wrap:anywhere]">
+            {entry.style_name || "Style record"}
+          </h1>
+          <div className="flex items-center justify-between gap-3 pt-0.5">
+            <p className="text-[11px] text-muted-foreground">
               {complete ? "Finished" : "In progress"}
               {steps.length ? ` · ${steps.length} step${steps.length === 1 ? "" : "s"}` : ""}
             </p>
-
+            <button
+              type="button"
+              onClick={() => (reviewing ? setMode("edit") : guardExit(() => setMode("review")))}
+              className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
+            >
+              {reviewing ? (
+                <><Pencil className="size-3.5" /> Edit</>
+              ) : (
+                <><Eye className="size-3.5" /> Review</>
+              )}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => (reviewing ? setMode("edit") : guardExit(() => setMode("review")))}
-            className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
-          >
-            {reviewing ? (
-              <><Pencil className="size-3.5" /> Edit</>
-            ) : (
-              <><Eye className="size-3.5" /> Review</>
-            )}
-          </button>
         </div>
 
         {reviewing && steps.length > 0 && (
@@ -453,6 +506,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
             {entry.cover_media_id || entry.cover_path ? "Change journal cover" : "Choose journal cover"}
           </button>
         )}
+
 
         <CoverPicker
           entryId={entry.id}
