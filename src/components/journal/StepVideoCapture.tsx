@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Video, Square, Upload, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Video, Square, Upload, Loader2, SwitchCamera, RotateCcw, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -9,19 +9,20 @@ import { Button } from "@/components/ui/button";
 /**
  * In-app video capture for a style-record step.
  *
+ * Flow: open the camera (live preview, front/back switch) → record with a
+ * visible countdown → review the clip → save or retake.
+ *
  * Hard rules:
  *  - 30 second maximum, with a visible countdown and an automatic stop.
- *  - Bitrate ceiling of 1.0 Mbps video + 64 kbps audio at 720p/24fps, so a
- *    full 30 second clip lands around 4 MB.
- *  - Anything over MAX_BYTES is refused rather than uploaded.
+ *  - Portrait framing (9:16) requested from the camera and used for preview
+ *    and playback so clips read vertically.
+ *  - Bitrate ceiling of 1.0 Mbps video + 64 kbps audio, so a full 30 second
+ *    clip lands around 4 MB. Anything over MAX_BYTES is refused.
  *
- * iOS Safari: MediaRecorder support is inconsistent and codec support varies by
- * iOS version. We therefore probe `MediaRecorder.isTypeSupported` for a mime
- * type we can actually store and play back; when nothing is supported (or
- * getUserMedia is unavailable, e.g. in a non-secure context or an in-app
- * webview) the recorder is hidden entirely and the device video picker
- * (`<input type="file" accept="video/*" capture>`) is the only route offered.
- * The picker uses the phone's own camera app, so it always works on iPhone.
+ * iOS Safari: MediaRecorder support varies by version, so we probe
+ * `MediaRecorder.isTypeSupported`. When nothing is supported (or getUserMedia
+ * is unavailable) the recorder is hidden and the device video picker is the
+ * only route offered — that uses the phone's own camera app.
  */
 
 export const MAX_SECONDS = 30;
@@ -65,6 +66,8 @@ const readDuration = (file: Blob): Promise<number | null> =>
     v.src = url;
   });
 
+type Facing = "user" | "environment";
+
 interface Props {
   /** Folder under the member's id — keeps each step's clips together. */
   folder: string;
@@ -73,11 +76,17 @@ interface Props {
 
 const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const { user } = useAuth();
+  const [cameraOn, setCameraOn] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [facing, setFacing] = useState<Facing>("user");
   const [recording, setRecording] = useState(false);
   const [remaining, setRemaining] = useState(MAX_SECONDS);
   const [uploading, setUploading] = useState(false);
   const [recorderAvailable, setRecorderAvailable] = useState(false);
+  const [review, setReview] = useState<{ url: string; blob: Blob; mime: string } | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
+  const reviewRef = useRef<HTMLVideoElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -87,17 +96,83 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
 
   useEffect(() => { setRecorderAvailable(canRecordInApp()); }, []);
 
-  const cleanup = () => {
+  const clearTimers = () => {
     if (timerRef.current) window.clearInterval(timerRef.current);
     if (stopTimerRef.current) window.clearTimeout(stopTimerRef.current);
     timerRef.current = null;
     stopTimerRef.current = null;
+  };
+
+  const stopStream = useCallback(() => {
+    clearTimers();
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+  }, []);
+
+  useEffect(() => () => {
+    stopStream();
+    if (review?.url) URL.revokeObjectURL(review.url);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Attaches a live stream to the preview element (which is always mounted
+   *  while the camera is on, so the ref is never null here). */
+  const attachPreview = async (stream: MediaStream) => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.srcObject = stream;
+    el.muted = true;
+    await el.play().catch(() => undefined);
   };
 
-  useEffect(() => cleanup, []);
+  const openCamera = async (next: Facing = facing) => {
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      toast.error("Camera isn't available here — choose a video instead.");
+      return;
+    }
+    setStarting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: next,
+          width: { ideal: 720 },
+          height: { ideal: 1280 },
+          aspectRatio: { ideal: 9 / 16 },
+          frameRate: { ideal: 24, max: 24 },
+        },
+        audio: true,
+      });
+      stopStream();
+      streamRef.current = stream;
+      setFacing(next);
+      setCameraOn(true);
+      // Wait a frame so the preview element is mounted before attaching.
+      window.requestAnimationFrame(() => { void attachPreview(stream); });
+    } catch (e) {
+      console.error("camera open failed", e);
+      toast.error("Couldn't reach the camera — check permissions or choose a video.");
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const closeCamera = () => {
+    if (recRef.current && recRef.current.state !== "inactive") {
+      recRef.current.onstop = null;
+      recRef.current.stop();
+    }
+    recRef.current = null;
+    setRecording(false);
+    setRemaining(MAX_SECONDS);
+    stopStream();
+    setCameraOn(false);
+  };
+
+  const flipCamera = () => {
+    if (recording) return;
+    void openCamera(facing === "user" ? "environment" : "user");
+  };
 
   const upload = async (blob: Blob, mime: string, duration: number | null) => {
     if (!user) { toast.error("Please sign in"); return; }
@@ -122,26 +197,18 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
 
   const stop = () => {
     if (recRef.current && recRef.current.state !== "inactive") recRef.current.stop();
+    clearTimers();
     setRecording(false);
   };
 
-  const start = async () => {
+  const startRecording = () => {
+    const stream = streamRef.current;
     const mime = pickRecorderMimeType();
-    if (!mime) {
+    if (!stream || !mime) {
       toast.error("Recording isn't supported on this device — choose a video instead.");
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 720 }, height: { ideal: 1280 }, frameRate: { ideal: 24, max: 24 }, facingMode: "user" },
-        audio: true,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.muted = true;
-        await videoRef.current.play().catch(() => undefined);
-      }
       chunksRef.current = [];
       const rec = new MediaRecorder(stream, {
         mimeType: mime,
@@ -152,14 +219,16 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
       rec.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: mime });
-        cleanup();
+        clearTimers();
         setRemaining(MAX_SECONDS);
+        setRecording(false);
         if (!blob.size) {
           toast.error("Nothing was recorded — try choosing a video instead.");
           return;
         }
-        const duration = (await readDuration(blob)) ?? null;
-        await upload(blob, mime, duration);
+        stopStream();
+        setCameraOn(false);
+        setReview({ url: URL.createObjectURL(blob), blob, mime });
       };
       rec.start(1000);
       setRecording(true);
@@ -167,13 +236,24 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       timerRef.current = window.setInterval(() => {
         setRemaining((r) => (r > 0 ? r - 1 : 0));
       }, 1000);
-      // Hard automatic stop at the 30 second ceiling.
       stopTimerRef.current = window.setTimeout(stop, MAX_SECONDS * 1000);
     } catch (e) {
       console.error("record start failed", e);
-      cleanup();
-      toast.error("Couldn't reach the camera — choose a video instead.");
+      toast.error("Couldn't start recording — choose a video instead.");
     }
+  };
+
+  const discardReview = () => {
+    if (review) URL.revokeObjectURL(review.url);
+    setReview(null);
+  };
+
+  const saveReview = async () => {
+    if (!review) return;
+    const duration = (await readDuration(review.blob)) ?? null;
+    await upload(review.blob, review.mime, duration);
+    URL.revokeObjectURL(review.url);
+    setReview(null);
   };
 
   const onPick = async (file: File | undefined) => {
@@ -186,31 +266,113 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     await upload(file, file.type || "video/mp4", duration);
   };
 
+  // ---- Review: watch it back, then save or retake -------------------------
+  if (review) {
+    return (
+      <div className="space-y-2">
+        <div className="rounded-[12px] overflow-hidden bg-black">
+          <video
+            ref={reviewRef}
+            src={review.url}
+            controls
+            playsInline
+            className="w-full aspect-[9/16] object-contain bg-black"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" variant="goldGhost" size="sm" className="h-10" onClick={() => { discardReview(); void openCamera(); }} disabled={uploading}>
+            <RotateCcw className="size-4 mr-1.5" /> Retake
+          </Button>
+          <Button type="button" variant="gold" size="sm" className="h-10" onClick={() => void saveReview()} disabled={uploading}>
+            {uploading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
+            {uploading ? "Saving…" : "Save video"}
+          </Button>
+        </div>
+        <button
+          type="button"
+          onClick={discardReview}
+          disabled={uploading}
+          className="w-full text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-warn py-1"
+        >
+          Discard
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      {recording && (
-        <div className="relative rounded-[12px] overflow-hidden bg-secondary">
-          <video ref={videoRef} playsInline muted className="w-full aspect-[3/4] object-cover" />
-          <span className="absolute top-2 right-2 rounded-pill bg-background/85 px-2 py-0.5 text-[11px] font-medium tabular-nums">
-            {remaining}s left
-          </span>
+      {cameraOn && (
+        <div className="relative rounded-[12px] overflow-hidden bg-black">
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            autoPlay
+            className="w-full aspect-[9/16] object-cover"
+            style={facing === "user" ? { transform: "scaleX(-1)" } : undefined}
+          />
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+            <span className="rounded-pill bg-background/85 px-2 py-0.5 text-[11px] font-medium tabular-nums">
+              {recording ? `${remaining}s left` : `${MAX_SECONDS}s max`}
+            </span>
+            <div className="flex items-center gap-1.5">
+              {!recording && (
+                <button
+                  type="button"
+                  onClick={flipCamera}
+                  aria-label="Switch camera"
+                  className="size-8 rounded-full bg-background/85 flex items-center justify-center"
+                >
+                  <SwitchCamera className="size-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={closeCamera}
+                aria-label="Close camera"
+                className="size-8 rounded-full bg-background/85 flex items-center justify-center"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+          {recording && (
+            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-pill bg-background/85 px-2 py-0.5 text-[11px] text-warn">
+              <span className="size-2 rounded-full bg-warn animate-pulse" /> Recording
+            </span>
+          )}
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-2">
-        {recorderAvailable && (
+        {recorderAvailable && !cameraOn && (
           <Button
             type="button"
-            variant={recording ? "destructive" : "goldOutline"}
+            variant="goldOutline"
             size="sm"
             className="h-10"
-            onClick={recording ? stop : start}
-            disabled={uploading}
+            onClick={() => void openCamera()}
+            disabled={uploading || starting}
           >
-            {recording ? <Square className="size-4 mr-1.5" /> : <Video className="size-4 mr-1.5" />}
-            {recording ? "Stop" : "Record video"}
+            {starting ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Video className="size-4 mr-1.5" />}
+            {starting ? "Opening camera…" : "Record video"}
           </Button>
         )}
+
+        {cameraOn && (
+          <Button
+            type="button"
+            variant={recording ? "destructive" : "gold"}
+            size="sm"
+            className="h-10"
+            onClick={recording ? stop : startRecording}
+          >
+            {recording ? <Square className="size-4 mr-1.5" /> : <Video className="size-4 mr-1.5" />}
+            {recording ? "Stop" : "Start recording"}
+          </Button>
+        )}
+
         <Button
           type="button"
           variant="goldGhost"
@@ -225,14 +387,14 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       </div>
 
       <p className="text-[10px] text-muted-foreground leading-snug">
-        30 seconds maximum. Recording stops on its own when time is up.
+        Hold your phone upright. 30 seconds maximum — recording stops on its own when time is up,
+        and you can watch it back before saving.
       </p>
 
       <input
         ref={fileRef}
         type="file"
         accept="video/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => { void onPick(e.target.files?.[0]); e.currentTarget.value = ""; }}
       />
