@@ -213,14 +213,52 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
 
   const startRecording = () => {
     const stream = streamRef.current;
+    const src = videoRef.current;
     const mime = pickRecorderMimeType();
-    if (!stream || !mime) {
+    if (!stream || !src || !mime) {
       toast.error("Recording isn't supported on this device — choose a video instead.");
       return;
     }
     try {
       chunksRef.current = [];
-      const rec = new MediaRecorder(stream, {
+
+      // Cameras hand us a landscape frame. We paint every frame into a 720x1280
+      // portrait canvas (centre-cropped, mirrored for the selfie camera) and
+      // record THAT, so the saved file is genuinely vertical — no black bars.
+      const canvas = canvasRef.current ?? document.createElement("canvas");
+      canvasRef.current = canvas;
+      canvas.width = OUT_W;
+      canvas.height = OUT_H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no 2d context");
+      const mirror = facing === "user";
+
+      const draw = () => {
+        const vw = src.videoWidth;
+        const vh = src.videoHeight;
+        if (vw && vh) {
+          const scale = Math.max(OUT_W / vw, OUT_H / vh);
+          const dw = vw * scale;
+          const dh = vh * scale;
+          const dx = (OUT_W - dw) / 2;
+          const dy = (OUT_H - dh) / 2;
+          ctx.save();
+          if (mirror) {
+            ctx.translate(OUT_W, 0);
+            ctx.scale(-1, 1);
+          }
+          ctx.drawImage(src, dx, dy, dw, dh);
+          ctx.restore();
+        }
+        rafRef.current = window.requestAnimationFrame(draw);
+      };
+      draw();
+
+      const canvasStream = canvas.captureStream(24);
+      stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+      canvasStreamRef.current = canvasStream;
+
+      const rec = new MediaRecorder(canvasStream, {
         mimeType: mime,
         videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
         audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
