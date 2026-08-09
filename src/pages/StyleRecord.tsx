@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, Plus, RotateCcw } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Eye,
+  Images,
+  ListOrdered,
+  Package,
+  Pencil,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
