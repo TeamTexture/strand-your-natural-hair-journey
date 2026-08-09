@@ -509,6 +509,15 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/admin/tip-grounding"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminTipGrounding />
+                  </RoleGate>
+                }
+              />
+
 
 
               <Route path="/subscribe" element={<Protected><Subscribe /></Protected>} />
