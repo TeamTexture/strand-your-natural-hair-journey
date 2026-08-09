@@ -255,13 +255,32 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsCha
             />
           ) : (
             list.map((t) => (
-              <Row key={t.id} t={t} selected={isSelected(t.id)} onClick={() => onToggle(t.id)} />
+              <Row
+                key={t.id}
+                t={t}
+                selected={isSelected(t.id)}
+                onClick={() => onToggle(t.id)}
+                onRemove={() => setPendingRemove(t)}
+              />
             ))
           )}
         </div>
       </SheetContent>
+      {pendingRemove && (
+        <ShelfItemRemoveDialog
+          open
+          onOpenChange={(o) => { if (!o) setPendingRemove(null); }}
+          name={pendingRemove.name}
+          kind="tool"
+          list={tab === "wishlist" ? "wishlist" : "shelf"}
+          busy={removing}
+          onTakeOff={() => void takeOff(pendingRemove)}
+          onDelete={() => void hardDelete(pendingRemove)}
+        />
+      )}
     </Sheet>
   );
 };
+
 
 export default ToolPickerSheet;
