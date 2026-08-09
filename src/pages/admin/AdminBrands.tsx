@@ -462,9 +462,18 @@ const AdminBrands = () => {
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-9 rounded-pill text-[12px]"
+                    onClick={() => nav(`/admin/brands/${r.user_id}/edit`)}
+                  >
+                    <Pencil className="size-3.5 mr-1.5" /> Edit profile
+                  </Button>
                   <Button variant="outline" size="sm" className="flex-1 h-9 rounded-pill text-[12px]" onClick={() => message(r.user_id)}>
                     <MessageSquarePlus className="size-3.5 mr-1.5" /> Message
                   </Button>
+
                   {r.website && (
                     <Button variant="ghost" size="sm" className="flex-1 h-9 rounded-pill text-[12px]" asChild>
                       <a href={r.website} target="_blank" rel="noopener noreferrer">Website</a>
