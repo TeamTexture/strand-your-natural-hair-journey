@@ -354,6 +354,43 @@ export function useSendChatImage(threadId: string | null | undefined) {
   });
 }
 
+/**
+ * Sends a voice note inside a thread.
+ *
+ * The recording is uploaded to the private `chat-images` bucket under the thread
+ * id (which is what the storage policies key off) and transcribed on a
+ * best-effort basis. The message row carries kind = "voice"; `body` holds the
+ * transcript when we have one so previews, notifications and the email digest
+ * still read as words rather than "Voice note".
+ */
+export function useSendChatVoice(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const view = useActiveRoleView();
+  return useMutation({
+    mutationFn: async ({ blob, mimeType, durationMs }: VoiceRecording) => {
+      if (!threadId || !user?.id) throw new Error("Not ready");
+      const path = await uploadChatVoice(threadId, blob, mimeType);
+      const transcript = await transcribeChatVoice(blob, mimeType);
+      const { error } = await supabase.from("chat_messages").insert({
+        thread_id: threadId,
+        sender_id: user.id,
+        sender_role: view,
+        kind: "voice",
+        body: transcript ?? "Voice note",
+        meta: { audio_path: path, duration_ms: Math.round(durationMs), transcript },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+    },
+  });
+}
+
+
+
 
 
 export function useMarkThreadRead(threadId: string | null | undefined) {
