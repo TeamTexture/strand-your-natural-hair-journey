@@ -244,6 +244,16 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
   } = useJournalSteps(entryId);
 
+  // Open the most recent step the first time the record loads; after that the
+  // member controls which one is open.
+  useEffect(() => {
+    if (openedOnce.current || steps.length === 0) return;
+    openedOnce.current = true;
+    setOpenStepId(steps[steps.length - 1].id);
+  }, [steps]);
+
+
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
