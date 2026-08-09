@@ -12,6 +12,8 @@ import PasswordErrorNotice from "@/components/PasswordErrorNotice";
 import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { BRAND_CATEGORIES, type BrandCategory } from "@/lib/brandCategories";
+import { getBrandEntryPath, BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Dedicated brand auth surface. Signup collects brand_name + contact +
@@ -20,6 +22,7 @@ import { BRAND_CATEGORIES, type BrandCategory } from "@/lib/brandCategories";
  */
 const BrandAuth = () => {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const [params] = useSearchParams();
   const initialMode = params.get("mode") === "signin" ? "signin" : "signup";
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
@@ -39,9 +42,54 @@ const BrandAuth = () => {
   const [busy, setBusy] = useState(false);
   const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
 
+  // An already-signed-in brand landing here goes to their correct entry point:
+  // the £99/year access page until Brand Access is active, then the dashboard.
+  // Never fires mid-signup — submit() owns the routing while busy.
   useEffect(() => {
-    if (!authLoading && user) nav("/brand", { replace: true });
-  }, [authLoading, user, nav]);
+    if (authLoading || !user || busy) return;
+    let cancelled = false;
+    (async () => {
+      const readRoles = async () => {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        return (data ?? []).map((r) => r.role as string);
+      };
+      let roles = await readRoles();
+
+      // Signups that required email confirmation had no session at signup, so
+      // the brand role/profile was never provisioned. Do it now, on the first
+      // authenticated visit, using the brand fields carried in user metadata —
+      // without it the role gate on /brand/subscribe sends them to the
+      // consumer side.
+      const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+      if (!roles.includes("brand") && meta.brand_intent && typeof meta.brand_name === "string") {
+        const { error } = await supabase.functions.invoke("brand-signup", {
+          body: {
+            brand_name: meta.brand_name,
+            contact_name: meta.contact_name ?? null,
+            website: meta.website ?? null,
+            category: meta.category ?? null,
+            about: meta.about ?? null,
+            instagram_handle: meta.instagram_handle ?? null,
+            tiktok_handle: meta.tiktok_handle ?? null,
+            contact_email: meta.contact_email ?? null,
+          },
+        });
+        if (!error) {
+          await qc.invalidateQueries({ queryKey: ["user-roles"] });
+          roles = await readRoles();
+        }
+      }
+
+      const path = await getBrandEntryPath(user.id, roles);
+      if (!cancelled) nav(path, { replace: true });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user, busy, nav, qc]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +116,20 @@ const BrandAuth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/brand`,
+            // Land back on the brand auth surface, which routes on to the
+            // £99/year access page (or the dashboard once it's active).
+            emailRedirectTo: `${window.location.origin}/brand/auth?mode=signin`,
             data: {
               display_name: contactName || brandName,
               brand_intent: true,
+              brand_name: brandName.trim(),
+              contact_name: contactName.trim() || null,
+              website: website.trim() || null,
+              category: category || null,
+              about: about.trim() || null,
+              instagram_handle: instagram.trim().replace(/^@/, "") || null,
+              tiktok_handle: tiktok.trim().replace(/^@/, "") || null,
+              contact_email: contactEmail.trim() || null,
             },
           },
         });
@@ -94,13 +152,28 @@ const BrandAuth = () => {
           });
           if (fnErr) throw fnErr;
         }
+        // The brand role was just granted — drop any role snapshot cached
+        // before it existed, or the role gate on /brand/subscribe bounces
+        // this account onto the consumer side.
+        await qc.invalidateQueries({ queryKey: ["user-roles"] });
         toast.success("Brand account created");
         // Brands pay the annual access fee BEFORE landing in the dashboard.
-        nav("/brand/subscribe", { replace: true });
+        nav(BRAND_ACCESS_PATH, { replace: true });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        nav("/brand", { replace: true });
+        await qc.invalidateQueries({ queryKey: ["user-roles"] });
+        const signedIn = data.user;
+        if (signedIn) {
+          const { data: roleRows } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", signedIn.id);
+          const roles = (roleRows ?? []).map((r) => r.role as string);
+          nav(await getBrandEntryPath(signedIn.id, roles), { replace: true });
+        } else {
+          nav("/brand", { replace: true });
+        }
       }
     } catch (err) {
       const mapped = mapPasswordError(err, password);
