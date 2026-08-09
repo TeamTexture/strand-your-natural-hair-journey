@@ -69,13 +69,19 @@ const BrandShelfSection = ({
   const add = async (product: BrandShelfProduct, destination: "shelf" | "wishlist") => {
     if (!user) { toast.error("Please sign in"); return; }
     setPending(product.id);
-    const key = await addBrandProductToShelf({ userId: user.id, brandName, product, destination });
+    const added = await addBrandProductToShelf({ userId: user.id, brandName, product, destination });
     setPending(null);
-    if (!key) { toast.error("Could not add that product"); return; }
+    if (!added) { toast.error("Could not add that item"); return; }
     await qc.invalidateQueries({ queryKey: ["my-brand-product-links"] });
     toast.success(destination === "shelf" ? "Added to your shelf" : "Saved to your wishlist");
+    // Tools have no ingredient label — they belong in My Tools and open their
+    // own tool profile, never the ingredient analysis page.
+    if (added.kind === "tool") {
+      nav(`/tools/${added.toolId}`);
+      return;
+    }
     nav(
-      `/products/ingredient?key=${encodeURIComponent(key)}&name=${encodeURIComponent(product.name)}&brand=${encodeURIComponent(brandName ?? "")}`,
+      `/products/ingredient?key=${encodeURIComponent(added.productKey)}&name=${encodeURIComponent(product.name)}&brand=${encodeURIComponent(brandName ?? "")}`,
     );
   };
 
