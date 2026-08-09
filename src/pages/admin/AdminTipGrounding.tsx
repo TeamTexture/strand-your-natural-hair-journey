@@ -141,39 +141,62 @@ const AdminTipGrounding = () => {
   const [dist, setDist] = useState<DistRow[]>([]);
   const [rows, setRows] = useState<EvidenceRow[]>([]);
   const [rejections, setRejections] = useState<RejectionRow[]>([]);
-  const [filter, setFilter] = useState<"all" | Coverage>("all");
+  const [conflicts, setConflicts] = useState<ConflictRow[]>([]);
+  // "industry" is a POLICY B filter, not a coverage mode: it narrows to
+  // sponsored generations that used established science, which are the ones
+  // needing the author's review.
+  const [filter, setFilter] = useState<"all" | Coverage | "industry">("all");
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const q = supabase
+      let q = supabase
         .from("tip_evidence_sets")
         .select(
-          "id, surface, function_name, chapters, evidence, tip, verified, coverage, coverage_reason, governing_principle, external_claims, created_at",
+          "id, surface, function_name, chapters, evidence, tip, verified, coverage, coverage_reason, governing_principle, external_claims, policy, claim_sources, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(40);
-      const [d, e, r] = await Promise.all([
+      if (filter === "industry") q = q.eq("policy", "B");
+      else if (filter !== "all") q = q.eq("coverage", filter);
+      const [d, e, r, c] = await Promise.all([
         supabase.rpc("admin_tip_coverage_distribution", { _days: 30 }),
-        filter === "all" ? q : q.eq("coverage", filter),
+        q,
         supabase
           .from("tip_generation_rejections")
           .select("id, surface, function_name, stage, rule, detail, offending_text, created_at")
           .order("created_at", { ascending: false })
           .limit(25),
+        supabase
+          .from("industry_manuscript_conflicts")
+          .select(
+            "id, ingredient, topic, manuscript_position, manuscript_quote, chapter, page_start, industry_position, industry_source, surface, occurrences, last_seen_at",
+          )
+          .eq("status", "open")
+          .order("last_seen_at", { ascending: false })
+          .limit(25),
       ]);
       if (cancelled) return;
       setDist((d.data ?? []) as DistRow[]);
-      setRows((e.data ?? []) as unknown as EvidenceRow[]);
+      const evidenceRows = (e.data ?? []) as unknown as EvidenceRow[];
+      setRows(
+        filter === "industry"
+          ? evidenceRows.filter((row) =>
+              (row.claim_sources ?? []).some((cs) => cs.source === "industry"),
+            )
+          : evidenceRows,
+      );
       setRejections((r.data ?? []) as RejectionRow[]);
+      setConflicts((c.data ?? []) as unknown as ConflictRow[]);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, [filter]);
+
 
   const totals = useMemo(() => {
     const t = dist.reduce(
