@@ -433,6 +433,49 @@ const AdminTipGrounding = () => {
             )}
           </div>
 
+          {/* POLICY B — conflict register. Where industry consensus diverged from
+              the author's stated position, she governs and the divergence lands
+              here for review rather than being silently resolved. */}
+          <div className="space-y-3">
+            <SectionLabel>Conflict register</SectionLabel>
+            <p className="text-xs text-muted-foreground">
+              Points where established industry guidance diverges from your position. Your
+              position was used in the copy; these are logged so you can review the divergence.
+            </p>
+            {conflicts.length === 0 ? (
+              <EmptyState message="No open conflicts" />
+            ) : (
+              conflicts.map((c) => (
+                <SurfaceCard key={c.id} className="space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="font-display text-base">{c.ingredient}</p>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      seen {c.occurrences}×
+                    </span>
+                  </div>
+                  {c.topic && <p className="text-xs text-muted-foreground">{c.topic}</p>}
+                  <p className="rounded-2xl bg-good/10 p-3 text-sm [overflow-wrap:anywhere]">
+                    <span className="font-medium">Your position (governs): </span>
+                    {c.manuscript_position}
+                    {c.chapter ? ` — Chapter ${c.chapter}` : ""}
+                    {c.page_start ? `, p.${c.page_start}` : ""}
+                  </p>
+                  <p className="rounded-2xl bg-alert-dark/10 p-3 text-sm [overflow-wrap:anywhere]">
+                    <span className="font-medium">Industry position (not used): </span>
+                    {c.industry_position}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.surface ? `${humanSurface(c.surface)} · ` : ""}
+                    last seen{" "}
+                    {formatDistanceToNow(new Date(c.last_seen_at), { addSuffix: true })}
+                  </p>
+                </SurfaceCard>
+              ))
+            )}
+          </div>
+
+
+
           <div className="space-y-3">
             <SectionLabel>Rejection log</SectionLabel>
             {rejections.length === 0 ? (
