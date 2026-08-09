@@ -48,8 +48,11 @@ export const LANGUAGE_CHAPTER = 1;
  * Authoritative chapters per surface, passed IN FULL.
  *
  * Chapter map verified by the author against the source PDF
- * (HTLYA_Manuscript_-_Final_2026.pdf) on 2026-08-09. Printed start pages in
- * brackets; all 18 match page_start in manuscript_chunks exactly.
+ * (HTLYA_Manuscript_-_Final_2026.pdf) on 2026-08-09, then re-ingested from that
+ * PDF the same day. Numbers in brackets are the printed chapter-title pages.
+ * manuscript_chunks.page_start is the first page of BODY text, i.e. the title
+ * page + 1, because chapter-title display pages carry no prose.
+
  *   1 The Power of Language (20)              2 Learning to Love Your Natural Hair (30)
  *   3 Beware of the 'Curl Definition' Trap (49) 4 Setting Realistic Goals (58)
  *   5 Turning Hair Care into Self-Care (65)   6 Natural Hair and Our Environments (75)
