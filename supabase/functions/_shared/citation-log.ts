@@ -383,23 +383,36 @@ async function verifyStage3<T>(
     userId: opts?.userId ?? null,
     set: evidenceSet,
     tip: out,
-    verified: violations.length === 0,
+    verified: violations.length === 0 && clar.rejections.length === 0,
     verifyTokens,
     externalClaims: external,
     policy,
     claimSources,
+    // AUDIT — which of her clarifications governed this copy rather than the
+    // book material.
+    clarifications: clar.governed,
+    clarificationGoverned: clar.governed.length > 0,
   });
 
   await logGenerationRejections(
     functionName,
-    violations.map((v) => ({
-      stage: v.stage,
-      rule: v.rule,
-      detail: v.reason,
-      offendingText: v.claim,
-    })),
+    [
+      ...violations.map((v) => ({
+        stage: v.stage,
+        rule: v.rule,
+        detail: v.reason,
+        offendingText: v.claim,
+      })),
+      ...clar.rejections.map((v) => ({
+        stage: "deterministic" as const,
+        rule: v.rule,
+        detail: v.reason,
+        offendingText: v.claim,
+      })),
+    ],
     { surface: opts?.surface ?? null, userId: opts?.userId ?? null, evidenceSetId },
   );
+
 
   if (conflicts.length > 0) {
     await logConflicts(conflicts, {
