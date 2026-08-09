@@ -146,25 +146,39 @@ Deno.serve(async (req) => {
   const budget = STEP_BUDGET[level];
   const kind = "wash_day_steps";
 
+  // Diagnostic/harness runs never read or write the production cache.
+  const isDiagnostic =
+    (body as { diagnostic?: boolean }).diagnostic === true ||
+    String(body.fingerprint).startsWith("harness-");
+
+  /** Only step sets where every step carries a body are cacheable. */
+  const stepsHaveSubstance = (steps: unknown) =>
+    Array.isArray(steps) &&
+    steps.length > 0 &&
+    steps.every((s) => !!String((s as { body?: string })?.body ?? "").trim());
+
   // ── Cache ─────────────────────────────────────────────────────────
-  const { data: cached } = await admin
-    .from("ai_summaries")
-    .select("payload")
-    .eq("user_id", user.id)
-    .eq("kind", kind)
-    .maybeSingle();
+  const { data: cached } = isDiagnostic
+    ? { data: null }
+    : await admin
+      .from("ai_summaries")
+      .select("payload")
+      .eq("user_id", user.id)
+      .eq("kind", kind)
+      .maybeSingle();
   const cachedPayload = cached?.payload as StepsPayload | null;
   if (
     cachedPayload &&
     cachedPayload.fingerprint === body.fingerprint &&
     cachedPayload._model_version === MODEL_VERSION &&
     cachedPayload.tipsLevel === level &&
-    Array.isArray(cachedPayload.steps) &&
-    cachedPayload.steps.length > 0
+    // READ-TIME GUARD: hollow step sets are discarded and regenerated.
+    stepsHaveSubstance(cachedPayload.steps)
   ) {
     const safeCached = await sanitiseAndLog(cachedPayload, "wash-day-steps", { context: body });
     return json(200, { steps: safeCached.steps, payload: safeCached, cached: true });
   }
+
 
   const hp = (body.hairProfile ?? {}) as Record<string, unknown>;
   const style = (body.currentStyle ?? {}) as Record<string, unknown>;
@@ -299,15 +313,21 @@ Deno.serve(async (req) => {
     _rag_passages: grounding.passages,
   };
 
-  await admin
-    .from("ai_summaries")
-    .upsert({ user_id: user.id, kind, payload }, { onConflict: "user_id,kind" });
+  // WRITE-TIME GUARD + no diagnostic pollution.
+  if (stepsHaveSubstance(payload.steps) && !isDiagnostic) {
+    await admin
+      .from("ai_summaries")
+      .upsert({ user_id: user.id, kind, payload }, { onConflict: "user_id,kind" });
+  }
 
-  await recordAdvice(
-    user.id,
-    "wash-day-steps",
-    steps.map((s) => `${s.headline}. ${s.body}`),
-  );
+  if (!isDiagnostic) {
+    await recordAdvice(
+      user.id,
+      "wash-day-steps",
+      steps.map((s) => `${s.headline}. ${s.body}`),
+    );
+  }
+
 
   const safePayload = await sanitiseAndLog(payload, "wash-day-steps", {
     context: body,

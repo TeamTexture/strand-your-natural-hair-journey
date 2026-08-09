@@ -104,6 +104,9 @@ interface Body {
    *  has — their names never reach the model (see product-name-wall.ts). */
   shelfProducts?: Array<{ name?: string; brand?: string | null; category?: string | null }>;
   tipsLevel?: number | null;
+  /** Diagnostic/test-harness run: generate and return, never read or write cache. */
+  diagnostic?: boolean;
+
   /**
    * Which surface the tip is for. "style" powers the Current Hairstyle screen —
    * same grounded pipeline, style/tension/extension framing instead of wash
@@ -205,13 +208,28 @@ Deno.serve(async (req) => {
   const isStyle = body.surface === "style";
   const kind = isStyle ? "style_tip" : "wash_day_tip";
 
+  // DIAGNOSTIC RUNS NEVER TOUCH THE PRODUCTION CACHE. A harness fingerprint
+  // (or an explicit `diagnostic: true`) generates and returns, but is never
+  // read from cache and never written to it.
+  const isDiagnostic =
+    body.diagnostic === true || String(body.fingerprint).startsWith("harness-");
+
+  /** A tip is only cacheable — and only servable from cache — when it carries
+   *  BOTH an action and a reason. An empty tip is never good output. */
+  const hasSubstance = (p: TipPayload | null | undefined) =>
+    !!p &&
+    !!String(p.action ?? "").trim() &&
+    !!String(p.reason ?? p.why ?? p.technique ?? "").trim();
+
   // Cache check — same fingerprint = same tip.
-  const { data: cached } = await admin
-    .from("ai_summaries")
-    .select("payload")
-    .eq("user_id", user.id)
-    .eq("kind", kind)
-    .maybeSingle();
+  const { data: cached } = isDiagnostic
+    ? { data: null }
+    : await admin
+      .from("ai_summaries")
+      .select("payload")
+      .eq("user_id", user.id)
+      .eq("kind", kind)
+      .maybeSingle();
   const cachedPayload = cached?.payload as TipPayload | null;
   const requestedLevel =
     typeof body.tipsLevel === "number" ? body.tipsLevel : null;
@@ -219,7 +237,10 @@ Deno.serve(async (req) => {
     cachedPayload &&
     cachedPayload.fingerprint === body.fingerprint &&
     cachedPayload._model_version === MODEL_VERSION &&
-    (cachedPayload.tipsLevel ?? null) === requestedLevel
+    (cachedPayload.tipsLevel ?? null) === requestedLevel &&
+    // READ-TIME GUARD: a hollow cached payload is discarded and regenerated
+    // rather than rendered as a bare headline.
+    hasSubstance(cachedPayload)
   ) {
     // The cached payload was ALREADY sanitised (citations, style verbatim, blood
     // guardrail) against the grounding passages that produced it before it was
@@ -229,6 +250,7 @@ Deno.serve(async (req) => {
     // Cached tips are served verbatim.
     return json(200, { tip: cachedPayload, cached: true });
   }
+
 
 
   // Build a compact context blob for the model. Style first — the tip must
@@ -675,16 +697,32 @@ Do not substitute other cleansing or sealing methods for these two.`
     }
   }
 
-  await admin
-    .from("ai_summaries")
-    .upsert(
-      { user_id: user.id, kind, payload: finalPayload },
-      { onConflict: "user_id,kind" },
+  // WRITE-TIME GUARD — the cache is for good output only. A payload missing
+  // either the action or the reason is never persisted (it would otherwise
+  // serve as a bare headline forever), and diagnostic runs never persist at all.
+  const cacheable = hasSubstance(finalPayload);
+  if (!cacheable) {
+    await logTipRejection(
+      isStyle ? "style-tip" : "wash-day-tip",
+      ["not_cached_empty_action_or_reason"],
+      JSON.stringify(finalPayload).slice(0, 2000),
     );
+  }
+  if (cacheable && !isDiagnostic) {
+    await admin
+      .from("ai_summaries")
+      .upsert(
+        { user_id: user.id, kind, payload: finalPayload },
+        { onConflict: "user_id,kind" },
+      );
+  }
 
-  await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.next_time ?? ""]);
+  if (!isDiagnostic) {
+    await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.next_time ?? ""]);
+  }
 
-  return json(200, { tip: finalPayload, cached: false });
+  return json(200, { tip: finalPayload, cached: false, persisted: cacheable && !isDiagnostic });
+
 });
 
 
