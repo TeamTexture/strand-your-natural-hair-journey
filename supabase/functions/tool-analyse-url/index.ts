@@ -609,12 +609,20 @@ Deno.serve(async (req: Request) => {
     let analysis: Record<string, unknown>;
 
     if (provider === "claude") {
-      console.log(JSON.stringify({ tag: "tool-debug", phase: "before web_fetch", ms: Date.now() - t0 }));
-      const [claudeRes, ogImage] = await Promise.all([
-        runClaude({ url, context: ctx as Record<string, unknown>, selectorContext: buildSelectorContext(body) }),
-        fetchOgImageOnly(url),
-      ]);
+      console.log(JSON.stringify({ tag: "tool-debug", phase: "before prefetch", ms: Date.now() - t0 }));
+      const resolvedUrl = await resolveShortLink(url);
+      const pre = await prefetchPage(resolvedUrl);
+      const ogImage = pre.imageUrl ?? (await fetchOgImageOnly(resolvedUrl));
+      console.log(JSON.stringify({ tag: "tool-debug", phase: "before model", ms: Date.now() - t0 }));
+      const claudeRes = await runClaude({
+        url: resolvedUrl,
+        context: ctx as Record<string, unknown>,
+        selectorContext: buildSelectorContext(body),
+        pageTitle: pre.title,
+        pageText: pre.text,
+      });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
+
       console.log(JSON.stringify({
         tag: "tool-debug", phase: "model call done", ms: Date.now() - t0,
         used_web_fetch: web_fetch_invocations > 0,
