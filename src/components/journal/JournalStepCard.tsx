@@ -391,6 +391,78 @@ const JournalStepCard = ({
         </div>
       )}
 
+      {/* Tools used at this step */}
+      {(selectedToolIds.length > 0 || editing) && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Tools used
+          </p>
+          {selectedToolIds.length > 0 ? (
+            <div className="space-y-1.5">
+              {selectedToolIds.map((tid) => {
+                const t = toolCatalogue.find((c) => c.id === tid);
+                return (
+                  <div key={tid} className="flex items-center gap-2.5">
+                    <ProductThumb
+                      imageUrl={t?.image_url ?? null}
+                      storagePath={t?.storage_path ?? null}
+                      alt={t?.name ?? "Tool"}
+                      brand={t?.brand ?? null}
+                      name={t?.name ?? null}
+                      cover
+                      wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {t?.brand && (
+                          <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>
+                        )}
+                        {typeof t?.rating === "number" && t.rating > 0 && (
+                          <StarRating value={t.rating} size="size-3" />
+                        )}
+                      </div>
+                    </div>
+                    {editing && (
+                      <button
+                        type="button"
+                        aria-label="Remove tool"
+                        onClick={() => onToggleTool(tid)}
+                        className="size-6 rounded-full border border-border flex items-center justify-center shrink-0"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">None recorded.</p>
+          )}
+          {editing && (
+            <Button
+              type="button"
+              variant="goldGhost"
+              size="sm"
+              className="h-10 w-full"
+              onClick={() => setToolPickerOpen(true)}
+            >
+              <Wrench className="size-4 mr-1.5" />
+              Add tools
+            </Button>
+          )}
+        </div>
+      )}
+
+      <ToolPickerSheet
+        open={toolPickerOpen}
+        onOpenChange={setToolPickerOpen}
+        selectedIds={selectedToolIds}
+        onToggle={onToggleTool}
+      />
+
+
       <ProductPickerSheet
         open={pickerOpen}
         onOpenChange={closePicker}
