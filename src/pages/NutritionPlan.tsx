@@ -481,12 +481,25 @@ const NutritionPlan = () => {
     setMealsLoading(true);
     try {
       const context = await buildAiContext();
+      // Send what she has already seen or saved so "Generate new ideas"
+      // returns a genuinely different batch instead of the same six meals.
+      const exclude = Array.from(
+        new Set(
+          [
+            ...(meals ?? []).map((m) => m.name),
+            ...(savedMealsQ.data ?? []).map((m) => m.name),
+          ]
+            .map((n) => (n ?? "").trim())
+            .filter(Boolean),
+        ),
+      );
       const { data, error } = await supabase.functions.invoke("meal-ideas", {
         body: {
           context,
           diet: currentProfile.diet,
           alcohol: currentProfile.alcohol,
           flaggedMarkers: Array.from(currentProfile.flagged),
+          exclude,
         },
       });
       if (error) {
@@ -496,7 +509,11 @@ const NutritionPlan = () => {
         else toast.error(msg);
         return;
       }
-      if (Array.isArray(data?.meals)) setMeals(data.meals as AiMeal[]);
+      if (Array.isArray(data?.meals) && data.meals.length > 0) {
+        setMeals(data.meals as AiMeal[]);
+      } else {
+        toast.error("No new meal ideas came back — try again.");
+      }
     } catch (e) {
       console.error("meal-ideas invoke failed", e);
       toast.error("Couldn't generate meal ideas.");
@@ -842,7 +859,7 @@ const NutritionPlan = () => {
                       disabled={mealsLoading}
                       className="w-full py-2.5 rounded-pill bg-secondary text-foreground text-[12px] font-semibold hover:bg-secondary/80 transition disabled:opacity-50"
                     >
-                      Generate new ideas
+                      {mealsLoading ? "Finding new ideas…" : "Generate new ideas"}
                     </button>
                   </>
                 ) : (
