@@ -120,7 +120,16 @@ const EmailPreferences = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-preferences", user?.id] });
     },
-    onError: () => toast.error("Could not save that. Try again."),
+    onError: (err: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error("[email-preferences] save failed", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? "Could not save that. Try again.");
+      toast.error(msg);
+    },
+
   });
 
   // One-click unsubscribe from a marketing email footer.
