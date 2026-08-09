@@ -409,7 +409,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}${grounding.block}\n\n${buildTipsLevelBlock((groundingCtx as Record<string, unknown> | null)?.tipsLevel)}` },
+            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list with doses, the full list of meal ideas, the full list of foods and habits to avoid, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [
@@ -555,7 +555,9 @@ Deno.serve(async (req: Request) => {
       hair: (context as { hairProfile?: unknown })?.hairProfile ?? null,
       health: (context as { healthProfile?: unknown })?.healthProfile ?? null,
       goals: (context as { goals?: unknown })?.goals ?? null,
-      tipsLevel: (context as { tipsLevel?: unknown } | undefined)?.tipsLevel ?? null,
+      // Nutrition always renders at full detail, so the support level is
+      // deliberately excluded from the cache signature.
+      tipsLevel: "full",
     });
     let sig = "";
     try {
