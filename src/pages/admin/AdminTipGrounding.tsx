@@ -276,7 +276,7 @@ const AdminTipGrounding = () => {
           <div className="space-y-3">
             <SectionLabel>Recent generations</SectionLabel>
             <div className="flex flex-wrap gap-2">
-              {(["all", "explicit", "extension", "supplement"] as const).map((f) => (
+              {(["all", "explicit", "extension", "supplement", "industry"] as const).map((f) => (
                 <Button
                   key={f}
                   size="sm"
@@ -284,10 +284,21 @@ const AdminTipGrounding = () => {
                   className="rounded-pill"
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "All" : COVERAGE_LABEL[f]}
+                  {f === "all"
+                    ? "All"
+                    : f === "industry"
+                      ? "Industry claims"
+                      : COVERAGE_LABEL[f]}
                 </Button>
               ))}
             </div>
+            {filter === "industry" && (
+              <p className="text-xs text-muted-foreground">
+                Sponsored product copy that used established cosmetic science for an ingredient
+                the book does not cover. These are the claims to review.
+              </p>
+            )}
+
 
             {rows.length === 0 ? (
               <EmptyState message="Nothing to review" />
