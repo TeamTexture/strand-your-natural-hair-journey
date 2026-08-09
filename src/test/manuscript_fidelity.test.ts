@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import {
   checkDeterministicRules,
 } from "../../supabase/functions/_shared/fidelity.ts";
+import { checkClarifications } from "../../supabase/functions/_shared/clarifications.ts";
+
 import {
   chaptersForSurface,
   LANGUAGE_CHAPTER,
