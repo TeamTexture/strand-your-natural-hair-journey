@@ -171,6 +171,8 @@ const JournalStepCard = ({
 
 
   const [toolPickerOpen, setToolPickerOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
+
   const selectedToolIds = step.tools
     .map((t) => t.user_tool_id)
     .filter((x): x is string => !!x);
