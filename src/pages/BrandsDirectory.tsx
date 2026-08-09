@@ -83,7 +83,12 @@ const BrandsDirectory = () => {
     queryFn: async (): Promise<BrandCard[]> => {
       const today = new Date().toISOString().slice(0, 10);
       const [brandsRes, offersRes] = await Promise.all([
-        supabase.from("brand_profiles").select("user_id, brand_name, category, about, website, logo_path").order("brand_name"),
+        supabase
+          .from("brand_profiles")
+          .select("user_id, brand_name, category, about, website, logo_path")
+          // Admin-hidden brands never appear to members (also enforced by RLS).
+          .eq("hidden_from_directory", false)
+          .order("brand_name"),
         supabase
           .from("brand_offers")
           .select("brand_user_id")

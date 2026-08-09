@@ -17,7 +17,17 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { useSetBrandBloodVerification } from "@/hooks/useBloodTestBrands";
-import { Droplet, Pill } from "lucide-react";
+import { Droplet, Pill, Eye, EyeOff, Ban, Undo2, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface BrandRow {
   id: string;
@@ -40,6 +50,8 @@ interface BrandRow {
   blood_verified: boolean;
   supplements_claimed: boolean;
   supplements_verified: boolean;
+  hidden: boolean;
+  access_restricted: boolean;
 }
 
 const AdminBrands = () => {
@@ -47,6 +59,9 @@ const AdminBrands = () => {
   
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
+  const [restrictTarget, setRestrictTarget] = useState<BrandRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<BrandRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "brands"],
@@ -55,13 +70,17 @@ const AdminBrands = () => {
       const [brandsRes, subsRes, profilesRes, offersRes] = await Promise.all([
         supabase.from("brand_profiles").select("*").order("brand_name"),
         supabase.from("brand_subscriptions").select("brand_user_id, status, current_period_end"),
-        supabase.from("profiles").select("user_id, complimentary_access"),
+        supabase.from("profiles").select("user_id, complimentary_access, access_restricted"),
         supabase.from("brand_offers").select("id, brand_user_id, status, submitted_at, ends_on"),
       ]);
       const subs = new Map<string, { status: string; current_period_end: string | null }>();
       (subsRes.data ?? []).forEach((r) => subs.set(r.brand_user_id, r));
       const comps = new Map<string, boolean>();
-      (profilesRes.data ?? []).forEach((r) => comps.set(r.user_id, !!r.complimentary_access));
+      const restricted = new Map<string, boolean>();
+      (profilesRes.data ?? []).forEach((r) => {
+        comps.set(r.user_id, !!r.complimentary_access);
+        restricted.set(r.user_id, !!(r as { access_restricted?: boolean }).access_restricted);
+      });
       const offersBy = new Map<string, Array<{ status: string; submitted_at: string | null; ends_on: string | null }>>();
       (offersRes.data ?? []).forEach((o) => {
         const arr = offersBy.get(o.brand_user_id) ?? [];
@@ -104,6 +123,8 @@ const AdminBrands = () => {
             (b as { sells_supplements_claimed?: boolean }).sells_supplements_claimed === true,
           supplements_verified:
             (b as { sells_supplements_verified?: boolean }).sells_supplements_verified === true,
+          hidden: (b as { hidden_from_directory?: boolean }).hidden_from_directory === true,
+          access_restricted: restricted.get(b.user_id) ?? false,
         };
       });
     },
@@ -129,6 +150,66 @@ const AdminBrands = () => {
       qc.invalidateQueries({ queryKey: ["admin", "brands"] });
       qc.invalidateQueries({ queryKey: ["brand-profile"] });
     },
+  });
+
+  /** Hide a brand's listing from members. Enforced in the database too — while
+   *  hidden, no member can read the brand_profiles row, so the brand disappears
+   *  from the directory, brand pages and verified vendor lists. */
+  const setHidden = useMutation({
+    mutationFn: async ({ brandUserId, hidden }: { brandUserId: string; hidden: boolean }) => {
+      const { error } = await supabase
+        .from("brand_profiles")
+        .update({ hidden_from_directory: hidden } as never)
+        .eq("user_id", brandUserId);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["admin", "brands"] });
+      qc.invalidateQueries({ queryKey: ["consumer", "brands-directory"] });
+      qc.invalidateQueries({ queryKey: ["brand-profile"] });
+      toast.success(v.hidden ? "Brand hidden from members" : "Brand visible to members again");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not update visibility"),
+  });
+
+  const restrict = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.functions.invoke("admin-restrict-user", { body: { user_id: userId } });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "brands"] });
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      toast.success("Access restricted and any subscription cancelled.");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not restrict"),
+  });
+
+  const unrestrict = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.rpc("admin_unrestrict_user", { _user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "brands"] });
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      toast.success("Access restored. They can resubscribe themselves.");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not unrestrict"),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.functions.invoke("admin-delete-user", { body: { user_id: userId } });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "brands"] });
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      qc.invalidateQueries({ queryKey: ["consumer", "brands-directory"] });
+      toast.success("Brand account deleted. All their data has been removed.");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not delete account"),
   });
 
   // Category is owned and edited by the brand from their own profile —
@@ -226,6 +307,19 @@ const AdminBrands = () => {
                   </span>
                 </div>
 
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {r.hidden && (
+                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium bg-muted text-muted-foreground">
+                      Hidden from members
+                    </span>
+                  )}
+                  {r.access_restricted && (
+                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium bg-destructive/15 text-destructive">
+                      Restricted
+                    </span>
+                  )}
+                </div>
+
                 <div className="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/70">
                   <span>{r.offers_total} campaign{r.offers_total === 1 ? "" : "s"}</span>
                   <span>{r.offers_live} live</span>
@@ -312,6 +406,61 @@ const AdminBrands = () => {
                   </div>
                 )}
 
+                <div className="mt-3 pt-3 border-t border-border space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-body">
+                    Visibility &amp; access
+                  </p>
+                  <p className="text-[11.5px] font-body text-foreground/70 leading-snug">
+                    {r.hidden
+                      ? "Hidden — members cannot see this brand anywhere in the app."
+                      : "Visible to members in the brands directory."}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-9 rounded-pill text-[12px]"
+                      disabled={setHidden.isPending}
+                      onClick={() => setHidden.mutate({ brandUserId: r.user_id, hidden: !r.hidden })}
+                    >
+                      {r.hidden ? <Eye className="size-3.5 mr-1.5" /> : <EyeOff className="size-3.5 mr-1.5" />}
+                      {r.hidden ? "Show to members" : "Hide from members"}
+                    </Button>
+                    {r.access_restricted ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 rounded-pill text-[12px]"
+                        disabled={unrestrict.isPending}
+                        onClick={() => unrestrict.mutate(r.user_id)}
+                      >
+                        <Undo2 className="size-3.5 mr-1.5" /> Unrestrict
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 rounded-pill text-[12px] text-destructive border-destructive/40 hover:bg-destructive/10"
+                        disabled={restrict.isPending}
+                        onClick={() => setRestrictTarget(r)}
+                      >
+                        <Ban className="size-3.5 mr-1.5" /> Restrict access
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full h-9 rounded-pill text-[12px] text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      setDeleteConfirm("");
+                      setDeleteTarget(r);
+                    }}
+                  >
+                    <Trash2 className="size-3.5 mr-1.5" /> Delete account
+                  </Button>
+                </div>
+
                 <div className="mt-3 pt-3 border-t border-border flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1 h-9 rounded-pill text-[12px]" onClick={() => message(r.user_id)}>
                     <MessageSquarePlus className="size-3.5 mr-1.5" /> Message
@@ -327,6 +476,94 @@ const AdminBrands = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!restrictTarget} onOpenChange={(o) => !o && setRestrictTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restrict access?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This blocks <span className="font-semibold">{restrictTarget?.brand_name ?? "this brand"}</span> from
+                  using the app. They'll only see the "Access restricted" screen.
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-foreground/75">
+                  <li>Their brand subscription is cancelled.</li>
+                  <li>Unrestricting later restores access, but does not resubscribe anything.</li>
+                  <li>Use "Hide from members" if you only want their listing taken down.</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (restrictTarget) {
+                  restrict.mutate(restrictTarget.user_id);
+                  setRestrictTarget(null);
+                }
+              }}
+            >
+              Restrict
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleteTarget(null);
+            setDeleteConfirm("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this brand account?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This permanently deletes <span className="font-semibold">{deleteTarget?.brand_name ?? "this brand"}</span>{" "}
+                  and everything they own — profile, products, campaigns and subscription. This cannot be undone.
+                </p>
+                <p>
+                  Type <span className="font-mono font-semibold">DELETE</span> to confirm:
+                </p>
+                <Input
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  autoFocus
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteConfirm !== "DELETE" || deleteUser.isPending}
+              onClick={(e) => {
+                if (deleteConfirm !== "DELETE") {
+                  e.preventDefault();
+                  return;
+                }
+                if (deleteTarget) {
+                  deleteUser.mutate(deleteTarget.user_id);
+                  setDeleteTarget(null);
+                  setDeleteConfirm("");
+                }
+              }}
+            >
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
