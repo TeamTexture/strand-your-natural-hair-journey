@@ -575,6 +575,13 @@ const AdminHub = () => {
             description="Tips by coverage tier, evidence sets and rejections"
             onClick={() => nav("/admin/tip-grounding")}
           />
+          <NavCard
+            icon={ScrollText}
+            title="Author clarifications"
+            description="Your current positions — they override the book in every tip"
+            onClick={() => nav("/admin/clarifications")}
+          />
+
 
           <NavCard
             icon={Library}

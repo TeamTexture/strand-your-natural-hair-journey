@@ -109,6 +109,8 @@ const AdminDataProtection = lazyRetry(() => import("./pages/admin/AdminDataProte
 const AdminApplications = lazyRetry(() => import("./pages/admin/AdminApplications"));
 const AdminAudit = lazyRetry(() => import("./pages/admin/AdminAudit"));
 const AdminTipGrounding = lazyRetry(() => import("./pages/admin/AdminTipGrounding"));
+const AdminAuthorClarifications = lazyRetry(() => import("./pages/admin/AdminAuthorClarifications"));
+
 
 const AdminHub = lazyRetry(() => import("./pages/admin/AdminHub"));
 const AdminMembers = lazyRetry(() => import("./pages/admin/AdminMembers"));
@@ -519,6 +521,15 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/admin/clarifications"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminAuthorClarifications />
+                  </RoleGate>
+                }
+              />
+
 
 
 

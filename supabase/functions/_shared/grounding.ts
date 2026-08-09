@@ -30,9 +30,13 @@ import {
   gatherEvidence,
   noteEvidence,
   renderEvidenceBlock,
+  surfaceClarifications,
+  withClarifications,
   type EvidenceSet,
 } from "./evidence.ts";
+import { clarificationsBlock, clarificationSourceText } from "./clarifications.ts";
 import { loadLexicon, terminologyBlock } from "./terminology.ts";
+
 import {
   METHOD_AND_TIMING_RULE,
   retrieveProceduralPassages,
@@ -178,7 +182,18 @@ export async function buildGroundingBlock(
     );
   }
 
+  // AUTHOR CLARIFICATIONS — her current positions, binding and senior to the
+  // manuscript. They go into EVERY hair care generation: merged into the
+  // evidence set on the grounded path, and injected as their own block on the
+  // legacy fragment path.
+  const clarifications = await surfaceClarifications(input.surface ?? null);
+  if (evidence && clarifications.length > 0) {
+    evidence = withClarifications(evidence, clarifications).set;
+  }
+
   const parts: string[] = [];
+  const clarBlock = clarificationsBlock(clarifications);
+  if (clarBlock) parts.push(clarBlock);
   if (topicBlocks.length > 0) {
     parts.push(
       `STRAND KNOWLEDGE TOPICS (curated manuscript teachings for THIS user):\n\n${
@@ -203,9 +218,15 @@ export async function buildGroundingBlock(
   if (input.proceduralBias) parts.push(METHOD_AND_TIMING_RULE);
 
 
-  const sourceText = evidence
-    ? evidence.items.map((i) => i.passage).join("\n\n")
-    : passageBlocks.join("\n\n");
+  const sourceText = [
+    evidence
+      ? evidence.items.map((i) => i.passage).join("\n\n")
+      : passageBlocks.join("\n\n"),
+    clarificationSourceText(clarifications),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   const chaptersUsed = evidence?.chapters ?? input.chapterFilter ?? [];
   // Record what the writer was given so the verify gate in sanitiseAndLog can
   // map every claim back to this exact evidence.

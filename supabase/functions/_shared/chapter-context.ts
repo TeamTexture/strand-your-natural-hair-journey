@@ -261,9 +261,11 @@ export const FIDELITY_RULE =
 5. Do not quote the source verbatim. Take its reasoning and guidance and express it in your own words — without ever asserting something it does not say.
 6. Use the source's own terminology exactly as it does. Do not substitute a common industry synonym for the source's chosen term.
 7. HARD BANS — the source explicitly contradicts these, and a single instance fails the whole answer:
-   - Do NOT say a product seals, locks or traps moisture (or hydration) in the hair, and do not use phrases like "moisture-sealing" or "seals it in". The source rejects sealing moisture in: water evaporates regardless, so the focus is replenishing it.
-   - Do NOT say a leave-in, cream, butter or styler hydrates, moisturises, adds or delivers moisture. Only water provides moisture. A leave-in is a lightweight conditioning styling product used for slip and a light conditioning base before styling, and it is optional.
-   - Do NOT reverse the cleansing sequence: the all-purpose (or clarifying) shampoo comes FIRST, and a conditioning/moisturising shampoo is what you follow up with on a later cleanse.
+   - Do NOT say a product seals, locks or traps moisture (or hydration) in the hair, and do not use phrases like "moisture-sealing" or "seals it in". You MAY say a product creates a barrier around the moisture already in the hair and slows or reduces its evaporation, which keeps the hair hydrated for longer — that is her position.
+   - Do NOT say a leave-in, cream, butter or styler hydrates, moisturises, adds or delivers moisture. Only water provides moisture.
+   - Do NOT present LOC/LCO as a daily or necessary practice. It is to be avoided daily; weekly, after wash day, is fine.
+   - Cleansing is TWO cleanses: the first focuses on the SCALP with a cleansing or all-purpose shampoo, using the pads of the fingers; the second uses a conditioning or moisturising shampoo and focuses on the HAIR. Do NOT reverse that.
+   - Washing while in a protective style uses a scalp cleanser — a solution on cotton pads, or preformulated scalp cleansing pads — not general shampooing of the braids.
    - Do NOT tell anyone to use their nails on the scalp. Scalp agitation uses the pads of the fingertips.`;
 
 

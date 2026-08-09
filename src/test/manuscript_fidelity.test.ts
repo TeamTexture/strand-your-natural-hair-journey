@@ -8,34 +8,49 @@ import { describe, expect, it } from "vitest";
 import {
   checkDeterministicRules,
 } from "../../supabase/functions/_shared/fidelity.ts";
+import { checkClarifications } from "../../supabase/functions/_shared/clarifications.ts";
+
 import {
   chaptersForSurface,
   LANGUAGE_CHAPTER,
   SURFACE_CHAPTERS,
 } from "../../supabase/functions/_shared/chapter-context.ts";
 
+// AUTHOR CLARIFICATION (2026-08-09) — the area focus is now stated by her and
+// overrides the earlier reading of the book: the FIRST cleanse focuses on the
+// SCALP with a cleansing/all-purpose shampoo, the SECOND uses a conditioning or
+// moisturising shampoo on the HAIR. It is enforced in _shared/clarifications.ts.
 describe("two-cleanse protocol", () => {
-  it("rejects the reversed order (first cleanse on the scalp)", () => {
-    const v = checkDeterministicRules(
-      "Start with your first cleanse focused on the scalp, then move to the lengths.",
+  const rows = [{ id: "1", topic: "cleansing", position: "", applies_to: [], sort_order: 1 }];
+
+  it("rejects the reversed area focus (first cleanse on the lengths)", () => {
+    const v = checkClarifications(
+      "Start with your first cleanse focused on the lengths, then move to the scalp.",
+      rows,
     );
-    expect(v.map((x) => x.rule)).toContain("cleanse-order");
+    expect(v.strip.map((x) => x.rule)).toContain("clarification-cleanse-area-focus");
   });
 
-  it("rejects a second cleanse aimed at the lengths", () => {
-    const v = checkDeterministicRules(
-      "Your second cleanse should target the lengths of your hair.",
+  it("rejects a conditioning shampoo aimed at the scalp", () => {
+    const v = checkClarifications(
+      "Use your conditioning shampoo on your scalp for the second cleanse.",
+      rows,
     );
-    expect(v.map((x) => x.rule)).toContain("cleanse-order");
+    expect(v.strip.map((x) => x.rule)).toContain("clarification-cleanse-area-focus");
   });
 
-  it("accepts the correct order", () => {
-    const v = checkDeterministicRules(
-      "Your first cleanse works through the lengths. The second cleanse is where you focus on the scalp.",
+  it("accepts her sequence", () => {
+    const v = checkClarifications(
+      "Your first cleanse focuses on the scalp with an all-purpose shampoo, using the pads of your fingers. The second cleanse uses a conditioning shampoo through your hair.",
+      rows,
     );
-    expect(v.map((x) => x.rule)).not.toContain("cleanse-order");
+    expect(v.strip).toHaveLength(0);
+    expect(checkDeterministicRules(
+      "Your first cleanse focuses on the scalp with an all-purpose shampoo. The second cleanse uses a conditioning shampoo through your hair.",
+    ).map((x) => x.rule)).not.toContain("cleanse-order");
   });
 });
+
 
 describe("leave-in behaviour", () => {
   it("rejects a leave-in described as hydrating", () => {

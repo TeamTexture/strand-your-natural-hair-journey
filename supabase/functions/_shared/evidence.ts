@@ -52,11 +52,14 @@ export interface EvidenceItem {
   /** One line: why this applies to THIS member. */
   relevance: string;
   /**
-   * Provenance. `manuscript` = the author's own text. `external` = established
-   * cosmetic science / trichology admitted ONLY in supplement mode, and only
-   * under a named manuscript principle (see `governingPrinciple`).
+   * Provenance. `manuscript` = the author's own text. `clarification` = the
+   * author's current stated position, which OVERRIDES the manuscript where the
+   * two differ. `external` = established cosmetic science / trichology admitted
+   * ONLY in supplement mode, and only under a named manuscript principle (see
+   * `governingPrinciple`).
    */
-  source?: "manuscript" | "external";
+  source?: "manuscript" | "clarification" | "external";
+
   /** For external items: the manuscript principle that constrains the claim. */
   constrained_by?: string;
 }
@@ -341,11 +344,14 @@ export function renderEvidenceBlock(set: EvidenceSet): string {
   const body = set.items
     .map(
       (it, i) =>
-        `EVIDENCE ${i + 1}\nAUTHOR'S TEXT: ${it.passage}${
-          it.relevance ? `\nWHY IT APPLIES TO HER: ${it.relevance}` : ""
-        }`,
+        `EVIDENCE ${i + 1}\n${
+          it.source === "clarification"
+            ? "HER CURRENT POSITION — BINDING, AND IT OVERRIDES THE BOOK MATERIAL WHERE THEY DIFFER: "
+            : "AUTHOR'S TEXT: "
+        }${it.passage}${it.relevance ? `\nWHY IT APPLIES TO HER: ${it.relevance}` : ""}`,
     )
     .join("\n\n");
+
 
   const conflictRule =
     `THE AUTHOR ALWAYS WINS A CONFLICT. Where established industry practice, marketing language or common terminology contradicts her position, her position governs — without exception and without hedging. Her book exists to correct widespread industry error, so treating industry consensus as authoritative would reproduce the exact error. Example: the industry calls a conditioning shampoo "moisturising"; she does not, and neither do you.`;
@@ -625,8 +631,12 @@ export interface StoreEvidenceInput {
   claimSources?: Array<{ text: string; source: string; basis?: string }>;
   /** Supplement mode: the claims that came from established science, labelled. */
   externalClaims?: ExternalClaim[];
-
+  /** Which author clarification topics governed this copy. */
+  clarifications?: string[];
+  /** True when a clarification governed rather than the manuscript. */
+  clarificationGoverned?: boolean;
 }
+
 
 /** Persist the evidence set keyed to the generated tip. Returns its id. */
 export async function storeEvidenceSet(
@@ -672,6 +682,9 @@ export async function storeEvidenceSet(
         verify_tokens: input.verifyTokens ?? 0,
         policy: input.policy ?? "A",
         claim_sources: input.claimSources ?? [],
+        clarifications: input.clarifications ?? [],
+        clarification_governed: input.clarificationGoverned ?? false,
+
 
       })
       .select("id")
@@ -727,11 +740,48 @@ export async function logGenerationRejections(
 
 import { FIDELITY_RULE, noteSourceText } from "./chapter-context.ts";
 import { loadLexicon, terminologyBlock } from "./terminology.ts";
+import {
+  clarificationsBlock,
+  forSurface,
+  loadClarifications,
+  type Clarification,
+} from "./clarifications.ts";
+
+/**
+ * AUTHOR CLARIFICATIONS — merged into the evidence set as first-class evidence,
+ * senior to the manuscript. This is what makes them binding rather than
+ * advisory: the writer sees them in its only permitted world, and stage 3 can
+ * map a claim onto them instead of rejecting it as unsupported.
+ *
+ * Returns a NEW set (the stage 1 cache must never be mutated).
+ */
+export function withClarifications(
+  set: EvidenceSet,
+  rows: Clarification[],
+): { set: EvidenceSet; used: Clarification[] } {
+  if (!rows.length) return { set, used: [] };
+  const items: EvidenceItem[] = rows.map((r) => ({
+    chapter: 0,
+    chapter_title: `Author clarification — ${r.topic}`,
+    page_start: null,
+    page_end: null,
+    passage: r.position,
+    relevance: "Her current position on this topic. It governs over the book material.",
+    source: "clarification" as const,
+  }));
+  return { set: { ...set, items: [...items, ...set.items] }, used: rows };
+}
+
+/** Load the clarifications that apply to a surface. */
+export async function surfaceClarifications(surface?: string | null): Promise<Clarification[]> {
+  return forSurface(await loadClarifications(), surface ?? null);
+}
 
 /**
  * Stage 1, ready to drop into a system prompt. Returns the WRITER's entire
- * permitted hair care world: the evidence set, the author's terminology, and the
- * deterministic author-verified bans. The full chapters are NOT included.
+ * permitted hair care world: the author's binding clarifications, the evidence
+ * set, her terminology, and the deterministic author-verified bans. The full
+ * chapters are NOT included.
  *
  * `block` is empty when no evidence could be extracted — the caller must then
  * not generate hair care copy (fallback: the brief "being prepared" state).
@@ -741,11 +791,16 @@ export async function evidencePromptBlock(input: {
   surface: SurfaceKey;
   memberContext: string;
 }): Promise<{ block: string; evidence: EvidenceSet; grounded: boolean }> {
-  const set = await gatherEvidence(input);
-  if (!set.items.length) {
-    return { block: "", evidence: set, grounded: false };
+  const base = await gatherEvidence(input);
+  if (!base.items.length) {
+    return { block: "", evidence: base, grounded: false };
   }
-  const parts = [renderEvidenceBlock(set)];
+  const clarifications = await surfaceClarifications(input.surface);
+  const { set } = withClarifications(base, clarifications);
+  const parts: string[] = [];
+  const clar = clarificationsBlock(clarifications);
+  if (clar) parts.push(clar);
+  parts.push(renderEvidenceBlock(set));
   const lex = terminologyBlock(await loadLexicon());
   if (lex) parts.push(lex);
   parts.push(FIDELITY_RULE);
@@ -753,3 +808,4 @@ export async function evidencePromptBlock(input: {
   noteEvidence(input.fn, set);
   return { block: parts.join("\n\n"), evidence: set, grounded: true };
 }
+

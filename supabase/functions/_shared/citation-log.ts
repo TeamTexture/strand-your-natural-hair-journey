@@ -18,10 +18,16 @@ import {
   logGenerationRejections,
   mapClaimsToEvidence,
   storeEvidenceSet,
+  surfaceClarifications,
   type EvidenceSet,
   type ExternalClaim,
   type RejectionRow,
 } from "./evidence.ts";
+import {
+  checkClarifications,
+  type ClarificationViolation,
+} from "./clarifications.ts";
+
 
 import { explainTerminology, loadLexicon, type TerminologyNote } from "./terminology.ts";
 import {
@@ -189,9 +195,59 @@ export async function sanitiseAndLog<T>(
     { skipTraceability: onEvidencePath },
   );
 
-  if (!onEvidencePath) return out;
-  return await verifyStage3(out, functionName, evidenceSet, opts);
+  // AUTHOR CLARIFICATIONS — prescriptive positions enforced as HARD rules, on
+  // every surface (grounded or legacy). A breach is removed from the output and
+  // logged; where the breach is an OMISSION it cannot be removed, so it is
+  // logged for the author's review instead.
+  const clarifications = await surfaceClarifications(opts?.surface ?? null);
+  const clarCheck = checkClarifications(collectText(out).join("\n"), clarifications, {
+    context: opts?.context,
+    goalLabel: goalLabelFrom(opts?.context),
+  });
+  if (clarCheck.strip.length > 0) {
+    console.warn(
+      JSON.stringify({
+        event: "clarification_rejection",
+        fn: functionName,
+        rules: clarCheck.strip.map((v) => v.rule),
+      }),
+    );
+    out = stripDeep(out, clarCheck.strip.map((v) => v.claim));
+  }
+  const clarRejections = [...clarCheck.strip, ...clarCheck.log];
+
+  if (!onEvidencePath) {
+    if (clarRejections.length > 0) {
+      await logGenerationRejections(
+        functionName,
+        clarRejections.map((v) => ({
+          stage: "deterministic" as const,
+          rule: v.rule,
+          detail: v.reason,
+          offendingText: v.claim,
+        })),
+        { surface: opts?.surface ?? null, userId: opts?.userId ?? null },
+      );
+    }
+    return out;
+  }
+  return await verifyStage3(out, functionName, evidenceSet, opts, {
+    rejections: clarRejections,
+    governed: clarCheck.governed,
+  });
 }
+
+/** The member's own goal label, where the surface passed one in its context. */
+function goalLabelFrom(context: unknown): string | null {
+  try {
+    const json = JSON.stringify(context ?? {});
+    const m = json.match(/"(?:goal_label|goal_title|goal)"\s*:\s*"([^"]{3,120})"/i);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 
 /**
  * STAGE 3 + STAGE 4 of the grounded pipeline.
@@ -217,11 +273,16 @@ async function verifyStage3<T>(
     policy?: "A" | "B";
     product?: PolicyBProduct;
   },
+  clar: { rejections: ClarificationViolation[]; governed: string[] } = {
+    rejections: [],
+    governed: [],
+  },
 ): Promise<T> {
   const policy = opts?.policy === "B" ? "B" : "A";
   const text = collectText(payload).join("\n");
   let out = payload;
   let violations: Array<{ claim: string; reason: string; rule: string; stage: RejectionRow["stage"] }> = [];
+
   let verifyTokens = 0;
   let external: ExternalClaim[] = [];
   let conflicts: ConflictHit[] = [];
@@ -328,23 +389,36 @@ async function verifyStage3<T>(
     userId: opts?.userId ?? null,
     set: evidenceSet,
     tip: out,
-    verified: violations.length === 0,
+    verified: violations.length === 0 && clar.rejections.length === 0,
     verifyTokens,
     externalClaims: external,
     policy,
     claimSources,
+    // AUDIT — which of her clarifications governed this copy rather than the
+    // book material.
+    clarifications: clar.governed,
+    clarificationGoverned: clar.governed.length > 0,
   });
 
   await logGenerationRejections(
     functionName,
-    violations.map((v) => ({
-      stage: v.stage,
-      rule: v.rule,
-      detail: v.reason,
-      offendingText: v.claim,
-    })),
+    [
+      ...violations.map((v) => ({
+        stage: v.stage,
+        rule: v.rule,
+        detail: v.reason,
+        offendingText: v.claim,
+      })),
+      ...clar.rejections.map((v) => ({
+        stage: "deterministic" as const,
+        rule: v.rule,
+        detail: v.reason,
+        offendingText: v.claim,
+      })),
+    ],
     { surface: opts?.surface ?? null, userId: opts?.userId ?? null, evidenceSetId },
   );
+
 
   if (conflicts.length > 0) {
     await logConflicts(conflicts, {
