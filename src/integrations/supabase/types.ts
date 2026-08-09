@@ -2724,11 +2724,14 @@ export type Database = {
       }
       manuscript_terminology: {
         Row: {
+          accurate_explanation: string | null
           author_position: string
           banned_phrasings: string[]
           chapter: number
           created_at: string
           id: string
+          loose_usage: string | null
+          mode: string
           page_end: number | null
           page_start: number | null
           reserved_for: string | null
@@ -2738,11 +2741,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accurate_explanation?: string | null
           author_position: string
           banned_phrasings?: string[]
           chapter: number
           created_at?: string
           id?: string
+          loose_usage?: string | null
+          mode?: string
           page_end?: number | null
           page_start?: number | null
           reserved_for?: string | null
@@ -2752,11 +2758,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accurate_explanation?: string | null
           author_position?: string
           banned_phrasings?: string[]
           chapter?: number
           created_at?: string
           id?: string
+          loose_usage?: string | null
+          mode?: string
           page_end?: number | null
           page_start?: number | null
           reserved_for?: string | null

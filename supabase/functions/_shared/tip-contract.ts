@@ -15,6 +15,7 @@ import { validateTipAction, validateTipReason, memberAttributeTokens } from "./t
 import { validateTipMethod, validateTipTautology } from "./tip-method.ts";
 import { detectCompoundTip, primaryFacet } from "./tip-set-integrity.ts";
 import { capsForLevel, sentenceCount, type TipLevel } from "./tip-level-caps.ts";
+import { MECHANISM_RULE, TONE_RULE, validateMechanism, validateTone } from "./mechanism.ts";
 
 export interface ContractTip {
   headline?: string | null;
@@ -44,6 +45,8 @@ export const SOFT_RULES = [
   "compound_tip",
   "cross_tip_contradiction",
   "over_word_cap",
+  "reason_not_mechanism",
+  "alarmist",
 ] as const;
 
 export type HardRule = (typeof HARD_RULES)[number];
@@ -58,11 +61,15 @@ const txt = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 export const TIP_CONTRACT_FIELD_SPEC = `OUTPUT CONTRACT — these four fields, nothing else:
 - "headline": short, names the subject. No emoji, no colon-prefixed label.
 - "action": REQUIRED. One specific instruction the member carries out, opening with an instruction verb. Never empty. Never a restatement of the headline.
-- "reason": REQUIRED. Why it matters for her — the mechanism or the consequence of skipping it. It explains the action, it never repeats it. Never empty.
+- "reason": REQUIRED. WHAT PHYSICALLY HAPPENS — one sentence of mechanism, not a benefit. It explains the action, it never repeats it. Never empty.
 - "extended": OPTIONAL. Fuller personalised context. Omit the field entirely when there is nothing further to say.
 
 Do not output any other field: no "body", no "technique", no "next_time", no "key_fact", no arrays.
-A field you cannot fill honestly is omitted — never padded, and never left as an empty string.`;
+A field you cannot fill honestly is omitted — never padded, and never left as an empty string.
+
+${MECHANISM_RULE}
+
+${TONE_RULE}`;
 
 /** JSON shape fragment for a single tip, for response_format schemas. */
 export const tipJsonSchema = (extended = true) => ({
@@ -158,6 +165,19 @@ export function validateTipSoft(tip: ContractTip, opts: SoftOptions = {}): SoftR
     if (!t.ok) soft.add("tautology");
   } catch { /* ignore */ }
 
+  // THE MECHANISM FLOOR — a reason that names an outcome without describing a
+  // physical process fails and feeds the retry.
+  try {
+    const mech = validateMechanism(reason);
+    if (!mech.ok && reason) soft.add("reason_not_mechanism");
+  } catch { /* ignore */ }
+
+  // TONE — no scaremongering, no stacked warnings.
+  try {
+    const tone = validateTone([action, reason, txt(tip.extended)].filter(Boolean).join(" "));
+    for (const code of tone.reasons) soft.add(code === "warnings_stacked" ? "alarmist" : "alarmist");
+  } catch { /* ignore */ }
+
   if (detectCompoundTip(action).compound) soft.add("compound_tip");
 
   // Generic goal reference — only the member's own recorded label is allowed.
@@ -210,7 +230,9 @@ export function contractRetryDirective(hard: HardRule[], soft: SoftRule[]): stri
   if (soft.includes("not_personalised")) lines.push("- Name a real characteristic from her profile.");
   if (soft.includes("compound_tip")) lines.push("- Two ideas in one tip. Keep one idea only.");
   if (soft.includes("cross_tip_contradiction")) lines.push("- Two tips prescribed the same task differently. Keep one method per task.");
-  if (soft.includes("over_word_cap")) lines.push("- Tighten the wording.");
+  if (soft.includes("reason_not_mechanism")) lines.push('- The "reason" gave an outcome, not a mechanism. Say what PHYSICALLY happens — what coats, slows, lifts, absorbs, rubs, builds up or evaporates. "Keeps your hair healthy", "protects your ends" and "supports your goal" are not reasons.');
+  if (soft.includes("alarmist")) lines.push("- The wording was alarming or stacked warnings. State it neutrally, once, and drop the rest.");
+  if (soft.includes("over_word_cap")) lines.push("- Tighten the wording: one action, one sentence of why.");
   if (!lines.length) return "";
   return `REVISION REQUIRED — fix exactly these and change nothing else:\n${lines.join("\n")}`;
 }

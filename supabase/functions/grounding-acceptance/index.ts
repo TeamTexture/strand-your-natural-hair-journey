@@ -15,7 +15,7 @@ import {
   mapClaimsToEvidence,
   renderEvidenceBlock,
 } from "../_shared/evidence.ts";
-import { loadLexicon, terminologyBlock, checkTerminology } from "../_shared/terminology.ts";
+import { loadLexicon, terminologyBlock, explainTerminology } from "../_shared/terminology.ts";
 import type { SurfaceKey } from "../_shared/chapter-context.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined } };
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       ? await write(block, t.memberContext, t.question)
       : { tip: "" };
     const mapping = tip ? await mapClaimsToEvidence(tip, set) : { unmapped: [], external: [], ran: false, tokens: 0 };
-    const terminology = checkTerminology(tip, lex);
+    const terminology = explainTerminology(tip, lex);
     results.push({
       name: t.name,
       surface: t.surface,
