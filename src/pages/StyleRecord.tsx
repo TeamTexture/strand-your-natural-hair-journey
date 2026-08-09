@@ -227,6 +227,7 @@ interface EntryRow {
   style_name: string | null;
   style_date: string | null;
   status: string | null;
+  cover_media_id: string | null;
 }
 
 /** Screen two — the numbered steps. */
