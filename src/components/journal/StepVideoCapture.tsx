@@ -1,37 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Video, Square, Upload, Loader2, SwitchCamera, RotateCcw, Check, X } from "lucide-react";
+import { Video, Square, Upload, Loader2, SwitchCamera, RotateCcw, Check, X, Camera, ZoomIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 /**
- * In-app video capture for a style-record step.
+ * Video capture for a style-record step. Three routes, so a member is never
+ * blocked by a browser that can't record in-page:
  *
- * Flow: open the camera (live preview, front/back switch) → record with a
- * visible countdown → review the clip → save or retake.
+ *  1. "Open phone camera" — the device's own camera app via a capture input.
+ *     Full native controls: zoom, exposure, stabilisation, flash, filters.
+ *  2. "Record here" — in-app recorder with front/back switch and zoom
+ *     (optical/native track zoom where the camera exposes it, digital crop
+ *     otherwise), a visible countdown and an automatic stop.
+ *  3. "Choose video" — pick an existing clip from the library.
  *
  * Hard rules:
- *  - 30 second maximum, with a visible countdown and an automatic stop.
- *  - Portrait framing (9:16) requested from the camera and used for preview
- *    and playback so clips read vertically.
- *  - Bitrate ceiling of 1.0 Mbps video + 64 kbps audio, so a full 30 second
- *    clip lands around 4 MB. Anything over MAX_BYTES is refused.
- *
- * iOS Safari: MediaRecorder support varies by version, so we probe
- * `MediaRecorder.isTypeSupported`. When nothing is supported (or getUserMedia
- * is unavailable) the recorder is hidden and the device video picker is the
- * only route offered — that uses the phone's own camera app.
+ *  - 30 second maximum on recorded clips (auto stop) and on picked clips.
+ *  - Portrait framing (9:16) for in-app recordings, centre-cropped.
+ *  - Size ceiling of MAX_BYTES; native clips are usually well under it.
  */
 
 export const MAX_SECONDS = 30;
 const VIDEO_BITS_PER_SECOND = 3_000_000;
 const AUDIO_BITS_PER_SECOND = 96_000;
-/** Portrait output size — every clip is written at 9:16 regardless of camera. */
+/** Portrait output size — every in-app clip is written at 9:16. */
 const OUT_W = 720;
 const OUT_H = 1280;
-const MAX_BYTES = 25 * 1024 * 1024;
+const MAX_BYTES = 60 * 1024 * 1024;
 const BUCKET = "journal-videos";
 
 /** Ordered by preference: mp4/h264 first because iOS produces and plays it. */
@@ -53,7 +52,13 @@ export function canRecordInApp(): boolean {
   return hasMedia && !!pickRecorderMimeType();
 }
 
-const extFor = (mime: string) => (mime.includes("mp4") ? "mp4" : "webm");
+const extFor = (mime: string) => {
+  if (mime.includes("mp4") || mime.includes("quicktime")) return "mp4";
+  if (mime.includes("webm")) return "webm";
+  return "mp4";
+};
+
+const mb = (bytes: number) => `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
 
 const readDuration = (file: Blob): Promise<number | null> =>
   new Promise((resolve) => {
@@ -71,6 +76,10 @@ const readDuration = (file: Blob): Promise<number | null> =>
 
 type Facing = "user" | "environment";
 
+interface ZoomCaps { min: number; max: number; step: number; native: boolean }
+
+const DEFAULT_ZOOM: ZoomCaps = { min: 1, max: 4, step: 0.1, native: false };
+
 interface Props {
   /** Folder under the member's id — keeps each step's clips together. */
   folder: string;
@@ -87,6 +96,8 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [recorderAvailable, setRecorderAvailable] = useState(false);
   const [review, setReview] = useState<{ url: string; blob: Blob; mime: string } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [zoomCaps, setZoomCaps] = useState<ZoomCaps>(DEFAULT_ZOOM);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const reviewRef = useRef<HTMLVideoElement>(null);
@@ -96,11 +107,16 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const timerRef = useRef<number | null>(null);
   const stopTimerRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const nativeRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const canvasStreamRef = useRef<MediaStream | null>(null);
+  /** Read inside the draw loop, which must not restart on every zoom change. */
+  const zoomRef = useRef(1);
+  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   useEffect(() => { setRecorderAvailable(canRecordInApp()); }, []);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   const clearTimers = () => {
     if (timerRef.current) window.clearInterval(timerRef.current);
@@ -136,9 +152,43 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     await el.play().catch(() => undefined);
   };
 
+  /** Reads the camera's zoom range. Falls back to a digital crop range. */
+  const readZoomCaps = (stream: MediaStream) => {
+    const track = stream.getVideoTracks()[0];
+    const caps = (track?.getCapabilities?.() ?? {}) as { zoom?: { min: number; max: number; step?: number } };
+    if (caps.zoom && typeof caps.zoom.max === "number" && caps.zoom.max > caps.zoom.min) {
+      setZoomCaps({
+        min: caps.zoom.min,
+        max: caps.zoom.max,
+        step: caps.zoom.step && caps.zoom.step > 0 ? caps.zoom.step : (caps.zoom.max - caps.zoom.min) / 40,
+        native: true,
+      });
+      setZoom(caps.zoom.min);
+      zoomRef.current = 1; // digital crop stays neutral when the camera zooms
+      return;
+    }
+    setZoomCaps(DEFAULT_ZOOM);
+    setZoom(1);
+    zoomRef.current = 1;
+  };
+
+  const applyZoom = (next: number) => {
+    const clamped = Math.min(zoomCaps.max, Math.max(zoomCaps.min, next));
+    setZoom(clamped);
+    if (zoomCaps.native) {
+      const track = streamRef.current?.getVideoTracks()[0];
+      // Non-standard but widely shipped on Android Chrome.
+      const constraints = { advanced: [{ zoom: clamped }] } as unknown as MediaTrackConstraints;
+      void track?.applyConstraints(constraints).catch(() => undefined);
+      zoomRef.current = 1;
+    } else {
+      zoomRef.current = clamped;
+    }
+  };
+
   const openCamera = async (next: Facing = facing) => {
     if (!navigator?.mediaDevices?.getUserMedia) {
-      toast.error("Camera isn't available here — choose a video instead.");
+      toast.error("In-page camera isn't available here — use your phone camera instead.");
       return;
     }
     setStarting(true);
@@ -157,11 +207,12 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       streamRef.current = stream;
       setFacing(next);
       setCameraOn(true);
+      readZoomCaps(stream);
       // Wait a frame so the preview element is mounted before attaching.
       window.requestAnimationFrame(() => { void attachPreview(stream); });
     } catch (e) {
       console.error("camera open failed", e);
-      toast.error("Couldn't reach the camera — check permissions or choose a video.");
+      toast.error("Couldn't reach the camera — check permissions, or use your phone camera.");
     } finally {
       setStarting(false);
     }
@@ -185,24 +236,27 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   };
 
   const upload = async (blob: Blob, mime: string, duration: number | null) => {
-    if (!user) { toast.error("Please sign in"); return; }
+    if (!user) { toast.error("Please sign in"); return false; }
+    if (!blob.size) { toast.error("That video file is empty — try recording again."); return false; }
     if (blob.size > MAX_BYTES) {
-      toast.error("That video is too large. Keep it under 30 seconds.");
-      return;
+      toast.error(`That video is ${mb(blob.size)} — too large to save. Record a shorter clip.`);
+      return false;
     }
     setUploading(true);
     const path = `${user.id}/${folder}/${uuid()}.${extFor(mime)}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
       contentType: mime || "video/mp4",
-      upsert: false,
+      upsert: true,
     });
     setUploading(false);
     if (error) {
       console.error("video upload failed", error);
-      toast.error("Couldn't upload that video");
-      return;
+      toast.error(`Couldn't save that video: ${error.message}`);
+      return false;
     }
     onUploaded({ storage_path: path, duration_seconds: duration });
+    toast.success("Video saved to this step");
+    return true;
   };
 
   const stop = () => {
@@ -216,15 +270,15 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     const src = videoRef.current;
     const mime = pickRecorderMimeType();
     if (!stream || !src || !mime) {
-      toast.error("Recording isn't supported on this device — choose a video instead.");
+      toast.error("Recording isn't supported here — use your phone camera instead.");
       return;
     }
     try {
       chunksRef.current = [];
 
       // Cameras hand us a landscape frame. We paint every frame into a 720x1280
-      // portrait canvas (centre-cropped, mirrored for the selfie camera) and
-      // record THAT, so the saved file is genuinely vertical — no black bars.
+      // portrait canvas (centre-cropped, zoomed, mirrored for the selfie camera)
+      // and record THAT, so the saved file is genuinely vertical.
       const canvas = canvasRef.current ?? document.createElement("canvas");
       canvasRef.current = canvas;
       canvas.width = OUT_W;
@@ -237,7 +291,8 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
         const vw = src.videoWidth;
         const vh = src.videoHeight;
         if (vw && vh) {
-          const scale = Math.max(OUT_W / vw, OUT_H / vh);
+          const z = zoomRef.current || 1;
+          const scale = Math.max(OUT_W / vw, OUT_H / vh) * z;
           const dw = vw * scale;
           const dh = vh * scale;
           const dx = (OUT_W - dw) / 2;
@@ -276,7 +331,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
         setRemaining(MAX_SECONDS);
         setRecording(false);
         if (!blob.size) {
-          toast.error("Nothing was recorded — try choosing a video instead.");
+          toast.error("Nothing was recorded — try your phone camera instead.");
           return;
         }
         stopStream();
@@ -292,7 +347,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       stopTimerRef.current = window.setTimeout(stop, MAX_SECONDS * 1000);
     } catch (e) {
       console.error("record start failed", e);
-      toast.error("Couldn't start recording — choose a video instead.");
+      toast.error("Couldn't start recording — use your phone camera instead.");
     }
   };
 
@@ -304,7 +359,8 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const saveReview = async () => {
     if (!review) return;
     const duration = (await readDuration(review.blob)) ?? null;
-    await upload(review.blob, review.mime, duration);
+    const ok = await upload(review.blob, review.mime, duration);
+    if (!ok) return; // keep the clip on screen so the save can be retried
     URL.revokeObjectURL(review.url);
     setReview(null);
   };
@@ -313,11 +369,29 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     if (!file) return;
     const duration = await readDuration(file);
     if (duration !== null && duration > MAX_SECONDS + 1) {
-      toast.error("Videos must be 30 seconds or shorter.");
+      toast.error(`That clip is ${duration}s — keep it to ${MAX_SECONDS} seconds or shorter.`);
       return;
     }
-    await upload(file, file.type || "video/mp4", duration);
+    setReview({ url: URL.createObjectURL(file), blob: file, mime: file.type || "video/mp4" });
   };
+
+  // ---- Pinch to zoom on the live preview -----------------------------------
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    pinchRef.current = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom };
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const start = pinchRef.current;
+    if (!start || e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const ratio = dist / (start.dist || 1);
+    applyZoom(start.zoom * ratio);
+  };
+
+  const onTouchEnd = () => { pinchRef.current = null; };
 
   // ---- Review: watch it back, then save or retake -------------------------
   if (review) {
@@ -333,37 +407,42 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="goldGhost" size="sm" className="h-10" onClick={() => { discardReview(); void openCamera(); }} disabled={uploading}>
-            <RotateCcw className="size-4 mr-1.5" /> Retake
+          <Button type="button" variant="goldGhost" size="sm" className="h-10" onClick={discardReview} disabled={uploading}>
+            <RotateCcw className="size-4 mr-1.5" /> Discard
           </Button>
           <Button type="button" variant="gold" size="sm" className="h-10" onClick={() => void saveReview()} disabled={uploading}>
             {uploading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
             {uploading ? "Saving…" : "Save video"}
           </Button>
         </div>
-        <button
-          type="button"
-          onClick={discardReview}
-          disabled={uploading}
-          className="w-full text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-warn py-1"
-        >
-          Discard
-        </button>
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Watch it back, then save it to this step.
+        </p>
       </div>
     );
   }
 
+  const digitalZoom = !zoomCaps.native && cameraOn ? zoom : 1;
+
   return (
     <div className="space-y-2">
       {cameraOn && (
-        <div className="relative rounded-[12px] overflow-hidden bg-black">
+        <div
+          className="relative rounded-[12px] overflow-hidden bg-black touch-none"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <video
             ref={videoRef}
             playsInline
             muted
             autoPlay
             className="w-full aspect-[9/16] object-cover"
-            style={facing === "user" ? { transform: "scaleX(-1)" } : undefined}
+            style={{
+              transform: `${facing === "user" ? "scaleX(-1)" : ""} scale(${digitalZoom})`.trim(),
+              transformOrigin: "center",
+            }}
           />
           <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
             <span className="rounded-pill bg-background/85 px-2 py-0.5 text-[11px] font-medium tabular-nums">
@@ -390,8 +469,26 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
               </button>
             </div>
           </div>
+
+          {/* Zoom — pinch on the preview or drag this */}
+          <div className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-pill bg-background/85 px-3 py-1.5">
+            <ZoomIn className="size-3.5 shrink-0 text-muted-foreground" />
+            <Slider
+              value={[zoom]}
+              min={zoomCaps.min}
+              max={zoomCaps.max}
+              step={zoomCaps.step}
+              onValueChange={(v) => applyZoom(v[0])}
+              aria-label="Zoom"
+              className="flex-1"
+            />
+            <span className="text-[10px] tabular-nums text-muted-foreground w-8 text-right">
+              {(zoom / (zoomCaps.native ? zoomCaps.min || 1 : 1)).toFixed(1)}x
+            </span>
+          </div>
+
           {recording && (
-            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-pill bg-background/85 px-2 py-0.5 text-[11px] text-warn">
+            <span className="absolute bottom-12 left-2 inline-flex items-center gap-1.5 rounded-pill bg-background/85 px-2 py-0.5 text-[11px] text-warn">
               <span className="size-2 rounded-full bg-warn animate-pulse" /> Recording
             </span>
           )}
@@ -399,17 +496,30 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       )}
 
       <div className="grid grid-cols-1 gap-2">
-        {recorderAvailable && !cameraOn && (
+        {!cameraOn && (
           <Button
             type="button"
             variant="goldOutline"
+            size="sm"
+            className="h-10"
+            onClick={() => nativeRef.current?.click()}
+            disabled={uploading}
+          >
+            <Camera className="size-4 mr-1.5" /> Open phone camera
+          </Button>
+        )}
+
+        {recorderAvailable && !cameraOn && (
+          <Button
+            type="button"
+            variant="goldGhost"
             size="sm"
             className="h-10"
             onClick={() => void openCamera()}
             disabled={uploading || starting}
           >
             {starting ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Video className="size-4 mr-1.5" />}
-            {starting ? "Opening camera…" : "Record video"}
+            {starting ? "Opening camera…" : "Record here"}
           </Button>
         )}
 
@@ -440,10 +550,20 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       </div>
 
       <p className="text-[10px] text-muted-foreground leading-snug">
-        Hold your phone upright. 30 seconds maximum — recording stops on its own when time is up,
-        and you can watch it back before saving.
+        Open phone camera uses your own camera app, with its zoom, exposure and lens options — you'll
+        come back here to save the clip. Recording here gives you a countdown, front/back switch and
+        pinch-to-zoom. 30 seconds maximum either way.
       </p>
 
+      {/* Native camera app: full device controls */}
+      <input
+        ref={nativeRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => { void onPick(e.target.files?.[0]); e.currentTarget.value = ""; }}
+      />
       <input
         ref={fileRef}
         type="file"
