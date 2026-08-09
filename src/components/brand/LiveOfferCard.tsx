@@ -115,18 +115,18 @@ const LiveOfferCard = ({
             {startDate ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}` : ""}
           </p>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          <InsightTile icon={<Eye className="size-3.5" />} value={fmtNum(impressions)} label="Views" />
-          <InsightTile icon={<Maximize2 className="size-3.5" />} value={fmtNum(expands)} label="Expands" />
-          <InsightTile icon={<Ticket className="size-3.5" />} value={fmtNum(codeCopies)} label="Codes" />
-          <InsightTile icon={<ExternalLink className="size-3.5" />} value={fmtNum(linkClicks)} label="Clicks" />
-          <InsightTile icon={<Heart className="size-3.5" />} value={fmtNum(wishlist)} label="Saves" />
+        <div className="grid grid-cols-4 gap-1.5">
+          <InsightTile icon={<Users className="size-3.5" />} value={fmtNum(m.reach)} label="Reach" />
+          <InsightTile icon={<Maximize2 className="size-3.5" />} value={fmtNum(m.interactors)} label="Actions" />
+          <InsightTile icon={<Ticket className="size-3.5" />} value={fmtNum(m.code_copies)} label="Codes" />
+          <InsightTile icon={<ExternalLink className="size-3.5" />} value={fmtNum(m.link_clicks)} label="Clicks" />
         </div>
         <div className="mt-2.5 flex items-center justify-between rounded-[10px] bg-primary/5 border border-primary/15 px-2.5 py-1.5">
           <div className="min-w-0">
             <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">Engagement</p>
-            <p className="font-display text-[15px] leading-none mt-0.5 text-foreground">{engagement}%</p>
+            <p className="font-display text-[15px] leading-none mt-0.5 text-foreground">{formatEngagementRate(m)}</p>
           </div>
+
           <button
             type="button"
             onClick={onReview}
