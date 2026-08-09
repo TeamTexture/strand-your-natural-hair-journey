@@ -20,6 +20,9 @@ export type ConsentKey =
   | "personalised_offers"
   | "marketing_email";
 
+/** The professional confidentiality undertaking — asked for outside the login gate. */
+export const PRO_UNDERTAKING_KEY = "professional_data_handling" as const;
+
 /** Roles the requirement matrix understands (mirrors public.app_role). */
 export type ConsentRole = "consumer" | "professional" | "brand" | "admin";
 
@@ -50,13 +53,10 @@ export const ALL_CONSENT_KEYS: ConsentKey[] = [
  */
 const ROLE_MANDATORY: Record<ConsentRole, ConsentKey[]> = {
   consumer: ["terms", "privacy", "age_18", "medical_disclaimer", "health_data"],
-  professional: [
-    "terms",
-    "privacy",
-    "age_18",
-    "medical_disclaimer",
-    "professional_data_handling",
-  ],
+  // The Professional Data Handling Undertaking is NOT here on purpose. It is
+  // presented on entering the professional view, never blocks that view, and
+  // gates client passport access only (see has_active_client_access in the DB).
+  professional: ["terms", "privacy", "age_18", "medical_disclaimer"],
   // Admins may view member records and AI-generated summaries, so the medical
   // disclaimer applies; their own health data is only in scope via a consumer role.
   admin: ["terms", "privacy", "age_18", "medical_disclaimer"],
@@ -146,7 +146,12 @@ export function outstandingMandatory(
 }
 
 /** Which surface a consent decision came from — stored on `user_consents.source`. */
-export type ConsentSource = "consent_gate" | "hair_profile_prompt" | "settings";
+export type ConsentSource =
+  | "consent_gate"
+  | "hair_profile_prompt"
+  | "settings"
+  | "pro_entry"
+  | "passport_attempt";
 
 const rpc = (name: string, args: Record<string, unknown>) =>
   (supabase as unknown as {

@@ -34,8 +34,6 @@ const TICKBOX_LABEL = {
     "I accept STRAND's Terms of Service and Privacy Policy, and I confirm I am 18 or over.",
   health:
     "I explicitly consent to STRAND processing my health information — blood test results, scalp conditions, medications and health profile — to generate my personalised guidance. STRAND cannot be provided without this.",
-  professional:
-    "I undertake to keep confidential any member health information I am granted access to through STRAND, to use it only to provide care to that member, and to handle it in line with the Professional Data Handling Undertaking.",
 };
 
 const Tick = ({
@@ -92,21 +90,21 @@ const ConsentGateScreen = ({ outstanding, optionalKeys }: Props) => {
   const needTier1 = tier1Keys.length > 0;
   const needDisclaimer = outstanding.includes("medical_disclaimer");
   const needHealth = outstanding.includes("health_data");
-  const needProfessional = outstanding.includes("professional_data_handling");
 
   const offersOffered = optionalKeys.includes("personalised_offers");
   const marketingOffered = optionalKeys.includes("marketing_email");
 
   const [tier1, setTier1] = useState(false);
   const [health, setHealth] = useState(false);
-  const [professional, setProfessional] = useState(false);
   // TIER 3 — optional. Default OFF, and never blocks the continue button.
   const [offers, setOffers] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const mandatoryReady =
-    (!needTier1 || tier1) && (!needHealth || health) && (!needProfessional || professional);
+  // The Professional Data Handling Undertaking is intentionally absent here —
+  // it is presented on entering the professional view and gates client passport
+  // access only, never initial login.
+  const mandatoryReady = (!needTier1 || tier1) && (!needHealth || health);
 
   const submit = async () => {
     if (!mandatoryReady) return;
@@ -115,7 +113,6 @@ const ConsentGateScreen = ({ outstanding, optionalKeys }: Props) => {
       const payload: Partial<Record<ConsentKey, boolean>> = {};
       for (const key of tier1Keys) payload[key] = true;
       if (needHealth) payload.health_data = true;
-      if (needProfessional) payload.professional_data_handling = true;
       // Optional choices are always recorded — including a decline — but only
       // for the keys this account's roles were actually offered.
       if (offersOffered) payload.personalised_offers = offers;
@@ -166,24 +163,6 @@ const ConsentGateScreen = ({ outstanding, optionalKeys }: Props) => {
             </Tick>
             <div className="pl-8">
               <DocLink to="/legal/health-data" label="How we use health information" />
-            </div>
-          </SurfaceCard>
-        )}
-
-        {needProfessional && (
-          <SurfaceCard className="mt-3 space-y-3">
-            <Tick
-              id="consent-professional-data-handling"
-              checked={professional}
-              onChange={setProfessional}
-            >
-              {TICKBOX_LABEL.professional}
-            </Tick>
-            <div className="pl-8">
-              <DocLink
-                to="/legal/professional-undertaking"
-                label="Professional Data Handling Undertaking"
-              />
             </div>
           </SurfaceCard>
         )}
