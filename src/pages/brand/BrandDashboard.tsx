@@ -18,7 +18,9 @@ import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
 import BrandProfilePrompt from "@/components/brand/BrandProfilePrompt";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus, STATS_METHOD_NOTE } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferMetrics, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus, STATS_METHOD_NOTE } from "@/hooks/useBrandOffers";
+import { engagementFigure, formatEngagementRate } from "@/lib/brandMetrics";
+
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
