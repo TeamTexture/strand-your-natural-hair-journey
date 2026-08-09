@@ -100,12 +100,18 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsCha
       const matched = data?.category
         ? TOOL_CATEGORIES.find((c) => c.toLowerCase() === String(data.category).toLowerCase())
         : undefined;
+      const scrapedName = [data?.name, data?.tool_name, data?.title]
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .find((v) => v.length > 0);
       const created = await addTool({
-        name: String(data?.name || "New tool"),
+        name: scrapedName || "New tool",
         brand: data?.brand ? String(data.brand) : undefined,
         category: matched,
         notes: data?.summary ? String(data.summary) : undefined,
-        imageUrl: data?.image_url ? String(data.image_url) : null,
+        imageUrl:
+          (typeof data?.image_url === "string" && data.image_url) ||
+          (typeof data?._source_image_url === "string" && data._source_image_url) ||
+          null,
         matchScore:
           typeof rawScore === "number" ? Math.max(0, Math.min(100, Math.round(rawScore))) : null,
         aiAnalysis: data as Record<string, unknown>,
@@ -113,9 +119,10 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsCha
       });
       if (created) {
         onToggle(created.id);
+        onToolsChanged?.();
         setLinkUrl("");
         onOpenChange(false);
-        toast.success("Tool added to this step");
+        toast.success("Tool added to My Tools and this step");
       }
     } catch (e) {
       console.error("tool URL scan failed", e);
