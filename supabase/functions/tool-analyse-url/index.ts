@@ -472,9 +472,10 @@ async function runLovable(args: {
   if (!aiApiKey) throw new Error("LOVABLE_API_KEY not configured");
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
 
+  const lovableUrl = await resolveShortLink(args.url);
   let scraped: ScrapeResult | null = null;
-  if (firecrawlKey) scraped = await scrapeWithFirecrawl(args.url, firecrawlKey);
-  if (!scraped) scraped = await scrapeWithFetch(args.url);
+  if (firecrawlKey) scraped = await scrapeWithFirecrawl(lovableUrl, firecrawlKey);
+  if (!scraped) scraped = await scrapeWithFetch(lovableUrl);
   if (!scraped) {
     const e: Error & { status?: number } = new Error(
       "Couldn't reach that page. The retailer may be blocking automated access — try a different link or add the tool manually.",

@@ -692,7 +692,7 @@ async function prefetchPage(
       const scraped = await scrapeWithFirecrawl(url, firecrawlKey);
       if (scraped && scraped.text.length > result.text.length) {
         result = {
-          imageUrl: scraped.image_url ?? result.imageUrl,
+          imageUrl: scraped.imageUrl ?? result.imageUrl,
           title: scraped.title || result.title,
           text: scraped.text,
         };
@@ -873,11 +873,12 @@ Deno.serve(async (req: Request) => {
       // Fetch the page ourselves first (~1-2s) and hand the text to Claude so
       // it can answer in a single pass instead of an agentic web_fetch loop.
       console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
-      const pre = await prefetchPage(url);
+      const resolvedUrl = await resolveShortLink(url);
+      const pre = await prefetchPage(resolvedUrl);
       const ogImage = pre.imageUrl;
       console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
       const claudeRes = await runClaude({
-        url,
+        url: resolvedUrl,
         context: ctx,
         selectorContext: buildSelectorContext(body),
         pageText: pre.text,
