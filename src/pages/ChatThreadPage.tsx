@@ -403,6 +403,42 @@ const ChatThreadPage = () => {
     }
   };
 
+  // Voice note: recording stops, then the audio is uploaded, transcribed and
+  // sent as its own message. The typed draft is left untouched.
+  const voice = useVoiceRecorder((rec) => {
+    sendVoice
+      .mutateAsync(rec)
+      .then(() => toast.success("Voice note sent"))
+      .catch((err) =>
+        toast.error(err instanceof Error ? err.message : "Could not send that voice note"),
+      );
+  });
+
+  useEffect(() => {
+    if (voice.error) {
+      toast.error(voice.error);
+      voice.setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.error]);
+
+  const attachPhoto = async (file: File | null) => {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("That photo is over 20MB — please choose a smaller one.");
+      return;
+    }
+    try {
+      await sendImage.mutateAsync({ file, caption: draft.trim() || undefined });
+      setDraft("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send that photo");
+    }
+  };
+
+
+
   if (!threadId) {
     return (
       <ScreenLayout>
