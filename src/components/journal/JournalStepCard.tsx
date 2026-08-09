@@ -99,10 +99,24 @@ const JournalStepCard = ({
   onToggleProduct,
   onToggleTool,
   onProductsChanged,
+  onDraftChange,
+  discardSignal = 0,
 }: Props) => {
   const { user } = useAuth();
   const { startStepLinkScan } = useStepLinkScan();
   const { tools: toolCatalogue, reload: reloadTools } = useUserTools();
+
+  // The note is a DRAFT until saved. Media, products, tools and voice notes
+  // still commit immediately — only typed text can be lost.
+  const [noteDraft, setNoteDraft] = useState(step.note ?? "");
+  useEffect(() => { setNoteDraft(step.note ?? ""); }, [step.id, step.note, discardSignal]);
+  const noteDirty = noteDraft !== (step.note ?? "");
+  useEffect(() => {
+    onDraftChange?.(step.id, noteDirty ? noteDraft : null);
+  }, [step.id, noteDirty, noteDraft, onDraftChange]);
+  useEffect(() => () => onDraftChange?.(step.id, null), [step.id, onDraftChange]);
+
+
   const [toolPickerOpen, setToolPickerOpen] = useState(false);
   const selectedToolIds = step.tools
     .map((t) => t.user_tool_id)
