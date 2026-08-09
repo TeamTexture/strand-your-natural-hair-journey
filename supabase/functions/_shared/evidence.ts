@@ -122,7 +122,7 @@ Your ONLY job is to EXTRACT EVIDENCE. You must NOT write advice, tips, recommend
 Select the passages from the supplied chapters that are relevant to this reader. For each one return:
 - "n": the number of the numbered SOURCE PASSAGE it came from.
 - "passage": the relevant text, copied from that passage as closely to verbatim as possible. Never paraphrase into your own words. Never merge two passages. Keep it TIGHT: 25-70 words, the sentences that carry the point and nothing around them.
-- "relevance": ONE line stating why it applies to this reader. Reference the reader's own recorded facts. This is not advice.
+- "relevance": ONE short line stating why it applies to this reader. Reference the reader's own recorded facts. This is not advice. Max 20 words.
 
 Rules:
 - Extract ONLY from the supplied passages. Never add anything from your own knowledge of hair care, and never "correct" or "complete" the author. If the author's position contradicts common industry advice, extract the AUTHOR'S position.
@@ -130,7 +130,8 @@ Rules:
 - Always include any passage where the author states what a word means or what she reserves it for.
 - COVER THE ACTIONS, NOT JUST THE DEFINITIONS. The writer who receives your evidence must be able to tell this reader what to DO and why. So you must also extract the passages where the author says HOW something is done: the steps, the order they go in, how often, what to use, what to avoid, and what she says happens as a result. An evidence set of definitions alone is a failed extraction.
 - Extract at least one passage for each distinct thing this reader might reasonably be told to do, given her recorded style and goal.
-- Return between 8 and 16 items. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
+- Return between 6 and 10 items — no more. Choose the strongest; a tight set beats a long one. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
+- Be economical. Do not restate, do not explain your choices, do not add commentary outside the JSON fields.
 
 THEN CLASSIFY COVERAGE of this reader's situation by the supplied chapters. Exactly one of:
 - "explicit": the author directly addresses this reader's situation — her style, her stated goal or challenge, the thing being asked about. Prefer this classification. The book covers language, styling, scalp health, wash day, moisture retention, ingredients, length retention, treatments and colouring thoroughly, so most situations ARE explicit.
