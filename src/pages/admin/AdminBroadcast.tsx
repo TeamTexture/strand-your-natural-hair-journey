@@ -84,6 +84,13 @@ const AdminBroadcast = () => {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  // Optional voice note. It is recorded here and only uploaded on send, so the
+  // admin can re-record before committing to thousands of recipients.
+  const [clip, setClip] = useState<VoiceRecording | null>(null);
+  const voice = useVoiceRecorder((rec) => setClip(rec));
+
+
+
   const { data: history } = useQuery({
     queryKey: ["admin", "broadcasts"],
     enabled: !!user?.id,
