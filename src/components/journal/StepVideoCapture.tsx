@@ -487,7 +487,13 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   // ---- Review: watch it back, then save or retake -------------------------
   if (review) {
     return (
-      <div className="space-y-2">
+      <div
+        className="space-y-2"
+        ref={(el) => el?.scrollIntoView({ block: "center", behavior: "smooth" })}
+      >
+        <p className="text-[11px] font-medium text-primary">
+          Your clip is ready — watch it back, then tap Save video.
+        </p>
         <div className="rounded-[12px] overflow-hidden bg-black">
           <video
             ref={reviewRef}
