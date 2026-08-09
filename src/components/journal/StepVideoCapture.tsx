@@ -698,6 +698,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
           {uploading
             ? "Uploading…"
             : preparing
+
               ? compressPct !== null
                 ? `Compressing ${compressPct}%…`
                 : "Checking your clip…"
