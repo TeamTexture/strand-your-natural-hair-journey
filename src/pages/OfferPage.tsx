@@ -81,7 +81,12 @@ const OfferPage = () => {
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      // Products come through the join table (no direct offer->product FK), so
+      // flatten them back to `brand_products` in the brand's chosen order.
+      return flattenOfferProducts(data as unknown as Record<string, unknown>) as typeof data & {
+        brand_products: Array<Record<string, unknown>>;
+      };
     },
   });
 
