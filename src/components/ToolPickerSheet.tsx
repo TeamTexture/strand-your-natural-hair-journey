@@ -63,7 +63,7 @@ const Row = ({ t, selected, onClick }: { t: UserTool; selected: boolean; onClick
  * member already owns or has wishlisted, or add a new one from a link (analysed
  * with `tool-analyse-url`, then saved to My Tools and attached straight away).
  */
-const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) => {
+const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsChanged }: Props) => {
   const { tools: allTools, loading, addTool } = useUserTools();
   const [tab, setTab] = useState<"owned" | "wishlist">("owned");
   const [showAdd, setShowAdd] = useState(false);
