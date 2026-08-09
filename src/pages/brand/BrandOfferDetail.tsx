@@ -88,21 +88,14 @@ const BrandOfferDetail = () => {
   if (isLoading || !offer) return <LoadingDot />;
 
   // Performance is always reported at any audience size. Brands see approximate
-  // ranges (banded), admins see exact figures.
-  const statRows = offer.brand_offer_stats ?? [];
-  const statsSuppressed = statRows.length === 0;
-  const statsFetchedAt = offer.stats_fetched_at ? new Date(offer.stats_fetched_at) : null;
+  // ranges (banded), admins see exact figures. Figures come from the canonical
+  // metrics query — the per-slot brand_offer_stats rows are no longer summed
+  // here, because summing a daily rollup double-counts returning members and was
+  // the source of the contradictory impression counts.
+  const stats = metrics?.all ?? EMPTY_METRICS;
+  const statsSuppressed = stats.reach === 0 && stats.raw_views === 0;
+  const statsFetchedAt = metricsUpdatedAt ? new Date(metricsUpdatedAt) : null;
 
-  const stats = statRows.reduce(
-    (acc, s) => ({
-      impressions: acc.impressions + (s.impressions ?? 0),
-      expands: acc.expands + (s.expands ?? 0),
-      wishlist: acc.wishlist + (s.wishlist_adds ?? 0),
-      codeCopies: acc.codeCopies + ((s as { code_copies?: number | null }).code_copies ?? 0),
-      linkClicks: acc.linkClicks + ((s as { link_clicks?: number | null }).link_clicks ?? 0),
-    }),
-    { impressions: 0, expands: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
-  );
 
   const placements = offer.brand_offer_placements ?? [];
   const bySlot = placements.reduce<Record<string, string[]>>((acc, p) => {
