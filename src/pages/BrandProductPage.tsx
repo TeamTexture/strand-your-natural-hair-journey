@@ -40,7 +40,15 @@ const formatDate = (iso: string | null | undefined) => {
 };
 
 const BrandProductPage = () => {
-  const { offerId, productId } = useParams<{ offerId: string; productId: string }>();
+  // Reached two ways: from an advert (/offers/:offerId/product/:productId) and
+  // straight from a brand's permanent shelf (/brands/:brandUserId/catalogue/
+  // :brandProductId), where there is no offer at all.
+  const {
+    offerId,
+    productId: offerProductId,
+    brandProductId,
+  } = useParams<{ offerId: string; productId: string; brandProductId: string }>();
+  const productId = offerProductId ?? brandProductId;
   const [params] = useSearchParams();
   const slot = (params.get("slot") as PlacementSlot | null) ?? null;
   const nav = useNavigate();
