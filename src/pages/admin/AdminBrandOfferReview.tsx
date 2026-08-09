@@ -292,9 +292,20 @@ const AdminBrandOfferReview = () => {
 
   if (isLoading || !offer) return <LoadingDot />;
 
+  /** Sponsored wash day tips are pre-generated in the background at approval, so
+   *  the member sees them instantly instead of waiting for a live generation. */
+  const pregenerateSponsoredTips = () => {
+    void supabase.functions
+      .invoke("brand-tips-pregenerate", { body: { offer_id: offer.id } })
+      .catch(() => {
+        /* best-effort: serving still falls back to on-demand generation */
+      });
+  };
+
   const setStatus = async (status: string, extra: Record<string, unknown> = {}) => {
     const { error } = await supabase.from("brand_offers").update({ status: status as never, ...extra }).eq("id", offer.id);
     if (error) return toast.error(error.message);
+    if (["approved_unpaid", "paid_scheduled", "live"].includes(status)) pregenerateSponsoredTips();
     toast.success("Updated");
     qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
     qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
@@ -341,6 +352,7 @@ const AdminBrandOfferReview = () => {
         .eq("id", offer.id);
       if (error) throw error;
 
+      pregenerateSponsoredTips();
       toast.success(nextStatus === "live" ? "Live now — payment waived" : "Scheduled — payment waived");
       qc.invalidateQueries({ queryKey: ["brand-offer", offer.id] });
       qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
