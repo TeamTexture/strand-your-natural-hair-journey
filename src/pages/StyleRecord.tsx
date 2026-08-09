@@ -442,6 +442,26 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           </div>
         )}
 
+        {mediaCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setCoverOpen(true)}
+            className="w-full flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5"
+          >
+            <Images className="size-3.5" />
+            {entry.cover_media_id ? "Change journal cover" : "Choose journal cover"}
+          </button>
+        )}
+
+        <CoverPicker
+          entryId={entry.id}
+          steps={steps}
+          coverMediaId={entry.cover_media_id}
+          open={coverOpen}
+          onClose={() => setCoverOpen(false)}
+          onSaved={(id) => setEntry((e) => (e ? { ...e, cover_media_id: id } : e))}
+        />
+
         <PendingStepProducts entryId={entry.id} />
 
         {stepsLoading && steps.length === 0 ? null : steps.length === 0 ? (
