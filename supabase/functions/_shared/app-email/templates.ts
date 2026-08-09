@@ -513,7 +513,31 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ].filter(Boolean),
     (d) => ({ label: "Open admin", path: s(d.path, "/admin") }),
   ),
+  // A member/pro/brand sent a message. The body is deliberately NOT reproduced —
+  // the CTA deep links straight to the message inside STRAND.
+  "admin-new-message": t(
+    "admin-new-message",
+    "transactional",
+    true,
+    (d) => `New STRAND message — ${s(d.fromName, "someone")}`,
+    () => [
+      "A new message has arrived in the STRAND admin inbox.",
+      "Open it in STRAND to read and reply.",
+    ],
+    (d) => ({ label: "Open the message", path: s(d.path, "/admin/messages") }),
+    undefined,
+    {
+      eyebrow: "Admin",
+      footerNote: "You are receiving this because you are an admin on STRAND.",
+      rows: (d) => [
+        { label: "From", value: s(d.fromName) },
+        { label: "Subject", value: s(d.subject) },
+        { label: "Received", value: s(d.received) },
+      ],
+    },
+  ),
   // Already live in production — bypasses the global flag.
+
   "admin-application-received": t(
     "admin-application-received",
     "transactional",
