@@ -483,8 +483,8 @@ Deno.serve(async (req) => {
 
 
   // TWO-STAGE GROUNDED GENERATION. Stage 1 reads chapters 15, 14 + 1 in full and
-  // extracts the evidence; this call (stage 2) receives the evidence ONLY, so the
-  // writer has no general ingredient knowledge available to it.
+  // extracts the evidence; this call (stage 2) receives the evidence, which stays
+  // the primary source.
   const evid = await evidencePromptBlock({
     fn: "brand-product-guidance",
     surface: "brand-product-guidance",
@@ -492,9 +492,32 @@ Deno.serve(async (req) => {
   });
   const groundingBlock = evid.grounded ? `\n\n${evid.block}` : "";
 
-  const system = `${SYSTEM}${groundingBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
+  // GROUNDING POLICY B — sponsored product surface. Established cosmetic science
+  // is permitted here for the ingredients the book does not cover, because the
+  // manuscript cannot cover every commercial formula. The author still governs
+  // every ingredient she covers, her lexicon still binds, and brand marketing is
+  // never a source. The ingredient lookup makes constraint 1 mechanical rather
+  // than a judgement each time. See _shared/policy-b.ts.
+  const declared = (body.product.ingredients ?? [])
+    .map((s) => String(s ?? "").trim())
+    .filter(Boolean);
+  const brandCopy = [
+    body.product.description ?? "",
+    ...(body.product.key_features ?? []),
+  ].filter(Boolean).join("\n").slice(0, 1500) || null;
+  const match = matchIngredients(declared, await loadManuscriptIngredients());
+  const policyBlock = `\n\n${policyBBlock({
+    productName: body.product.name,
+    brandName: body.product.brand ?? null,
+    declared,
+    match,
+    brandCopy,
+  })}`;
+
+  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
+
 
   try {
     const messages: Array<{ role: string; content: string }> = [
