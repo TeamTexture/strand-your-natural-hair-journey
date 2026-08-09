@@ -43,6 +43,7 @@ import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
 import PendingStepProducts from "@/components/journal/PendingStepProducts";
 import StepReviewCard from "@/components/journal/StepReviewCard";
+import CoverPicker from "@/components/journal/CoverPicker";
 
 /** One at-a-glance figure, matching the wash day detail screen. */
 const Stat = ({
