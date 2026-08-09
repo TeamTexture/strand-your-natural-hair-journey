@@ -448,12 +448,26 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
           </Button>
           <Button type="button" variant="gold" size="sm" className="h-10" onClick={() => void saveReview()} disabled={uploading}>
             {uploading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
-            {uploading ? "Saving…" : "Save video"}
+            {uploading ? (progress !== null ? `Saving ${progress}%` : "Saving…") : "Save video"}
           </Button>
         </div>
+        {uploading && (
+          <div className="space-y-1">
+            <div className="h-1.5 w-full rounded-pill bg-secondary overflow-hidden">
+              <div
+                className="h-full rounded-pill bg-primary transition-[width] duration-200"
+                style={{ width: `${progress ?? 5}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Uploading {mb(review.blob.size)} — keep this screen open until it finishes.
+            </p>
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground leading-snug">
-          Watch it back, then save it to this step.
+          Watch it back, then save it to this step. You'll see it appear in the step once it's saved.
         </p>
+
       </div>
     );
   }
