@@ -231,8 +231,10 @@ const JournalStepCard = ({
     mediaCount ? `${mediaCount} ${mediaCount === 1 ? "photo/video" : "photos & videos"}` : null,
     selectedIds.length ? `${selectedIds.length} product${selectedIds.length === 1 ? "" : "s"}` : null,
     selectedToolIds.length ? `${selectedToolIds.length} tool${selectedToolIds.length === 1 ? "" : "s"}` : null,
+    step.voice_path ? "voice note" : null,
   ].filter(Boolean) as string[];
-  const notePreview = (step.note ?? "").trim();
+  const notePreview = (step.note ?? "").trim() || (step.voice_transcript ?? "").trim();
+
 
   return (
     <div className="rounded-[14px] border border-border bg-card p-3.5 space-y-3">
@@ -292,12 +294,15 @@ const JournalStepCard = ({
 
       {!isOpen && (
         <button type="button" onClick={onToggleExpand} className="w-full text-left space-y-1">
-          <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
-            {notePreview || "Nothing recorded yet — tap to add"}
-          </p>
+          {(notePreview || summaryBits.length === 0) && (
+            <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
+              {notePreview || "Nothing recorded yet — tap to add"}
+            </p>
+          )}
           {summaryBits.length > 0 && (
             <p className="text-[11px] text-muted-foreground">{summaryBits.join(" · ")}</p>
           )}
+
           {noteDirty && (
             <p className="text-[10px] uppercase tracking-[0.14em] text-primary">Unsaved note</p>
           )}
