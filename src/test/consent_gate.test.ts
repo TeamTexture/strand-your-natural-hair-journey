@@ -4,8 +4,11 @@ import {
   MANDATORY_KEYS,
   OPTIONAL_KEYS,
   outstandingMandatory,
-  mandatoryKeysForRoles,
-  optionalKeysForRoles,
+  mandatoryKeysForView,
+  optionalKeysForView,
+  keyAllowedInView,
+  resolveConsentView,
+  unansweredOptional,
   type ConsentRow,
 } from "@/lib/consent";
 
@@ -43,58 +46,111 @@ describe("consent gate logic", () => {
   });
 });
 
-describe("role-aware requirement matrix", () => {
-  it("a brand is never asked for health data or the medical disclaimer", () => {
-    expect(mandatoryKeysForRoles(["brand"])).toEqual(["terms", "privacy", "age_18"]);
-    expect(optionalKeysForRoles(["brand"])).toEqual(["marketing_email"]);
+describe("view-scoped requirement matrix", () => {
+  it("the brand view is never asked for health data or the medical disclaimer", () => {
+    expect(mandatoryKeysForView("brand")).toEqual(["terms", "privacy", "age_18"]);
+    expect(optionalKeysForView("brand")).toEqual(["marketing_email"]);
   });
 
   it("a brand can complete with the three base keys only", () => {
     const rows = ["terms", "privacy", "age_18"].map((k) => row(k, true));
-    expect(outstandingMandatory(rows, ["brand"])).toEqual([]);
+    expect(outstandingMandatory(rows, "brand")).toEqual([]);
   });
 
-  it("a professional is NOT asked for the undertaking or health data at login", () => {
-    expect(mandatoryKeysForRoles(["professional"])).toEqual([
+  it("the professional view is NOT asked for the undertaking or health data at login", () => {
+    expect(mandatoryKeysForView("pro")).toEqual([
       "terms",
       "privacy",
       "age_18",
       "medical_disclaimer",
     ]);
-    expect(optionalKeysForRoles(["professional"])).toEqual(["marketing_email"]);
+    expect(optionalKeysForView("pro")).toEqual(["marketing_email"]);
   });
 
   it("a professional can complete initial login without the undertaking", () => {
     const rows = ["terms", "privacy", "age_18", "medical_disclaimer"].map((k) => row(k, true));
-    expect(outstandingMandatory(rows, ["professional"])).toEqual([]);
+    expect(outstandingMandatory(rows, "pro")).toEqual([]);
   });
 
-  it("a consumer keeps the full member matrix", () => {
-    expect(mandatoryKeysForRoles(["consumer"])).toEqual(MANDATORY_KEYS);
-    expect(optionalKeysForRoles(["consumer"])).toEqual(OPTIONAL_KEYS);
+  it("the consumer view keeps the full member matrix", () => {
+    expect(mandatoryKeysForView("consumer")).toEqual(MANDATORY_KEYS);
+    expect(optionalKeysForView("consumer")).toEqual(OPTIONAL_KEYS);
   });
 
-  it("dual roles take the union — a pro who is also a member gets health data", () => {
-    expect(mandatoryKeysForRoles(["professional", "consumer"])).toEqual([
-      "terms",
-      "privacy",
-      "age_18",
-      "medical_disclaimer",
-      "health_data",
-    ]);
-  });
-
-
-  it("admin + brand needs the disclaimer but not health data", () => {
-    expect(mandatoryKeysForRoles(["admin", "brand"])).toEqual([
+  it("the admin view needs the disclaimer but not health data", () => {
+    expect(mandatoryKeysForView("admin")).toEqual([
       "terms",
       "privacy",
       "age_18",
       "medical_disclaimer",
     ]);
+  });
+});
+
+describe("no consent leaks across views", () => {
+  const views = ["consumer", "pro", "brand", "admin"] as const;
+
+  it("the professional undertaking is never mandatory in ANY view", () => {
+    for (const v of views) {
+      expect(mandatoryKeysForView(v)).not.toContain("professional_data_handling");
+      expect(optionalKeysForView(v)).not.toContain("professional_data_handling");
+      expect(outstandingMandatory([], v)).not.toContain("professional_data_handling");
+    }
+  });
+
+  it("the undertaking is only ALLOWED to render in the professional view", () => {
+    expect(keyAllowedInView("professional_data_handling", "pro")).toBe(true);
+    expect(keyAllowedInView("professional_data_handling", "consumer")).toBe(false);
+    expect(keyAllowedInView("professional_data_handling", "brand")).toBe(false);
+    expect(keyAllowedInView("professional_data_handling", "admin")).toBe(false);
+  });
+
+  it("health data and personalised offers never reach the pro, brand or admin views", () => {
+    for (const v of ["pro", "brand", "admin"] as const) {
+      expect(keyAllowedInView("health_data", v)).toBe(false);
+      expect(keyAllowedInView("personalised_offers", v)).toBe(false);
+    }
+  });
+
+  it("the medical disclaimer never reaches the brand view", () => {
+    expect(keyAllowedInView("medical_disclaimer", "brand")).toBe(false);
+  });
+
+  it("a four-role account gets ONLY the active view's keys, never the union", () => {
+    const roles = ["consumer", "professional", "brand", "admin"] as const;
+    expect(resolveConsentView("consumer", [...roles])).toBe("consumer");
+    expect(mandatoryKeysForView(resolveConsentView("consumer", [...roles]))).toEqual(MANDATORY_KEYS);
+    expect(mandatoryKeysForView(resolveConsentView("brand", [...roles]))).toEqual([
+      "terms",
+      "privacy",
+      "age_18",
+    ]);
+    expect(mandatoryKeysForView(resolveConsentView("pro", [...roles]))).not.toContain("health_data");
+  });
+
+  it("an unheld view falls back to the member view rather than asking foreign consents", () => {
+    expect(resolveConsentView("brand", ["consumer"])).toBe("consumer");
+    expect(resolveConsentView("pro", ["consumer"])).toBe("consumer");
   });
 
   it("an account with no roles yet is treated as a member", () => {
-    expect(mandatoryKeysForRoles([])).toEqual(MANDATORY_KEYS);
+    expect(resolveConsentView("consumer", [])).toBe("consumer");
+    expect(mandatoryKeysForView("consumer")).toEqual(MANDATORY_KEYS);
+  });
+});
+
+describe("answered consents are never re-asked", () => {
+  it("an optional consent already granted is not outstanding", () => {
+    const rows = [...allMandatory(), row("personalised_offers", true)];
+    expect(unansweredOptional(rows, "consumer")).toEqual(["marketing_email"]);
+  });
+
+  it("an optional consent already DECLINED is not re-asked either", () => {
+    const rows = [...allMandatory(), row("personalised_offers", false), row("marketing_email", false)];
+    expect(unansweredOptional(rows, "consumer")).toEqual([]);
+  });
+
+  it("only genuinely unanswered optional keys are offered", () => {
+    expect(unansweredOptional(allMandatory(), "consumer")).toEqual(OPTIONAL_KEYS);
   });
 });
