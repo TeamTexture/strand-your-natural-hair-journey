@@ -23,23 +23,43 @@ import { addBrandProductToShelf, type BrandShelfProduct } from "@/lib/addBrandPr
 import { anchorProps } from "@/lib/scrollMemory";
 import { toast } from "sonner";
 
+// A catalogue item the member already owns can live in EITHER table: products
+// in user_products, tools in user_tools. Read both so a tool the member already
+// keeps in My Tools shows as "on your shelf" instead of offering to add it
+// again (which is how the duplicate heat hat appeared).
 const useMyBrandLinks = (ids: string[]) => {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["my-brand-product-links", user?.id, ids.join(",")],
     enabled: !!user && ids.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_products")
-        .select("product_key, linked_brand_product_id, on_shelf, on_wishlist")
-        .eq("user_id", user!.id)
-        .in("linked_brand_product_id", ids);
-      if (error) throw error;
+      const [products, tools] = await Promise.all([
+        supabase
+          .from("user_products")
+          .select("product_key, linked_brand_product_id, on_shelf, on_wishlist")
+          .eq("user_id", user!.id)
+          .in("linked_brand_product_id", ids),
+        supabase
+          .from("user_tools")
+          .select("id, linked_brand_product_id, on_shelf, on_wishlist")
+          .eq("user_id", user!.id)
+          .in("linked_brand_product_id", ids),
+      ]);
+      if (products.error) throw products.error;
       const map: Record<string, { product_key: string; on_shelf: boolean; on_wishlist: boolean }> = {};
-      for (const row of (data ?? []) as { product_key: string; linked_brand_product_id: string | null; on_shelf: boolean | null; on_wishlist: boolean | null }[]) {
+      for (const row of (products.data ?? []) as { product_key: string; linked_brand_product_id: string | null; on_shelf: boolean | null; on_wishlist: boolean | null }[]) {
         if (row.linked_brand_product_id) {
           map[row.linked_brand_product_id] = {
             product_key: row.product_key,
+            on_shelf: !!row.on_shelf,
+            on_wishlist: !!row.on_wishlist,
+          };
+        }
+      }
+      for (const row of (tools.data ?? []) as { id: string; linked_brand_product_id: string | null; on_shelf: boolean | null; on_wishlist: boolean | null }[]) {
+        if (row.linked_brand_product_id) {
+          map[row.linked_brand_product_id] = {
+            product_key: row.id,
             on_shelf: !!row.on_shelf,
             on_wishlist: !!row.on_wishlist,
           };
@@ -69,13 +89,19 @@ const BrandShelfSection = ({
   const add = async (product: BrandShelfProduct, destination: "shelf" | "wishlist") => {
     if (!user) { toast.error("Please sign in"); return; }
     setPending(product.id);
-    const key = await addBrandProductToShelf({ userId: user.id, brandName, product, destination });
+    const added = await addBrandProductToShelf({ userId: user.id, brandName, product, destination });
     setPending(null);
-    if (!key) { toast.error("Could not add that product"); return; }
+    if (!added) { toast.error("Could not add that item"); return; }
     await qc.invalidateQueries({ queryKey: ["my-brand-product-links"] });
     toast.success(destination === "shelf" ? "Added to your shelf" : "Saved to your wishlist");
+    // Tools have no ingredient label — they belong in My Tools and open their
+    // own tool profile, never the ingredient analysis page.
+    if (added.kind === "tool") {
+      nav(`/tools/${added.toolId}`);
+      return;
+    }
     nav(
-      `/products/ingredient?key=${encodeURIComponent(key)}&name=${encodeURIComponent(product.name)}&brand=${encodeURIComponent(brandName ?? "")}`,
+      `/products/ingredient?key=${encodeURIComponent(added.productKey)}&name=${encodeURIComponent(product.name)}&brand=${encodeURIComponent(brandName ?? "")}`,
     );
   };
 

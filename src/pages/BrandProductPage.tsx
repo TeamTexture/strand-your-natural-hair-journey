@@ -196,7 +196,8 @@ const BrandProductPage = () => {
             tool_key: toolKeyFor(product.id),
             name: product.name,
             brand: brandName,
-            category: null,
+            // Keep the tool's kind so it files correctly in My Tools.
+            category: (product as { tool_kind?: string | null }).tool_kind ?? null,
             image_url: product.image_urls?.[0] ?? null,
             notes: product.description ?? null,
             source_url: product.external_url ?? null,
