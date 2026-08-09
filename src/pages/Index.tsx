@@ -85,9 +85,19 @@ const Index = () => {
 
       // Brand accounts skip the consumer onboarding/paywall entirely. The
       // default consumer role can still exist on older accounts, so don't use
-      // it as evidence that this is an end-user login.
-      if (brandProf && hasBrand && !hasPro && !hasAdmin) {
+      // it as evidence that this is an end-user login. The brand role alone is
+      // enough — waiting on a brand_profiles row sent brand-new brands down
+      // the consumer membership splash instead of the £99/year access page.
+      if (hasBrand && !hasPro && !hasAdmin) {
         navigate(await getBrandEntryPath(user.id, roles), { replace: true });
+        return;
+      }
+
+      // Brand-intent signup whose role hasn't been provisioned yet (email
+      // confirmation flow): route via the brand auth surface, which finishes
+      // provisioning and then sends them to the access page.
+      if (!hasBrand && !hasPro && !hasAdmin && (brandProf || user.user_metadata?.brand_intent)) {
+        navigate("/brand/auth?mode=signin", { replace: true });
         return;
       }
 
