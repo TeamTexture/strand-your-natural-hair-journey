@@ -536,7 +536,30 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       ],
     },
   ),
+  // STRAND (admin) has messaged a member, professional or brand.
+  // Essential + `legacy` so it can never be switched off or gated: the body is
+  // NEVER reproduced (it can contain personal or health detail) — the CTA deep
+  // links to the thread, and survives the login redirect via ?next=.
+  "strand-message-received": t(
+    "strand-message-received",
+    "transactional",
+    true,
+    () => "STRAND has sent you a message",
+    () => [
+      "The STRAND team has sent you a message.",
+      "For your privacy we do not include the message here — open STRAND to read it and reply.",
+    ],
+    (d) => ({ label: "Read your message", path: s(d.path, "/messages") }),
+    undefined,
+    {
+      eyebrow: "Message",
+      legacy: true,
+      rows: (d) => [{ label: "Sent", value: s(d.received) }],
+    },
+  ),
   // Already live in production — bypasses the global flag.
+
+
 
   "admin-application-received": t(
     "admin-application-received",
