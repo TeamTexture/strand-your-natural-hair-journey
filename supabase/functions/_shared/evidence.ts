@@ -619,8 +619,13 @@ export interface StoreEvidenceInput {
   attempts?: number;
   stage2Tokens?: number;
   verifyTokens?: number;
+  /** Which grounding policy ran: A = editorial, B = sponsored product. */
+  policy?: "A" | "B";
+  /** Policy B: every served claim with its source class. */
+  claimSources?: Array<{ text: string; source: string; basis?: string }>;
   /** Supplement mode: the claims that came from established science, labelled. */
   externalClaims?: ExternalClaim[];
+
 }
 
 /** Persist the evidence set keyed to the generated tip. Returns its id. */
