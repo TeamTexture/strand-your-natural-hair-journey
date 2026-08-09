@@ -409,11 +409,8 @@ const JournalStepCard = ({
                 <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
                 <div className="flex items-center gap-1.5 min-w-0">
                   {t?.brand && <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>}
-                  {typeof t?.rating === "number" && t.rating > 0 ? (
-                    <StarRating value={t.rating} size="size-3" />
-                  ) : (
-                    <MatchStars item={t ?? null} size="sm" showValue={false} />
-                  )}
+                  <MatchStars item={t ?? null} size="sm" showValue={false} />
+
                 </div>
               </div>
               <ChevronRight className="size-4 text-muted-foreground shrink-0" />
