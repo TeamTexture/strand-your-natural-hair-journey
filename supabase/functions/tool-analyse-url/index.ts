@@ -47,8 +47,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v4-image-2026-08-09";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v4-image-2026-08-09";
+const MODEL_VERSION = "claude-haiku-4-5@v5-verified-image-2026-08-09";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v5-verified-image-2026-08-09";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
@@ -347,6 +347,73 @@ function firstMarkdownImage(md: string): string | null {
 
 function firstUsableImage(...candidates: Array<string | null | undefined>): string | null {
   return candidates.find((c) => isLikelyProductImage(c)) ?? null;
+}
+
+/** Retailers often expose a technically valid og:image that is actually a tiny
+ * ticket, badge or tracking tile. Reject very small payloads before saving it. */
+async function isSubstantialRemoteImage(url: string | null): Promise<boolean> {
+  if (!url || !isLikelyProductImage(url)) return false;
+  try {
+    const resp = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "image/avif,image/webp,image/*" },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!resp.ok || !/^image\//i.test(resp.headers.get("content-type") ?? "")) return false;
+    const declared = Number(resp.headers.get("content-length") ?? 0);
+    if (declared > 0) {
+      try { await resp.body?.cancel(); } catch { /* ignore */ }
+      return declared >= 4_000;
+    }
+    const bytes = new Uint8Array(await resp.arrayBuffer());
+    return bytes.byteLength >= 4_000;
+  } catch {
+    return false;
+  }
+}
+
+/** If the supplied retailer hides its real gallery behind JavaScript, search
+ * for the exact identified tool and inspect those product pages for a usable
+ * hero image. This runs only when the original image failed validation. */
+async function findExactProductImage(
+  brand: unknown,
+  name: unknown,
+  firecrawlKey: string | undefined,
+): Promise<string | null> {
+  const terms = [brand, name].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  if (!firecrawlKey || terms.length === 0) return null;
+  try {
+    const resp = await fetch(`${FIRECRAWL_V2}/search`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `\"${terms.join(" ")}\" product`,
+        limit: 5,
+        scrapeOptions: { formats: ["markdown", "html"], onlyMainContent: true },
+      }),
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const results = (Array.isArray(json?.data) ? json.data : json?.data?.data) as Array<Record<string, unknown>> | undefined;
+    for (const result of results ?? []) {
+      const metadata = result.metadata as Record<string, unknown> | undefined;
+      const pageUrl = typeof result.url === "string"
+        ? result.url
+        : typeof metadata?.sourceURL === "string" ? metadata.sourceURL : "";
+      const html = typeof result.html === "string" ? result.html : "";
+      const markdown = typeof result.markdown === "string" ? result.markdown : "";
+      const candidate = firstUsableImage(
+        typeof metadata?.ogImage === "string" ? metadata.ogImage : null,
+        typeof metadata?.["og:image"] === "string" ? metadata["og:image"] : null,
+        html && pageUrl ? extractImageFromHtml(html, pageUrl) : null,
+        firstMarkdownImage(markdown),
+      );
+      if (await isSubstantialRemoteImage(candidate)) return candidate;
+    }
+  } catch (error) {
+    console.error("Exact product image search failed", error);
+  }
+  return null;
 }
 
 function extractImageFromHtml(html: string, baseUrl: string): string | null {
@@ -670,7 +737,7 @@ Deno.serve(async (req: Request) => {
       console.log(JSON.stringify({ tag: "tool-debug", phase: "before prefetch", ms: Date.now() - t0 }));
       const resolvedUrl = await resolveShortLink(url);
       const pre = await prefetchPage(resolvedUrl);
-      const ogImage = pre.imageUrl ?? (await fetchOgImageOnly(resolvedUrl));
+      const extractedImage = pre.imageUrl ?? (await fetchOgImageOnly(resolvedUrl));
       console.log(JSON.stringify({ tag: "tool-debug", phase: "before model", ms: Date.now() - t0 }));
       const claudeRes = await runClaude({
         url: resolvedUrl,
@@ -701,6 +768,9 @@ Deno.serve(async (req: Request) => {
         _web_search_count: web_search_invocations,
         _used_web_fetch: web_fetch_invocations > 0,
       };
+      const ogImage = await isSubstantialRemoteImage(extractedImage)
+        ? extractedImage
+        : await findExactProductImage(payload.brand, payload.tool_name, Deno.env.get("FIRECRAWL_API_KEY"));
       if (ogImage) {
         const safeImg = ogImage.startsWith("http://") ? "https://" + ogImage.slice(7) : ogImage;
         analysis._source_image_url = safeImg;
@@ -708,7 +778,10 @@ Deno.serve(async (req: Request) => {
       }
     } else {
       console.log(JSON.stringify({ tag: "tool-debug", phase: "before lovable", ms: Date.now() - t0 }));
-      const { payload, image_url } = await runLovable({ url, context: ctx as Record<string, unknown> });
+      const { payload, image_url: extractedImage } = await runLovable({ url, context: ctx as Record<string, unknown> });
+      const image_url = await isSubstantialRemoteImage(extractedImage)
+        ? extractedImage
+        : await findExactProductImage(payload.brand, payload.name ?? payload.tool_name, Deno.env.get("FIRECRAWL_API_KEY"));
       console.log(JSON.stringify({
         tag: "tool-debug", phase: "lovable done", ms: Date.now() - t0,
         og_image: image_url ? "yes" : "no",
