@@ -82,7 +82,7 @@ const StartStyleRecord = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Start a style" backTo="/journal" />
+      <TitleBar title="Start a style" backFallback="/journal" />
       <div className="px-5 pb-10 space-y-4">
         <div className="rounded-[14px] border border-border bg-card p-3.5 space-y-3">
           <div className="space-y-1.5">
@@ -230,7 +230,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   if (loading) {
     return (
       <ScreenLayout>
-        <TitleBar title="Style record" backTo="/journal" />
+        <TitleBar title="Style record" backFallback="/journal" />
       </ScreenLayout>
     );
   }
@@ -238,7 +238,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   if (!entry) {
     return (
       <ScreenLayout>
-        <TitleBar title="Style record" backTo="/journal" />
+        <TitleBar title="Style record" backFallback="/journal" />
         <div className="px-5">
           <EmptyState message="That style record isn't there" hint="It may have been deleted." />
         </div>
@@ -250,7 +250,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={entry.style_name || "Style record"} backTo="/journal" />
+      <TitleBar title={entry.style_name || "Style record"} backFallback="/journal" />
       <div className="px-5 pb-10 space-y-3">
         {dateLabel && (
           <p className="text-[11px] text-muted-foreground">{dateLabel}</p>
