@@ -34,6 +34,18 @@ import {
   validateTipAction,
   validateTipReason,
 } from "../_shared/tip-action.ts";
+import {
+  TIP_CONTRACT_FIELD_SPEC,
+  tipListJsonSchema,
+  validateTipHard,
+  validateTipSoft,
+  contractRetryDirective,
+  pickBestCandidate,
+  isRenderableTip,
+  type ContractTip,
+  type HardRule,
+  type SoftRule,
+} from "../_shared/tip-contract.ts";
 import { proseStyleText } from "../_shared/style-prose.ts";
 
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
