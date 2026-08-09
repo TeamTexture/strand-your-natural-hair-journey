@@ -13,6 +13,7 @@ import ToolPickerSheet from "@/components/ToolPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
 import StarRating from "@/components/StarRating";
+import MatchStars from "@/components/MatchStars";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useStepLinkScan } from "@/hooks/useStepLinkScan";
 import { useUserTools } from "@/hooks/useUserTools";
@@ -90,7 +91,7 @@ const JournalStepCard = ({
 }: Props) => {
   const { user } = useAuth();
   const { startStepLinkScan } = useStepLinkScan();
-  const { tools: toolCatalogue } = useUserTools();
+  const { tools: toolCatalogue, reload: reloadTools } = useUserTools();
   const [toolPickerOpen, setToolPickerOpen] = useState(false);
   const selectedToolIds = step.tools
     .map((t) => t.user_tool_id)
@@ -403,26 +404,35 @@ const JournalStepCard = ({
                 const t = toolCatalogue.find((c) => c.id === tid);
                 return (
                   <div key={tid} className="flex items-center gap-2.5">
-                    <ProductThumb
-                      imageUrl={t?.image_url ?? null}
-                      storagePath={t?.storage_path ?? null}
-                      alt={t?.name ?? "Tool"}
-                      brand={t?.brand ?? null}
-                      name={t?.name ?? null}
-                      cover
-                      wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {t?.brand && (
-                          <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>
-                        )}
-                        {typeof t?.rating === "number" && t.rating > 0 && (
-                          <StarRating value={t.rating} size="size-3" />
-                        )}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/tools/${tid}`)}
+                      className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+                    >
+                      <ProductThumb
+                        imageUrl={t?.image_url ?? null}
+                        storagePath={t?.storage_path ?? null}
+                        alt={t?.name ?? "Tool"}
+                        brand={t?.brand ?? null}
+                        name={t?.name ?? null}
+                        cover
+                        wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {t?.brand && (
+                            <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>
+                          )}
+                          {typeof t?.rating === "number" && t.rating > 0 ? (
+                            <StarRating value={t.rating} size="size-3" />
+                          ) : (
+                            <MatchStars item={t ?? null} size="sm" showValue={false} />
+                          )}
+                        </div>
                       </div>
-                    </div>
+                      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                    </button>
                     {editing && (
                       <button
                         type="button"
@@ -460,6 +470,7 @@ const JournalStepCard = ({
         onOpenChange={setToolPickerOpen}
         selectedIds={selectedToolIds}
         onToggle={onToggleTool}
+        onToolsChanged={() => void reloadTools()}
       />
 
 

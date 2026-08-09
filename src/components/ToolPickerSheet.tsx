@@ -20,6 +20,10 @@ interface Props {
   selectedIds: string[];
   /** Called when the user taps a tool on/off */
   onToggle: (toolId: string) => void;
+  /** Called after a brand-new tool is created here, so the parent can refresh
+   * its own copy of the tools catalogue (otherwise the attached tool renders as
+   * a nameless placeholder until the page reloads). */
+  onToolsChanged?: () => void;
 }
 
 const Row = ({ t, selected, onClick }: { t: UserTool; selected: boolean; onClick: () => void }) => (
@@ -59,7 +63,7 @@ const Row = ({ t, selected, onClick }: { t: UserTool; selected: boolean; onClick
  * member already owns or has wishlisted, or add a new one from a link (analysed
  * with `tool-analyse-url`, then saved to My Tools and attached straight away).
  */
-const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) => {
+const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsChanged }: Props) => {
   const { tools: allTools, loading, addTool } = useUserTools();
   const [tab, setTab] = useState<"owned" | "wishlist">("owned");
   const [showAdd, setShowAdd] = useState(false);
@@ -96,12 +100,18 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) =
       const matched = data?.category
         ? TOOL_CATEGORIES.find((c) => c.toLowerCase() === String(data.category).toLowerCase())
         : undefined;
+      const scrapedName = [data?.name, data?.tool_name, data?.title]
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .find((v) => v.length > 0);
       const created = await addTool({
-        name: String(data?.name || "New tool"),
+        name: scrapedName || "New tool",
         brand: data?.brand ? String(data.brand) : undefined,
         category: matched,
         notes: data?.summary ? String(data.summary) : undefined,
-        imageUrl: data?.image_url ? String(data.image_url) : null,
+        imageUrl:
+          (typeof data?.image_url === "string" && data.image_url) ||
+          (typeof data?._source_image_url === "string" && data._source_image_url) ||
+          null,
         matchScore:
           typeof rawScore === "number" ? Math.max(0, Math.min(100, Math.round(rawScore))) : null,
         aiAnalysis: data as Record<string, unknown>,
@@ -109,9 +119,10 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) =
       });
       if (created) {
         onToggle(created.id);
+        onToolsChanged?.();
         setLinkUrl("");
         onOpenChange(false);
-        toast.success("Tool added to this step");
+        toast.success("Tool added to My Tools and this step");
       }
     } catch (e) {
       console.error("tool URL scan failed", e);
