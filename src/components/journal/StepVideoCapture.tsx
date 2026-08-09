@@ -26,8 +26,11 @@ import { Button } from "@/components/ui/button";
  */
 
 export const MAX_SECONDS = 30;
-const VIDEO_BITS_PER_SECOND = 1_000_000;
-const AUDIO_BITS_PER_SECOND = 64_000;
+const VIDEO_BITS_PER_SECOND = 3_000_000;
+const AUDIO_BITS_PER_SECOND = 96_000;
+/** Portrait output size — every clip is written at 9:16 regardless of camera. */
+const OUT_W = 720;
+const OUT_H = 1280;
 const MAX_BYTES = 25 * 1024 * 1024;
 const BUCKET = "journal-videos";
 
@@ -93,14 +96,21 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const timerRef = useRef<number | null>(null);
   const stopTimerRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const canvasStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => { setRecorderAvailable(canRecordInApp()); }, []);
 
   const clearTimers = () => {
     if (timerRef.current) window.clearInterval(timerRef.current);
     if (stopTimerRef.current) window.clearTimeout(stopTimerRef.current);
+    if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
     timerRef.current = null;
     stopTimerRef.current = null;
+    rafRef.current = null;
+    canvasStreamRef.current?.getTracks().forEach((t) => t.stop());
+    canvasStreamRef.current = null;
   };
 
   const stopStream = useCallback(() => {
@@ -136,10 +146,10 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: next,
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
+          width: { ideal: 1080 },
+          height: { ideal: 1920 },
           aspectRatio: { ideal: 9 / 16 },
-          frameRate: { ideal: 24, max: 24 },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: true,
       });
@@ -203,14 +213,57 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
 
   const startRecording = () => {
     const stream = streamRef.current;
+    const src = videoRef.current;
     const mime = pickRecorderMimeType();
-    if (!stream || !mime) {
+    if (!stream || !src || !mime) {
       toast.error("Recording isn't supported on this device — choose a video instead.");
       return;
     }
     try {
       chunksRef.current = [];
-      const rec = new MediaRecorder(stream, {
+
+      // Cameras hand us a landscape frame. We paint every frame into a 720x1280
+      // portrait canvas (centre-cropped, mirrored for the selfie camera) and
+      // record THAT, so the saved file is genuinely vertical — no black bars.
+      const canvas = canvasRef.current ?? document.createElement("canvas");
+      canvasRef.current = canvas;
+      canvas.width = OUT_W;
+      canvas.height = OUT_H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no 2d context");
+      const mirror = facing === "user";
+
+      const draw = () => {
+        const vw = src.videoWidth;
+        const vh = src.videoHeight;
+        if (vw && vh) {
+          const scale = Math.max(OUT_W / vw, OUT_H / vh);
+          const dw = vw * scale;
+          const dh = vh * scale;
+          const dx = (OUT_W - dw) / 2;
+          const dy = (OUT_H - dh) / 2;
+          ctx.save();
+          if (mirror) {
+            ctx.translate(OUT_W, 0);
+            ctx.scale(-1, 1);
+          }
+          ctx.drawImage(src, dx, dy, dw, dh);
+          ctx.restore();
+        }
+        rafRef.current = window.requestAnimationFrame(draw);
+      };
+      draw();
+
+      // Older Safari lacks canvas.captureStream — fall back to the raw camera.
+      let recordStream = stream;
+      if (typeof canvas.captureStream === "function") {
+        const canvasStream = canvas.captureStream(30);
+        stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+        canvasStreamRef.current = canvasStream;
+        recordStream = canvasStream;
+      }
+
+      const rec = new MediaRecorder(recordStream, {
         mimeType: mime,
         videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
         audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
