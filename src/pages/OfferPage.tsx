@@ -77,7 +77,7 @@ const OfferPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_products(*), brand_profiles!inner(brand_name)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(*)), brand_profiles!inner(brand_name)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;

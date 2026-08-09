@@ -196,6 +196,30 @@ export function useBrandProfile() {
   });
 }
 
+/** Advert products hang off the join table `brand_offer_products` — there is NO
+ *  direct FK from brand_offers to brand_products (one canonical product row can
+ *  appear in many adverts). Embedding `brand_products(*)` directly makes
+ *  PostgREST fail the whole request with PGRST200, which silently emptied the
+ *  brand dashboard. Always embed through the join table, then flatten. */
+export const OFFER_PRODUCTS_EMBED =
+  "brand_offer_products(position, created_at, brand_products(*))";
+
+type OfferProductJoin = { position: number | null; created_at: string | null; brand_products: unknown };
+
+/** Flatten the join-table embed back to the `brand_products` array every offer
+ *  consumer reads, ordered by the position the brand chose. */
+export function flattenOfferProducts<T extends Record<string, unknown>>(offer: T) {
+  const rows = ((offer as { brand_offer_products?: OfferProductJoin[] | null }).brand_offer_products ?? [])
+    .slice()
+    .sort((a, b) =>
+      (a.position ?? 0) - (b.position ?? 0) || String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")),
+    );
+  return {
+    ...offer,
+    brand_products: rows.map((r) => r.brand_products).filter(Boolean) as BrandProduct[],
+  };
+}
+
 export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
   const { user } = useAuth();
   useBrandOfferLiveSync();
@@ -205,12 +229,12 @@ export function useBrandOffers(ownerType: "brand" | "pro" = "brand") {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_offer_placements(*), brand_products(*)")
+        .select(`*, brand_offer_placements(*), ${OFFER_PRODUCTS_EMBED}`)
         .eq("brand_user_id", user!.id)
         .eq("owner_type", ownerType)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((o) => flattenOfferProducts(o as Record<string, unknown>));
     },
   });
 }
@@ -235,7 +259,7 @@ export function useBrandOffer(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_offer_placements(*), brand_products(*)")
+        .select(`*, brand_offer_placements(*), ${OFFER_PRODUCTS_EMBED}`)
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
@@ -247,7 +271,7 @@ export function useBrandOffer(id: string | undefined) {
         .select("*")
         .eq("offer_id", id!);
       return {
-        ...data,
+        ...flattenOfferProducts(data as Record<string, unknown>),
         brand_offer_stats: (statRows ?? []) as OfferStatRow[],
         stats_fetched_at: new Date().toISOString(),
       };
