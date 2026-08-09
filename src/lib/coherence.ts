@@ -49,7 +49,8 @@ export function safeRewrite(original: string, rewritten: string): string {
  * sentence itself. Short functional brackets (units, "2 min", "7 days") are kept.
  */
 export function stripDefinitionBrackets(text: string): string {
-  if (!text) return text;
+  if (!text || typeof text !== "string") return typeof text === "string" ? text : "";
+
   let out = text.replace(
     /(\]?)\s*\(([^()]*)\)/g,
     (full, before: string, inner: string) => {
