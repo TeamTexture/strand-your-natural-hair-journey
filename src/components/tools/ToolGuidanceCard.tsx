@@ -58,14 +58,25 @@ const ToolGuidanceCard = ({ tool, enabled = true }: { tool: UserTool; enabled?: 
     { enabled },
   );
 
+  // The saved scan already holds a personalised read. Use it whenever the live
+  // call has nothing to give (still loading, or unavailable) so the card never
+  // sits on "Reading your profile…" with no copy behind it.
+  const savedRead = trimToSentences(cleanAnalysisText(scrapedSummary) ?? "", 2) || null;
+  const savedSteps = analysisSentences(analysis?.how_to_use, 3);
+  const savedWatchOuts = analysisStrings(analysis?.warnings, 2);
+
   const read = guidance
     ? trimToSentences([guidance.fit_line, guidance.intro].filter(Boolean).join(" "))
-    : null;
+    : savedRead;
   const benefits = (guidance?.benefits ?? []).filter((b) => b?.label && b?.text);
-  const steps = (guidance?.steps ?? []).filter(Boolean).slice(0, 3);
-  const watchOuts = (guidance?.watch_outs ?? []).filter(Boolean).slice(0, 2);
+  const steps = guidance?.steps?.length
+    ? guidance.steps.filter(Boolean).slice(0, 3)
+    : savedSteps;
+  const watchOuts = guidance?.watch_outs?.length
+    ? guidance.watch_outs.filter(Boolean).slice(0, 2)
+    : savedWatchOuts;
 
-  if (!loading && !read && !steps.length) return null;
+  if (!read && !steps.length && !watchOuts.length) return null;
 
   return (
     <div className="rounded-[14px] border border-primary/20 bg-primary/[0.06] p-3 space-y-3">
@@ -76,15 +87,12 @@ const ToolGuidanceCard = ({ tool, enabled = true }: { tool: UserTool; enabled?: 
         </p>
       </div>
 
-      {loading && !read ? (
-        <p className="text-[12px] font-body text-muted-foreground">Reading your profile…</p>
-      ) : (
-        read && (
-          <p className="text-[12.5px] font-body leading-relaxed text-foreground [overflow-wrap:anywhere]">
-            {read}
-          </p>
-        )
+      {read && (
+        <p className="text-[12.5px] font-body leading-relaxed text-foreground [overflow-wrap:anywhere]">
+          {read}
+        </p>
       )}
+
 
       {benefits.length > 0 && (
         <ul className="space-y-1.5 border-t border-primary/15 pt-2.5">
