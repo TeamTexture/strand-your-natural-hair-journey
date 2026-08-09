@@ -51,7 +51,30 @@ export interface EvidenceItem {
   passage: string;
   /** One line: why this applies to THIS member. */
   relevance: string;
+  /**
+   * Provenance. `manuscript` = the author's own text. `external` = established
+   * cosmetic science / trichology admitted ONLY in supplement mode, and only
+   * under a named manuscript principle (see `governingPrinciple`).
+   */
+  source?: "manuscript" | "external";
+  /** For external items: the manuscript principle that constrains the claim. */
+  constrained_by?: string;
 }
+
+/**
+ * COVERAGE TIER (2026-08-09, author's refinement).
+ *
+ *   explicit    — the manuscript directly addresses the member's situation.
+ *                 Stage 2 gets the evidence set and nothing else.
+ *   extension   — the manuscript establishes a principle that applies, but does
+ *                 not name this situation. Stage 2 gets the evidence set plus
+ *                 the named principle, and may apply it to the situation.
+ *   supplement  — the manuscript does not cover it. Stage 2 gets the evidence
+ *                 set, the named governing principle, and narrow permission to
+ *                 use established cosmetic science / trichology consistent with
+ *                 that principle.
+ */
+export type Coverage = "explicit" | "extension" | "supplement";
 
 export interface EvidenceSet {
   items: EvidenceItem[];
@@ -59,6 +82,12 @@ export interface EvidenceSet {
   tokens: number;
   /** False when the manuscript could not be read at all. */
   sourceAvailable: boolean;
+  /** Stage 1's classification of how well the book covers this situation. */
+  coverage: Coverage;
+  /** Stage 1's one-line justification for the classification. */
+  coverageReason: string;
+  /** The manuscript principle that governs extension / supplement reasoning. */
+  governingPrinciple: string;
 }
 
 export const EMPTY_EVIDENCE: EvidenceSet = {
@@ -66,10 +95,17 @@ export const EMPTY_EVIDENCE: EvidenceSet = {
   chapters: [],
   tokens: 0,
   sourceAvailable: false,
+  coverage: "explicit",
+  coverageReason: "",
+  governingPrinciple: "",
 };
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
+
+const asCoverage = (v: unknown): Coverage =>
+  v === "extension" || v === "supplement" ? v : "explicit";
+
 
 // ---------------------------------------------------------------------------
 // STAGE 1 — read the chapters, output evidence only
