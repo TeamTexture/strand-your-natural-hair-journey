@@ -25,6 +25,30 @@ import {
 
 import { checkTerminology, loadLexicon } from "./terminology.ts";
 import {
+  classifyClaims,
+  detectManuscriptConflicts,
+  detectMarketingClaims,
+  logConflicts,
+  type ClaimSource,
+  type ConflictHit,
+  type CoveredIngredient,
+} from "./policy-b.ts";
+
+/** POLICY B input: the product facts the sponsored gates and audit trail need. */
+export interface PolicyBProduct {
+  name: string;
+  brand?: string | null;
+  /** The declared ingredient list, in the order the brand declared it. */
+  declared?: string[];
+  /** The ingredients the manuscript covers, matched against that list. */
+  covered?: CoveredIngredient[];
+  /** The brand's own marketing copy — used ONLY to detect reproduction of it. */
+  brandCopy?: string | null;
+  /** The writer's own per-claim source labels, honoured where they match. */
+  claimLabels?: Array<{ text?: unknown; source?: unknown }>;
+}
+
+import {
   enforceBloodSafety,
   enforceStyleVerbatimDeep,
   recordedStyles,
