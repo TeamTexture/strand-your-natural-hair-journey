@@ -280,7 +280,7 @@ const JournalStepCard = ({
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: { audioBase64, mimeType: blob.type || "audio/webm" },
       });
-      if (error) {
+      if (error || (data as { paused?: boolean } | null)?.paused) {
         // Credit limit / provider failure: stay quiet, the member can retry
         // manually from the voice-note field once credits are restored.
         transcriptionPaused = true;
