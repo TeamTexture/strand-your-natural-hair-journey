@@ -181,7 +181,8 @@ const OfferPage = () => {
       tool_key: toolKeyFor(bp.id),
       name: bp.name,
       brand: brandName,
-      category: null,
+      // Keep the tool's kind so it files correctly in My Tools.
+      category: (bp as { tool_kind?: string | null }).tool_kind ?? null,
       image_url: bp.image_urls?.[0] ?? null,
       notes: bp.description ?? null,
       source_url: bp.external_url ?? null,
