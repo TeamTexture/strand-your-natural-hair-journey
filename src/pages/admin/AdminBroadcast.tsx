@@ -90,6 +90,14 @@ const AdminBroadcast = () => {
   const [clip, setClip] = useState<VoiceRecording | null>(null);
   const voice = useVoiceRecorder((rec) => setClip(rec));
 
+  useEffect(() => {
+    if (voice.error) {
+      toast.error(voice.error);
+      voice.setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.error]);
+
 
 
   const { data: history } = useQuery({
