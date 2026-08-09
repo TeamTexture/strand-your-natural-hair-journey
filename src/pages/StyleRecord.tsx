@@ -442,7 +442,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           </div>
         )}
 
-        {mediaCount > 0 && (
+        {(
           <button
             type="button"
             onClick={() => setCoverOpen(true)}
@@ -460,6 +460,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           open={coverOpen}
           onClose={() => setCoverOpen(false)}
           onSaved={(id) => setEntry((e) => (e ? { ...e, cover_media_id: id } : e))}
+          onMediaAdded={() => reloadSteps()}
         />
 
         <PendingStepProducts entryId={entry.id} />
