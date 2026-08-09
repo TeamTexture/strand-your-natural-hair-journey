@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
+import { Users, Maximize2, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
+import { EMPTY_METRICS, formatEngagementRate, type OfferMetrics } from "@/lib/brandMetrics";
 import { format } from "date-fns";
-
-interface Totals {
-  impressions: number;
-  expands: number;
-  code_copies: number;
-  link_clicks: number;
-  wishlist_adds: number;
-}
 
 interface Props {
   id: string;
@@ -19,13 +12,18 @@ interface Props {
   slots: PlacementSlot[];
   startDate?: string;
   endDate?: string;
-  totals?: Totals;
+  /** Canonical figures from useBrandOfferMetrics — never a per-slot rollup. */
+  metrics?: OfferMetrics;
   hasPendingRevision?: boolean;
   revisionCount?: number;
   onReview: () => void;
 }
 
-const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+/** Zero reads as a dash — a "0" next to four other zeros reads as a broken
+ *  screen, and a fresh campaign has genuinely nothing to report yet. */
+const fmtNum = (n: number) =>
+  n === 0 ? "—" : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
 
 /** Rich "live" advert thumbnail — hero image at top with pulsing LIVE chip,
  *  then five insight tiles (impressions, expands, code copies, link clicks,
