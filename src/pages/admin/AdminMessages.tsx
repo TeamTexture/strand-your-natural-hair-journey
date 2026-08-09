@@ -133,7 +133,6 @@ const AdminMessages = () => {
         <Button variant="gold" size="pill" className="w-full" onClick={() => nav("/admin/broadcast")}>
           <Users className="size-3.5 mr-1.5" /> Send a group message
         </Button>
-        </p>
       </div>
 
       <div className="px-5 pb-3 grid grid-cols-3 gap-2">
