@@ -555,8 +555,18 @@ function validate(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  const auth = await requireAuthedUser(req);
-  if (auth instanceof Response) return auth;
+  // PRE-GENERATION PATH. `brand-tips-pregenerate` calls this function with the
+  // service role key and a `pregen_user_id`, so sponsored tips can be written
+  // in the background at campaign approval instead of on first view.
+  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const isServiceCall =
+    !!svcKey && req.headers.get("Authorization") === `Bearer ${svcKey}`;
+
+  let auth: Awaited<ReturnType<typeof requireAuthedUser>> | null = null;
+  if (!isServiceCall) {
+    auth = await requireAuthedUser(req);
+    if (auth instanceof Response) return auth;
+  }
 
   let body: Body;
   try {
@@ -579,6 +589,17 @@ Deno.serve(async (req) => {
   if (!key) {
     return new Response(JSON.stringify({ error: "AI not configured" }), {
       status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const pregenUserId = String((body as { pregen_user_id?: string }).pregen_user_id ?? "").trim();
+  const userId = isServiceCall
+    ? (pregenUserId || null)
+    : (auth as { user: { id: string } }).user.id;
+  if (isServiceCall && !userId) {
+    return new Response(JSON.stringify({ error: "pregen_user_id is required" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -725,7 +746,7 @@ Deno.serve(async (req) => {
         const candidate = await sanitiseAndLog(result.value, "brand-product-guidance", {
           context: body.context,
           surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
-          userId: auth.user.id,
+          userId,
           // POLICY B. The sponsored gates (marketing detection, conflict
           // register, per-claim source labelling) run only on this path.
           policy: "B",
