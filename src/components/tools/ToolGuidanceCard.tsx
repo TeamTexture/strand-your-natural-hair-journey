@@ -44,7 +44,7 @@ const ToolGuidanceCard = ({ tool, enabled = true }: { tool: UserTool; enabled?: 
         ? (analysis.summary as string)
         : null;
 
-  const { guidance, loading } = useBrandProductGuidance(
+  const { guidance } = useBrandProductGuidance(
     {
       id: `tool:${tool.id}`,
       name: tool.name,
