@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Video, Square, Upload, Loader2, SwitchCamera, RotateCcw, Check, X, Camera, ZoomIn } from "lucide-react";
+import { captureVideoPoster } from "@/lib/videoPoster";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -32,6 +33,7 @@ const OUT_W = 720;
 const OUT_H = 1280;
 const MAX_BYTES = 60 * 1024 * 1024;
 const BUCKET = "journal-videos";
+const POSTER_BUCKET = "journal-photos";
 
 /** Ordered by preference: mp4/h264 first because iOS produces and plays it. */
 const CANDIDATE_TYPES = [
@@ -83,7 +85,11 @@ const DEFAULT_ZOOM: ZoomCaps = { min: 1, max: 4, step: 0.1, native: false };
 interface Props {
   /** Folder under the member's id — keeps each step's clips together. */
   folder: string;
-  onUploaded: (media: { storage_path: string; duration_seconds: number | null }) => void;
+  onUploaded: (media: {
+    storage_path: string;
+    poster_path: string | null;
+    duration_seconds: number | null;
+  }) => void;
 }
 
 const StepVideoCapture = ({ folder, onUploaded }: Props) => {
@@ -287,9 +293,25 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
         return false;
       }
     }
+    // Cover image: a still frame from the clip, so the step and the style
+    // record show a picture rather than a black rectangle. Best-effort —
+    // a failed capture never blocks the video itself.
+    let posterPath: string | null = null;
+    try {
+      const poster = await captureVideoPoster(blob);
+      if (poster) {
+        const pPath = `${user.id}/${folder}/posters/${uuid()}.jpg`;
+        const { error: pErr } = await supabase.storage
+          .from(POSTER_BUCKET)
+          .upload(pPath, poster, { contentType: "image/jpeg", upsert: true });
+        if (!pErr) posterPath = pPath;
+      }
+    } catch (e) {
+      console.warn("poster upload failed", e);
+    }
     setUploading(false);
     setProgress(null);
-    onUploaded({ storage_path: path, duration_seconds: duration });
+    onUploaded({ storage_path: path, poster_path: posterPath, duration_seconds: duration });
     toast.success("Video saved to this step");
     return true;
   };
