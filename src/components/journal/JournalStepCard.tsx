@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -9,11 +9,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
+import ToolPickerSheet from "@/components/ToolPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
 import StarRating from "@/components/StarRating";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useStepLinkScan } from "@/hooks/useStepLinkScan";
+import { useUserTools } from "@/hooks/useUserTools";
 
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
@@ -62,6 +64,7 @@ interface Props {
   onAddMedia: (media: { kind: "photo" | "video"; storage_path: string; duration_seconds?: number | null }) => void;
   onRemoveMedia: (mediaId: string) => void;
   onToggleProduct: (userProductId: string) => void;
+  onToggleTool: (userToolId: string) => void;
   /** Called after a background link scan attaches a product to this step. */
   onProductsChanged?: () => void;
 
@@ -82,10 +85,16 @@ const JournalStepCard = ({
   onAddMedia,
   onRemoveMedia,
   onToggleProduct,
+  onToggleTool,
   onProductsChanged,
 }: Props) => {
   const { user } = useAuth();
   const { startStepLinkScan } = useStepLinkScan();
+  const { tools: toolCatalogue } = useUserTools();
+  const [toolPickerOpen, setToolPickerOpen] = useState(false);
+  const selectedToolIds = step.tools
+    .map((t) => t.user_tool_id)
+    .filter((x): x is string => !!x);
 
 
   const [urls, setUrls] = useState<Record<string, string>>({});

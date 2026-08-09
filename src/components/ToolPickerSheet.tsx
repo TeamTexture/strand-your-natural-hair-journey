@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Check, Link2, Loader2, Wrench } from "lucide-react";
+import { Check, Link2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserTools, TOOL_CATEGORIES, type UserTool } from "@/hooks/useUserTools";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,5 +203,4 @@ const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) =
   );
 };
 
-export { Wrench };
 export default ToolPickerSheet;
