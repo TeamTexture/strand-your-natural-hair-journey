@@ -205,6 +205,9 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const { user } = useAuth();
   const [entry, setEntry] = useState<EntryRow | null>(null);
   const [loading, setLoading] = useState(true);
+  // Reviewing is the resting state — editing is a deliberate move.
+  const [mode, setMode] = useState<"review" | "edit">("review");
+  const modeDecided = useRef(false);
   // Only one step is open at a time — save it, it collapses, open the next.
   const [openStepId, setOpenStepId] = useState<string | null>(null);
   const openedOnce = useRef(false);
