@@ -256,6 +256,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           <p className="text-[11px] text-muted-foreground">{dateLabel}</p>
         )}
 
+        <PendingStepProducts entryId={entry.id} />
+
         {stepsLoading && steps.length === 0 ? null : steps.length === 0 ? (
           <EmptyState
             message="No steps yet"
@@ -276,10 +278,12 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 onAddMedia={(m) => void addMedia(s.id, m)}
                 onRemoveMedia={(id) => void removeMedia(id)}
                 onToggleProduct={(pid) => void toggleProduct(s.id, pid)}
+                onProductsChanged={() => void reload()}
               />
             ))}
           </div>
         )}
+
 
         <Button
           type="button"
