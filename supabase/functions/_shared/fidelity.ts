@@ -1,14 +1,25 @@
 // MANUSCRIPT FIDELITY FAIL-SAFE
 // =============================
 // 2026-08-09. The author's rule: nothing the app states as hair care fact may
-// be untraceable to her manuscript. Two verified regressions triggered this:
+// be untraceable to her manuscript. Every deterministic rule below quotes the
+// manuscript passage it enforces — a rule may never encode a fact the source
+// does not state.
 //
-//   1. The app reversed the two-cleanse protocol. The source is explicit that
-//      the FIRST cleanse targets the hair lengths and the SECOND targets the
-//      scalp. The app said the opposite.
-//   2. The app said a leave-in "hydrates" the hair. The source is explicit
-//      that a leave-in forms a barrier/film that slows moisture leaving the
-//      hair — it does not add hydration.
+// Verified source passages used here:
+//   - Ch 13, p.164 "TOP CLEANSING TIPS": "Be prepared to do at least two
+//     cleanses... I'll go in with an all-purpose shampoo first, sometimes for
+//     two shampoos and then follow up with a conditioning shampoo"; "focus on
+//     the scalp, using the pads of your fingertips – NOT your nails"; "ALWAYS
+//     follow up with a conditioner".
+//   - Ch 14, p.173 "How to seal in moisture": sealing/locking moisture in is
+//     rejected — "water is always going to evaporate"; focus on replenishing.
+//   - Ch 14, p.174/176: moisture is water content in the shaft; "The only thing
+//     that can provide our hair with moisture is water"; oils "soften, coat,
+//     seal and slow moisture loss".
+//   - Ch 14, p.178 "Leave-in conditioners": lightweight conditioning styling
+//     products with low to no hold, optional, used for slip and a light
+//     'moisturising' base before styling.
+
 //
 // This module is the fail-safe. It runs on generated output BEFORE the user
 // sees it, in two stages:
