@@ -255,6 +255,23 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     setOpenStepId(steps[steps.length - 1].id);
   }, [steps]);
 
+  // A record with nothing in it opens straight into the editor; anything with
+  // content opens as a review the member reads first.
+  useEffect(() => {
+    if (modeDecided.current || stepsLoading) return;
+    modeDecided.current = true;
+    const hasContent = steps.some(
+      (s) =>
+        (s.note ?? "").trim() ||
+        (s.voice_transcript ?? "").trim() ||
+        s.voice_path ||
+        s.media.length > 0 ||
+        s.products.length > 0 ||
+        s.tools.length > 0,
+    );
+    setMode(hasContent ? "review" : "edit");
+  }, [steps, stepsLoading]);
+
 
 
   useEffect(() => {
