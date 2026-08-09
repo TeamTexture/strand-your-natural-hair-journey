@@ -517,10 +517,8 @@ const Home = () => {
               </div>
 
               {/* Hero photo */}
-              <button
-                onClick={() => navigate("/onboarding/strand-summary")}
+              <div
                 {...anchorProps("home-style-photo")}
-                aria-label="See My Strand Summary"
                 className="relative block w-full mb-5"
               >
                 <div className="absolute -inset-1.5 border border-[#C5A059]/40 rounded-[26px] rotate-1" />
@@ -541,7 +539,7 @@ const Home = () => {
                     </svg>
                   )}
                 </div>
-              </button>
+              </div>
 
               {/* Next planned */}
               <button
@@ -563,13 +561,13 @@ const Home = () => {
                 <div className="flex-grow h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               </div>
 
-              {/* Action link */}
+              {/* Action link — progress photos now live in the Style Journal */}
               <button
-                onClick={() => navigate("/onboarding/strand-summary")}
+                onClick={() => navigate("/journal")}
                 className="group w-full flex items-center justify-between py-1"
               >
                 <span className="text-[#C5A059] text-[11px] font-semibold uppercase tracking-[0.2em] group-hover:text-white transition-colors font-body">
-                  See my strand summary
+                  Open my style journal
                 </span>
                 <svg className="w-5 h-5 text-[#C5A059] group-hover:translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />

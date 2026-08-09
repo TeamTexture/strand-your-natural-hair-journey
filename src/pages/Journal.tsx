@@ -31,6 +31,7 @@ import GoalProgressComposer from "@/components/journal/GoalProgressComposer";
 import GoalTimelineSheet from "@/components/journal/GoalTimelineSheet";
 import PastGoalsSection from "@/components/journal/PastGoalsSection";
 import GoalDetailSheet from "@/components/GoalDetailSheet";
+import ProgressPhotosCard from "@/components/journal/ProgressPhotosCard";
 import LevelGate from "@/components/tips/LevelGate";
 import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
@@ -371,6 +372,13 @@ const Journal = () => {
             ))}
           </div>
         )}
+
+        {/* PROGRESS PHOTOS — moved here from the removed Strand Summary screen.
+            Progress belongs next to goals, where it's reviewed. */}
+        <div className="pt-2 space-y-3">
+          <SectionHeader icon={ICONS.length} className="text-muted-foreground">Progress photos</SectionHeader>
+          <ProgressPhotosCard />
+        </div>
       </div>
 
 

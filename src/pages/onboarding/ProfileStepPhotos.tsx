@@ -80,7 +80,7 @@ const ProfileStepPhotos = () => {
     setItems((p) => p.filter((i) => i.path !== path));
   };
 
-  const goNext = () => navigate("/onboarding/strand-summary", { state: { fromOnboarding: true } });
+  const goNext = () => navigate("/onboarding/success");
 
   return (
     <ScreenLayout>

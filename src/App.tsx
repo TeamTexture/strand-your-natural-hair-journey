@@ -63,7 +63,6 @@ const BloodHormones = lazyRetry(() => import("./pages/onboarding/BloodHormones")
 const BloodAiSummary = lazyRetry(() => import("./pages/onboarding/BloodAiSummary"));
 const SuccessScreen = lazyRetry(() => import("./pages/onboarding/SuccessScreen"));
 const ProfileStepPhotos = lazyRetry(() => import("./pages/onboarding/ProfileStepPhotos"));
-const StrandSummary = lazyRetry(() => import("./pages/onboarding/StrandSummary"));
 
 // Profile / blood / misc
 const MilestoneGallery = lazyRetry(() => import("./pages/MilestoneGallery"));
@@ -309,7 +308,6 @@ const App = () => (
               <Route path="/onboarding/blood-hormones" element={<Onboard><BloodHormones /></Onboard>} />
               <Route path="/onboarding/blood-ai-summary" element={<Onboard><BloodAiSummary /></Onboard>} />
               <Route path="/onboarding/photos" element={<Onboard><ProfileStepPhotos /></Onboard>} />
-              <Route path="/onboarding/strand-summary" element={<Onboard><StrandSummary /></Onboard>} />
               <Route path="/onboarding/success" element={<Onboard><SuccessScreen /></Onboard>} />
 
               {/* Main app */}
