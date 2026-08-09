@@ -257,8 +257,8 @@ const BrandSubscribe = () => {
         </SurfaceCard>
 
         <div className="flex items-center justify-center gap-4 text-[11.5px] font-body text-foreground/70">
-          <a href="/legal/brand-terms" target="_blank" rel="noopener noreferrer" className="underline">
-            Brand terms
+          <a href="/legal/brand-advertising-terms" target="_blank" rel="noopener noreferrer" className="underline">
+            Advertising terms
           </a>
           <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">
             Privacy
