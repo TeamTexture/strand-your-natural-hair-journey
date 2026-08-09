@@ -13,6 +13,8 @@ import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
 import StarRating from "@/components/StarRating";
 import { useUserProducts } from "@/hooks/useUserProducts";
+import { useStepLinkScan } from "@/hooks/useStepLinkScan";
+
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
 import { toParagraphs, transcriptPreview } from "@/lib/formatTranscript";
