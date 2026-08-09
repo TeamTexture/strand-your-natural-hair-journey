@@ -48,7 +48,23 @@ const fmt = (sec: number) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
+/** Reads the real error body out of a failed edge-function invocation. */
+const readInvokeError = async (error: unknown): Promise<string> => {
+  const ctx = (error as { context?: { text?: () => Promise<string> } })?.context;
+  if (ctx?.text) {
+    try {
+      const body = await ctx.text();
+      const parsed = JSON.parse(body) as { error?: string };
+      if (parsed?.error) return parsed.error;
+    } catch {
+      /* fall through to the generic message */
+    }
+  }
+  return error instanceof Error ? error.message : "Could not transcribe";
+};
+
 const blobToBase64 = (blob: Blob): Promise<string> =>
+
   new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onloadend = () => {
