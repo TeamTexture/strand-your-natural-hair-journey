@@ -18,10 +18,16 @@ import {
   logGenerationRejections,
   mapClaimsToEvidence,
   storeEvidenceSet,
+  surfaceClarifications,
   type EvidenceSet,
   type ExternalClaim,
   type RejectionRow,
 } from "./evidence.ts";
+import {
+  checkClarifications,
+  type ClarificationViolation,
+} from "./clarifications.ts";
+
 
 import { explainTerminology, loadLexicon, type TerminologyNote } from "./terminology.ts";
 import {
