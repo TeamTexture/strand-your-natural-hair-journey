@@ -38,9 +38,6 @@ import { ICONS } from "@/lib/iconMap";
 
 const PHOTO_BUCKET = "journal-photos";
 
-/** Returns true if the storage path looks like a video (mp4 / mov / webm). */
-const isVideoPath = (p: string) => /\.(mp4|mov|m4v|webm|quicktime)$/i.test(p);
-
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /**
@@ -487,7 +484,7 @@ const Journal = () => {
         >
           <Plus className="size-7" />
           <span className="text-[11px] uppercase tracking-[0.2em] font-medium">
-            {savedEntries.length === 0 ? "Add first entry" : "Add new entry"}
+            {savedEntries.length === 0 ? "Start your first style" : "Start a style"}
           </span>
         </button>
       </div>
