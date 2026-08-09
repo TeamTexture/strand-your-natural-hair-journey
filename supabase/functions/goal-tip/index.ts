@@ -491,7 +491,14 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body: RequestBody = await req.json();
+    if (!body?.goal) {
+      return new Response(JSON.stringify({ error: "A goal is required." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const journal = body.variant === "journal";
+
     const single = !journal && (body.single === true || Number(body.maxTips) === 1);
     const tipCount = single
       ? 1
