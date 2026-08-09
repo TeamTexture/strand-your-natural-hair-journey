@@ -99,8 +99,11 @@ export interface BuildPromptInput {
   /** Pre-rendered KB blocks. Bypasses the selector — for callers that
    *  want full control. If provided, selector is skipped. */
   knowledge_blocks?: string[];
-  /** RAG query string. When set, retrievePassages(rag_query, rag_k ?? 4)
-   *  is called and the passages are rendered into systemBlocks[2]. */
+  /** FIDELITY PATH (preferred). Name the surface and its authoritative
+   *  chapters are passed IN FULL — chapter 1 always included — and fragment
+   *  retrieval is skipped. See _shared/chapter-context.ts. */
+  surface?: SurfaceKey;
+  /** LEGACY fragment path. Ignored when `surface` is set. */
   rag_query?: string;
   rag_k?: number;
   /** TIP/GUIDANCE surfaces: re-rank retrieval toward PROCEDURAL passages
