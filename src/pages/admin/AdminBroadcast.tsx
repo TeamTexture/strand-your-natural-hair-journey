@@ -85,11 +85,7 @@ const AdminBroadcast = () => {
     },
     onSuccess: (res) => {
       const n = res?.recipients ?? 0;
-      toast.success(
-        n === 0
-          ? "No accounts in that audience yet"
-          : `Sent to ${n} ${n === 1 ? "account" : "accounts"} — emails on their way`,
-      );
+      setSent({ recipients: n, audience, body: body.trim() });
       setBody("");
       void qc.invalidateQueries({ queryKey: ["admin", "broadcasts"] });
       void qc.invalidateQueries({ queryKey: ["chat-threads"] });
@@ -99,7 +95,61 @@ const AdminBroadcast = () => {
 
   const canSend = body.trim().length > 1 && !send.isPending;
 
+  if (sent) {
+    return (
+      <ScreenLayout>
+        <TitleBar title="Message sent" onBack={() => setSent(null)} />
+        <div className="px-5 pt-4 pb-8 space-y-5">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="size-7 text-primary" />
+            </div>
+            <h2 className="font-display text-xl leading-tight">
+              {sent.recipients === 0
+                ? "No accounts in that audience yet"
+                : `Delivered to ${sent.recipients} ${
+                    sent.recipients === 1 ? "account" : "accounts"
+                  }`}
+            </h2>
+            <p className="text-xs text-muted-foreground font-body leading-snug max-w-[280px]">
+              {sent.recipients === 0
+                ? "Nothing was sent — there are no accounts in this audience right now."
+                : `Everyone in ${AUDIENCE_LABEL[sent.audience]} now has this message in their private STRAND Team conversation, and an email notification is on its way.`}
+            </p>
+          </div>
+
+          {sent.recipients > 0 && (
+            <SurfaceCard>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-medium">
+                {AUDIENCE_LABEL[sent.audience]} · {sent.recipients}{" "}
+                {sent.recipients === 1 ? "recipient" : "recipients"}
+              </p>
+              <p className="text-[12.5px] font-body mt-1.5 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {sent.body}
+              </p>
+            </SurfaceCard>
+          )}
+
+          <div className="space-y-2.5 pt-1">
+            <Button variant="gold" size="pill" className="w-full" onClick={() => setSent(null)}>
+              Send another message
+            </Button>
+            <Button
+              variant="outline"
+              size="pill"
+              className="w-full"
+              onClick={() => nav("/admin/messages")}
+            >
+              Back to messages
+            </Button>
+          </div>
+        </div>
+      </ScreenLayout>
+    );
+  }
+
   return (
+
     <ScreenLayout>
       <TitleBar title="Group message" onBack={smartBack(nav, "/admin/messages")} />
 
