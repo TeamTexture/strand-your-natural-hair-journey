@@ -123,6 +123,8 @@ const Journal = () => {
     photo_paths: string[];
     /** Member-chosen cover; null means auto (the first media in step order). */
     cover_media_id: string | null;
+    /** A cover photo uploaded just for the card — wins over step media. */
+    cover_path?: string | null;
     stepCount: number;
     productNames: string[];
     coverUrl?: string;
