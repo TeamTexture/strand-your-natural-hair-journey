@@ -302,6 +302,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_fidelity_rejections: {
+        Row: {
+          attempt: number
+          chapters_in_context: number[] | null
+          claim: string
+          created_at: string
+          field_path: string | null
+          function_name: string
+          id: string
+          reason: string
+          regenerated: boolean
+          rule_id: string | null
+          surface: string | null
+        }
+        Insert: {
+          attempt?: number
+          chapters_in_context?: number[] | null
+          claim: string
+          created_at?: string
+          field_path?: string | null
+          function_name: string
+          id?: string
+          reason: string
+          regenerated?: boolean
+          rule_id?: string | null
+          surface?: string | null
+        }
+        Update: {
+          attempt?: number
+          chapters_in_context?: number[] | null
+          claim?: string
+          created_at?: string
+          field_path?: string | null
+          function_name?: string
+          id?: string
+          reason?: string
+          regenerated?: boolean
+          rule_id?: string | null
+          surface?: string | null
+        }
+        Relationships: []
+      }
       ai_summaries: {
         Row: {
           created_at: string
@@ -2354,7 +2396,7 @@ export type Database = {
         Row: {
           body: string
           chapter: number
-          chapter_title: string
+          chapter_title: string | null
           created_at: string
           embedding: string
           id: string
@@ -2366,7 +2408,7 @@ export type Database = {
         Insert: {
           body: string
           chapter: number
-          chapter_title: string
+          chapter_title?: string | null
           created_at?: string
           embedding: string
           id?: string
@@ -2378,7 +2420,7 @@ export type Database = {
         Update: {
           body?: string
           chapter?: number
-          chapter_title?: string
+          chapter_title?: string | null
           created_at?: string
           embedding?: string
           id?: string
@@ -5132,6 +5174,18 @@ export type Database = {
       is_salon_member: {
         Args: { _salon_id: string; _user_id?: string }
         Returns: boolean
+      }
+      manuscript_chapters: {
+        Args: { chapter_numbers: number[] }
+        Returns: {
+          body: string
+          chapter: number
+          chapter_title: string
+          page_end: number
+          page_start: number
+          section_heading: string
+          token_count: number
+        }[]
       }
       mark_booking_click_prompted: {
         Args: { _click_id: string }
