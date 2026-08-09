@@ -591,6 +591,8 @@ export interface StoreEvidenceInput {
   attempts?: number;
   stage2Tokens?: number;
   verifyTokens?: number;
+  /** Supplement mode: the claims that came from established science, labelled. */
+  externalClaims?: ExternalClaim[];
 }
 
 /** Persist the evidence set keyed to the generated tip. Returns its id. */
@@ -600,6 +602,7 @@ export async function storeEvidenceSet(
   try {
     const db = await admin();
     if (!db) return null;
+    const external = input.externalClaims ?? [];
     const { data, error } = await db
       .from("tip_evidence_sets")
       .insert({
@@ -608,7 +611,26 @@ export async function storeEvidenceSet(
         user_id: input.userId ?? null,
         chapters: input.set.chapters,
         member_facts: input.memberFacts ?? {},
-        evidence: input.set.items,
+        // The stored evidence carries provenance per item: manuscript passages
+        // plus, in supplement mode, the externally-sourced claims with the
+        // principle that constrained each one.
+        evidence: [
+          ...input.set.items.map((i) => ({ ...i, source: i.source ?? "manuscript" })),
+          ...external.map((e) => ({
+            source: "external" as const,
+            passage: e.claim,
+            relevance: e.basis,
+            constrained_by: e.principle,
+            chapter: null,
+            chapter_title: null,
+            page_start: null,
+            page_end: null,
+          })),
+        ],
+        coverage: input.set.coverage,
+        coverage_reason: input.set.coverageReason || null,
+        governing_principle: input.set.governingPrinciple || null,
+        external_claims: external,
         tip: input.tip ?? null,
         verified: input.verified,
         attempts: input.attempts ?? 1,
@@ -625,6 +647,7 @@ export async function storeEvidenceSet(
     return null;
   }
 }
+
 
 export interface RejectionRow {
   stage: "stage1" | "stage2" | "stage3_mapping" | "terminology" | "deterministic";
