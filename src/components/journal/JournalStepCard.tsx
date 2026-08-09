@@ -104,10 +104,15 @@ const JournalStepCard = ({
   onProductsChanged,
   onDraftChange,
   discardSignal = 0,
+  expanded,
+  onToggleExpand,
 }: Props) => {
+  const collapsible = typeof expanded === "boolean" && !!onToggleExpand;
+  const isOpen = collapsible ? expanded : true;
   const { user } = useAuth();
   const { startStepLinkScan } = useStepLinkScan();
   const { tools: toolCatalogue, reload: reloadTools } = useUserTools();
+
 
   // The note is a DRAFT until saved. Media, products, tools and voice notes
   // still commit immediately — only typed text can be lost.
