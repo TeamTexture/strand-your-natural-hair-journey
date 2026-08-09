@@ -539,7 +539,7 @@ const Home = () => {
                     </svg>
                   )}
                 </div>
-              </button>
+              </div>
 
               {/* Next planned */}
               <button
