@@ -185,7 +185,7 @@ const Journal = () => {
         entry_id: string;
         step_order: number;
         journal_step_media:
-          | { storage_path: string; poster_path: string | null; kind: string; sort_order: number }[]
+          | { id: string; storage_path: string; poster_path: string | null; kind: string; sort_order: number }[]
           | null;
         journal_step_products: { user_product_id: string | null }[] | null;
       };
