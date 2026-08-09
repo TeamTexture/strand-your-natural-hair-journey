@@ -957,18 +957,7 @@ Deno.serve(async (req) => {
     // twists") so it reads properly mid-sentence.
     const prose = (v: unknown) => proseStyleText(String(v ?? "")).trim();
 
-    if (journal) {
-      // Hard guarantee of the overview + caution shape regardless of drift.
-      tip = {
-        overview: prose(tip.overview),
-        caution: prose(tip.caution),
-        signals: (Array.isArray(tip.signals) ? tip.signals : [])
-          .map((s) => prose(s))
-          .filter(Boolean)
-          .slice(0, 3),
-        actions: [],
-      };
-    } else if (single) {
+    if (single) {
       // Hard guarantee of the one-tip shape regardless of model drift. The
       // action and the reason are both required and both rendered.
       const keyFact = typeof tip.key_fact === "string" ? prose(tip.key_fact) : "";
