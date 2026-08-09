@@ -350,24 +350,20 @@ const Journal = () => {
 
 
 
-      <SectionLabel>Photo Journal</SectionLabel>
+      <SectionLabel>Style Records</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
         {lastEntryLabel && (
           <p className="text-[11px] font-body text-muted-foreground">{lastEntryLabel}</p>
         )}
 
         {savedEntries.map((s) => {
-          // Saved-entry titles previously embedded a mock catalog id like "[wash-go-day1] My title"
-          // so the detail page could load. Now we just navigate to the entry's real DB id.
           const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
-          const displayTitle = match?.[2] || s.title || "Journal entry";
-          const dateLabel = formatEntryDate(s.entry_date);
-          // Pull the human-friendly product names for the badges under the cover.
-          const productNames = (s.products_used ?? [])
-            .map((pid) => productLookup[pid])
-            .filter(Boolean)
-            .map((p) => (p!.brand ? `${p!.brand} ${p!.name}` : p!.name));
+          const displayTitle =
+            s.style_name?.trim() || match?.[2] || s.title || "Style record";
+          const dateLabel = formatEntryDate(s.style_date ?? s.entry_date);
+          const productNames = s.productNames;
           const extraProducts = Math.max(0, productNames.length - 2);
+          const complete = s.status === "complete";
           return (
             <div
               key={s.id}
@@ -385,7 +381,7 @@ const Journal = () => {
               <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg">
                 <div className={`relative h-56 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
                   {s.coverUrl ? (
-                    isVideoPath(s.photo_paths?.[0] ?? "") ? (
+                    s.coverIsVideo ? (
                       <>
                         <video src={s.coverUrl} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover object-[center_20%] bg-black" />
                         <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
@@ -411,23 +407,32 @@ const Journal = () => {
                       e.stopPropagation();
                       setPendingDelete(s);
                     }}
-                    aria-label="Delete journal entry"
+                    aria-label="Delete style record"
                     className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
                   >
                     <Trash2 className="size-4" />
                   </button>
                 </div>
-                {/* Labelled data block: name, date, hairstyle, products used. */}
+                {/* Style, date, steps, products used. */}
                 <div className="p-3.5 space-y-2.5">
                   <div>
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Name</p>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Style</p>
                     <p className="font-display text-base font-semibold leading-tight text-foreground">
                       {displayTitle}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date logged</p>
-                    <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date</p>
+                      <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Steps</p>
+                      <p className="font-body text-[12px] text-foreground mt-0.5">
+                        {s.stepCount} {s.stepCount === 1 ? "step" : "steps"}
+                        {complete ? "" : " · in progress"}
+                      </p>
+                    </div>
                   </div>
                   <div>
                     <p className="text-[9px] uppercase tracking-[0.2em] text-primary/80 font-medium mb-1.5 flex items-center gap-1">
@@ -461,9 +466,9 @@ const Journal = () => {
                         navigate(`/journal/entry/${s.id}`);
                       }}
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-                      aria-label="Edit journal entry"
+                      aria-label="Open style record"
                     >
-                      <Pencil className="size-3" /> Edit
+                      <Pencil className="size-3" /> Open
                     </button>
                   </div>
                 </div>
@@ -471,6 +476,7 @@ const Journal = () => {
             </div>
           );
         })}
+
         {/* Always-visible "new entry" tile so users can keep adding entries
             once they have some saved (previously this only rendered when
             the photo journal was empty, leaving no entry point). */}
