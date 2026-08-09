@@ -372,6 +372,13 @@ const Journal = () => {
             ))}
           </div>
         )}
+
+        {/* PROGRESS PHOTOS — moved here from the removed Strand Summary screen.
+            Progress belongs next to goals, where it's reviewed. */}
+        <div className="pt-2 space-y-3">
+          <SectionHeader icon={ICONS.camera} className="text-muted-foreground">Progress photos</SectionHeader>
+          <ProgressPhotosCard />
+        </div>
       </div>
 
 
