@@ -357,6 +357,9 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   }
 
   const dateLabel = prettyDate(entry.style_date);
+  const mediaCount = steps.reduce((n, s) => n + s.media.length, 0);
+  const productCount = steps.reduce((n, s) => n + s.products.length, 0);
+  const reviewing = mode === "review";
 
   return (
     <ScreenLayout>
@@ -366,8 +369,41 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
         onBack={() => guardExit(() => safeBack(navigate, "/journal"))}
       />
       <div className="px-5 pb-10 space-y-3">
-        {dateLabel && (
-          <p className="text-[11px] text-muted-foreground">{dateLabel}</p>
+        {/* ── Header ─────────────────────────── */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {dateLabel && (
+              <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
+                <CalendarDays className="size-3" /> {dateLabel}
+              </p>
+            )}
+            <h1 className="font-display text-xl font-bold leading-tight truncate">
+              {entry.style_name || "Style record"}
+            </h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {complete ? "Finished" : "In progress"}
+              {steps.length ? ` · ${steps.length} step${steps.length === 1 ? "" : "s"}` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => (reviewing ? setMode("edit") : guardExit(() => setMode("review")))}
+            className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
+          >
+            {reviewing ? (
+              <><Pencil className="size-3.5" /> Edit</>
+            ) : (
+              <><Eye className="size-3.5" /> Review</>
+            )}
+          </button>
+        </div>
+
+        {reviewing && steps.length > 0 && (
+          <div className="flex gap-2">
+            <Stat icon={ListOrdered} label="Steps" value={steps.length} />
+            <Stat icon={Images} label="Photos & video" value={mediaCount} />
+            <Stat icon={Package} label="Products" value={productCount} />
+          </div>
         )}
 
         <PendingStepProducts entryId={entry.id} />
@@ -377,6 +413,12 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
             message="No steps yet"
             hint="Add step 1 for the first thing you did, then keep going."
           />
+        ) : reviewing ? (
+          <div className="space-y-2.5">
+            {steps.map((s, i) => (
+              <StepReviewCard key={s.id} step={s} index={i} />
+            ))}
+          </div>
         ) : (
           <div className="space-y-2.5">
             {steps.map((s, i) => (
@@ -406,22 +448,30 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           </div>
         )}
 
-
-
-        <Button
-          type="button"
-          variant="goldOutline"
-          size="pill"
-          className="w-full"
-          onClick={() => void addStep().then((id) => {
-            if (id) setOpenStepId(id);
-          })}
-
-        >
-          <Plus className="size-4 mr-1.5" /> Add step {steps.length + 1}
-        </Button>
-
-
+        {reviewing ? (
+          <Button
+            type="button"
+            variant="goldOutline"
+            size="pill"
+            className="w-full"
+            onClick={() => setMode("edit")}
+          >
+            <Pencil className="size-4 mr-1.5" />
+            {steps.length ? "Edit or add content" : "Add your first step"}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="goldOutline"
+            size="pill"
+            className="w-full"
+            onClick={() => void addStep().then((id) => {
+              if (id) setOpenStepId(id);
+            })}
+          >
+            <Plus className="size-4 mr-1.5" /> Add step {steps.length + 1}
+          </Button>
+        )}
 
         <Button
           type="button"
