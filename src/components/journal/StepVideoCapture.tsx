@@ -178,8 +178,8 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     if (zoomCaps.native) {
       const track = streamRef.current?.getVideoTracks()[0];
       // Non-standard but widely shipped on Android Chrome.
-      void track?.applyConstraints({ advanced: [{ zoom: clamped }] } as MediaTrackConstraints)
-        .catch(() => undefined);
+      const constraints = { advanced: [{ zoom: clamped }] } as unknown as MediaTrackConstraints;
+      void track?.applyConstraints(constraints).catch(() => undefined);
       zoomRef.current = 1;
     } else {
       zoomRef.current = clamped;
