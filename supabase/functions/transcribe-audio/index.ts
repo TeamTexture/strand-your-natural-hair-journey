@@ -85,13 +85,13 @@ Deno.serve(async (req) => {
         return json({ error: "Too many requests — try again in a moment." }, 429);
       }
       if (aiResp.status === 402 || aiResp.status === 403) {
-        return json(
-          {
-            error:
-              "Transcription is paused — the workspace AI credit limit has been reached.",
-          },
-          402,
-        );
+        // Return 200 with a paused flag: this is an expected billing state, not
+        // a function fault, so it must not surface as a client runtime error.
+        return json({
+          paused: true,
+          error:
+            "Transcription is paused — the workspace AI credit limit has been reached.",
+        });
       }
       return json({ error: "Transcription failed" }, 502);
     }
