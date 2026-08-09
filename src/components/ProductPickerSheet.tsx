@@ -65,7 +65,7 @@ const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onCl
 );
 
 
-const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle }: Props) => {
+const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint }: Props) => {
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
