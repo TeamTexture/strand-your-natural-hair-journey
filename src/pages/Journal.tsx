@@ -115,18 +115,20 @@ const Journal = () => {
     setDetailOpen(true);
   };
 
-  // Saved entries from the database — these appear above the mock catalog,
-  // newest first, so a freshly-saved entry shows at the top of the list.
+  // Saved style records from the database, newest first.
   interface SavedEntry {
     id: string;
     title: string | null;
-    note: string | null;
+    style_name: string | null;
+    style_date: string | null;
+    status: string | null;
     entry_date: string;
     photo_paths: string[];
-    products_used: string[] | null;
+    stepCount: number;
+    productNames: string[];
     coverUrl?: string;
+    coverIsVideo?: boolean;
   }
-  const [productLookup, setProductLookup] = useState<Record<string, { name: string; brand: string | null }>>({});
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -134,7 +136,7 @@ const Journal = () => {
   const handleDeleteSaved = async () => {
     if (!pendingDelete || !user) return;
     setDeleting(true);
-    // Best-effort: remove any uploaded photos from storage too.
+    // Best-effort: remove any legacy uploaded photos from storage too.
     if (pendingDelete.photo_paths?.length) {
       await supabase.storage.from(PHOTO_BUCKET).remove(pendingDelete.photo_paths).catch(() => {});
     }
@@ -145,12 +147,12 @@ const Journal = () => {
       .eq("user_id", user.id);
     setDeleting(false);
     if (error) {
-      toast.error("Could not delete entry");
+      toast.error("Could not delete this style record");
       return;
     }
     setSavedEntries((rows) => rows.filter((r) => r.id !== pendingDelete.id));
     setPendingDelete(null);
-    toast.success("Journal entry deleted.");
+    toast.success("Style record deleted.");
   };
 
   useEffect(() => {
@@ -159,40 +161,98 @@ const Journal = () => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, title, note, entry_date, photo_paths, products_used")
+        .select("id, title, style_name, style_date, status, entry_date, photo_paths")
         .eq("user_id", user.id)
-        .order("entry_date", { ascending: false })
+        .order("style_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (cancelled || !data) return;
+      const entries = data as Omit<SavedEntry, "stepCount" | "productNames">[];
+      const ids = entries.map((e) => e.id);
+
+      // One query for every step of every record — gives us the step count,
+      // the cover media and the products used across the whole record.
+      const { data: stepRows } = ids.length
+        ? await supabase
+            .from("journal_steps")
+            .select(
+              "id, entry_id, step_order, journal_step_media(storage_path, kind, sort_order), journal_step_products(user_product_id)",
+            )
+            .in("entry_id", ids)
+            .order("step_order", { ascending: true })
+        : { data: [] as never[] };
+      if (cancelled) return;
+
+      type StepRow = {
+        entry_id: string;
+        step_order: number;
+        journal_step_media: { storage_path: string; kind: string; sort_order: number }[] | null;
+        journal_step_products: { user_product_id: string | null }[] | null;
+      };
+      const byEntry = new Map<string, StepRow[]>();
+      for (const r of (stepRows ?? []) as StepRow[]) {
+        const list = byEntry.get(r.entry_id) ?? [];
+        list.push(r);
+        byEntry.set(r.entry_id, list);
+      }
+
+      const productIds = new Set<string>();
+      for (const list of byEntry.values()) {
+        for (const s of list) {
+          for (const p of s.journal_step_products ?? []) {
+            if (p.user_product_id) productIds.add(p.user_product_id);
+          }
+        }
+      }
+      const lookup: Record<string, { name: string; brand: string | null }> = {};
+      if (productIds.size) {
+        const { data: prods } = await supabase
+          .from("user_products")
+          .select("id, name, brand")
+          .in("id", Array.from(productIds));
+        for (const p of prods ?? []) lookup[p.id] = { name: p.name, brand: p.brand };
+      }
+      if (cancelled) return;
+
       const rows: SavedEntry[] = await Promise.all(
-        (data as SavedEntry[]).map(async (r) => {
-          const cover = r.photo_paths?.[0];
-          if (!cover) return r;
-          const { data: sig } = await supabase.storage
-            .from(PHOTO_BUCKET)
-            .createSignedUrl(cover, 3600);
-          return { ...r, coverUrl: sig?.signedUrl };
+        entries.map(async (e) => {
+          const steps = (byEntry.get(e.id) ?? []).sort((a, b) => a.step_order - b.step_order);
+          const media = steps.flatMap((s) =>
+            (s.journal_step_media ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
+          );
+          const cover = media[0];
+          const names = Array.from(
+            new Set(
+              steps.flatMap((s) =>
+                (s.journal_step_products ?? [])
+                  .map((p) => (p.user_product_id ? lookup[p.user_product_id] : undefined))
+                  .filter(Boolean)
+                  .map((p) => (p!.brand ? `${p!.brand} ${p!.name}` : p!.name)),
+              ),
+            ),
+          );
+          let coverUrl: string | undefined;
+          if (cover) {
+            const bucket = cover.kind === "video" ? "journal-videos" : PHOTO_BUCKET;
+            const { data: sig } = await supabase.storage
+              .from(bucket)
+              .createSignedUrl(cover.storage_path, 3600);
+            coverUrl = sig?.signedUrl;
+          }
+          return {
+            ...e,
+            stepCount: steps.length,
+            productNames: names,
+            coverUrl,
+            coverIsVideo: cover?.kind === "video",
+          };
         }),
       );
       if (cancelled) return;
       setSavedEntries(rows);
-      // Batch-load product names referenced across all entries so thumbnails
-      // can surface "Products used" without N extra queries per card.
-      const allIds = Array.from(new Set(rows.flatMap((r) => r.products_used ?? [])));
-      if (allIds.length) {
-        const { data: prods } = await supabase
-          .from("user_products")
-          .select("id, name, brand")
-          .in("id", allIds);
-        if (!cancelled && prods) {
-          const map: Record<string, { name: string; brand: string | null }> = {};
-          for (const p of prods) map[p.id] = { name: p.name, brand: p.brand };
-          setProductLookup(map);
-        }
-      }
     })();
     return () => { cancelled = true; };
   }, [user]);
+
 
   // Neutral recency line for the entries list — no wash advice here.
   const lastEntryLabel = useMemo(() => {
