@@ -5,7 +5,8 @@
 // existing chat_messages insert trigger sends each recipient the
 // "strand-message-received" email, so no separate email path is needed.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { prepareImageForAi } from "@/lib/imagePrep";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
