@@ -220,9 +220,11 @@ const ChatThreadPage = () => {
   const roleView = useActiveRoleView();
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
+  const sendImage = useSendChatImage(threadId);
   const book = useBookAppointmentInThread();
   const markRead = useMarkThreadRead(threadId);
   const [draft, setDraft] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Location autocomplete pool: any locations the current user has already
