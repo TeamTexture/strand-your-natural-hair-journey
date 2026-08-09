@@ -19,6 +19,12 @@ import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardra
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
+  FIDELITY_RULE,
+  loadSurfaceChapters,
+  noteSourceText,
+  renderChapterBlock,
+} from "../_shared/chapter-context.ts";
+import {
   validateTipAction,
   validateTipReason,
   memberAttributeTokens,
