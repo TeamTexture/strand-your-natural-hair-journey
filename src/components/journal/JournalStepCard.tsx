@@ -82,7 +82,7 @@ const CaptureTile = ({
     <span className="size-8 rounded-full bg-primary/12 flex items-center justify-center">
       <Icon className="size-4 text-primary" />
     </span>
-    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
       {label}
     </span>
   </button>
