@@ -230,6 +230,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
+        // Output cap — the profile is a small structured payload, and output
+        // tokens are what make this screen slow.
+        max_tokens: 2000,
         messages: [
           { role: "system", content: `${`${buildSystemPrompt()}${ragBlock}`}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
           { role: "user", content: buildUserPrompt(body) },
