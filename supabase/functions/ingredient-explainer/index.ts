@@ -190,6 +190,7 @@ RULES:
 
 async function generateGlossary(names: string[]): Promise<Array<Record<string, unknown>>> {
   const req = await buildClaudeRequest({
+    surface: "ingredient-explainer",
     function_kind: "ingredient-explainer",
     task_instructions: glossaryInstructions(),
     user_payload: { ingredients: names },
@@ -328,6 +329,7 @@ async function generateTermDefinition(
 ): Promise<{ what_it_is: string; phonetic: string | null }> {
   const isConcept = term.kind === "concept";
   const req = await buildClaudeRequest({
+    surface: "ingredient-explainer",
     function_kind: "ingredient-explainer",
     task_instructions: `You are writing ONE entry for STRAND's shared glossary. It is read by EVERY user, so it is purely factual: NO personalisation, NO advice, NO usage instructions.
 
@@ -420,6 +422,7 @@ async function generateRoles(
   ingredients: string[],
 ): Promise<Map<string, string>> {
   const req = await buildClaudeRequest({
+    surface: "ingredient-explainer",
     function_kind: "ingredient-explainer",
     task_instructions: `You are explaining what each ingredient is doing INSIDE one specific product. Return via the return_roles tool.
 
@@ -482,6 +485,7 @@ async function generateFit(args: {
 }): Promise<FitPayload> {
   const { ingredient, userPayload } = args;
   const req = await buildClaudeRequest({
+    surface: "ingredient-explainer",
     function_kind: "ingredient-explainer",
     task_instructions: `You are writing the personalised part of a glossary explainer sheet for ONE ${
       ingredient.kind === "concept"
