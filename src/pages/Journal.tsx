@@ -123,6 +123,8 @@ const Journal = () => {
     photo_paths: string[];
     /** Member-chosen cover; null means auto (the first media in step order). */
     cover_media_id: string | null;
+    /** A cover photo uploaded just for the card — wins over step media. */
+    cover_path?: string | null;
     stepCount: number;
     productNames: string[];
     coverUrl?: string;
@@ -160,7 +162,7 @@ const Journal = () => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, title, style_name, style_date, status, entry_date, photo_paths, cover_media_id")
+        .select("id, title, style_name, style_date, status, entry_date, photo_paths, cover_media_id, cover_path")
         .eq("user_id", user.id)
         .order("style_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -245,7 +247,13 @@ const Journal = () => {
           // never renders a black rectangle. Photos sign as normal.
           let coverUrl: string | undefined;
           let coverIsVideo = false;
-          if (cover) {
+          if (e.cover_path) {
+            // A cover photo uploaded for the card itself always wins.
+            const { data: sig } = await supabase.storage
+              .from(PHOTO_BUCKET)
+              .createSignedUrl(e.cover_path, 3600);
+            coverUrl = sig?.signedUrl;
+          } else if (cover) {
             const isVideo = cover.kind === "video";
             const usePoster = isVideo && !!cover.poster_path;
             const bucket = isVideo && !usePoster ? "journal-videos" : PHOTO_BUCKET;
