@@ -51,7 +51,30 @@ export interface EvidenceItem {
   passage: string;
   /** One line: why this applies to THIS member. */
   relevance: string;
+  /**
+   * Provenance. `manuscript` = the author's own text. `external` = established
+   * cosmetic science / trichology admitted ONLY in supplement mode, and only
+   * under a named manuscript principle (see `governingPrinciple`).
+   */
+  source?: "manuscript" | "external";
+  /** For external items: the manuscript principle that constrains the claim. */
+  constrained_by?: string;
 }
+
+/**
+ * COVERAGE TIER (2026-08-09, author's refinement).
+ *
+ *   explicit    — the manuscript directly addresses the member's situation.
+ *                 Stage 2 gets the evidence set and nothing else.
+ *   extension   — the manuscript establishes a principle that applies, but does
+ *                 not name this situation. Stage 2 gets the evidence set plus
+ *                 the named principle, and may apply it to the situation.
+ *   supplement  — the manuscript does not cover it. Stage 2 gets the evidence
+ *                 set, the named governing principle, and narrow permission to
+ *                 use established cosmetic science / trichology consistent with
+ *                 that principle.
+ */
+export type Coverage = "explicit" | "extension" | "supplement";
 
 export interface EvidenceSet {
   items: EvidenceItem[];
@@ -59,6 +82,12 @@ export interface EvidenceSet {
   tokens: number;
   /** False when the manuscript could not be read at all. */
   sourceAvailable: boolean;
+  /** Stage 1's classification of how well the book covers this situation. */
+  coverage: Coverage;
+  /** Stage 1's one-line justification for the classification. */
+  coverageReason: string;
+  /** The manuscript principle that governs extension / supplement reasoning. */
+  governingPrinciple: string;
 }
 
 export const EMPTY_EVIDENCE: EvidenceSet = {
@@ -66,10 +95,17 @@ export const EMPTY_EVIDENCE: EvidenceSet = {
   chapters: [],
   tokens: 0,
   sourceAvailable: false,
+  coverage: "explicit",
+  coverageReason: "",
+  governingPrinciple: "",
 };
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 const words = (s: string) => norm(s).split(" ").filter(Boolean);
+
+const asCoverage = (v: unknown): Coverage =>
+  v === "extension" || v === "supplement" ? v : "explicit";
+
 
 // ---------------------------------------------------------------------------
 // STAGE 1 — read the chapters, output evidence only
@@ -93,13 +129,26 @@ Rules:
 - Extract at least one passage for each distinct thing this reader might reasonably be told to do, given her recorded style and goal.
 - Return between 8 and 16 items. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
 
-Reply with JSON only: {"evidence":[{"n":<number>,"passage":"...","relevance":"..."}]}`;
+THEN CLASSIFY COVERAGE of this reader's situation by the supplied chapters. Exactly one of:
+- "explicit": the author directly addresses this reader's situation — her style, her stated goal or challenge, the thing being asked about. Prefer this classification. The book covers language, styling, scalp health, wash day, moisture retention, ingredients, length retention, treatments and colouring thoroughly, so most situations ARE explicit.
+- "extension": the author establishes a principle that plainly applies, but never names this specific situation.
+- "supplement": the author does not cover the subject at all and outside knowledge would be required.
+
+Return alongside the evidence:
+- "coverage": one of the three words above.
+- "coverage_reason": ONE line justifying the classification, naming what the author does or does not address.
+- "principle": for "extension" and "supplement", the author's governing principle that must control the reasoning, stated in her terms and drawn from the passages you extracted. Required for those two. Empty string for "explicit".
+
+Never classify "supplement" merely because the author does not use the reader's exact wording, or because you believe there is more to say. Classify "supplement" only when the subject itself is absent from the supplied text.
+
+Reply with JSON only: {"coverage":"...","coverage_reason":"...","principle":"...","evidence":[{"n":<number>,"passage":"...","relevance":"..."}]}`;
 
 interface Stage1Raw {
   n?: number;
   passage?: string;
   relevance?: string;
 }
+
 
 /**
  * STAGE 1. Reads the authoritative chapters for the surface IN FULL (chapter 1
@@ -130,6 +179,10 @@ export async function gatherEvidence(input: {
 
   let raw: Stage1Raw[] = [];
   let tokens = 0;
+  let coverage: Coverage = "explicit";
+  let coverageReason = "";
+  let principle = "";
+
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
@@ -159,6 +212,9 @@ export async function gatherEvidence(input: {
     const content = json?.choices?.[0]?.message?.content;
     const parsed = typeof content === "string" ? JSON.parse(content) : null;
     raw = Array.isArray(parsed?.evidence) ? parsed.evidence : [];
+    coverage = asCoverage(parsed?.coverage);
+    coverageReason = String(parsed?.coverage_reason ?? "").trim().slice(0, 400);
+    principle = String(parsed?.principle ?? "").trim().slice(0, 400);
   } catch (e) {
     console.error(JSON.stringify({ event: "stage1_failed", fn: input.fn, error: String(e) }));
     return EMPTY_EVIDENCE;
@@ -190,8 +246,24 @@ export async function gatherEvidence(input: {
       page_end: row.page_end ?? null,
       passage: passage.slice(0, 1600),
       relevance: String(r?.relevance ?? "").trim().slice(0, 400),
+      source: "manuscript",
     });
     if (items.length >= 10) break;
+  }
+
+  // A principle is MANDATORY outside explicit mode: extension and supplement
+  // reasoning is only permitted when a manuscript principle governs it. Without
+  // one we downgrade to explicit, which is the strictest mode — never the
+  // permissive one.
+  if (coverage !== "explicit" && !principle) {
+    console.warn(
+      JSON.stringify({
+        event: "coverage_downgraded_no_principle",
+        fn: input.fn,
+        requested: coverage,
+      }),
+    );
+    coverage = "explicit";
   }
 
   const set: EvidenceSet = {
@@ -199,6 +271,9 @@ export async function gatherEvidence(input: {
     chapters: [...new Set(items.map((i) => i.chapter))].sort((a, b) => a - b),
     tokens,
     sourceAvailable: true,
+    coverage,
+    coverageReason,
+    governingPrinciple: coverage === "explicit" ? "" : principle,
   };
   if (items.length) {
     if (stage1Cache.size > 64) stage1Cache.clear();
@@ -212,9 +287,11 @@ export async function gatherEvidence(input: {
       chapters: set.chapters,
       items: items.length,
       dropped: raw.length - items.length,
+      coverage: set.coverage,
       tokens,
     }),
   );
+
   return set;
 }
 
@@ -242,8 +319,22 @@ export function isPresentIn(passage: string, source: string): boolean {
 
 /**
  * The stage 2 payload. This is the ONLY hair care source text stage 2 receives:
- * the extracted passages and why each applies. The full chapters are not passed,
- * and chapter/page metadata is withheld so nothing can be cited.
+ * the extracted passages and why each applies. The full chapters are never
+ * passed in any mode, and chapter/page metadata is withheld so nothing can be
+ * cited.
+ *
+ * The three modes differ ONLY in what the writer is permitted to reason with:
+ *
+ *   explicit    evidence set only.
+ *   extension   evidence set + the named principle, which it may apply to the
+ *               situation the author does not name. No outside facts.
+ *   supplement  evidence set + the named principle + narrow permission to use
+ *               established cosmetic science / trichology that is consistent
+ *               with that principle. Each such claim must be tagged.
+ *
+ * In every mode the author's terminology lexicon binds (appended separately by
+ * `evidencePromptBlock`) and the manuscript wins any conflict with industry
+ * practice.
  */
 export function renderEvidenceBlock(set: EvidenceSet): string {
   if (!set.items.length) return "";
@@ -255,20 +346,53 @@ export function renderEvidenceBlock(set: EvidenceSet): string {
         }`,
     )
     .join("\n\n");
-  return `THE EVIDENCE SET — your ONLY source of hair care fact. Nothing else exists.
+
+  const conflictRule =
+    `THE AUTHOR ALWAYS WINS A CONFLICT. Where established industry practice, marketing language or common terminology contradicts her position, her position governs — without exception and without hedging. Her book exists to correct widespread industry error, so treating industry consensus as authoritative would reproduce the exact error. Example: the industry calls a conditioning shampoo "moisturising"; she does not, and neither do you.`;
+
+  const head = set.coverage === "explicit"
+    ? `THE EVIDENCE SET — your ONLY source of hair care fact. Nothing else exists.`
+    : `THE EVIDENCE SET — your primary and default source of hair care fact.`;
+
+  const modeRule = set.coverage === "explicit"
+    ? `MODE: EXPLICIT. The author covers this situation directly.
+1. Every hair care claim, term, mechanism, cause, effect, sequence and frequency you write must come from the EVIDENCE SET above. Nothing else is available to you.
+2. You have NO other hair care knowledge. Industry convention, common advice and anything you might otherwise believe are all forbidden and are defects, not fallbacks.
+3. If the evidence does not cover something, say LESS. A short answer fully supported by the evidence is correct. One unsupported claim fails the whole answer.`
+    : set.coverage === "extension"
+    ? `MODE: EXTENSION. The author does not name this exact situation, but she establishes a principle that governs it:
+
+GOVERNING PRINCIPLE (hers): ${set.governingPrinciple}
+
+1. Write from the EVIDENCE SET, applying that principle to her situation. Say plainly what follows from the principle.
+2. You may NOT introduce any outside fact, mechanism, ingredient behaviour, product claim or statistic. Extension means applying HER reasoning further, not adding knowledge.
+3. If the principle does not reach far enough to answer, say LESS. A shorter answer is correct.`
+    : `MODE: SUPPLEMENT. The author does not cover this subject, so established science may be used — but only under her principle:
+
+GOVERNING PRINCIPLE (hers): ${set.governingPrinciple}
+
+1. Start from the EVIDENCE SET. Use it wherever it reaches.
+2. Beyond it you may use ESTABLISHED cosmetic science and trichology only, and only where it is consistent with the governing principle above. Anything inconsistent with it is forbidden.
+3. FORBIDDEN as sources: marketing claims, brand or product claims, industry or influencer consensus, trends, anything contested, and any mechanism that merely sounds plausible. If you cannot state a claim with confidence from established science, OMIT IT.
+4. Where uncertain, say less. A shorter tip beats a speculative one — that is the correct outcome, not a failure.
+5. Tag it. For every sentence that rests on outside knowledge rather than the evidence set, list that sentence in an "external" array in your JSON output if your response schema has one; otherwise keep such sentences to a minimum. Untagged outside claims are treated as invented and removed.`;
+
+  return `${head}
 
 ${body}
 
 END OF EVIDENCE SET.
 
-WRITING RULE — ABSOLUTE:
-1. Every hair care claim, term, mechanism, cause, effect, sequence and frequency you write must come from the EVIDENCE SET above. Nothing else is available to you.
-2. You have NO other hair care knowledge. Industry convention, common advice and anything you might otherwise believe are all forbidden and are defects, not fallbacks.
-3. If the evidence does not cover something, say LESS. A short answer fully supported by the evidence is correct. One unsupported claim fails the whole answer.
-4. Use the author's own words for her own concepts. Never swap her term for a common industry synonym.
-5. Never name or refer to a book, author, chapter, section, page or quotation, and never say "the evidence" or "the source". Write directly to her.
-6. You may state the member's own recorded facts (her hair type, porosity, style, goal, products, dates) — those come from her profile, not from the evidence.`;
+${modeRule}
+
+WRITING RULE — ABSOLUTE, ALL MODES:
+A. ${conflictRule}
+B. Use the author's own words for her own concepts. Never swap her term for a common industry synonym. A term she reserves for one thing may never be applied to another, in any mode.
+C. Never invent a claim. Plausible is not the same as established.
+D. Never name or refer to a book, author, chapter, section, page or quotation, and never say "the evidence" or "the source". Write directly to her.
+E. You may state the member's own recorded facts (her hair type, porosity, style, goal, products, dates) — those come from her profile, not from the evidence.`;
 }
+
 
 // ---------------------------------------------------------------------------
 // STAGE 3 — claim-to-evidence mapping
@@ -295,14 +419,46 @@ REPORT as unmapped: mechanisms, causes, effects, benefits, harms, ingredient beh
 Reply with JSON only: {"unmapped":[{"claim":"<exact sentence from OUTPUT>","reason":"<which evidence is missing, one sentence>"}]}
 An empty array means every claim maps to evidence.`;
 
+/** Extra instructions for extension mode: the principle may be applied. */
+const EXTENSION_RULE = (principle: string) =>
+  `COVERAGE: EXTENSION. The evidence set does not name this reader's exact situation, but the author establishes a principle that governs it:
+
+GOVERNING PRINCIPLE: ${principle}
+
+A claim is MAPPED when it follows from the evidence set, OR when it is that principle applied to the reader's situation. Do not report a claim solely because the author never names this situation — that is what extension means.
+A claim is STILL a failure when it introduces an outside fact, mechanism, ingredient behaviour, statistic or product claim that neither the evidence nor the principle yields.`;
+
+/** Extra instructions for supplement mode: external claims are triaged. */
+const SUPPLEMENT_RULE = (principle: string) =>
+  `COVERAGE: SUPPLEMENT. The author does not cover this subject, so established science is permitted under her principle:
+
+GOVERNING PRINCIPLE: ${principle}
+
+Triage every claim the evidence set does not support into exactly one bucket:
+- "external": it is ESTABLISHED cosmetic science or trichology, is stated with confidence rather than hedged, and is CONSISTENT with the governing principle above. Put it in "external" with the principle it is consistent with.
+- "unmapped": anything else — a marketing or brand claim, industry/influencer consensus, a contested position, a trend, a plausible-sounding but unestablished mechanism, an invented number, or anything that CONTRADICTS the governing principle or the author's terminology. These are rejected.
+
+If a claim contradicts the author on any point, it is "unmapped", never "external". The author overrides established industry practice wherever they disagree.
+
+Reply with JSON only: {"unmapped":[{"claim":"...","reason":"..."}],"external":[{"claim":"...","basis":"<the established science, one line>","principle":"<the governing principle it is consistent with>"}]}`;
+
 export interface UnmappedClaim {
   claim: string;
   reason: string;
   rule: string;
 }
 
+export interface ExternalClaim {
+  claim: string;
+  basis: string;
+  principle: string;
+  source: "external";
+}
+
 export interface MappingResult {
   unmapped: UnmappedClaim[];
+  /** Supplement mode only: claims kept, but labelled as externally sourced. */
+  external: ExternalClaim[];
   tokens: number;
   /** False when the mapper could not run (transport failure) — fail open. */
   ran: boolean;
@@ -313,18 +469,25 @@ export interface MappingResult {
  * the claims that could not be mapped. On transport failure it returns ran:false
  * so a verifier outage cannot take the whole app down — the deterministic rules
  * and the terminology guard still apply.
+ *
+ * The mode comes from the evidence set's coverage classification, so a surface
+ * cannot ask for a laxer audit than stage 1 justified.
  */
 export async function mapClaimsToEvidence(
   output: string,
   set: EvidenceSet,
 ): Promise<MappingResult> {
   const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key || !output.trim() || !set.items.length) {
-    return { unmapped: [], tokens: 0, ran: false };
-  }
+  const empty: MappingResult = { unmapped: [], external: [], tokens: 0, ran: false };
+  if (!key || !output.trim() || !set.items.length) return empty;
   const evidence = set.items
     .map((it, i) => `[${i + 1}] ${it.passage}`)
     .join("\n\n");
+  const system = [
+    MAPPER_PROMPT,
+    set.coverage === "extension" ? EXTENSION_RULE(set.governingPrinciple) : "",
+    set.coverage === "supplement" ? SUPPLEMENT_RULE(set.governingPrinciple) : "",
+  ].filter(Boolean).join("\n\n");
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
@@ -334,12 +497,12 @@ export async function mapClaimsToEvidence(
         temperature: 0,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: MAPPER_PROMPT },
+          { role: "system", content: system },
           { role: "user", content: `EVIDENCE SET:\n${evidence}\n\n---\n\nOUTPUT:\n${output}` },
         ],
       }),
     });
-    if (!res.ok) return { unmapped: [], tokens: 0, ran: false };
+    if (!res.ok) return empty;
     const json = await res.json();
     const tokens = Number(json?.usage?.total_tokens ?? 0);
     const content = json?.choices?.[0]?.message?.content;
@@ -352,11 +515,35 @@ export async function mapClaimsToEvidence(
         reason: String(v.reason ?? "No evidence item supports this claim.").slice(0, 600),
         rule: "unmapped_claim",
       }));
-    return { unmapped, tokens, ran: true };
+    // External claims are only ever admitted in supplement mode. If the mapper
+    // returns them in any other mode they are rejected instead of kept.
+    const rawExternal = (Array.isArray(parsed?.external) ? parsed.external : [])
+      .filter((v: { claim?: unknown }) => typeof v?.claim === "string" && v.claim.trim())
+      .slice(0, 12);
+    if (set.coverage !== "supplement") {
+      for (const v of rawExternal) {
+        unmapped.push({
+          claim: String(v.claim).slice(0, 600),
+          reason: "Outside knowledge is not permitted in this coverage mode.",
+          rule: "external_claim_out_of_mode",
+        });
+      }
+      return { unmapped, external: [], tokens, ran: true };
+    }
+    const external: ExternalClaim[] = rawExternal.map(
+      (v: { claim: string; basis?: string; principle?: string }) => ({
+        claim: String(v.claim).slice(0, 600),
+        basis: String(v.basis ?? "").slice(0, 400),
+        principle: String(v.principle ?? set.governingPrinciple).slice(0, 400),
+        source: "external" as const,
+      }),
+    );
+    return { unmapped, external, tokens, ran: true };
   } catch {
-    return { unmapped: [], tokens: 0, ran: false };
+    return empty;
   }
 }
+
 
 // ---------------------------------------------------------------------------
 // Per-request evidence registry
@@ -404,6 +591,8 @@ export interface StoreEvidenceInput {
   attempts?: number;
   stage2Tokens?: number;
   verifyTokens?: number;
+  /** Supplement mode: the claims that came from established science, labelled. */
+  externalClaims?: ExternalClaim[];
 }
 
 /** Persist the evidence set keyed to the generated tip. Returns its id. */
@@ -413,6 +602,7 @@ export async function storeEvidenceSet(
   try {
     const db = await admin();
     if (!db) return null;
+    const external = input.externalClaims ?? [];
     const { data, error } = await db
       .from("tip_evidence_sets")
       .insert({
@@ -421,7 +611,26 @@ export async function storeEvidenceSet(
         user_id: input.userId ?? null,
         chapters: input.set.chapters,
         member_facts: input.memberFacts ?? {},
-        evidence: input.set.items,
+        // The stored evidence carries provenance per item: manuscript passages
+        // plus, in supplement mode, the externally-sourced claims with the
+        // principle that constrained each one.
+        evidence: [
+          ...input.set.items.map((i) => ({ ...i, source: i.source ?? "manuscript" })),
+          ...external.map((e) => ({
+            source: "external" as const,
+            passage: e.claim,
+            relevance: e.basis,
+            constrained_by: e.principle,
+            chapter: null,
+            chapter_title: null,
+            page_start: null,
+            page_end: null,
+          })),
+        ],
+        coverage: input.set.coverage,
+        coverage_reason: input.set.coverageReason || null,
+        governing_principle: input.set.governingPrinciple || null,
+        external_claims: external,
         tip: input.tip ?? null,
         verified: input.verified,
         attempts: input.attempts ?? 1,
@@ -438,6 +647,7 @@ export async function storeEvidenceSet(
     return null;
   }
 }
+
 
 export interface RejectionRow {
   stage: "stage1" | "stage2" | "stage3_mapping" | "terminology" | "deterministic";

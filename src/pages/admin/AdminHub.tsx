@@ -570,6 +570,13 @@ const AdminHub = () => {
             onClick={() => nav("/admin/audit")}
           />
           <NavCard
+            icon={ScrollText}
+            title="Grounding audit"
+            description="Tips by coverage tier, evidence sets and rejections"
+            onClick={() => nav("/admin/tip-grounding")}
+          />
+
+          <NavCard
             icon={Library}
             title="STRAND+ Library"
             description="Upload courses, ebooks, videos and articles"

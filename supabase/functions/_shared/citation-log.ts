@@ -19,8 +19,10 @@ import {
   mapClaimsToEvidence,
   storeEvidenceSet,
   type EvidenceSet,
+  type ExternalClaim,
   type RejectionRow,
 } from "./evidence.ts";
+
 import { checkTerminology, loadLexicon } from "./terminology.ts";
 import {
   enforceBloodSafety,
@@ -180,13 +182,18 @@ async function verifyStage3<T>(
   let out = payload;
   let violations: Array<{ claim: string; reason: string; rule: string; stage: RejectionRow["stage"] }> = [];
   let verifyTokens = 0;
+  let external: ExternalClaim[] = [];
 
   try {
+    // The terminology lexicon binds in ALL THREE coverage modes, supplement
+    // included: no external claim may use a word in a way the author rejects.
+    // It runs first and deterministically, so it cannot be argued around.
     const term = checkTerminology(text, await loadLexicon());
     violations = term.map((v) => ({ ...v, stage: "terminology" as const }));
 
     const mapping = await mapClaimsToEvidence(text, evidenceSet);
     verifyTokens = mapping.tokens;
+    external = mapping.external;
     violations = violations.concat(
       mapping.unmapped.map((v) => ({ ...v, stage: "stage3_mapping" as const })),
     );
@@ -194,16 +201,32 @@ async function verifyStage3<T>(
     console.warn(`[stage3] verification error in ${functionName}:`, e);
   }
 
+  // A sentence that trips the terminology guard is removed even when the mapper
+  // admitted it as established science — the author's lexicon outranks it.
+  const stripped = new Set(violations.map((v) => v.claim));
+  external = external.filter((e) => !stripped.has(e.claim));
+
   if (violations.length > 0) {
     console.warn(
       JSON.stringify({
         event: "stage3_rejection",
         fn: functionName,
+        coverage: evidenceSet.coverage,
         rules: violations.map((v) => v.rule),
       }),
     );
     out = stripDeep(payload, violations.map((v) => v.claim));
   }
+
+  console.log(
+    JSON.stringify({
+      event: "coverage_classification",
+      fn: functionName,
+      surface: opts?.surface ?? functionName,
+      coverage: evidenceSet.coverage,
+      external_claims: external.length,
+    }),
+  );
 
   const evidenceSetId = await storeEvidenceSet({
     surface: opts?.surface ?? functionName,
@@ -213,6 +236,7 @@ async function verifyStage3<T>(
     tip: out,
     verified: violations.length === 0,
     verifyTokens,
+    externalClaims: external,
   });
 
   await logGenerationRejections(
@@ -225,6 +249,7 @@ async function verifyStage3<T>(
     })),
     { surface: opts?.surface ?? null, userId: opts?.userId ?? null, evidenceSetId },
   );
+
 
   return out;
 }
