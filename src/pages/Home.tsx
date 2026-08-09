@@ -18,6 +18,8 @@ import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
+
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
