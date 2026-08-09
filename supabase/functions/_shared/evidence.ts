@@ -121,7 +121,7 @@ Your ONLY job is to EXTRACT EVIDENCE. You must NOT write advice, tips, recommend
 
 Select the passages from the supplied chapters that are relevant to this reader. For each one return:
 - "n": the number of the numbered SOURCE PASSAGE it came from.
-- "passage": the relevant text, copied from that passage as closely to verbatim as possible. Never paraphrase into your own words. Never merge two passages. 40-120 words.
+- "passage": the relevant text, copied from that passage as closely to verbatim as possible. Never paraphrase into your own words. Never merge two passages. Keep it TIGHT: 25-70 words, the sentences that carry the point and nothing around them.
 - "relevance": ONE line stating why it applies to this reader. Reference the reader's own recorded facts. This is not advice.
 
 Rules:
