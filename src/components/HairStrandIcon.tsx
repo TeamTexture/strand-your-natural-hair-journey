@@ -1,15 +1,19 @@
+import { forwardRef } from "react";
+
 interface Props {
   className?: string;
 }
 
-const HairStrandIcon = ({ className }: Props) => (
+const HairStrandIcon = forwardRef<SVGSVGElement, Props>(({ className }, ref) => (
   <svg
+    ref={ref}
     viewBox="0 0 80 80"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
     aria-hidden="true"
   >
+
     {/* Curved hair strand — single flowing coil */}
     <path
       d="M40 6 C 56 14, 60 30, 46 40 C 32 50, 28 64, 44 74"
@@ -27,6 +31,9 @@ const HairStrandIcon = ({ className }: Props) => (
       opacity="0.55"
     />
   </svg>
-);
+));
+
+HairStrandIcon.displayName = "HairStrandIcon";
 
 export default HairStrandIcon;
+
