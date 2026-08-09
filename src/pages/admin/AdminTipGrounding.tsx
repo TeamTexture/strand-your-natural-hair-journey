@@ -317,14 +317,22 @@ const AdminTipGrounding = () => {
                           {row.chapters?.length ? ` · chapters ${row.chapters.join(", ")}` : ""}
                         </p>
                       </div>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-pill px-3 py-1 text-xs",
-                          COVERAGE_CLS[row.coverage] ?? "bg-muted text-muted-foreground",
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span
+                          className={cn(
+                            "rounded-pill px-3 py-1 text-xs",
+                            COVERAGE_CLS[row.coverage] ?? "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {COVERAGE_LABEL[row.coverage] ?? row.coverage}
+                        </span>
+                        {row.policy === "B" && (
+                          <span className="rounded-pill bg-primary/15 px-3 py-1 text-xs text-primary">
+                            Sponsored
+                          </span>
                         )}
-                      >
-                        {COVERAGE_LABEL[row.coverage] ?? row.coverage}
-                      </span>
+                      </div>
+
                     </div>
 
                     {row.coverage_reason && (
