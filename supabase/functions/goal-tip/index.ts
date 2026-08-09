@@ -1040,12 +1040,30 @@ Deno.serve(async (req) => {
 
 
 
+    // FINAL SANITISE — the verify gate may strip sentences it cannot map.
+    // `action` and `reason` NEVER degrade to empty: if the gate removed them,
+    // the pre-sanitise text (which already passed the deterministic floors and
+    // the method/action/reason validators) is restored so the card can render.
+    const sanitised = (await sanitiseAndLog(tip, "goal-tip", {
+      context: body.context ?? body,
+    })) as GoalTipShape;
+    const keep = (after: unknown, before: unknown) =>
+      String(after ?? "").trim() || String(before ?? "").trim();
+    const safeTip = {
+      ...sanitised,
+      ...(single
+        ? {
+            headline: keep(sanitised?.headline, tip.headline),
+            action: keep(sanitised?.action, tip.action),
+            reason: keep(sanitised?.reason, tip.reason),
+          }
+        : {}),
+    };
+
     return new Response(
       JSON.stringify({
         tip: {
-          ...(await sanitiseAndLog(tip, "goal-tip", {
-            context: body.context ?? body,
-          })),
+          ...safeTip,
           _manuscript_grounded: grounded,
           _rag_passages: ragPassageCount,
           _rag_procedural: ragProceduralCount,
@@ -1054,6 +1072,7 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     console.error("goal-tip error", e);
     return new Response(
