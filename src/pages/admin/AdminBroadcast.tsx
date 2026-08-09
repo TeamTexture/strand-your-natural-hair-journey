@@ -5,11 +5,12 @@
 // existing chat_messages insert trigger sends each recipient the
 // "strand-message-received" email, so no separate email path is needed.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { prepareImageForAi } from "@/lib/imagePrep";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle2, Send, Users } from "lucide-react";
+import { CheckCircle2, ImagePlus, Send, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -56,9 +57,30 @@ const AdminBroadcast = () => {
   const [audience, setAudience] = useState<Audience>("all");
   const [body, setBody] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Optional photo. The message text becomes its caption, so one broadcast is
+  // still one message per recipient — never a photo plus a separate text.
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [sent, setSent] = useState<{ recipients: number; audience: Audience; body: string } | null>(
     null,
   );
+
+  const pickImage = (file: File | null) => {
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("That photo is over 20MB — please choose a smaller one.");
+      return;
+    }
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImage(null);
+    setImagePreview(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const { data: history } = useQuery({
     queryKey: ["admin", "broadcasts"],
@@ -76,9 +98,25 @@ const AdminBroadcast = () => {
 
   const send = useMutation({
     mutationFn: async () => {
+      // The photo is uploaded ONCE and every recipient's message row points at
+      // the same object — copying it per recipient would be thousands of files.
+      let imagePath: string | null = null;
+      if (image) {
+        const prepared = await prepareImageForAi(image);
+        const path = `${crypto.randomUUID()}/${crypto.randomUUID()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("chat-images")
+          .upload(path, prepared.uploadFile, {
+            contentType: prepared.uploadFile.type || "image/jpeg",
+            upsert: false,
+          });
+        if (upErr) throw upErr;
+        imagePath = path;
+      }
       const { data, error } = await supabase.rpc("admin_broadcast_message", {
         _audience: audience,
         _body: body.trim(),
+        _image_path: imagePath,
       });
       if (error) throw error;
       return data as { recipients?: number } | null;
@@ -87,13 +125,16 @@ const AdminBroadcast = () => {
       const n = res?.recipients ?? 0;
       setSent({ recipients: n, audience, body: body.trim() });
       setBody("");
+      clearImage();
       void qc.invalidateQueries({ queryKey: ["admin", "broadcasts"] });
       void qc.invalidateQueries({ queryKey: ["chat-threads"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not send"),
   });
 
-  const canSend = body.trim().length > 1 && !send.isPending;
+  // A photo on its own is a valid broadcast; text alone still is too.
+  const canSend = (body.trim().length > 1 || !!image) && !send.isPending;
+
 
   if (sent) {
     return (
@@ -192,13 +233,59 @@ const AdminBroadcast = () => {
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
           rows={6}
-          placeholder="Write the message everyone in this audience will receive…"
+          placeholder={
+            image
+              ? "Add a caption for the photo (optional)…"
+              : "Write the message everyone in this audience will receive…"
+          }
           className="text-[13px]"
         />
-        <span className="block text-[10px] text-muted-foreground">
-          {body.length}/{MAX_BODY}
-        </span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[10px] text-muted-foreground">
+            {body.length}/{MAX_BODY}
+          </span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5"
+          >
+            <ImagePlus className="size-3.5" />
+            {image ? "Change photo" : "Attach photo"}
+          </button>
+        </div>
+
+        {imagePreview && (
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5">
+            <img
+              src={imagePreview}
+              alt="Attached photo preview"
+              className="size-16 rounded-xl object-cover border border-border"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11.5px] font-body leading-snug">
+                Photo attached — everyone in this audience receives it, with your text as the
+                caption.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearImage}
+              aria-label="Remove photo"
+              className="shrink-0 size-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
       </div>
+
 
       <div className="px-5 py-4 flex justify-center">
         <Button
