@@ -18,6 +18,13 @@ import { ToolAdviceDialog } from "@/components/ToolAdviceDialog";
 import { Button } from "@/components/ui/button";
 import { useUserTools } from "@/hooks/useUserTools";
 import { matchScoreOf } from "@/lib/matchStars";
+import {
+  analysisFeatures,
+  analysisScoreReasons,
+  analysisSentences,
+  analysisStrings,
+} from "@/lib/toolAnalysis";
+
 import { cn } from "@/lib/utils";
 
 const ToolProfile = () => {
