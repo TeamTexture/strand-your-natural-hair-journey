@@ -168,14 +168,16 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (r.status === 402) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-        status: 402,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     if (!r.ok) {
       const txt = await r.text();
+      // Credit exhaustion / limit is not an app error: scoring is optional, so
+      // return an empty result and let the UI render without stars.
+      if (r.status === 402 || r.status === 403 || /credit_limit_reached|insufficient/i.test(txt)) {
+        console.error(JSON.stringify({ event: "credit_limit", fn: "tool-match-score", status: r.status }));
+        return new Response(JSON.stringify({ scores: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ error: `Upstream: ${txt.slice(0, 200)}` }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -205,12 +207,6 @@ Deno.serve(async (req) => {
     }
 
     const scores = tools.map((t) => byId.get(t.id)).filter((s): s is ScoredOut => Boolean(s));
-    if (scores.length === 0) {
-      return new Response(JSON.stringify({ error: "Scoring failed validation" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     return new Response(JSON.stringify({ scores }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
