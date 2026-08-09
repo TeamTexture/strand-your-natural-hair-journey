@@ -85,16 +85,45 @@ const Row = ({
  * with `tool-analyse-url`, then saved to My Tools and attached straight away).
  */
 const ToolPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onToolsChanged }: Props) => {
-  const { tools: allTools, loading, addTool } = useUserTools();
+  const { tools: allTools, loading, addTool, updateTool, deleteTool } = useUserTools();
   const [tab, setTab] = useState<"owned" | "wishlist">("owned");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<UserTool | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   const owned = allTools.filter((t) => !t.on_wishlist);
   const wishlist = allTools.filter((t) => t.on_wishlist);
   const list = tab === "owned" ? owned : wishlist;
   const isSelected = (id: string) => selectedIds.includes(id);
+
+  // Taking a tool off My Tools / the wishlist keeps it in the app; deleting
+  // removes it entirely. Either way it is detached from this step first, so the
+  // step never points at something that is no longer there.
+  const detach = (id: string) => {
+    if (selectedIds.includes(id)) onToggle(id);
+  };
+  const takeOff = async (t: UserTool) => {
+    setRemoving(true);
+    detach(t.id);
+    const ok = await updateTool(t.id, { on_shelf: false, on_wishlist: false, on_favourite: false });
+    setRemoving(false);
+    setPendingRemove(null);
+    if (ok) {
+      toast.success(tab === "wishlist" ? "Taken off your wishlist" : "Taken off My Tools");
+      onToolsChanged?.();
+    }
+  };
+  const hardDelete = async (t: UserTool) => {
+    setRemoving(true);
+    detach(t.id);
+    const ok = await deleteTool(t);
+    setRemoving(false);
+    setPendingRemove(null);
+    if (ok) onToolsChanged?.();
+  };
+
 
   const handleUrl = async () => {
     const raw = linkUrl.trim();
