@@ -3,8 +3,9 @@
 // any insert/update/delete flips the hash.
 
 import { supabase } from "@/integrations/supabase/client";
+import { aiRevisionPart } from "@/lib/aiCopyRevision";
 
-const SUMMARY_PROMPT_VERSION = "routine-guardrails-v10-no-wash-technique";
+const SUMMARY_PROMPT_VERSION = "v11-manuscript-2026-08-09";
 
 function djb2Hex(s: string): string {
   let h = 5381;
@@ -37,6 +38,7 @@ export async function computeStrandSummaryFingerprint(
   tipsLevel?: number | null,
 ): Promise<string> {
   const parts: string[] = [
+    aiRevisionPart,
     `prompt:${SUMMARY_PROMPT_VERSION}`,
     `tipsLevel:${tipsLevel ?? "unset"}`,
   ];
