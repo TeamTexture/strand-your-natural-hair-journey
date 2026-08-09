@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Play, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProductThumb from "@/components/ProductThumb";
-import StarRating from "@/components/StarRating";
 import MatchStars from "@/components/MatchStars";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";

@@ -13,7 +13,6 @@ import ProductPickerSheet from "@/components/ProductPickerSheet";
 import ToolPickerSheet from "@/components/ToolPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
-import StarRating from "@/components/StarRating";
 import MatchStars from "@/components/MatchStars";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useStepLinkScan } from "@/hooks/useStepLinkScan";
