@@ -631,8 +631,12 @@ export interface StoreEvidenceInput {
   claimSources?: Array<{ text: string; source: string; basis?: string }>;
   /** Supplement mode: the claims that came from established science, labelled. */
   externalClaims?: ExternalClaim[];
-
+  /** Which author clarification topics governed this copy. */
+  clarifications?: string[];
+  /** True when a clarification governed rather than the manuscript. */
+  clarificationGoverned?: boolean;
 }
+
 
 /** Persist the evidence set keyed to the generated tip. Returns its id. */
 export async function storeEvidenceSet(
