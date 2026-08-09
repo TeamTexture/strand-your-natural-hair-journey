@@ -441,20 +441,45 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       toast.error("That clip came back empty — try recording it again.");
       return;
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size > RAW_MAX_BYTES) {
       toast.error(`That clip is ${mb(file.size)} — record a shorter one.`);
       return;
     }
     setPreparing(true);
     const duration = await readDuration(file);
-    setPreparing(false);
     if (duration !== null && duration > MAX_SECONDS + 1) {
+      setPreparing(false);
       toast.error(`That clip is ${duration}s — keep it to ${MAX_SECONDS} seconds or shorter.`);
       return;
     }
-    setReview({ url: URL.createObjectURL(file), blob: file, mime: file.type || "video/mp4" });
-    toast.success("Video ready — tap Save video to add it to this step");
+
+    // Shrink big phone-camera files before they ever hit the network.
+    let blob: Blob = file;
+    let mime = file.type || "video/mp4";
+    let savedFrom: number | null = null;
+    if (file.size > MAX_BYTES / 6) {
+      setCompressPct(0);
+      const result = await compressStepVideo(file, setCompressPct);
+      setCompressPct(null);
+      blob = result.blob;
+      mime = result.mime;
+      if (result.compressed) savedFrom = result.originalBytes;
+    }
+    setPreparing(false);
+
+    if (blob.size > MAX_BYTES) {
+      toast.error(`That clip is ${mb(blob.size)} even after compressing — record a shorter one.`);
+      return;
+    }
+
+    setReview({ url: URL.createObjectURL(blob), blob, mime });
+    toast.success(
+      savedFrom
+        ? `Video ready — compressed from ${mb(savedFrom)} to ${mb(blob.size)}. Tap Save video.`
+        : "Video ready — tap Save video to add it to this step",
+    );
   };
+
 
   /** After the native camera app closes, tell the member if nothing arrived. */
   const openNativeCamera = () => {
