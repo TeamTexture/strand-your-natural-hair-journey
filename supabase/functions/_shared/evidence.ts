@@ -670,6 +670,9 @@ export async function storeEvidenceSet(
         stage1_tokens: input.set.tokens,
         stage2_tokens: input.stage2Tokens ?? 0,
         verify_tokens: input.verifyTokens ?? 0,
+        policy: input.policy ?? "A",
+        claim_sources: input.claimSources ?? [],
+
       })
       .select("id")
       .single();
