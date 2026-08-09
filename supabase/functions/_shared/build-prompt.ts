@@ -32,6 +32,13 @@ import {
   retrieveProceduralPassages,
 } from "./procedural-rag.ts";
 import { GROUNDING_INSTRUCTION } from "./grounding.ts";
+import {
+  FIDELITY_RULE,
+  loadSurfaceChapters,
+  noteSourceText,
+  renderChapterBlock,
+  type SurfaceKey,
+} from "./chapter-context.ts";
 import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "./routine-guidance.ts";
@@ -92,8 +99,11 @@ export interface BuildPromptInput {
   /** Pre-rendered KB blocks. Bypasses the selector — for callers that
    *  want full control. If provided, selector is skipped. */
   knowledge_blocks?: string[];
-  /** RAG query string. When set, retrievePassages(rag_query, rag_k ?? 4)
-   *  is called and the passages are rendered into systemBlocks[2]. */
+  /** FIDELITY PATH (preferred). Name the surface and its authoritative
+   *  chapters are passed IN FULL — chapter 1 always included — and fragment
+   *  retrieval is skipped. See _shared/chapter-context.ts. */
+  surface?: SurfaceKey;
+  /** LEGACY fragment path. Ignored when `surface` is set. */
   rag_query?: string;
   rag_k?: number;
   /** TIP/GUIDANCE surfaces: re-rank retrieval toward PROCEDURAL passages
@@ -166,11 +176,30 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     });
   }
 
-  // ── RAG passages ──────────────────────────────────────────────────
+  // ── Manuscript source ─────────────────────────────────────────────
+  // FIDELITY PATH (preferred): when `surface` is named, the authoritative
+  // chapters are passed IN FULL (chapter 1 always included) and fragment
+  // retrieval is skipped entirely. See _shared/chapter-context.ts.
   let ragBlocks: string[] = [];
-  if (input.rag_blocks && input.rag_blocks.length > 0) {
+  let wholeChapters = false;
+  if (input.surface) {
+    const ctx = await loadSurfaceChapters(input.surface);
+    if (ctx.text) {
+      wholeChapters = true;
+      noteSourceText(ctx.text);
+      systemBlocks.push({ type: "text", text: renderChapterBlock(ctx) });
+      systemBlocks.push({ type: "text", text: FIDELITY_RULE });
+    } else {
+      console.error(JSON.stringify({
+        event: "chapter_grounding_empty",
+        fn: input.function_kind,
+        surface: input.surface,
+      }));
+    }
+  }
+  if (!wholeChapters && input.rag_blocks && input.rag_blocks.length > 0) {
     ragBlocks = input.rag_blocks.filter((s) => typeof s === "string" && s.length > 0);
-  } else if (input.rag_query && input.rag_query.trim().length > 0) {
+  } else if (!wholeChapters && input.rag_query && input.rag_query.trim().length > 0) {
     // Retry once. Never block the user on a retrieval outage — callers
     // stamp the payload from `grounded` below so ungrounded generations
     // are visible in logs.
@@ -194,7 +223,7 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
       type: "text",
       text: `RETRIEVED MANUSCRIPT PASSAGES\n\n${ragBlocks.join("\n\n---\n\n")}`,
     });
-  } else if (input.rag_query && input.rag_query.trim().length > 0) {
+  } else if (!wholeChapters && input.rag_query && input.rag_query.trim().length > 0) {
     console.error(JSON.stringify({
       event: "manuscript_grounding_failed",
       fn: input.function_kind,

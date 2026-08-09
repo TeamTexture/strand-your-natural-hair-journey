@@ -14,6 +14,12 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
+import {
+  FIDELITY_RULE,
+  loadSurfaceChapters,
+  noteSourceText,
+  renderChapterBlock,
+} from "../_shared/chapter-context.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -122,6 +128,13 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Whole-chapter manuscript grounding (chapters 11, 13 + 1), passed in full.
+  const chapterCtx = await loadSurfaceChapters("tool-match-score");
+  if (chapterCtx.text) noteSourceText(chapterCtx.text);
+  const systemPrompt = chapterCtx.text
+    ? `${SYSTEM}\n\n${renderChapterBlock(chapterCtx)}\n\n${FIDELITY_RULE}`
+    : SYSTEM;
+
   try {
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -129,7 +142,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: JSON.stringify({

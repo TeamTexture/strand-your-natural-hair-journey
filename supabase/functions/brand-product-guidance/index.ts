@@ -19,6 +19,12 @@ import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardra
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
+  FIDELITY_RULE,
+  loadSurfaceChapters,
+  noteSourceText,
+  renderChapterBlock,
+} from "../_shared/chapter-context.ts";
+import {
   validateTipAction,
   validateTipReason,
   memberAttributeTokens,
@@ -475,7 +481,14 @@ Deno.serve(async (req) => {
       : "";
 
 
-  const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
+  // Whole-chapter manuscript grounding (chapters 15, 14 + 1), passed in full.
+  const chapterCtx = await loadSurfaceChapters("brand-product-guidance");
+  if (chapterCtx.text) noteSourceText(chapterCtx.text);
+  const groundingBlock = chapterCtx.text
+    ? `\n\n${renderChapterBlock(chapterCtx)}\n\n${FIDELITY_RULE}`
+    : "";
+
+  const system = `${SYSTEM}${groundingBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
 

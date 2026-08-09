@@ -47,41 +47,55 @@ export const LANGUAGE_CHAPTER = 1;
 /**
  * Authoritative chapters per surface, passed IN FULL.
  *
- * Chapter numbers, as verified against the running headers in the manuscript
- * body on 2026-08-09:
- *   1 THE POWER OF LANGUAGE            2 LEARNING TO LOVE YOUR NATURAL HAIR
- *   3 BEWARE OF THE 'CURL DEFINITION' TRAP
- *   4 SETTING REALISTIC GOALS          5 TURNING HAIR CARE INTO SELF-CARE
- *   6 NATURAL HAIR AND OUR ENVIRONMENTS 7 NATURAL HAIR AND DATING
- *   8 YOUR HAIR – THE BASICS           9 TRICHOLOGY VS DERMATOLOGY
- *  10 PARTNER WITH A PROFESSIONAL     11 STYLING: BEST PRACTICES
- *  12 SCALP HEALTH FIRST              13 BUILDING YOUR WASH DAY ROUTINE
- *  14 MOISTURE RETENTION              15 (title unverified — ingredients)
- *  16 (title unverified — hair growth/length retention)
- *  17 (title unverified — treatments)  18 (title unverified — colour)
+ * Chapter map verified by the author against the source PDF
+ * (HTLYA_Manuscript_-_Final_2026.pdf) on 2026-08-09. Printed start pages in
+ * brackets; all 18 match page_start in manuscript_chunks exactly.
+ *   1 The Power of Language (20)              2 Learning to Love Your Natural Hair (30)
+ *   3 Beware of the 'Curl Definition' Trap (49) 4 Setting Realistic Goals (58)
+ *   5 Turning Hair Care into Self-Care (65)   6 Natural Hair and Our Environments (75)
+ *   7 Natural Hair and Dating (85)            8 Your Hair – The Basics (102)
+ *   9 Trichology vs Dermatology (126)        10 Partner with a Professional (134)
+ *  11 Styling: Best Practices (141)          12 Scalp Health First (149)
+ *  13 Building Your Wash Day Routine (155)   14 Moisture Retention (170)
+ *  15 Understanding Ingredients (184)        16 Length Retention (192)
+ *  17 Treatments (198)                       18 Colouring (203)
+ *
+ * Author's topic → chapter rules (chapter 1 added automatically everywhere):
+ *   wash day → 13, 14        length/retention → 16, 14
+ *   scalp → 12, 13           ingredients/products → 15, 14
+ *   styling/protective → 11, 14   treatments → 17, 14   colouring → 18
  */
 export const SURFACE_CHAPTERS: Record<SurfaceKey, number[]> = {
+  // Wash day guidance
   "wash-day-tip": [13, 14],
-  "wash-day-steps": [13, 14, 12],
+  "wash-day-steps": [13, 14],
   "wash-day-observation": [13, 14],
-  "goal-tip": [4, 13, 14, 16],
-  "routine-tips": [13, 14, 11, 12],
-  "style-tip": [11, 12, 14],
-  "brand-product-guidance": [13, 14, 15],
-  "product-analyse": [13, 14, 15],
-  "product-analyse-url": [13, 14, 15],
-  "tool-analyse-url": [13, 11],
-  "tool-match-score": [13, 11],
+  // Goals: length/retention is the dominant recorded goal
+  "goal-tip": [16, 14],
+  // Routine spans wash day + styling
+  "routine-tips": [13, 14, 11],
+  // Styling and protective styles
+  "style-tip": [11, 14],
+  // Products and ingredients
+  "brand-product-guidance": [15, 14],
+  "product-analyse": [15, 14],
+  "product-analyse-url": [15, 14],
   "ingredient-analysis": [15, 14],
   "ingredient-profile": [15, 14],
   "ingredient-explainer": [15, 14],
-  "hair-strand-summary": [8, 12, 14, 16],
-  "heat-treatment-rationale": [13, 14, 17],
-  "nutrition-plan": [8, 16],
-  "meal-ideas": [8, 16],
-  "blood-ai-summary": [8, 9],
-  "blood-change-analysis": [8, 9],
-  "journal-encouragement": [2, 4],
+  // Tools are used in styling and wash day
+  "tool-analyse-url": [11, 13],
+  "tool-match-score": [11, 13],
+  // Strand/scalp condition
+  "hair-strand-summary": [12, 13],
+  // Heat is a treatment
+  "heat-treatment-rationale": [17, 14],
+  // Ambiguous topic: chapter 1 + the single most specific chapter only
+  "nutrition-plan": [16],
+  "meal-ideas": [16],
+  "blood-ai-summary": [8],
+  "blood-change-analysis": [8],
+  "journal-encouragement": [4],
 };
 
 export interface ChapterChunk {
