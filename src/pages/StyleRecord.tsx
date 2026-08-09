@@ -245,6 +245,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const [openStepId, setOpenStepId] = useState<string | null>(null);
   // Cover chooser — which photo/video represents this record in the journal.
   const [coverOpen, setCoverOpen] = useState(false);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const openedOnce = useRef(false);
 
   // Unsaved note text per step, plus the exit guard it feeds.
