@@ -692,7 +692,7 @@ const StatBox = ({ icon: Icon, label, value, exact }: { icon: React.ElementType;
   <SurfaceCard className="text-center py-3">
     <Icon className="size-4 text-primary mx-auto" />
     <p className="font-display text-[15px] mt-1 leading-tight [overflow-wrap:anywhere]">
-      {exact ? value : bandMemberCount(value)}
+      {engagementFigure(value, exact)}
     </p>
     <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
   </SurfaceCard>

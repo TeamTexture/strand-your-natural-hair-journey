@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { normaliseProductUrl } from "@/lib/brandLinkScan";
-import { bandMemberCount } from "@/lib/adTargeting";
+import { engagementFigure } from "@/lib/brandMetrics";
 import { useRoles } from "@/hooks/useRoles";
 import { toast } from "sonner";
 import {
@@ -74,7 +74,7 @@ const MemberActivity = ({ c, exact }: { c: BrandMemberCount | undefined; exact: 
         <CountLine
           key={r.label}
           label={r.label}
-          value={exact ? String(r.value) : bandMemberCount(r.value)}
+          value={engagementFigure(r.value, exact)}
         />
       ))}
     </div>
