@@ -38,7 +38,7 @@ const PastOfferCard = ({
   slots,
   startDate,
   endDate,
-  totals,
+  metrics,
   submitter,
   amountPaidPence,
   interestTotal = 0,
@@ -59,11 +59,7 @@ const PastOfferCard = ({
     return () => { cancelled = true; };
   }, [heroImagePath]);
 
-  const impressions = totals?.impressions ?? 0;
-  const expands = totals?.expands ?? 0;
-  const codeCopies = totals?.code_copies ?? 0;
-  const linkClicks = totals?.link_clicks ?? 0;
-  const wishlist = totals?.wishlist_adds ?? 0;
+  const m = metrics ?? EMPTY_METRICS;
 
   const slotSet = Array.from(new Set(slots));
 
@@ -120,12 +116,11 @@ const PastOfferCard = ({
             {startDate ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}` : ""}
           </p>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          <Tile icon={<Eye className="size-3.5" />} value={fmtNum(impressions)} label="Views" />
-          <Tile icon={<Maximize2 className="size-3.5" />} value={fmtNum(expands)} label="Expands" />
-          <Tile icon={<Ticket className="size-3.5" />} value={fmtNum(codeCopies)} label="Codes" />
-          <Tile icon={<ExternalLink className="size-3.5" />} value={fmtNum(linkClicks)} label="Clicks" />
-          <Tile icon={<Heart className="size-3.5" />} value={fmtNum(wishlist)} label="Saves" />
+        <div className="grid grid-cols-4 gap-1.5">
+          <Tile icon={<Users className="size-3.5" />} value={fmtNum(m.reach)} label="Reach" />
+          <Tile icon={<Maximize2 className="size-3.5" />} value={fmtNum(m.interactors)} label="Actions" />
+          <Tile icon={<Ticket className="size-3.5" />} value={fmtNum(m.code_copies)} label="Codes" />
+          <Tile icon={<ExternalLink className="size-3.5" />} value={fmtNum(m.link_clicks)} label="Clicks" />
         </div>
         <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[10px] bg-muted/50 border border-border/60 px-2.5 py-1.5">
           <div className="min-w-0 flex items-center gap-2">
