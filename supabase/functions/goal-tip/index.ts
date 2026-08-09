@@ -12,7 +12,13 @@ import {
   renderTopicBlock,
 } from "../_shared/knowledge/index.ts";
 import type { TopicId } from "../_shared/knowledge/types.ts";
-import { renderPassageBlock } from "../_shared/rag.ts";
+import {
+  chaptersForSurface,
+  FIDELITY_RULE,
+  LANGUAGE_CHAPTER,
+  loadChapters,
+  renderChapterBlock,
+} from "../_shared/chapter-context.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 import {
   METHOD_AND_TIMING_RULE,
@@ -902,7 +908,11 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         tip: {
-          ...(await sanitiseAndLog(tip, "goal-tip", { context: body.context ?? body })),
+          ...(await sanitiseAndLog(tip, "goal-tip", {
+            context: body.context ?? body,
+            grounding: sourceText,
+            chapters: chaptersUsed,
+          })),
           _manuscript_grounded: grounded,
           _rag_passages: ragPassageCount,
           _rag_procedural: ragProceduralCount,
