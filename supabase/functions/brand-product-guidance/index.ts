@@ -574,9 +574,24 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (r.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-          status: 402,
+      if (r.status === 402 || r.status === 403) {
+        const txt = await r.text();
+        const creditUnavailable =
+          r.status === 402 ||
+          txt.includes("credit_limit_reached") ||
+          txt.includes("Workspace credit limit reached");
+        if (!creditUnavailable) {
+          return new Response(JSON.stringify({ error: `Upstream: ${txt.slice(0, 200)}` }), {
+            status: 502,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Credit exhaustion is an expected temporary service state, not a bad
+        // advert request. Return 200 so the client can keep rendering the
+        // approved advert without its optional personalised guidance instead
+        // of Supabase surfacing an invocation error/blank-screen overlay.
+        return new Response(JSON.stringify({ guidance: null, unavailable: "credits" }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
