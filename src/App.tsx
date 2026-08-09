@@ -521,6 +521,15 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/admin/clarifications"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminAuthorClarifications />
+                  </RoleGate>
+                }
+              />
+
 
 
 
