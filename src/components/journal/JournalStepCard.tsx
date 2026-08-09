@@ -74,8 +74,13 @@ interface Props {
   onToggleTool: (userToolId: string) => void;
   /** Called after a background link scan attaches a product to this step. */
   onProductsChanged?: () => void;
+  /** Reports this step's unsaved note text (null when nothing is pending). */
+  onDraftChange?: (stepId: string, draft: string | null) => void;
+  /** Bumping this discards any unsaved note text. */
+  discardSignal?: number;
 
 }
+
 
 /**
  * One step of a style record — the note (typed or spoken), its photos and
