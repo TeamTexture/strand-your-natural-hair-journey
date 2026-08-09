@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, Plus } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { useBrandShelf } from "@/hooks/useBrandShelf";
+import { shelfItemStatus } from "@/lib/brandMetrics";
 
 const BrandShelfPreview = () => {
   const nav = useNavigate();
@@ -50,7 +51,7 @@ const BrandShelfPreview = () => {
                 {item.name}
               </p>
               <p className="text-[9.5px] font-body text-muted-foreground">
-                {item.is_published ? "On your page" : "Hidden"}
+                {shelfItemStatus(item).label}
               </p>
             </button>
           ))}
