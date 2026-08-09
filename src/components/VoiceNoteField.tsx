@@ -220,8 +220,10 @@ const VoiceNoteField = ({
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: { audioBase64, mimeType: blob.type || "audio/webm" },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const message =
+        (data as { error?: string } | null)?.error ??
+        (error ? await readInvokeError(error) : null);
+      if (message) throw new Error(message);
       const text = (data?.text ?? "").toString().trim();
       if (!text) {
         toast("No speech detected");
@@ -237,8 +239,9 @@ const VoiceNoteField = ({
       }
     } catch (e) {
       console.error("transcribe failed", e);
-      toast.error("Could not transcribe");
+      toast.error(e instanceof Error ? e.message : "Could not transcribe");
     } finally {
+
       setTranscribing(false);
     }
   };
