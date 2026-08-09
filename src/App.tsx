@@ -108,6 +108,8 @@ const AdminDataProtection = lazyRetry(() => import("./pages/admin/AdminDataProte
 // Admin
 const AdminApplications = lazyRetry(() => import("./pages/admin/AdminApplications"));
 const AdminAudit = lazyRetry(() => import("./pages/admin/AdminAudit"));
+const AdminTipGrounding = lazyRetry(() => import("./pages/admin/AdminTipGrounding"));
+
 const AdminHub = lazyRetry(() => import("./pages/admin/AdminHub"));
 const AdminMembers = lazyRetry(() => import("./pages/admin/AdminMembers"));
 const AdminMemberPassport = lazyRetry(() => import("./pages/admin/AdminMemberPassport"));
