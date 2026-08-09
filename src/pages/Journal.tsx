@@ -121,6 +121,8 @@ const Journal = () => {
     status: string | null;
     entry_date: string;
     photo_paths: string[];
+    /** Member-chosen cover; null means auto (the first media in step order). */
+    cover_media_id: string | null;
     stepCount: number;
     productNames: string[];
     coverUrl?: string;
@@ -158,7 +160,7 @@ const Journal = () => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, title, style_name, style_date, status, entry_date, photo_paths")
+        .select("id, title, style_name, style_date, status, entry_date, photo_paths, cover_media_id")
         .eq("user_id", user.id)
         .order("style_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -172,7 +174,7 @@ const Journal = () => {
         ? await supabase
             .from("journal_steps")
             .select(
-              "id, entry_id, step_order, journal_step_media(storage_path, poster_path, kind, sort_order), journal_step_products(user_product_id)",
+              "id, entry_id, step_order, journal_step_media(id, storage_path, poster_path, kind, sort_order), journal_step_products(user_product_id)",
             )
             .in("entry_id", ids)
             .order("step_order", { ascending: true })
@@ -183,7 +185,7 @@ const Journal = () => {
         entry_id: string;
         step_order: number;
         journal_step_media:
-          | { storage_path: string; poster_path: string | null; kind: string; sort_order: number }[]
+          | { id: string; storage_path: string; poster_path: string | null; kind: string; sort_order: number }[]
           | null;
         journal_step_products: { user_product_id: string | null }[] | null;
       };
@@ -218,7 +220,8 @@ const Journal = () => {
           const media = steps.flatMap((s) =>
             (s.journal_step_media ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
           );
-          const cover = media[0];
+          // The member's chosen cover wins; if it's gone, fall back to the first.
+          const cover = media.find((m) => m.id === e.cover_media_id) ?? media[0];
           const names = Array.from(
             new Set(
               steps.flatMap((s) =>

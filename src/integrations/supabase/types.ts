@@ -2465,6 +2465,7 @@ export type Database = {
       }
       journal_entries: {
         Row: {
+          cover_media_id: string | null
           created_at: string
           entry_date: string
           id: string
@@ -2480,6 +2481,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cover_media_id?: string | null
           created_at?: string
           entry_date?: string
           id?: string
@@ -2495,6 +2497,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cover_media_id?: string | null
           created_at?: string
           entry_date?: string
           id?: string
@@ -2509,7 +2512,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_cover_media_id_fkey"
+            columns: ["cover_media_id"]
+            isOneToOne: false
+            referencedRelation: "journal_step_media"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       journal_step_media: {
         Row: {

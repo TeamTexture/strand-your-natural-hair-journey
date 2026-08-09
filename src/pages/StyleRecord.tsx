@@ -43,6 +43,7 @@ import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
 import PendingStepProducts from "@/components/journal/PendingStepProducts";
 import StepReviewCard from "@/components/journal/StepReviewCard";
+import CoverPicker from "@/components/journal/CoverPicker";
 
 /** One at-a-glance figure, matching the wash day detail screen. */
 const Stat = ({
@@ -226,6 +227,7 @@ interface EntryRow {
   style_name: string | null;
   style_date: string | null;
   status: string | null;
+  cover_media_id: string | null;
 }
 
 /** Screen two — the numbered steps. */
@@ -240,6 +242,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const modeDecided = useRef(false);
   // Only one step is open at a time — save it, it collapses, open the next.
   const [openStepId, setOpenStepId] = useState<string | null>(null);
+  // Cover chooser — which photo/video represents this record in the journal.
+  const [coverOpen, setCoverOpen] = useState(false);
   const openedOnce = useRef(false);
 
   // Unsaved note text per step, plus the exit guard it feeds.
@@ -310,7 +314,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, style_name, style_date, status")
+        .select("id, style_name, style_date, status, cover_media_id")
         .eq("id", entryId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -437,6 +441,26 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
             <Stat icon={Package} label="Products" value={productCount} />
           </div>
         )}
+
+        {mediaCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setCoverOpen(true)}
+            className="w-full flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5"
+          >
+            <Images className="size-3.5" />
+            {entry.cover_media_id ? "Change journal cover" : "Choose journal cover"}
+          </button>
+        )}
+
+        <CoverPicker
+          entryId={entry.id}
+          steps={steps}
+          coverMediaId={entry.cover_media_id}
+          open={coverOpen}
+          onClose={() => setCoverOpen(false)}
+          onSaved={(id) => setEntry((e) => (e ? { ...e, cover_media_id: id } : e))}
+        />
 
         <PendingStepProducts entryId={entry.id} />
 
