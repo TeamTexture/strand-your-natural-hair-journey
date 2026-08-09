@@ -20,6 +20,10 @@ interface Props {
   selectedIds: string[];
   /** Called when the user taps a tool on/off */
   onToggle: (toolId: string) => void;
+  /** Called after a brand-new tool is created here, so the parent can refresh
+   * its own copy of the tools catalogue (otherwise the attached tool renders as
+   * a nameless placeholder until the page reloads). */
+  onToolsChanged?: () => void;
 }
 
 const Row = ({ t, selected, onClick }: { t: UserTool; selected: boolean; onClick: () => void }) => (
