@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useLogAdEvent, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useLogAdEvent, PlacementSlot, flattenOfferProducts } from "@/hooks/useBrandOffers";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import { useQuery } from "@tanstack/react-query";
