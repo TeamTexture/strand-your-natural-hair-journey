@@ -31,6 +31,9 @@ import TrialPriceTag from "@/components/brand/TrialPriceTag";
 import { bandMemberCount, isZeroCount, WIDEN_AUDIENCE_PROMPT } from "@/lib/adTargeting";
 import { useOfferReach } from "@/hooks/useAdTargeting";
 import { useRoles } from "@/hooks/useRoles";
+import {
+  EMPTY_METRICS, formatEngagementRate, engagementFigure, IMPRESSION_NOTE, RANGE_NOTE,
+} from "@/lib/brandMetrics";
 
 const money = baseMoney;
 
