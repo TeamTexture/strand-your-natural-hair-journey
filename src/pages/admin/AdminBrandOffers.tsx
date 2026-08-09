@@ -2,7 +2,7 @@ import { smartBack } from "@/lib/smartBack";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Check, X, CreditCard, Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
+import { Calendar as CalendarIcon, Check, X, CreditCard, Users, Maximize2, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -25,8 +25,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   STATUS_LABEL, SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus, DerivedStatus,
   useAllPendingRevisions, useOfferRevisionCounts, useOffersWithPendingRevisions,
-  useBrandOfferTotals,
+  useBrandOfferMetrics,
 } from "@/hooks/useBrandOffers";
+import { engagementFigure, formatEngagementRate } from "@/lib/brandMetrics";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -207,7 +208,7 @@ const AdminBrandOffers = () => {
     () => typeFiltered.filter((o) => ["live", "upcoming", "ended"].includes(o._derived)).map((o) => o.id),
     [typeFiltered],
   );
-  const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
+  const { data: metrics = {} } = useBrandOfferMetrics(trackedOfferIds);
   const pastIdsForInterest = useMemo(
     () => typeFiltered.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived)).map((o) => o.id),
     [typeFiltered],
@@ -268,7 +269,7 @@ const AdminBrandOffers = () => {
   };
 
   const renderOffer = (o: typeof withDerived[number]) => {
-    const t = totals[o.id];
+    const t = metrics[o.id]?.all;
     const placements = o.brand_offer_placements ?? [];
     const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
     const dates = placements.map((p) => p.placement_date).sort();
@@ -330,11 +331,11 @@ const AdminBrandOffers = () => {
           </div>
           {showStats && (
             <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">
-              <span className="inline-flex items-center gap-1" title="Impressions"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
-              <span className="inline-flex items-center gap-1" title="Expands (banner opened)"><Maximize2 className="size-3 text-muted-foreground" /> {t.expands}</span>
-              <span className="inline-flex items-center gap-1" title="Code copies"><Ticket className="size-3 text-muted-foreground" /> {t.code_copies}</span>
-              <span className="inline-flex items-center gap-1" title="Link clicks (visit offer)"><ExternalLink className="size-3 text-muted-foreground" /> {t.link_clicks}</span>
-              <span className="inline-flex items-center gap-1" title="Wishlist adds"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
+              <span className="inline-flex items-center gap-1" title="Reach — distinct members who saw it"><Users className="size-3 text-muted-foreground" /> {engagementFigure(t.reach, true)}</span>
+              <span className="inline-flex items-center gap-1" title="Interactions — distinct members who acted"><Maximize2 className="size-3 text-muted-foreground" /> {engagementFigure(t.interactors, true)}</span>
+              <span className="inline-flex items-center gap-1" title="Codes copied"><Ticket className="size-3 text-muted-foreground" /> {engagementFigure(t.code_copies, true)}</span>
+              <span className="inline-flex items-center gap-1" title="Link clicks"><ExternalLink className="size-3 text-muted-foreground" /> {engagementFigure(t.link_clicks, true)}</span>
+              <span className="inline-flex items-center gap-1" title="Engagement rate — interactors ÷ reach">{formatEngagementRate(t)}</span>
             </div>
           )}
           {o._derived === "approved_unpaid" && (
@@ -566,7 +567,7 @@ const AdminBrandOffers = () => {
                         slots={placements.map((p) => p.slot)}
                         startDate={dates[0]}
                         endDate={dates[dates.length - 1]}
-                        totals={totals[o.id]}
+                        metrics={metrics[o.id]?.all}
                         hasPendingRevision={pendingRevSet.has(o.id)}
                         revisionCount={revisionCounts[o.id]}
                         onReview={() => nav(`/admin/brand-offers/${o.id}`)}
@@ -611,7 +612,7 @@ const AdminBrandOffers = () => {
                     slots={placements.map((p) => p.slot)}
                     startDate={dates[0]}
                     endDate={dates[dates.length - 1]}
-                    totals={totals[o.id]}
+                    metrics={metrics[o.id]?.all}
                     submitter={submitterOf(o)}
                     amountPaidPence={o.total_price_pence}
                     interestTotal={interest?.total ?? 0}

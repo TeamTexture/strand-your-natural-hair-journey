@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CreditCard, AlertCircle, Eye, Maximize2, Heart, Ticket, ExternalLink } from "lucide-react";
+import { Plus, CreditCard, AlertCircle, Users, Maximize2, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import TitleBar from "@/components/TitleBar";
