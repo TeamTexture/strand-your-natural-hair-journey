@@ -7,7 +7,11 @@ import { CONSENT_DOCUMENT_VERSION } from "@/lib/consent";
 /**
  * Legal document reader.
  *
- * INTERIM DOCUMENTS — these four documents are STRAND's own interim wording and
+ * TWO DOCUMENTS ARE STILL OUTSTANDING — the Professional Data Handling
+ * Undertaking and the Brand Advertising Terms are clearly marked placeholders
+ * listing what each must cover. They must be drafted by a solicitor.
+ *
+ * INTERIM DOCUMENTS — the other four documents are STRAND's own interim wording and
  * are PENDING SOLICITOR REVIEW. They must be reviewed and signed off by a
  * qualified solicitor before publishing.
  *
@@ -319,6 +323,70 @@ const DOCS: Record<string, LegalDoc> = {
         body: [
           `Where STRAND mentions a product, that is not a recommendation that it is safe or suitable for you. Always patch test, read the manufacturer's instructions, and check the ingredients against any allergy you have.`,
         ],
+      },
+    ],
+  },
+
+  /**
+   * PLACEHOLDER — NOT LEGAL TEXT. Two documents are outstanding and must be
+   * drafted by a qualified solicitor before launch. The headings below describe
+   * what each document has to cover; the body text is a deliberate placeholder
+   * so the route resolves and the consent gate can link to it.
+   */
+  "professional-undertaking": {
+    title: "Professional Data Handling Undertaking",
+    lastUpdated: "Awaiting drafting",
+    sections: [
+      {
+        heading: "This document is not yet written",
+        body: [
+          `**PLACEHOLDER.** This undertaking has not been drafted yet. It is being prepared with a qualified solicitor and will replace this page before launch. Accepting it in the app records that you agree to the obligations summarised below once the final wording is published.`,
+        ],
+      },
+      {
+        heading: "What it will cover",
+        body: [
+          `The scope of member information a professional may be granted access to through STRAND, and that access exists only while the member has granted it.`,
+          `A duty of confidentiality over member health information, including blood results, scalp conditions, medications, photographs and AI-generated summaries.`,
+          `Permitted purpose only: providing care to that member. No marketing, no research, no onward disclosure, no export or retention outside STRAND beyond what the professional's own clinical record-keeping duties require.`,
+          `The professional's own status under UK GDPR in respect of that information, their security obligations, and their duty to report a suspected breach to us without delay.`,
+          `What happens when a member withdraws access or closes their account, and what the professional must then delete.`,
+          `Consequences of breach, including immediate removal from the directory and suspension of passport access.`,
+        ],
+      },
+      {
+        heading: "Questions",
+        body: [`Contact info@teamtexture.co.uk.`],
+      },
+    ],
+  },
+
+  "brand-advertising-terms": {
+    title: "Brand Advertising Terms",
+    lastUpdated: "Awaiting drafting",
+    sections: [
+      {
+        heading: "This document is not yet written",
+        body: [
+          `**PLACEHOLDER.** These terms have not been drafted yet. They are being prepared with a qualified solicitor and will replace this page before brands can be charged for advertising.`,
+        ],
+      },
+      {
+        heading: "What they will cover",
+        body: [
+          `**Claim substantiation.** The brand warrants that every claim it makes about its own products — ingredient, performance, safety, certification and testing claims — is accurate and substantiated, and indemnifies us against any loss arising from a claim that is not. Liability for a false product claim sits with the brand.`,
+          `Compliance with UK advertising law and the CAP Code, cosmetic product regulations, and any applicable labelling and safety requirements.`,
+          `Intellectual property: the brand warrants it owns or is licensed to use the imagery, copy and trade marks it supplies, and licenses us to display them.`,
+          `Editorial control: our right to review, reject, amend the presentation of, or withdraw an advert, and what happens to fees when we do.`,
+          `Fees, booked placement dates, payment terms, cancellation and refunds.`,
+          `What data a brand receives — aggregate campaign performance only, never member-level or health information.`,
+          `That AI-generated guidance shown alongside an advert is ours, not the brand's, and the brand may not require or influence its wording.`,
+          `Term, suspension and termination, liability cap, and governing law.`,
+        ],
+      },
+      {
+        heading: "Questions",
+        body: [`Contact info@teamtexture.co.uk.`],
       },
     ],
   },

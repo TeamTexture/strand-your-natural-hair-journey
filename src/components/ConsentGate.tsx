@@ -30,14 +30,15 @@ const ALLOWED_PREFIXES = [
 const ConsentGate = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
-  const { needsConsent, outstanding, isLoading } = useConsentState();
+  const { needsConsent, outstanding, optionalKeys, isLoading } = useConsentState();
 
   if (!user || loading) return <>{children}</>;
   if (ALLOWED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return <>{children}</>;
   }
   if (isLoading) return <LoadingDot />;
-  if (needsConsent) return <ConsentGateScreen outstanding={outstanding} />;
+  if (needsConsent)
+    return <ConsentGateScreen outstanding={outstanding} optionalKeys={optionalKeys} />;
   return <>{children}</>;
 };
 

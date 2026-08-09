@@ -16,10 +16,82 @@ export type ConsentKey =
   | "age_18"
   | "medical_disclaimer"
   | "health_data"
+  | "professional_data_handling"
   | "personalised_offers"
   | "marketing_email";
 
-/** Mandatory keys — the app cannot be used without all of these granted. */
+/** Roles the requirement matrix understands (mirrors public.app_role). */
+export type ConsentRole = "consumer" | "professional" | "brand" | "admin";
+
+/** Every key the app knows about, mandatory or optional, for any role. */
+export const ALL_CONSENT_KEYS: ConsentKey[] = [
+  "terms",
+  "privacy",
+  "age_18",
+  "medical_disclaimer",
+  "health_data",
+  "professional_data_handling",
+  "personalised_offers",
+  "marketing_email",
+];
+
+/**
+ * ROLE-AWARE REQUIREMENT MATRIX.
+ *
+ * A brand has no health profile, no blood panels and receives no personalised
+ * hair guidance, so asking a brand to consent to processing health information
+ * — or to read a medical disclaimer about guidance it never sees — is a
+ * meaningless question. A professional consents to their own health data only
+ * if they also use STRAND as a member; what they DO need is a confidentiality
+ * undertaking over member records they are granted access to, which is a
+ * different obligation and has its own key.
+ *
+ * Keys are the UNION across every role the account holds.
+ */
+const ROLE_MANDATORY: Record<ConsentRole, ConsentKey[]> = {
+  consumer: ["terms", "privacy", "age_18", "medical_disclaimer", "health_data"],
+  professional: [
+    "terms",
+    "privacy",
+    "age_18",
+    "medical_disclaimer",
+    "professional_data_handling",
+  ],
+  // Admins may view member records and AI-generated summaries, so the medical
+  // disclaimer applies; their own health data is only in scope via a consumer role.
+  admin: ["terms", "privacy", "age_18", "medical_disclaimer"],
+  brand: ["terms", "privacy", "age_18"],
+};
+
+const ROLE_OPTIONAL: Record<ConsentRole, ConsentKey[]> = {
+  consumer: ["personalised_offers", "marketing_email"],
+  professional: ["marketing_email"],
+  admin: ["marketing_email"],
+  brand: ["marketing_email"],
+};
+
+const order = (keys: ConsentKey[]) => ALL_CONSENT_KEYS.filter((k) => keys.includes(k));
+
+/** Union of mandatory keys across the account's roles. No roles ⇒ treat as a member. */
+export function mandatoryKeysForRoles(roles: ConsentRole[]): ConsentKey[] {
+  const effective = roles.length ? roles : (["consumer"] as ConsentRole[]);
+  const set = new Set<ConsentKey>();
+  for (const role of effective) for (const key of ROLE_MANDATORY[role] ?? []) set.add(key);
+  return order([...set]);
+}
+
+/** Union of optional keys across the account's roles. These NEVER gate access. */
+export function optionalKeysForRoles(roles: ConsentRole[]): ConsentKey[] {
+  const effective = roles.length ? roles : (["consumer"] as ConsentRole[]);
+  const set = new Set<ConsentKey>();
+  for (const role of effective) for (const key of ROLE_OPTIONAL[role] ?? []) set.add(key);
+  return order([...set]);
+}
+
+/**
+ * Legacy exports — the full member matrix. Kept because settings screens and
+ * tests refer to them, but gating must use the role-aware helpers above.
+ */
 export const TIER1_KEYS: ConsentKey[] = ["terms", "privacy", "age_18", "medical_disclaimer"];
 export const TIER2_KEYS: ConsentKey[] = ["health_data"];
 export const MANDATORY_KEYS: ConsentKey[] = [...TIER1_KEYS, ...TIER2_KEYS];
@@ -37,6 +109,7 @@ export const CONSENT_KEY_VERSIONS: Record<ConsentKey, string> = {
   age_18: CONSENT_DOCUMENT_VERSION,
   medical_disclaimer: CONSENT_DOCUMENT_VERSION,
   health_data: CONSENT_DOCUMENT_VERSION,
+  professional_data_handling: CONSENT_DOCUMENT_VERSION,
   personalised_offers: CONSENT_DOCUMENT_VERSION,
   marketing_email: CONSENT_DOCUMENT_VERSION,
 };
@@ -60,9 +133,12 @@ export function latestByKey(rows: ConsentRow[]): Partial<Record<ConsentKey, Cons
 }
 
 /** Mandatory keys still outstanding (never accepted, withdrawn, or stale version). */
-export function outstandingMandatory(rows: ConsentRow[]): ConsentKey[] {
+export function outstandingMandatory(
+  rows: ConsentRow[],
+  roles: ConsentRole[] = ["consumer"],
+): ConsentKey[] {
   const latest = latestByKey(rows);
-  return MANDATORY_KEYS.filter((key) => {
+  return mandatoryKeysForRoles(roles).filter((key) => {
     const row = latest[key];
     if (!row || !row.granted) return true;
     return row.document_version !== CONSENT_KEY_VERSIONS[key];
