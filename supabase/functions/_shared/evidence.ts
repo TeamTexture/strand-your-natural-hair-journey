@@ -476,18 +476,23 @@ export interface MappingResult {
 export async function mapClaimsToEvidence(
   output: string,
   set: EvidenceSet,
+  opts?: { policy?: "A" | "B" },
 ): Promise<MappingResult> {
   const key = Deno.env.get("LOVABLE_API_KEY");
   const empty: MappingResult = { unmapped: [], external: [], tokens: 0, ran: false };
   if (!key || !output.trim() || !set.items.length) return empty;
+  const sponsored = opts?.policy === "B";
   const evidence = set.items
     .map((it, i) => `[${i + 1}] ${it.passage}`)
     .join("\n\n");
-  const system = [
-    MAPPER_PROMPT,
-    set.coverage === "extension" ? EXTENSION_RULE(set.governingPrinciple) : "",
-    set.coverage === "supplement" ? SUPPLEMENT_RULE(set.governingPrinciple) : "",
-  ].filter(Boolean).join("\n\n");
+  const system = sponsored
+    ? [MAPPER_PROMPT, SPONSORED_RULE].join("\n\n")
+    : [
+      MAPPER_PROMPT,
+      set.coverage === "extension" ? EXTENSION_RULE(set.governingPrinciple) : "",
+      set.coverage === "supplement" ? SUPPLEMENT_RULE(set.governingPrinciple) : "",
+    ].filter(Boolean).join("\n\n");
+
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
