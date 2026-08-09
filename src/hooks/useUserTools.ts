@@ -158,7 +158,7 @@ export function useUserTools() {
         );
       });
       if (existing) {
-        const patch: Record<string, never> = { on_shelf: true, on_wishlist: false } as never;
+        const patch: Record<string, unknown> = { on_shelf: true, on_wishlist: false };
         if (storage_path) patch.storage_path = storage_path;
         else if (input.imageUrl?.trim() && !existing.image_url && !existing.storage_path)
           patch.image_url = input.imageUrl.trim();
@@ -169,7 +169,7 @@ export function useUserTools() {
         if (input.notes?.trim()) patch.notes = input.notes.trim();
         const { data: merged } = await supabase
           .from("user_tools")
-          .update(patch)
+          .update(patch as never)
           .eq("id", existing.id)
           .eq("user_id", user.id)
           .select("*")
