@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -11,6 +11,7 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
+import StarRating from "@/components/StarRating";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
