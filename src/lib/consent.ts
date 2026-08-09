@@ -23,10 +23,16 @@ export type ConsentKey =
 /** The professional confidentiality undertaking — asked for outside the login gate. */
 export const PRO_UNDERTAKING_KEY = "professional_data_handling" as const;
 
-/** Roles the requirement matrix understands (mirrors public.app_role). */
+/**
+ * The view the account is currently INSIDE — not the roles it holds.
+ * Mirrors ActiveRoleView in src/hooks/useActiveRoleView.ts.
+ */
+export type ConsentView = "consumer" | "pro" | "brand" | "admin";
+
+/** Legacy alias: the role names the app stores. Kept for call sites that map roles → view. */
 export type ConsentRole = "consumer" | "professional" | "brand" | "admin";
 
-/** Every key the app knows about, mandatory or optional, for any role. */
+/** Every key the app knows about, mandatory or optional, for any view. */
 export const ALL_CONSENT_KEYS: ConsentKey[] = [
   "terms",
   "privacy",
@@ -39,58 +45,88 @@ export const ALL_CONSENT_KEYS: ConsentKey[] = [
 ];
 
 /**
- * ROLE-AWARE REQUIREMENT MATRIX.
+ * VIEW-SCOPED REQUIREMENT MATRIX.
  *
- * A brand has no health profile, no blood panels and receives no personalised
- * hair guidance, so asking a brand to consent to processing health information
- * — or to read a medical disclaimer about guidance it never sees — is a
- * meaningless question. A professional consents to their own health data only
- * if they also use STRAND as a member; what they DO need is a confidentiality
- * undertaking over member records they are granted access to, which is a
- * different obligation and has its own key.
- *
- * Keys are the UNION across every role the account holds.
+ * Requirements belong to the view the member is currently inside, NEVER to the
+ * union of the roles their account holds. An account holding member +
+ * professional + brand + admin sees ONLY the member items inside My STRAND,
+ * ONLY the brand items inside the brand view, and so on. A consent belonging to
+ * one view must not surface in another under any circumstances.
  */
-const ROLE_MANDATORY: Record<ConsentRole, ConsentKey[]> = {
+const VIEW_MANDATORY: Record<ConsentView, ConsentKey[]> = {
+  // My STRAND / end user. Health data is in scope here and nowhere else.
   consumer: ["terms", "privacy", "age_18", "medical_disclaimer", "health_data"],
-  // The Professional Data Handling Undertaking is NOT here on purpose. It is
-  // presented on entering the professional view, never blocks that view, and
+  // Professional view. The Professional Data Handling Undertaking is NOT here:
+  // it is presented on entering the professional view, never blocks it, and
   // gates client passport access only (see has_active_client_access in the DB).
-  professional: ["terms", "privacy", "age_18", "medical_disclaimer"],
-  // Admins may view member records and AI-generated summaries, so the medical
-  // disclaimer applies; their own health data is only in scope via a consumer role.
+  pro: ["terms", "privacy", "age_18", "medical_disclaimer"],
+  // Admin view adds no consents of its own; admins read member records and AI
+  // summaries, so the medical disclaimer applies.
   admin: ["terms", "privacy", "age_18", "medical_disclaimer"],
+  // A brand has no health profile and sees no guidance: no medical disclaimer,
+  // no health data, and never the professional undertaking.
   brand: ["terms", "privacy", "age_18"],
 };
 
-const ROLE_OPTIONAL: Record<ConsentRole, ConsentKey[]> = {
+const VIEW_OPTIONAL: Record<ConsentView, ConsentKey[]> = {
   consumer: ["personalised_offers", "marketing_email"],
-  professional: ["marketing_email"],
+  pro: ["marketing_email"],
   admin: ["marketing_email"],
   brand: ["marketing_email"],
 };
 
+/**
+ * HARD ALLOWLIST — the only keys that may render anywhere inside a view.
+ * Anything not listed cannot appear, even if a caller passes it in by mistake.
+ * `professional_data_handling` is allowed in the professional view only.
+ */
+const VIEW_ALLOWED: Record<ConsentView, ConsentKey[]> = {
+  consumer: [...VIEW_MANDATORY.consumer, ...VIEW_OPTIONAL.consumer],
+  pro: [...VIEW_MANDATORY.pro, ...VIEW_OPTIONAL.pro, PRO_UNDERTAKING_KEY],
+  admin: [...VIEW_MANDATORY.admin, ...VIEW_OPTIONAL.admin],
+  brand: [...VIEW_MANDATORY.brand, ...VIEW_OPTIONAL.brand],
+};
+
 const order = (keys: ConsentKey[]) => ALL_CONSENT_KEYS.filter((k) => keys.includes(k));
 
-/** Union of mandatory keys across the account's roles. No roles ⇒ treat as a member. */
-export function mandatoryKeysForRoles(roles: ConsentRole[]): ConsentKey[] {
-  const effective = roles.length ? roles : (["consumer"] as ConsentRole[]);
-  const set = new Set<ConsentKey>();
-  for (const role of effective) for (const key of ROLE_MANDATORY[role] ?? []) set.add(key);
-  return order([...set]);
+/** Is this consent key permitted to render inside this view at all? */
+export function keyAllowedInView(key: ConsentKey, view: ConsentView): boolean {
+  return VIEW_ALLOWED[view].includes(key);
 }
 
-/** Union of optional keys across the account's roles. These NEVER gate access. */
-export function optionalKeysForRoles(roles: ConsentRole[]): ConsentKey[] {
-  const effective = roles.length ? roles : (["consumer"] as ConsentRole[]);
-  const set = new Set<ConsentKey>();
-  for (const role of effective) for (const key of ROLE_OPTIONAL[role] ?? []) set.add(key);
-  return order([...set]);
+/** Mandatory keys for the ACTIVE VIEW, passed through the allowlist. */
+export function mandatoryKeysForView(view: ConsentView): ConsentKey[] {
+  return order(VIEW_MANDATORY[view].filter((k) => keyAllowedInView(k, view)));
+}
+
+/** Optional keys for the ACTIVE VIEW. These NEVER gate access. */
+export function optionalKeysForView(view: ConsentView): ConsentKey[] {
+  return order(VIEW_OPTIONAL[view].filter((k) => keyAllowedInView(k, view)));
+}
+
+/** Map a stored role to the view it corresponds to. */
+export function viewForRole(role: ConsentRole): ConsentView {
+  return role === "professional" ? "pro" : role;
+}
+
+/**
+ * Clamp the active view to something the account may actually be inside.
+ * A route can only put a member in a view their roles allow (RoleGate), but the
+ * remembered view in sessionStorage is untrusted, so verify it here too.
+ * No roles yet ⇒ treat as a member.
+ */
+export function resolveConsentView(
+  activeView: ConsentView,
+  roles: ConsentRole[],
+): ConsentView {
+  const allowed = new Set<ConsentView>(roles.map(viewForRole));
+  if (!roles.length) return "consumer";
+  return allowed.has(activeView) ? activeView : "consumer";
 }
 
 /**
  * Legacy exports — the full member matrix. Kept because settings screens and
- * tests refer to them, but gating must use the role-aware helpers above.
+ * tests refer to them, but gating must use the view-scoped helpers above.
  */
 export const TIER1_KEYS: ConsentKey[] = ["terms", "privacy", "age_18", "medical_disclaimer"];
 export const TIER2_KEYS: ConsentKey[] = ["health_data"];
@@ -132,17 +168,37 @@ export function latestByKey(rows: ConsentRow[]): Partial<Record<ConsentKey, Cons
   return out;
 }
 
-/** Mandatory keys still outstanding (never accepted, withdrawn, or stale version). */
+/** Has this key ever been answered — granted OR declined — at all? */
+export function isAnswered(rows: ConsentRow[], key: ConsentKey): boolean {
+  return rows.some((r) => r.consent_key === key);
+}
+
+/**
+ * Mandatory keys still outstanding IN THE ACTIVE VIEW (never accepted,
+ * withdrawn, or accepted against an older document version).
+ */
 export function outstandingMandatory(
   rows: ConsentRow[],
-  roles: ConsentRole[] = ["consumer"],
+  view: ConsentView = "consumer",
 ): ConsentKey[] {
   const latest = latestByKey(rows);
-  return mandatoryKeysForRoles(roles).filter((key) => {
+  return mandatoryKeysForView(view).filter((key) => {
     const row = latest[key];
     if (!row || !row.granted) return true;
     return row.document_version !== CONSENT_KEY_VERSIONS[key];
   });
+}
+
+/**
+ * Optional keys that are genuinely OUTSTANDING in the active view — i.e. never
+ * answered at all. An answered optional consent (granted or declined) is never
+ * re-asked; it is changed from the member's own settings instead.
+ */
+export function unansweredOptional(
+  rows: ConsentRow[],
+  view: ConsentView = "consumer",
+): ConsentKey[] {
+  return optionalKeysForView(view).filter((key) => !isAnswered(rows, key));
 }
 
 /** Which surface a consent decision came from — stored on `user_consents.source`. */
