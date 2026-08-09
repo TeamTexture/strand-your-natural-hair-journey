@@ -31,6 +31,9 @@ const HairStrandIcon = forwardRef<SVGSVGElement, Props>(({ className }, ref) => 
       opacity="0.55"
     />
   </svg>
-);
+));
+
+HairStrandIcon.displayName = "HairStrandIcon";
 
 export default HairStrandIcon;
+
