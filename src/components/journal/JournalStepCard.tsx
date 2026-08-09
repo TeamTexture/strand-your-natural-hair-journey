@@ -294,12 +294,15 @@ const JournalStepCard = ({
 
       {!isOpen && (
         <button type="button" onClick={onToggleExpand} className="w-full text-left space-y-1">
-          <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
-            {notePreview || "Nothing recorded yet — tap to add"}
-          </p>
+          {(notePreview || summaryBits.length === 0) && (
+            <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
+              {notePreview || "Nothing recorded yet — tap to add"}
+            </p>
+          )}
           {summaryBits.length > 0 && (
             <p className="text-[11px] text-muted-foreground">{summaryBits.join(" · ")}</p>
           )}
+
           {noteDirty && (
             <p className="text-[10px] uppercase tracking-[0.14em] text-primary">Unsaved note</p>
           )}
