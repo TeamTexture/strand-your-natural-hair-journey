@@ -604,20 +604,34 @@ Deno.serve(async (req) => {
     });
   }
 
-  const userMsg = JSON.stringify({
-    product: body.product,
-    user_context: body.context ?? {},
-  });
-
   // Surface framing. `wash_day` is the sponsored wash day tip card, which now
   // REPLACES the educational tip when it renders, so it must be one succinct,
   // personalised read for the member's next wash day. The brand never supplies
   // or edits this text — only the product facts.
   const surface = (body as { surface?: string }).surface;
+
+  // On the sponsored wash day tip the member's CURRENT / PLANNED STYLE is
+  // deliberately withheld: this surface personalises on hair characteristics,
+  // goals and challenges, and on what the product and its ingredients do.
+  const rawContext = (body.context ?? null) as Record<string, unknown> | null;
+  const promptContext =
+    surface === "wash_day" && rawContext
+      ? (() => {
+          const { currentStyle: _cs, styleProfile: _sp, ...rest } = rawContext as Record<string, unknown>;
+          return rest;
+        })()
+      : rawContext;
+
+  const userMsg = JSON.stringify({
+    product: body.product,
+    user_context: promptContext ?? {},
+  });
+
   const surfaceBlock =
     surface === "wash_day"
-      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested.\n- THREE THINGS ARE REQUIRED, and nothing else is:\n  1. AN ACTION — the first sentence tells this member what to physically DO with this product on their next wash day: the move, where on the head, and where it falls in their routine. Name the product once.\n  2. A MECHANISM — say what physically happens on the strand or scalp. Never an outcome or benefit: "leaves hair soft", "supports your length goal", "keeps hair healthy" are all rejected.\n  3. PERSONALISATION — it must connect to something this member has actually recorded: a hair characteristic, their current or planned style, a challenge or area of concern, a recorded goal label, or their last logged wash day. You may paraphrase their data; you do not have to quote it word for word.\n- PREFERRED, NOT REQUIRED: naming a declared ingredient and what it does is the cleanest route to the mechanism — use it when the ingredient list supports it. But a tip about SEQUENCE or TECHNIQUE is just as good and often better: "use it as your second cleanse, worked through the hair rather than the scalp" names no ingredient and is excellent guidance. Do not force chemistry into a tip that is really about order or method.\n- VARY THE SHAPE. Do not write every tip to the same template. Sometimes the useful thing is where it goes in the routine, sometimes how much, sometimes how long you leave it, sometimes what to pair or not pair it with, sometimes what to do differently in the member's current style.\n- Where their hair data and the product's function do NOT align, say so plainly and briefly instead of inventing a fit.\n- No bullets on this surface — everything lives in those two sentences.\n- Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim the manuscript or the ingredient evidence does not support.`
+      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested.\n- DO NOT reference the member's current or planned hairstyle on this surface. It is not supplied and must not be guessed at, named or implied.\n- THREE THINGS ARE REQUIRED, and nothing else is:\n  1. AN ACTION — the first sentence tells this member what to physically DO with this product on their next wash day: the move, where on the head, and where it falls in their routine. Name the product once.\n  2. A MECHANISM — say what physically happens on the strand or scalp. Never an outcome or benefit: "leaves hair soft", "supports your length goal", "keeps hair healthy" are all rejected.\n  3. PERSONALISATION — it must connect to something this member has actually recorded: a hair characteristic (porosity, density, texture, elasticity, thickness, scalp state), a challenge or area of concern, a recorded goal label, or their last logged wash day. You may paraphrase their data; you do not have to quote it word for word.\n- LEAD WITH THE PRODUCT'S FUNCTION AND ITS INGREDIENTS. The most useful tip explains what this product or a declared ingredient does on the strand or scalp and why that suits THIS member's characteristics, challenge or goal. Use the declared ingredient list when it supports the point; a tip about SEQUENCE or TECHNIQUE is also acceptable, but never force chemistry the evidence does not support.\n- VARY THE SHAPE. Sometimes the useful thing is where it goes in the routine, sometimes how much, sometimes how long you leave it, sometimes what to pair or not pair it with, sometimes which part of the hair it belongs on.\n- Where their hair data and the product's function do NOT align, say so plainly and briefly instead of inventing a fit.\n- No bullets on this surface — everything lives in those two sentences.\n- Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim the manuscript or the ingredient evidence does not support.`
       : "";
+
 
 
 
@@ -736,7 +750,7 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
-      const result = validate(parsed, body.context ?? null, surface, declared);
+      const result = validate(parsed, promptContext ?? null, surface, declared);
       // Soft signals are logged for author review and folded into the ONE
       // retry as preferences. They never reject.
       await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
@@ -746,7 +760,7 @@ Deno.serve(async (req) => {
         // tip — the exact defect the floors exist to prevent. If the guardrail
         // removes the reason, regenerate instead of degrading the tip.
         const candidate = await sanitiseAndLog(result.value, "brand-product-guidance", {
-          context: body.context,
+          context: promptContext,
           surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
           userId,
           // POLICY B. The sponsored gates (marketing detection, conflict

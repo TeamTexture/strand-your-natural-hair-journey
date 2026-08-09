@@ -24,7 +24,7 @@
 //                            protective-style washing, leave-in barrier and
 //                            LOC/LCO positions enforced. Every cached generation
 //                            predates them.
-export const AI_COPY_REVISION = "ps2026-08-09-protective-style-no-frequency";
+export const AI_COPY_REVISION = "ps2026-08-09-sponsored-washday-no-style";
 
 /** Cache-key fragment. Use in every AI cache key and generation signature. */
 export const aiRevisionPart = `rev:${AI_COPY_REVISION}`;
