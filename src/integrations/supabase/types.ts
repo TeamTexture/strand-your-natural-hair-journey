@@ -5727,6 +5727,7 @@ export type Database = {
         Args: { _owner_type: string; _user: string }
         Returns: boolean
       }
+      has_professional_undertaking: { Args: { _pro: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -49,7 +49,21 @@ Deno.serve(async (req) => {
       { _pro: user.id, _consumer: consumerId },
     );
     if (accessErr) return json(500, { error: accessErr.message });
-    if (!hasAccess) return json(403, { error: "no active client access" });
+    if (!hasAccess) {
+      // Distinguish "you have not accepted the undertaking" from "you have no
+      // link to this member" so the client can prompt rather than error.
+      const { data: signed } = await admin.rpc("has_professional_undertaking", {
+        _pro: user.id,
+      });
+      if (signed === false) {
+        return json(403, {
+          error:
+            "Accept the Professional Data Handling Undertaking to view client passports.",
+          code: "undertaking_required",
+        });
+      }
+      return json(403, { error: "no active client access" });
+    }
   }
 
   const { error } = await admin.from("pro_passport_views").insert({

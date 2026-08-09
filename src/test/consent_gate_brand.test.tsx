@@ -72,11 +72,13 @@ describe("consent gate — brand account", () => {
     });
   });
 
-  it("a professional is asked for the undertaking instead of health data", () => {
+  it("a professional sees neither the undertaking nor health data at login", () => {
     renderGate(["professional"]);
-    expect(screen.getByText(/keep confidential any member health information/i)).toBeTruthy();
+    expect(screen.queryByText(/keep confidential any member health information/i)).toBeNull();
     expect(screen.queryByText(/I explicitly consent to STRAND processing my health/i)).toBeNull();
+    expect(screen.getAllByText(/Medical Disclaimer/i).length).toBeGreaterThan(0);
   });
+
 
   it("a consumer still gets the health data consent verbatim", () => {
     renderGate(["consumer"]);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star, KeyRound, Scissors } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -22,6 +22,8 @@ import { useMySalon } from "@/hooks/useSalon";
 import BrandBanner from "@/components/BrandBanner";
 import ProTour from "@/components/ProTour";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
+import ProUndertakingSheet from "@/components/pro/ProUndertakingSheet";
+import { useProUndertaking } from "@/hooks/useProUndertaking";
 
 
 const Card = ({
@@ -101,6 +103,14 @@ const ProDashboard = () => {
   const clientsSub = activeClientsCount === 0
     ? "Your client book — accepted enquiries land here."
     : `${activeClientsCount} active · notes, history and passports.`;
+
+  // Client data undertaking — offered on entering the professional view. It is
+  // fully dismissible: it never blocks anything here, only client passports.
+  const undertaking = useProUndertaking();
+  const [undertakingOpen, setUndertakingOpen] = useState(false);
+  useEffect(() => {
+    if (undertaking.shouldPrompt) setUndertakingOpen(true);
+  }, [undertaking.shouldPrompt]);
 
   const [noticeDismissed, setNoticeDismissed] = useState(() => {
 
@@ -324,6 +334,21 @@ const ProDashboard = () => {
             <span className="flex-1">Change password</span>
             <ChevronRight className="size-3.5 text-muted-foreground" />
           </button>
+          <button
+            onClick={() => setUndertakingOpen(true)}
+            className="w-full flex items-center gap-3 py-3 text-left text-sm font-body text-foreground/80 hover:text-foreground"
+          >
+            <ShieldCheck className="size-4 text-primary/70" />
+            <span className="flex-1">Client data undertaking</span>
+            <span
+              className={`text-[11px] font-body ${
+                undertaking.accepted ? "text-muted-foreground" : "text-warn"
+              }`}
+            >
+              {undertaking.isLoading ? "" : undertaking.accepted ? "Accepted" : "Not accepted"}
+            </span>
+            <ChevronRight className="size-3.5 text-muted-foreground" />
+          </button>
         </div>
 
         <div className="pt-6">
@@ -336,6 +361,7 @@ const ProDashboard = () => {
         </div>
       </div>
       <ChangePasswordSheet open={passwordOpen} onOpenChange={setPasswordOpen} />
+      <ProUndertakingSheet open={undertakingOpen} onOpenChange={setUndertakingOpen} />
     </ScreenLayout>
   );
 };

@@ -54,15 +54,19 @@ describe("role-aware requirement matrix", () => {
     expect(outstandingMandatory(rows, ["brand"])).toEqual([]);
   });
 
-  it("a professional gets the undertaking, not health data consent", () => {
+  it("a professional is NOT asked for the undertaking or health data at login", () => {
     expect(mandatoryKeysForRoles(["professional"])).toEqual([
       "terms",
       "privacy",
       "age_18",
       "medical_disclaimer",
-      "professional_data_handling",
     ]);
     expect(optionalKeysForRoles(["professional"])).toEqual(["marketing_email"]);
+  });
+
+  it("a professional can complete initial login without the undertaking", () => {
+    const rows = ["terms", "privacy", "age_18", "medical_disclaimer"].map((k) => row(k, true));
+    expect(outstandingMandatory(rows, ["professional"])).toEqual([]);
   });
 
   it("a consumer keeps the full member matrix", () => {
@@ -70,16 +74,16 @@ describe("role-aware requirement matrix", () => {
     expect(optionalKeysForRoles(["consumer"])).toEqual(OPTIONAL_KEYS);
   });
 
-  it("dual roles take the union — a pro who is also a member gets both", () => {
+  it("dual roles take the union — a pro who is also a member gets health data", () => {
     expect(mandatoryKeysForRoles(["professional", "consumer"])).toEqual([
       "terms",
       "privacy",
       "age_18",
       "medical_disclaimer",
       "health_data",
-      "professional_data_handling",
     ]);
   });
+
 
   it("admin + brand needs the disclaimer but not health data", () => {
     expect(mandatoryKeysForRoles(["admin", "brand"])).toEqual([
