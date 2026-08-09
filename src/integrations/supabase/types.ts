@@ -243,6 +243,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_path: string | null
           recipient_count: number
         }
         Insert: {
@@ -251,6 +252,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          image_path?: string | null
           recipient_count?: number
         }
         Update: {
@@ -259,6 +261,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          image_path?: string | null
           recipient_count?: number
         }
         Relationships: []
@@ -5440,10 +5443,12 @@ export type Database = {
         Returns: number
       }
       ad_style_code: { Args: { _style: string }; Returns: string }
-      admin_broadcast_message: {
-        Args: { _audience: string; _body: string }
-        Returns: Json
-      }
+      admin_broadcast_message:
+        | { Args: { _audience: string; _body: string }; Returns: Json }
+        | {
+            Args: { _audience: string; _body: string; _image_path?: string }
+            Returns: Json
+          }
       admin_event_rsvps: {
         Args: { _event_id: string }
         Returns: {
