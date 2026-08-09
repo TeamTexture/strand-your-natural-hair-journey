@@ -29,7 +29,7 @@ interface Props {
 }
 
 const ProUndertakingSheet = ({ open, onOpenChange, context = "entry", onAccepted }: Props) => {
-  const { accept, dismiss } = useProUndertaking();
+  const { accept, dismiss, inProView } = useProUndertaking();
   const [ticked, setTicked] = useState(false);
   const [saving, setSaving] = useState(false);
 

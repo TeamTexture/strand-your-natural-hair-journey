@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { consentKey } from "@/hooks/useConsentState";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import {
   fetchConsentRows,
   latestByKey,
@@ -17,10 +18,15 @@ const DISMISS_KEY = "pro_undertaking_dismissed";
  * entering the professional view, never blocks the professional side, and gates
  * client passport access only — enforced server-side inside
  * public.has_active_client_access().
+ *
+ * VIEW SCOPED: it may only ever be prompted while the account is inside the
+ * professional view. It can never surface in My STRAND, the brand view or the
+ * admin view, even for an account holding all four roles.
  */
 export function useProUndertaking() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const view = useActiveRoleView();
 
   const q = useQuery({
     queryKey: consentKey(user?.id),
@@ -40,7 +46,15 @@ export function useProUndertaking() {
     accepted,
     isLoading: q.isLoading,
     /** Should the undertaking be offered unprompted on entering the pro view? */
-    shouldPrompt: !!user && !q.isLoading && !q.isError && !accepted && !dismissedThisSession(),
+    /** The professional view is the only place this may be offered. */
+    inProView: view === "pro",
+    shouldPrompt:
+      view === "pro" &&
+      !!user &&
+      !q.isLoading &&
+      !q.isError &&
+      !accepted &&
+      !dismissedThisSession(),
     dismiss: () => {
       if (typeof window !== "undefined") window.sessionStorage.setItem(DISMISS_KEY, "1");
     },
