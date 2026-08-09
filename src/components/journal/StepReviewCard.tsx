@@ -222,9 +222,8 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                       {p?.brand && (
                         <span className="text-[11px] text-muted-foreground truncate">{p.brand}</span>
                       )}
-                      {typeof p?.rating === "number" && p.rating > 0 && (
-                        <StarRating value={p.rating} size="size-3" />
-                      )}
+                      <MatchStars item={p ?? null} size="sm" showValue={false} />
+
                     </span>
                   </span>
                   <ChevronRight className="size-4 text-muted-foreground shrink-0" />
