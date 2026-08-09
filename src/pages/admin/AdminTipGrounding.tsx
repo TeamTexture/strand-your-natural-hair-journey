@@ -187,7 +187,7 @@ const AdminTipGrounding = () => {
           <div className="space-y-3">
             <SectionLabel>By surface</SectionLabel>
             {dist.length === 0 ? (
-              <EmptyState title="No generations recorded yet" />
+              <EmptyState message="No generations recorded yet" />
             ) : (
               dist.map((d) => (
                 <SurfaceCard key={d.surface} className="space-y-2">
@@ -241,7 +241,7 @@ const AdminTipGrounding = () => {
             </div>
 
             {rows.length === 0 ? (
-              <EmptyState title="Nothing to review" />
+              <EmptyState message="Nothing to review" />
             ) : (
               rows.map((row) => {
                 const isOpen = open === row.id;
@@ -335,7 +335,7 @@ const AdminTipGrounding = () => {
           <div className="space-y-3">
             <SectionLabel>Rejection log</SectionLabel>
             {rejections.length === 0 ? (
-              <EmptyState title="Nothing rejected recently" />
+              <EmptyState message="Nothing rejected recently" />
             ) : (
               rejections.map((r) => (
                 <SurfaceCard key={r.id} className="space-y-1">
