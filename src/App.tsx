@@ -174,6 +174,7 @@ const OffShelf = lazyRetry(() => import("./pages/OffShelf"));
 const Avoidlist = lazyRetry(() => import("./pages/Avoidlist"));
 const ProductScanning = lazyRetry(() => import("./pages/ProductScanning"));
 const ProductProfileRedirect = lazyRetry(() => import("./pages/ProductProfileRedirect"));
+const ToolProfile = lazyRetry(() => import("./pages/ToolProfile"));
 const ProductRepository = lazyRetry(() => import("./pages/ProductRepository"));
 const BrandProducts = lazyRetry(() => import("./pages/BrandProducts"));
 const ProductsByIngredient = lazyRetry(() => import("./pages/ProductsByIngredient"));
