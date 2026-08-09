@@ -23,8 +23,8 @@ Deno.serve(async (req) => {
       .eq("id", message_id)
       .maybeSingle();
     if (!msg) return json({ ok: false, reason: "message_not_found" });
-    // Text and image messages both warrant an email; structured/system rows do not.
-    if (msg.kind !== "text" && msg.kind !== "image") {
+    // Text, image and voice messages all warrant an email; system rows do not.
+    if (msg.kind !== "text" && msg.kind !== "image" && msg.kind !== "voice") {
       return json({ ok: true, skipped: "not_notifiable" });
     }
 
