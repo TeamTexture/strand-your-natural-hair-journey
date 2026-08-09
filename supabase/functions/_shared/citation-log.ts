@@ -25,6 +25,30 @@ import {
 
 import { checkTerminology, loadLexicon } from "./terminology.ts";
 import {
+  classifyClaims,
+  detectManuscriptConflicts,
+  detectMarketingClaims,
+  logConflicts,
+  type ClaimSource,
+  type ConflictHit,
+  type CoveredIngredient,
+} from "./policy-b.ts";
+
+/** POLICY B input: the product facts the sponsored gates and audit trail need. */
+export interface PolicyBProduct {
+  name: string;
+  brand?: string | null;
+  /** The declared ingredient list, in the order the brand declared it. */
+  declared?: string[];
+  /** The ingredients the manuscript covers, matched against that list. */
+  covered?: CoveredIngredient[];
+  /** The brand's own marketing copy — used ONLY to detect reproduction of it. */
+  brandCopy?: string | null;
+  /** The writer's own per-claim source labels, honoured where they match. */
+  claimLabels?: Array<{ text?: unknown; source?: unknown }>;
+}
+
+import {
   enforceBloodSafety,
   enforceStyleVerbatimDeep,
   recordedStyles,
@@ -107,8 +131,17 @@ export async function sanitiseAndLog<T>(
     /** Surface key + member id, so the evidence set is auditable per member. */
     surface?: string | null;
     userId?: string | null;
+    /**
+     * GROUNDING POLICY. "A" (default) = editorial surfaces, manuscript-first,
+     * unchanged. "B" = sponsored product surfaces: established cosmetic science
+     * is permitted, under the four constraints in _shared/policy-b.ts.
+     */
+    policy?: "A" | "B";
+    /** Policy B only: the product facts the sponsored gates need. */
+    product?: PolicyBProduct;
   },
 ): Promise<T> {
+
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
   collectStripped(value, cleaned, stripped);
@@ -176,22 +209,44 @@ async function verifyStage3<T>(
   payload: T,
   functionName: string,
   evidenceSet: EvidenceSet,
-  opts?: { surface?: string | null; userId?: string | null },
+  opts?: {
+    surface?: string | null;
+    userId?: string | null;
+    policy?: "A" | "B";
+    product?: PolicyBProduct;
+  },
 ): Promise<T> {
+  const policy = opts?.policy === "B" ? "B" : "A";
   const text = collectText(payload).join("\n");
   let out = payload;
   let violations: Array<{ claim: string; reason: string; rule: string; stage: RejectionRow["stage"] }> = [];
   let verifyTokens = 0;
   let external: ExternalClaim[] = [];
+  let conflicts: ConflictHit[] = [];
 
   try {
     // The terminology lexicon binds in ALL THREE coverage modes, supplement
-    // included: no external claim may use a word in a way the author rejects.
-    // It runs first and deterministically, so it cannot be argued around.
+    // included, AND in policy B: no claim, from any source, may use a word in a
+    // way the author rejects. It runs first and deterministically, so it cannot
+    // be argued around.
     const term = checkTerminology(text, await loadLexicon());
     violations = term.map((v) => ({ ...v, stage: "terminology" as const }));
 
-    const mapping = await mapClaimsToEvidence(text, evidenceSet);
+    if (policy === "B") {
+      // CONSTRAINT 4 — brand marketing can never enter output. Deterministic.
+      const marketing = detectMarketingClaims(text, opts?.product?.brandCopy ?? null);
+      violations = violations.concat(
+        marketing.map((v) => ({ ...v, stage: "deterministic" as const })),
+      );
+      // CONSTRAINT 3 — where industry diverges from her, she governs. The
+      // industry-side sentence is removed and the divergence is registered.
+      conflicts = detectManuscriptConflicts(text);
+      violations = violations.concat(
+        conflicts.map((v) => ({ ...v, stage: "deterministic" as const })),
+      );
+    }
+
+    const mapping = await mapClaimsToEvidence(text, evidenceSet, { policy });
     verifyTokens = mapping.tokens;
     external = mapping.external;
     violations = violations.concat(
@@ -211,6 +266,7 @@ async function verifyStage3<T>(
       JSON.stringify({
         event: "stage3_rejection",
         fn: functionName,
+        policy,
         coverage: evidenceSet.coverage,
         rules: violations.map((v) => v.rule),
       }),
@@ -218,13 +274,30 @@ async function verifyStage3<T>(
     out = stripDeep(payload, violations.map((v) => v.claim));
   }
 
+  // AUDIT TRAIL — on sponsored surfaces every served claim carries its source
+  // class, so the author can filter to the `industry` ones she needs to review.
+  let claimSources: ClaimSource[] = [];
+  if (policy === "B") {
+    claimSources = classifyClaims({
+      text: collectText(out).join("\n"),
+      modelLabels: opts?.product?.claimLabels,
+      evidencePassages: evidenceSet.items.map((i) => i.passage),
+      covered: opts?.product?.covered ?? [],
+      declared: opts?.product?.declared ?? [],
+      productName: opts?.product?.name ?? "",
+      brandName: opts?.product?.brand ?? null,
+    });
+  }
+
   console.log(
     JSON.stringify({
       event: "coverage_classification",
       fn: functionName,
       surface: opts?.surface ?? functionName,
+      policy,
       coverage: evidenceSet.coverage,
       external_claims: external.length,
+      industry_claims: claimSources.filter((c) => c.source === "industry").length,
     }),
   );
 
@@ -237,6 +310,8 @@ async function verifyStage3<T>(
     verified: violations.length === 0,
     verifyTokens,
     externalClaims: external,
+    policy,
+    claimSources,
   });
 
   await logGenerationRejections(
@@ -249,6 +324,16 @@ async function verifyStage3<T>(
     })),
     { surface: opts?.surface ?? null, userId: opts?.userId ?? null, evidenceSetId },
   );
+
+  if (conflicts.length > 0) {
+    await logConflicts(conflicts, {
+      surface: opts?.surface ?? null,
+      functionName,
+      userId: opts?.userId ?? null,
+      evidenceSetId,
+    });
+  }
+
 
 
   return out;

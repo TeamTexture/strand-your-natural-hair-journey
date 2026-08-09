@@ -442,6 +442,27 @@ If a claim contradicts the author on any point, it is "unmapped", never "externa
 
 Reply with JSON only: {"unmapped":[{"claim":"...","reason":"..."}],"external":[{"claim":"...","basis":"<the established science, one line>","principle":"<the governing principle it is consistent with>"}]}`;
 
+/**
+ * POLICY B — sponsored product surfaces. Established cosmetic science is
+ * permitted for ingredient function and product usage, so the mapper triages
+ * rather than rejects. The author still wins every conflict, her terminology
+ * still binds, and brand marketing is never admissible.
+ * See _shared/policy-b.ts for the full policy and its deterministic gates.
+ */
+const SPONSORED_RULE =
+  `POLICY: SPONSORED PRODUCT GUIDANCE. This text describes a specific commercial product to one member. The book cannot cover every commercial formula, so ESTABLISHED cosmetic science is permitted for ingredient function and product usage.
+
+Triage every claim the evidence set does not support into exactly one bucket:
+- "external": ESTABLISHED cosmetic science or trichology about ingredient function or product usage, stated with confidence, and NOT in conflict with the author on any point. Give the basis in one line.
+- "unmapped": a brand or packaging claim, marketing language ("clinically proven", "seals in hydration", "continuous hydration", timed hydration claims), influencer or community consensus, a contested position, an invented number or mechanism, OR anything that contradicts the author's stated position or her terminology. These are rejected.
+
+Treat these as ACCEPTABLE and never report them: the product's declared ingredient list, an ingredient's POSITION on that list, the absence of an ingredient (e.g. "no protein in the formula"), counts of declared allergens, and the product or brand name. Those are product facts.
+Also never report a claim merely for being applied to this member's recorded porosity, cuticle state, density, diameter, texture, elasticity, length, concern, style or goal — personalisation is required on this surface.
+Where the author has a position on an ingredient, only HER characterisation of it maps; an industry alternative for the same ingredient is "unmapped".
+
+Reply with JSON only: {"unmapped":[{"claim":"...","reason":"..."}],"external":[{"claim":"...","basis":"<the established science, one line>","principle":"sponsored product guidance"}]}`;
+
+
 export interface UnmappedClaim {
   claim: string;
   reason: string;
@@ -476,18 +497,23 @@ export interface MappingResult {
 export async function mapClaimsToEvidence(
   output: string,
   set: EvidenceSet,
+  opts?: { policy?: "A" | "B" },
 ): Promise<MappingResult> {
   const key = Deno.env.get("LOVABLE_API_KEY");
   const empty: MappingResult = { unmapped: [], external: [], tokens: 0, ran: false };
   if (!key || !output.trim() || !set.items.length) return empty;
+  const sponsored = opts?.policy === "B";
   const evidence = set.items
     .map((it, i) => `[${i + 1}] ${it.passage}`)
     .join("\n\n");
-  const system = [
-    MAPPER_PROMPT,
-    set.coverage === "extension" ? EXTENSION_RULE(set.governingPrinciple) : "",
-    set.coverage === "supplement" ? SUPPLEMENT_RULE(set.governingPrinciple) : "",
-  ].filter(Boolean).join("\n\n");
+  const system = sponsored
+    ? [MAPPER_PROMPT, SPONSORED_RULE].join("\n\n")
+    : [
+      MAPPER_PROMPT,
+      set.coverage === "extension" ? EXTENSION_RULE(set.governingPrinciple) : "",
+      set.coverage === "supplement" ? SUPPLEMENT_RULE(set.governingPrinciple) : "",
+    ].filter(Boolean).join("\n\n");
+
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
@@ -515,12 +541,13 @@ export async function mapClaimsToEvidence(
         reason: String(v.reason ?? "No evidence item supports this claim.").slice(0, 600),
         rule: "unmapped_claim",
       }));
-    // External claims are only ever admitted in supplement mode. If the mapper
-    // returns them in any other mode they are rejected instead of kept.
+    // External claims are admitted in supplement mode (policy A) and always on
+    // sponsored product surfaces (policy B). In any other policy A mode the
+    // mapper returning them is itself the defect, so they are rejected.
     const rawExternal = (Array.isArray(parsed?.external) ? parsed.external : [])
       .filter((v: { claim?: unknown }) => typeof v?.claim === "string" && v.claim.trim())
       .slice(0, 12);
-    if (set.coverage !== "supplement") {
+    if (!sponsored && set.coverage !== "supplement") {
       for (const v of rawExternal) {
         unmapped.push({
           claim: String(v.claim).slice(0, 600),
@@ -530,6 +557,7 @@ export async function mapClaimsToEvidence(
       }
       return { unmapped, external: [], tokens, ran: true };
     }
+
     const external: ExternalClaim[] = rawExternal.map(
       (v: { claim: string; basis?: string; principle?: string }) => ({
         claim: String(v.claim).slice(0, 600),
@@ -591,8 +619,13 @@ export interface StoreEvidenceInput {
   attempts?: number;
   stage2Tokens?: number;
   verifyTokens?: number;
+  /** Which grounding policy ran: A = editorial, B = sponsored product. */
+  policy?: "A" | "B";
+  /** Policy B: every served claim with its source class. */
+  claimSources?: Array<{ text: string; source: string; basis?: string }>;
   /** Supplement mode: the claims that came from established science, labelled. */
   externalClaims?: ExternalClaim[];
+
 }
 
 /** Persist the evidence set keyed to the generated tip. Returns its id. */
@@ -637,6 +670,9 @@ export async function storeEvidenceSet(
         stage1_tokens: input.set.tokens,
         stage2_tokens: input.stage2Tokens ?? 0,
         verify_tokens: input.verifyTokens ?? 0,
+        policy: input.policy ?? "A",
+        claim_sources: input.claimSources ?? [],
+
       })
       .select("id")
       .single();

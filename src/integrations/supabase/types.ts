@@ -2323,6 +2323,83 @@ export type Database = {
         }
         Relationships: []
       }
+      industry_manuscript_conflicts: {
+        Row: {
+          author_note: string | null
+          chapter: number | null
+          created_at: string
+          evidence_set_id: string | null
+          function_name: string | null
+          id: string
+          industry_position: string
+          industry_source: string | null
+          ingredient: string
+          last_seen_at: string
+          manuscript_position: string
+          manuscript_quote: string | null
+          occurrences: number
+          offending_text: string | null
+          page_start: number | null
+          resolution: string
+          status: string
+          surface: string | null
+          topic: string | null
+          user_id: string | null
+        }
+        Insert: {
+          author_note?: string | null
+          chapter?: number | null
+          created_at?: string
+          evidence_set_id?: string | null
+          function_name?: string | null
+          id?: string
+          industry_position: string
+          industry_source?: string | null
+          ingredient: string
+          last_seen_at?: string
+          manuscript_position: string
+          manuscript_quote?: string | null
+          occurrences?: number
+          offending_text?: string | null
+          page_start?: number | null
+          resolution?: string
+          status?: string
+          surface?: string | null
+          topic?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          author_note?: string | null
+          chapter?: number | null
+          created_at?: string
+          evidence_set_id?: string | null
+          function_name?: string | null
+          id?: string
+          industry_position?: string
+          industry_source?: string | null
+          ingredient?: string
+          last_seen_at?: string
+          manuscript_position?: string
+          manuscript_quote?: string | null
+          occurrences?: number
+          offending_text?: string | null
+          page_start?: number | null
+          resolution?: string
+          status?: string
+          surface?: string | null
+          topic?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "industry_manuscript_conflicts_evidence_set_id_fkey"
+            columns: ["evidence_set_id"]
+            isOneToOne: false
+            referencedRelation: "tip_evidence_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_lists: {
         Row: {
           id: string
@@ -2597,6 +2674,51 @@ export type Database = {
           page_start?: number | null
           section_heading?: string | null
           token_count?: number | null
+        }
+        Relationships: []
+      }
+      manuscript_ingredients: {
+        Row: {
+          aliases: string[]
+          author_position: string | null
+          author_text: string
+          category: string | null
+          chapter: number
+          created_at: string
+          id: string
+          ingredient: string
+          page_end: number | null
+          page_start: number | null
+          section_heading: string | null
+          status: string
+        }
+        Insert: {
+          aliases?: string[]
+          author_position?: string | null
+          author_text: string
+          category?: string | null
+          chapter: number
+          created_at?: string
+          id?: string
+          ingredient: string
+          page_end?: number | null
+          page_start?: number | null
+          section_heading?: string | null
+          status?: string
+        }
+        Update: {
+          aliases?: string[]
+          author_position?: string | null
+          author_text?: string
+          category?: string | null
+          chapter?: number
+          created_at?: string
+          id?: string
+          ingredient?: string
+          page_end?: number | null
+          page_start?: number | null
+          section_heading?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -4006,6 +4128,7 @@ export type Database = {
         Row: {
           attempts: number
           chapters: number[]
+          claim_sources: Json
           coverage: string
           coverage_reason: string | null
           created_at: string
@@ -4015,6 +4138,7 @@ export type Database = {
           governing_principle: string | null
           id: string
           member_facts: Json
+          policy: string
           stage1_tokens: number
           stage2_tokens: number
           surface: string
@@ -4026,6 +4150,7 @@ export type Database = {
         Insert: {
           attempts?: number
           chapters?: number[]
+          claim_sources?: Json
           coverage?: string
           coverage_reason?: string | null
           created_at?: string
@@ -4035,6 +4160,7 @@ export type Database = {
           governing_principle?: string | null
           id?: string
           member_facts?: Json
+          policy?: string
           stage1_tokens?: number
           stage2_tokens?: number
           surface: string
@@ -4046,6 +4172,7 @@ export type Database = {
         Update: {
           attempts?: number
           chapters?: number[]
+          claim_sources?: Json
           coverage?: string
           coverage_reason?: string | null
           created_at?: string
@@ -4055,6 +4182,7 @@ export type Database = {
           governing_principle?: string | null
           id?: string
           member_facts?: Json
+          policy?: string
           stage1_tokens?: number
           stage2_tokens?: number
           surface?: string

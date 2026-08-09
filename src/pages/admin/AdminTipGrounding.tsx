@@ -44,6 +44,29 @@ interface ExternalClaim {
   principle?: string;
 }
 
+/** POLICY B — the source class recorded for every claim in a sponsored tip. */
+interface ClaimSource {
+  text: string;
+  source: "manuscript" | "industry" | "product_fact";
+  basis?: string;
+}
+
+/** POLICY B — where industry consensus diverged from the author's position. */
+interface ConflictRow {
+  id: string;
+  ingredient: string;
+  topic: string | null;
+  manuscript_position: string;
+  manuscript_quote: string | null;
+  chapter: number | null;
+  page_start: number | null;
+  industry_position: string;
+  industry_source: string | null;
+  surface: string | null;
+  occurrences: number;
+  last_seen_at: string;
+}
+
 interface EvidenceRow {
   id: string;
   surface: string;
@@ -56,8 +79,11 @@ interface EvidenceRow {
   coverage_reason: string | null;
   governing_principle: string | null;
   external_claims: ExternalClaim[] | null;
+  policy: "A" | "B" | null;
+  claim_sources: ClaimSource[] | null;
   created_at: string;
 }
+
 
 interface DistRow {
   surface: string;
@@ -115,39 +141,62 @@ const AdminTipGrounding = () => {
   const [dist, setDist] = useState<DistRow[]>([]);
   const [rows, setRows] = useState<EvidenceRow[]>([]);
   const [rejections, setRejections] = useState<RejectionRow[]>([]);
-  const [filter, setFilter] = useState<"all" | Coverage>("all");
+  const [conflicts, setConflicts] = useState<ConflictRow[]>([]);
+  // "industry" is a POLICY B filter, not a coverage mode: it narrows to
+  // sponsored generations that used established science, which are the ones
+  // needing the author's review.
+  const [filter, setFilter] = useState<"all" | Coverage | "industry">("all");
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const q = supabase
+      let q = supabase
         .from("tip_evidence_sets")
         .select(
-          "id, surface, function_name, chapters, evidence, tip, verified, coverage, coverage_reason, governing_principle, external_claims, created_at",
+          "id, surface, function_name, chapters, evidence, tip, verified, coverage, coverage_reason, governing_principle, external_claims, policy, claim_sources, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(40);
-      const [d, e, r] = await Promise.all([
+      if (filter === "industry") q = q.eq("policy", "B");
+      else if (filter !== "all") q = q.eq("coverage", filter);
+      const [d, e, r, c] = await Promise.all([
         supabase.rpc("admin_tip_coverage_distribution", { _days: 30 }),
-        filter === "all" ? q : q.eq("coverage", filter),
+        q,
         supabase
           .from("tip_generation_rejections")
           .select("id, surface, function_name, stage, rule, detail, offending_text, created_at")
           .order("created_at", { ascending: false })
           .limit(25),
+        supabase
+          .from("industry_manuscript_conflicts")
+          .select(
+            "id, ingredient, topic, manuscript_position, manuscript_quote, chapter, page_start, industry_position, industry_source, surface, occurrences, last_seen_at",
+          )
+          .eq("status", "open")
+          .order("last_seen_at", { ascending: false })
+          .limit(25),
       ]);
       if (cancelled) return;
       setDist((d.data ?? []) as DistRow[]);
-      setRows((e.data ?? []) as unknown as EvidenceRow[]);
+      const evidenceRows = (e.data ?? []) as unknown as EvidenceRow[];
+      setRows(
+        filter === "industry"
+          ? evidenceRows.filter((row) =>
+              (row.claim_sources ?? []).some((cs) => cs.source === "industry"),
+            )
+          : evidenceRows,
+      );
       setRejections((r.data ?? []) as RejectionRow[]);
+      setConflicts((c.data ?? []) as unknown as ConflictRow[]);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, [filter]);
+
 
   const totals = useMemo(() => {
     const t = dist.reduce(
@@ -227,7 +276,7 @@ const AdminTipGrounding = () => {
           <div className="space-y-3">
             <SectionLabel>Recent generations</SectionLabel>
             <div className="flex flex-wrap gap-2">
-              {(["all", "explicit", "extension", "supplement"] as const).map((f) => (
+              {(["all", "explicit", "extension", "supplement", "industry"] as const).map((f) => (
                 <Button
                   key={f}
                   size="sm"
@@ -235,10 +284,21 @@ const AdminTipGrounding = () => {
                   className="rounded-pill"
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "All" : COVERAGE_LABEL[f]}
+                  {f === "all"
+                    ? "All"
+                    : f === "industry"
+                      ? "Industry claims"
+                      : COVERAGE_LABEL[f]}
                 </Button>
               ))}
             </div>
+            {filter === "industry" && (
+              <p className="text-xs text-muted-foreground">
+                Sponsored product copy that used established cosmetic science for an ingredient
+                the book does not cover. These are the claims to review.
+              </p>
+            )}
+
 
             {rows.length === 0 ? (
               <EmptyState message="Nothing to review" />
@@ -257,14 +317,22 @@ const AdminTipGrounding = () => {
                           {row.chapters?.length ? ` · chapters ${row.chapters.join(", ")}` : ""}
                         </p>
                       </div>
-                      <span
-                        className={cn(
-                          "shrink-0 rounded-pill px-3 py-1 text-xs",
-                          COVERAGE_CLS[row.coverage] ?? "bg-muted text-muted-foreground",
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span
+                          className={cn(
+                            "rounded-pill px-3 py-1 text-xs",
+                            COVERAGE_CLS[row.coverage] ?? "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {COVERAGE_LABEL[row.coverage] ?? row.coverage}
+                        </span>
+                        {row.policy === "B" && (
+                          <span className="rounded-pill bg-primary/15 px-3 py-1 text-xs text-primary">
+                            Sponsored
+                          </span>
                         )}
-                      >
-                        {COVERAGE_LABEL[row.coverage] ?? row.coverage}
-                      </span>
+                      </div>
+
                     </div>
 
                     {row.coverage_reason && (
@@ -324,13 +392,89 @@ const AdminTipGrounding = () => {
                             )}
                           </div>
                         ))}
+                        {/* POLICY B — every served claim with its source class. */}
+                        {(row.claim_sources ?? []).length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium">Claims by source</p>
+                            {(row.claim_sources ?? []).map((cs, i) => (
+                              <div key={`c${i}`} className="rounded-2xl bg-muted/40 p-3">
+                                <span
+                                  className={cn(
+                                    "rounded-pill px-2 py-0.5 text-[11px]",
+                                    cs.source === "industry"
+                                      ? "bg-alert-dark/15 text-alert-dark"
+                                      : cs.source === "manuscript"
+                                        ? "bg-good/15 text-good"
+                                        : "bg-warn/15 text-warn",
+                                  )}
+                                >
+                                  {cs.source === "product_fact"
+                                    ? "Product fact"
+                                    : cs.source === "industry"
+                                      ? "Industry"
+                                      : "Manuscript"}
+                                </span>
+                                <p className="mt-1 text-sm [overflow-wrap:anywhere]">{cs.text}</p>
+                                {cs.basis && (
+                                  <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                                    {cs.basis}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
+
                   </SurfaceCard>
                 );
               })
             )}
           </div>
+
+          {/* POLICY B — conflict register. Where industry consensus diverged from
+              the author's stated position, she governs and the divergence lands
+              here for review rather than being silently resolved. */}
+          <div className="space-y-3">
+            <SectionLabel>Conflict register</SectionLabel>
+            <p className="text-xs text-muted-foreground">
+              Points where established industry guidance diverges from your position. Your
+              position was used in the copy; these are logged so you can review the divergence.
+            </p>
+            {conflicts.length === 0 ? (
+              <EmptyState message="No open conflicts" />
+            ) : (
+              conflicts.map((c) => (
+                <SurfaceCard key={c.id} className="space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="font-display text-base">{c.ingredient}</p>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      seen {c.occurrences}×
+                    </span>
+                  </div>
+                  {c.topic && <p className="text-xs text-muted-foreground">{c.topic}</p>}
+                  <p className="rounded-2xl bg-good/10 p-3 text-sm [overflow-wrap:anywhere]">
+                    <span className="font-medium">Your position (governs): </span>
+                    {c.manuscript_position}
+                    {c.chapter ? ` — Chapter ${c.chapter}` : ""}
+                    {c.page_start ? `, p.${c.page_start}` : ""}
+                  </p>
+                  <p className="rounded-2xl bg-alert-dark/10 p-3 text-sm [overflow-wrap:anywhere]">
+                    <span className="font-medium">Industry position (not used): </span>
+                    {c.industry_position}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.surface ? `${humanSurface(c.surface)} · ` : ""}
+                    last seen{" "}
+                    {formatDistanceToNow(new Date(c.last_seen_at), { addSuffix: true })}
+                  </p>
+                </SurfaceCard>
+              ))
+            )}
+          </div>
+
+
 
           <div className="space-y-3">
             <SectionLabel>Rejection log</SectionLabel>
