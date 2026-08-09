@@ -392,8 +392,41 @@ const AdminTipGrounding = () => {
                             )}
                           </div>
                         ))}
+                        {/* POLICY B — every served claim with its source class. */}
+                        {(row.claim_sources ?? []).length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium">Claims by source</p>
+                            {(row.claim_sources ?? []).map((cs, i) => (
+                              <div key={`c${i}`} className="rounded-2xl bg-muted/40 p-3">
+                                <span
+                                  className={cn(
+                                    "rounded-pill px-2 py-0.5 text-[11px]",
+                                    cs.source === "industry"
+                                      ? "bg-alert-dark/15 text-alert-dark"
+                                      : cs.source === "manuscript"
+                                        ? "bg-good/15 text-good"
+                                        : "bg-warn/15 text-warn",
+                                  )}
+                                >
+                                  {cs.source === "product_fact"
+                                    ? "Product fact"
+                                    : cs.source === "industry"
+                                      ? "Industry"
+                                      : "Manuscript"}
+                                </span>
+                                <p className="mt-1 text-sm [overflow-wrap:anywhere]">{cs.text}</p>
+                                {cs.basis && (
+                                  <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                                    {cs.basis}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
+
                   </SurfaceCard>
                 );
               })
