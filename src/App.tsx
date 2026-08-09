@@ -559,16 +559,16 @@ const App = () => (
               <Route path="/brand/reset-password" element={<BrandResetPassword />} />
               <Route path="/brand/subscribe" element={<RoleGate allow={["brand", "admin"]}><BrandSubscribe /></RoleGate>} />
               <Route path="/brand/billing" element={<RoleGate allow={["brand", "admin"]}><BrandBilling /></RoleGate>} />
-              <Route path="/brand" element={<RoleGate allow={["brand", "admin"]}><BrandDashboard /></RoleGate>} />
-              <Route path="/brand/profile" element={<RoleGate allow={["brand", "admin"]}><BrandProfileEditor /></RoleGate>} />
-              <Route path="/brand/shelf" element={<RoleGate allow={["brand", "admin"]}><BrandShelf /></RoleGate>} />
-              <Route path="/brand/shelf/scanning" element={<RoleGate allow={["brand", "admin"]}><BrandProductScanning /></RoleGate>} />
-              <Route path="/brand/shelf/:id" element={<RoleGate allow={["brand", "admin"]}><BrandShelfProduct /></RoleGate>} />
+              <Route path="/brand" element={<BrandSubGate><BrandDashboard /></BrandSubGate>} />
+              <Route path="/brand/profile" element={<BrandSubGate><BrandProfileEditor /></BrandSubGate>} />
+              <Route path="/brand/shelf" element={<BrandSubGate><BrandShelf /></BrandSubGate>} />
+              <Route path="/brand/shelf/scanning" element={<BrandSubGate><BrandProductScanning /></BrandSubGate>} />
+              <Route path="/brand/shelf/:id" element={<BrandSubGate><BrandShelfProduct /></BrandSubGate>} />
 
-              <Route path="/brand/offers/new" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
-              <Route path="/brand/offers/:id" element={<RoleGate allow={["brand", "admin"]}><BrandOfferDetail /></RoleGate>} />
-              <Route path="/brand/offers/:id/edit" element={<RoleGate allow={["brand", "admin"]}><BrandCreateOffer /></RoleGate>} />
-              <Route path="/brand/offers/:id/extend" element={<RoleGate allow={["brand", "admin"]}><BrandExtendOffer /></RoleGate>} />
+              <Route path="/brand/offers/new" element={<BrandSubGate><BrandCreateOffer /></BrandSubGate>} />
+              <Route path="/brand/offers/:id" element={<BrandSubGate><BrandOfferDetail /></BrandSubGate>} />
+              <Route path="/brand/offers/:id/edit" element={<BrandSubGate><BrandCreateOffer /></BrandSubGate>} />
+              <Route path="/brand/offers/:id/extend" element={<BrandSubGate><BrandExtendOffer /></BrandSubGate>} />
               <Route path="/brand/checkout/success" element={<RoleGate allow={["brand", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
 
               {/* Pro promoted campaigns — reuse the brand pages via URL-based
