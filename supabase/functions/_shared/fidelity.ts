@@ -151,8 +151,6 @@ const SEALS_MOISTURE_IN: DeterministicRule = {
         return s;
       }
 
-        return s;
-      }
     }
     return null;
   },
