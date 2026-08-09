@@ -748,6 +748,116 @@ Deno.serve(async (req) => {
       challenges: challengesOf(body.goal),
     });
 
+    // ── "HOW YOU'LL GET THERE" — THE SHARED TIP CONTRACT ─────────────
+    // Steps are tips: headline + action + reason (+ extended). Hard rules may
+    // block and trigger ONE retry; soft rules are logged only. Sanitisation
+    // and fidelity stripping run BEFORE validation so a field emptied by the
+    // stripper is caught as a hard failure instead of shipping a bare
+    // headline. If no step survives with both an action and a reason we
+    // return a "preparing" signal — never an empty or headline-only card.
+    if (journal) {
+      const prose0 = (v: unknown) => proseStyleText(String(v ?? "")).trim();
+      const goalLabels = [
+        (body.goal as Record<string, unknown> | undefined)?.title,
+        body.goal?.target_text,
+        ...challengesOf(body.goal),
+      ]
+        .map((l) => String(l ?? "").trim())
+        .filter(Boolean);
+      const level = (body.context as Record<string, unknown> | undefined)?.tipsLevel;
+
+      const prepare = async (raw: GoalTipShape | null) => {
+        const list = Array.isArray(raw?.steps) ? raw!.steps! : [];
+        const cleaned = (await sanitiseAndLog({ steps: list }, "goal-tip", {
+          context: body.context ?? body,
+        })) as { steps?: ContractTip[] };
+        const steps: ContractTip[] = (cleaned.steps ?? []).map((s) => ({
+          headline: prose0(s?.headline),
+          action: prose0(s?.action),
+          reason: prose0(s?.reason),
+          extended: prose0(s?.extended) || undefined,
+        }));
+        return steps.map((step, i) => ({
+          tip: step,
+          hard: validateTipHard(step, { grounded }),
+          soft: validateTipSoft(step, {
+            level,
+            context: ctxAny,
+            attributeTokens,
+            goalLabels,
+            siblings: steps.filter((_, j) => j !== i),
+          }),
+        }));
+      };
+
+      let evaluated = await prepare(tip);
+      const cleanCount = (list: typeof evaluated) => list.filter((e) => !e.hard.length).length;
+
+      if (cleanCount(evaluated) < 2) {
+        const hard = [...new Set(evaluated.flatMap((e) => e.hard))] as HardRule[];
+        const soft = [...new Set(evaluated.flatMap((e) => e.soft))] as SoftRule[];
+        await logTipRejection(
+          "goal-tip",
+          ["journal_steps", ...hard, ...soft],
+          JSON.stringify(tip).slice(0, 4000),
+        );
+        try {
+          const retryResp = await callModel(contractRetryDirective(hard, soft));
+          if (retryResp.ok) {
+            const retriedEval = await prepare(await parseResponse(retryResp));
+            if (cleanCount(retriedEval) > cleanCount(evaluated)) evaluated = retriedEval;
+          }
+        } catch (e) {
+          console.warn("[goal-tip] journal contract retry failed", e);
+        }
+      }
+
+      // GRADED FALLBACK — serve every step that carries both an action and a
+      // reason, in the generated order, imperfect or not. Log loudly.
+      const best = pickBestCandidate(evaluated);
+      const servable = evaluated.filter((e) => isRenderableTip(e.tip));
+      if (!best || !servable.length) {
+        await logTipRejection(
+          "goal-tip",
+          ["journal_steps_unservable", ...new Set(evaluated.flatMap((e) => e.hard))],
+          JSON.stringify(tip).slice(0, 4000),
+        );
+        return new Response(
+          JSON.stringify({ error: "steps_preparing", retryable: true }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const softAll = [...new Set(servable.flatMap((e) => e.soft))];
+      if (softAll.length || servable.some((e) => e.hard.length)) {
+        console.warn("[goal-tip] journal steps served degraded", {
+          soft: softAll,
+          hard: [...new Set(servable.flatMap((e) => e.hard))],
+        });
+      }
+
+      if (ledgerUserId) {
+        await recordAdvice(
+          ledgerUserId,
+          "goal-tip",
+          servable.flatMap((e) => [e.tip.action ?? "", e.tip.reason ?? ""]).filter(Boolean),
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          tip: {
+            steps: servable.map((e) => e.tip),
+            _manuscript_grounded: grounded,
+            _rag_passages: ragPassageCount,
+            _rag_procedural: ragProceduralCount,
+            _soft_failures: softAll,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
     const floorOf = (t: GoalTipShape | null) => {
       const bodyParts = [
         String(t?.action ?? ""),
