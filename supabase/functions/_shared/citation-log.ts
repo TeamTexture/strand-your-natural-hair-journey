@@ -107,8 +107,17 @@ export async function sanitiseAndLog<T>(
     /** Surface key + member id, so the evidence set is auditable per member. */
     surface?: string | null;
     userId?: string | null;
+    /**
+     * GROUNDING POLICY. "A" (default) = editorial surfaces, manuscript-first,
+     * unchanged. "B" = sponsored product surfaces: established cosmetic science
+     * is permitted, under the four constraints in _shared/policy-b.ts.
+     */
+    policy?: "A" | "B";
+    /** Policy B only: the product facts the sponsored gates need. */
+    product?: PolicyBProduct;
   },
 ): Promise<T> {
+
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
   collectStripped(value, cleaned, stripped);
