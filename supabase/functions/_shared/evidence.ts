@@ -319,8 +319,22 @@ export function isPresentIn(passage: string, source: string): boolean {
 
 /**
  * The stage 2 payload. This is the ONLY hair care source text stage 2 receives:
- * the extracted passages and why each applies. The full chapters are not passed,
- * and chapter/page metadata is withheld so nothing can be cited.
+ * the extracted passages and why each applies. The full chapters are never
+ * passed in any mode, and chapter/page metadata is withheld so nothing can be
+ * cited.
+ *
+ * The three modes differ ONLY in what the writer is permitted to reason with:
+ *
+ *   explicit    evidence set only.
+ *   extension   evidence set + the named principle, which it may apply to the
+ *               situation the author does not name. No outside facts.
+ *   supplement  evidence set + the named principle + narrow permission to use
+ *               established cosmetic science / trichology that is consistent
+ *               with that principle. Each such claim must be tagged.
+ *
+ * In every mode the author's terminology lexicon binds (appended separately by
+ * `evidencePromptBlock`) and the manuscript wins any conflict with industry
+ * practice.
  */
 export function renderEvidenceBlock(set: EvidenceSet): string {
   if (!set.items.length) return "";
@@ -332,20 +346,53 @@ export function renderEvidenceBlock(set: EvidenceSet): string {
         }`,
     )
     .join("\n\n");
-  return `THE EVIDENCE SET — your ONLY source of hair care fact. Nothing else exists.
+
+  const conflictRule =
+    `THE AUTHOR ALWAYS WINS A CONFLICT. Where established industry practice, marketing language or common terminology contradicts her position, her position governs — without exception and without hedging. Her book exists to correct widespread industry error, so treating industry consensus as authoritative would reproduce the exact error. Example: the industry calls a conditioning shampoo "moisturising"; she does not, and neither do you.`;
+
+  const head = set.coverage === "explicit"
+    ? `THE EVIDENCE SET — your ONLY source of hair care fact. Nothing else exists.`
+    : `THE EVIDENCE SET — your primary and default source of hair care fact.`;
+
+  const modeRule = set.coverage === "explicit"
+    ? `MODE: EXPLICIT. The author covers this situation directly.
+1. Every hair care claim, term, mechanism, cause, effect, sequence and frequency you write must come from the EVIDENCE SET above. Nothing else is available to you.
+2. You have NO other hair care knowledge. Industry convention, common advice and anything you might otherwise believe are all forbidden and are defects, not fallbacks.
+3. If the evidence does not cover something, say LESS. A short answer fully supported by the evidence is correct. One unsupported claim fails the whole answer.`
+    : set.coverage === "extension"
+    ? `MODE: EXTENSION. The author does not name this exact situation, but she establishes a principle that governs it:
+
+GOVERNING PRINCIPLE (hers): ${set.governingPrinciple}
+
+1. Write from the EVIDENCE SET, applying that principle to her situation. Say plainly what follows from the principle.
+2. You may NOT introduce any outside fact, mechanism, ingredient behaviour, product claim or statistic. Extension means applying HER reasoning further, not adding knowledge.
+3. If the principle does not reach far enough to answer, say LESS. A shorter answer is correct.`
+    : `MODE: SUPPLEMENT. The author does not cover this subject, so established science may be used — but only under her principle:
+
+GOVERNING PRINCIPLE (hers): ${set.governingPrinciple}
+
+1. Start from the EVIDENCE SET. Use it wherever it reaches.
+2. Beyond it you may use ESTABLISHED cosmetic science and trichology only, and only where it is consistent with the governing principle above. Anything inconsistent with it is forbidden.
+3. FORBIDDEN as sources: marketing claims, brand or product claims, industry or influencer consensus, trends, anything contested, and any mechanism that merely sounds plausible. If you cannot state a claim with confidence from established science, OMIT IT.
+4. Where uncertain, say less. A shorter tip beats a speculative one — that is the correct outcome, not a failure.
+5. Tag it. For every sentence that rests on outside knowledge rather than the evidence set, list that sentence in an "external" array in your JSON output if your response schema has one; otherwise keep such sentences to a minimum. Untagged outside claims are treated as invented and removed.`;
+
+  return `${head}
 
 ${body}
 
 END OF EVIDENCE SET.
 
-WRITING RULE — ABSOLUTE:
-1. Every hair care claim, term, mechanism, cause, effect, sequence and frequency you write must come from the EVIDENCE SET above. Nothing else is available to you.
-2. You have NO other hair care knowledge. Industry convention, common advice and anything you might otherwise believe are all forbidden and are defects, not fallbacks.
-3. If the evidence does not cover something, say LESS. A short answer fully supported by the evidence is correct. One unsupported claim fails the whole answer.
-4. Use the author's own words for her own concepts. Never swap her term for a common industry synonym.
-5. Never name or refer to a book, author, chapter, section, page or quotation, and never say "the evidence" or "the source". Write directly to her.
-6. You may state the member's own recorded facts (her hair type, porosity, style, goal, products, dates) — those come from her profile, not from the evidence.`;
+${modeRule}
+
+WRITING RULE — ABSOLUTE, ALL MODES:
+A. ${conflictRule}
+B. Use the author's own words for her own concepts. Never swap her term for a common industry synonym. A term she reserves for one thing may never be applied to another, in any mode.
+C. Never invent a claim. Plausible is not the same as established.
+D. Never name or refer to a book, author, chapter, section, page or quotation, and never say "the evidence" or "the source". Write directly to her.
+E. You may state the member's own recorded facts (her hair type, porosity, style, goal, products, dates) — those come from her profile, not from the evidence.`;
 }
+
 
 // ---------------------------------------------------------------------------
 // STAGE 3 — claim-to-evidence mapping
