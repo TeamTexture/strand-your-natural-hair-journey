@@ -238,6 +238,7 @@ const ChatThreadPage = () => {
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
   const sendImage = useSendChatImage(threadId);
+  const sendVoice = useSendChatVoice(threadId);
   const book = useBookAppointmentInThread();
   const markRead = useMarkThreadRead(threadId);
   const [draft, setDraft] = useState("");
