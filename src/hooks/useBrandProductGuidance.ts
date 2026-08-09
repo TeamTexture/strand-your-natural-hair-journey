@@ -93,6 +93,35 @@ const cacheKind = (productId: string, fingerprint: string, surface: string) =>
     : `brand_product_guidance_v10:${surface}:${productId}:${fingerprint}`;
 
 
+/** STALE-FIRST. When the member changes their hair, style or goals every
+ *  fingerprinted key misses at once, and regeneration takes tens of seconds. So
+ *  we read the most recent guidance previously generated for this product and
+ *  surface — whatever profile it was written against — and render it straight
+ *  away while the fresh one is generated in the background. Guidance the member
+ *  has already seen is a far better holding state than a spinner. */
+const stalePrefix = (productId: string, surface: string) =>
+  surface === "wash_day"
+    ? `brand_wash_tip_v1:${productId}`
+    : `brand_product_guidance_v10:${surface}:${productId}:`;
+
+async function readStaleGuidance(
+  userId: string,
+  productId: string,
+  surface: string,
+): Promise<BrandGuidance | null> {
+  const { data } = await supabase
+    .from("ai_summaries")
+    .select("payload")
+    .eq("user_id", userId)
+    .like("kind", `${stalePrefix(productId, surface)}%`)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  const p = data?.[0]?.payload as unknown as BrandGuidance | null;
+  if (!p) return null;
+  if (surface === "wash_day") return p.wash_day_tip ? p : null;
+  return Array.isArray(p.benefits) || p.wash_day_tip ? p : null;
+}
+
 /** In-memory guard so two surfaces mounting at once don't both generate. */
 const inflight = new Map<string, Promise<BrandGuidance | null>>();
 
@@ -207,9 +236,18 @@ export function useBrandProductGuidance(
   useEffect(() => {
     if (!enabled || !product?.id || !user?.id) return;
     let cancelled = false;
+    let settled = false;
     setLoading(true);
+    // Paint the previously generated guidance immediately if this profile
+    // fingerprint has not been generated yet (e.g. she just changed her style).
+    void readStaleGuidance(user.id, product.id, surface)
+      .then((stale) => {
+        if (!cancelled && !settled && stale) setGuidance(stale);
+      })
+      .catch(() => null);
     loadGuidance(user.id, product, surface)
       .then((g) => {
+        settled = true;
         if (!cancelled && g) setGuidance(g);
       })
       .catch(() => {
