@@ -158,7 +158,7 @@ export function useUserTools() {
         );
       });
       if (existing) {
-        const patch: Record<string, unknown> = { on_shelf: true, on_wishlist: false };
+        const patch: Record<string, never> = { on_shelf: true, on_wishlist: false } as never;
         if (storage_path) patch.storage_path = storage_path;
         else if (input.imageUrl?.trim() && !existing.image_url && !existing.storage_path)
           patch.image_url = input.imageUrl.trim();
