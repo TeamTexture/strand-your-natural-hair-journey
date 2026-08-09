@@ -60,6 +60,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import { useAccessRestricted } from "@/hooks/useAccessRestricted";
+import { useBrandLockout } from "@/hooks/useBrandLockout";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
@@ -121,6 +122,9 @@ const GlobalMenu = () => {
   const { isActive: proSubActive } = useProSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
+  // An unpaid brand account gets no navigation at all — the paywall screen
+  // carries its own sign-out and support links.
+  const { locked: brandLocked } = useBrandLockout();
   const { hasPlus } = usePlusAccess();
   // Upgrade CTA is consumer-only — never for professional, brand or admin accounts.
   const { canUpgrade } = useUpgradeEligibility();
@@ -158,6 +162,7 @@ const GlobalMenu = () => {
   const hidden =
     !session ||
     isRestricted ||
+    brandLocked ||
     location.pathname === "/" ||
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
 

@@ -22,6 +22,8 @@ import HairStrandIcon from "@/components/HairStrandIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
+import { useBrandLockout } from "@/hooks/useBrandLockout";
+import { useAuth } from "@/hooks/useAuth";
 import type { LucideIcon } from "lucide-react";
 
 type Pillar = { icon: LucideIcon; title: string; benefit: string };
@@ -82,6 +84,8 @@ const BrandSubscribe = () => {
   const [params, setParams] = useSearchParams();
   const nextPath = params.get("next");
   const { isActive, refetch } = useBrandSubscription();
+  const { locked } = useBrandLockout();
+  const { signOut } = useAuth();
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -125,7 +129,10 @@ const BrandSubscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand access" onBack={smartBack(nav, "/brand")} />
+      {/* Locked out: no back button, no in-app navigation — only pay, read the
+          legal documents, contact support or sign out. */}
+      <TitleBar title="Brand access" onBack={locked ? undefined : smartBack(nav, "/brand")} />
+
 
       <div className="px-5 pb-12 space-y-6">
         {/* Hero */}
@@ -248,6 +255,21 @@ const BrandSubscribe = () => {
             </p>
           </div>
         </SurfaceCard>
+
+        <div className="flex items-center justify-center gap-4 text-[11.5px] font-body text-foreground/70">
+          <a href="/legal/brand-advertising-terms" target="_blank" rel="noopener noreferrer" className="underline">
+            Advertising terms
+          </a>
+          <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+            Privacy
+          </a>
+          <button type="button" onClick={() => nav("/contact")} className="underline">
+            Contact support
+          </button>
+          <button type="button" onClick={() => signOut()} className="underline">
+            Sign out
+          </button>
+        </div>
 
         <p className="text-[11px] text-foreground/50 font-body text-center leading-relaxed">
           Payments processed securely by Stripe. Your offers and analytics are preserved
