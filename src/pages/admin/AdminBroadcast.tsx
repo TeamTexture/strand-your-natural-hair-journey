@@ -56,6 +56,9 @@ const AdminBroadcast = () => {
   const [audience, setAudience] = useState<Audience>("all");
   const [body, setBody] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sent, setSent] = useState<{ recipients: number; audience: Audience; body: string } | null>(
+    null,
+  );
 
   const { data: history } = useQuery({
     queryKey: ["admin", "broadcasts"],
