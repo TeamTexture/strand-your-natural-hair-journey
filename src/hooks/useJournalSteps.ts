@@ -26,6 +26,11 @@ export interface StepProduct {
   user_product_id: string | null;
 }
 
+export interface StepTool {
+  id: string;
+  user_tool_id: string | null;
+}
+
 export interface JournalStep {
   id: string;
   entry_id: string;
@@ -35,6 +40,7 @@ export interface JournalStep {
   voice_transcript: string | null;
   media: StepMedia[];
   products: StepProduct[];
+  tools: StepTool[];
 }
 
 export function useJournalSteps(entryId: string | null) {
@@ -47,7 +53,7 @@ export function useJournalSteps(entryId: string | null) {
     const { data, error } = await supabase
       .from("journal_steps")
       .select(
-        "id, entry_id, step_order, note, voice_path, voice_transcript, journal_step_media(id, kind, storage_path, duration_seconds, sort_order), journal_step_products(id, user_product_id)",
+        "id, entry_id, step_order, note, voice_path, voice_transcript, journal_step_media(id, kind, storage_path, duration_seconds, sort_order), journal_step_products(id, user_product_id), journal_step_tools(id, user_tool_id)",
       )
       .eq("entry_id", entryId)
       .order("step_order", { ascending: true });
@@ -68,6 +74,7 @@ export function useJournalSteps(entryId: string | null) {
           .slice()
           .sort((a, b) => a.sort_order - b.sort_order),
         products: (r.journal_step_products ?? []) as StepProduct[],
+        tools: (r.journal_step_tools ?? []) as StepTool[],
       })),
     );
   }, [entryId]);
@@ -187,6 +194,27 @@ export function useJournalSteps(entryId: string | null) {
     [steps, load],
   );
 
+  const toggleTool = useCallback(
+    async (stepId: string, userToolId: string) => {
+      const step = steps.find((s) => s.id === stepId);
+      const existing = step?.tools.find((t) => t.user_tool_id === userToolId);
+      if (existing) {
+        await supabase.from("journal_step_tools").delete().eq("id", existing.id);
+      } else {
+        const { error } = await supabase
+          .from("journal_step_tools")
+          .insert({ step_id: stepId, user_tool_id: userToolId });
+        if (error) {
+          console.error("attach tool failed", error);
+          toast.error("Couldn't add that tool");
+          return;
+        }
+      }
+      await load();
+    },
+    [steps, load],
+  );
+
   return {
     steps,
     loading,
@@ -198,5 +226,6 @@ export function useJournalSteps(entryId: string | null) {
     addMedia,
     removeMedia,
     toggleProduct,
+    toggleTool,
   };
 }
