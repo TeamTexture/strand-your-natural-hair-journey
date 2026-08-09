@@ -121,6 +121,8 @@ const Journal = () => {
     status: string | null;
     entry_date: string;
     photo_paths: string[];
+    /** Member-chosen cover; null means auto (the first media in step order). */
+    cover_media_id: string | null;
     stepCount: number;
     productNames: string[];
     coverUrl?: string;
