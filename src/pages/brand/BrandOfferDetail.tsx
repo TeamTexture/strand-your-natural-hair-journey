@@ -425,48 +425,74 @@ const BrandOfferDetail = () => {
           </SurfaceCard>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-2">
-              <StatBox icon={Eye} label="Impressions" value={stats.impressions} exact={showExact} />
-              <StatBox icon={Maximize2} label="Expands" value={stats.expands} exact={showExact} />
-              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} exact={showExact} />
-              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} exact={showExact} />
-              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} exact={showExact} />
+            {/* Four headline figures only. Everything diagnostic sits behind the
+                expander so the top of the screen can't contradict itself. */}
+            <div className="grid grid-cols-2 gap-2">
+              <StatBox icon={Users} label="Reach" value={stats.reach} exact={showExact} />
+              <StatBox icon={Maximize2} label="Interactions" value={stats.interactors} exact={showExact} />
+              <StatBox icon={Ticket} label="Codes copied" value={stats.code_copies} exact={showExact} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.link_clicks} exact={showExact} />
             </div>
+            <SurfaceCard className="py-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-[11.5px] font-body text-foreground/80">Engagement rate</p>
+                <p className="font-display text-[16px] leading-none">{formatEngagementRate(stats)}</p>
+              </div>
+              <p className="text-[10.5px] text-muted-foreground font-body mt-1 leading-snug">
+                Members who interacted, out of members who saw it. Counted once per member, so it can never pass 100%.
+              </p>
+            </SurfaceCard>
             <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
-              Impressions = distinct members who saw the advert (at least half of it, for a full second).
-              Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
-              site. {showExact ? "" : "Figures are shown as approximate ranges. "}{STATS_METHOD_NOTE}
+              {IMPRESSION_NOTE} Interactions = members who opened it, copied the code, tapped through or saved it.
+              {" "}{showExact ? "" : `${RANGE_NOTE} `}{STATS_METHOD_NOTE}
             </p>
+            <button
+              type="button"
+              onClick={() => setStatDetailOpen((v) => !v)}
+              className="text-[11.5px] font-body text-primary"
+            >
+              {statDetailOpen ? "Hide detail" : "Show detail"}
+            </button>
+            {statDetailOpen && (
+              <div className="grid grid-cols-3 gap-2">
+                <StatBox icon={Eye} label="Views" value={stats.raw_views} exact={showExact} />
+                <StatBox icon={Maximize2} label="Expands" value={stats.expands} exact={showExact} />
+                <StatBox icon={Heart} label="Saves" value={stats.wishlist_adds} exact={showExact} />
+              </div>
+            )}
           </>
         )}
 
-        {/* A mid-campaign audience change is a natural before/after test. ad_events
-            rows are timestamped, so the split is read straight from them. */}
-        {splitTotals && splitTotals.length === 2 && (
+        {/* A mid-campaign audience change is a natural before/after test. Both
+            phases come from the same metrics query as the headline figures. */}
+        {metrics?.before && metrics.after && (
           <>
             <SectionLabel className="!px-0">Before &amp; after your audience change</SectionLabel>
             <SurfaceCard className="space-y-2.5">
               <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
-                Your audience changed on {format(new Date(splitTotals[0].changed_at), "d MMM 'at' HH:mm")}. Here's how the campaign performed
-                either side of that.
+                Your audience changed on {metrics.changedAt ? format(new Date(metrics.changedAt), "d MMM 'at' HH:mm") : "—"}. Here's how the
+                campaign performed either side of that.
               </p>
-              {splitTotals.map((row) => (
-                <div key={row.phase} className="space-y-1.5">
+              {([["before", metrics.before], ["after", metrics.after]] as const).map(([phase, row]) => (
+                <div key={phase} className="space-y-1.5">
                   <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">
-                    {row.phase === "before" ? "Before the change" : "Since the change"}
+                    {phase === "before" ? "Before the change" : "Since the change"}
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <StatBox icon={Eye} label="Impressions" value={row.impressions} exact={showExact} />
-                    <StatBox icon={Maximize2} label="Expands" value={row.expands} exact={showExact} />
-                    <StatBox icon={Ticket} label="Code copies" value={row.code_copies} exact={showExact} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <StatBox icon={Users} label="Reach" value={row.reach} exact={showExact} />
+                    <StatBox icon={Maximize2} label="Interactions" value={row.interactors} exact={showExact} />
+                    <StatBox icon={Ticket} label="Codes copied" value={row.code_copies} exact={showExact} />
                     <StatBox icon={ExternalLink} label="Link clicks" value={row.link_clicks} exact={showExact} />
-                    <StatBox icon={Heart} label="Wishlist" value={row.wishlist_adds} exact={showExact} />
                   </div>
+                  <p className="text-[10.5px] text-muted-foreground font-body">
+                    Engagement rate {formatEngagementRate(row)}
+                  </p>
                 </div>
               ))}
             </SurfaceCard>
           </>
         )}
+
 
 
         {derived === "ended" && (
