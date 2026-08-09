@@ -7,6 +7,8 @@ import {
   type ResponsiveSignals,
   strandTipSignatureParts,
 } from "@/lib/tipSignature";
+import { aiRevisionPart } from "@/lib/aiCopyRevision";
+
 
 const base: ResponsiveSignals = {
   challenges: ["breakage at temples"],
