@@ -194,6 +194,25 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const { user } = useAuth();
   const [entry, setEntry] = useState<EntryRow | null>(null);
   const [loading, setLoading] = useState(true);
+  // Unsaved note text per step, plus the exit guard it feeds.
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [discardSignal, setDiscardSignal] = useState(0);
+  const [guardOpen, setGuardOpen] = useState(false);
+  const pendingExit = useRef<(() => void) | null>(null);
+  const onDraftChange = useCallback((stepId: string, draft: string | null) => {
+    setDrafts((prev) => {
+      if (draft === null) {
+        if (!(stepId in prev)) return prev;
+        const next = { ...prev };
+        delete next[stepId];
+        return next;
+      }
+      if (prev[stepId] === draft) return prev;
+      return { ...prev, [stepId]: draft };
+    });
+  }, []);
+  const dirtyCount = Object.keys(drafts).length;
+
   const {
     steps,
     loading: stepsLoading,
