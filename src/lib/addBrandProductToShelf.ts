@@ -55,13 +55,15 @@ export async function addBrandProductToShelf(opts: {
   brandName: string | null;
   product: BrandShelfProduct;
   destination: ShelfDestination;
+  /** Set when the add came from a live advert, so the offer gets the credit. */
+  offerId?: string | null;
 }): Promise<AddedShelfItem | null> {
-  const { userId, brandName, product, destination } = opts;
+  const { userId, brandName, product, destination, offerId = null } = opts;
   const toShelf = destination === "shelf";
   const now = new Date().toISOString();
 
   if (product.kind === "tool") {
-    const toolId = await addBrandToolToTools({ userId, brandName, product, toShelf });
+    const toolId = await addBrandToolToTools({ userId, brandName, product, toShelf, offerId });
     if (!toolId) return null;
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("user-tools-updated"));
@@ -69,10 +71,21 @@ export async function addBrandProductToShelf(opts: {
     return { kind: "tool", toolId };
   }
 
-  const product_key = brandProductKey(product.id);
+
+  // Reuse the key of any row the member already holds for this catalogue item
+  // (the advert route historically keyed rows `brand-offer:<id>`), so the two
+  // entry points can never create two shelf rows for the same product.
+  const { data: priorRows } = await supabase
+    .from("user_products")
+    .select("product_key")
+    .eq("user_id", userId)
+    .eq("linked_brand_product_id", product.id)
+    .limit(1);
+  const product_key = (priorRows ?? [])[0]?.product_key ?? brandProductKey(product.id);
   const payload: Record<string, unknown> = {
     user_id: userId,
     product_key,
+
     name: product.name,
     brand: brandName,
     ingredients: product.ingredients ?? [],
@@ -80,6 +93,7 @@ export async function addBrandProductToShelf(opts: {
     image_url: product.image_urls?.[0] ?? null,
     source_url: product.external_url ?? null,
     linked_brand_product_id: product.id,
+    ...(offerId ? { linked_brand_offer_id: offerId } : {}),
     ingredients_source: "brand",
     on_shelf: toShelf,
     on_wishlist: !toShelf,
@@ -106,22 +120,33 @@ async function addBrandToolToTools(opts: {
   brandName: string | null;
   product: BrandShelfProduct;
   toShelf: boolean;
+  offerId?: string | null;
 }): Promise<string | null> {
-  const { userId, brandName, product, toShelf } = opts;
+  const { userId, brandName, product, toShelf, offerId = null } = opts;
   const tool_key = brandToolKey(product.id);
 
-  const { data: existing } = await supabase
+  // A member can reach the same tool from the advert AND the brand page, and an
+  // older hand-added row may exist too, so more than one row can match. Take a
+  // list (never maybeSingle, which errors on multiple rows and used to make the
+  // add fall through to an insert that then hit the unique tool_key index).
+  const { data: matches } = await supabase
     .from("user_tools")
-    .select("id, category")
+    .select("id, category, linked_brand_product_id")
     .eq("user_id", userId)
     .or(`tool_key.eq.${tool_key},linked_brand_product_id.eq.${product.id}`)
-    .maybeSingle();
+    .limit(5);
+
+  const existing = (matches ?? [])[0] as
+    | { id: string; category: string | null; linked_brand_product_id: string | null }
+    | undefined;
 
   if (existing?.id) {
     const patch: Record<string, unknown> = toShelf
       ? { on_shelf: true, on_wishlist: false }
       : { on_wishlist: true };
     if (!existing.category && product.tool_kind) patch.category = product.tool_kind;
+    if (!existing.linked_brand_product_id) patch.linked_brand_product_id = product.id;
+    if (offerId) patch.linked_brand_offer_id = offerId;
     const { error } = await supabase
       .from("user_tools")
       .update(patch as never)
@@ -145,7 +170,9 @@ async function addBrandToolToTools(opts: {
     on_shelf: toShelf,
     on_wishlist: !toShelf,
     linked_brand_product_id: product.id,
+    ...(offerId ? { linked_brand_offer_id: offerId } : {}),
   };
+
   const { data, error } = await supabase
     .from("user_tools")
     .insert(insertRow as never)
