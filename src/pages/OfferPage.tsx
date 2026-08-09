@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useLogAdEvent, PlacementSlot } from "@/hooks/useBrandOffers";
+import { useLogAdEvent, PlacementSlot, flattenOfferProducts } from "@/hooks/useBrandOffers";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import { useQuery } from "@tanstack/react-query";
@@ -77,11 +77,14 @@ const OfferPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_products(*), brand_profiles!inner(brand_name)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(*)), brand_profiles!inner(brand_name)")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      // Products come through the join table (no direct offer->product FK), so
+      // flatten them back to `brand_products` in the brand's chosen order.
+      return flattenOfferProducts(data);
     },
   });
 
