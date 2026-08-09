@@ -271,12 +271,27 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
                 p={p}
                 selected={isSelected(p.id)}
                 onClick={() => onToggle(p.id)}
+                onRemove={() => setPendingRemove(p)}
               />
             ))
           )}
         </div>
       </SheetContent>
     </Sheet>
+
+    {pendingRemove && (
+      <ShelfItemRemoveDialog
+        open
+        onOpenChange={(o) => { if (!o) setPendingRemove(null); }}
+        name={pendingRemove.name}
+        kind="product"
+        list={tab}
+        busy={removing}
+        onTakeOff={() => void takeOff(pendingRemove)}
+        onDelete={() => void hardDelete(pendingRemove)}
+      />
+    )}
+
 
     <DualPhotoCaptureSheet
       open={scanSheetOpen}
