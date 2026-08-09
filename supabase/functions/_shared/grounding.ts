@@ -102,20 +102,31 @@ export async function buildGroundingBlock(
   });
   const topicBlocks = topics.map(renderTopicBlock);
 
-  let passageBlocks: string[] = [];
-  let grounded = false;
-  try {
-    const passages = await retrieveWithRetry(
-      input.ragQuery,
-      input.ragK ?? 4,
-      input.chapterFilter,
-      input.proceduralBias,
-    );
-    passageBlocks = passages.map(renderPassageBlock);
-    grounded = passageBlocks.length > 0;
-  } catch {
-    grounded = false;
+  // WHOLE-CHAPTER PATH (2026-08-09 fidelity fix). When the caller names its
+  // surface we pass the authoritative chapters IN FULL — chapter 1 always
+  // included — instead of top-k fragments. Fragment retrieval was the root
+  // cause of the model filling context gaps from general knowledge.
+  let chapterCtx: ChapterContext | null = null;
+  if (input.surface) {
+    chapterCtx = await loadSurfaceChapters(input.surface);
+    if (!chapterCtx.text) chapterCtx = null;
+  }
 
+  let passageBlocks: string[] = [];
+  let grounded = Boolean(chapterCtx);
+  if (!chapterCtx) {
+    try {
+      const passages = await retrieveWithRetry(
+        input.ragQuery,
+        input.ragK ?? 4,
+        input.chapterFilter,
+        input.proceduralBias,
+      );
+      passageBlocks = passages.map(renderPassageBlock);
+      grounded = passageBlocks.length > 0;
+    } catch {
+      grounded = false;
+    }
   }
 
   if (!grounded) {
@@ -124,6 +135,7 @@ export async function buildGroundingBlock(
       JSON.stringify({
         event: "manuscript_grounding_failed",
         fn: input.fn,
+        surface: input.surface ?? null,
         rag_k: input.ragK ?? 4,
         chapter_scoped: Boolean(input.chapterFilter?.length),
         topics: topicBlocks.length,
@@ -139,6 +151,10 @@ export async function buildGroundingBlock(
       }`,
     );
   }
+  if (chapterCtx) {
+    parts.push(renderChapterBlock(chapterCtx));
+    parts.push(FIDELITY_RULE);
+  }
   if (passageBlocks.length > 0) {
     parts.push(
       `RETRIEVED MANUSCRIPT PASSAGES (verbatim teachings retrieved for this user's data — draw every recommendation from here):\n\n${
@@ -153,10 +169,13 @@ export async function buildGroundingBlock(
   return {
     block: parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "",
     grounded,
-    passages: passageBlocks.length,
+    passages: chapterCtx ? chapterCtx.chunks : passageBlocks.length,
     topics: topicBlocks.length,
+    sourceText: chapterCtx?.text ?? passageBlocks.join("\n\n"),
+    chapters: chapterCtx?.chapters ?? input.chapterFilter ?? [],
   };
 }
+
 
 /** Stamp the grounding provenance onto a payload object. */
 export function stampGrounding<T extends Record<string, unknown>>(
