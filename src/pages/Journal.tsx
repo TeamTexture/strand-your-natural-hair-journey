@@ -603,10 +603,11 @@ const Journal = () => {
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this style record?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the entry and any photos attached to it. This cannot be undone.
+              This will permanently remove the style record, its steps and everything attached to them. This cannot be undone.
             </AlertDialogDescription>
+
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
