@@ -721,6 +721,11 @@ const JournalStepCard = ({
 
               {collapsible && (
                 <div className="space-y-2">
+                  {noteDirty && (
+                    <p className="text-[11px] font-body text-destructive text-center">
+                      Unsaved changes — save them or discard.
+                    </p>
+                  )}
                   <Button
                     type="button"
                     variant="gold"
@@ -738,7 +743,11 @@ const JournalStepCard = ({
                     type="button"
                     variant="outline"
                     size="pill"
-                    className="w-full"
+                    className={`w-full ${
+                      noteDirty
+                        ? "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        : ""
+                    }`}
                     disabled={!noteDirty}
                     onClick={() => {
                       setNoteDraft(step.note ?? "");
