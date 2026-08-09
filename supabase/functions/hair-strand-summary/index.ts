@@ -256,7 +256,7 @@ Deno.serve(async (req: Request) => {
       overview: (parsed.overview ?? "").toString().trim(),
       action_plan: [], // deprecated — always empty going forward
       routine_tips: guardedTips,
-    }, "hair-strand-summary", { context, grounding: grounding.sourceText, chapters: grounding.chapters });
+    }, "hair-strand-summary", { context });
 
 
 

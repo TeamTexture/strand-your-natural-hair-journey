@@ -310,7 +310,6 @@ Deno.serve(async (req) => {
   );
 
   const safePayload = await sanitiseAndLog(payload, "wash-day-steps", {
-    chapters: grounding.chapters,
     context: body,
     grounding: grounding.block,
   });

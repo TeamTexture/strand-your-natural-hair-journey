@@ -645,7 +645,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify(await sanitiseAndLog(analysis, "tool-analyse-url", { grounding: grounding.sourceText, chapters: grounding.chapters })),
+      JSON.stringify(await sanitiseAndLog(analysis, "tool-analyse-url")),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

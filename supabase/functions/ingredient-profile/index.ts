@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
           : undefined,
       _model_version: MODEL_VERSION,
       _generated_at: new Date().toISOString(),
-    }, "ingredient-profile", { grounding: grounding.sourceText, chapters: grounding.chapters });
+    }, "ingredient-profile");
     // A guardrail must never leave the definition blank — that renders as an
     // empty "What it is" card. Fall back to the model's own sentence.
     if (parsed && !parsed.what_it_is?.trim()) {

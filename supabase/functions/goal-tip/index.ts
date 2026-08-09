@@ -908,8 +908,6 @@ Deno.serve(async (req) => {
         tip: {
           ...(await sanitiseAndLog(tip, "goal-tip", {
             context: body.context ?? body,
-            grounding: sourceText,
-            chapters: chaptersUsed,
           })),
           _manuscript_grounded: grounded,
           _rag_passages: ragPassageCount,

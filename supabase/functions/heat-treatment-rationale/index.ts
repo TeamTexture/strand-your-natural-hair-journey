@@ -263,7 +263,7 @@ Deno.serve(async (req: Request) => {
         _generated_at: new Date().toISOString(),
         _provider: providerStamp,
       } as Record<string, unknown>),
-    }, "heat-treatment-rationale", { context, grounding: grounding.sourceText, chapters: grounding.chapters });
+    }, "heat-treatment-rationale", { context });
 
     console.log("[heat-debug] all done", { total_ms: Date.now() - t0, provider: providerStamp });
     return json(200, result);

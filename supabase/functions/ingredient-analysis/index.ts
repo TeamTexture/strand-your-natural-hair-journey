@@ -755,7 +755,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`
       });
     }
 
-    return json(200, { cached: false, analysis: await sanitiseAndLog(analysis, "ingredient-analysis", { grounding: grounding.sourceText, chapters: grounding.chapters }) });
+    return json(200, { cached: false, analysis: await sanitiseAndLog(analysis, "ingredient-analysis") });
   } catch (e) {
     return aiErrorResponse(e, "ingredient-analysis");
   }

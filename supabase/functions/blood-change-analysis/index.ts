@@ -237,8 +237,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         analysis: await sanitiseAndLog(analysis, "blood-change-analysis", {
-          chapters: grounding.chapters,
-          context: body.context,
+                context: body.context,
           grounding: grounding.block,
         }),
       }),
