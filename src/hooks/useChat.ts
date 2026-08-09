@@ -30,7 +30,7 @@ export interface ChatMessage {
   thread_id: string;
   sender_id: string | null;
   sender_role: string | null;
-  kind: "text" | "system" | "booking_request";
+  kind: "text" | "system" | "booking_request" | "image" | "voice";
   body: string;
   meta: Record<string, unknown>;
   created_at: string;
