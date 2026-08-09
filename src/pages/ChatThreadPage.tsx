@@ -48,8 +48,12 @@ import {
   useMarkThreadRead,
   useSendChatMessage,
   useSendChatImage,
+  useSendChatVoice,
   type ChatMessage,
 } from "@/hooks/useChat";
+import ChatImageBubble from "@/components/chat/ChatImageBubble";
+import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
+import { formatVoiceDuration, useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 const dateLabel = (d: Date) => {
   if (isToday(d)) return "Today";
