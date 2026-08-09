@@ -132,29 +132,64 @@ const LEAVE_IN_HYDRATES: DeterministicRule = {
   },
 };
 
-/** Ch 14, p.173: "sealing"/"locking" moisture in is explicitly rejected. */
+/**
+ * Ch 14, p.173: "sealing"/"locking" moisture IN is rejected.
+ *
+ * AMENDED 2026-08-09 by author clarification (which overrides the manuscript):
+ * a product may be described as creating a BARRIER around the moisture already
+ * in the hair, and as REDUCING or SLOWING the EVAPORATION of that moisture.
+ * What stays rejected is the language of preventing loss — sealing, locking or
+ * trapping moisture in, and "moisture-sealing".
+ */
 const SEALS_MOISTURE_IN: DeterministicRule = {
   id: "seals-moisture-in",
   reason:
-    "The source rejects the idea that a product seals or locks moisture into the hair — water evaporates regardless, so the focus is replenishing moisture, not trapping it.",
+    "The author rejects the idea that a product seals, locks or traps moisture into the hair. A product creates a barrier around the moisture already in the hair and slows its evaporation — it does not seal it in.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
-      if (
+      // Permitted by the clarification: barriers, and slowing/reducing loss.
+      const permitted =
+        /\bbarrier\b/.test(l) ||
+        /\b(slow(?:s|ing)?|reduc(?:e|es|ing)|delay(?:s|ing)?)\b[^.]{0,40}\b(evaporat\w+|moisture loss|water loss)\b/
+          .test(l);
+      const sealsIn =
         /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+(?:the\s+)?(?:moisture|hydration|water)\s+(?:in|into|inside)\b/
           .test(l) ||
         /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+in\s+(?:the\s+)?(?:moisture|hydration|water)\b/
           .test(l) ||
-        /\b(?:moisture|water|hydration)[-\s]?(?:seal|lock|trap)(?:ing|s|ed)?\b/.test(l) ||
-        /\b(?:loc|lco)\s+method\b/.test(l)
-      ) {
-        return s;
-      }
-
+        /\b(?:moisture|water|hydration)[-\s]?(?:seal|lock|trap)(?:ing|s|ed)?\b/.test(l);
+      if (sealsIn && !permitted) return s;
     }
     return null;
   },
 };
+
+/**
+ * LOC/LCO. Author clarification 2026-08-09: it is to be AVOIDED DAILY and is
+ * not necessary daily; weekly, after wash day, is fine. So only the daily /
+ * "necessary" framing is rejected.
+ */
+const LOC_DAILY: DeterministicRule = {
+  id: "loc-lco-daily",
+  reason:
+    "The author's position is that LOC/LCO is to be avoided daily and is not necessary daily — weekly, after wash day, is fine. It must not be presented as a daily or necessary practice.",
+  detect: (text) => {
+    for (const s of sentences(text)) {
+      const l = s.toLowerCase();
+      if (!/\b(loc|lco)\b/.test(l)) continue;
+      if (
+        /\b(daily|every\s+day|each\s+day|twice\s+a\s+day|morning\s+and\s+night)\b/.test(l) ||
+        /\b(?:is|it's|its)\s+(?:essential|necessary|a\s+must|required)\b/.test(l) ||
+        /\byou\s+(?:must|need\s+to)\b/.test(l)
+      ) {
+        return s;
+      }
+    }
+    return null;
+  },
+};
+
 
 /** Water is the only true source of moisture — nothing else may claim it. */
 const ONLY_WATER_MOISTURISES: DeterministicRule = {
