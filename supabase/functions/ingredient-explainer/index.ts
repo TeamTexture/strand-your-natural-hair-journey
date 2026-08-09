@@ -45,8 +45,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const GLOSSARY_MODEL_VERSION = "claude-sonnet-4-6@glossary-v1";
-const FIT_MODEL_VERSION = "claude-sonnet-4-6@fit-v1";
+const GLOSSARY_MODEL_VERSION = "claude-sonnet-4-6@glossary-v2-manuscript-2026-08-09";
+const FIT_MODEL_VERSION = "claude-sonnet-4-6@fit-v2-manuscript-2026-08-09";
 const MAX_BATCH = 40;
 
 // Ingredients that get a glossary row but are never tokenised in prose.

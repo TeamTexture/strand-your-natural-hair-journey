@@ -1,14 +1,25 @@
 // MANUSCRIPT FIDELITY FAIL-SAFE
 // =============================
 // 2026-08-09. The author's rule: nothing the app states as hair care fact may
-// be untraceable to her manuscript. Two verified regressions triggered this:
+// be untraceable to her manuscript. Every deterministic rule below quotes the
+// manuscript passage it enforces — a rule may never encode a fact the source
+// does not state.
 //
-//   1. The app reversed the two-cleanse protocol. The source is explicit that
-//      the FIRST cleanse targets the hair lengths and the SECOND targets the
-//      scalp. The app said the opposite.
-//   2. The app said a leave-in "hydrates" the hair. The source is explicit
-//      that a leave-in forms a barrier/film that slows moisture leaving the
-//      hair — it does not add hydration.
+// Verified source passages used here:
+//   - Ch 13, p.164 "TOP CLEANSING TIPS": "Be prepared to do at least two
+//     cleanses... I'll go in with an all-purpose shampoo first, sometimes for
+//     two shampoos and then follow up with a conditioning shampoo"; "focus on
+//     the scalp, using the pads of your fingertips – NOT your nails"; "ALWAYS
+//     follow up with a conditioner".
+//   - Ch 14, p.173 "How to seal in moisture": sealing/locking moisture in is
+//     rejected — "water is always going to evaporate"; focus on replenishing.
+//   - Ch 14, p.174/176: moisture is water content in the shaft; "The only thing
+//     that can provide our hair with moisture is water"; oils "soften, coat,
+//     seal and slow moisture loss".
+//   - Ch 14, p.178 "Leave-in conditioners": lightweight conditioning styling
+//     products with low to no hold, optional, used for slip and a light
+//     'moisturising' base before styling.
+
 //
 // This module is the fail-safe. It runs on generated output BEFORE the user
 // sees it, in two stages:
@@ -56,35 +67,60 @@ const sentences = (text: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-/** Reversed two-cleanse protocol: 1st = lengths, 2nd = scalp. */
+/**
+ * Cleanse sequencing. Ch 13, p.164: the all-purpose (or clarifying) shampoo
+ * comes FIRST, and the conditioning/moisturising shampoo is what you follow up
+ * with. The source makes no claim about a lengths-then-scalp order, so no rule
+ * may assert one.
+ */
 const CLEANSE_ORDER: DeterministicRule = {
   id: "cleanse-order",
   reason:
-    "Reverses the two-cleanse protocol. The source states the FIRST cleanse targets the hair lengths and the SECOND cleanse targets the scalp.",
+    "Reverses the cleansing sequence. The source states you go in with an all-purpose (or clarifying) shampoo first and follow up with a conditioning/moisturising shampoo as the later cleanse.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
-      const firstScalp =
-        /\b(first|1st|initial|one)\b[^.]{0,90}\bcleanse[^.]{0,90}\bscalp\b/.test(l) ||
-        /\bfirst\s+(?:sham|cleanse|wash)[^.]{0,60}\bscalp\b/.test(l);
-      const secondLengths =
-        /\b(second|2nd|two)\b[^.]{0,90}\bcleanse[^.]{0,90}\b(length|lengths|ends|mid-lengths|strands)\b/
+      const conditioningFirst =
+        /\b(first|1st|initial|start(?:ing)?|begin)\b[^.]{0,80}\b(conditioning|moisturis(?:ing|er)|co-?wash)\b[^.]{0,40}\b(shampoo|cleanse|wash)\b/
           .test(l);
-      if (firstScalp || secondLengths) return s;
+      const clarifyingSecond =
+        /\b(second|2nd|then|follow(?:\s+up)?)\b[^.]{0,80}\b(all-?purpose|clarif(?:y|ying)|chelating)\b[^.]{0,40}\b(shampoo|cleanse)\b/
+          .test(l);
+      if (conditioningFirst || clarifyingSecond) return s;
     }
     return null;
   },
 };
 
-/** Leave-in / sealant described as adding hydration or moisture to the hair. */
-const LEAVE_IN_HYDRATES: DeterministicRule = {
-  id: "leave-in-hydrates",
+/** Ch 13, p.164: agitate the scalp with the pads of the fingertips, NOT nails. */
+const SCALP_NAILS: DeterministicRule = {
+  id: "scalp-nails",
   reason:
-    "The source states a leave-in forms a barrier that slows moisture leaving the hair. It does not hydrate, add moisture, or replenish moisture.",
+    "The source instructs agitating the scalp with the pads of the fingertips, explicitly NOT the nails.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
-      if (!/\b(leave-?in|leave in|cream|butter|oil|sealant|styler)\b/.test(l)) continue;
+      if (/\bnails?\b/.test(l) && /\bscalp\b/.test(l) && !/\bnot\b|\bnever\b|\bavoid\b|\brather than\b|\binstead of\b/.test(l)) {
+        return s;
+      }
+    }
+    return null;
+  },
+};
+
+/**
+ * Leave-in described as adding hydration or moisture. Ch 14, p.178: a leave-in
+ * is a lightweight conditioning styling product used for slip and a light
+ * conditioning base. Ch 14, p.176: only water provides moisture.
+ */
+const LEAVE_IN_HYDRATES: DeterministicRule = {
+  id: "leave-in-hydrates",
+  reason:
+    "The source describes a leave-in as a lightweight conditioning styling product used for slip and a light conditioning base, and states that only water provides moisture. A leave-in must not be described as hydrating or adding moisture.",
+  detect: (text) => {
+    for (const s of sentences(text)) {
+      const l = s.toLowerCase();
+      if (!/\b(leave-?in|leave in|cream|butter|styler)\b/.test(l)) continue;
       if (
         /\b(?:hydrates?|hydrating|adds?\s+(?:moisture|hydration|water)|injects?\s+moisture|replenish(?:es|ing)?\s+moisture|delivers?\s+moisture|infuses?\s+(?:moisture|hydration)|moisturis(?:es|ing)\s+the\s+(?:hair|strand))\b/
           .test(l)
@@ -96,11 +132,35 @@ const LEAVE_IN_HYDRATES: DeterministicRule = {
   },
 };
 
+/** Ch 14, p.173: "sealing"/"locking" moisture in is explicitly rejected. */
+const SEALS_MOISTURE_IN: DeterministicRule = {
+  id: "seals-moisture-in",
+  reason:
+    "The source rejects the idea that a product seals or locks moisture into the hair — water evaporates regardless, so the focus is replenishing moisture, not trapping it.",
+  detect: (text) => {
+    for (const s of sentences(text)) {
+      const l = s.toLowerCase();
+      if (
+        /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+(?:the\s+)?(?:moisture|hydration|water)\s+(?:in|into|inside)\b/
+          .test(l) ||
+        /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+in\s+(?:the\s+)?(?:moisture|hydration|water)\b/
+          .test(l) ||
+        /\b(?:moisture|water|hydration)[-\s]?(?:seal|lock|trap)(?:ing|s|ed)?\b/.test(l) ||
+        /\b(?:loc|lco)\s+method\b/.test(l)
+      ) {
+        return s;
+      }
+
+    }
+    return null;
+  },
+};
+
 /** Water is the only true source of moisture — nothing else may claim it. */
 const ONLY_WATER_MOISTURISES: DeterministicRule = {
   id: "product-as-moisture-source",
   reason:
-    "The source treats water as the source of moisture; products act on water already in the hair. A product must not be described as the source of moisture.",
+    "The source states that the only thing that can provide hair with moisture is water; products act on water already in the hair. A product must not be described as the source of moisture.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
@@ -117,9 +177,12 @@ const ONLY_WATER_MOISTURISES: DeterministicRule = {
 
 const DETERMINISTIC_RULES: DeterministicRule[] = [
   CLEANSE_ORDER,
+  SCALP_NAILS,
   LEAVE_IN_HYDRATES,
+  SEALS_MOISTURE_IN,
   ONLY_WATER_MOISTURISES,
 ];
+
 
 /** Run the deterministic, author-verified rules over any output text. */
 export function checkDeterministicRules(text: string): FidelityViolation[] {
@@ -361,9 +424,32 @@ export async function generateVerified<T>(
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 
+/** Field values shorter than this are labels/names, never prose claims. */
+const MIN_CLAIM_CHARS = 24;
+const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+/** Keys whose value is a label, not prose — never stripped. */
+const LABEL_KEYS = new Set([
+  "name",
+  "title",
+  "headline",
+  "category",
+  "label",
+  "tone",
+  "direction",
+  "factor",
+  "product_ref",
+  "step",
+  "n",
+  "id",
+  "slug",
+  "chapter",
+  "page",
+]);
+
 function stripSentence(text: string, claim: string): string {
   const target = norm(claim);
-  if (!target) return text;
+  if (target.length < MIN_CLAIM_CHARS) return text;
   const parts = text.split(/(?<=[.!?])(\s+)/);
   const kept: string[] = [];
   let removed = false;
@@ -373,7 +459,16 @@ function stripSentence(text: string, claim: string): string {
       continue;
     }
     const n = norm(part);
-    if (n && (n === target || n.includes(target) || target.includes(n))) {
+    // Only ever remove something that is itself a prose sentence, and only when
+    // it genuinely corresponds to the rejected claim. A short label that merely
+    // appears inside the claim (an ingredient name, a category) is never a
+    // violation and must survive.
+    const isProse = n.length >= MIN_CLAIM_CHARS && words(n) >= 4;
+    const matches =
+      n === target ||
+      n.includes(target) ||
+      (target.includes(n) && n.length >= Math.max(MIN_CLAIM_CHARS, target.length * 0.5));
+    if (isProse && matches) {
       removed = true;
       continue;
     }
@@ -387,22 +482,43 @@ function stripSentence(text: string, claim: string): string {
     .trim();
 }
 
-function stripDeep<T>(value: T, claims: string[]): T {
+function stripDeep<T>(value: T, claims: string[], key?: string): T {
   if (typeof value === "string") {
+    if (key && LABEL_KEYS.has(key)) return value as unknown as T;
     let out: string = value;
     for (const c of claims) out = stripSentence(out, c);
     return out as unknown as T;
   }
-  if (Array.isArray(value)) return value.map((v) => stripDeep(v, claims)) as unknown as T;
+  if (Array.isArray(value)) {
+    const mapped = value.map((v) => stripDeep(v, claims, key));
+    // Drop list items that lost all of their prose — an empty card is a visible
+    // defect; omitting it is the conservative outcome.
+    return mapped.filter((v) => !isHollow(v)) as unknown as T;
+  }
   if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = stripDeep(v, claims);
+      out[k] = stripDeep(v, claims, k);
     }
     return out as unknown as T;
   }
   return value;
 }
+
+/**
+ * An object is hollow when it was meant to carry prose and now carries none —
+ * every one of its non-label string fields is empty.
+ */
+function isHollow(value: unknown): boolean {
+  if (typeof value === "string") return !value.trim();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([k, v]) => typeof v === "string" && !LABEL_KEYS.has(k),
+  );
+  if (entries.length === 0) return false;
+  return entries.every(([, v]) => !String(v).trim());
+}
+
 
 /**
  * Universal fail-safe applied to every AI response. Deterministic rules always

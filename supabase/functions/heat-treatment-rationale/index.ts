@@ -25,7 +25,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v1";
+const MODEL_VERSION = "claude-haiku-4-5@v2-manuscript-2026-08-09";
 
 interface Body {
   context?: Record<string, unknown> | null;

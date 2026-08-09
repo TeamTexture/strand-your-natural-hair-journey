@@ -96,7 +96,7 @@ export default function BloodChangeAnalysis({
   const cacheKey = useMemo(
     () => [
       "blood-change-analysis",
-      "v2-focus-only",
+      "v3-manuscript-2026-08-09",
       latestPanel.id,
       previousPanel?.id ?? "none",
       latestResults.length,

@@ -93,7 +93,7 @@ const useTipSignature = (goal: UserGoal | null, level: number) => {
  * signature, so it is generated once and then reused indefinitely until the
  * current style, the planned next style or the goal changes.
  */
-const CACHE_VERSION = "v14-static-signature";
+const CACHE_VERSION = "v15-manuscript-2026-08-09";
 
 
 const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3") =>

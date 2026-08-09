@@ -74,8 +74,8 @@ declare const Deno: {
 };
 
 // v5 invalidates scans cached before product-specific hero-image extraction.
-const MODEL_VERSION = "claude-sonnet-4-6@v5-product-hero";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v5-product-hero";
+const MODEL_VERSION = "claude-sonnet-4-6@v6-manuscript-2026-08-09";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v6-manuscript-2026-08-09";
 
 
 function levelCap(level: TipsLevel): number {

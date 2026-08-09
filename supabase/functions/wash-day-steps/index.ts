@@ -38,7 +38,7 @@ const json = (status: number, body: unknown) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-export const MODEL_VERSION = "wash-steps@v2-procedural";
+export const MODEL_VERSION = "wash-steps@v3-manuscript-2026-08-09";
 
 interface StepsPayload {
   steps: WashStep[];

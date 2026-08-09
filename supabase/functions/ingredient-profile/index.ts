@@ -34,7 +34,7 @@ declare const Deno: {
 
 // Flash is ~3–5× faster than Pro and plenty for this short, structured payload.
 const MODEL = "google/gemini-3.6-flash";
-const MODEL_VERSION = "ingredient-profile@v6-voice-dedupe";
+const MODEL_VERSION = "ingredient-profile@v7-manuscript-2026-08-09";
 
 interface RequestBody {
   ingredient: string;

@@ -15,6 +15,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { allChallenges } from "@/lib/goalChallenges";
+import { aiRevisionPart } from "@/lib/aiCopyRevision";
 
 /**
  * A wash day or appointment older than this is history, not a current event,
@@ -124,7 +125,9 @@ export const responsiveSignatureParts = (
   signals: ResponsiveSignals,
   opts?: { includeDay?: boolean; includeEvents?: boolean },
 ): string[] => {
-  const parts: string[] = [];
+  // The AI copy revision leads every signature: a manuscript/prompt change
+  // must invalidate a cached tip even when the member's data is untouched.
+  const parts: string[] = [aiRevisionPart];
   if (opts?.includeDay !== false) parts.push(`day:${londonDayKey()}`);
   parts.push(
     `challenges:${[...signals.challenges].sort().join("|")}`,
@@ -191,6 +194,9 @@ export const strandTipSignatureParts = (
   };
   const g = (v: string | null | undefined) => v ?? "";
   return [
+    // Revision first: the static tip is otherwise immune to everything except
+    // the three data points, which would strand it on pre-correction copy.
+    aiRevisionPart,
     `cur:${s("current_hairstyle")}`,
     `plan:${s("planned_next_style")}`,
     `goal:${g(goal?.id)}`,
