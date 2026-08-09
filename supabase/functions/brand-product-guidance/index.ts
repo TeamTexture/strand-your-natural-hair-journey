@@ -20,6 +20,12 @@ import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import { evidencePromptBlock } from "../_shared/evidence.ts";
 import {
+  loadManuscriptIngredients,
+  matchIngredients,
+  policyBBlock,
+} from "../_shared/policy-b.ts";
+
+import {
   validateTipAction,
   validateTipReason,
   memberAttributeTokens,
