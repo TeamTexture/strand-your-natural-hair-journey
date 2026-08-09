@@ -34,6 +34,19 @@ import {
   validateTipAction,
   validateTipReason,
 } from "../_shared/tip-action.ts";
+import {
+  TIP_CONTRACT_FIELD_SPEC,
+  tipListJsonSchema,
+  validateTipHard,
+  validateTipSoft,
+  contractRetryDirective,
+  pickBestCandidate,
+  isRenderableTip,
+  protectRequiredFields,
+  type ContractTip,
+  type HardRule,
+  type SoftRule,
+} from "../_shared/tip-contract.ts";
 import { proseStyleText } from "../_shared/style-prose.ts";
 
 import { buildStylePlaybookBlock } from "../_shared/style-playbook.ts";
@@ -424,23 +437,22 @@ NO "body" field. NO lists. NO actions array. NO extra education block. One idea,
 Everything else in this prompt still applies: the persona and voice, the core teachings, the wash-day baseline, the retrieved manuscript passages as the source of truth, the relevance gate (never cite a signal the advice does not actually act on), never naming the book/chapters/pages, and never inventing profile data.`;
 
 /**
- * Style Journal contract: EXACTLY ONE OVERVIEW + ONE CAUTION. Supersedes the
- * multi-tip playbook for that surface. Wash-day technique is explicitly out of
- * scope — it lives on the Wash Day surfaces.
+ * Style Journal contract: "How you'll get there" — a short set of STEPS, each
+ * one a tip on the SHARED TIP CONTRACT (headline + action + reason +
+ * optional extended). Wash-day technique is explicitly out of scope — it
+ * lives on the Wash Day surfaces.
  */
-const JOURNAL_TASK = `TASK — HOW YOU'LL GET THERE (ONE OVERVIEW + ONE CAUTION)
-Write exactly two blocks for the Style Journal goal section.
+const JOURNAL_TASK = `TASK — HOW YOU'LL GET THERE (2–3 STEPS)
+Write the 2–3 steps this specific member takes to reach her stated goal, in the order she should work on them, reasoned through her own characteristics and current style. Her target may be written in her own words rather than as a number — treat a described target as a real target.
 
-Output EXACTLY these fields and nothing more:
-- "overview": 1–2 sentences, max 40 words. HOW this specific user will achieve her stated goal, reasoned through her own characteristics and current style (e.g. protecting the ends on high-porosity loose natural hair to retain length). Start with a short bold lead-in phrase followed by an em-dash, then the explanation (e.g. "Protect your ends — high porosity loses moisture fastest at the oldest part of the strand.").
-- "caution": 1–2 sentences, max 40 words. The SINGLE most important thing that would undermine this goal for HER (e.g. high-tension styling at the edges, skipping trims so splits travel up the strand). Same bold lead-in then em-dash format.
-- "signals": 2–3 items, each max 3 words — the profile characteristics this reasoning actually rests on, humanised for display (e.g. "High porosity", "Loose natural", "4 weeks in braids"). Only signals present in the payload.
+${TIP_CONTRACT_FIELD_SPEC}
+
+Return them as "steps": an array of 2–3 objects, each with the four contract fields.
 
 HARD SCOPE RULES:
-- NO wash-day or routine technique. No numbered steps, no "apply leave-in nightly", no "deep condition for 25 minutes", no product application instructions, no tool timings. That content belongs to the Wash Day surfaces and must not appear here.
-- NO actions array, NO lists, NO headline, NO extra education block.
-- One idea, once: the overview and the caution must be different ideas, and neither may restate anything in the RECENT ADVICE ledger. The advice ledger applies in full to this surface.
-- A line that could be written for any user is invalid — rewrite it through her data.
+- NO wash-day or routine technique: no deep-conditioning timings, no product application instructions, no tool timings. That content belongs to the Wash Day surfaces and must not appear here.
+- One idea per step. No two steps may prescribe different methods for the same task, and no step may restate anything in the RECENT ADVICE ledger.
+- A step that could be written for any member is invalid — rewrite it through her data.
 
 Everything else in this prompt still applies: the persona and voice, the core teachings, the retrieved manuscript passages as the source of truth, the relevance gate, never naming the book/chapters/pages, and never inventing profile data.`;
 
@@ -465,7 +477,8 @@ interface RequestBody {
   single?: boolean;
   /**
    * Style Journal's "How you'll get there". When "journal" the function returns
-   * ONLY { overview, caution, signals } — no actions, no wash-day technique.
+   * ONLY { steps: [{ headline, action, reason, extended? }] } on the shared tip
+   * contract — no wash-day technique.
    */
   variant?: "journal";
   /** Caller's local day (YYYY-MM-DD) — drives the daily pillar rotation. */
@@ -603,21 +616,7 @@ Deno.serve(async (req) => {
                 name: "return_tip",
                 description: "Return the personalised goal tip.",
                 parameters: journal
-                  ? {
-                      type: "object",
-                      properties: {
-                        overview: { type: "string" },
-                        caution: { type: "string" },
-                        signals: {
-                          type: "array",
-                          items: { type: "string" },
-                          minItems: 2,
-                          maxItems: 3,
-                        },
-                      },
-                      required: ["overview", "caution", "signals"],
-                      additionalProperties: false,
-                    }
+                  ? tipListJsonSchema("steps", 2, 3)
                   : single
                   ? {
                       type: "object",
@@ -700,9 +699,8 @@ Deno.serve(async (req) => {
       body?: string;
       key_fact?: string;
       actions?: unknown[];
-      overview?: string;
-      caution?: string;
-      signals?: unknown[];
+      /** Journal surface: steps on the shared tip contract. */
+      steps?: ContractTip[];
     };
 
     const parseResponse = async (resp: Response): Promise<GoalTipShape | null> => {
@@ -752,13 +750,153 @@ Deno.serve(async (req) => {
       challenges: challengesOf(body.goal),
     });
 
+    // ── "HOW YOU'LL GET THERE" — THE SHARED TIP CONTRACT ─────────────
+    // Steps are tips: headline + action + reason (+ extended). Hard rules may
+    // block and trigger ONE retry; soft rules are logged only. Sanitisation
+    // and fidelity stripping run BEFORE validation so a field emptied by the
+    // stripper is caught as a hard failure instead of shipping a bare
+    // headline. If no step survives with both an action and a reason we
+    // return a "preparing" signal — never an empty or headline-only card.
+    if (journal) {
+      const prose0 = (v: unknown) => proseStyleText(String(v ?? "")).trim();
+      const goalLabels = [
+        (body.goal as Record<string, unknown> | undefined)?.title,
+        body.goal?.target_text,
+        ...challengesOf(body.goal),
+      ]
+        .map((l) => String(l ?? "").trim())
+        .filter(Boolean);
+      const level = (body.context as Record<string, unknown> | undefined)?.tipsLevel;
+
+      const prepare = async (raw: GoalTipShape | null) => {
+        const list = Array.isArray(raw?.steps) ? raw!.steps! : [];
+        // Sanitise EACH step on its own so the array shape survives — the deep
+        // stripper drops whole items, which is how this surface used to degrade
+        // to nothing.
+        const prepared = await Promise.all(
+          list.map(async (s) => {
+            const before: ContractTip = {
+              headline: prose0(s?.headline),
+              action: prose0(s?.action),
+              reason: prose0(s?.reason),
+              extended: prose0(s?.extended) || undefined,
+            };
+            const cleanedRaw = (await sanitiseAndLog(before, "goal-tip", {
+              context: body.context ?? body,
+            })) as ContractTip;
+            const after: ContractTip = {
+              headline: prose0(cleanedRaw?.headline) || before.headline,
+              action: prose0(cleanedRaw?.action),
+              reason: prose0(cleanedRaw?.reason),
+              extended: prose0(cleanedRaw?.extended) || undefined,
+            };
+            // Grounding stays hard: a field the fidelity gate emptied counts as
+            // ungrounded and forces the retry. But it degrades per Step 4.4
+            // rather than rendering nothing — the generated line is kept as the
+            // fallback candidate and logged loudly.
+            const { blanked } = protectRequiredFields(before, after);
+            const tipStep: ContractTip = {
+              ...after,
+              action: after.action || before.action,
+              reason: after.reason || before.reason,
+            };
+            return { tipStep, blanked };
+          }),
+        );
+        const steps = prepared.map((p) => p.tipStep);
+        return prepared.map(({ tipStep, blanked }, i) => ({
+          tip: tipStep,
+          hard: [
+            ...validateTipHard(tipStep, { grounded: grounded && blanked.length === 0 }),
+          ],
+          soft: validateTipSoft(tipStep, {
+            level,
+            context: ctxAny,
+            attributeTokens,
+            goalLabels,
+            siblings: steps.filter((_, j) => j !== i),
+          }),
+        }));
+      };
+
+      let evaluated = await prepare(tip);
+      const cleanCount = (list: typeof evaluated) => list.filter((e) => !e.hard.length).length;
+
+      if (cleanCount(evaluated) < 2) {
+        const hard = [...new Set(evaluated.flatMap((e) => e.hard))] as HardRule[];
+        const soft = [...new Set(evaluated.flatMap((e) => e.soft))] as SoftRule[];
+        await logTipRejection(
+          "goal-tip",
+          ["journal_steps", ...hard, ...soft],
+          JSON.stringify(tip).slice(0, 4000),
+        );
+        try {
+          const retryResp = await callModel(contractRetryDirective(hard, soft));
+          if (retryResp.ok) {
+            const retriedEval = await prepare(await parseResponse(retryResp));
+            if (cleanCount(retriedEval) > cleanCount(evaluated)) evaluated = retriedEval;
+          }
+        } catch (e) {
+          console.warn("[goal-tip] journal contract retry failed", e);
+        }
+      }
+
+      // GRADED FALLBACK — serve every step that carries both an action and a
+      // reason, in the generated order, imperfect or not. Log loudly.
+      const best = pickBestCandidate(evaluated);
+      const servable = evaluated.filter((e) => isRenderableTip(e.tip));
+      if (!best || !servable.length) {
+        await logTipRejection(
+          "goal-tip",
+          ["journal_steps_unservable", ...new Set(evaluated.flatMap((e) => e.hard))],
+          JSON.stringify(tip).slice(0, 4000),
+        );
+        console.error("[goal-tip] journal steps unservable", {
+          raw: JSON.stringify(tip).slice(0, 1200),
+          evaluated: JSON.stringify(evaluated).slice(0, 1200),
+        });
+        return new Response(
+          JSON.stringify({ error: "steps_preparing", retryable: true }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const softAll = [...new Set(servable.flatMap((e) => e.soft))];
+      if (softAll.length || servable.some((e) => e.hard.length)) {
+        console.warn("[goal-tip] journal steps served degraded", {
+          soft: softAll,
+          hard: [...new Set(servable.flatMap((e) => e.hard))],
+        });
+      }
+
+      if (ledgerUserId) {
+        await recordAdvice(
+          ledgerUserId,
+          "goal-tip",
+          servable.flatMap((e) => [e.tip.action ?? "", e.tip.reason ?? ""]).filter(Boolean),
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          tip: {
+            steps: servable.map((e) => e.tip),
+            _manuscript_grounded: grounded,
+            _rag_passages: ragPassageCount,
+            _rag_procedural: ragProceduralCount,
+            _soft_failures: softAll,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
     const floorOf = (t: GoalTipShape | null) => {
       const bodyParts = [
         String(t?.action ?? ""),
         String(t?.reason ?? ""),
         String(t?.body ?? ""),
         String(t?.key_fact ?? ""),
-        String(t?.overview ?? ""),
         ...(Array.isArray(t?.actions)
           ? (t?.actions as Array<string | { action?: string; why?: string }>).map((a) =>
               typeof a === "string" ? a : `${a?.action ?? ""} ${a?.why ?? ""}`,
@@ -851,18 +989,7 @@ Deno.serve(async (req) => {
     // twists") so it reads properly mid-sentence.
     const prose = (v: unknown) => proseStyleText(String(v ?? "")).trim();
 
-    if (journal) {
-      // Hard guarantee of the overview + caution shape regardless of drift.
-      tip = {
-        overview: prose(tip.overview),
-        caution: prose(tip.caution),
-        signals: (Array.isArray(tip.signals) ? tip.signals : [])
-          .map((s) => prose(s))
-          .filter(Boolean)
-          .slice(0, 3),
-        actions: [],
-      };
-    } else if (single) {
+    if (single) {
       // Hard guarantee of the one-tip shape regardless of model drift. The
       // action and the reason are both required and both rendered.
       const keyFact = typeof tip.key_fact === "string" ? prose(tip.key_fact) : "";
@@ -897,7 +1024,6 @@ Deno.serve(async (req) => {
         : [];
       await recordAdvice(ledgerUserId, "goal-tip", [
         ...(tip.headline ? [tip.headline] : []),
-        ...(journal ? [tip.overview ?? "", tip.caution ?? ""] : []),
         ...(single ? [tip.action ?? "", tip.reason ?? ""] : []),
         ...actionLines,
       ].filter(Boolean));

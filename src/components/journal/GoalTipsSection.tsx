@@ -1,47 +1,78 @@
-import { Lightbulb, AlertTriangle } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
-import StatusCallout from "@/components/guidance/StatusCallout";
-import KeyFactChips from "@/components/guidance/KeyFactChips";
 import AiProse from "@/components/tips/AiProse";
-import { useGoalTip } from "@/hooks/useGoalTip";
+import { useGoalTip, type GoalTipStep } from "@/hooks/useGoalTip";
+import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { displayForLevel, isRenderableTip } from "@/lib/tipDisplay";
 import type { UserGoal } from "@/hooks/useGoals";
 
 /**
  * "How you'll get there" — the goal-anchored guidance block.
  *
- * Contract (supersedes the earlier multi-tip playbook for this surface):
- * exactly TWO blocks — ONE key overview of how she'll reach the goal through
- * her own characteristics, plus her signal chips, and ONE caution: the single
- * thing most likely to undermine it. Wash-day technique lives on the Wash Day
- * surfaces and is out of scope here.
+ * Every step is a tip on the SHARED TIP CONTRACT: headline + action + reason
+ * (+ extended at hand-holding). The support level controls display only.
+ *
+ * NON-RENDER ASSERTION: a step without both an action and a reason never
+ * renders its normal layout. If no step qualifies we show a brief preparing
+ * state with a retry — never a bare headline, and never an empty state on a
+ * goal that has a target (numeric OR described in her own words).
  */
 const GoalTipsSection = ({ goal }: { goal: UserGoal }) => {
-  const { data: tip, isLoading } = useGoalTip(goal, { variant: "journal" });
-  const signals = (tip?.signals ?? []).filter(Boolean);
+  const { data: tip, isLoading, isFetching, refetch } = useGoalTip(goal, {
+    variant: "journal",
+  });
+  const { level } = useTipsLevel();
+
+  const steps: GoalTipStep[] = (tip?.steps ?? [])
+    .filter(isRenderableTip)
+    .map((s) => displayForLevel(s, level));
 
   return (
     <GuidanceCard tone="gold" eyebrow="How you'll get there" icon={Lightbulb}>
-      {tip?.overview ? (
-        <div className="space-y-3">
-          <AiProse text={tip.overview} />
-          {signals.length > 0 && (
-            <KeyFactChips facts={signals.map((label) => ({ label }))} />
-          )}
-          {tip.caution && (
-            <StatusCallout tone="warning" icon={AlertTriangle} label="Watch out for">
-              {tip.caution}
-            </StatusCallout>
-          )}
-        </div>
-      ) : isLoading ? (
+      {steps.length > 0 ? (
+        <ol className="space-y-4">
+          {steps.map((step, i) => (
+            <li key={i} className="space-y-1.5">
+              {step.headline && (
+                <p className="text-[13px] font-medium leading-snug text-foreground">
+                  {step.headline}
+                </p>
+              )}
+              <AiProse text={step.action ?? ""} />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {step.reason}
+              </p>
+              {step.extended && (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {step.extended}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+      ) : isLoading || isFetching ? (
         <div className="flex items-center gap-2">
-          <span className="block size-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
-          <p className="text-xs text-muted-foreground italic">Working out your next steps…</p>
+          <span
+            className="block size-2 rounded-full bg-primary animate-pulse"
+            aria-hidden="true"
+          />
+          <p className="text-xs text-muted-foreground italic">
+            Working out your next steps…
+          </p>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground italic">
-          Your steps appear once your goal has a target to work towards.
-        </p>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground italic">
+            Your steps are being prepared.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="text-xs uppercase tracking-[0.15em] text-primary font-medium"
+          >
+            Try again
+          </button>
+        </div>
       )}
     </GuidanceCard>
   );
