@@ -35,6 +35,7 @@ import {
   loadChapterRows,
   type SurfaceKey,
 } from "./chapter-context.ts";
+import { AI_COPY_REVISION } from "./copy-revision.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
