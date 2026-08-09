@@ -218,13 +218,39 @@ const JournalStepCard = ({
     }
   };
 
+  const mediaCount = step.media.length;
+  const summaryBits = [
+    mediaCount ? `${mediaCount} ${mediaCount === 1 ? "photo/video" : "photos & videos"}` : null,
+    selectedIds.length ? `${selectedIds.length} product${selectedIds.length === 1 ? "" : "s"}` : null,
+    selectedToolIds.length ? `${selectedToolIds.length} tool${selectedToolIds.length === 1 ? "" : "s"}` : null,
+  ].filter(Boolean) as string[];
+  const notePreview = (step.note ?? "").trim();
+
   return (
     <div className="rounded-[14px] border border-border bg-card p-3.5 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Step {index + 1}
-        </span>
-        {editing && (
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
+            aria-expanded={expanded}
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Step {index + 1}
+            </span>
+            {expanded ? (
+              <ChevronUp className="size-3.5 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+            )}
+          </button>
+        ) : (
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Step {index + 1}
+          </span>
+        )}
+        {editing && expanded && (
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -256,7 +282,24 @@ const JournalStepCard = ({
         )}
       </div>
 
+      {!expanded && (
+        <button type="button" onClick={onToggleExpand} className="w-full text-left space-y-1">
+          <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
+            {notePreview || "Nothing recorded yet — tap to add"}
+          </p>
+          {summaryBits.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">{summaryBits.join(" · ")}</p>
+          )}
+          {noteDirty && (
+            <p className="text-[10px] uppercase tracking-[0.14em] text-primary">Unsaved note</p>
+          )}
+        </button>
+      )}
+
+      {expanded && (
+      <>
       {editing ? (
+
         <>
           <VoiceNoteField
             label="Short note"
