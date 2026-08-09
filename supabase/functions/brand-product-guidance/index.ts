@@ -475,7 +475,14 @@ Deno.serve(async (req) => {
       : "";
 
 
-  const system = `${SYSTEM}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
+  // Whole-chapter manuscript grounding (chapters 15, 14 + 1), passed in full.
+  const chapterCtx = await loadSurfaceChapters("brand-product-guidance");
+  if (chapterCtx.text) noteSourceText(chapterCtx.text);
+  const groundingBlock = chapterCtx.text
+    ? `\n\n${renderChapterBlock(chapterCtx)}\n\n${FIDELITY_RULE}`
+    : "";
+
+  const system = `${SYSTEM}${groundingBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
 
