@@ -476,7 +476,8 @@ interface RequestBody {
   single?: boolean;
   /**
    * Style Journal's "How you'll get there". When "journal" the function returns
-   * ONLY { overview, caution, signals } — no actions, no wash-day technique.
+   * ONLY { steps: [{ headline, action, reason, extended? }] } on the shared tip
+   * contract — no wash-day technique.
    */
   variant?: "journal";
   /** Caller's local day (YYYY-MM-DD) — drives the daily pillar rotation. */
@@ -864,7 +865,6 @@ Deno.serve(async (req) => {
         String(t?.reason ?? ""),
         String(t?.body ?? ""),
         String(t?.key_fact ?? ""),
-        String(t?.overview ?? ""),
         ...(Array.isArray(t?.actions)
           ? (t?.actions as Array<string | { action?: string; why?: string }>).map((a) =>
               typeof a === "string" ? a : `${a?.action ?? ""} ${a?.why ?? ""}`,
@@ -992,7 +992,6 @@ Deno.serve(async (req) => {
         : [];
       await recordAdvice(ledgerUserId, "goal-tip", [
         ...(tip.headline ? [tip.headline] : []),
-        ...(journal ? [tip.overview ?? "", tip.caution ?? ""] : []),
         ...(single ? [tip.action ?? "", tip.reason ?? ""] : []),
         ...actionLines,
       ].filter(Boolean));
