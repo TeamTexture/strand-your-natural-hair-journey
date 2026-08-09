@@ -373,7 +373,7 @@ const BrandProductPage = () => {
           >
             {alreadyOnShelf ? (
               <>
-                <Check className="size-4 mr-1.5" /> On your shelf
+                <Check className="size-4 mr-1.5" /> {isTool ? "In my tools" : "On your shelf"}
               </>
             ) : busy ? (
               <>
@@ -381,7 +381,7 @@ const BrandProductPage = () => {
               </>
             ) : (
               <>
-                <Plus className="size-4 mr-1.5" /> Add to my shelf
+                <Plus className="size-4 mr-1.5" /> {isTool ? "Add to my tools" : "Add to my shelf"}
               </>
             )}
           </Button>
