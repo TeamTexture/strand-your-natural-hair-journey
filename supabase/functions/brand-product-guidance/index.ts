@@ -581,7 +581,23 @@ Deno.serve(async (req) => {
         // removes the reason, regenerate instead of degrading the tip.
         const candidate = await sanitiseAndLog(result.value, "brand-product-guidance", {
           context: body.context,
+          surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
+          userId: auth.user.id,
+          // POLICY B. The sponsored gates (marketing detection, conflict
+          // register, per-claim source labelling) run only on this path.
+          policy: "B",
+          product: {
+            name: body.product.name,
+            brand: body.product.brand ?? null,
+            declared,
+            covered: match.covered,
+            brandCopy,
+            claimLabels: Array.isArray((parsed as { claims?: unknown })?.claims)
+              ? (parsed as { claims: Array<{ text?: unknown; source?: unknown }> }).claims
+              : undefined,
+          },
         });
+
         const survivedFloors =
           surface === "wash_day"
             ? !!String(candidate.wash_day_tip ?? "").trim()
