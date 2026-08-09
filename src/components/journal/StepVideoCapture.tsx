@@ -482,6 +482,49 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     );
   };
 
+  /**
+   * Multi-select: the first clip goes through the watch-back review flow, any
+   * further clips are prepared and uploaded straight onto the step in order.
+   */
+  const onPickMany = async (list: FileList | null) => {
+    const files = Array.from(list ?? []);
+    if (!files.length) {
+      await onPick(undefined);
+      return;
+    }
+    await onPick(files[0]);
+    for (const file of files.slice(1)) {
+      if (file.size > RAW_MAX_BYTES) {
+        toast.error(`${file.name} is ${mb(file.size)} — that clip was skipped.`);
+        continue;
+      }
+      setPreparing(true);
+      const duration = await readDuration(file);
+      if (duration !== null && duration > MAX_SECONDS + 1) {
+        setPreparing(false);
+        toast.error(`${file.name} is ${duration}s — that clip was skipped.`);
+        continue;
+      }
+      let blob: Blob = file;
+      let mime = file.type || "video/mp4";
+      if (file.size > MAX_BYTES / 6) {
+        setCompressPct(0);
+        const result = await compressStepVideo(file, setCompressPct);
+        setCompressPct(null);
+        blob = result.blob;
+        mime = result.mime;
+      }
+      setPreparing(false);
+      if (blob.size > MAX_BYTES) {
+        toast.error(`${file.name} is still ${mb(blob.size)} — that clip was skipped.`);
+        continue;
+      }
+      await upload(blob, mime, duration);
+    }
+  };
+
+
+
 
   /** After the native camera app closes, tell the member if nothing arrived. */
   const openNativeCamera = () => {
