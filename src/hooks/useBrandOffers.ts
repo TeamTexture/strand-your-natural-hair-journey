@@ -699,34 +699,11 @@ export function useRevisionUpliftCheckout() {
 }
 
 
-export interface SplitTotalsRow extends AdTotals {
-  phase: "before" | "after";
-  changed_at: string;
-}
+// Before/after performance around a mid-campaign audience change now comes from
+// useBrandOfferMetrics (the 'before' / 'after' rows of the same query) so it can
+// never disagree with the headline figures.
 
-/** Performance either side of a mid-campaign audience change. Empty when the
- *  campaign's audience never changed. */
-export function useOfferSplitTotals(offerId: string | undefined) {
-  return useQuery({
-    queryKey: ["brand-offer-split-totals", offerId],
-    enabled: !!offerId,
-    staleTime: 20_000,
-    queryFn: async (): Promise<SplitTotalsRow[]> => {
-      const { data, error } = await supabase.rpc("brand_offer_split_totals" as never, { _offer_id: offerId } as never);
-      if (error) throw error;
-      return ((data ?? []) as Array<Record<string, string | number>>).map((row) => ({
-        phase: String(row.phase) === "before" ? "before" : "after",
-        changed_at: String(row.changed_at),
-        impressions: Number(row.impressions ?? 0),
-        raw_views: Number(row.raw_views ?? 0),
-        expands: Number(row.expands ?? 0),
-        link_clicks: Number(row.link_clicks ?? 0),
-        code_copies: Number(row.code_copies ?? 0),
-        wishlist_adds: Number(row.wishlist_adds ?? 0),
-      }));
-    },
-  });
-}
+
 
 export function useWithdrawBrandOfferRevision() {
   const qc = useQueryClient();
