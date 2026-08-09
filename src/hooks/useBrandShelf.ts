@@ -44,11 +44,8 @@ export interface BrandMemberCount {
   min_threshold: number;
 }
 
-export const APPROVAL_LABEL: Record<string, string> = {
-  pending: "In review",
-  approved: "Approved",
-  rejected: "Changes needed",
-};
+// Status labels live in src/lib/brandMetrics.ts (shelfItemStatus) so every
+// surface agrees on what a product state is called.
 
 export function useBrandShelf() {
   const { user } = useAuth();

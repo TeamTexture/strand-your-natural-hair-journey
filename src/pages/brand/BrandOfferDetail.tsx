@@ -18,7 +18,8 @@ import {
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
   usePendingRevision, useAwaitingPaymentRevision, useRevisionUpliftCheckout, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
-  useRelaunchBrandOffer, useOfferSplitTotals,
+  useRelaunchBrandOffer, useOfferMetrics,
+
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
@@ -30,6 +31,9 @@ import TrialPriceTag from "@/components/brand/TrialPriceTag";
 import { bandMemberCount, isZeroCount, WIDEN_AUDIENCE_PROMPT } from "@/lib/adTargeting";
 import { useOfferReach } from "@/hooks/useAdTargeting";
 import { useRoles } from "@/hooks/useRoles";
+import {
+  EMPTY_METRICS, formatEngagementRate, engagementFigure, IMPRESSION_NOTE, RANGE_NOTE,
+} from "@/lib/brandMetrics";
 
 const money = baseMoney;
 
@@ -60,7 +64,12 @@ const BrandOfferDetail = () => {
   const { isAdmin } = useRoles();
   const showExact = isAdmin;
   const { data: offerReach } = useOfferReach(id);
-  const { data: splitTotals } = useOfferSplitTotals(id);
+  // One query for every figure on this screen — headline, detail and the
+  // before/after split all read the same rows.
+  const { metrics, dataUpdatedAt: metricsUpdatedAt } = useOfferMetrics(id);
+  const [statDetailOpen, setStatDetailOpen] = useState(false);
+
+
 
   // When the owner (or admin) opens an ended offer, clear the "new interest"
   // badge on the past card by stamping brand_last_interest_seen_at = now.
@@ -82,21 +91,14 @@ const BrandOfferDetail = () => {
   if (isLoading || !offer) return <LoadingDot />;
 
   // Performance is always reported at any audience size. Brands see approximate
-  // ranges (banded), admins see exact figures.
-  const statRows = offer.brand_offer_stats ?? [];
-  const statsSuppressed = statRows.length === 0;
-  const statsFetchedAt = offer.stats_fetched_at ? new Date(offer.stats_fetched_at) : null;
+  // ranges (banded), admins see exact figures. Figures come from the canonical
+  // metrics query — the per-slot brand_offer_stats rows are no longer summed
+  // here, because summing a daily rollup double-counts returning members and was
+  // the source of the contradictory impression counts.
+  const stats = metrics?.all ?? EMPTY_METRICS;
+  const statsSuppressed = stats.reach === 0 && stats.raw_views === 0;
+  const statsFetchedAt = metricsUpdatedAt ? new Date(metricsUpdatedAt) : null;
 
-  const stats = statRows.reduce(
-    (acc, s) => ({
-      impressions: acc.impressions + (s.impressions ?? 0),
-      expands: acc.expands + (s.expands ?? 0),
-      wishlist: acc.wishlist + (s.wishlist_adds ?? 0),
-      codeCopies: acc.codeCopies + ((s as { code_copies?: number | null }).code_copies ?? 0),
-      linkClicks: acc.linkClicks + ((s as { link_clicks?: number | null }).link_clicks ?? 0),
-    }),
-    { impressions: 0, expands: 0, wishlist: 0, codeCopies: 0, linkClicks: 0 },
-  );
 
   const placements = offer.brand_offer_placements ?? [];
   const bySlot = placements.reduce<Record<string, string[]>>((acc, p) => {
@@ -426,48 +428,74 @@ const BrandOfferDetail = () => {
           </SurfaceCard>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-2">
-              <StatBox icon={Eye} label="Impressions" value={stats.impressions} exact={showExact} />
-              <StatBox icon={Maximize2} label="Expands" value={stats.expands} exact={showExact} />
-              <StatBox icon={Ticket} label="Code copies" value={stats.codeCopies} exact={showExact} />
-              <StatBox icon={ExternalLink} label="Link clicks" value={stats.linkClicks} exact={showExact} />
-              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist} exact={showExact} />
+            {/* Four headline figures only. Everything diagnostic sits behind the
+                expander so the top of the screen can't contradict itself. */}
+            <div className="grid grid-cols-2 gap-2">
+              <StatBox icon={Users} label="Reach" value={stats.reach} exact={showExact} />
+              <StatBox icon={Maximize2} label="Interactions" value={stats.interactors} exact={showExact} />
+              <StatBox icon={Ticket} label="Codes copied" value={stats.code_copies} exact={showExact} />
+              <StatBox icon={ExternalLink} label="Link clicks" value={stats.link_clicks} exact={showExact} />
             </div>
+            <SurfaceCard className="py-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-[11.5px] font-body text-foreground/80">Engagement rate</p>
+                <p className="font-display text-[16px] leading-none">{formatEngagementRate(stats)}</p>
+              </div>
+              <p className="text-[10.5px] text-muted-foreground font-body mt-1 leading-snug">
+                Members who interacted, out of members who saw it. Counted once per member, so it can never pass 100%.
+              </p>
+            </SurfaceCard>
             <p className="text-[10.5px] text-muted-foreground font-body -mt-1 leading-snug">
-              Impressions = distinct members who saw the advert (at least half of it, for a full second).
-              Expands = banner opened. Code copies = discount code copied. Link clicks = tapped through to your
-              site. {showExact ? "" : "Figures are shown as approximate ranges. "}{STATS_METHOD_NOTE}
+              {IMPRESSION_NOTE} Interactions = members who opened it, copied the code, tapped through or saved it.
+              {" "}{showExact ? "" : `${RANGE_NOTE} `}{STATS_METHOD_NOTE}
             </p>
+            <button
+              type="button"
+              onClick={() => setStatDetailOpen((v) => !v)}
+              className="text-[11.5px] font-body text-primary"
+            >
+              {statDetailOpen ? "Hide detail" : "Show detail"}
+            </button>
+            {statDetailOpen && (
+              <div className="grid grid-cols-3 gap-2">
+                <StatBox icon={Eye} label="Views" value={stats.raw_views} exact={showExact} />
+                <StatBox icon={Maximize2} label="Expands" value={stats.expands} exact={showExact} />
+                <StatBox icon={Heart} label="Saves" value={stats.wishlist_adds} exact={showExact} />
+              </div>
+            )}
           </>
         )}
 
-        {/* A mid-campaign audience change is a natural before/after test. ad_events
-            rows are timestamped, so the split is read straight from them. */}
-        {splitTotals && splitTotals.length === 2 && (
+        {/* A mid-campaign audience change is a natural before/after test. Both
+            phases come from the same metrics query as the headline figures. */}
+        {metrics?.before && metrics.after && (
           <>
             <SectionLabel className="!px-0">Before &amp; after your audience change</SectionLabel>
             <SurfaceCard className="space-y-2.5">
               <p className="text-[11.5px] font-body text-foreground/80 leading-snug">
-                Your audience changed on {format(new Date(splitTotals[0].changed_at), "d MMM 'at' HH:mm")}. Here's how the campaign performed
-                either side of that.
+                Your audience changed on {metrics.changedAt ? format(new Date(metrics.changedAt), "d MMM 'at' HH:mm") : "—"}. Here's how the
+                campaign performed either side of that.
               </p>
-              {splitTotals.map((row) => (
-                <div key={row.phase} className="space-y-1.5">
+              {([["before", metrics.before], ["after", metrics.after]] as const).map(([phase, row]) => (
+                <div key={phase} className="space-y-1.5">
                   <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">
-                    {row.phase === "before" ? "Before the change" : "Since the change"}
+                    {phase === "before" ? "Before the change" : "Since the change"}
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <StatBox icon={Eye} label="Impressions" value={row.impressions} exact={showExact} />
-                    <StatBox icon={Maximize2} label="Expands" value={row.expands} exact={showExact} />
-                    <StatBox icon={Ticket} label="Code copies" value={row.code_copies} exact={showExact} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <StatBox icon={Users} label="Reach" value={row.reach} exact={showExact} />
+                    <StatBox icon={Maximize2} label="Interactions" value={row.interactors} exact={showExact} />
+                    <StatBox icon={Ticket} label="Codes copied" value={row.code_copies} exact={showExact} />
                     <StatBox icon={ExternalLink} label="Link clicks" value={row.link_clicks} exact={showExact} />
-                    <StatBox icon={Heart} label="Wishlist" value={row.wishlist_adds} exact={showExact} />
                   </div>
+                  <p className="text-[10.5px] text-muted-foreground font-body">
+                    Engagement rate {formatEngagementRate(row)}
+                  </p>
                 </div>
               ))}
             </SurfaceCard>
           </>
         )}
+
 
 
         {derived === "ended" && (
@@ -664,7 +692,7 @@ const StatBox = ({ icon: Icon, label, value, exact }: { icon: React.ElementType;
   <SurfaceCard className="text-center py-3">
     <Icon className="size-4 text-primary mx-auto" />
     <p className="font-display text-[15px] mt-1 leading-tight [overflow-wrap:anywhere]">
-      {exact ? value : bandMemberCount(value)}
+      {engagementFigure(value, exact)}
     </p>
     <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
   </SurfaceCard>

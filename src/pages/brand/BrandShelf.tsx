@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { normaliseProductUrl } from "@/lib/brandLinkScan";
-import { bandMemberCount } from "@/lib/adTargeting";
+import { engagementFigure } from "@/lib/brandMetrics";
 import { useRoles } from "@/hooks/useRoles";
 import { toast } from "sonner";
 import {
@@ -27,19 +27,18 @@ import {
   useSetShelfPublished,
   useDeleteShelfItem,
   useReorderShelf,
-  APPROVAL_LABEL,
   type BrandShelfItem,
   type BrandMemberCount,
 } from "@/hooks/useBrandShelf";
+import { shelfItemStatus } from "@/lib/brandMetrics";
 
 const ApprovalPill = ({ item }: { item: BrandShelfItem }) => {
-  const tone =
-    item.approval_status === "approved" ? "bg-primary/15 text-primary" :
-    item.approval_status === "rejected" ? "bg-destructive/10 text-destructive" :
-    "bg-warn/15 text-warn";
+  // Labels and tones come from shelfItemStatus so the brand shelf, the dashboard
+  // preview and the admin queue never describe the same product differently.
+  const status = shelfItemStatus(item);
   return (
-    <span className={`inline-flex items-center text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
-      {APPROVAL_LABEL[item.approval_status] ?? item.approval_status}
+    <span className={`inline-flex items-center text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${status.pillClass}`}>
+      {status.label}
     </span>
   );
 };
@@ -75,7 +74,7 @@ const MemberActivity = ({ c, exact }: { c: BrandMemberCount | undefined; exact: 
         <CountLine
           key={r.label}
           label={r.label}
-          value={exact ? String(r.value) : bandMemberCount(r.value)}
+          value={engagementFigure(r.value, exact)}
         />
       ))}
     </div>

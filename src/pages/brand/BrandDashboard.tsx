@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CreditCard, AlertCircle, Eye, Maximize2, Heart, Ticket, ExternalLink } from "lucide-react";
+import { Plus, CreditCard, AlertCircle, Users, Maximize2, Ticket, ExternalLink } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import TitleBar from "@/components/TitleBar";
@@ -18,7 +18,9 @@ import ExpiringSoonBanner from "@/components/brand/ExpiringSoonBanner";
 import CountdownClock from "@/components/brand/CountdownClock";
 import BrandProfilePrompt from "@/components/brand/BrandProfilePrompt";
 import { Button } from "@/components/ui/button";
-import { useBrandProfile, useBrandOffers, useBrandOfferTotals, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus, STATS_METHOD_NOTE } from "@/hooks/useBrandOffers";
+import { useBrandProfile, useBrandOffers, useBrandOfferMetrics, useOffersWithPendingRevisions, useOfferRevisionCounts, STATUS_LABEL, SLOT_LABEL, deriveBrandOfferStatus, DerivedStatus, STATS_METHOD_NOTE } from "@/hooks/useBrandOffers";
+import { engagementFigure, formatEngagementRate } from "@/lib/brandMetrics";
+
 import { useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { useBrandSubscription } from "@/hooks/useBrandSubscription";
 import { useProSubscription } from "@/hooks/useProSubscription";
@@ -74,7 +76,7 @@ const BrandDashboard = () => {
     () => offers.filter((o) => ["live", "paid_scheduled", "ended"].includes(o.status)).map((o) => o.id),
     [offers],
   );
-  const { data: totals = {} } = useBrandOfferTotals(trackedOfferIds);
+  const { data: metrics = {} } = useBrandOfferMetrics(trackedOfferIds);
   const { data: withPendingSet = new Set<string>() } = useOffersWithPendingRevisions(offers.map((o) => o.id));
   const { data: revisionCounts = {} } = useOfferRevisionCounts(offers.map((o) => o.id));
   const pastIds = useMemo(
@@ -106,7 +108,7 @@ const BrandDashboard = () => {
   const past = withDerived.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived));
 
   const renderOffer = (o: typeof withDerived[number]) => {
-    const t = totals[o.id];
+    const t = metrics[o.id]?.all;
     const placements = o.brand_offer_placements ?? [];
     const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
     const dates = placements.map((p) => p.placement_date).sort();
@@ -158,13 +160,14 @@ const BrandDashboard = () => {
           </div>
           {showStats && (
             <div className="mt-2.5 pt-2.5 border-t border-border/60 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-foreground/80">
-              <span className="inline-flex items-center gap-1" title="Impressions"><Eye className="size-3 text-muted-foreground" /> {t.impressions}</span>
-              <span className="inline-flex items-center gap-1" title="Expands (banner opened)"><Maximize2 className="size-3 text-muted-foreground" /> {t.expands}</span>
-              <span className="inline-flex items-center gap-1" title="Code copies"><Ticket className="size-3 text-muted-foreground" /> {t.code_copies}</span>
-              <span className="inline-flex items-center gap-1" title="Link clicks (visit offer)"><ExternalLink className="size-3 text-muted-foreground" /> {t.link_clicks}</span>
-              <span className="inline-flex items-center gap-1" title="Wishlist adds"><Heart className="size-3 text-muted-foreground" /> {t.wishlist_adds}</span>
+              <span className="inline-flex items-center gap-1" title="Reach — distinct members who saw it"><Users className="size-3 text-muted-foreground" /> {engagementFigure(t.reach, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Interactions — distinct members who acted"><Maximize2 className="size-3 text-muted-foreground" /> {engagementFigure(t.interactors, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Codes copied"><Ticket className="size-3 text-muted-foreground" /> {engagementFigure(t.code_copies, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Link clicks"><ExternalLink className="size-3 text-muted-foreground" /> {engagementFigure(t.link_clicks, isAdmin)}</span>
+              <span className="inline-flex items-center gap-1" title="Engagement rate — interactors ÷ reach">{formatEngagementRate(t)}</span>
             </div>
           )}
+
           {o._derived === "approved_unpaid" && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary font-body font-medium">
               <CreditCard className="size-3" /> Complete payment to confirm placement
@@ -357,7 +360,8 @@ const BrandDashboard = () => {
                       slots={placements.map((p) => p.slot)}
                       startDate={dates[0]}
                       endDate={dates[dates.length - 1]}
-                      totals={totals[o.id]}
+                      metrics={metrics[o.id]?.all}
+
                       hasPendingRevision={withPendingSet.has(o.id)}
                       revisionCount={revisionCounts[o.id]}
                       onReview={() => nav(ownerOfferRoute(ownerMode, o.id))}
@@ -394,7 +398,7 @@ const BrandDashboard = () => {
                     slots={placements.map((p) => p.slot)}
                     startDate={dates[0]}
                     endDate={dates[dates.length - 1]}
-                    totals={totals[o.id]}
+                    metrics={metrics[o.id]?.all}
                     submitter={profile?.brand_name ?? undefined}
                     amountPaidPence={o.total_price_pence}
                     interestTotal={interest?.total ?? 0}

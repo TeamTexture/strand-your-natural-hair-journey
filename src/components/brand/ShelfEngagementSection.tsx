@@ -8,7 +8,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
-import { bandMemberCount } from "@/lib/adTargeting";
+import { engagementFigure } from "@/lib/brandMetrics";
 import { useRoles } from "@/hooks/useRoles";
 import { useBrandShelf } from "@/hooks/useBrandShelf";
 import {
@@ -20,7 +20,7 @@ import {
 const Figure = ({ label, value, exact }: { label: string; value: number | null; exact: boolean }) => (
   <div className="min-w-0">
     <p className="font-display text-[15px] leading-tight [overflow-wrap:anywhere]">
-      {value == null ? "—" : exact ? value : bandMemberCount(value)}
+      {engagementFigure(value, exact)}
     </p>
     <p className="mt-1 text-[10.5px] font-body text-muted-foreground leading-snug">{label}</p>
   </div>

@@ -11,6 +11,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import UrlValue from "@/components/admin/UrlValue";
 import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import SectionLabel from "@/components/SectionLabel";
+import { EMPTY_METRICS, engagementFigure, formatEngagementRate, IMPRESSION_NOTE } from "@/lib/brandMetrics";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,7 @@ import CampaignTypeBadge, { OwnerType } from "@/components/brand/CampaignTypeBad
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, STAT_SLOT_LABEL, PlacementSlot, deriveBrandOfferStatus,
   usePendingRevision, useApproveBrandOfferRevision, useRejectBrandOfferRevision,
-  useBrandOfferTotals,
+  useOfferMetrics,
   STATS_METHOD_NOTE,
   BrandOfferRevision,
 } from "@/hooks/useBrandOffers";
@@ -36,7 +37,7 @@ import { useQueryClient } from "@tanstack/react-query";
 const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
   <SurfaceCard className="text-center py-3">
     <Icon className="size-4 text-primary mx-auto" />
-    <p className="font-display text-xl mt-1">{value}</p>
+    <p className="font-display text-xl mt-1">{engagementFigure(value, true)}</p>
     <p className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
   </SurfaceCard>
 );
@@ -235,7 +236,7 @@ const AdminBrandOfferReview = () => {
   const { data: offer, isLoading } = useBrandOffer(id);
   const markOfferRead = useMarkAdminEntityRead();
   const { data: pendingRevision } = usePendingRevision(id);
-  const { data: totalsMap = {} } = useBrandOfferTotals(id ? [id] : []);
+  const { metrics } = useOfferMetrics(id);
   const { data: interestMap = {} } = useOfferInterestCounts(id ? [id] : []);
 
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
@@ -495,23 +496,17 @@ const AdminBrandOfferReview = () => {
     }
   };
 
-  // Cross-member totals (SECURITY DEFINER RPC — admins see every offer), with a
-  // fallback to the offer's own stat rows if the RPC returns nothing yet.
+  // Cross-member figures come from the canonical metrics RPC. The per-slot
+  // brand_offer_stats rows are still read below for the placement breakdown, but
+  // they are never summed into a headline figure — summing a daily rollup
+  // double-counts returning members, which is what made the headline numbers
+  // disagree with the detail screen.
   const rowStats = (offer.brand_offer_stats ?? []) as Array<{
     slot: string | null; impressions: number | null; expands: number | null;
     wishlist_adds: number | null; code_copies: number | null; link_clicks: number | null;
   }>;
-  const rowTotals = rowStats.reduce(
-    (acc, s) => ({
-      impressions: acc.impressions + (s.impressions ?? 0),
-      expands: acc.expands + (s.expands ?? 0),
-      wishlist_adds: acc.wishlist_adds + (s.wishlist_adds ?? 0),
-      code_copies: acc.code_copies + (s.code_copies ?? 0),
-      link_clicks: acc.link_clicks + (s.link_clicks ?? 0),
-    }),
-    { impressions: 0, expands: 0, wishlist_adds: 0, code_copies: 0, link_clicks: 0 },
-  );
-  const stats = (id ? totalsMap[id] : undefined) ?? rowTotals;
+  const stats = metrics?.all ?? EMPTY_METRICS;
+
   const interestTotal = (id ? interestMap[id]?.total : 0) ?? 0;
 
   const slotStats = Object.values(
@@ -604,19 +599,25 @@ const AdminBrandOfferReview = () => {
             </SurfaceCard>
 
             <SectionLabel className="!px-0">Performance</SectionLabel>
-            <div className="grid grid-cols-3 gap-2">
-              <StatBox icon={Eye} label="Impressions" value={stats.impressions} />
-              <StatBox icon={Maximize2} label="Expands" value={stats.expands} />
-              <StatBox icon={Ticket} label="Code copies" value={stats.code_copies} />
+            <div className="grid grid-cols-2 gap-2">
+              <StatBox icon={Users} label="Reach" value={stats.reach} />
+              <StatBox icon={Maximize2} label="Interactions" value={stats.interactors} />
+              <StatBox icon={Ticket} label="Codes copied" value={stats.code_copies} />
               <StatBox icon={ExternalLink} label="Link clicks" value={stats.link_clicks} />
-              <StatBox icon={Heart} label="Wishlist" value={stats.wishlist_adds} />
+            </div>
+            <SurfaceCard className="py-2.5 flex items-baseline justify-between gap-2">
+              <p className="text-[11.5px] font-body text-foreground/80">Engagement rate</p>
+              <p className="font-display text-[16px] leading-none">{formatEngagementRate(stats)}</p>
+            </SurfaceCard>
+            <div className="grid grid-cols-3 gap-2">
+              <StatBox icon={Eye} label="Views" value={stats.raw_views} />
+              <StatBox icon={Heart} label="Saves" value={stats.wishlist_adds} />
               <StatBox icon={Users} label="Interest" value={interestTotal} />
             </div>
             <p className="text-[10.5px] text-muted-foreground font-body leading-snug">
-              Impressions = distinct members who saw the advert (at least half of it, for a full second).
-              Expands = advert opened. Code copies = discount code copied. Link clicks = tapped through to the
-              advertiser's site. Interest = members who registered interest after the campaign ended.
-              {STATS_METHOD_NOTE}
+              {IMPRESSION_NOTE} Interactions = members who opened it, copied the code, tapped through or saved it.
+              Engagement rate = interactions ÷ reach, so it can never pass 100%. Views counts repeat views too.
+              Interest = members who registered interest after the campaign ended. {STATS_METHOD_NOTE}
             </p>
 
             {slotStats.length > 0 && (

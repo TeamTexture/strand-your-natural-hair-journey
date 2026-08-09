@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
-import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight, Users } from "lucide-react";
+import { Maximize2, Ticket, ExternalLink, ChevronRight, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
 import { money as baseMoney } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
-
-interface Totals {
-  impressions: number;
-  expands: number;
-  code_copies: number;
-  link_clicks: number;
-  wishlist_adds: number;
-}
+import { EMPTY_METRICS, type OfferMetrics } from "@/lib/brandMetrics";
 
 interface Props {
   headline: string | null;
@@ -20,7 +13,8 @@ interface Props {
   slots: PlacementSlot[];
   startDate?: string;
   endDate?: string;
-  totals?: Totals;
+  /** Canonical figures from useBrandOfferMetrics. */
+  metrics?: OfferMetrics;
   submitter?: string | null;
   amountPaidPence?: number | null;
   interestTotal?: number;
@@ -28,7 +22,10 @@ interface Props {
   onOpen: () => void;
 }
 
-const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+/** Zero reads as a dash rather than "0" — see brandMetrics. */
+const fmtNum = (n: number) =>
+  n === 0 ? "—" : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
 const money = baseMoney;
 
 /** "Ended" campaign thumbnail — mirrors LiveOfferCard's richness but muted:
@@ -41,7 +38,7 @@ const PastOfferCard = ({
   slots,
   startDate,
   endDate,
-  totals,
+  metrics,
   submitter,
   amountPaidPence,
   interestTotal = 0,
@@ -62,11 +59,7 @@ const PastOfferCard = ({
     return () => { cancelled = true; };
   }, [heroImagePath]);
 
-  const impressions = totals?.impressions ?? 0;
-  const expands = totals?.expands ?? 0;
-  const codeCopies = totals?.code_copies ?? 0;
-  const linkClicks = totals?.link_clicks ?? 0;
-  const wishlist = totals?.wishlist_adds ?? 0;
+  const m = metrics ?? EMPTY_METRICS;
 
   const slotSet = Array.from(new Set(slots));
 
@@ -123,12 +116,11 @@ const PastOfferCard = ({
             {startDate ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}` : ""}
           </p>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          <Tile icon={<Eye className="size-3.5" />} value={fmtNum(impressions)} label="Views" />
-          <Tile icon={<Maximize2 className="size-3.5" />} value={fmtNum(expands)} label="Expands" />
-          <Tile icon={<Ticket className="size-3.5" />} value={fmtNum(codeCopies)} label="Codes" />
-          <Tile icon={<ExternalLink className="size-3.5" />} value={fmtNum(linkClicks)} label="Clicks" />
-          <Tile icon={<Heart className="size-3.5" />} value={fmtNum(wishlist)} label="Saves" />
+        <div className="grid grid-cols-4 gap-1.5">
+          <Tile icon={<Users className="size-3.5" />} value={fmtNum(m.reach)} label="Reach" />
+          <Tile icon={<Maximize2 className="size-3.5" />} value={fmtNum(m.interactors)} label="Actions" />
+          <Tile icon={<Ticket className="size-3.5" />} value={fmtNum(m.code_copies)} label="Codes" />
+          <Tile icon={<ExternalLink className="size-3.5" />} value={fmtNum(m.link_clicks)} label="Clicks" />
         </div>
         <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[10px] bg-muted/50 border border-border/60 px-2.5 py-1.5">
           <div className="min-w-0 flex items-center gap-2">

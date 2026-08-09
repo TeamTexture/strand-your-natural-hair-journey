@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 import { BROAD_DAILY_RATE_PENCE } from "@/lib/adPricing";
+import { EMPTY_METRICS, type OfferMetrics, type OfferMetricsBundle } from "@/lib/brandMetrics";
 
 
 /** Subscribe to brand_offers/brand_products changes so an admin-approved
@@ -698,34 +699,11 @@ export function useRevisionUpliftCheckout() {
 }
 
 
-export interface SplitTotalsRow extends AdTotals {
-  phase: "before" | "after";
-  changed_at: string;
-}
+// Before/after performance around a mid-campaign audience change now comes from
+// useBrandOfferMetrics (the 'before' / 'after' rows of the same query) so it can
+// never disagree with the headline figures.
 
-/** Performance either side of a mid-campaign audience change. Empty when the
- *  campaign's audience never changed. */
-export function useOfferSplitTotals(offerId: string | undefined) {
-  return useQuery({
-    queryKey: ["brand-offer-split-totals", offerId],
-    enabled: !!offerId,
-    staleTime: 20_000,
-    queryFn: async (): Promise<SplitTotalsRow[]> => {
-      const { data, error } = await supabase.rpc("brand_offer_split_totals" as never, { _offer_id: offerId } as never);
-      if (error) throw error;
-      return ((data ?? []) as Array<Record<string, string | number>>).map((row) => ({
-        phase: String(row.phase) === "before" ? "before" : "after",
-        changed_at: String(row.changed_at),
-        impressions: Number(row.impressions ?? 0),
-        raw_views: Number(row.raw_views ?? 0),
-        expands: Number(row.expands ?? 0),
-        link_clicks: Number(row.link_clicks ?? 0),
-        code_copies: Number(row.code_copies ?? 0),
-        wishlist_adds: Number(row.wishlist_adds ?? 0),
-      }));
-    },
-  });
-}
+
 
 export function useWithdrawBrandOfferRevision() {
   const qc = useQueryClient();
@@ -918,22 +896,19 @@ export function useAdViewTracker(
   return ref;
 }
 
-export interface AdTotals {
-  impressions: number;
-  raw_views: number;
-  expands: number;
-  link_clicks: number;
-  code_copies: number;
-  wishlist_adds: number;
-}
-
-/** Aggregate totals across ALL users for the given offers, derived from the
- *  ad_events log. Backed by a SECURITY DEFINER function that only returns rows
- *  for offers owned by the caller (or admin). */
-export function useBrandOfferTotals(offerIds: string[]) {
+/**
+ * THE single source of campaign figures. Every brand/admin surface reads this
+ * hook, so the campaign card, the detail screen and the before/after block can
+ * no longer disagree with each other.
+ *
+ * Backed by the `brand_offer_metrics` SECURITY DEFINER function, which returns
+ * one row per offer per phase ('all' | 'before' | 'after') and only for offers
+ * the caller owns (or any offer, for admins).
+ */
+export function useBrandOfferMetrics(offerIds: string[]) {
   const key = [...offerIds].sort().join(",");
   return useQuery({
-    queryKey: ["brand-offer-totals", key],
+    queryKey: ["brand-offer-metrics", key],
     enabled: offerIds.length > 0,
     staleTime: 5_000,
     // Belt-and-braces alongside the realtime ad_events subscription so figures
@@ -941,23 +916,38 @@ export function useBrandOfferTotals(offerIds: string[]) {
     refetchInterval: 20_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("brand_offer_totals" as never, { _offer_ids: offerIds } as never);
+      const { data, error } = await supabase.rpc("brand_offer_metrics" as never, { _offer_ids: offerIds } as never);
       if (error) throw error;
-      const map: Record<string, AdTotals> = {};
-      for (const row of (data ?? []) as Array<Record<string, number | string>>) {
-        map[String(row.offer_id)] = {
-          impressions: Number(row.impressions ?? 0),
-          raw_views: Number(row.raw_views ?? 0),
-          expands: Number(row.expands ?? 0),
-          link_clicks: Number(row.link_clicks ?? 0),
+      const map: Record<string, OfferMetricsBundle> = {};
+      for (const row of (data ?? []) as Array<Record<string, number | string | null>>) {
+        const id = String(row.offer_id);
+        const bundle = (map[id] = map[id] ?? { all: { ...EMPTY_METRICS } });
+        const m: OfferMetrics = {
+          reach: Number(row.reach ?? 0),
+          interactors: Number(row.interactors ?? 0),
           code_copies: Number(row.code_copies ?? 0),
+          link_clicks: Number(row.link_clicks ?? 0),
+          expands: Number(row.expands ?? 0),
           wishlist_adds: Number(row.wishlist_adds ?? 0),
+          raw_views: Number(row.raw_views ?? 0),
         };
+        const phase = String(row.phase);
+        if (phase === "before") bundle.before = m;
+        else if (phase === "after") bundle.after = m;
+        else bundle.all = m;
+        if (row.changed_at) bundle.changedAt = String(row.changed_at);
       }
       return map;
     },
   });
 }
+
+/** Convenience wrapper for screens that only track one campaign. */
+export function useOfferMetrics(offerId: string | undefined) {
+  const q = useBrandOfferMetrics(offerId ? [offerId] : []);
+  return { ...q, metrics: offerId ? q.data?.[offerId] : undefined };
+}
+
 
 /** Copy shown wherever campaign performance is displayed — the measurement
  *  change on 6 Aug 2026 means earlier figures aren't comparable. */

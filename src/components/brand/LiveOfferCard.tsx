@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight } from "lucide-react";
+import { Users, Maximize2, Ticket, ExternalLink, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
+import { EMPTY_METRICS, formatEngagementRate, type OfferMetrics } from "@/lib/brandMetrics";
 import { format } from "date-fns";
-
-interface Totals {
-  impressions: number;
-  expands: number;
-  code_copies: number;
-  link_clicks: number;
-  wishlist_adds: number;
-}
 
 interface Props {
   id: string;
@@ -19,24 +12,30 @@ interface Props {
   slots: PlacementSlot[];
   startDate?: string;
   endDate?: string;
-  totals?: Totals;
+  /** Canonical figures from useBrandOfferMetrics — never a per-slot rollup. */
+  metrics?: OfferMetrics;
   hasPendingRevision?: boolean;
   revisionCount?: number;
   onReview: () => void;
 }
 
-const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+/** Zero reads as a dash — a "0" next to four other zeros reads as a broken
+ *  screen, and a fresh campaign has genuinely nothing to report yet. */
+const fmtNum = (n: number) =>
+  n === 0 ? "—" : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
 
 /** Rich "live" advert thumbnail — hero image at top with pulsing LIVE chip,
- *  then five insight tiles (impressions, expands, code copies, link clicks,
- *  wishlist), a computed engagement rate, and an explicit Review button. */
+ *  then the four headline figures (reach, interactions, codes copied, link
+ *  clicks), the bounded engagement rate, and an explicit Review button. */
 const LiveOfferCard = ({
   headline,
   heroImagePath,
   slots,
   startDate,
   endDate,
-  totals,
+  metrics,
+
   hasPendingRevision,
   revisionCount,
   onReview,
@@ -60,12 +59,9 @@ const LiveOfferCard = ({
     };
   }, [heroImagePath]);
 
-  const impressions = totals?.impressions ?? 0;
-  const expands = totals?.expands ?? 0;
-  const codeCopies = totals?.code_copies ?? 0;
-  const linkClicks = totals?.link_clicks ?? 0;
-  const wishlist = totals?.wishlist_adds ?? 0;
-  const engagement = impressions > 0 ? Math.round(((expands + codeCopies + linkClicks + wishlist) / impressions) * 1000) / 10 : 0;
+  const m = metrics ?? EMPTY_METRICS;
+
+
 
   const slotSet = Array.from(new Set(slots));
 
@@ -119,18 +115,18 @@ const LiveOfferCard = ({
             {startDate ? `${format(new Date(startDate), "d MMM")}${endDate && endDate !== startDate ? ` – ${format(new Date(endDate), "d MMM")}` : ""}` : ""}
           </p>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          <InsightTile icon={<Eye className="size-3.5" />} value={fmtNum(impressions)} label="Views" />
-          <InsightTile icon={<Maximize2 className="size-3.5" />} value={fmtNum(expands)} label="Expands" />
-          <InsightTile icon={<Ticket className="size-3.5" />} value={fmtNum(codeCopies)} label="Codes" />
-          <InsightTile icon={<ExternalLink className="size-3.5" />} value={fmtNum(linkClicks)} label="Clicks" />
-          <InsightTile icon={<Heart className="size-3.5" />} value={fmtNum(wishlist)} label="Saves" />
+        <div className="grid grid-cols-4 gap-1.5">
+          <InsightTile icon={<Users className="size-3.5" />} value={fmtNum(m.reach)} label="Reach" />
+          <InsightTile icon={<Maximize2 className="size-3.5" />} value={fmtNum(m.interactors)} label="Actions" />
+          <InsightTile icon={<Ticket className="size-3.5" />} value={fmtNum(m.code_copies)} label="Codes" />
+          <InsightTile icon={<ExternalLink className="size-3.5" />} value={fmtNum(m.link_clicks)} label="Clicks" />
         </div>
         <div className="mt-2.5 flex items-center justify-between rounded-[10px] bg-primary/5 border border-primary/15 px-2.5 py-1.5">
           <div className="min-w-0">
             <p className="text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground font-body">Engagement</p>
-            <p className="font-display text-[15px] leading-none mt-0.5 text-foreground">{engagement}%</p>
+            <p className="font-display text-[15px] leading-none mt-0.5 text-foreground">{formatEngagementRate(m)}</p>
           </div>
+
           <button
             type="button"
             onClick={onReview}
