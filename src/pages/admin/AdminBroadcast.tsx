@@ -134,7 +134,7 @@ const AdminBroadcast = () => {
       </div>
 
       <SectionLabel>Message</SectionLabel>
-      <div className="px-5 pb-6 space-y-2">
+      <div className="px-5 pb-2 space-y-2">
         <Textarea
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
@@ -142,21 +142,24 @@ const AdminBroadcast = () => {
           placeholder="Write the message everyone in this audience will receive…"
           className="text-[13px]"
         />
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground">
-            {body.length}/{MAX_BODY}
-          </span>
-          <Button
-            variant="gold"
-            size="pill"
-            disabled={!canSend}
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Send className="size-3.5 mr-1.5" />
-            {send.isPending ? "Sending…" : `Send to ${AUDIENCE_LABEL[audience]}`}
-          </Button>
-        </div>
+        <span className="block text-[10px] text-muted-foreground">
+          {body.length}/{MAX_BODY}
+        </span>
       </div>
+
+      <div className="px-5 py-4 flex justify-center">
+        <Button
+          variant="gold"
+          size="pill"
+          className="w-full"
+          disabled={!canSend}
+          onClick={() => setConfirmOpen(true)}
+        >
+          <Send className="size-3.5 mr-1.5" />
+          {send.isPending ? "Sending…" : `Send to ${AUDIENCE_LABEL[audience]}`}
+        </Button>
+      </div>
+
 
       {(history ?? []).length > 0 && (
         <>
