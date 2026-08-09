@@ -26,8 +26,11 @@ import { Button } from "@/components/ui/button";
  */
 
 export const MAX_SECONDS = 30;
-const VIDEO_BITS_PER_SECOND = 1_000_000;
-const AUDIO_BITS_PER_SECOND = 64_000;
+const VIDEO_BITS_PER_SECOND = 3_000_000;
+const AUDIO_BITS_PER_SECOND = 96_000;
+/** Portrait output size — every clip is written at 9:16 regardless of camera. */
+const OUT_W = 720;
+const OUT_H = 1280;
 const MAX_BYTES = 25 * 1024 * 1024;
 const BUCKET = "journal-videos";
 
