@@ -692,10 +692,17 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
           size="sm"
           className="h-10"
           onClick={() => fileRef.current?.click()}
-          disabled={uploading || recording}
+          disabled={uploading || recording || preparing}
         >
-          {uploading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Upload className="size-4 mr-1.5" />}
-          {uploading ? "Uploading…" : "Choose video"}
+          {uploading || preparing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Upload className="size-4 mr-1.5" />}
+          {uploading
+            ? "Uploading…"
+            : preparing
+              ? compressPct !== null
+                ? `Compressing ${compressPct}%…`
+                : "Checking your clip…"
+              : "Choose video"}
+
         </Button>
       </div>
 
