@@ -89,7 +89,9 @@ Rules:
 - Extract ONLY from the supplied passages. Never add anything from your own knowledge of hair care, and never "correct" or "complete" the author. If the author's position contradicts common industry advice, extract the AUTHOR'S position.
 - Prioritise passages where the author defines a term, corrects a widespread belief, states a mechanism, or gives a sequence or frequency.
 - Always include any passage where the author states what a word means or what she reserves it for.
-- Return between 3 and 10 items. Return an empty array if genuinely nothing in the supplied text is relevant.
+- COVER THE ACTIONS, NOT JUST THE DEFINITIONS. The writer who receives your evidence must be able to tell this reader what to DO and why. So you must also extract the passages where the author says HOW something is done: the steps, the order they go in, how often, what to use, what to avoid, and what she says happens as a result. An evidence set of definitions alone is a failed extraction.
+- Extract at least one passage for each distinct thing this reader might reasonably be told to do, given her recorded style and goal.
+- Return between 8 and 16 items. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
 
 Reply with JSON only: {"evidence":[{"n":<number>,"passage":"...","relevance":"..."}]}`;
 

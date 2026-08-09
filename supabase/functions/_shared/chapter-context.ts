@@ -73,8 +73,11 @@ export const SURFACE_CHAPTERS: Record<SurfaceKey, number[]> = {
   "wash-day-tip": [13, 14],
   "wash-day-steps": [13, 14],
   "wash-day-observation": [13, 14],
-  // Goals: length/retention is the dominant recorded goal
-  "goal-tip": [16, 14],
+  // Goals: length/retention is the dominant recorded goal, but almost every goal
+  // tip has to prescribe an action, and the actions live in the wash day chapter.
+  // Without 13 the evidence set is definitional only and stage 3 rejects the
+  // whole tip body, leaving a bare headline.
+  "goal-tip": [16, 14, 13],
   // Routine spans wash day + styling
   "routine-tips": [13, 14, 11],
   // Styling and protective styles
