@@ -505,12 +505,47 @@ const ChatThreadPage = () => {
                 const senderKey = mine ? "me" : (m.sender_id ?? "them");
                 const showName = prevSender !== senderKey;
                 prevSender = senderKey;
+                const senderName = mine ? "You" : (other?.name ?? "Them");
+                const meta = (m.meta ?? {}) as Record<string, unknown>;
+                if (m.kind === "voice") {
+                  return (
+                    <ChatVoiceBubble
+                      key={m.id}
+                      path={typeof meta.audio_path === "string" ? meta.audio_path : null}
+                      transcript={
+                        typeof meta.transcript === "string" ? meta.transcript : m.body || null
+                      }
+                      durationMs={
+                        typeof meta.duration_ms === "number" ? meta.duration_ms : null
+                      }
+                      createdAt={m.created_at}
+                      readAt={m.read_at}
+                      mine={mine}
+                      senderName={senderName}
+                      showName={showName}
+                    />
+                  );
+                }
+                if (m.kind === "image") {
+                  return (
+                    <ChatImageBubble
+                      key={m.id}
+                      path={typeof meta.image_path === "string" ? meta.image_path : null}
+                      caption={m.body === "Photo" ? null : m.body}
+                      createdAt={m.created_at}
+                      readAt={m.read_at}
+                      mine={mine}
+                      senderName={senderName}
+                      showName={showName}
+                    />
+                  );
+                }
                 return (
                   <MessageBubble
                     key={m.id}
                     m={m}
                     mine={mine}
-                    senderName={mine ? "You" : (other?.name ?? "Them")}
+                    senderName={senderName}
                     showName={showName}
                   />
                 );
