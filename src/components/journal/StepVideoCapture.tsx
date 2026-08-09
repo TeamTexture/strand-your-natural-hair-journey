@@ -105,8 +105,12 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const clearTimers = () => {
     if (timerRef.current) window.clearInterval(timerRef.current);
     if (stopTimerRef.current) window.clearTimeout(stopTimerRef.current);
+    if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
     timerRef.current = null;
     stopTimerRef.current = null;
+    rafRef.current = null;
+    canvasStreamRef.current?.getTracks().forEach((t) => t.stop());
+    canvasStreamRef.current = null;
   };
 
   const stopStream = useCallback(() => {
