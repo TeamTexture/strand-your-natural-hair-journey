@@ -118,7 +118,7 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
               onValueChange={(v) => {
                 // NOTE: do not run slider output through coerceTipsLevel — that
                 // maps the LEGACY value 3 down to 2, which made Hand-holding
-                # unreachable. Clamp directly instead.
+                // unreachable. Clamp directly instead.
                 const n = Math.round(Number(v[0]));
                 setLevel((n <= 1 ? 1 : n >= 3 ? 3 : 2) as TipsLevel);
               }}

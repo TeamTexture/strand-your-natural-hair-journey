@@ -19,7 +19,7 @@ const TipsLevelControl = () => {
         and AI guidance.
       </p>
 
-      <div className="mt-3 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Guidance level">
+      <div className="mt-3 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Guidance level">
         {TIPS_LEVELS.map((lv) => {
           const selected = lv === level;
           return (
