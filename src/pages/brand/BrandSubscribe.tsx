@@ -125,7 +125,10 @@ const BrandSubscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand access" onBack={smartBack(nav, "/brand")} />
+      {/* Locked out: no back button, no in-app navigation — only pay, read the
+          legal documents, contact support or sign out. */}
+      <TitleBar title="Brand access" onBack={locked ? undefined : smartBack(nav, "/brand")} />
+
 
       <div className="px-5 pb-12 space-y-6">
         {/* Hero */}
