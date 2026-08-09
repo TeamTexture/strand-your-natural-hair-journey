@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -11,6 +11,7 @@ import VoiceNoteField from "@/components/VoiceNoteField";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
 import StepVideoCapture from "@/components/journal/StepVideoCapture";
+import StarRating from "@/components/StarRating";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
@@ -98,9 +99,11 @@ const JournalStepCard = ({
     }
   };
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const { products: shelf } = useUserProducts("shelf");
-  const { products: wishlist } = useUserProducts("wishlist");
-  const catalogue = [...shelf, ...wishlist];
+  // Resolve attached products against the member's WHOLE product list, not
+  // just shelf + wishlist — a product scanned inside a style step may sit
+  // off-shelf, and it should still render with its name, image and rating.
+  const { allProducts: catalogue } = useUserProducts("all");
+
 
   const selectedIds = step.products
     .map((p) => p.user_product_id)
@@ -311,23 +314,38 @@ const JournalStepCard = ({
                 const p = catalogue.find((c) => c.id === pid);
                 return (
                   <div key={pid} className="flex items-center gap-2.5">
-                    <ProductThumb
-                      imageUrl={p?.image_url ?? null}
-                      storagePath={p?.storage_path ?? null}
-                      alt={p?.name ?? "Product"}
-                      cover
-                      wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
-                      {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/products/profile/${pid}`, { state: { returnTo: location.pathname + location.search } })}
+                      className="flex items-center gap-2.5 min-w-0 flex-1 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-secondary/50 transition-colors"
+                      aria-label={`Open ${p?.name ?? "product"} page`}
+                    >
+                      <ProductThumb
+                        imageUrl={p?.image_url ?? null}
+                        storagePath={p?.storage_path ?? null}
+                        alt={p?.name ?? "Product"}
+                        brand={p?.brand ?? null}
+                        name={p?.name ?? null}
+                        cover
+                        wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
+                          {typeof p?.rating === "number" && p.rating > 0 && (
+                            <StarRating value={p.rating} size="size-3" />
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                    </button>
                     {editing && (
                       <button
                         type="button"
                         aria-label="Remove product"
                         onClick={() => onToggleProduct(pid)}
-                        className="size-6 rounded-full border border-border flex items-center justify-center"
+                        className="size-6 rounded-full border border-border flex items-center justify-center shrink-0"
                       >
                         <X className="size-3" />
                       </button>
@@ -335,6 +353,7 @@ const JournalStepCard = ({
                   </div>
                 );
               })}
+
             </div>
           ) : (
             <p className="text-[13px] text-muted-foreground">None recorded.</p>
