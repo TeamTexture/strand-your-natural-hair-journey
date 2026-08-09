@@ -563,22 +563,9 @@ const ProductProfile = () => {
                   : [];
                 const shelfMatches = matches.filter(p => p.on_shelf);
                 const wishMatches = matches.filter(p => !p.on_shelf && p.on_wishlist);
-                const RowEl = isClickable ? "button" : "div";
                 return (
                   <div key={i}>
-                    <RowEl
-                      type={isClickable ? "button" : undefined}
-                      onClick={
-                        isClickable
-                          ? () => setExpandedIngredient(isExpanded ? null : lower)
-                          : undefined
-                      }
-                      className={cn(
-                        "w-full p-3 flex items-start gap-2.5 text-left",
-                        isClickable && "hover:bg-primary/5 transition-colors",
-                      )}
-                      aria-expanded={isClickable ? isExpanded : undefined}
-                    >
+                    <div className="w-full p-3 flex items-start gap-2.5 text-left">
                       <div className="flex-1 min-w-0">
                         {aiFlag ? (
                           <IngredientFlagRow
@@ -586,33 +573,31 @@ const ProductProfile = () => {
                             reason={aiFlag.body ? condenseProse(aiFlag.body, tipsLevel) : undefined}
                             flag={aiFlag.tone}
                             className="border-none !p-0 bg-transparent"
-                            // The row itself is a button when it expands the
-                            // shelf cross-reference — never nest a token button
-                            // inside it.
-                            explainable={!isClickable}
                           />
                         ) : (
                           <p className="text-sm font-medium leading-tight">
-                            {isClickable ? (
-                              name
-                            ) : (
-                              <GlossaryLabel label={name} className="font-medium" />
-                            )}
+                            <GlossaryLabel label={name} className="font-medium" forceToken />
                           </p>
                         )}
 
 
                         {isClickable && (
-                          <p className="text-[10px] text-primary/70 uppercase tracking-[0.15em] mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedIngredient(isExpanded ? null : lower)}
+                            aria-expanded={isExpanded}
+                            className="mt-1 text-[10px] text-primary/70 uppercase tracking-[0.15em] text-left"
+                          >
                             {matches.length === 0
                               ? "Not in your shelf or wishlist"
                               : isExpanded
                                 ? "Hide products"
                                 : `Also in ${matches.length} of your product${matches.length === 1 ? "" : "s"} ›`}
-                          </p>
+                          </button>
                         )}
                       </div>
-                    </RowEl>
+                    </div>
+
                     {isExpanded && matches.length > 0 && (
                       <div className="bg-secondary/40">
                         {shelfMatches.length > 0 && (

@@ -69,7 +69,7 @@ const IngredientFlagRow = ({
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold leading-snug text-foreground break-words font-body">
           {explainable && as !== "button"
-            ? <GlossaryLabel label={name} className="font-semibold" />
+            ? <GlossaryLabel label={name} className="font-semibold" forceToken />
             : name}
         </p>
 

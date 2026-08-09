@@ -207,16 +207,28 @@ export function GlossaryTerm({
 export function GlossaryLabel({
   label,
   className,
+  forceToken = false,
 }: {
   label: string;
   className?: string;
+  /**
+   * Set on surfaces where the label IS a real ingredient name (an INCI list
+   * row, an AI ingredient flag). The explainer sheet generates a definition —
+   * including the phonetic spelling — on demand, so the name stays tappable
+   * even when the shared glossary has not indexed it yet.
+   */
+  forceToken?: boolean;
 }) {
   const { lookup } = useIngredientGlossary();
   const parts = useMemo(() => splitCompoundLabel(label), [label]);
   const resolved = parts.map((p) => (p.candidate ? lookup(p.lookup) : null));
   if (!resolved.some(Boolean)) {
+    if (forceToken && label.trim().length >= 3) {
+      return <IngredientToken name={label.trim()} label={label} className={className} />;
+    }
     return <GlossaryPhrase text={label} className={className} />;
   }
+
   return (
     <>
       {parts.map((part, i) => {
