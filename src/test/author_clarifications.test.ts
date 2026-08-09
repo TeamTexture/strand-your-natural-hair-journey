@@ -24,7 +24,9 @@ function detector(id: string): (text: string) => string | null {
   expect(start).toBeGreaterThan(-1);
   const detectAt = src.indexOf("detect: (text) => {", start);
   const end = src.indexOf("\n};", detectAt);
-  const body = src.slice(src.indexOf("{", detectAt), end);
+  const raw = src.slice(src.indexOf("{", detectAt), end);
+  const body = raw.slice(0, raw.lastIndexOf("}") + 1);
+
   // eslint-disable-next-line no-new-func
   return new Function("sentences", `return (text) => ${body}`)(sentences) as (
     t: string,
