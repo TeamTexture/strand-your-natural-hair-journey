@@ -623,13 +623,40 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   }
 }
 
-/** Single page fetch for the Claude path: pulls the og:image AND the page
- *  text in one request, so the model can analyse without an agentic
- *  web_fetch round-trip (the main source of slow scans). */
+/** Follow retailer short links (amzn.eu/d/..., amzn.to, a.co, bit.ly) to the
+ *  canonical product URL so scrapers and the model see a real product page. */
+async function resolveShortLink(url: string): Promise<string> {
+  let host = "";
+  try { host = new URL(url).host.toLowerCase(); } catch { return url; }
+  const isShort = /^(amzn\.(eu|to|asia|com))$|^a\.co$|^bit\.ly$|^t\.co$|^tinyurl\.com$|^s\.click\.aliexpress\.com$/.test(host);
+  if (!isShort) return url;
+  try {
+    const resp = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(8_000),
+    });
+    const finalUrl = resp.url && resp.url !== url ? resp.url : url;
+    try { await resp.body?.cancel(); } catch { /* ignore */ }
+    console.log(JSON.stringify({ tag: "url-debug", phase: "shortlink resolved", from: url, to: finalUrl }));
+    return finalUrl;
+  } catch {
+    return url;
+  }
+}
+
+/** Page retrieval for the Claude path. Plain fetch first (fast), then Firecrawl
+ *  when the retailer blocks or JS-renders the page (Amazon, Boots, Sephora) so
+ *  the model still gets real product text instead of an anti-bot wall. */
 async function prefetchPage(
   url: string,
 ): Promise<{ imageUrl: string | null; title: string; text: string }> {
   const empty = { imageUrl: null, title: "", text: "" };
+  let result = empty as { imageUrl: string | null; title: string; text: string };
   try {
     const resp = await fetch(url, {
       headers: {
@@ -643,22 +670,43 @@ async function prefetchPage(
     });
     if (!resp.ok) {
       console.log(JSON.stringify({ tag: "url-debug", phase: "prefetch non-ok", status: resp.status }));
-      return empty;
+    } else {
+      const html = await resp.text();
+      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      result = {
+        imageUrl: extractOgImageFromHtml(html),
+        title: titleMatch ? titleMatch[1].trim() : "",
+        text: htmlToText(html),
+      };
     }
-    const html = await resp.text();
-    const imageUrl = extractOgImageFromHtml(html);
-    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const text = htmlToText(html);
-    console.log(JSON.stringify({
-      tag: "url-debug", phase: "prefetch done",
-      image_url: imageUrl, text_len: text.length,
-    }));
-    return { imageUrl, title: titleMatch ? titleMatch[1].trim() : "", text };
   } catch (e) {
     console.error("[url-debug] prefetch failed", e);
-    return empty;
   }
+
+  const blocked = result.text.length < 600 ||
+    /automated access|to discuss automated|enter the characters you see|robot check|access denied|are you a human/i
+      .test(result.text.slice(0, 4000));
+  if (blocked) {
+    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+    if (firecrawlKey) {
+      const scraped = await scrapeWithFirecrawl(url, firecrawlKey);
+      if (scraped && scraped.text.length > result.text.length) {
+        result = {
+          imageUrl: scraped.imageUrl ?? result.imageUrl,
+          title: scraped.title || result.title,
+          text: scraped.text,
+        };
+      }
+    }
+  }
+
+  console.log(JSON.stringify({
+    tag: "url-debug", phase: "prefetch done",
+    image_url: result.imageUrl, text_len: result.text.length, used_firecrawl: blocked,
+  }));
+  return result;
 }
+
 
 
 async function runLovable(args: {
@@ -825,11 +873,12 @@ Deno.serve(async (req: Request) => {
       // Fetch the page ourselves first (~1-2s) and hand the text to Claude so
       // it can answer in a single pass instead of an agentic web_fetch loop.
       console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
-      const pre = await prefetchPage(url);
+      const resolvedUrl = await resolveShortLink(url);
+      const pre = await prefetchPage(resolvedUrl);
       const ogImage = pre.imageUrl;
       console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
       const claudeRes = await runClaude({
-        url,
+        url: resolvedUrl,
         context: ctx,
         selectorContext: buildSelectorContext(body),
         pageText: pre.text,

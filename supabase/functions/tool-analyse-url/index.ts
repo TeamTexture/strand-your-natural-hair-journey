@@ -164,17 +164,30 @@ async function runClaude(args: {
   url: string;
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
+  pageTitle?: string;
+  pageText?: string;
 }): Promise<{
   payload: ToolAnalysisPayload;
   web_search_invocations: number;
   web_fetch_invocations: number;
 }> {
+  const pageBlock = args.pageText && args.pageText.length > 300
+    ? `Page content already retrieved for you (title: ${args.pageTitle || "unknown"}). Use THIS as your primary source — do NOT call web_fetch unless the brand or tool name is genuinely missing below:
+
+<page_content>
+${args.pageText.slice(0, 12_000)}
+</page_content>`
+    : `Use web_fetch on this URL first. If thin/gated, fall back to web_search (combined cap of 4).`;
+
   const userText = `Hair-tool product page URL to analyse: ${args.url}
 
-Use web_fetch on this URL first. If thin/gated, fall back to web_search (combined cap of 4). Return JSON only via the return_tool_analysis tool.
+${pageBlock}
+
+Return JSON only via the return_tool_analysis tool.
 
 User context (use to compute personalisation, ai_summary, use_cases, tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const userContent: ContentBlockInput[] = [{ type: "text", text: userText }];
@@ -401,6 +414,56 @@ async function fetchOgImageOnly(url: string): Promise<string | null> {
   }
 }
 
+/** Follow retailer short links (amzn.eu/d/..., amzn.to, bit.ly, a.co) to the
+ *  canonical product URL so scrapers and the model see a real product page. */
+async function resolveShortLink(url: string): Promise<string> {
+  let host = "";
+  try { host = new URL(url).host.toLowerCase(); } catch { return url; }
+  const isShort = /^(amzn\.(eu|to|asia|com))$|^a\.co$|^bit\.ly$|^t\.co$|^tinyurl\.com$|^s\.click\.aliexpress\.com$/.test(host);
+  if (!isShort) return url;
+  try {
+    const resp = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(8_000),
+    });
+    const finalUrl = resp.url && resp.url !== url ? resp.url : url;
+    try { await resp.body?.cancel(); } catch { /* ignore */ }
+    console.log(JSON.stringify({ tag: "tool-debug", phase: "shortlink resolved", from: url, to: finalUrl }));
+    return finalUrl;
+  } catch {
+    return url;
+  }
+}
+
+/** Retrieve the page for the Claude path. Firecrawl first (renders JS and gets
+ *  past retailer anti-bot walls such as Amazon's), plain fetch as a fallback. */
+async function prefetchPage(
+  url: string,
+): Promise<{ imageUrl: string | null; title: string; text: string }> {
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  let scraped: ScrapeResult | null = null;
+  if (firecrawlKey) scraped = await scrapeWithFirecrawl(url, firecrawlKey);
+  if (!scraped || (scraped.text ?? "").length < 300) {
+    const plain = await scrapeWithFetch(url);
+    if (plain && (plain.text ?? "").length > (scraped?.text?.length ?? 0)) scraped = plain;
+  }
+  console.log(JSON.stringify({
+    tag: "tool-debug", phase: "prefetch done",
+    source: scraped?.source ?? "none",
+    text_len: scraped?.text?.length ?? 0,
+    has_image: scraped?.image_url ? "yes" : "no",
+  }));
+  if (!scraped) return { imageUrl: null, title: "", text: "" };
+  return { imageUrl: scraped.image_url, title: scraped.title, text: scraped.text };
+}
+
+
+
 async function runLovable(args: {
   url: string;
   context: Record<string, unknown>;
@@ -409,9 +472,10 @@ async function runLovable(args: {
   if (!aiApiKey) throw new Error("LOVABLE_API_KEY not configured");
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
 
+  const lovableUrl = await resolveShortLink(args.url);
   let scraped: ScrapeResult | null = null;
-  if (firecrawlKey) scraped = await scrapeWithFirecrawl(args.url, firecrawlKey);
-  if (!scraped) scraped = await scrapeWithFetch(args.url);
+  if (firecrawlKey) scraped = await scrapeWithFirecrawl(lovableUrl, firecrawlKey);
+  if (!scraped) scraped = await scrapeWithFetch(lovableUrl);
   if (!scraped) {
     const e: Error & { status?: number } = new Error(
       "Couldn't reach that page. The retailer may be blocking automated access — try a different link or add the tool manually.",
@@ -546,12 +610,20 @@ Deno.serve(async (req: Request) => {
     let analysis: Record<string, unknown>;
 
     if (provider === "claude") {
-      console.log(JSON.stringify({ tag: "tool-debug", phase: "before web_fetch", ms: Date.now() - t0 }));
-      const [claudeRes, ogImage] = await Promise.all([
-        runClaude({ url, context: ctx as Record<string, unknown>, selectorContext: buildSelectorContext(body) }),
-        fetchOgImageOnly(url),
-      ]);
+      console.log(JSON.stringify({ tag: "tool-debug", phase: "before prefetch", ms: Date.now() - t0 }));
+      const resolvedUrl = await resolveShortLink(url);
+      const pre = await prefetchPage(resolvedUrl);
+      const ogImage = pre.imageUrl ?? (await fetchOgImageOnly(resolvedUrl));
+      console.log(JSON.stringify({ tag: "tool-debug", phase: "before model", ms: Date.now() - t0 }));
+      const claudeRes = await runClaude({
+        url: resolvedUrl,
+        context: ctx as Record<string, unknown>,
+        selectorContext: buildSelectorContext(body),
+        pageTitle: pre.title,
+        pageText: pre.text,
+      });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
+
       console.log(JSON.stringify({
         tag: "tool-debug", phase: "model call done", ms: Date.now() - t0,
         used_web_fetch: web_fetch_invocations > 0,
