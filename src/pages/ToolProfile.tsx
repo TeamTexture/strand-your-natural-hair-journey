@@ -131,6 +131,81 @@ const ToolProfile = () => {
 
         <ToolGuidanceCard tool={tool} />
 
+        {scoreReasons.length > 0 && (
+          <SurfaceCard className="p-4 space-y-2">
+            <SectionLabel>Why it rates this for your hair</SectionLabel>
+            <ul className="space-y-2">
+              {scoreReasons.map((r) => (
+                <li key={r.factor} className="flex gap-2">
+                  {r.direction === "minus" ? (
+                    <AlertTriangle className="mt-[3px] size-3.5 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <Check className="mt-[3px] size-3.5 shrink-0 text-primary" />
+                  )}
+                  <p className="text-[12.5px] font-body leading-snug text-foreground/85 [overflow-wrap:anywhere]">
+                    <span className="font-display text-[13px] text-foreground">{r.factor}</span>
+                    {r.reason ? ` — ${r.reason}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </SurfaceCard>
+        )}
+
+        {features.length > 0 && (
+          <SurfaceCard className="p-4 space-y-2">
+            <SectionLabel>What it does</SectionLabel>
+            <ul className="space-y-2">
+              {features.map((f) => (
+                <li key={f.name}>
+                  <p className="font-display text-[13.5px] leading-tight [overflow-wrap:anywhere]">
+                    {f.name}
+                  </p>
+                  {f.detail && (
+                    <p className="text-[12.5px] font-body leading-snug text-foreground/80 [overflow-wrap:anywhere]">
+                      {f.detail}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </SurfaceCard>
+        )}
+
+        {useCases.length > 0 && (
+          <SurfaceCard className="p-4 space-y-2">
+            <SectionLabel>Using it on your hair</SectionLabel>
+            <ol className="space-y-2">
+              {useCases.map((u, i) => (
+                <li key={`${i}-${u.slice(0, 12)}`} className="flex gap-2">
+                  <span className="mt-[1px] text-[11px] font-body font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <p className="text-[12.5px] font-body leading-snug text-foreground/85 [overflow-wrap:anywhere]">
+                    {u}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </SurfaceCard>
+        )}
+
+        {cautions.length > 0 && (
+          <SurfaceCard className="p-4 space-y-2">
+            <SectionLabel>Using it safely</SectionLabel>
+            <ul className="space-y-2">
+              {cautions.map((w) => (
+                <li key={w.slice(0, 16)} className="flex gap-2">
+                  <AlertTriangle className="mt-[3px] size-3.5 shrink-0 text-muted-foreground" />
+                  <p className="text-[12.5px] font-body leading-snug text-foreground/80 [overflow-wrap:anywhere]">
+                    {w}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </SurfaceCard>
+        )}
+
         {tool.notes && (
           <SurfaceCard className="p-4 space-y-1.5">
             <SectionLabel>Notes</SectionLabel>
@@ -139,6 +214,7 @@ const ToolProfile = () => {
             </p>
           </SurfaceCard>
         )}
+
 
         {analysis && (
           <Button
