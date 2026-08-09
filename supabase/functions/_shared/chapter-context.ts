@@ -222,8 +222,8 @@ export const FIDELITY_RULE =
    - Do NOT say a product seals, locks or traps moisture (or hydration) in the hair, and do not use phrases like "moisture-sealing" or "seals it in". The source rejects sealing moisture in: water evaporates regardless, so the focus is replenishing it.
    - Do NOT say a leave-in, cream, butter or styler hydrates, moisturises, adds or delivers moisture. Only water provides moisture. A leave-in is a lightweight conditioning styling product used for slip and a light conditioning base before styling, and it is optional.
    - Do NOT reverse the cleansing sequence: the all-purpose (or clarifying) shampoo comes FIRST, and a conditioning/moisturising shampoo is what you follow up with on a later cleanse.
-   - Do NOT tell anyone to use their nails on the scalp. Scalp agitation uses the pads of the fingertips.`
-;
+   - Do NOT tell anyone to use their nails on the scalp. Scalp agitation uses the pads of the fingertips.`;
+
 
 // ---------------------------------------------------------------------------
 // Source registry
