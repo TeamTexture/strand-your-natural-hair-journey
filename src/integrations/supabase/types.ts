@@ -2431,6 +2431,51 @@ export type Database = {
         }
         Relationships: []
       }
+      manuscript_chunks_v2: {
+        Row: {
+          body: string
+          callout_type: string | null
+          chapter: number
+          chapter_title: string | null
+          created_at: string
+          embedding: string | null
+          id: string
+          ingest_version: string
+          page_end: number | null
+          page_start: number | null
+          section_heading: string | null
+          token_count: number | null
+        }
+        Insert: {
+          body: string
+          callout_type?: string | null
+          chapter: number
+          chapter_title?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          ingest_version?: string
+          page_end?: number | null
+          page_start?: number | null
+          section_heading?: string | null
+          token_count?: number | null
+        }
+        Update: {
+          body?: string
+          callout_type?: string | null
+          chapter?: number
+          chapter_title?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          ingest_version?: string
+          page_end?: number | null
+          page_start?: number | null
+          section_heading?: string | null
+          token_count?: number | null
+        }
+        Relationships: []
+      }
       moodboard_images: {
         Row: {
           board_id: string
