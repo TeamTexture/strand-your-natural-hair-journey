@@ -3882,9 +3882,13 @@ export type Database = {
         Row: {
           attempts: number
           chapters: number[]
+          coverage: string
+          coverage_reason: string | null
           created_at: string
           evidence: Json
+          external_claims: Json
           function_name: string
+          governing_principle: string | null
           id: string
           member_facts: Json
           stage1_tokens: number
@@ -3898,9 +3902,13 @@ export type Database = {
         Insert: {
           attempts?: number
           chapters?: number[]
+          coverage?: string
+          coverage_reason?: string | null
           created_at?: string
           evidence?: Json
+          external_claims?: Json
           function_name: string
+          governing_principle?: string | null
           id?: string
           member_facts?: Json
           stage1_tokens?: number
@@ -3914,9 +3922,13 @@ export type Database = {
         Update: {
           attempts?: number
           chapters?: number[]
+          coverage?: string
+          coverage_reason?: string | null
           created_at?: string
           evidence?: Json
+          external_claims?: Json
           function_name?: string
+          governing_principle?: string | null
           id?: string
           member_facts?: Json
           stage1_tokens?: number
@@ -5121,6 +5133,18 @@ export type Database = {
             Args: { _subject_role?: string; _subject_user: string }
             Returns: string
           }
+      admin_tip_coverage_distribution: {
+        Args: { _days?: number }
+        Returns: {
+          explicit_count: number
+          extension_count: number
+          flagged: boolean
+          supplement_count: number
+          supplement_pct: number
+          surface: string
+          total: number
+        }[]
+      }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       apply_brand_offer_revision_targeting: {
         Args: { _revision_id: string }
