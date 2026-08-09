@@ -124,6 +124,7 @@ const AdminViewAs = lazyRetry(() => import("./pages/admin/AdminViewAs"));
 const AdminBrands = lazyRetry(() => import("./pages/admin/AdminBrands"));
 const AdminBrandEdit = lazyRetry(() => import("./pages/admin/AdminBrandEdit"));
 const AdminMessages = lazyRetry(() => import("./pages/admin/AdminMessages"));
+const AdminBroadcast = lazyRetry(() => import("./pages/admin/AdminBroadcast"));
 const AdminBrandOffers = lazyRetry(() => import("./pages/admin/AdminBrandOffers"));
 const AdminShelfReview = lazyRetry(() => import("./pages/admin/AdminShelfReview"));
 const AdminBrandCalendar = lazyRetry(() => import("./pages/admin/AdminBrandCalendar"));
@@ -551,6 +552,7 @@ const App = () => (
               <Route path="/admin/shelf-review" element={<RoleGate allow={["admin"]}><AdminShelfReview /></RoleGate>} />
 
               <Route path="/admin/messages" element={<RoleGate allow={["admin"]}><AdminMessages /></RoleGate>} />
+              <Route path="/admin/broadcast" element={<RoleGate allow={["admin"]}><AdminBroadcast /></RoleGate>} />
 
               {/* Consumer-facing brand directory */}
               <Route path="/brands" element={<Paid><BrandsDirectory /></Paid>} />
