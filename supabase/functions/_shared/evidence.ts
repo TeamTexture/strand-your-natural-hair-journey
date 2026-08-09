@@ -344,11 +344,14 @@ export function renderEvidenceBlock(set: EvidenceSet): string {
   const body = set.items
     .map(
       (it, i) =>
-        `EVIDENCE ${i + 1}\nAUTHOR'S TEXT: ${it.passage}${
-          it.relevance ? `\nWHY IT APPLIES TO HER: ${it.relevance}` : ""
-        }`,
+        `EVIDENCE ${i + 1}\n${
+          it.source === "clarification"
+            ? "HER CURRENT POSITION — BINDING, AND IT OVERRIDES THE BOOK MATERIAL WHERE THEY DIFFER: "
+            : "AUTHOR'S TEXT: "
+        }${it.passage}${it.relevance ? `\nWHY IT APPLIES TO HER: ${it.relevance}` : ""}`,
     )
     .join("\n\n");
+
 
   const conflictRule =
     `THE AUTHOR ALWAYS WINS A CONFLICT. Where established industry practice, marketing language or common terminology contradicts her position, her position governs — without exception and without hedging. Her book exists to correct widespread industry error, so treating industry consensus as authoritative would reproduce the exact error. Example: the industry calls a conditioning shampoo "moisturising"; she does not, and neither do you.`;
