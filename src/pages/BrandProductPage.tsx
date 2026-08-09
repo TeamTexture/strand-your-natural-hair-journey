@@ -18,6 +18,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLogAdEvent, PlacementSlot } from "@/hooks/useBrandOffers";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
+import {
+  addBrandProductToShelf,
+  type BrandShelfProduct,
+} from "@/lib/addBrandProductToShelf";
 import { useGoals } from "@/hooks/useGoals";
 import { useQuery } from "@tanstack/react-query";
 import {
