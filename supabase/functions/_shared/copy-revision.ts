@@ -4,7 +4,7 @@
 // stale server copy survive a client invalidation.
 //
 // See src/lib/aiCopyRevision.ts for the history and the bump rules.
-export const AI_COPY_REVISION = "mr2026-08-09-manuscript";
+export const AI_COPY_REVISION = "ac2026-08-09-clarifications";
 
 /** Suffix for a function's MODEL_VERSION / cache version string. */
 export const revisionSuffix = `@${AI_COPY_REVISION}`;
