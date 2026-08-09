@@ -585,8 +585,6 @@ const JournalStepCard = ({
             </button>
           )}
         </div>
-
-        </div>
       </div>
 
       {/* ── Collapsed summary ───────────────────────────────────── */}
