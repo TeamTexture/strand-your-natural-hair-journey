@@ -379,10 +379,10 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           variant="goldOutline"
           size="pill"
           className="w-full"
-          onClick={() => void addStep().then((created) => {
-            const id = (created as { id?: string } | undefined)?.id;
+          onClick={() => void addStep().then((id) => {
             if (id) setOpenStepId(id);
           })}
+
         >
           <Plus className="size-4 mr-1.5" /> Add step {steps.length + 1}
         </Button>
