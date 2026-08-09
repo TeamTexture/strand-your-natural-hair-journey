@@ -2476,6 +2476,51 @@ export type Database = {
         }
         Relationships: []
       }
+      manuscript_terminology: {
+        Row: {
+          author_position: string
+          banned_phrasings: string[]
+          chapter: number
+          created_at: string
+          id: string
+          page_end: number | null
+          page_start: number | null
+          reserved_for: string | null
+          source_quote: string
+          status: string
+          term: string
+          updated_at: string
+        }
+        Insert: {
+          author_position: string
+          banned_phrasings?: string[]
+          chapter: number
+          created_at?: string
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          reserved_for?: string | null
+          source_quote: string
+          status?: string
+          term: string
+          updated_at?: string
+        }
+        Update: {
+          author_position?: string
+          banned_phrasings?: string[]
+          chapter?: number
+          created_at?: string
+          id?: string
+          page_end?: number | null
+          page_start?: number | null
+          reserved_for?: string | null
+          source_quote?: string
+          status?: string
+          term?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       moodboard_images: {
         Row: {
           board_id: string
@@ -3832,6 +3877,107 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tip_evidence_sets: {
+        Row: {
+          attempts: number
+          chapters: number[]
+          created_at: string
+          evidence: Json
+          function_name: string
+          id: string
+          member_facts: Json
+          stage1_tokens: number
+          stage2_tokens: number
+          surface: string
+          tip: Json | null
+          user_id: string | null
+          verified: boolean
+          verify_tokens: number
+        }
+        Insert: {
+          attempts?: number
+          chapters?: number[]
+          created_at?: string
+          evidence?: Json
+          function_name: string
+          id?: string
+          member_facts?: Json
+          stage1_tokens?: number
+          stage2_tokens?: number
+          surface: string
+          tip?: Json | null
+          user_id?: string | null
+          verified?: boolean
+          verify_tokens?: number
+        }
+        Update: {
+          attempts?: number
+          chapters?: number[]
+          created_at?: string
+          evidence?: Json
+          function_name?: string
+          id?: string
+          member_facts?: Json
+          stage1_tokens?: number
+          stage2_tokens?: number
+          surface?: string
+          tip?: Json | null
+          user_id?: string | null
+          verified?: boolean
+          verify_tokens?: number
+        }
+        Relationships: []
+      }
+      tip_generation_rejections: {
+        Row: {
+          attempt: number
+          created_at: string
+          detail: string | null
+          evidence_set_id: string | null
+          function_name: string
+          id: string
+          offending_text: string | null
+          rule: string
+          stage: string
+          surface: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          detail?: string | null
+          evidence_set_id?: string | null
+          function_name: string
+          id?: string
+          offending_text?: string | null
+          rule: string
+          stage: string
+          surface?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          detail?: string | null
+          evidence_set_id?: string | null
+          function_name?: string
+          id?: string
+          offending_text?: string | null
+          rule?: string
+          stage?: string
+          surface?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_generation_rejections_evidence_set_id_fkey"
+            columns: ["evidence_set_id"]
+            isOneToOne: false
+            referencedRelation: "tip_evidence_sets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_advice_ledger: {
         Row: {

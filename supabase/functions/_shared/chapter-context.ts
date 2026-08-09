@@ -73,8 +73,11 @@ export const SURFACE_CHAPTERS: Record<SurfaceKey, number[]> = {
   "wash-day-tip": [13, 14],
   "wash-day-steps": [13, 14],
   "wash-day-observation": [13, 14],
-  // Goals: length/retention is the dominant recorded goal
-  "goal-tip": [16, 14],
+  // Goals: length/retention is the dominant recorded goal, but almost every goal
+  // tip has to prescribe an action, and the actions live in the wash day chapter.
+  // Without 13 the evidence set is definitional only and stage 3 rejects the
+  // whole tip body, leaving a bare headline.
+  "goal-tip": [16, 14, 13],
   // Routine spans wash day + styling
   "routine-tips": [13, 14, 11],
   // Styling and protective styles
@@ -121,11 +124,50 @@ export interface ChapterContext {
 }
 
 const cache = new Map<string, ChapterContext>();
+const rowCache = new Map<string, ChapterChunk[]>();
 
 /** Resolve the chapter list for a surface, always including chapter 1. */
 export function chaptersForSurface(surface: SurfaceKey): number[] {
   const set = new Set<number>([LANGUAGE_CHAPTER, ...(SURFACE_CHAPTERS[surface] ?? [])]);
   return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * The chapters IN FULL as individual rows WITH their metadata (chapter, title,
+ * printed pages). Stage 1 of the grounded pipeline needs the metadata so the
+ * evidence set can be attributed to a chapter and page without the model ever
+ * being trusted to produce one. Never throws — returns [] when unreachable.
+ */
+export async function loadChapterRows(chapters: number[]): Promise<ChapterChunk[]> {
+  const key = chapters.slice().sort((a, b) => a - b).join(",");
+  const cached = rowCache.get(key);
+  if (cached) return cached;
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SERVICE_ROLE) return [];
+  try {
+    // @ts-ignore — esm.sh URL import is Deno-native.
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await admin.rpc("manuscript_chapters", {
+      chapter_numbers: chapters,
+    });
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as ChapterChunk[];
+    if (rows.length) {
+      if (rowCache.size > 24) rowCache.clear();
+      rowCache.set(key, rows);
+    }
+    return rows;
+  } catch (e) {
+    console.error(
+      JSON.stringify({ event: "chapter_rows_failed", chapters, error: String(e) }),
+    );
+    return [];
+  }
 }
 
 /**

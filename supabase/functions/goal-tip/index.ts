@@ -12,14 +12,7 @@ import {
   renderTopicBlock,
 } from "../_shared/knowledge/index.ts";
 import type { TopicId } from "../_shared/knowledge/types.ts";
-import {
-  chaptersForSurface,
-  noteSourceText,
-  FIDELITY_RULE,
-  LANGUAGE_CHAPTER,
-  loadChapters,
-  renderChapterBlock,
-} from "../_shared/chapter-context.ts";
+import { evidencePromptBlock } from "../_shared/evidence.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
 import { METHOD_AND_TIMING_RULE } from "../_shared/procedural-rag.ts";
 
@@ -538,23 +531,26 @@ Deno.serve(async (req) => {
     let sourceText = "";
     let chaptersUsed: number[] = [];
     try {
-      const chapters = [
-        ...new Set([LANGUAGE_CHAPTER, ...chapterFilter, ...chaptersForSurface("goal-tip")]),
-      ].sort((a, b) => a - b);
-      const ctx = await loadChapters(chapters);
-      grounded = Boolean(ctx.text);
-      ragPassageCount = ctx.chunks;
-      sourceText = ctx.text;
-      chaptersUsed = ctx.chapters;
-      noteSourceText("goal-tip", sourceText, chaptersUsed);
-      if (ctx.text) {
-        ragBlock = `\n\n${renderChapterBlock(ctx)}\n\n${FIDELITY_RULE}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
+      // TWO-STAGE GROUNDED GENERATION (2026-08-09). Stage 1 reads the goal's
+      // authoritative chapters IN FULL (chapter 1 always included) and extracts
+      // an evidence set. This generation — stage 2 — receives the evidence set
+      // and her own recorded facts ONLY. The chapters are not passed to it, so
+      // general hair care knowledge is not available to be reached for.
+      const evid = await evidencePromptBlock({
+        fn: "goal-tip",
+        surface: "goal-tip",
+        memberContext: ragQuery,
+      });
+      grounded = evid.grounded;
+      ragPassageCount = evid.evidence.items.length;
+      sourceText = evid.evidence.items.map((i) => i.passage).join("\n\n");
+      chaptersUsed = evid.evidence.chapters;
+      if (evid.grounded) {
+        ragBlock = `\n\n${evid.block}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
       }
     } catch {
       grounded = false;
     }
-
-
 
     if (!grounded) {
       console.error(JSON.stringify({

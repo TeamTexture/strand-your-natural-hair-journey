@@ -482,7 +482,7 @@ function stripSentence(text: string, claim: string): string {
     .trim();
 }
 
-function stripDeep<T>(value: T, claims: string[], key?: string): T {
+export function stripDeep<T>(value: T, claims: string[], key?: string): T {
   if (typeof value === "string") {
     if (key && LABEL_KEYS.has(key)) return value as unknown as T;
     let out: string = value;
@@ -531,12 +531,13 @@ export async function enforceFidelity<T>(
   functionName: string,
   sourceText: string,
   chapters: number[] = [],
+  opts: { skipTraceability?: boolean } = {},
 ): Promise<T> {
   const result = await verifyFidelity(payload, {
     functionName,
     sourceText,
     chapters,
-    skipTraceability: !sourceText.trim(),
+    skipTraceability: opts.skipTraceability || !sourceText.trim(),
   });
   if (result.ok) return payload;
   return stripDeep(payload, result.violations.map((v) => v.claim));

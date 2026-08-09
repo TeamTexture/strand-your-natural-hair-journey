@@ -23,12 +23,16 @@ import type { FunctionKind, TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
 import {
   FIDELITY_RULE,
-  loadSurfaceChapters,
   noteSourceText,
-  renderChapterBlock,
-  type ChapterContext,
   type SurfaceKey,
 } from "./chapter-context.ts";
+import {
+  gatherEvidence,
+  noteEvidence,
+  renderEvidenceBlock,
+  type EvidenceSet,
+} from "./evidence.ts";
+import { loadLexicon, terminologyBlock } from "./terminology.ts";
 import {
   METHOD_AND_TIMING_RULE,
   retrieveProceduralPassages,
@@ -39,7 +43,7 @@ import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 /** The single wording used everywhere a passages block is injected. */
 export const GROUNDING_INSTRUCTION =
   `GROUNDING RULE — NON-NEGOTIABLE:
-Every recommendation you make must be curated from the RETRIEVED MANUSCRIPT PASSAGES and the STRAND KNOWLEDGE TOPICS below. If a point is not directly covered, reason from the closest teaching in them — never from general training data or generic hair-care lore. Never contradict them. Never name the book, its chapters, or page numbers in your output.`;
+Every recommendation you make must be curated from the EVIDENCE SET (or RETRIEVED MANUSCRIPT PASSAGES) and the STRAND KNOWLEDGE TOPICS below. If a point is not directly covered, reason from the closest teaching in them — never from general training data or generic hair-care lore. Never contradict them. Never name the book, its chapters, or page numbers in your output.`;
 
 export interface GroundingResult {
   /** Ready-to-append system-prompt text (empty string when nothing to add). */
@@ -52,8 +56,10 @@ export interface GroundingResult {
   topics: number;
   /** The raw manuscript text supplied to the model — the verifier's source. */
   sourceText: string;
-  /** Chapters supplied in full (empty on the legacy fragment path). */
+  /** Chapters the evidence came from (empty on the legacy fragment path). */
   chapters: number[];
+  /** The stage 1 evidence set — present on the two-stage grounded path. */
+  evidence?: EvidenceSet;
 }
 
 export interface GroundingInput {
@@ -122,19 +128,28 @@ export async function buildGroundingBlock(
   });
   const topicBlocks = topics.map(renderTopicBlock);
 
-  // WHOLE-CHAPTER PATH (2026-08-09 fidelity fix). When the caller names its
-  // surface we pass the authoritative chapters IN FULL — chapter 1 always
-  // included — instead of top-k fragments. Fragment retrieval was the root
-  // cause of the model filling context gaps from general knowledge.
-  let chapterCtx: ChapterContext | null = null;
+  // ── TWO-STAGE GROUNDED PATH (2026-08-09) ────────────────────────────────
+  // When the caller names its surface, this function IS stage 1: it reads the
+  // authoritative chapters in full (chapter 1 always included) and extracts an
+  // evidence set. The block returned to the caller — i.e. the context of the
+  // call that WRITES the copy, stage 2 — contains the evidence set and the
+  // member's own facts ONLY. The chapters are never passed to the writer, so
+  // general hair knowledge is not available to it. See _shared/evidence.ts.
+  let evidence: EvidenceSet | null = null;
   if (input.surface) {
-    chapterCtx = await loadSurfaceChapters(input.surface);
-    if (!chapterCtx.text) chapterCtx = null;
+    const set = await gatherEvidence({
+      fn: input.fn,
+      surface: input.surface,
+      memberContext: input.ragQuery,
+    });
+    if (set.items.length > 0) evidence = set;
   }
 
   let passageBlocks: string[] = [];
-  let grounded = Boolean(chapterCtx);
-  if (!chapterCtx) {
+  let grounded = Boolean(evidence);
+  // Fragment retrieval remains ONLY for the legacy surfaces that do not name a
+  // surface key. A named surface never silently degrades to fragments.
+  if (!evidence && !input.surface) {
     try {
       const passages = await retrieveWithRetry(
         input.ragQuery,
@@ -171,8 +186,10 @@ export async function buildGroundingBlock(
       }`,
     );
   }
-  if (chapterCtx) {
-    parts.push(renderChapterBlock(chapterCtx));
+  if (evidence) {
+    parts.push(renderEvidenceBlock(evidence));
+    const lex = terminologyBlock(await loadLexicon());
+    if (lex) parts.push(lex);
     parts.push(FIDELITY_RULE);
   }
   if (passageBlocks.length > 0) {
@@ -186,19 +203,23 @@ export async function buildGroundingBlock(
   if (input.proceduralBias) parts.push(METHOD_AND_TIMING_RULE);
 
 
-  const sourceText = chapterCtx?.text ?? passageBlocks.join("\n\n");
-  const chaptersUsed = chapterCtx?.chapters ?? input.chapterFilter ?? [];
-  // Record what the model was given so the fidelity fail-safe in
-  // sanitiseAndLog can audit the response against this exact text.
+  const sourceText = evidence
+    ? evidence.items.map((i) => i.passage).join("\n\n")
+    : passageBlocks.join("\n\n");
+  const chaptersUsed = evidence?.chapters ?? input.chapterFilter ?? [];
+  // Record what the writer was given so the verify gate in sanitiseAndLog can
+  // map every claim back to this exact evidence.
   noteSourceText(input.fn, sourceText, chaptersUsed);
+  if (evidence) noteEvidence(input.fn, evidence);
 
   return {
     block: parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "",
     grounded,
-    passages: chapterCtx ? chapterCtx.chunks : passageBlocks.length,
+    passages: evidence ? evidence.items.length : passageBlocks.length,
     topics: topicBlocks.length,
     sourceText,
     chapters: chaptersUsed,
+    evidence: evidence ?? undefined,
   };
 }
 

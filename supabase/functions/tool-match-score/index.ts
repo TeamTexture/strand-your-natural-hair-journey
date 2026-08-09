@@ -14,12 +14,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
-import {
-  FIDELITY_RULE,
-  loadSurfaceChapters,
-  noteSourceText,
-  renderChapterBlock,
-} from "../_shared/chapter-context.ts";
+import { evidencePromptBlock } from "../_shared/evidence.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -128,12 +123,17 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Whole-chapter manuscript grounding (chapters 11, 13 + 1), passed in full.
-  const chapterCtx = await loadSurfaceChapters("tool-match-score");
-  if (chapterCtx.text) noteSourceText(chapterCtx.text);
-  const systemPrompt = chapterCtx.text
-    ? `${SYSTEM}\n\n${renderChapterBlock(chapterCtx)}\n\n${FIDELITY_RULE}`
-    : SYSTEM;
+  // TWO-STAGE GROUNDED GENERATION. Stage 1 reads chapters 11, 13 + 1 in full and
+  // extracts the evidence; this call (stage 2) receives the evidence ONLY.
+  const evid = await evidencePromptBlock({
+    fn: "tool-match-score",
+    surface: "tool-match-score",
+    memberContext: JSON.stringify({
+      tools: tools.map((t) => t.name),
+      context: body?.context ?? null,
+    }).slice(0, 4000),
+  });
+  const systemPrompt = evid.grounded ? `${SYSTEM}\n\n${evid.block}` : SYSTEM;
 
   try {
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

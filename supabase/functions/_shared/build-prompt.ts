@@ -33,12 +33,9 @@ import {
 } from "./procedural-rag.ts";
 import { GROUNDING_INSTRUCTION } from "./grounding.ts";
 import {
-  FIDELITY_RULE,
-  loadSurfaceChapters,
-  noteSourceText,
-  renderChapterBlock,
   type SurfaceKey,
 } from "./chapter-context.ts";
+import { evidencePromptBlock } from "./evidence.ts";
 import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "./routine-guidance.ts";
@@ -177,18 +174,22 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   }
 
   // ── Manuscript source ─────────────────────────────────────────────
-  // FIDELITY PATH (preferred): when `surface` is named, the authoritative
-  // chapters are passed IN FULL (chapter 1 always included) and fragment
-  // retrieval is skipped entirely. See _shared/chapter-context.ts.
+  // TWO-STAGE GROUNDED GENERATION (preferred): when `surface` is named, stage 1
+  // reads the authoritative chapters IN FULL and extracts an evidence set, and
+  // THIS call — stage 2, the writer — is given the evidence set only. The
+  // chapters themselves are withheld so general hair care knowledge cannot be
+  // reached for. See _shared/evidence.ts.
   let ragBlocks: string[] = [];
   let wholeChapters = false;
   if (input.surface) {
-    const ctx = await loadSurfaceChapters(input.surface);
-    if (ctx.text) {
+    const evid = await evidencePromptBlock({
+      fn: input.function_kind,
+      surface: input.surface,
+      memberContext: (input.rag_query ?? "").slice(0, 4000),
+    });
+    if (evid.grounded) {
       wholeChapters = true;
-      noteSourceText(ctx.text);
-      systemBlocks.push({ type: "text", text: renderChapterBlock(ctx) });
-      systemBlocks.push({ type: "text", text: FIDELITY_RULE });
+      systemBlocks.push({ type: "text", text: evid.block });
     } else {
       console.error(JSON.stringify({
         event: "chapter_grounding_empty",
