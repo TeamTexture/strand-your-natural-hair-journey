@@ -179,7 +179,7 @@ const BrandProducts = lazyRetry(() => import("./pages/BrandProducts"));
 const ProductsByIngredient = lazyRetry(() => import("./pages/ProductsByIngredient"));
 const IngredientResearch = lazyRetry(() => import("./pages/IngredientResearch"));
 const Journal = lazyRetry(() => import("./pages/Journal"));
-const JournalEntry = lazyRetry(() => import("./pages/JournalEntry"));
+const StyleRecord = lazyRetry(() => import("./pages/StyleRecord"));
 const MoodboardList = lazyRetry(() => import("./pages/MoodboardList"));
 const MoodboardBoard = lazyRetry(() => import("./pages/MoodboardBoard"));
 const Appointments = lazyRetry(() => import("./pages/Appointments"));
@@ -334,7 +334,7 @@ const App = () => (
               <Route path="/products/by-ingredient" element={<Paid><ProductsByIngredient /></Paid>} />
               <Route path="/products/ingredient-research" element={<Paid><IngredientResearch /></Paid>} />
               <Route path="/journal" element={<Paid><Journal /></Paid>} />
-              <Route path="/journal/entry/:id" element={<Paid><JournalEntry /></Paid>} />
+              <Route path="/journal/entry/:id" element={<Paid><StyleRecord /></Paid>} />
               <Route path="/journal/moodboards" element={<Paid><MoodboardList /></Paid>} />
               <Route path="/journal/moodboards/:id" element={<Paid><MoodboardBoard /></Paid>} />
               <Route path="/appointments" element={<Paid><Appointments /></Paid>} />

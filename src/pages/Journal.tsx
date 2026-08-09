@@ -38,9 +38,6 @@ import { ICONS } from "@/lib/iconMap";
 
 const PHOTO_BUCKET = "journal-photos";
 
-/** Returns true if the storage path looks like a video (mp4 / mov / webm). */
-const isVideoPath = (p: string) => /\.(mp4|mov|m4v|webm|quicktime)$/i.test(p);
-
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 /**
@@ -115,18 +112,20 @@ const Journal = () => {
     setDetailOpen(true);
   };
 
-  // Saved entries from the database — these appear above the mock catalog,
-  // newest first, so a freshly-saved entry shows at the top of the list.
+  // Saved style records from the database, newest first.
   interface SavedEntry {
     id: string;
     title: string | null;
-    note: string | null;
+    style_name: string | null;
+    style_date: string | null;
+    status: string | null;
     entry_date: string;
     photo_paths: string[];
-    products_used: string[] | null;
+    stepCount: number;
+    productNames: string[];
     coverUrl?: string;
+    coverIsVideo?: boolean;
   }
-  const [productLookup, setProductLookup] = useState<Record<string, { name: string; brand: string | null }>>({});
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -134,7 +133,7 @@ const Journal = () => {
   const handleDeleteSaved = async () => {
     if (!pendingDelete || !user) return;
     setDeleting(true);
-    // Best-effort: remove any uploaded photos from storage too.
+    // Best-effort: remove any legacy uploaded photos from storage too.
     if (pendingDelete.photo_paths?.length) {
       await supabase.storage.from(PHOTO_BUCKET).remove(pendingDelete.photo_paths).catch(() => {});
     }
@@ -145,12 +144,12 @@ const Journal = () => {
       .eq("user_id", user.id);
     setDeleting(false);
     if (error) {
-      toast.error("Could not delete entry");
+      toast.error("Could not delete this style record");
       return;
     }
     setSavedEntries((rows) => rows.filter((r) => r.id !== pendingDelete.id));
     setPendingDelete(null);
-    toast.success("Journal entry deleted.");
+    toast.success("Style record deleted.");
   };
 
   useEffect(() => {
@@ -159,40 +158,98 @@ const Journal = () => {
     (async () => {
       const { data } = await supabase
         .from("journal_entries")
-        .select("id, title, note, entry_date, photo_paths, products_used")
+        .select("id, title, style_name, style_date, status, entry_date, photo_paths")
         .eq("user_id", user.id)
-        .order("entry_date", { ascending: false })
+        .order("style_date", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (cancelled || !data) return;
+      const entries = data as Omit<SavedEntry, "stepCount" | "productNames">[];
+      const ids = entries.map((e) => e.id);
+
+      // One query for every step of every record — gives us the step count,
+      // the cover media and the products used across the whole record.
+      const { data: stepRows } = ids.length
+        ? await supabase
+            .from("journal_steps")
+            .select(
+              "id, entry_id, step_order, journal_step_media(storage_path, kind, sort_order), journal_step_products(user_product_id)",
+            )
+            .in("entry_id", ids)
+            .order("step_order", { ascending: true })
+        : { data: [] as never[] };
+      if (cancelled) return;
+
+      type StepRow = {
+        entry_id: string;
+        step_order: number;
+        journal_step_media: { storage_path: string; kind: string; sort_order: number }[] | null;
+        journal_step_products: { user_product_id: string | null }[] | null;
+      };
+      const byEntry = new Map<string, StepRow[]>();
+      for (const r of (stepRows ?? []) as StepRow[]) {
+        const list = byEntry.get(r.entry_id) ?? [];
+        list.push(r);
+        byEntry.set(r.entry_id, list);
+      }
+
+      const productIds = new Set<string>();
+      for (const list of byEntry.values()) {
+        for (const s of list) {
+          for (const p of s.journal_step_products ?? []) {
+            if (p.user_product_id) productIds.add(p.user_product_id);
+          }
+        }
+      }
+      const lookup: Record<string, { name: string; brand: string | null }> = {};
+      if (productIds.size) {
+        const { data: prods } = await supabase
+          .from("user_products")
+          .select("id, name, brand")
+          .in("id", Array.from(productIds));
+        for (const p of prods ?? []) lookup[p.id] = { name: p.name, brand: p.brand };
+      }
+      if (cancelled) return;
+
       const rows: SavedEntry[] = await Promise.all(
-        (data as SavedEntry[]).map(async (r) => {
-          const cover = r.photo_paths?.[0];
-          if (!cover) return r;
-          const { data: sig } = await supabase.storage
-            .from(PHOTO_BUCKET)
-            .createSignedUrl(cover, 3600);
-          return { ...r, coverUrl: sig?.signedUrl };
+        entries.map(async (e) => {
+          const steps = (byEntry.get(e.id) ?? []).sort((a, b) => a.step_order - b.step_order);
+          const media = steps.flatMap((s) =>
+            (s.journal_step_media ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
+          );
+          const cover = media[0];
+          const names = Array.from(
+            new Set(
+              steps.flatMap((s) =>
+                (s.journal_step_products ?? [])
+                  .map((p) => (p.user_product_id ? lookup[p.user_product_id] : undefined))
+                  .filter(Boolean)
+                  .map((p) => (p!.brand ? `${p!.brand} ${p!.name}` : p!.name)),
+              ),
+            ),
+          );
+          let coverUrl: string | undefined;
+          if (cover) {
+            const bucket = cover.kind === "video" ? "journal-videos" : PHOTO_BUCKET;
+            const { data: sig } = await supabase.storage
+              .from(bucket)
+              .createSignedUrl(cover.storage_path, 3600);
+            coverUrl = sig?.signedUrl;
+          }
+          return {
+            ...e,
+            stepCount: steps.length,
+            productNames: names,
+            coverUrl,
+            coverIsVideo: cover?.kind === "video",
+          };
         }),
       );
       if (cancelled) return;
       setSavedEntries(rows);
-      // Batch-load product names referenced across all entries so thumbnails
-      // can surface "Products used" without N extra queries per card.
-      const allIds = Array.from(new Set(rows.flatMap((r) => r.products_used ?? [])));
-      if (allIds.length) {
-        const { data: prods } = await supabase
-          .from("user_products")
-          .select("id, name, brand")
-          .in("id", allIds);
-        if (!cancelled && prods) {
-          const map: Record<string, { name: string; brand: string | null }> = {};
-          for (const p of prods) map[p.id] = { name: p.name, brand: p.brand };
-          setProductLookup(map);
-        }
-      }
     })();
     return () => { cancelled = true; };
   }, [user]);
+
 
   // Neutral recency line for the entries list — no wash advice here.
   const lastEntryLabel = useMemo(() => {
@@ -290,24 +347,20 @@ const Journal = () => {
 
 
 
-      <SectionLabel>Photo Journal</SectionLabel>
+      <SectionLabel>Style Records</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
         {lastEntryLabel && (
           <p className="text-[11px] font-body text-muted-foreground">{lastEntryLabel}</p>
         )}
 
         {savedEntries.map((s) => {
-          // Saved-entry titles previously embedded a mock catalog id like "[wash-go-day1] My title"
-          // so the detail page could load. Now we just navigate to the entry's real DB id.
           const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
-          const displayTitle = match?.[2] || s.title || "Journal entry";
-          const dateLabel = formatEntryDate(s.entry_date);
-          // Pull the human-friendly product names for the badges under the cover.
-          const productNames = (s.products_used ?? [])
-            .map((pid) => productLookup[pid])
-            .filter(Boolean)
-            .map((p) => (p!.brand ? `${p!.brand} ${p!.name}` : p!.name));
+          const displayTitle =
+            s.style_name?.trim() || match?.[2] || s.title || "Style record";
+          const dateLabel = formatEntryDate(s.style_date ?? s.entry_date);
+          const productNames = s.productNames;
           const extraProducts = Math.max(0, productNames.length - 2);
+          const complete = s.status === "complete";
           return (
             <div
               key={s.id}
@@ -325,7 +378,7 @@ const Journal = () => {
               <SurfaceCard padded={false} className="overflow-hidden hover:border-primary/50 transition-all hover:shadow-lg">
                 <div className={`relative h-56 flex items-center justify-center ${s.coverUrl ? "bg-secondary" : "bg-gradient-to-br from-[#C8B89A] to-[#D4B96A]"}`}>
                   {s.coverUrl ? (
-                    isVideoPath(s.photo_paths?.[0] ?? "") ? (
+                    s.coverIsVideo ? (
                       <>
                         <video src={s.coverUrl} muted playsInline preload="metadata" className="absolute inset-0 size-full object-cover object-[center_20%] bg-black" />
                         <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
@@ -351,23 +404,32 @@ const Journal = () => {
                       e.stopPropagation();
                       setPendingDelete(s);
                     }}
-                    aria-label="Delete journal entry"
+                    aria-label="Delete style record"
                     className="absolute top-2 left-2 size-9 rounded-full bg-black/55 hover:bg-destructive text-white flex items-center justify-center backdrop-blur-sm transition-colors"
                   >
                     <Trash2 className="size-4" />
                   </button>
                 </div>
-                {/* Labelled data block: name, date, hairstyle, products used. */}
+                {/* Style, date, steps, products used. */}
                 <div className="p-3.5 space-y-2.5">
                   <div>
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Name</p>
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Style</p>
                     <p className="font-display text-base font-semibold leading-tight text-foreground">
                       {displayTitle}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date logged</p>
-                    <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Date</p>
+                      <p className="font-body text-[12px] text-foreground mt-0.5">{dateLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Steps</p>
+                      <p className="font-body text-[12px] text-foreground mt-0.5">
+                        {s.stepCount} {s.stepCount === 1 ? "step" : "steps"}
+                        {complete ? "" : " · in progress"}
+                      </p>
+                    </div>
                   </div>
                   <div>
                     <p className="text-[9px] uppercase tracking-[0.2em] text-primary/80 font-medium mb-1.5 flex items-center gap-1">
@@ -401,9 +463,9 @@ const Journal = () => {
                         navigate(`/journal/entry/${s.id}`);
                       }}
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors"
-                      aria-label="Edit journal entry"
+                      aria-label="Open style record"
                     >
-                      <Pencil className="size-3" /> Edit
+                      <Pencil className="size-3" /> Open
                     </button>
                   </div>
                 </div>
@@ -411,6 +473,7 @@ const Journal = () => {
             </div>
           );
         })}
+
         {/* Always-visible "new entry" tile so users can keep adding entries
             once they have some saved (previously this only rendered when
             the photo journal was empty, leaving no entry point). */}
@@ -421,7 +484,7 @@ const Journal = () => {
         >
           <Plus className="size-7" />
           <span className="text-[11px] uppercase tracking-[0.2em] font-medium">
-            {savedEntries.length === 0 ? "Add first entry" : "Add new entry"}
+            {savedEntries.length === 0 ? "Start your first style" : "Start a style"}
           </span>
         </button>
       </div>
@@ -540,10 +603,11 @@ const Journal = () => {
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this style record?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the entry and any photos attached to it. This cannot be undone.
+              This will permanently remove the style record, its steps and everything attached to them. This cannot be undone.
             </AlertDialogDescription>
+
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
