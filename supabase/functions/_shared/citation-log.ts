@@ -11,6 +11,7 @@
 // user must never see raw citations because logging broke.
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
+import { enforceFidelity } from "./fidelity.ts";
 import {
   enforceBloodSafety,
   enforceStyleVerbatimDeep,
@@ -87,7 +88,7 @@ async function logViolation(
 export async function sanitiseAndLog<T>(
   value: T,
   functionName: string,
-  opts?: { context?: unknown; grounding?: string },
+  opts?: { context?: unknown; grounding?: string; chapters?: number[] },
 ): Promise<T> {
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
@@ -113,7 +114,19 @@ export async function sanitiseAndLog<T>(
   // blood/hair causal link or an invented mechanism. `grounding` is the
   // retrieved manuscript text, so mechanism wording that IS in the manuscript
   // survives. See _shared/blood-guardrail.ts.
-  return await enforceBloodSafety(out, functionName, opts?.grounding ?? "");
+  out = await enforceBloodSafety(out, functionName, opts?.grounding ?? "");
+
+  // MANUSCRIPT FIDELITY FAIL-SAFE (2026-08-09). Last gate before the user:
+  // author-verified deterministic rules always run, and when the surface
+  // supplied manuscript source text every claim is traced back to it. Anything
+  // unsupported is logged to ai_fidelity_rejections and removed from the
+  // output. See _shared/fidelity.ts.
+  return await enforceFidelity(
+    out,
+    functionName,
+    opts?.grounding ?? "",
+    opts?.chapters ?? [],
+  );
 }
 
 /** Collapse the duplicated "TT" the model sometimes emits immediately before

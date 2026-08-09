@@ -347,3 +347,81 @@ export async function generateVerified<T>(
   );
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Sentence-level repair (the universal fail-safe)
+// ---------------------------------------------------------------------------
+//
+// Every AI response passes through sanitiseAndLog. Where a surface has not yet
+// adopted generateVerified, the fail-safe still applies there: the offending
+// sentence is REMOVED from the output before the user sees it, and the
+// rejection is logged. Removing a sentence can only make the answer shorter and
+// more conservative — never wrong. It can never leave an unsupported hair care
+// claim on screen.
+
+const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+
+function stripSentence(text: string, claim: string): string {
+  const target = norm(claim);
+  if (!target) return text;
+  const parts = text.split(/(?<=[.!?])(\s+)/);
+  const kept: string[] = [];
+  let removed = false;
+  for (const part of parts) {
+    if (/^\s+$/.test(part)) {
+      kept.push(part);
+      continue;
+    }
+    const n = norm(part);
+    if (n && (n === target || n.includes(target) || target.includes(n))) {
+      removed = true;
+      continue;
+    }
+    kept.push(part);
+  }
+  if (!removed) return text;
+  return kept
+    .join("")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function stripDeep<T>(value: T, claims: string[]): T {
+  if (typeof value === "string") {
+    let out = value;
+    for (const c of claims) out = stripSentence(out, c);
+    return out as unknown as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => stripDeep(v, claims)) as unknown as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = stripDeep(v, claims);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
+
+/**
+ * Universal fail-safe applied to every AI response. Deterministic rules always
+ * run; the traceability audit runs only when source text was supplied (so a
+ * surface with no manuscript context is not audited against nothing). Every
+ * violation is logged, and the offending sentence is stripped.
+ */
+export async function enforceFidelity<T>(
+  payload: T,
+  functionName: string,
+  sourceText: string,
+  chapters: number[] = [],
+): Promise<T> {
+  const result = await verifyFidelity(payload, {
+    functionName,
+    sourceText,
+    chapters,
+    skipTraceability: !sourceText.trim(),
+  });
+  if (result.ok) return payload;
+  return stripDeep(payload, result.violations.map((v) => v.claim));
+}
