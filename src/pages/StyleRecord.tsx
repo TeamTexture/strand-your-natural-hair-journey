@@ -205,6 +205,10 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const { user } = useAuth();
   const [entry, setEntry] = useState<EntryRow | null>(null);
   const [loading, setLoading] = useState(true);
+  // Only one step is open at a time — save it, it collapses, open the next.
+  const [openStepId, setOpenStepId] = useState<string | null>(null);
+  const openedOnce = useRef(false);
+
   // Unsaved note text per step, plus the exit guard it feeds.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [discardSignal, setDiscardSignal] = useState(0);
@@ -239,6 +243,16 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     reload,
 
   } = useJournalSteps(entryId);
+
+  // Open the most recent step the first time the record loads; after that the
+  // member controls which one is open.
+  useEffect(() => {
+    if (openedOnce.current || steps.length === 0) return;
+    openedOnce.current = true;
+    setOpenStepId(steps[steps.length - 1].id);
+  }, [steps]);
+
+
 
   useEffect(() => {
     if (!user) return;
@@ -352,6 +366,10 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 index={i}
                 total={steps.length}
                 editing
+                expanded={openStepId === s.id}
+                onToggleExpand={() =>
+                  setOpenStepId((cur) => (cur === s.id ? null : s.id))
+                }
                 onUpdate={(patch) => void updateStep(s.id, patch)}
                 onDelete={() => void deleteStep(s.id)}
                 onMove={(dir) => void moveStep(s.id, dir)}
@@ -375,10 +393,14 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           variant="goldOutline"
           size="pill"
           className="w-full"
-          onClick={() => void addStep()}
+          onClick={() => void addStep().then((id) => {
+            if (id) setOpenStepId(id);
+          })}
+
         >
           <Plus className="size-4 mr-1.5" /> Add step {steps.length + 1}
         </Button>
+
 
 
         <Button
