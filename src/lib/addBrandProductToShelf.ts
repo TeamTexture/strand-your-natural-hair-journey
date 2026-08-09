@@ -55,19 +55,22 @@ export async function addBrandProductToShelf(opts: {
   brandName: string | null;
   product: BrandShelfProduct;
   destination: ShelfDestination;
+  /** Set when the add came from a live advert, so the offer gets the credit. */
+  offerId?: string | null;
 }): Promise<AddedShelfItem | null> {
-  const { userId, brandName, product, destination } = opts;
+  const { userId, brandName, product, destination, offerId = null } = opts;
   const toShelf = destination === "shelf";
   const now = new Date().toISOString();
 
   if (product.kind === "tool") {
-    const toolId = await addBrandToolToTools({ userId, brandName, product, toShelf });
+    const toolId = await addBrandToolToTools({ userId, brandName, product, toShelf, offerId });
     if (!toolId) return null;
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("user-tools-updated"));
     }
     return { kind: "tool", toolId };
   }
+
 
   const product_key = brandProductKey(product.id);
   const payload: Record<string, unknown> = {
