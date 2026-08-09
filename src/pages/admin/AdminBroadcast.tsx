@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { smartBack } from "@/lib/smartBack";
 import { formatVoiceDuration, useVoiceRecorder, type VoiceRecording } from "@/hooks/useVoiceRecorder";
 import { transcribeChatVoice, uploadChatVoice } from "@/lib/chatVoice";
+import { uuid } from "@/lib/uuid";
 
 type Audience = "all" | "consumer" | "professional" | "brand";
 
