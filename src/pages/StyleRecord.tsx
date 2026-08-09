@@ -282,6 +282,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 onAddMedia={(m) => void addMedia(s.id, m)}
                 onRemoveMedia={(id) => void removeMedia(id)}
                 onToggleProduct={(pid) => void toggleProduct(s.id, pid)}
+                onToggleTool={(tid) => void toggleTool(s.id, tid)}
+
                 onProductsChanged={() => void reload()}
               />
             ))}
