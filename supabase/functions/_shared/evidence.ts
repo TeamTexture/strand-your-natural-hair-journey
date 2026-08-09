@@ -309,6 +309,8 @@ export async function gatherEvidence(input: {
   if (items.length) {
     if (stage1Cache.size > 64) stage1Cache.clear();
     stage1Cache.set(ck, set);
+    // Fire and forget — never make generation wait on the cache write.
+    writePersistedEvidence(ck, input.surface, set).catch(() => {});
   }
   console.log(
     JSON.stringify({
@@ -335,6 +337,66 @@ export async function gatherEvidence(input: {
 const stage1Cache = new Map<string, EvidenceSet>();
 const cacheKey = (surface: string, ctx: string, chapters: number[] = []) =>
   `${surface}::${chapters.join(",")}::${norm(ctx).slice(0, 400)}`;
+
+// ---------------------------------------------------------------------------
+// PERSISTED STAGE 1 CACHE
+// ---------------------------------------------------------------------------
+// Keyed by surface + chapters + the member's recorded facts, and scoped to the
+// current copy revision, so bumping AI_COPY_REVISION retires every entry. Only
+// the service role can touch the table.
+
+async function evidenceAdmin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRole) return null;
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+  return createClient(url, serviceRole, { auth: { persistSession: false } });
+}
+
+/** Stable, short key — the raw signature can be long, so hash it. */
+async function hashKey(raw: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function readPersistedEvidence(ck: string): Promise<EvidenceSet | null> {
+  try {
+    const admin = await evidenceAdmin();
+    if (!admin) return null;
+    const key = await hashKey(`${AI_COPY_REVISION}::${ck}`);
+    const { data } = await admin
+      .from("manuscript_evidence_cache")
+      .select("payload, expires_at")
+      .eq("cache_key", key)
+      .maybeSingle();
+    if (!data?.payload) return null;
+    if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) return null;
+    const set = data.payload as EvidenceSet;
+    return Array.isArray(set?.items) && set.items.length ? set : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writePersistedEvidence(
+  ck: string,
+  surface: string,
+  set: EvidenceSet,
+): Promise<void> {
+  const admin = await evidenceAdmin();
+  if (!admin) return;
+  const key = await hashKey(`${AI_COPY_REVISION}::${ck}`);
+  await admin.from("manuscript_evidence_cache").upsert(
+    {
+      cache_key: key,
+      surface,
+      revision: AI_COPY_REVISION,
+      payload: set,
+    },
+    { onConflict: "cache_key" },
+  );
+}
+
 
 /**
  * Is this passage really in the source row? Requires a run of 8 consecutive
