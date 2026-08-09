@@ -229,6 +229,7 @@ const VoiceNoteField = ({
       }
       if (onTranscript) {
         onTranscript(text);
+        toast.success("Transcribed");
       } else {
         const next = value.trim() ? `${value.trim()}\n\n${text}` : text;
         onChange(next);
