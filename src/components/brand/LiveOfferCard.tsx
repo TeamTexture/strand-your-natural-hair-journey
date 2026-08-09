@@ -59,12 +59,9 @@ const LiveOfferCard = ({
     };
   }, [heroImagePath]);
 
-  const impressions = totals?.impressions ?? 0;
-  const expands = totals?.expands ?? 0;
-  const codeCopies = totals?.code_copies ?? 0;
-  const linkClicks = totals?.link_clicks ?? 0;
-  const wishlist = totals?.wishlist_adds ?? 0;
-  const engagement = impressions > 0 ? Math.round(((expands + codeCopies + linkClicks + wishlist) / impressions) * 1000) / 10 : 0;
+  const m = metrics ?? EMPTY_METRICS;
+
+
 
   const slotSet = Array.from(new Set(slots));
 
