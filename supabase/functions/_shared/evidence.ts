@@ -179,6 +179,10 @@ export async function gatherEvidence(input: {
 
   let raw: Stage1Raw[] = [];
   let tokens = 0;
+  let coverage: Coverage = "explicit";
+  let coverageReason = "";
+  let principle = "";
+
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
