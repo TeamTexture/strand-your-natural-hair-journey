@@ -61,6 +61,23 @@ const StartStyleRecord = () => {
       return;
     }
     setSaving(true);
+    // DUPLICATE GUARD: starting the same style on the same date twice (double
+    // tap, or coming back to this screen) must reopen the existing record
+    // rather than create a second one.
+    const { data: existing } = await supabase
+      .from("journal_entries")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("style_name", name)
+      .eq("style_date", date)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) {
+      setSaving(false);
+      navigate(`/journal/entry/${existing.id}`, { replace: true });
+      return;
+    }
     const { data, error } = await supabase
       .from("journal_entries")
       .insert({
@@ -74,6 +91,7 @@ const StartStyleRecord = () => {
       .select("id")
       .single();
     setSaving(false);
+
     if (error || !data) {
       console.error("start style record failed", error);
       toast.error("Couldn't start that style record");
