@@ -2826,6 +2826,33 @@ export type Database = {
         }
         Relationships: []
       }
+      manuscript_evidence_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          payload: Json
+          revision: string
+          surface: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at?: string
+          payload: Json
+          revision: string
+          surface: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          payload?: Json
+          revision?: string
+          surface?: string
+        }
+        Relationships: []
+      }
       manuscript_ingredients: {
         Row: {
           aliases: string[]

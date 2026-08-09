@@ -380,6 +380,8 @@ Do not substitute other cleansing or sealing methods for these two.`
       },
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
+        // Output cap — output tokens drive latency on these interactive surfaces.
+        max_tokens: 1400,
         messages: [
           { role: "system", content: systemPrompt },
 
@@ -507,6 +509,8 @@ Do not substitute other cleansing or sealing methods for these two.`
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
+          // Output cap — output tokens drive latency on these interactive surfaces.
+          max_tokens: 1400,
           messages: [
             { role: "system", content: systemPrompt },
             {
@@ -646,6 +650,8 @@ Do not substitute other cleansing or sealing methods for these two.`
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
+          // Output cap — output tokens drive latency on these interactive surfaces.
+          max_tokens: 1400,
           messages: [
             { role: "system", content: systemPrompt },
             {

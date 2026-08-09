@@ -273,6 +273,8 @@ export async function checkTraceability(
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: VERIFIER_MODEL,
+        // Output cap — output tokens drive latency on these interactive surfaces.
+        max_tokens: 900,
         temperature: 0,
         response_format: { type: "json_object" },
         messages: [

@@ -35,6 +35,7 @@ import {
   loadChapterRows,
   type SurfaceKey,
 } from "./chapter-context.ts";
+import { AI_COPY_REVISION } from "./copy-revision.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
@@ -121,8 +122,8 @@ Your ONLY job is to EXTRACT EVIDENCE. You must NOT write advice, tips, recommend
 
 Select the passages from the supplied chapters that are relevant to this reader. For each one return:
 - "n": the number of the numbered SOURCE PASSAGE it came from.
-- "passage": the relevant text, copied from that passage as closely to verbatim as possible. Never paraphrase into your own words. Never merge two passages. 40-120 words.
-- "relevance": ONE line stating why it applies to this reader. Reference the reader's own recorded facts. This is not advice.
+- "passage": the relevant text, copied from that passage as closely to verbatim as possible. Never paraphrase into your own words. Never merge two passages. Keep it TIGHT: 25-70 words, the sentences that carry the point and nothing around them.
+- "relevance": ONE short line stating why it applies to this reader. Reference the reader's own recorded facts. This is not advice. Max 20 words.
 
 Rules:
 - Extract ONLY from the supplied passages. Never add anything from your own knowledge of hair care, and never "correct" or "complete" the author. If the author's position contradicts common industry advice, extract the AUTHOR'S position.
@@ -130,7 +131,8 @@ Rules:
 - Always include any passage where the author states what a word means or what she reserves it for.
 - COVER THE ACTIONS, NOT JUST THE DEFINITIONS. The writer who receives your evidence must be able to tell this reader what to DO and why. So you must also extract the passages where the author says HOW something is done: the steps, the order they go in, how often, what to use, what to avoid, and what she says happens as a result. An evidence set of definitions alone is a failed extraction.
 - Extract at least one passage for each distinct thing this reader might reasonably be told to do, given her recorded style and goal.
-- Return between 8 and 16 items. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
+- Return between 6 and 10 items — no more. Choose the strongest; a tight set beats a long one. Return an empty array ONLY if genuinely nothing in the supplied text is relevant.
+- Be economical. Do not restate, do not explain your choices, do not add commentary outside the JSON fields.
 
 THEN CLASSIFY COVERAGE of this reader's situation by the supplied chapters. Exactly one of:
 - "explicit": the author directly addresses this reader's situation — her style, her stated goal or challenge, the thing being asked about. Prefer this classification. The book covers language, styling, scalp health, wash day, moisture retention, ingredients, length retention, treatments and colouring thoroughly, so most situations ARE explicit.
@@ -191,6 +193,16 @@ export async function gatherEvidence(input: {
   const ck = cacheKey(input.surface, input.memberContext, chapters);
   const cached = stage1Cache.get(ck);
   if (cached) return cached;
+  // Cross-isolate cache. Stage 1 is the single most expensive step in the
+  // pipeline (whole chapters in, a full evidence set out), and edge isolates are
+  // cold constantly, so the in-memory map above almost never hits in
+  // production. Persisting the evidence set removes stage 1 entirely for a
+  // member whose recorded facts have not changed.
+  const persisted = await readPersistedEvidence(ck);
+  if (persisted) {
+    stage1Cache.set(ck, persisted);
+    return persisted;
+  }
 
   let raw: Stage1Raw[] = [];
   let tokens = 0;
@@ -205,7 +217,12 @@ export async function gatherEvidence(input: {
       body: JSON.stringify({
         model: STAGE1_MODEL,
         temperature: 0,
+        // Latency cap. Output tokens, not input tokens, drive stage 1's wall
+        // clock (observed 8,700 out = 33s). A tight set of 6-10 short passages
+        // fits comfortably inside this.
+        max_tokens: 2600,
         response_format: { type: "json_object" },
+
         messages: [
           { role: "system", content: STAGE1_PROMPT },
           {
@@ -293,6 +310,8 @@ export async function gatherEvidence(input: {
   if (items.length) {
     if (stage1Cache.size > 64) stage1Cache.clear();
     stage1Cache.set(ck, set);
+    // Fire and forget — never make generation wait on the cache write.
+    writePersistedEvidence(ck, input.surface, set).catch(() => {});
   }
   console.log(
     JSON.stringify({
@@ -319,6 +338,66 @@ export async function gatherEvidence(input: {
 const stage1Cache = new Map<string, EvidenceSet>();
 const cacheKey = (surface: string, ctx: string, chapters: number[] = []) =>
   `${surface}::${chapters.join(",")}::${norm(ctx).slice(0, 400)}`;
+
+// ---------------------------------------------------------------------------
+// PERSISTED STAGE 1 CACHE
+// ---------------------------------------------------------------------------
+// Keyed by surface + chapters + the member's recorded facts, and scoped to the
+// current copy revision, so bumping AI_COPY_REVISION retires every entry. Only
+// the service role can touch the table.
+
+async function evidenceAdmin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRole) return null;
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+  return createClient(url, serviceRole, { auth: { persistSession: false } });
+}
+
+/** Stable, short key — the raw signature can be long, so hash it. */
+async function hashKey(raw: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function readPersistedEvidence(ck: string): Promise<EvidenceSet | null> {
+  try {
+    const admin = await evidenceAdmin();
+    if (!admin) return null;
+    const key = await hashKey(`${AI_COPY_REVISION}::${ck}`);
+    const { data } = await admin
+      .from("manuscript_evidence_cache")
+      .select("payload, expires_at")
+      .eq("cache_key", key)
+      .maybeSingle();
+    if (!data?.payload) return null;
+    if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) return null;
+    const set = data.payload as EvidenceSet;
+    return Array.isArray(set?.items) && set.items.length ? set : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writePersistedEvidence(
+  ck: string,
+  surface: string,
+  set: EvidenceSet,
+): Promise<void> {
+  const admin = await evidenceAdmin();
+  if (!admin) return;
+  const key = await hashKey(`${AI_COPY_REVISION}::${ck}`);
+  await admin.from("manuscript_evidence_cache").upsert(
+    {
+      cache_key: key,
+      surface,
+      revision: AI_COPY_REVISION,
+      payload: set,
+    },
+    { onConflict: "cache_key" },
+  );
+}
+
 
 /**
  * Is this passage really in the source row? Requires a run of 8 consecutive
@@ -545,6 +624,8 @@ export async function mapClaimsToEvidence(
       body: JSON.stringify({
         model: MAPPER_MODEL,
         temperature: 0,
+        // The auditor only lists failures; it never needs a long answer.
+        max_tokens: 900,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },

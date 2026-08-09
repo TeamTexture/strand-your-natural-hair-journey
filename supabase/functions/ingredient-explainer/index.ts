@@ -203,7 +203,7 @@ async function generateGlossary(names: string[]): Promise<Array<Record<string, u
       input_schema: GLOSSARY_SCHEMA,
     },
     toolChoice: { type: "tool", name: "return_glossary" },
-    max_tokens: 4096,
+    max_tokens: 2400,
   });
   const result = await callClaude<{
     entries: Array<Record<string, unknown>>;
@@ -448,7 +448,7 @@ RULES:
       input_schema: ROLES_SCHEMA,
     },
     toolChoice: { type: "tool", name: "return_roles" },
-    max_tokens: 4096,
+    max_tokens: 2400,
   });
   const result = await callClaude<{ roles: Array<{ name: string; role_in_product: string }> }>(req);
   console.log(JSON.stringify({

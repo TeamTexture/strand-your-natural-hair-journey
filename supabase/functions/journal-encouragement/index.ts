@@ -124,6 +124,8 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
+          // Output cap — output tokens drive latency on these interactive surfaces.
+          max_tokens: 700,
           messages: [
             { role: "system", content: `${systemWithRag}\n\n${buildTipsLevelBlock((body as Record<string, unknown>).tipsLevel)}` },
             { role: "user", content: userPayload },
