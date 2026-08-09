@@ -61,7 +61,12 @@ const BrandOfferDetail = () => {
   const { isAdmin } = useRoles();
   const showExact = isAdmin;
   const { data: offerReach } = useOfferReach(id);
-  const { data: splitTotals } = useOfferSplitTotals(id);
+  // One query for every figure on this screen — headline, detail and the
+  // before/after split all read the same rows.
+  const { metrics, dataUpdatedAt: metricsUpdatedAt } = useOfferMetrics(id);
+  const [statDetailOpen, setStatDetailOpen] = useState(false);
+
+
 
   // When the owner (or admin) opens an ended offer, clear the "new interest"
   // badge on the past card by stamping brand_last_interest_seen_at = now.
