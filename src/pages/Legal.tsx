@@ -7,16 +7,18 @@ import { CONSENT_DOCUMENT_VERSION } from "@/lib/consent";
 /**
  * Legal document reader.
  *
- * TWO DOCUMENTS ARE STILL OUTSTANDING — the Professional Data Handling
- * Undertaking and the Brand Advertising Terms are clearly marked placeholders
- * listing what each must cover. They must be drafted by a solicitor.
+ * ONE DOCUMENT IS STILL OUTSTANDING — the Brand Advertising Terms are a clearly
+ * marked placeholder listing what they must cover. They must be drafted by a
+ * solicitor.
  *
- * INTERIM DOCUMENTS — the other four documents are STRAND's own interim wording and
- * are PENDING SOLICITOR REVIEW. They must be reviewed and signed off by a
- * qualified solicitor before publishing.
+ * INTERIM DOCUMENTS — the other five documents (Terms of Service, Privacy Policy,
+ * Medical Disclaimer, How we use health information, and the Professional Data
+ * Handling Undertaking) are STRAND's own interim wording and are PENDING
+ * SOLICITOR REVIEW. They must be reviewed and signed off by a qualified
+ * solicitor before publishing.
  *
  * Company details, ICO status, data region, retention periods and the liability
- * cap are all filled in. No square-bracket placeholders remain in any of the four
+ * cap are all filled in. No square-bracket placeholders remain in any of the five
  * documents. Do not ship a document with a bracket still in it.
  *
  * When the final wording lands, bump CONSENT_DOCUMENT_VERSION so every member
@@ -327,40 +329,101 @@ const DOCS: Record<string, LegalDoc> = {
     ],
   },
 
-  /**
-   * PLACEHOLDER — NOT LEGAL TEXT. Two documents are outstanding and must be
-   * drafted by a qualified solicitor before launch. The headings below describe
-   * what each document has to cover; the body text is a deliberate placeholder
-   * so the route resolves and the consent gate can link to it.
-   */
-  "professional-undertaking": {
+  "professional-data-handling": {
     title: "Professional Data Handling Undertaking",
-    lastUpdated: "Awaiting drafting",
+    lastUpdated: "9 August 2026",
     sections: [
       {
-        heading: "This document is not yet written",
+        heading: "Who this applies to",
         body: [
-          `**PLACEHOLDER.** This undertaking has not been drafted yet. It is being prepared with a qualified solicitor and will replace this page before launch. Accepting it in the app records that you agree to the obligations summarised below once the final wording is published.`,
+          `This undertaking applies to you if you are listed on STRAND as a professional — a stylist, loctician, braider, trichologist, dermatologist, or any other professional listed in our directory.`,
+          `STRAND is operated by Team Texture Ltd, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE. You can contact us at info@teamtexture.co.uk.`,
+          `You must accept this undertaking before you can view any member's passport or health records. You can use every other part of your professional account without accepting it.`,
         ],
       },
       {
-        heading: "What it will cover",
+        heading: "What you may be given access to",
         body: [
-          `The scope of member information a professional may be granted access to through STRAND, and that access exists only while the member has granted it.`,
-          `A duty of confidentiality over member health information, including blood results, scalp conditions, medications, photographs and AI-generated summaries.`,
-          `Permitted purpose only: providing care to that member. No marketing, no research, no onward disclosure, no export or retention outside STRAND beyond what the professional's own clinical record-keeping duties require.`,
-          `The professional's own status under UK GDPR in respect of that information, their security obligations, and their duty to report a suspected breach to us without delay.`,
-          `What happens when a member withdraws access or closes their account, and what the professional must then delete.`,
-          `Consequences of breach, including immediate removal from the directory and suspension of passport access.`,
+          `Where a member chooses to share their records with you, you may see: their hair profile, their wash day and routine history, the products they use, photographs of their hair and scalp, their goals and challenges, blood test results they have uploaded, scalp and skin conditions they have recorded, and medications and supplements they have listed.`,
+          `Much of this is health information. The law treats it as needing extra protection, and so do we.`,
         ],
       },
       {
-        heading: "Questions",
-        body: [`Contact info@teamtexture.co.uk.`],
+        heading: "The member grants access, not us",
+        body: [
+          `We do not decide what you see. The member does. They choose whether to share, what to share, and for how long.`,
+          `We are not giving you this information for our own purposes, and you are not acting on our behalf when you use it. You decide how to use it in the care you provide, and you are responsible for that decision.`,
+        ],
+      },
+      {
+        heading: "Use it only to care for that member",
+        body: [
+          `You may use what you see for one purpose only: providing care, advice or treatment to the member who shared it with you.`,
+          `You must not use it to market to them or to anyone else, to build a mailing list, for research, for training or teaching, for any commercial purpose, or to make decisions about anyone other than that member.`,
+        ],
+      },
+      {
+        heading: "Keep it confidential",
+        body: [
+          `Do not discuss a member's information with anyone who does not need to know it in order to provide their care. Do not show it to colleagues out of interest. Do not post it, screenshot it for social media, or repeat it as an anecdote in a way that could identify them — including in a salon, a group chat or a training session.`,
+          `If you work in a salon where an account is shared between stylists, you are responsible for making sure the people you share that account with understand and follow this undertaking.`,
+        ],
+      },
+      {
+        heading: "Records you keep yourself",
+        body: [
+          `You may need to keep your own notes about a member's care. Where you do, keep only what you genuinely need, keep it securely, and keep it no longer than your own professional obligations require.`,
+          `Anything you record or store outside STRAND is yours to look after. You become responsible for it under data protection law in your own right, including responding to that member if they ask you what you hold. We cannot do that for you.`,
+        ],
+      },
+      {
+        heading: "Access ends when the member says so",
+        body: [
+          `A member can withdraw your access at any time, without telling you why.`,
+          `When they do, you must stop using anything you saw through STRAND for any new purpose, and you must delete anything you copied out of it unless your own professional or legal obligations require you to keep it. If you do keep something, keep only what those obligations require.`,
+        ],
+      },
+      {
+        heading: "Tell us if something goes wrong",
+        body: [
+          `If you think a member's information has been lost, seen by someone who should not have seen it, or used in a way this undertaking does not allow, tell us at info@teamtexture.co.uk as soon as you become aware of it, and no later than 24 hours afterwards.`,
+          `Tell us even if you are not sure. It is better to raise something that turns out to be nothing.`,
+        ],
+      },
+      {
+        heading: "Your own professional obligations still apply",
+        body: [
+          `This undertaking sits alongside your own responsibilities, it does not replace them. You remain responsible for your own registration, qualifications, insurance, and any code of practice or regulatory obligation that applies to your profession.`,
+          `Nothing here makes us responsible for the care you provide.`,
+        ],
+      },
+      {
+        heading: "You are independent",
+        body: [
+          `You are not our employee, agent or partner. We do not supervise, train or insure you, and we are not a party to any arrangement between you and a member.`,
+        ],
+      },
+      {
+        heading: "If you breach this undertaking",
+        body: [
+          `We may withdraw your access to member records, suspend or remove your listing, and close your professional account. Where the law requires it, we may need to report a breach to the Information Commissioner's Office or to the affected member.`,
+        ],
+      },
+      {
+        heading: "Changes",
+        body: [
+          `We may update this undertaking. Where a change materially affects you we will tell you and ask you to accept the new version before you can view member records again.`,
+        ],
       },
     ],
   },
 
+  /**
+   * PLACEHOLDER — NOT LEGAL TEXT. One document is outstanding and must be
+   * drafted by a qualified solicitor before launch. The headings below describe
+   * what it has to cover; the body text is a deliberate placeholder so the
+   * route resolves.
+   */
   "brand-advertising-terms": {
     title: "Brand Advertising Terms",
     lastUpdated: "Awaiting drafting",
