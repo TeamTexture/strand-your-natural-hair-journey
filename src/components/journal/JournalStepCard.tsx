@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench, Check } from "lucide-react";
 import { captureVideoPoster } from "@/lib/videoPoster";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -242,12 +242,12 @@ const JournalStepCard = ({
             type="button"
             onClick={onToggleExpand}
             className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
-            aria-expanded={expanded}
+            aria-expanded={isOpen}
           >
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Step {index + 1}
             </span>
-            {expanded ? (
+            {isOpen ? (
               <ChevronUp className="size-3.5 text-muted-foreground shrink-0" />
             ) : (
               <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
@@ -258,7 +258,7 @@ const JournalStepCard = ({
             Step {index + 1}
           </span>
         )}
-        {editing && expanded && (
+        {editing && isOpen && (
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -290,7 +290,7 @@ const JournalStepCard = ({
         )}
       </div>
 
-      {!expanded && (
+      {!isOpen && (
         <button type="button" onClick={onToggleExpand} className="w-full text-left space-y-1">
           <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
             {notePreview || "Nothing recorded yet — tap to add"}
@@ -304,7 +304,7 @@ const JournalStepCard = ({
         </button>
       )}
 
-      {expanded && (
+      {isOpen && (
       <>
       {editing ? (
 
