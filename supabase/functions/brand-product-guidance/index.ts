@@ -399,8 +399,17 @@ function validate(
       const goalIssue = goalReferenceProblem(washDayTip, context);
       if (goalIssue) problems.push(goalIssue.replace("the advert tip", "wash_day_tip"));
 
+      // PERSONALISATION FLOOR — the sponsored tip must name at least one of this
+      // member's own recorded characteristics, challenges or concerns. A generic
+      // product line is rejected and regenerated.
+      const terms = characteristicTerms(context);
+      if (terms.length && !terms.some((t) => countTerm(washDayTip, t) > 0))
+        problems.push(
+          `wash_day_tip does not reference this member's own hair data — name one of: ${terms.slice(0, 8).join(", ")}.`,
+        );
     }
   }
+
 
 
   const watchRaw = Array.isArray(raw.watch_outs)
