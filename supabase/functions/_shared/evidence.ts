@@ -442,6 +442,27 @@ If a claim contradicts the author on any point, it is "unmapped", never "externa
 
 Reply with JSON only: {"unmapped":[{"claim":"...","reason":"..."}],"external":[{"claim":"...","basis":"<the established science, one line>","principle":"<the governing principle it is consistent with>"}]}`;
 
+/**
+ * POLICY B — sponsored product surfaces. Established cosmetic science is
+ * permitted for ingredient function and product usage, so the mapper triages
+ * rather than rejects. The author still wins every conflict, her terminology
+ * still binds, and brand marketing is never admissible.
+ * See _shared/policy-b.ts for the full policy and its deterministic gates.
+ */
+const SPONSORED_RULE =
+  `POLICY: SPONSORED PRODUCT GUIDANCE. This text describes a specific commercial product to one member. The book cannot cover every commercial formula, so ESTABLISHED cosmetic science is permitted for ingredient function and product usage.
+
+Triage every claim the evidence set does not support into exactly one bucket:
+- "external": ESTABLISHED cosmetic science or trichology about ingredient function or product usage, stated with confidence, and NOT in conflict with the author on any point. Give the basis in one line.
+- "unmapped": a brand or packaging claim, marketing language ("clinically proven", "seals in hydration", "continuous hydration", timed hydration claims), influencer or community consensus, a contested position, an invented number or mechanism, OR anything that contradicts the author's stated position or her terminology. These are rejected.
+
+Treat these as ACCEPTABLE and never report them: the product's declared ingredient list, an ingredient's POSITION on that list, the absence of an ingredient (e.g. "no protein in the formula"), counts of declared allergens, and the product or brand name. Those are product facts.
+Also never report a claim merely for being applied to this member's recorded porosity, cuticle state, density, diameter, texture, elasticity, length, concern, style or goal — personalisation is required on this surface.
+Where the author has a position on an ingredient, only HER characterisation of it maps; an industry alternative for the same ingredient is "unmapped".
+
+Reply with JSON only: {"unmapped":[{"claim":"...","reason":"..."}],"external":[{"claim":"...","basis":"<the established science, one line>","principle":"sponsored product guidance"}]}`;
+
+
 export interface UnmappedClaim {
   claim: string;
   reason: string;
