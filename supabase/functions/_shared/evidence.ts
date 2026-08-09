@@ -624,6 +624,8 @@ export async function mapClaimsToEvidence(
       body: JSON.stringify({
         model: MAPPER_MODEL,
         temperature: 0,
+        // The auditor only lists failures; it never needs a long answer.
+        max_tokens: 900,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },
