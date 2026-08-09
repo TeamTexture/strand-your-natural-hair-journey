@@ -201,3 +201,26 @@ export const FIDELITY_RULE =
 4. NEVER name, invent or infer a book, author, chapter title, section name, page number or quotation. If you are unsure of a label, omit it entirely.
 5. Do not quote the source verbatim. Take its reasoning and guidance and express it in your own words — without ever asserting something it does not say.
 6. Use the source's own terminology exactly as it does. Do not substitute a common industry synonym for the source's chosen term.`;
+
+// ---------------------------------------------------------------------------
+// Source registry
+// ---------------------------------------------------------------------------
+//
+// The fidelity fail-safe runs inside sanitiseAndLog, which is often called from
+// a different scope than the one that built the grounding block. Rather than
+// thread the source text through every function signature, the grounding
+// builder records what it gave the model, keyed by function name, and the
+// fail-safe reads it back. Chapters are fixed per surface, so the recorded text
+// is the text that generation actually saw.
+
+const lastSourceByFn = new Map<string, { text: string; chapters: number[] }>();
+
+export function noteSourceText(fn: string, text: string, chapters: number[]): void {
+  if (!text) return;
+  if (lastSourceByFn.size > 32) lastSourceByFn.clear();
+  lastSourceByFn.set(fn, { text, chapters });
+}
+
+export function lastSourceText(fn: string): { text: string; chapters: number[] } {
+  return lastSourceByFn.get(fn) ?? { text: "", chapters: [] };
+}

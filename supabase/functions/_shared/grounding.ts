@@ -24,6 +24,7 @@ import { renderPassageBlock, retrievePassages } from "./rag.ts";
 import {
   FIDELITY_RULE,
   loadSurfaceChapters,
+  noteSourceText,
   renderChapterBlock,
   type ChapterContext,
   type SurfaceKey,
@@ -185,13 +186,19 @@ export async function buildGroundingBlock(
   if (input.proceduralBias) parts.push(METHOD_AND_TIMING_RULE);
 
 
+  const sourceText = chapterCtx?.text ?? passageBlocks.join("\n\n");
+  const chaptersUsed = chapterCtx?.chapters ?? input.chapterFilter ?? [];
+  // Record what the model was given so the fidelity fail-safe in
+  // sanitiseAndLog can audit the response against this exact text.
+  noteSourceText(input.fn, sourceText, chaptersUsed);
+
   return {
     block: parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "",
     grounded,
     passages: chapterCtx ? chapterCtx.chunks : passageBlocks.length,
     topics: topicBlocks.length,
-    sourceText: chapterCtx?.text ?? passageBlocks.join("\n\n"),
-    chapters: chapterCtx?.chapters ?? input.chapterFilter ?? [],
+    sourceText,
+    chapters: chaptersUsed,
   };
 }
 

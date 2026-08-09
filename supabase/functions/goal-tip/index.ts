@@ -14,6 +14,7 @@ import {
 import type { TopicId } from "../_shared/knowledge/types.ts";
 import {
   chaptersForSurface,
+  noteSourceText,
   FIDELITY_RULE,
   LANGUAGE_CHAPTER,
   loadChapters,
@@ -532,6 +533,7 @@ Deno.serve(async (req) => {
       ragPassageCount = ctx.chunks;
       sourceText = ctx.text;
       chaptersUsed = ctx.chapters;
+      noteSourceText("goal-tip", sourceText, chaptersUsed);
       if (ctx.text) {
         ragBlock = `\n\n${renderChapterBlock(ctx)}\n\n${FIDELITY_RULE}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
       }

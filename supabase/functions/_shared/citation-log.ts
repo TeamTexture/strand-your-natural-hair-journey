@@ -12,6 +12,7 @@
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
 import { enforceFidelity } from "./fidelity.ts";
+import { lastSourceText } from "./chapter-context.ts";
 import {
   enforceBloodSafety,
   enforceStyleVerbatimDeep,
@@ -121,11 +122,12 @@ export async function sanitiseAndLog<T>(
   // supplied manuscript source text every claim is traced back to it. Anything
   // unsupported is logged to ai_fidelity_rejections and removed from the
   // output. See _shared/fidelity.ts.
+  const recorded = lastSourceText(functionName);
   return await enforceFidelity(
     out,
     functionName,
-    opts?.grounding ?? "",
-    opts?.chapters ?? [],
+    recorded.text || (opts?.grounding ?? ""),
+    opts?.chapters ?? recorded.chapters,
   );
 }
 
