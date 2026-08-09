@@ -242,6 +242,8 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   const modeDecided = useRef(false);
   // Only one step is open at a time — save it, it collapses, open the next.
   const [openStepId, setOpenStepId] = useState<string | null>(null);
+  // Cover chooser — which photo/video represents this record in the journal.
+  const [coverOpen, setCoverOpen] = useState(false);
   const openedOnce = useRef(false);
 
   // Unsaved note text per step, plus the exit guard it feeds.
