@@ -39,6 +39,9 @@ interface Props {
   onTranscript?: (text: string) => void;
   /** Hide the textarea when the field is voice-only alongside another input. */
   hideTextarea?: boolean;
+  /** Transcribe as soon as a recording is saved, with no extra tap. */
+  autoTranscribe?: boolean;
+
 }
 
 
