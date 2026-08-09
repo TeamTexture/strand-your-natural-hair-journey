@@ -20,10 +20,8 @@ import {
   renderChapterBlock,
 } from "../_shared/chapter-context.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
-import {
-  METHOD_AND_TIMING_RULE,
-  retrieveProceduralPassages,
-} from "../_shared/procedural-rag.ts";
+import { METHOD_AND_TIMING_RULE } from "../_shared/procedural-rag.ts";
+
 import {
   methodRetryDirective,
   validateTipSubstance,
