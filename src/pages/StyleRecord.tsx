@@ -269,7 +269,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 step={s}
                 index={i}
                 total={steps.length}
-                editing={!complete}
+                editing
                 onUpdate={(patch) => void updateStep(s.id, patch)}
                 onDelete={() => void deleteStep(s.id)}
                 onMove={(dir) => void moveStep(s.id, dir)}
@@ -281,17 +281,16 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
           </div>
         )}
 
-        {!complete && (
-          <Button
-            type="button"
-            variant="goldOutline"
-            size="pill"
-            className="w-full"
-            onClick={() => void addStep()}
-          >
-            <Plus className="size-4 mr-1.5" /> Add step {steps.length + 1}
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="goldOutline"
+          size="pill"
+          className="w-full"
+          onClick={() => void addStep()}
+        >
+          <Plus className="size-4 mr-1.5" /> Add step {steps.length + 1}
+        </Button>
+
 
         <Button
           type="button"
