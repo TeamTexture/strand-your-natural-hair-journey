@@ -278,7 +278,9 @@ const JournalStepCard = ({
   const summaryChips = [
     photoCount ? { icon: Images, label: `${photoCount} photo${photoCount === 1 ? "" : "s"}` } : null,
     videoCount ? { icon: Film, label: `${videoCount} video${videoCount === 1 ? "" : "s"}` } : null,
-    step.voice_path ? { icon: Mic, label: "Voice note" } : null,
+    step.voice_path || step.voice_transcript?.trim()
+      ? { icon: Mic, label: step.voice_transcript?.trim() ? "Voice note transcribed" : "Voice note" }
+      : null,
     selectedIds.length ? { icon: Package, label: `${selectedIds.length} product${selectedIds.length === 1 ? "" : "s"}` } : null,
     selectedToolIds.length ? { icon: Wrench, label: `${selectedToolIds.length} tool${selectedToolIds.length === 1 ? "" : "s"}` } : null,
   ].filter(Boolean) as { icon: typeof Package; label: string }[];
@@ -554,6 +556,7 @@ const JournalStepCard = ({
                 onTranscript={(text) => onUpdate({ voice_transcript: text })}
                 folder={`journal-steps/${step.id}`}
                 rows={3}
+                autoTranscribe
               />
               {noteDirty && (
                 <div className="flex items-center gap-2">
