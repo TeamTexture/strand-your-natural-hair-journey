@@ -108,7 +108,7 @@ const BrandDashboard = () => {
   const past = withDerived.filter((o) => ["ended", "rejected", "cancelled"].includes(o._derived));
 
   const renderOffer = (o: typeof withDerived[number]) => {
-    const t = totals[o.id];
+    const t = metrics[o.id]?.all;
     const placements = o.brand_offer_placements ?? [];
     const slotSet = Array.from(new Set(placements.map((p) => p.slot)));
     const dates = placements.map((p) => p.placement_date).sort();
@@ -398,7 +398,7 @@ const BrandDashboard = () => {
                     slots={placements.map((p) => p.slot)}
                     startDate={dates[0]}
                     endDate={dates[dates.length - 1]}
-                    totals={totals[o.id]}
+                    metrics={metrics[o.id]?.all}
                     submitter={profile?.brand_name ?? undefined}
                     amountPaidPence={o.total_price_pence}
                     interestTotal={interest?.total ?? 0}
