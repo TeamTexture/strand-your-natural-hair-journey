@@ -430,7 +430,7 @@ async function runClaude(args: {
       input_schema: buildToolSchema(ingredientCount, level),
     },
     toolChoice: { type: "tool", name: "return_analysis" },
-    max_tokens: 4096,
+    max_tokens: 2400,
   });
 
   const result = await callClaude<AnalysisPayload>(req);
