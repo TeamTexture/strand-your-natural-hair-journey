@@ -607,10 +607,11 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
             variant="goldOutline"
             size="sm"
             className="h-10"
-            onClick={() => nativeRef.current?.click()}
-            disabled={uploading}
+            onClick={openNativeCamera}
+            disabled={uploading || preparing}
           >
-            <Camera className="size-4 mr-1.5" /> Open phone camera
+            {preparing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Camera className="size-4 mr-1.5" />}
+            {preparing ? "Checking your clip…" : "Open phone camera"}
           </Button>
         )}
 
