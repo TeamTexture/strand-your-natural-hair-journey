@@ -31,7 +31,48 @@ import {
   validateTipAction,
   validateTipReason,
   memberAttributeTokens,
+  hasInstructingVerb,
 } from "../_shared/tip-action.ts";
+
+/**
+ * SOFT SIGNALS (2026-08-09, author's correction). Three simultaneous hard
+ * requirements plus two-stage generation made the sponsored wash day tip slow
+ * and same-shaped. Only three things block now: an action, a mechanism reason,
+ * and personalisation to something the member has recorded. Everything else —
+ * naming a declared ingredient, quoting a trait verbatim, the repetition gate —
+ * is a PREFERENCE: it is logged, fed into the single retry, and never rejects.
+ */
+async function logSoft(
+  userId: string | null,
+  notes: string[],
+  attempt: number,
+  offending: string,
+): Promise<void> {
+  if (!notes.length) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  console.log(JSON.stringify({ event: "sponsored_tip_soft_miss", notes, attempt }));
+  if (!url || !svc) return;
+  try {
+    // @ts-ignore Deno-native URL import
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+    const admin = createClient(url, svc, { auth: { persistSession: false } });
+    await admin.from("tip_generation_rejections").insert(
+      notes.map((rule) => ({
+        function_name: "brand-product-guidance",
+        surface: "sponsored-wash-day-tip",
+        user_id: userId,
+        stage: "soft",
+        rule,
+        detail: "preferred, not required — did not block",
+        offending_text: offending.slice(0, 500),
+        attempt,
+      })),
+    );
+  } catch {
+    /* logging must never break generation */
+  }
+}
 
 
 declare const Deno: {
@@ -267,8 +308,12 @@ function validate(
   p: unknown,
   context: Record<string, unknown> | null,
   surface?: string,
-): { ok: true; value: GuidancePayload } | { ok: false; problems: string[] } {
+  declared: string[] = [],
+):
+  | { ok: true; value: GuidancePayload; soft: string[] }
+  | { ok: false; problems: string[]; soft: string[] } {
   const problems: string[] = [];
+  const soft: string[] = [];
   const isWashDay = surface === "wash_day";
   const raw = (p ?? {}) as Record<string, unknown>;
 
@@ -387,7 +432,13 @@ function validate(
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
 
-  // The sponsored wash day tip body — enforced, not requested.
+  // THE SPONSORED WASH DAY TIP.
+  //
+  // HARD (blocks): an action, a reason that is a mechanism, personalisation to
+  // something recorded, plus the shape cap (2 sentences / 45 words) and the ban
+  // on generic goal references.
+  // SOFT (logged, fed to the one retry, never blocks): naming a declared
+  // ingredient and its function, quoting a trait verbatim, repetition.
   const washDayTip = String(raw.wash_day_tip ?? raw.washDayTip ?? "").trim();
   if (isWashDay) {
     if (!washDayTip) problems.push("wash_day_tip is missing — it is required on the wash day surface.");
@@ -399,18 +450,50 @@ function validate(
       const goalIssue = goalReferenceProblem(washDayTip, context);
       if (goalIssue) problems.push(goalIssue.replace("the advert tip", "wash_day_tip"));
 
-      // PERSONALISATION FLOOR — the sponsored tip must name at least one of this
-      // member's own recorded characteristics, challenges or concerns. A generic
-      // product line is rejected and regenerated.
-      const terms = characteristicTerms(context);
-      if (terms.length && !terms.some((t) => countTerm(washDayTip, t) > 0))
+      const sentences = washDayTip
+        .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      const actionPart = sentences[0] ?? washDayTip;
+      const reasonPart = sentences.slice(1).join(" ") || washDayTip;
+
+      // HARD 1 — an action. Something to DO with the product.
+      if (!hasInstructingVerb(actionPart))
         problems.push(
-          `wash_day_tip does not reference this member's own hair data — name one of: ${terms.slice(0, 8).join(", ")}.`,
+          "wash_day_tip has no action — its first sentence must tell this member what to physically DO with the product on their next wash day (apply, work, smooth, section, swap, spritz…). A description of what the product contains is not an action.",
         );
+
+      // HARD 2 — the reason is a mechanism, not a benefit or outcome.
+      const mech = validateMechanism(reasonPart);
+      if (!mech.ok)
+        problems.push(
+          `wash_day_tip has no mechanism (${mech.reasons.join(", ")}) — say what PHYSICALLY happens on the strand or scalp. "supports your length goal", "keeps hair healthy" and "leaves hair soft" are outcomes, not mechanisms, and are rejected.`,
+        );
+
+      // HARD 3 — personalisation to something recorded. Any recorded signal
+      // counts: a characteristic, a challenge, a concern, a style, a goal label.
+      const recorded = [
+        ...characteristicTerms(context),
+        ...attributeTokensFor(context),
+      ].filter((t) => t.length >= 3);
+      const personalised = recorded.some((t) => countTerm(washDayTip, t) > 0);
+      if (recorded.length && !personalised)
+        problems.push(
+          `wash_day_tip would read the same for any member — connect it to something this member has actually recorded (${recorded.slice(0, 8).join(", ")}). Paraphrasing their data is fine; it does not have to be quoted.`,
+        );
+
+      // SOFT — preferred route to the mechanism: name a declared ingredient (or
+      // a tool's stated material/function). Sequence and technique tips are
+      // equally good guidance and must not be penalised.
+      if (declared.length && !declared.some((d) => countTerm(washDayTip, d) > 0)) {
+        soft.push("no declared ingredient named — a named ingredient and its function is the preferred route to the mechanism, but sequence or technique is equally valid.");
+      }
+      // SOFT — verbatim trait quoting.
+      if (personalised && !characteristicTerms(context).some((t) => countTerm(washDayTip, t) > 0)) {
+        soft.push("personalised without quoting a recorded hair characteristic verbatim — acceptable, verbatim is preferred where it reads naturally.");
+      }
     }
   }
-
-
 
   const watchRaw = Array.isArray(raw.watch_outs)
     ? raw.watch_outs
@@ -446,15 +529,16 @@ function validate(
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
     if (n > 1) {
-      problems.push(
+      (isWashDay ? soft : problems).push(
         `"${term}" appears ${n} times across the card — each hair characteristic may appear at most ONCE in total. Remove the repeats and say "your hair" or nothing.`,
       );
     }
   }
 
-  if (problems.length) return { ok: false, problems };
+  if (problems.length) return { ok: false, problems, soft };
   return {
     ok: true,
+    soft,
     value: {
       headline,
       fit_line: fitLine,
@@ -471,8 +555,18 @@ function validate(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  const auth = await requireAuthedUser(req);
-  if (auth instanceof Response) return auth;
+  // PRE-GENERATION PATH. `brand-tips-pregenerate` calls this function with the
+  // service role key and a `pregen_user_id`, so sponsored tips can be written
+  // in the background at campaign approval instead of on first view.
+  const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const isServiceCall =
+    !!svcKey && req.headers.get("Authorization") === `Bearer ${svcKey}`;
+
+  let auth: Awaited<ReturnType<typeof requireAuthedUser>> | null = null;
+  if (!isServiceCall) {
+    auth = await requireAuthedUser(req);
+    if (auth instanceof Response) return auth;
+  }
 
   let body: Body;
   try {
@@ -499,6 +593,17 @@ Deno.serve(async (req) => {
     });
   }
 
+  const pregenUserId = String((body as { pregen_user_id?: string }).pregen_user_id ?? "").trim();
+  const userId = isServiceCall
+    ? (pregenUserId || null)
+    : (auth as { user: { id: string } }).user.id;
+  if (isServiceCall && !userId) {
+    return new Response(JSON.stringify({ error: "pregen_user_id is required" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const userMsg = JSON.stringify({
     product: body.product,
     user_context: body.context ?? {},
@@ -511,7 +616,7 @@ Deno.serve(async (req) => {
   const surface = (body as { surface?: string }).surface;
   const surfaceBlock =
     surface === "wash_day"
-      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested — longer output is rejected.\n- SENTENCE 1 — what to do with this product on their next wash day, naming the product once and the part of the product that does the work: a DECLARED INGREDIENT by name (or, for a tool, its stated material/function). No vague "nourishing formula".\n- SENTENCE 2 — WHY that ingredient or function matters for THIS member: state the physical mechanism, then tie it to one of their OWN recorded data points — hair type, porosity, density, surface texture, scalp condition, current or planned style, or a challenge/area of concern they logged. Use their wording for that data point.\n- The tip MUST contain at least one of the member's own recorded characteristics or challenges verbatim. A tip that would read the same for any member is rejected.\n- Reason must be a mechanism (what physically happens on the strand or scalp), never a benefit or outcome claim ("leaves hair soft", "boosts growth").\n- Where their hair data and the product's function do NOT align, say so plainly and briefly instead of inventing a fit.\n- No separate bullets on this surface — everything lives in those two sentences.\n- Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim the manuscript or the ingredient evidence does not support.`
+      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested.\n- THREE THINGS ARE REQUIRED, and nothing else is:\n  1. AN ACTION — the first sentence tells this member what to physically DO with this product on their next wash day: the move, where on the head, and where it falls in their routine. Name the product once.\n  2. A MECHANISM — say what physically happens on the strand or scalp. Never an outcome or benefit: "leaves hair soft", "supports your length goal", "keeps hair healthy" are all rejected.\n  3. PERSONALISATION — it must connect to something this member has actually recorded: a hair characteristic, their current or planned style, a challenge or area of concern, a recorded goal label, or their last logged wash day. You may paraphrase their data; you do not have to quote it word for word.\n- PREFERRED, NOT REQUIRED: naming a declared ingredient and what it does is the cleanest route to the mechanism — use it when the ingredient list supports it. But a tip about SEQUENCE or TECHNIQUE is just as good and often better: "use it as your second cleanse, worked through the hair rather than the scalp" names no ingredient and is excellent guidance. Do not force chemistry into a tip that is really about order or method.\n- VARY THE SHAPE. Do not write every tip to the same template. Sometimes the useful thing is where it goes in the routine, sometimes how much, sometimes how long you leave it, sometimes what to pair or not pair it with, sometimes what to do differently in the member's current style.\n- Where their hair data and the product's function do NOT align, say so plainly and briefly instead of inventing a fit.\n- No bullets on this surface — everything lives in those two sentences.\n- Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim the manuscript or the ingredient evidence does not support.`
       : "";
 
 
@@ -519,10 +624,15 @@ Deno.serve(async (req) => {
   // TWO-STAGE GROUNDED GENERATION. Stage 1 reads chapters 15, 14 + 1 in full and
   // extracts the evidence; this call (stage 2) receives the evidence, which stays
   // the primary source.
+  // REDUCED CONTEXT. Policy B already admits established cosmetic science for
+  // ingredients the book does not name, so three full chapters to explain a
+  // surfactant was mostly wasted spend. Chapter 1 (language, mandatory) plus
+  // chapter 15 (Understanding Ingredients) — the single most relevant chapter.
   const evid = await evidencePromptBlock({
     fn: "brand-product-guidance",
     surface: "brand-product-guidance",
     memberContext: userMsg.slice(0, 4000),
+    chapters: [1, 15],
   });
   const groundingBlock = evid.grounded ? `\n\n${evid.block}` : "";
 
@@ -562,9 +672,11 @@ Deno.serve(async (req) => {
     let clean: GuidancePayload | null = null;
     let lastProblems: string[] = [];
 
-    // Up to 3 attempts: the first generation plus two grounded regenerations
-    // driven by the exact structural failures found.
-    for (let attempt = 0; attempt < 3 && !clean; attempt++) {
+    // RETRY CAP: ONE. (Was 3 attempts / 2 retries.) One generation plus a single
+    // corrective regeneration, then serve the best candidate that satisfies the
+    // three hard rules and log the rest.
+    const MAX_ATTEMPTS = 2;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && !clean; attempt++) {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -622,7 +734,10 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
-      const result = validate(parsed, body.context ?? null, surface);
+      const result = validate(parsed, body.context ?? null, surface, declared);
+      // Soft signals are logged for author review and folded into the ONE
+      // retry as preferences. They never reject.
+      await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
       if (result.ok) {
         // Sanitise INSIDE the loop. The blood guardrail can strip a whole
         // sentence, and a stripped reason would otherwise ship an action-only
@@ -631,7 +746,7 @@ Deno.serve(async (req) => {
         const candidate = await sanitiseAndLog(result.value, "brand-product-guidance", {
           context: body.context,
           surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
-          userId: auth.user.id,
+          userId,
           // POLICY B. The sponsored gates (marketing detection, conflict
           // register, per-claim source labelling) run only on this path.
           policy: "B",
@@ -661,13 +776,17 @@ Deno.serve(async (req) => {
       } else {
         lastProblems = parsed === null ? ["Output was not valid JSON."] : result.problems;
       }
+      if (attempt + 1 >= MAX_ATTEMPTS) break;
       messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
       messages.push({
         role: "user",
         content:
           `That output was REJECTED. Fix every problem below and return the corrected JSON only. ` +
           `Do NOT pad, do NOT loosen grounding — drop a benefit before you invent one.\n- ` +
-          lastProblems.join("\n- "),
+          lastProblems.join("\n- ") +
+          (result.soft.length
+            ? `\n\nALSO PREFERRED (not required — do not sacrifice the three required things for these):\n- ${result.soft.join("\n- ")}`
+            : ""),
       });
     }
 

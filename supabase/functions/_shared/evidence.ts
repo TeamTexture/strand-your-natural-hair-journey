@@ -163,9 +163,20 @@ export async function gatherEvidence(input: {
   surface: SurfaceKey;
   /** Humanised member facts + the question being answered. No PII beyond hair data. */
   memberContext: string;
+  /**
+   * REDUCED CONTEXT (2026-08-09, author's correction). Sponsored product
+   * surfaces reason under policy B, where established cosmetic science is
+   * already admitted for ingredients the book does not name — so passing three
+   * chapters in full to explain a surfactant is mostly wasted spend. Those
+   * surfaces pass chapter 1 plus the single most relevant chapter here.
+   * Editorial surfaces omit it and keep whole-chapter retrieval unchanged.
+   */
+  chapters?: number[];
 }): Promise<EvidenceSet> {
   const key = Deno.env.get("LOVABLE_API_KEY");
-  const chapters = chaptersForSurface(input.surface);
+  const chapters = input.chapters?.length
+    ? [...new Set(input.chapters)].sort((a, b) => a - b)
+    : chaptersForSurface(input.surface);
   const rows = await loadChapterRows(chapters);
   if (!rows.length || !key) return EMPTY_EVIDENCE;
 
@@ -177,7 +188,8 @@ export async function gatherEvidence(input: {
     .map((r, i) => `[${i + 1}]\n${r.body}`)
     .join("\n\n");
 
-  const cached = stage1Cache.get(cacheKey(input.surface, input.memberContext));
+  const ck = cacheKey(input.surface, input.memberContext, chapters);
+  const cached = stage1Cache.get(ck);
   if (cached) return cached;
 
   let raw: Stage1Raw[] = [];
@@ -280,7 +292,7 @@ export async function gatherEvidence(input: {
   };
   if (items.length) {
     if (stage1Cache.size > 64) stage1Cache.clear();
-    stage1Cache.set(cacheKey(input.surface, input.memberContext), set);
+    stage1Cache.set(ck, set);
   }
   console.log(
     JSON.stringify({
@@ -290,6 +302,11 @@ export async function gatherEvidence(input: {
       chapters: set.chapters,
       items: items.length,
       dropped: raw.length - items.length,
+      // Stage 1 input size — the number the context reduction is measured on.
+      source_tokens: rows.reduce(
+        (a, r) => a + (r.token_count ?? Math.ceil(r.body.length / 4)),
+        0,
+      ),
       coverage: set.coverage,
       tokens,
     }),
@@ -300,7 +317,8 @@ export async function gatherEvidence(input: {
 
 /** Cheap in-instance cache: the same member signature re-asks the same question. */
 const stage1Cache = new Map<string, EvidenceSet>();
-const cacheKey = (surface: string, ctx: string) => `${surface}::${norm(ctx).slice(0, 400)}`;
+const cacheKey = (surface: string, ctx: string, chapters: number[] = []) =>
+  `${surface}::${chapters.join(",")}::${norm(ctx).slice(0, 400)}`;
 
 /**
  * Is this passage really in the source row? Requires a run of 8 consecutive
@@ -790,6 +808,8 @@ export async function evidencePromptBlock(input: {
   fn: string;
   surface: SurfaceKey;
   memberContext: string;
+  /** See `gatherEvidence` — reduced chapter set for sponsored surfaces. */
+  chapters?: number[];
 }): Promise<{ block: string; evidence: EvidenceSet; grounded: boolean }> {
   const base = await gatherEvidence(input);
   if (!base.items.length) {

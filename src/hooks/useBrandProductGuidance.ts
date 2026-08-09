@@ -82,8 +82,15 @@ function fingerprintContext(context: Record<string, unknown>): string {
   return djb2Hex(JSON.stringify(slice));
 }
 
+// The wash day (sponsored tip) surface is PRE-GENERATED in the background when
+// a campaign is approved, so its key must be computable server-side: it carries
+// no client-side context fingerprint. Invalidation is a database trigger that
+// drops these rows when the member's hair, style or goals change. Every other
+// surface keeps the fingerprinted key.
 const cacheKind = (productId: string, fingerprint: string, surface: string) =>
-  `brand_product_guidance_v10:${surface}:${productId}:${fingerprint}`;
+  surface === "wash_day"
+    ? `brand_wash_tip_v1:${productId}`
+    : `brand_product_guidance_v10:${surface}:${productId}:${fingerprint}`;
 
 
 /** In-memory guard so two surfaces mounting at once don't both generate. */
@@ -94,6 +101,20 @@ async function loadGuidance(
   product: BrandGuidanceProduct,
   surface: GuidanceSurface,
 ): Promise<BrandGuidance | null> {
+  // FAST PATH. The wash day key needs no context, so the pre-generated tip is a
+  // single indexed read — buildAiContext (several tables) only runs on a miss.
+  if (surface === "wash_day") {
+    const kind = cacheKind(product.id, "", surface);
+    const { data: pre } = await supabase
+      .from("ai_summaries")
+      .select("payload")
+      .eq("user_id", userId)
+      .eq("kind", kind)
+      .maybeSingle();
+    const p = pre?.payload as unknown as BrandGuidance | null;
+    if (p?.wash_day_tip) return p;
+  }
+
   const context = (await sharedContext(userId)) as unknown as Record<string, unknown>;
   const kind = cacheKind(product.id, fingerprintContext(context), surface);
 
@@ -112,6 +133,7 @@ async function loadGuidance(
     // cached payload is valid if it carries either shape.
     if (cachedPayload && (Array.isArray(cachedPayload.benefits) || cachedPayload.wash_day_tip))
       return cachedPayload;
+
 
     const { data: res, error } = await supabase.functions.invoke("brand-product-guidance", {
       body: {
