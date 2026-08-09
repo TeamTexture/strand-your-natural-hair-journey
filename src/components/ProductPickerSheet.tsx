@@ -93,8 +93,22 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
   const [linkUrl, setLinkUrl] = useState("");
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
   const [scanPreferCamera, setScanPreferCamera] = useState(true);
-  const { products: shelf, loading: loadingShelf } = useUserProducts("shelf");
-  const { products: wishlist, loading: loadingWishlist } = useUserProducts("wishlist");
+  const {
+    products: shelf,
+    loading: loadingShelf,
+    setShelf,
+    remove: deleteProduct,
+    reload: reloadShelf,
+  } = useUserProducts("shelf");
+  const {
+    products: wishlist,
+    loading: loadingWishlist,
+    setWishlist,
+    reload: reloadWishlist,
+  } = useUserProducts("wishlist");
+  const [pendingRemove, setPendingRemove] = useState<UserProduct | null>(null);
+  const [removing, setRemoving] = useState(false);
+
   const { startScan, busy: scanBusy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
   const location = useLocation();
