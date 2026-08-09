@@ -78,8 +78,11 @@ interface Props {
   onDraftChange?: (stepId: string, draft: string | null) => void;
   /** Bumping this discards any unsaved note text. */
   discardSignal?: number;
-
+  /** When provided, the step collapses to a one-line summary. */
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
+
 
 
 /**
