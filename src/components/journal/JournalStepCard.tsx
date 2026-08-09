@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench, Check } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench, Check, Film, Mic, Images } from "lucide-react";
 import { captureVideoPoster } from "@/lib/videoPoster";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
