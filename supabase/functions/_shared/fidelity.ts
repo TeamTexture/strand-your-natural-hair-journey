@@ -67,38 +67,83 @@ const sentences = (text: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-/** Reversed two-cleanse protocol: 1st = lengths, 2nd = scalp. */
+/**
+ * Cleanse sequencing. Ch 13, p.164: the all-purpose (or clarifying) shampoo
+ * comes FIRST, and the conditioning/moisturising shampoo is what you follow up
+ * with. The source makes no claim about a lengths-then-scalp order, so no rule
+ * may assert one.
+ */
 const CLEANSE_ORDER: DeterministicRule = {
   id: "cleanse-order",
   reason:
-    "Reverses the two-cleanse protocol. The source states the FIRST cleanse targets the hair lengths and the SECOND cleanse targets the scalp.",
+    "Reverses the cleansing sequence. The source states you go in with an all-purpose (or clarifying) shampoo first and follow up with a conditioning/moisturising shampoo as the later cleanse.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
-      const firstScalp =
-        /\b(first|1st|initial|one)\b[^.]{0,90}\bcleanse[^.]{0,90}\bscalp\b/.test(l) ||
-        /\bfirst\s+(?:sham|cleanse|wash)[^.]{0,60}\bscalp\b/.test(l);
-      const secondLengths =
-        /\b(second|2nd|two)\b[^.]{0,90}\bcleanse[^.]{0,90}\b(length|lengths|ends|mid-lengths|strands)\b/
+      const conditioningFirst =
+        /\b(first|1st|initial|start(?:ing)?|begin)\b[^.]{0,80}\b(conditioning|moisturis(?:ing|er)|co-?wash)\b[^.]{0,40}\b(shampoo|cleanse|wash)\b/
           .test(l);
-      if (firstScalp || secondLengths) return s;
+      const clarifyingSecond =
+        /\b(second|2nd|then|follow(?:\s+up)?)\b[^.]{0,80}\b(all-?purpose|clarif(?:y|ying)|chelating)\b[^.]{0,40}\b(shampoo|cleanse)\b/
+          .test(l);
+      if (conditioningFirst || clarifyingSecond) return s;
     }
     return null;
   },
 };
 
-/** Leave-in / sealant described as adding hydration or moisture to the hair. */
-const LEAVE_IN_HYDRATES: DeterministicRule = {
-  id: "leave-in-hydrates",
+/** Ch 13, p.164: agitate the scalp with the pads of the fingertips, NOT nails. */
+const SCALP_NAILS: DeterministicRule = {
+  id: "scalp-nails",
   reason:
-    "The source states a leave-in forms a barrier that slows moisture leaving the hair. It does not hydrate, add moisture, or replenish moisture.",
+    "The source instructs agitating the scalp with the pads of the fingertips, explicitly NOT the nails.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
-      if (!/\b(leave-?in|leave in|cream|butter|oil|sealant|styler)\b/.test(l)) continue;
+      if (/\bnails?\b/.test(l) && /\bscalp\b/.test(l) && !/\bnot\b|\bnever\b|\bavoid\b|\brather than\b|\binstead of\b/.test(l)) {
+        return s;
+      }
+    }
+    return null;
+  },
+};
+
+/**
+ * Leave-in described as adding hydration or moisture. Ch 14, p.178: a leave-in
+ * is a lightweight conditioning styling product used for slip and a light
+ * conditioning base. Ch 14, p.176: only water provides moisture.
+ */
+const LEAVE_IN_HYDRATES: DeterministicRule = {
+  id: "leave-in-hydrates",
+  reason:
+    "The source describes a leave-in as a lightweight conditioning styling product used for slip and a light conditioning base, and states that only water provides moisture. A leave-in must not be described as hydrating or adding moisture.",
+  detect: (text) => {
+    for (const s of sentences(text)) {
+      const l = s.toLowerCase();
+      if (!/\b(leave-?in|leave in|cream|butter|styler)\b/.test(l)) continue;
       if (
         /\b(?:hydrates?|hydrating|adds?\s+(?:moisture|hydration|water)|injects?\s+moisture|replenish(?:es|ing)?\s+moisture|delivers?\s+moisture|infuses?\s+(?:moisture|hydration)|moisturis(?:es|ing)\s+the\s+(?:hair|strand))\b/
           .test(l)
+      ) {
+        return s;
+      }
+    }
+    return null;
+  },
+};
+
+/** Ch 14, p.173: "sealing"/"locking" moisture in is explicitly rejected. */
+const SEALS_MOISTURE_IN: DeterministicRule = {
+  id: "seals-moisture-in",
+  reason:
+    "The source rejects the idea that a product seals or locks moisture into the hair — water evaporates regardless, so the focus is replenishing moisture, not trapping it.",
+  detect: (text) => {
+    for (const s of sentences(text)) {
+      const l = s.toLowerCase();
+      if (
+        /\b(seals?|sealing|locks?|locking|traps?|trapping)\s+(?:the\s+)?(?:moisture|hydration|water)\s+(?:in|into|inside)\b/
+          .test(l) ||
+        /\b(?:loc|lco)\s+method\b/.test(l)
       ) {
         return s;
       }
@@ -111,7 +156,7 @@ const LEAVE_IN_HYDRATES: DeterministicRule = {
 const ONLY_WATER_MOISTURISES: DeterministicRule = {
   id: "product-as-moisture-source",
   reason:
-    "The source treats water as the source of moisture; products act on water already in the hair. A product must not be described as the source of moisture.",
+    "The source states that the only thing that can provide hair with moisture is water; products act on water already in the hair. A product must not be described as the source of moisture.",
   detect: (text) => {
     for (const s of sentences(text)) {
       const l = s.toLowerCase();
@@ -128,9 +173,12 @@ const ONLY_WATER_MOISTURISES: DeterministicRule = {
 
 const DETERMINISTIC_RULES: DeterministicRule[] = [
   CLEANSE_ORDER,
+  SCALP_NAILS,
   LEAVE_IN_HYDRATES,
+  SEALS_MOISTURE_IN,
   ONLY_WATER_MOISTURISES,
 ];
+
 
 /** Run the deterministic, author-verified rules over any output text. */
 export function checkDeterministicRules(text: string): FidelityViolation[] {
