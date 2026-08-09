@@ -5,7 +5,7 @@
 // it in My Tools, favourite it, or open the original page.
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ExternalLink, Heart, Sparkles, Wrench } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Heart, Sparkles, Wrench } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
