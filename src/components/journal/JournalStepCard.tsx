@@ -80,8 +80,10 @@ const JournalStepCard = ({
   onAddMedia,
   onRemoveMedia,
   onToggleProduct,
+  onProductsChanged,
 }: Props) => {
-  const { user } = useAuth();
+  const { startStepLinkScan } = useStepLinkScan();
+
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
