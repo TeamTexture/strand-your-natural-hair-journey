@@ -157,6 +157,19 @@ Deno.serve(async (req) => {
               })
               .eq("id", offerId);
             await notifyRelaunchInterest(admin, offerId);
+            // Pre-generate this campaign's sponsored wash day tips for its
+            // matched audience now, so serving is a cache read (fire and forget).
+            try {
+              const url = Deno.env.get("SUPABASE_URL");
+              const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+              if (url && svc) {
+                void fetch(`${url}/functions/v1/brand-tips-pregenerate`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${svc}` },
+                  body: JSON.stringify({ offer_id: offerId }),
+                });
+              }
+            } catch { /* best-effort */ }
           }
 
         }
