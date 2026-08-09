@@ -243,7 +243,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                 <button
                   key={tid}
                   type="button"
-                  onClick={() => navigate(`/tools/${tid}`)}
+                  onClick={() => navigate(`/tools/${tid}`, { state: { from: window.location.pathname } })}
                   className="w-full flex items-center gap-2.5 text-left rounded-[10px] -mx-1 px-1 py-1 hover:bg-secondary/50 transition-colors"
                 >
                   <ProductThumb
