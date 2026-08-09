@@ -4,7 +4,7 @@
 // stale server copy survive a client invalidation.
 //
 // See src/lib/aiCopyRevision.ts for the history and the bump rules.
-export const AI_COPY_REVISION = "ps2026-08-09-protective-style-no-frequency";
+export const AI_COPY_REVISION = "ps2026-08-09-sponsored-washday-no-style";
 
 /** Suffix for a function's MODEL_VERSION / cache version string. */
 export const revisionSuffix = `@${AI_COPY_REVISION}`;
