@@ -93,9 +93,11 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
   const handleUrl = () => {
     if (!linkUrl.trim()) return;
     onOpenChange(false);
-    void startUrlScan(linkUrl, "shelf", navState);
+    if (onLinkSubmit) onLinkSubmit(linkUrl);
+    else void startUrlScan(linkUrl, "shelf", navState);
     setLinkUrl("");
   };
+
 
   const busy = scanBusy || urlBusy;
 
