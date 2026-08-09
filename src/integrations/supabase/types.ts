@@ -2466,6 +2466,7 @@ export type Database = {
       journal_entries: {
         Row: {
           cover_media_id: string | null
+          cover_path: string | null
           created_at: string
           entry_date: string
           id: string
@@ -2482,6 +2483,7 @@ export type Database = {
         }
         Insert: {
           cover_media_id?: string | null
+          cover_path?: string | null
           created_at?: string
           entry_date?: string
           id?: string
@@ -2498,6 +2500,7 @@ export type Database = {
         }
         Update: {
           cover_media_id?: string | null
+          cover_path?: string | null
           created_at?: string
           entry_date?: string
           id?: string
