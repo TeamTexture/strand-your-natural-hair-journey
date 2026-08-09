@@ -1,0 +1,1 @@
+ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS cover_media_id uuid REFERENCES public.journal_step_media(id) ON DELETE SET NULL;
