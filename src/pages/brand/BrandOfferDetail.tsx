@@ -18,7 +18,8 @@ import {
 import {
   useBrandOffer, STATUS_LABEL, SLOT_LABEL, PlacementSlot, useDeleteBrandOffer, deriveBrandOfferStatus,
   usePendingRevision, useAwaitingPaymentRevision, useRevisionUpliftCheckout, useOfferRevisions, useWithdrawBrandOfferRevision, STATS_METHOD_NOTE,
-  useRelaunchBrandOffer, useOfferSplitTotals,
+  useRelaunchBrandOffer, useOfferMetrics,
+
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
