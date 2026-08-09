@@ -750,7 +750,7 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
-      const result = validate(parsed, body.context ?? null, surface, declared);
+      const result = validate(parsed, promptContext ?? null, surface, declared);
       // Soft signals are logged for author review and folded into the ONE
       // retry as preferences. They never reject.
       await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
@@ -760,7 +760,7 @@ Deno.serve(async (req) => {
         // tip — the exact defect the floors exist to prevent. If the guardrail
         // removes the reason, regenerate instead of degrading the tip.
         const candidate = await sanitiseAndLog(result.value, "brand-product-guidance", {
-          context: body.context,
+          context: promptContext,
           surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
           userId,
           // POLICY B. The sponsored gates (marketing detection, conflict
