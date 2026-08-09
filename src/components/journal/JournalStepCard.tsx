@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench, Check } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench, Check, Film, Mic, Images } from "lucide-react";
 import { captureVideoPoster } from "@/lib/videoPoster";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +53,51 @@ const TranscriptBody = ({ text }: { text: string }) => {
     </div>
   );
 };
+
+/** A square capture action — quiet until touched, so four of them read as one
+ *  considered panel rather than a stack of shouting buttons. */
+const CaptureTile = ({
+  icon: Icon,
+  label,
+  onClick,
+  active = false,
+  disabled = false,
+}: {
+  icon: typeof Package;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={`flex flex-col items-center justify-center gap-1.5 rounded-[14px] border px-2 py-3 transition-colors disabled:opacity-50 ${
+      active
+        ? "border-primary/50 bg-primary/10"
+        : "border-border/70 bg-secondary/30 hover:bg-secondary/60"
+    }`}
+  >
+    <span className="size-8 rounded-full bg-primary/12 flex items-center justify-center">
+      <Icon className="size-4 text-primary" />
+    </span>
+    <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+      {label}
+    </span>
+  </button>
+);
+
+/** Small section heading used inside a step. */
+const StepSection = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      {label}
+    </p>
+    {children}
+  </div>
+);
+
 
 
 interface Props {
@@ -126,6 +171,8 @@ const JournalStepCard = ({
 
 
   const [toolPickerOpen, setToolPickerOpen] = useState(false);
+  const [videoOpen, setVideoOpen] = useState(false);
+
   const selectedToolIds = step.tools
     .map((t) => t.user_tool_id)
     .filter((x): x is string => !!x);
@@ -227,399 +274,421 @@ const JournalStepCard = ({
   };
 
   const mediaCount = step.media.length;
-  const summaryBits = [
-    mediaCount ? `${mediaCount} ${mediaCount === 1 ? "photo/video" : "photos & videos"}` : null,
-    selectedIds.length ? `${selectedIds.length} product${selectedIds.length === 1 ? "" : "s"}` : null,
-    selectedToolIds.length ? `${selectedToolIds.length} tool${selectedToolIds.length === 1 ? "" : "s"}` : null,
-    step.voice_path ? "voice note" : null,
-  ].filter(Boolean) as string[];
+  const photoCount = step.media.filter((m) => m.kind === "photo").length;
+  const videoCount = mediaCount - photoCount;
+  const summaryChips = [
+    photoCount ? { icon: Images, label: `${photoCount} photo${photoCount === 1 ? "" : "s"}` } : null,
+    videoCount ? { icon: Film, label: `${videoCount} video${videoCount === 1 ? "" : "s"}` } : null,
+    step.voice_path ? { icon: Mic, label: "Voice note" } : null,
+    selectedIds.length ? { icon: Package, label: `${selectedIds.length} product${selectedIds.length === 1 ? "" : "s"}` } : null,
+    selectedToolIds.length ? { icon: Wrench, label: `${selectedToolIds.length} tool${selectedToolIds.length === 1 ? "" : "s"}` } : null,
+  ].filter(Boolean) as { icon: typeof Package; label: string }[];
   const notePreview = (step.note ?? "").trim() || (step.voice_transcript ?? "").trim();
+  const isEmpty = !notePreview && mediaCount === 0 && !step.voice_path && !selectedIds.length && !selectedToolIds.length;
 
+  const mediaGrid = mediaCount > 0 && (
+    <div className="grid grid-cols-3 gap-1.5">
+      {step.media.map((m) => (
+        <div
+          key={m.id}
+          className="relative rounded-[12px] overflow-hidden bg-secondary aspect-square ring-1 ring-border/60"
+        >
+          {m.kind === "photo" ? (
+            urls[m.id] ? (
+              <img src={urls[m.id]} alt={`Step ${index + 1} photo`} className="size-full object-cover" />
+            ) : null
+          ) : urls[m.id] ? (
+            <video
+              src={urls[m.id]}
+              poster={posters[m.id]}
+              controls
+              playsInline
+              preload="metadata"
+              className="size-full object-cover bg-black"
+            />
+          ) : null}
+          {m.kind === "video" && (
+            <span className="absolute bottom-1 left-1 inline-flex items-center gap-1 rounded-pill bg-background/85 px-1.5 py-0.5 text-[9px] font-medium tabular-nums">
+              <Film className="size-2.5" />
+              {m.duration_seconds ? `${m.duration_seconds}s` : "Clip"}
+            </span>
+          )}
+          {editing && (
+            <button
+              type="button"
+              aria-label="Remove media"
+              onClick={() => onRemoveMedia(m.id)}
+              className="absolute top-1 right-1 size-5 rounded-full bg-background/90 flex items-center justify-center shadow-sm"
+            >
+              <X className="size-3" />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const productRows = selectedIds.length > 0 && (
+    <div className="space-y-1.5">
+      {selectedIds.map((pid) => {
+        const p = catalogue.find((c) => c.id === pid);
+        return (
+          <div
+            key={pid}
+            className="flex items-center gap-2 rounded-[12px] border border-border/60 bg-secondary/25 p-1.5"
+          >
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/products/profile/${pid}`, {
+                  state: { returnTo: location.pathname + location.search },
+                })
+              }
+              className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+              aria-label={`Open ${p?.name ?? "product"} page`}
+            >
+              <ProductThumb
+                imageUrl={p?.image_url ?? null}
+                storagePath={p?.storage_path ?? null}
+                alt={p?.name ?? "Product"}
+                brand={p?.brand ?? null}
+                name={p?.name ?? null}
+                cover
+                wrapperClassName="size-10 rounded-[9px] overflow-hidden bg-card shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
+                  {typeof p?.rating === "number" && p.rating > 0 && (
+                    <StarRating value={p.rating} size="size-3" />
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+            </button>
+            {editing && (
+              <button
+                type="button"
+                aria-label="Remove product"
+                onClick={() => onToggleProduct(pid)}
+                className="size-6 rounded-full border border-border bg-card flex items-center justify-center shrink-0"
+              >
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const toolRows = selectedToolIds.length > 0 && (
+    <div className="space-y-1.5">
+      {selectedToolIds.map((tid) => {
+        const t = toolCatalogue.find((c) => c.id === tid);
+        return (
+          <div
+            key={tid}
+            className="flex items-center gap-2 rounded-[12px] border border-border/60 bg-secondary/25 p-1.5"
+          >
+            <button
+              type="button"
+              onClick={() => navigate(`/tools/${tid}`)}
+              className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+            >
+              <ProductThumb
+                imageUrl={t?.image_url ?? null}
+                storagePath={t?.storage_path ?? null}
+                alt={t?.name ?? "Tool"}
+                brand={t?.brand ?? null}
+                name={t?.name ?? null}
+                cover
+                wrapperClassName="size-10 rounded-[9px] overflow-hidden bg-card shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {t?.brand && <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>}
+                  {typeof t?.rating === "number" && t.rating > 0 ? (
+                    <StarRating value={t.rating} size="size-3" />
+                  ) : (
+                    <MatchStars item={t ?? null} size="sm" showValue={false} />
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+            </button>
+            {editing && (
+              <button
+                type="button"
+                aria-label="Remove tool"
+                onClick={() => onToggleTool(tid)}
+                className="size-6 rounded-full border border-border bg-card flex items-center justify-center shrink-0"
+              >
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <div className="rounded-[14px] border border-border bg-card p-3.5 space-y-3">
-      <div className="flex items-center justify-between gap-2">
+    <div
+      className={`rounded-[18px] border bg-card overflow-hidden transition-shadow ${
+        isOpen ? "border-primary/25 shadow-[0_8px_24px_-16px_hsl(var(--foreground)/0.28)]" : "border-border/70"
+      }`}
+    >
+      {/* ── Step header ─────────────────────────────────────────── */}
+      <div className="flex items-start gap-3 px-3.5 pt-3.5">
+        <span
+          className={`size-8 shrink-0 rounded-full flex items-center justify-center font-display text-sm font-bold ${
+            isOpen ? "bg-primary text-primary-foreground" : "bg-primary/12 text-primary"
+          }`}
+        >
+          {index + 1}
+        </span>
         {collapsible ? (
           <button
             type="button"
             onClick={onToggleExpand}
-            className="flex items-center gap-1.5 min-w-0 flex-1 text-left"
+            className="min-w-0 flex-1 text-left"
             aria-expanded={isOpen}
           >
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Step {index + 1}
             </span>
-            {isOpen ? (
-              <ChevronUp className="size-3.5 text-muted-foreground shrink-0" />
-            ) : (
-              <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+            {!isOpen && (
+              <p
+                className={`text-[13px] leading-relaxed line-clamp-2 mt-0.5 ${
+                  notePreview ? "" : "text-muted-foreground italic"
+                }`}
+              >
+                {notePreview || (isEmpty ? "Nothing recorded yet — tap to add" : "No note yet")}
+              </p>
             )}
           </button>
         ) : (
-          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Step {index + 1}
-          </span>
-        )}
-        {editing && isOpen && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Move step up"
-              disabled={index === 0}
-              onClick={() => onMove("up")}
-              className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
-            >
-              <ChevronUp className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Move step down"
-              disabled={index === total - 1}
-              onClick={() => onMove("down")}
-              className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
-            >
-              <ChevronDown className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Delete step"
-              onClick={onDelete}
-              className="size-7 rounded-full border border-border flex items-center justify-center text-destructive"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Step {index + 1}
+            </span>
           </div>
         )}
-      </div>
-
-      {!isOpen && (
-        <button type="button" onClick={onToggleExpand} className="w-full text-left space-y-1">
-          {(notePreview || summaryBits.length === 0) && (
-            <p className={`text-[13px] leading-relaxed ${notePreview ? "" : "text-muted-foreground"} line-clamp-2`}>
-              {notePreview || "Nothing recorded yet — tap to add"}
-            </p>
-          )}
-          {summaryBits.length > 0 && (
-            <p className="text-[11px] text-muted-foreground">{summaryBits.join(" · ")}</p>
-          )}
-
-          {noteDirty && (
-            <p className="text-[10px] uppercase tracking-[0.14em] text-primary">Unsaved note</p>
-          )}
-        </button>
-      )}
-
-      {isOpen && (
-      <>
-      {editing ? (
-
-        <>
-          <VoiceNoteField
-            label="Short note"
-            placeholder="Cleansed, blow dried on cool, sealed the ends…"
-            value={noteDraft}
-            onChange={setNoteDraft}
-            audioPath={step.voice_path}
-            onAudioPathChange={(path) => onUpdate({ voice_path: path })}
-            onTranscript={(text) => onUpdate({ voice_transcript: text })}
-            folder={`journal-steps/${step.id}`}
-            rows={3}
-          />
-          {noteDirty && (
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="gold"
-                size="sm"
-                className="flex-1"
-                onClick={() => onUpdate({ note: noteDraft })}
-              >
-                Save note
-              </Button>
-              <Button
-                type="button"
-                variant="goldGhost"
-                size="sm"
-                onClick={() => setNoteDraft(step.note ?? "")}
-              >
-                Discard
-              </Button>
-            </div>
-          )}
-
-          {step.voice_transcript?.trim() && (
-            <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Transcript
-              </p>
-              <TranscriptBody text={step.voice_transcript} />
+        <div className="flex items-center gap-1 shrink-0">
+          {editing && isOpen && (
+            <>
               <button
                 type="button"
-                onClick={() => onUpdate({ voice_transcript: null })}
-                className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-warn"
+                aria-label="Move step up"
+                disabled={index === 0}
+                onClick={() => onMove("up")}
+                className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
               >
-                Remove transcript
+                <ChevronUp className="size-3.5" />
               </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          {step.note?.trim() ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{step.note}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">No note for this step.</p>
-          )}
-          {step.voice_transcript?.trim() && (
-            <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Voice note
-              </p>
-              <TranscriptBody text={step.voice_transcript} />
-            </div>
-          )}
-        </>
-      )}
-
-
-      {/* Media */}
-      {(step.media.length > 0 || editing) && (
-        <div className="space-y-2">
-          {step.media.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {step.media.map((m) => (
-                <div key={m.id} className="relative rounded-[10px] overflow-hidden bg-secondary aspect-square">
-                  {m.kind === "photo" ? (
-                    urls[m.id] ? (
-                      <img src={urls[m.id]} alt={`Step ${index + 1} photo`} className="size-full object-cover" />
-                    ) : null
-                  ) : urls[m.id] ? (
-                    <video
-                      src={urls[m.id]}
-                      poster={posters[m.id]}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="size-full object-contain bg-black"
-                    />
-                  ) : null}
-                  {m.kind === "video" && m.duration_seconds ? (
-                    <span className="absolute bottom-1 left-1 rounded-pill bg-background/85 px-1.5 text-[10px] tabular-nums">
-                      {m.duration_seconds}s
-                    </span>
-                  ) : null}
-                  {editing && (
-                    <button
-                      type="button"
-                      aria-label="Remove media"
-                      onClick={() => onRemoveMedia(m.id)}
-                      className="absolute top-1 right-1 size-5 rounded-full bg-background/90 flex items-center justify-center"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {editing && (
-            <>
-              <Button
+              <button
                 type="button"
-                variant="goldGhost"
-                size="sm"
-                className="h-10 w-full"
-                disabled={photoBusy}
-                onClick={() => photoInputRef.current?.click()}
+                aria-label="Move step down"
+                disabled={index === total - 1}
+                onClick={() => onMove("down")}
+                className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
               >
-                <ImagePlus className="size-4 mr-1.5" />
-                {photoBusy ? "Uploading…" : "Add photos"}
-              </Button>
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => { void addPhotos(e.target.files); e.currentTarget.value = ""; }}
+                <ChevronDown className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Delete step"
+                onClick={onDelete}
+                className="size-7 rounded-full border border-border flex items-center justify-center text-destructive"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </>
+          )}
+          {collapsible && (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              aria-label={isOpen ? "Collapse step" : "Expand step"}
+              className="size-7 rounded-full border border-border flex items-center justify-center"
+            >
+              {isOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Collapsed summary ───────────────────────────────────── */}
+      {!isOpen && (summaryChips.length > 0 || noteDirty) && (
+        <div className="px-3.5 pt-2 pb-3.5 flex flex-wrap gap-1.5 pl-[58px]">
+          {summaryChips.map((c) => (
+            <span
+              key={c.label}
+              className="inline-flex items-center gap-1 rounded-pill bg-secondary/60 px-2 py-0.5 text-[10px] text-muted-foreground"
+            >
+              <c.icon className="size-2.5" />
+              {c.label}
+            </span>
+          ))}
+          {noteDirty && (
+            <span className="inline-flex items-center rounded-pill bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary">
+              Unsaved note
+            </span>
+          )}
+        </div>
+      )}
+      {!isOpen && summaryChips.length === 0 && !noteDirty && <div className="pb-3.5" />}
+
+      {/* ── Open body ───────────────────────────────────────────── */}
+      {isOpen && (
+        <div className="px-3.5 pb-3.5 pt-3 space-y-3.5">
+          <div className="h-px bg-border/70" />
+
+          {editing ? (
+            <>
+              <VoiceNoteField
+                label="Short note"
+                placeholder="Cleansed, blow dried on cool, sealed the ends…"
+                value={noteDraft}
+                onChange={setNoteDraft}
+                audioPath={step.voice_path}
+                onAudioPathChange={(path) => onUpdate({ voice_path: path })}
+                onTranscript={(text) => onUpdate({ voice_transcript: text })}
+                folder={`journal-steps/${step.id}`}
+                rows={3}
               />
-              <StepVideoCapture
-                folder={`steps/${step.id}`}
-                onUploaded={(m) =>
-                  onAddMedia({
-                    kind: "video",
-                    storage_path: m.storage_path,
-                    poster_path: m.poster_path,
-                    duration_seconds: m.duration_seconds,
-                  })
-                }
-              />
+              {noteDirty && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="gold"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => onUpdate({ note: noteDraft })}
+                  >
+                    Save note
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="goldGhost"
+                    size="sm"
+                    onClick={() => setNoteDraft(step.note ?? "")}
+                  >
+                    Discard
+                  </Button>
+                </div>
+              )}
+
+              {step.voice_transcript?.trim() && (
+                <div className="rounded-[12px] border border-border/60 bg-secondary/35 p-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground flex items-center gap-1.5">
+                    <Mic className="size-3 text-primary" /> Transcript
+                  </p>
+                  <TranscriptBody text={step.voice_transcript} />
+                  <button
+                    type="button"
+                    onClick={() => onUpdate({ voice_transcript: null })}
+                    className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-warn"
+                  >
+                    Remove transcript
+                  </button>
+                </div>
+              )}
+
+              {mediaGrid && <StepSection label="Photos & video">{mediaGrid}</StepSection>}
+              {productRows && <StepSection label="Products used">{productRows}</StepSection>}
+              {toolRows && <StepSection label="Tools used">{toolRows}</StepSection>}
+
+              {/* Capture panel — four quiet tiles instead of a stack of buttons */}
+              <div className="rounded-[14px] border border-border/60 bg-secondary/15 p-2.5 space-y-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Add to this step
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  <CaptureTile
+                    icon={ImagePlus}
+                    label={photoBusy ? "…" : "Photos"}
+                    disabled={photoBusy}
+                    onClick={() => photoInputRef.current?.click()}
+                  />
+                  <CaptureTile
+                    icon={Film}
+                    label="Video"
+                    active={videoOpen}
+                    onClick={() => setVideoOpen((v) => !v)}
+                  />
+                  <CaptureTile icon={Package} label="Products" onClick={openPicker} />
+                  <CaptureTile icon={Wrench} label="Tools" onClick={() => setToolPickerOpen(true)} />
+                </div>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void addPhotos(e.target.files);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                {videoOpen && (
+                  <div className="rounded-[12px] border border-border/60 bg-card p-2.5">
+                    <StepVideoCapture
+                      folder={`steps/${step.id}`}
+                      onUploaded={(m) => {
+                        onAddMedia({
+                          kind: "video",
+                          storage_path: m.storage_path,
+                          poster_path: m.poster_path,
+                          duration_seconds: m.duration_seconds,
+                        });
+                        setVideoOpen(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {collapsible && (
+                <Button
+                  type="button"
+                  variant="gold"
+                  size="pill"
+                  className="w-full"
+                  onClick={() => {
+                    if (noteDirty) onUpdate({ note: noteDraft });
+                    onToggleExpand?.();
+                  }}
+                >
+                  <Check className="size-4 mr-1.5" />
+                  Save step {index + 1}
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              {step.note?.trim() ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{step.note}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No note for this step.</p>
+              )}
+              {step.voice_transcript?.trim() && (
+                <div className="rounded-[12px] border border-border/60 bg-secondary/35 p-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground flex items-center gap-1.5">
+                    <Mic className="size-3 text-primary" /> Voice note
+                  </p>
+                  <TranscriptBody text={step.voice_transcript} />
+                </div>
+              )}
+              {mediaGrid && <StepSection label="Photos & video">{mediaGrid}</StepSection>}
+              {productRows && <StepSection label="Products used">{productRows}</StepSection>}
+              {toolRows && <StepSection label="Tools used">{toolRows}</StepSection>}
             </>
           )}
         </div>
-      )}
-
-      {/* Products used at this step */}
-      {(selectedIds.length > 0 || editing) && (
-        <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Products used
-          </p>
-          {selectedIds.length > 0 ? (
-            <div className="space-y-1.5">
-              {selectedIds.map((pid) => {
-                const p = catalogue.find((c) => c.id === pid);
-                return (
-                  <div key={pid} className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/products/profile/${pid}`, { state: { returnTo: location.pathname + location.search } })}
-                      className="flex items-center gap-2.5 min-w-0 flex-1 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-secondary/50 transition-colors"
-                      aria-label={`Open ${p?.name ?? "product"} page`}
-                    >
-                      <ProductThumb
-                        imageUrl={p?.image_url ?? null}
-                        storagePath={p?.storage_path ?? null}
-                        alt={p?.name ?? "Product"}
-                        brand={p?.brand ?? null}
-                        name={p?.name ?? null}
-                        cover
-                        wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
-                          {typeof p?.rating === "number" && p.rating > 0 && (
-                            <StarRating value={p.rating} size="size-3" />
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-                    </button>
-                    {editing && (
-                      <button
-                        type="button"
-                        aria-label="Remove product"
-                        onClick={() => onToggleProduct(pid)}
-                        className="size-6 rounded-full border border-border flex items-center justify-center shrink-0"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-
-            </div>
-          ) : (
-            <p className="text-[13px] text-muted-foreground">None recorded.</p>
-          )}
-          {editing && (
-            <Button
-              type="button"
-              variant="goldGhost"
-              size="sm"
-              className="h-10 w-full"
-              onClick={openPicker}
-            >
-              <Package className="size-4 mr-1.5" />
-              Add products
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Tools used at this step */}
-      {(selectedToolIds.length > 0 || editing) && (
-        <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Tools used
-          </p>
-          {selectedToolIds.length > 0 ? (
-            <div className="space-y-1.5">
-              {selectedToolIds.map((tid) => {
-                const t = toolCatalogue.find((c) => c.id === tid);
-                return (
-                  <div key={tid} className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/tools/${tid}`)}
-                      className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
-                    >
-                      <ProductThumb
-                        imageUrl={t?.image_url ?? null}
-                        storagePath={t?.storage_path ?? null}
-                        alt={t?.name ?? "Tool"}
-                        brand={t?.brand ?? null}
-                        name={t?.name ?? null}
-                        cover
-                        wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {t?.brand && (
-                            <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>
-                          )}
-                          {typeof t?.rating === "number" && t.rating > 0 ? (
-                            <StarRating value={t.rating} size="size-3" />
-                          ) : (
-                            <MatchStars item={t ?? null} size="sm" showValue={false} />
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-                    </button>
-                    {editing && (
-                      <button
-                        type="button"
-                        aria-label="Remove tool"
-                        onClick={() => onToggleTool(tid)}
-                        className="size-6 rounded-full border border-border flex items-center justify-center shrink-0"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-[13px] text-muted-foreground">None recorded.</p>
-          )}
-          {editing && (
-            <Button
-              type="button"
-              variant="goldGhost"
-              size="sm"
-              className="h-10 w-full"
-              onClick={() => setToolPickerOpen(true)}
-            >
-              <Wrench className="size-4 mr-1.5" />
-              Add tools
-            </Button>
-          )}
-        </div>
-      )}
-
-      {collapsible && (
-        <Button
-          type="button"
-          variant="gold"
-          size="pill"
-          className="w-full"
-          onClick={() => {
-            if (noteDirty) onUpdate({ note: noteDraft });
-            onToggleExpand?.();
-          }}
-        >
-          <Check className="size-4 mr-1.5" />
-          Save step {index + 1}
-        </Button>
-      )}
-      </>
       )}
 
 

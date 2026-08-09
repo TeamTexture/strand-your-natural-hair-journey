@@ -394,10 +394,11 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
   return (
     <ScreenLayout>
       <TitleBar
-        title={entry.style_name || "Style record"}
+        title="Style record"
         backFallback="/journal"
         onBack={() => guardExit(() => safeBack(navigate, "/journal"))}
       />
+
       <div className="px-5 pb-10 space-y-3">
         {/* ── Header ─────────────────────────── */}
         <div className="flex items-start justify-between gap-3">
@@ -407,13 +408,14 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
                 <CalendarDays className="size-3" /> {dateLabel}
               </p>
             )}
-            <h1 className="font-display text-xl font-bold leading-tight truncate">
+            <h1 className="font-display text-[22px] font-bold leading-tight mt-0.5 [overflow-wrap:anywhere]">
               {entry.style_name || "Style record"}
             </h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-1">
               {complete ? "Finished" : "In progress"}
               {steps.length ? ` · ${steps.length} step${steps.length === 1 ? "" : "s"}` : ""}
             </p>
+
           </div>
           <button
             type="button"
