@@ -42,6 +42,7 @@ import {
   contractRetryDirective,
   pickBestCandidate,
   isRenderableTip,
+  protectRequiredFields,
   type ContractTip,
   type HardRule,
   type SoftRule,
