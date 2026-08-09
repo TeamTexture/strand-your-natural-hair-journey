@@ -279,8 +279,13 @@ const MAPPER_PROMPT =
 
 For every substantive hair care claim in OUTPUT, decide which evidence item supports it. A claim is MAPPED only if an evidence item states it or directly implies it. Do NOT map a claim because it sounds correct, is widely believed, or is standard industry advice — those are exactly the failures you exist to catch. Judge against the evidence set only.
 
+JUDGE THE ASSERTION, NOT THE PERSONALISATION. The text is written for one named reader, so it applies the book's material to her recorded hair type, porosity, density, style and goal. That is expected and correct. Strip the reader's own facts out of the sentence and judge only what is left. A claim is MAPPED when the evidence supports the underlying assertion, even though the evidence never mentions her hair type, her style, or her goal. Never report a claim with the reason that the evidence "does not mention" her hair type, porosity, style, goal, or the fact she is the one being addressed — that is not a fidelity failure and reporting it is itself an error.
+
+What IS a failure: an assertion the author does not make at all; a mechanism, cause or effect she does not state; a step, order, frequency or product behaviour that is not in the evidence; or a stronger version of what she says.
+
 IGNORE and never report:
 - the reader's own recorded data (hair type, porosity, density, scalp state, current or planned style, goal wording, product or tool names, dates, counts, blood marker values)
+- headings and headlines that only name the topic without asserting a mechanism
 - tone, encouragement, greetings, and instructions to log something in the app or to see a professional
 - mentions of the TT Heat Hat or teamtexture.co.uk
 - scheduling or logistics wording that makes no hair care claim
