@@ -18,7 +18,14 @@
 //                            fidelity fail-safe enforced. Every generation made
 //                            before this ran against wrong chapter labels and
 //                            fragment retrieval, so all of it is invalidated.
-export const AI_COPY_REVISION = "mr2026-08-09-manuscript";
+//   ac2026-08-09-clarifications  Author clarifications introduced as a source of
+//                            truth SENIOR to the manuscript, retrieved into every
+//                            hair care generation, with the cleansing sequence,
+//                            protective-style washing, leave-in barrier and
+//                            LOC/LCO positions enforced. Every cached generation
+//                            predates them.
+export const AI_COPY_REVISION = "ac2026-08-09-clarifications";
 
 /** Cache-key fragment. Use in every AI cache key and generation signature. */
 export const aiRevisionPart = `rev:${AI_COPY_REVISION}`;
+
