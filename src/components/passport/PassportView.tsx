@@ -293,7 +293,6 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
   const hardWater = d.profile?.postcode ? lookupHardWater(d.profile.postcode) : null;
   const avatarUrl = d.profile?.avatar_url ?? null;
   const avatarIsHttp = typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
-  const latestStrand = d.strandSummaries[0] ?? null;
 
   const p = d.profile ?? null;
 
