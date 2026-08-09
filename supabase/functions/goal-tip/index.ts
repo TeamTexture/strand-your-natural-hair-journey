@@ -823,6 +823,10 @@ Deno.serve(async (req) => {
           ["journal_steps_unservable", ...new Set(evaluated.flatMap((e) => e.hard))],
           JSON.stringify(tip).slice(0, 4000),
         );
+        console.error("[goal-tip] journal steps unservable", {
+          raw: JSON.stringify(tip).slice(0, 1200),
+          evaluated: JSON.stringify(evaluated).slice(0, 1200),
+        });
         return new Response(
           JSON.stringify({ error: "steps_preparing", retryable: true }),
           { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
