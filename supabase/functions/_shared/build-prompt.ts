@@ -220,7 +220,7 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
       type: "text",
       text: `RETRIEVED MANUSCRIPT PASSAGES\n\n${ragBlocks.join("\n\n---\n\n")}`,
     });
-  } else if (input.rag_query && input.rag_query.trim().length > 0) {
+  } else if (!wholeChapters && input.rag_query && input.rag_query.trim().length > 0) {
     console.error(JSON.stringify({
       event: "manuscript_grounding_failed",
       fn: input.function_kind,
