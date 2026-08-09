@@ -32,6 +32,13 @@ import {
   retrieveProceduralPassages,
 } from "./procedural-rag.ts";
 import { GROUNDING_INSTRUCTION } from "./grounding.ts";
+import {
+  FIDELITY_RULE,
+  loadSurfaceChapters,
+  noteSourceText,
+  renderChapterBlock,
+  type SurfaceKey,
+} from "./chapter-context.ts";
 import { VOICE_PRINCIPLES } from "./voice.ts";
 import { buildStylePlaybookBlock } from "./style-playbook.ts";
 import { CORE_ROUTINE_GUARDRAILS_PROMPT } from "./routine-guidance.ts";
