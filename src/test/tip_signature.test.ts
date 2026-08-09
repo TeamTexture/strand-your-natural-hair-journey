@@ -87,8 +87,9 @@ describe("strandTipSignatureParts (home STRAND tip — static)", () => {
   const style = { current_hairstyle: "cornrows", planned_next_style: "twists" };
   const goal = { id: "g1", title: "Length", target_text: "4 inches", target_date: "2026-12-01" };
 
-  it("depends only on current style, planned style and the goal", () => {
+  it("depends only on current style, planned style, the goal and the copy revision", () => {
     expect(strandTipSignatureParts(style, goal)).toEqual([
+      aiRevisionPart,
       "cur:cornrows",
       "plan:twists",
       "goal:g1",
@@ -97,6 +98,7 @@ describe("strandTipSignatureParts (home STRAND tip — static)", () => {
       "goalDate:2026-12-01",
     ]);
   });
+
 
   it("carries no calendar day and ignores wash days, appointments, challenges and concerns", () => {
     const parts = strandTipSignatureParts(
