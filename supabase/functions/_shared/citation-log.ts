@@ -189,9 +189,59 @@ export async function sanitiseAndLog<T>(
     { skipTraceability: onEvidencePath },
   );
 
-  if (!onEvidencePath) return out;
-  return await verifyStage3(out, functionName, evidenceSet, opts);
+  // AUTHOR CLARIFICATIONS — prescriptive positions enforced as HARD rules, on
+  // every surface (grounded or legacy). A breach is removed from the output and
+  // logged; where the breach is an OMISSION it cannot be removed, so it is
+  // logged for the author's review instead.
+  const clarifications = await surfaceClarifications(opts?.surface ?? null);
+  const clarCheck = checkClarifications(collectText(out).join("\n"), clarifications, {
+    context: opts?.context,
+    goalLabel: goalLabelFrom(opts?.context),
+  });
+  if (clarCheck.strip.length > 0) {
+    console.warn(
+      JSON.stringify({
+        event: "clarification_rejection",
+        fn: functionName,
+        rules: clarCheck.strip.map((v) => v.rule),
+      }),
+    );
+    out = stripDeep(out, clarCheck.strip.map((v) => v.claim));
+  }
+  const clarRejections = [...clarCheck.strip, ...clarCheck.log];
+
+  if (!onEvidencePath) {
+    if (clarRejections.length > 0) {
+      await logGenerationRejections(
+        functionName,
+        clarRejections.map((v) => ({
+          stage: "deterministic" as const,
+          rule: v.rule,
+          detail: v.reason,
+          offendingText: v.claim,
+        })),
+        { surface: opts?.surface ?? null, userId: opts?.userId ?? null },
+      );
+    }
+    return out;
+  }
+  return await verifyStage3(out, functionName, evidenceSet, opts, {
+    rejections: clarRejections,
+    governed: clarCheck.governed,
+  });
 }
+
+/** The member's own goal label, where the surface passed one in its context. */
+function goalLabelFrom(context: unknown): string | null {
+  try {
+    const json = JSON.stringify(context ?? {});
+    const m = json.match(/"(?:goal_label|goal_title|goal)"\s*:\s*"([^"]{3,120})"/i);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 
 /**
  * STAGE 3 + STAGE 4 of the grounded pipeline.
