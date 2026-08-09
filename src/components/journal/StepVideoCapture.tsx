@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Video, Square, Upload, Loader2, SwitchCamera, RotateCcw, Check, X, Camera, ZoomIn } from "lucide-react";
 import { captureVideoPoster } from "@/lib/videoPoster";
+import { compressStepVideo } from "@/lib/videoCompress";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
