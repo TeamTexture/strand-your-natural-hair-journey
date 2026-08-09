@@ -769,19 +769,46 @@ Deno.serve(async (req) => {
 
       const prepare = async (raw: GoalTipShape | null) => {
         const list = Array.isArray(raw?.steps) ? raw!.steps! : [];
-        const cleaned = (await sanitiseAndLog({ steps: list }, "goal-tip", {
-          context: body.context ?? body,
-        })) as { steps?: ContractTip[] };
-        const steps: ContractTip[] = (cleaned.steps ?? []).map((s) => ({
-          headline: prose0(s?.headline),
-          action: prose0(s?.action),
-          reason: prose0(s?.reason),
-          extended: prose0(s?.extended) || undefined,
-        }));
-        return steps.map((step, i) => ({
-          tip: step,
-          hard: validateTipHard(step, { grounded }),
-          soft: validateTipSoft(step, {
+        // Sanitise EACH step on its own so the array shape survives — the deep
+        // stripper drops whole items, which is how this surface used to degrade
+        // to nothing.
+        const prepared = await Promise.all(
+          list.map(async (s) => {
+            const before: ContractTip = {
+              headline: prose0(s?.headline),
+              action: prose0(s?.action),
+              reason: prose0(s?.reason),
+              extended: prose0(s?.extended) || undefined,
+            };
+            const cleanedRaw = (await sanitiseAndLog(before, "goal-tip", {
+              context: body.context ?? body,
+            })) as ContractTip;
+            const after: ContractTip = {
+              headline: prose0(cleanedRaw?.headline) || before.headline,
+              action: prose0(cleanedRaw?.action),
+              reason: prose0(cleanedRaw?.reason),
+              extended: prose0(cleanedRaw?.extended) || undefined,
+            };
+            // Grounding stays hard: a field the fidelity gate emptied counts as
+            // ungrounded and forces the retry. But it degrades per Step 4.4
+            // rather than rendering nothing — the generated line is kept as the
+            // fallback candidate and logged loudly.
+            const { blanked } = protectRequiredFields(before, after);
+            const tipStep: ContractTip = {
+              ...after,
+              action: after.action || before.action,
+              reason: after.reason || before.reason,
+            };
+            return { tipStep, blanked };
+          }),
+        );
+        const steps = prepared.map((p) => p.tipStep);
+        return prepared.map(({ tipStep, blanked }, i) => ({
+          tip: tipStep,
+          hard: [
+            ...validateTipHard(tipStep, { grounded: grounded && blanked.length === 0 }),
+          ],
+          soft: validateTipSoft(tipStep, {
             level,
             context: ctxAny,
             attributeTokens,
