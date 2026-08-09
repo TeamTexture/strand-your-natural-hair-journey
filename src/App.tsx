@@ -18,6 +18,8 @@ import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
+import BrandPaywallGate from "@/components/BrandPaywallGate";
+import BrandSubGate from "@/components/BrandSubGate";
 import ConsentGate from "@/components/ConsentGate";
 import { BackButtonProvider } from "@/components/BackButtonContext";
 import MessageNotifications from "@/components/MessageNotifications";
@@ -618,6 +620,7 @@ const App = () => (
                 </Routes>
                 </Suspense>
                 </ConsentGate>
+                </BrandPaywallGate>
                 </AccessRestrictedGate>
 
 
