@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
-import { Eye, Maximize2, Heart, Ticket, ExternalLink, ChevronRight, Users } from "lucide-react";
+import { Maximize2, Ticket, ExternalLink, ChevronRight, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
 import { money as baseMoney } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
-
-interface Totals {
-  impressions: number;
-  expands: number;
-  code_copies: number;
-  link_clicks: number;
-  wishlist_adds: number;
-}
+import { EMPTY_METRICS, type OfferMetrics } from "@/lib/brandMetrics";
 
 interface Props {
   headline: string | null;
@@ -20,7 +13,8 @@ interface Props {
   slots: PlacementSlot[];
   startDate?: string;
   endDate?: string;
-  totals?: Totals;
+  /** Canonical figures from useBrandOfferMetrics. */
+  metrics?: OfferMetrics;
   submitter?: string | null;
   amountPaidPence?: number | null;
   interestTotal?: number;
@@ -28,7 +22,10 @@ interface Props {
   onOpen: () => void;
 }
 
-const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+/** Zero reads as a dash rather than "0" — see brandMetrics. */
+const fmtNum = (n: number) =>
+  n === 0 ? "—" : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
 const money = baseMoney;
 
 /** "Ended" campaign thumbnail — mirrors LiveOfferCard's richness but muted:
