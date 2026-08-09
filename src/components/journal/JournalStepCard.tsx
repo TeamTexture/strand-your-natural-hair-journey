@@ -212,7 +212,7 @@ const JournalStepCard = ({
                       controls
                       playsInline
                       preload="metadata"
-                      className="size-full object-cover"
+                      className="size-full object-contain bg-black"
                     />
                   ) : null}
                   {m.kind === "video" && m.duration_seconds ? (
