@@ -604,6 +604,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   // and the sanitised result is what gets stored and served. Sanitising on read
   // instead (with no grounding to hand) is what was deleting the `reason`.
   finalPayload = await sanitiseAndLog(finalPayload, "wash-day-tip", {
+    grounding: grounding.sourceText, chapters: grounding.chapters,
 
     context: body,
     grounding: grounding.block,

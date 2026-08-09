@@ -632,7 +632,7 @@ Deno.serve(async (req: Request) => {
         : [],
     );
 
-    return json(200, await sanitiseAndLog(analysis, "product-analyse"));
+    return json(200, await sanitiseAndLog(analysis, "product-analyse", { grounding: grounding.sourceText, chapters: grounding.chapters }));
   } catch (e) {
     return aiErrorResponse(e, "product-analyse");
   }

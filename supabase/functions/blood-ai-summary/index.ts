@@ -682,6 +682,7 @@ Deno.serve(async (req: Request) => {
     return json(200, {
       cached: false,
       summary: await sanitiseAndLog(stamped, "blood-ai-summary", {
+        grounding: grounding.sourceText, chapters: grounding.chapters,
         context: body.context,
         grounding: groundingText,
       }),

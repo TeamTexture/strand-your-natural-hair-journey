@@ -654,7 +654,7 @@ Deno.serve(async (req: Request) => {
     });
     return json(200, {
       cached: false,
-      plan: await sanitiseAndLog(stamped, "nutrition-plan", { context: body.context }),
+      plan: await sanitiseAndLog(stamped, "nutrition-plan", { context: body.context, grounding: grounding.sourceText, chapters: grounding.chapters }),
     });
   } catch (e) {
     console.log("[nutrition-debug] failed", { total_ms: Date.now() - t0 });

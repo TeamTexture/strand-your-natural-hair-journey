@@ -216,7 +216,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
       });
     }
 
-    const sanitised = await sanitiseAndLog(parsed, "meal-ideas");
+    const sanitised = await sanitiseAndLog(parsed, "meal-ideas", { grounding: grounding.sourceText, chapters: grounding.chapters });
 
     return new Response(JSON.stringify(sanitised), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
