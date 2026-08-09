@@ -68,9 +68,8 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onM
   }, [open, steps]);
 
   /**
-   * A cover can be a brand-new photo. It still has to live on a step (media is
-   * owned by steps), so it attaches to the first step — creating one if the
-   * record has none yet — and is selected straight away.
+   * A cover can be a brand-new photo. It is stored against the record itself
+   * (never attached to a step) so choosing a cover never changes step 1.
    */
   const uploadPhoto = async (raw: File) => {
     if (!user) return;
@@ -81,39 +80,19 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onM
     setUploading(true);
     try {
       const file = await convertHeicToJpeg(raw);
-      let stepId = steps[0]?.id;
-      if (!stepId) {
-        const { data, error } = await supabase
-          .from("journal_steps")
-          .insert({ entry_id: entryId, step_order: 0 })
-          .select("id")
-          .single();
-        if (error || !data) throw error ?? new Error("no step");
-        stepId = data.id;
-      }
-      const path = `${user.id}/steps/${stepId}/${crypto.randomUUID()}.jpg`;
+      const path = `${user.id}/covers/${entryId}/${crypto.randomUUID()}.jpg`;
       const up = await supabase.storage
         .from(PHOTO_BUCKET)
         .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
       if (up.error) throw up.error;
-      const existing = steps.find((s) => s.id === stepId)?.media.length ?? 0;
-      const { data: inserted, error: insErr } = await supabase
-        .from("journal_step_media")
-        .insert({ step_id: stepId, kind: "photo", storage_path: path, sort_order: existing })
-        .select("id")
-        .single();
-      if (insErr || !inserted) throw insErr ?? new Error("no media");
-      const { data: signed } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .createSignedUrl(path, 3600);
-      const stepIndex = Math.max(0, steps.findIndex((s) => s.id === stepId));
-      setThumbs((prev) => [
-        { id: inserted.id, kind: "photo", stepIndex, url: signed?.signedUrl ?? null },
-        ...prev,
-      ]);
-      setSelected(inserted.id);
-      await onMediaAdded?.();
-      toast.success("Photo added — tap “Use this cover” to set it");
+      const { error } = await supabase
+        .from("journal_entries")
+        .update({ cover_path: path, cover_media_id: null })
+        .eq("id", entryId);
+      if (error) throw error;
+      onSaved(null);
+      toast.success("Cover updated");
+      onClose();
     } catch (e) {
       console.error("cover upload failed", e);
       toast.error("Couldn't upload that photo");
@@ -126,7 +105,7 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onM
     setSaving(true);
     const { error } = await supabase
       .from("journal_entries")
-      .update({ cover_media_id: value })
+      .update({ cover_media_id: value, cover_path: null })
       .eq("id", entryId);
     setSaving(false);
     if (error) {
@@ -138,6 +117,7 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onM
     toast.success(value ? "Cover updated" : "Cover set back to the first photo");
     onClose();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
