@@ -20,6 +20,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useJournalSteps } from "@/hooks/useJournalSteps";
 import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
+import PendingStepProducts from "@/components/journal/PendingStepProducts";
+
 
 /**
  * The style record. Two screens, nothing else.
