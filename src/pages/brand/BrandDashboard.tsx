@@ -357,7 +357,8 @@ const BrandDashboard = () => {
                       slots={placements.map((p) => p.slot)}
                       startDate={dates[0]}
                       endDate={dates[dates.length - 1]}
-                      totals={totals[o.id]}
+                      metrics={metrics[o.id]?.all}
+
                       hasPendingRevision={withPendingSet.has(o.id)}
                       revisionCount={revisionCounts[o.id]}
                       onReview={() => nav(ownerOfferRoute(ownerMode, o.id))}
