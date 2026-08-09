@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoles } from "@/hooks/useRoles";
 import {
   ConsentKey,
+  ConsentRole,
   ConsentRow,
   fetchConsentRows,
   latestByKey,
+  mandatoryKeysForRoles,
+  optionalKeysForRoles,
   outstandingMandatory,
 } from "@/lib/consent";
 
@@ -17,6 +21,10 @@ export const consentKey = (userId?: string) => ["user-consents", userId] as cons
  */
 export function useConsentState() {
   const { user } = useAuth();
+  // Requirements are role-aware and resolved as the UNION across the account's
+  // roles, so a professional who also uses STRAND as a member still gets the
+  // health data consent, and a brand-only account never sees it.
+  const { roles, loading: rolesLoading } = useRoles();
   const q = useQuery({
     queryKey: consentKey(user?.id),
     enabled: !!user?.id,
@@ -26,8 +34,9 @@ export function useConsentState() {
   });
 
   const rows: ConsentRow[] = q.data ?? [];
+  const consentRoles = roles as ConsentRole[];
   const latest = latestByKey(rows);
-  const outstanding = outstandingMandatory(rows);
+  const outstanding = rolesLoading ? [] : outstandingMandatory(rows, consentRoles);
 
   const isGranted = (key: ConsentKey) => !!latest[key]?.granted;
 
@@ -36,8 +45,12 @@ export function useConsentState() {
     latest,
     outstanding,
     isGranted,
-    needsConsent: !!user && !q.isLoading && !q.isError && outstanding.length > 0,
-    isLoading: q.isLoading,
+    roles: consentRoles,
+    mandatoryKeys: mandatoryKeysForRoles(consentRoles),
+    optionalKeys: optionalKeysForRoles(consentRoles),
+    needsConsent:
+      !!user && !q.isLoading && !rolesLoading && !q.isError && outstanding.length > 0,
+    isLoading: q.isLoading || rolesLoading,
     refetch: q.refetch,
   };
 }
