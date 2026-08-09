@@ -54,6 +54,51 @@ const TranscriptBody = ({ text }: { text: string }) => {
   );
 };
 
+/** A square capture action — quiet until touched, so four of them read as one
+ *  considered panel rather than a stack of shouting buttons. */
+const CaptureTile = ({
+  icon: Icon,
+  label,
+  onClick,
+  active = false,
+  disabled = false,
+}: {
+  icon: typeof Package;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={`flex flex-col items-center justify-center gap-1.5 rounded-[14px] border px-2 py-3 transition-colors disabled:opacity-50 ${
+      active
+        ? "border-primary/50 bg-primary/10"
+        : "border-border/70 bg-secondary/30 hover:bg-secondary/60"
+    }`}
+  >
+    <span className="size-8 rounded-full bg-primary/12 flex items-center justify-center">
+      <Icon className="size-4 text-primary" />
+    </span>
+    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      {label}
+    </span>
+  </button>
+);
+
+/** Small section heading used inside a step. */
+const StepSection = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      {label}
+    </p>
+    {children}
+  </div>
+);
+
+
 
 interface Props {
   step: JournalStep;
