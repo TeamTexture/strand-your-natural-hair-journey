@@ -424,13 +424,44 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   };
 
   const onPick = async (file: File | undefined) => {
-    if (!file) return;
+    awaitingNativeRef.current = false;
+    if (!file) {
+      toast.error("No video came back from your camera — try again.");
+      return;
+    }
+    if (!file.size) {
+      toast.error("That clip came back empty — try recording it again.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error(`That clip is ${mb(file.size)} — record a shorter one.`);
+      return;
+    }
+    setPreparing(true);
     const duration = await readDuration(file);
+    setPreparing(false);
     if (duration !== null && duration > MAX_SECONDS + 1) {
       toast.error(`That clip is ${duration}s — keep it to ${MAX_SECONDS} seconds or shorter.`);
       return;
     }
     setReview({ url: URL.createObjectURL(file), blob: file, mime: file.type || "video/mp4" });
+    toast.success("Video ready — tap Save video to add it to this step");
+  };
+
+  /** After the native camera app closes, tell the member if nothing arrived. */
+  const openNativeCamera = () => {
+    awaitingNativeRef.current = true;
+    nativeRef.current?.click();
+    const check = () => {
+      window.setTimeout(() => {
+        if (awaitingNativeRef.current) {
+          awaitingNativeRef.current = false;
+          toast.error("Your camera didn't return a video — tap Open phone camera and try again.");
+        }
+      }, 1500);
+      window.removeEventListener("focus", check);
+    };
+    window.addEventListener("focus", check);
   };
 
   // ---- Pinch to zoom on the live preview -----------------------------------
