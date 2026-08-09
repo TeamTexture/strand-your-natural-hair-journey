@@ -233,13 +233,59 @@ const AdminBroadcast = () => {
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
           rows={6}
-          placeholder="Write the message everyone in this audience will receive…"
+          placeholder={
+            image
+              ? "Add a caption for the photo (optional)…"
+              : "Write the message everyone in this audience will receive…"
+          }
           className="text-[13px]"
         />
-        <span className="block text-[10px] text-muted-foreground">
-          {body.length}/{MAX_BODY}
-        </span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[10px] text-muted-foreground">
+            {body.length}/{MAX_BODY}
+          </span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5"
+          >
+            <ImagePlus className="size-3.5" />
+            {image ? "Change photo" : "Attach photo"}
+          </button>
+        </div>
+
+        {imagePreview && (
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5">
+            <img
+              src={imagePreview}
+              alt="Attached photo preview"
+              className="size-16 rounded-xl object-cover border border-border"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11.5px] font-body leading-snug">
+                Photo attached — everyone in this audience receives it, with your text as the
+                caption.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearImage}
+              aria-label="Remove photo"
+              className="shrink-0 size-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
       </div>
+
 
       <div className="px-5 py-4 flex justify-center">
         <Button
