@@ -420,9 +420,32 @@ export async function generateVerified<T>(
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 
+/** Field values shorter than this are labels/names, never prose claims. */
+const MIN_CLAIM_CHARS = 24;
+const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+/** Keys whose value is a label, not prose — never stripped. */
+const LABEL_KEYS = new Set([
+  "name",
+  "title",
+  "headline",
+  "category",
+  "label",
+  "tone",
+  "direction",
+  "factor",
+  "product_ref",
+  "step",
+  "n",
+  "id",
+  "slug",
+  "chapter",
+  "page",
+]);
+
 function stripSentence(text: string, claim: string): string {
   const target = norm(claim);
-  if (!target) return text;
+  if (target.length < MIN_CLAIM_CHARS) return text;
   const parts = text.split(/(?<=[.!?])(\s+)/);
   const kept: string[] = [];
   let removed = false;
@@ -432,7 +455,16 @@ function stripSentence(text: string, claim: string): string {
       continue;
     }
     const n = norm(part);
-    if (n && (n === target || n.includes(target) || target.includes(n))) {
+    // Only ever remove something that is itself a prose sentence, and only when
+    // it genuinely corresponds to the rejected claim. A short label that merely
+    // appears inside the claim (an ingredient name, a category) is never a
+    // violation and must survive.
+    const isProse = n.length >= MIN_CLAIM_CHARS && words(n) >= 4;
+    const matches =
+      n === target ||
+      n.includes(target) ||
+      (target.includes(n) && n.length >= Math.max(MIN_CLAIM_CHARS, target.length * 0.5));
+    if (isProse && matches) {
       removed = true;
       continue;
     }
@@ -446,22 +478,43 @@ function stripSentence(text: string, claim: string): string {
     .trim();
 }
 
-function stripDeep<T>(value: T, claims: string[]): T {
+function stripDeep<T>(value: T, claims: string[], key?: string): T {
   if (typeof value === "string") {
+    if (key && LABEL_KEYS.has(key)) return value as unknown as T;
     let out: string = value;
     for (const c of claims) out = stripSentence(out, c);
     return out as unknown as T;
   }
-  if (Array.isArray(value)) return value.map((v) => stripDeep(v, claims)) as unknown as T;
+  if (Array.isArray(value)) {
+    const mapped = value.map((v) => stripDeep(v, claims, key));
+    // Drop list items that lost all of their prose — an empty card is a visible
+    // defect; omitting it is the conservative outcome.
+    return mapped.filter((v) => !isHollow(v)) as unknown as T;
+  }
   if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = stripDeep(v, claims);
+      out[k] = stripDeep(v, claims, k);
     }
     return out as unknown as T;
   }
   return value;
 }
+
+/**
+ * An object is hollow when it was meant to carry prose and now carries none —
+ * every one of its non-label string fields is empty.
+ */
+function isHollow(value: unknown): boolean {
+  if (typeof value === "string") return !value.trim();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([k, v]) => typeof v === "string" && !LABEL_KEYS.has(k),
+  );
+  if (entries.length === 0) return false;
+  return entries.every(([, v]) => !String(v).trim());
+}
+
 
 /**
  * Universal fail-safe applied to every AI response. Deterministic rules always
