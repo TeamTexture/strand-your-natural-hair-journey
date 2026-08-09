@@ -77,7 +77,11 @@ const Home = () => {
   const renderRichText = useSmartInline();
   const location = useLocation();
   const { user } = useAuth();
+  // Start the sponsored wash day tip generating now, in the background, so the
+  // Wash Day screen renders it from cache instead of waiting on the model.
+  useWarmSponsoredWashDayTip();
   const greeting = getTimeBasedGreeting();
+
   const [firstName, setFirstName] = useState<string>("");
   // Home is intentionally STATIC while mounted: every data hook loads once
   // on entry, then no realtime channels, focus refetches, or interval polls
