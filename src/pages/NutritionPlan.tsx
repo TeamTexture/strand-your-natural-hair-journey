@@ -157,8 +157,19 @@ const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
   };
 };
 
+/**
+ * Nutrition/diet guidance is intentionally EXEMPT from the guidance-level
+ * scale: it always renders at full detail (level 3) so the member gets the
+ * complete personalised plan — every supplement, every meal idea, every
+ * avoid — regardless of the global support level.
+ */
+const useNutritionLevel = () => {
+  const { showBeginnerHelp } = useTipsLevel();
+  return { level: 3 as TipsLevel, showBeginnerHelp };
+};
+
 const StrandTipBox = ({ text }: { text: string }) => {
-  const { level, showBeginnerHelp } = useTipsLevel();
+  const { level, showBeginnerHelp } = useNutritionLevel();
   if (level === 1) return null;
   // Support **bold** inline within the tip text.
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -190,7 +201,7 @@ const StrandTipBox = ({ text }: { text: string }) => {
 
 const SupplementCard = ({ s }: { s: AiSupplement }) => {
   const { rest, tips } = splitStrandTips(s.body);
-  const { level } = useTipsLevel();
+  const { level } = useNutritionLevel();
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex items-start gap-2.5">
@@ -216,7 +227,7 @@ const SupplementCard = ({ s }: { s: AiSupplement }) => {
 
 const DietCard = ({ c }: { c: AiCard }) => {
   const { rest, tips } = splitStrandTips(c.body);
-  const { level } = useTipsLevel();
+  const { level } = useNutritionLevel();
   return (
     <SurfaceCard className="border-l-4 border-l-good">
       <div className="flex items-center gap-2.5">
@@ -231,7 +242,7 @@ const DietCard = ({ c }: { c: AiCard }) => {
 
 const AvoidCard = ({ c }: { c: AiCard }) => {
   const { rest, tips } = splitStrandTips(c.body);
-  const { level } = useTipsLevel();
+  const { level } = useNutritionLevel();
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
       <div className="flex items-start gap-2.5">
@@ -444,7 +455,7 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
 const NutritionPlan = () => {
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
-  const { level } = useTipsLevel();
+  const { level } = useNutritionLevel();
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
