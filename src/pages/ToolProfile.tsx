@@ -4,7 +4,7 @@
 // personalised match stars and the saved STRAND read, plus the actions to keep
 // it in My Tools, favourite it, or open the original page.
 import { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { AlertTriangle, Check, ExternalLink, Heart, Sparkles, Wrench } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -30,6 +30,11 @@ import { cn } from "@/lib/utils";
 const ToolProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  // Where to return to. The style-record step passes its own path so back
+  // always lands on the record the member came from, even on a hard refresh.
+  const location = useLocation();
+  const backTo =
+    (location.state as { from?: string } | null)?.from ?? "/products";
   const { tools, loading, updateTool, setFavourite } = useUserTools();
   const [adviceOpen, setAdviceOpen] = useState(false);
 
@@ -52,7 +57,7 @@ const ToolProfile = () => {
   if (loading) {
     return (
       <ScreenLayout>
-        <TitleBar title="Tool" backFallback="/products" />
+        <TitleBar title="Tool" backFallback={backTo} />
         <div className="py-16">
           <LoadingDot />
         </div>
@@ -63,12 +68,12 @@ const ToolProfile = () => {
   if (!tool) {
     return (
       <ScreenLayout>
-        <TitleBar title="Tool" backFallback="/products" />
+        <TitleBar title="Tool" backFallback={backTo} />
         <div className="px-4 py-10 text-center space-y-3">
           <p className="text-sm text-muted-foreground">
             We couldn't find that tool in your collection.
           </p>
-          <Button variant="goldGhost" size="sm" onClick={() => navigate("/products")}>
+          <Button variant="goldGhost" size="sm" onClick={() => navigate(backTo)}>
             Go to My Products
           </Button>
         </div>
@@ -80,7 +85,7 @@ const ToolProfile = () => {
 
   return (
     <ScreenLayout contentClassName="pb-10">
-      <TitleBar title="Tool" backFallback="/products" />
+      <TitleBar title="Tool" backFallback={backTo} />
 
       <div className="px-4 space-y-3">
         <SurfaceCard className="p-4">

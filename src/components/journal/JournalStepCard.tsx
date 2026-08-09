@@ -392,7 +392,7 @@ const JournalStepCard = ({
           >
             <button
               type="button"
-              onClick={() => navigate(`/tools/${tid}`)}
+              onClick={() => navigate(`/tools/${tid}`, { state: { from: window.location.pathname } })}
               className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
             >
               <ProductThumb
