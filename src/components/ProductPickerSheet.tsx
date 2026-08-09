@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Check, Camera, ImagePlus, Link2, Loader2, Star } from "lucide-react";
+import { Check, Camera, ImagePlus, Link2, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
@@ -11,6 +11,8 @@ import LoadingDot from "@/components/LoadingDot";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
+import ShelfItemRemoveDialog from "@/components/ShelfItemRemoveDialog";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -32,37 +34,57 @@ interface Props {
 }
 
 
-const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onClick: () => void }) => (
-  <button
-    onClick={onClick}
+const Row = ({
+  p,
+  selected,
+  onClick,
+  onRemove,
+}: {
+  p: UserProduct;
+  selected: boolean;
+  onClick: () => void;
+  onRemove: () => void;
+}) => (
+  <div
     className={cn(
-      "w-full p-3 flex items-center gap-3 text-left rounded-[10px] border transition-colors",
-      selected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40",
+      "w-full p-3 flex items-center gap-3 rounded-[10px] border transition-colors",
+      selected ? "border-primary bg-primary/5" : "border-border bg-card",
     )}
   >
-    <ProductThumb
-      imageUrl={p.image_url}
-      storagePath={p.storage_path}
-      alt={p.name}
-      cover
-      wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
-    />
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium truncate">{p.name}</p>
-      <div className="flex items-center gap-2 min-w-0">
-        {p.brand && (
-          <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
-        )}
-        <MatchStars item={p} />
+    <button onClick={onClick} className="flex-1 min-w-0 flex items-center gap-3 text-left">
+      <ProductThumb
+        imageUrl={p.image_url}
+        storagePath={p.storage_path}
+        alt={p.name}
+        cover
+        wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{p.name}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          {p.brand && (
+            <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+          )}
+          <MatchStars item={p} />
+        </div>
       </div>
-    </div>
-    {selected && (
-      <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-        <Check className="size-3" />
-      </span>
-    )}
-  </button>
+      {selected && (
+        <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+          <Check className="size-3" />
+        </span>
+      )}
+    </button>
+    <button
+      type="button"
+      aria-label={`Remove ${p.name}`}
+      onClick={onRemove}
+      className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-destructive"
+    >
+      <Trash2 className="size-4" />
+    </button>
+  </div>
 );
+
 
 
 const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint }: Props) => {
