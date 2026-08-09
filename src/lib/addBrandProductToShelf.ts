@@ -72,10 +72,20 @@ export async function addBrandProductToShelf(opts: {
   }
 
 
-  const product_key = brandProductKey(product.id);
+  // Reuse the key of any row the member already holds for this catalogue item
+  // (the advert route historically keyed rows `brand-offer:<id>`), so the two
+  // entry points can never create two shelf rows for the same product.
+  const { data: priorRows } = await supabase
+    .from("user_products")
+    .select("product_key")
+    .eq("user_id", userId)
+    .eq("linked_brand_product_id", product.id)
+    .limit(1);
+  const product_key = (priorRows ?? [])[0]?.product_key ?? brandProductKey(product.id);
   const payload: Record<string, unknown> = {
     user_id: userId,
     product_key,
+
     name: product.name,
     brand: brandName,
     ingredients: product.ingredients ?? [],
