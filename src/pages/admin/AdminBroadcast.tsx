@@ -32,7 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { smartBack } from "@/lib/smartBack";
 import { formatVoiceDuration, useVoiceRecorder, type VoiceRecording } from "@/hooks/useVoiceRecorder";
-import { transcribeChatVoice, uploadBroadcastVoice } from "@/lib/chatVoice";
+import { transcribeChatVoice, uploadChatVoice } from "@/lib/chatVoice";
 
 type Audience = "all" | "consumer" | "professional" | "brand";
 
