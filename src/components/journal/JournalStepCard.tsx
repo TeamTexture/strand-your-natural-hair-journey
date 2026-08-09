@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package, ChevronRight, Wrench } from "lucide-react";
+import { captureVideoPoster } from "@/lib/videoPoster";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -62,7 +63,12 @@ interface Props {
   onUpdate: (patch: Partial<Pick<JournalStep, "note" | "voice_path" | "voice_transcript">>) => void;
   onDelete: () => void;
   onMove: (direction: "up" | "down") => void;
-  onAddMedia: (media: { kind: "photo" | "video"; storage_path: string; duration_seconds?: number | null }) => void;
+  onAddMedia: (media: {
+    kind: "photo" | "video";
+    storage_path: string;
+    poster_path?: string | null;
+    duration_seconds?: number | null;
+  }) => void;
   onRemoveMedia: (mediaId: string) => void;
   onToggleProduct: (userProductId: string) => void;
   onToggleTool: (userToolId: string) => void;
@@ -99,6 +105,8 @@ const JournalStepCard = ({
 
 
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [posters, setPosters] = useState<Record<string, string>>({});
+
   const [photoBusy, setPhotoBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const location = useLocation();
@@ -132,15 +140,43 @@ const JournalStepCard = ({
     let alive = true;
     (async () => {
       const next: Record<string, string> = {};
+      const nextPosters: Record<string, string> = {};
       for (const m of step.media) {
         const bucket = m.kind === "photo" ? PHOTO_BUCKET : VIDEO_BUCKET;
         const { data } = await supabase.storage.from(bucket).createSignedUrl(m.storage_path, 3600);
         if (data?.signedUrl) next[m.id] = data.signedUrl;
+        if (m.kind === "video" && m.poster_path) {
+          const { data: pd } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(m.poster_path, 3600);
+          if (pd?.signedUrl) nextPosters[m.id] = pd.signedUrl;
+        }
       }
-      if (alive) setUrls(next);
+      if (!alive) return;
+      setUrls(next);
+      setPosters(nextPosters);
+
+      // Heal older clips saved before covers existed: capture a frame now,
+      // store it, and keep it for next time.
+      if (!user) return;
+      for (const m of step.media) {
+        if (m.kind !== "video" || m.poster_path || !next[m.id]) continue;
+        const blob = await captureVideoPoster(next[m.id]);
+        if (!blob || !alive) continue;
+        const path = `${user.id}/steps/${step.id}/posters/${m.id}.jpg`;
+        const { error } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+        if (error) continue;
+        await supabase.from("journal_step_media").update({ poster_path: path }).eq("id", m.id);
+        const { data: pd } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
+        if (pd?.signedUrl && alive) {
+          setPosters((prev) => ({ ...prev, [m.id]: pd.signedUrl }));
+        }
+      }
     })();
     return () => { alive = false; };
-  }, [step.media]);
+  }, [step.media, step.id, user]);
 
   const addPhotos = async (files: FileList | null) => {
     if (!files?.length || !user) return;
@@ -263,6 +299,7 @@ const JournalStepCard = ({
                   ) : urls[m.id] ? (
                     <video
                       src={urls[m.id]}
+                      poster={posters[m.id]}
                       controls
                       playsInline
                       preload="metadata"
@@ -313,7 +350,12 @@ const JournalStepCard = ({
               <StepVideoCapture
                 folder={`steps/${step.id}`}
                 onUploaded={(m) =>
-                  onAddMedia({ kind: "video", storage_path: m.storage_path, duration_seconds: m.duration_seconds })
+                  onAddMedia({
+                    kind: "video",
+                    storage_path: m.storage_path,
+                    poster_path: m.poster_path,
+                    duration_seconds: m.duration_seconds,
+                  })
                 }
               />
             </>

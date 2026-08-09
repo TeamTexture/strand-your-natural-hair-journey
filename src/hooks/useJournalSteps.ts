@@ -17,6 +17,8 @@ export interface StepMedia {
   id: string;
   kind: "photo" | "video";
   storage_path: string;
+  /** Still frame captured from a video, in the photo bucket. Videos only. */
+  poster_path: string | null;
   duration_seconds: number | null;
   sort_order: number;
 }
@@ -53,7 +55,7 @@ export function useJournalSteps(entryId: string | null) {
     const { data, error } = await supabase
       .from("journal_steps")
       .select(
-        "id, entry_id, step_order, note, voice_path, voice_transcript, journal_step_media(id, kind, storage_path, duration_seconds, sort_order), journal_step_products(id, user_product_id), journal_step_tools(id, user_tool_id)",
+        "id, entry_id, step_order, note, voice_path, voice_transcript, journal_step_media(id, kind, storage_path, poster_path, duration_seconds, sort_order), journal_step_products(id, user_product_id), journal_step_tools(id, user_tool_id)",
       )
       .eq("entry_id", entryId)
       .order("step_order", { ascending: true });
@@ -144,13 +146,19 @@ export function useJournalSteps(entryId: string | null) {
   const addMedia = useCallback(
     async (
       stepId: string,
-      media: { kind: "photo" | "video"; storage_path: string; duration_seconds?: number | null },
+      media: {
+        kind: "photo" | "video";
+        storage_path: string;
+        poster_path?: string | null;
+        duration_seconds?: number | null;
+      },
     ) => {
       const existing = steps.find((s) => s.id === stepId)?.media.length ?? 0;
       const { error } = await supabase.from("journal_step_media").insert({
         step_id: stepId,
         kind: media.kind,
         storage_path: media.storage_path,
+        poster_path: media.poster_path ?? null,
         duration_seconds: media.duration_seconds ?? null,
         sort_order: existing,
       });

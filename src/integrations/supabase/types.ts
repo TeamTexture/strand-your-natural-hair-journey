@@ -2517,6 +2517,7 @@ export type Database = {
           duration_seconds: number | null
           id: string
           kind: string
+          poster_path: string | null
           sort_order: number
           step_id: string
           storage_path: string
@@ -2526,6 +2527,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           kind: string
+          poster_path?: string | null
           sort_order?: number
           step_id: string
           storage_path: string
@@ -2535,6 +2537,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           kind?: string
+          poster_path?: string | null
           sort_order?: number
           step_id?: string
           storage_path?: string
