@@ -14,8 +14,39 @@ import StepVideoCapture from "@/components/journal/StepVideoCapture";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
+import { toParagraphs, transcriptPreview } from "@/lib/formatTranscript";
+
 const PHOTO_BUCKET = "journal-photos";
 const VIDEO_BUCKET = "journal-videos";
+
+/** Voice note transcript — a readable preview, expandable into paragraphs. */
+const TranscriptBody = ({ text }: { text: string }) => {
+  const [open, setOpen] = useState(false);
+  const preview = transcriptPreview(text);
+  if (!preview) return null;
+  const paragraphs = toParagraphs(text);
+  return (
+    <div className="space-y-1.5">
+      {open ? (
+        paragraphs.map((p, i) => (
+          <p key={i} className="text-[13px] leading-relaxed">{p}</p>
+        ))
+      ) : (
+        <p className="text-[13px] leading-relaxed">{preview.text}</p>
+      )}
+      {preview.truncated && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[10px] uppercase tracking-[0.14em] text-primary"
+        >
+          {open ? "Show less" : `See all — ${preview.words} words`}
+        </button>
+      )}
+    </div>
+  );
+};
+
 
 interface Props {
   step: JournalStep;
