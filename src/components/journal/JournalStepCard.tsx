@@ -98,9 +98,11 @@ const JournalStepCard = ({
     }
   };
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const { products: shelf } = useUserProducts("shelf");
-  const { products: wishlist } = useUserProducts("wishlist");
-  const catalogue = [...shelf, ...wishlist];
+  // Resolve attached products against the member's WHOLE product list, not
+  // just shelf + wishlist — a product scanned inside a style step may sit
+  // off-shelf, and it should still render with its name, image and rating.
+  const { allProducts: catalogue } = useUserProducts("all");
+
 
   const selectedIds = step.products
     .map((p) => p.user_product_id)
