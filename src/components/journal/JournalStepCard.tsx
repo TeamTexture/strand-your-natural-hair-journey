@@ -150,7 +150,7 @@ const JournalStepCard = ({
 
       {editing ? (
         <VoiceNoteField
-          label="What you did"
+          label="Short note"
           placeholder="Cleansed, blow dried on cool, sealed the ends…"
           value={step.note ?? ""}
           onChange={(next) => onUpdate({ note: next })}

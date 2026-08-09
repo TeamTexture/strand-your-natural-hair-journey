@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
  * In-app video capture for a style-record step.
  *
  * Hard rules:
- *  - 60 second maximum, with a visible countdown and an automatic stop.
+ *  - 30 second maximum, with a visible countdown and an automatic stop.
  *  - Bitrate ceiling of 1.0 Mbps video + 64 kbps audio at 720p/24fps, so a
- *    full 60 second clip lands around 8 MB.
+ *    full 30 second clip lands around 4 MB.
  *  - Anything over MAX_BYTES is refused rather than uploaded.
  *
  * iOS Safari: MediaRecorder support is inconsistent and codec support varies by
@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
  * The picker uses the phone's own camera app, so it always works on iPhone.
  */
 
-export const MAX_SECONDS = 60;
+export const MAX_SECONDS = 30;
 const VIDEO_BITS_PER_SECOND = 1_000_000;
 const AUDIO_BITS_PER_SECOND = 64_000;
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -102,7 +102,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const upload = async (blob: Blob, mime: string, duration: number | null) => {
     if (!user) { toast.error("Please sign in"); return; }
     if (blob.size > MAX_BYTES) {
-      toast.error("That video is too large. Keep it under 60 seconds.");
+      toast.error("That video is too large. Keep it under 30 seconds.");
       return;
     }
     setUploading(true);
@@ -167,7 +167,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       timerRef.current = window.setInterval(() => {
         setRemaining((r) => (r > 0 ? r - 1 : 0));
       }, 1000);
-      // Hard automatic stop at the 60 second ceiling.
+      // Hard automatic stop at the 30 second ceiling.
       stopTimerRef.current = window.setTimeout(stop, MAX_SECONDS * 1000);
     } catch (e) {
       console.error("record start failed", e);
@@ -180,7 +180,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     if (!file) return;
     const duration = await readDuration(file);
     if (duration !== null && duration > MAX_SECONDS + 1) {
-      toast.error("Videos must be 60 seconds or shorter.");
+      toast.error("Videos must be 30 seconds or shorter.");
       return;
     }
     await upload(file, file.type || "video/mp4", duration);
@@ -225,7 +225,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       </div>
 
       <p className="text-[10px] text-muted-foreground leading-snug">
-        60 seconds maximum. Recording stops on its own when time is up.
+        30 seconds maximum. Recording stops on its own when time is up.
       </p>
 
       <input
