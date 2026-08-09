@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
 import { prepareImageForAi } from "@/lib/imagePrep";
+import { transcribeChatVoice, uploadChatVoice } from "@/lib/chatVoice";
+import type { VoiceRecording } from "@/hooks/useVoiceRecorder";
 import {
   threadMatchesView,
   useActiveRoleView,
