@@ -26,14 +26,18 @@ import { Slider } from "@/components/ui/slider";
  */
 
 export const MAX_SECONDS = 30;
-const VIDEO_BITS_PER_SECOND = 3_000_000;
-const AUDIO_BITS_PER_SECOND = 96_000;
+/** ~2.5 Mbps is visually close to source on a 375px frame at a fraction of the size. */
+const VIDEO_BITS_PER_SECOND = 2_500_000;
+const AUDIO_BITS_PER_SECOND = 64_000;
 /** Portrait output size — every in-app clip is written at 9:16. */
 const OUT_W = 720;
 const OUT_H = 1280;
 const MAX_BYTES = 60 * 1024 * 1024;
+/** Raw phone-camera clips can be much larger; we compress before uploading. */
+const RAW_MAX_BYTES = 400 * 1024 * 1024;
 const BUCKET = "journal-videos";
 const POSTER_BUCKET = "journal-photos";
+
 
 /** Ordered by preference: mp4/h264 first because iOS produces and plays it. */
 const CANDIDATE_TYPES = [
