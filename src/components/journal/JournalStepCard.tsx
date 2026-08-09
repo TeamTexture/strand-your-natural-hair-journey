@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronUp, ChevronDown, Trash2, ImagePlus, X, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,6 +50,22 @@ const JournalStepCard = ({
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Tag the URL with this step while its picker is open, so a product added by
+  // pasting a link (which navigates away through the shelf add-by-link flow and
+  // comes back) lands on this step rather than the entry.
+  const openPicker = () => {
+    navigate(`${location.pathname}?addToStep=${step.id}`, { replace: true });
+    setPickerOpen(true);
+  };
+  const closePicker = (open: boolean) => {
+    setPickerOpen(open);
+    if (!open && location.search.includes("addToStep")) {
+      navigate(location.pathname, { replace: true });
+    }
+  };
   const photoInputRef = useRef<HTMLInputElement>(null);
   const { products: shelf } = useUserProducts("shelf");
   const { products: wishlist } = useUserProducts("wishlist");
@@ -279,7 +296,7 @@ const JournalStepCard = ({
               variant="goldGhost"
               size="sm"
               className="h-10 w-full"
-              onClick={() => setPickerOpen(true)}
+              onClick={openPicker}
             >
               <Package className="size-4 mr-1.5" />
               Add products
@@ -290,7 +307,7 @@ const JournalStepCard = ({
 
       <ProductPickerSheet
         open={pickerOpen}
-        onOpenChange={setPickerOpen}
+        onOpenChange={closePicker}
         selectedIds={selectedIds}
         onToggle={onToggleProduct}
       />
