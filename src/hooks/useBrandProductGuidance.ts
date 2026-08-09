@@ -179,8 +179,22 @@ async function loadGuidance(
   }
 }
 
+/** WARM THE CACHE. Sponsored wash day tips take tens of seconds to generate on
+ *  demand (manuscript retrieval + two model stages), so a member who was not
+ *  covered by approval-time pre-generation used to sit watching a spinner. This
+ *  starts that work in the background from an earlier screen, so opening Wash
+ *  Day is a cache read. Fire and forget — errors are ignored. */
+export function warmBrandProductGuidance(
+  userId: string,
+  product: BrandGuidanceProduct,
+  surface: GuidanceSurface = "wash_day",
+) {
+  void loadGuidance(userId, product, surface).catch(() => null);
+}
+
 /** Personalised guidance for one ad product. Set `enabled` false to hold off
  *  generation until the member actually engages (e.g. expands a banner). */
+
 export function useBrandProductGuidance(
   product: BrandGuidanceProduct | null | undefined,
   opts: { enabled?: boolean; surface?: GuidanceSurface } = {},
