@@ -5,12 +5,12 @@
 // existing chat_messages insert trigger sends each recipient the
 // "strand-message-received" email, so no separate email path is needed.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { prepareImageForAi } from "@/lib/imagePrep";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle2, ImagePlus, Send, Users, X } from "lucide-react";
+import { CheckCircle2, ImagePlus, Mic, Send, Square, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -31,6 +31,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { smartBack } from "@/lib/smartBack";
+import { formatVoiceDuration, useVoiceRecorder, type VoiceRecording } from "@/hooks/useVoiceRecorder";
+import { transcribeChatVoice, uploadChatVoice } from "@/lib/chatVoice";
+import { uuid } from "@/lib/uuid";
 
 type Audience = "all" | "consumer" | "professional" | "brand";
 
@@ -82,6 +85,21 @@ const AdminBroadcast = () => {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  // Optional voice note. It is recorded here and only uploaded on send, so the
+  // admin can re-record before committing to thousands of recipients.
+  const [clip, setClip] = useState<VoiceRecording | null>(null);
+  const voice = useVoiceRecorder((rec) => setClip(rec));
+
+  useEffect(() => {
+    if (voice.error) {
+      toast.error(voice.error);
+      voice.setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.error]);
+
+
+
   const { data: history } = useQuery({
     queryKey: ["admin", "broadcasts"],
     enabled: !!user?.id,
@@ -113,10 +131,21 @@ const AdminBroadcast = () => {
         if (upErr) throw upErr;
         imagePath = path;
       }
+      // The voice note is uploaded once too, and transcribed once, so every
+      // recipient's row shares the same audio object and transcript.
+      let voicePath: string | null = null;
+      let transcript: string | null = null;
+      if (clip) {
+        voicePath = await uploadChatVoice(uuid(), clip.blob, clip.mimeType);
+        transcript = await transcribeChatVoice(clip.blob, clip.mimeType);
+      }
       const { data, error } = await supabase.rpc("admin_broadcast_message", {
         _audience: audience,
         _body: body.trim(),
         _image_path: imagePath,
+        _voice_path: voicePath,
+        _voice_transcript: transcript,
+        _voice_duration_ms: clip ? Math.round(clip.durationMs) : null,
       });
       if (error) throw error;
       return data as { recipients?: number } | null;
@@ -126,14 +155,16 @@ const AdminBroadcast = () => {
       setSent({ recipients: n, audience, body: body.trim() });
       setBody("");
       clearImage();
+      setClip(null);
       void qc.invalidateQueries({ queryKey: ["admin", "broadcasts"] });
       void qc.invalidateQueries({ queryKey: ["chat-threads"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not send"),
   });
 
-  // A photo on its own is a valid broadcast; text alone still is too.
-  const canSend = (body.trim().length > 1 || !!image) && !send.isPending;
+  // A photo or a voice note on its own is a valid broadcast; text alone still is too.
+  const canSend =
+    (body.trim().length > 1 || !!image || !!clip) && !send.isPending && !voice.recording;
 
 
   if (sent) {
@@ -240,8 +271,8 @@ const AdminBroadcast = () => {
           }
           className="text-[13px]"
         />
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] text-muted-foreground shrink-0">
             {body.length}/{MAX_BODY}
           </span>
           <input
@@ -251,15 +282,64 @@ const AdminBroadcast = () => {
             className="hidden"
             onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5"
-          >
-            <ImagePlus className="size-3.5" />
-            {image ? "Change photo" : "Attach photo"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={voice.recording}
+              className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/5 disabled:opacity-50"
+            >
+              <ImagePlus className="size-3.5" />
+              {image ? "Change photo" : "Photo"}
+            </button>
+            <button
+              type="button"
+              onClick={voice.recording ? voice.stop : () => void voice.start()}
+              className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] px-3 py-1.5 rounded-full border ${
+                voice.recording
+                  ? "border-warn/50 bg-warn/10 text-warn"
+                  : "border-primary/30 text-primary hover:bg-primary/5"
+              }`}
+            >
+              {voice.recording ? (
+                <>
+                  <Square className="size-3 fill-current" />
+                  Stop {formatVoiceDuration(voice.elapsedMs)}
+                </>
+              ) : (
+                <>
+                  <Mic className="size-3.5" />
+                  {clip ? "Re-record" : "Voice note"}
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {clip && !voice.recording && (
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5">
+            <div className="shrink-0 size-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Mic className="size-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11.5px] font-body leading-snug">
+                Voice note attached · {formatVoiceDuration(clip.durationMs)}
+              </p>
+              <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">
+                Everyone in this audience can play it, and it is transcribed for them on send.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setClip(null)}
+              aria-label="Remove voice note"
+              className="shrink-0 size-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        )}
+
 
         {imagePreview && (
           <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5">

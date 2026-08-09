@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
 import { prepareImageForAi } from "@/lib/imagePrep";
+import { transcribeChatVoice, uploadChatVoice } from "@/lib/chatVoice";
+import type { VoiceRecording } from "@/hooks/useVoiceRecorder";
 import {
   threadMatchesView,
   useActiveRoleView,
@@ -30,7 +32,7 @@ export interface ChatMessage {
   thread_id: string;
   sender_id: string | null;
   sender_role: string | null;
-  kind: "text" | "system" | "booking_request";
+  kind: "text" | "system" | "booking_request" | "image" | "voice";
   body: string;
   meta: Record<string, unknown>;
   created_at: string;
@@ -175,7 +177,7 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
           .from("chat_messages")
           .select("thread_id, body, sender_id, sender_role, read_at, kind, created_at")
           .in("thread_id", ids)
-          .in("kind", ["text", "booking_request"])
+          .in("kind", ["text", "booking_request", "image", "voice"])
           .order("created_at", { ascending: false })
           .limit(Math.min(400, ids.length * 12)),
         supabase
@@ -353,6 +355,43 @@ export function useSendChatImage(threadId: string | null | undefined) {
     },
   });
 }
+
+/**
+ * Sends a voice note inside a thread.
+ *
+ * The recording is uploaded to the private `chat-images` bucket under the thread
+ * id (which is what the storage policies key off) and transcribed on a
+ * best-effort basis. The message row carries kind = "voice"; `body` holds the
+ * transcript when we have one so previews, notifications and the email digest
+ * still read as words rather than "Voice note".
+ */
+export function useSendChatVoice(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const view = useActiveRoleView();
+  return useMutation({
+    mutationFn: async ({ blob, mimeType, durationMs }: VoiceRecording) => {
+      if (!threadId || !user?.id) throw new Error("Not ready");
+      const path = await uploadChatVoice(threadId, blob, mimeType);
+      const transcript = await transcribeChatVoice(blob, mimeType);
+      const { error } = await supabase.from("chat_messages").insert({
+        thread_id: threadId,
+        sender_id: user.id,
+        sender_role: view,
+        kind: "voice",
+        body: transcript ?? "Voice note",
+        meta: { audio_path: path, duration_ms: Math.round(durationMs), transcript },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+    },
+  });
+}
+
+
 
 
 

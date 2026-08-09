@@ -245,6 +245,8 @@ export type Database = {
           id: string
           image_path: string | null
           recipient_count: number
+          voice_path: string | null
+          voice_transcript: string | null
         }
         Insert: {
           admin_user_id: string
@@ -254,6 +256,8 @@ export type Database = {
           id?: string
           image_path?: string | null
           recipient_count?: number
+          voice_path?: string | null
+          voice_transcript?: string | null
         }
         Update: {
           admin_user_id?: string
@@ -263,6 +267,8 @@ export type Database = {
           id?: string
           image_path?: string | null
           recipient_count?: number
+          voice_path?: string | null
+          voice_transcript?: string | null
         }
         Relationships: []
       }
@@ -5443,12 +5449,17 @@ export type Database = {
         Returns: number
       }
       ad_style_code: { Args: { _style: string }; Returns: string }
-      admin_broadcast_message:
-        | { Args: { _audience: string; _body: string }; Returns: Json }
-        | {
-            Args: { _audience: string; _body: string; _image_path?: string }
-            Returns: Json
-          }
+      admin_broadcast_message: {
+        Args: {
+          _audience: string
+          _body: string
+          _image_path?: string
+          _voice_duration_ms?: number
+          _voice_path?: string
+          _voice_transcript?: string
+        }
+        Returns: Json
+      }
       admin_event_rsvps: {
         Args: { _event_id: string }
         Returns: {

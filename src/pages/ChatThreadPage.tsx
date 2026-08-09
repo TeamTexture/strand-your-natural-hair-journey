@@ -3,7 +3,19 @@ import { directoryLinkForPro } from "@/lib/directoryLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, isToday, isYesterday } from "date-fns";
-import { BadgeCheck, Calendar, CalendarPlus, ExternalLink, Send, User2, Minus } from "lucide-react";
+import {
+  BadgeCheck,
+  Calendar,
+  CalendarPlus,
+  ExternalLink,
+  ImagePlus,
+  Loader2,
+  Mic,
+  Send,
+  Square,
+  User2,
+  Minus,
+} from "lucide-react";
 import { normalizeBookingUrl } from "@/lib/bookingUrl";
 import { externalLinkProps } from "@/lib/socialLinks";
 
@@ -36,8 +48,12 @@ import {
   useMarkThreadRead,
   useSendChatMessage,
   useSendChatImage,
+  useSendChatVoice,
   type ChatMessage,
 } from "@/hooks/useChat";
+import ChatImageBubble from "@/components/chat/ChatImageBubble";
+import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
+import { formatVoiceDuration, useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 const dateLabel = (d: Date) => {
   if (isToday(d)) return "Today";
@@ -222,6 +238,7 @@ const ChatThreadPage = () => {
   const { thread, messages } = useChatThread(threadId);
   const send = useSendChatMessage(threadId);
   const sendImage = useSendChatImage(threadId);
+  const sendVoice = useSendChatVoice(threadId);
   const book = useBookAppointmentInThread();
   const markRead = useMarkThreadRead(threadId);
   const [draft, setDraft] = useState("");
@@ -387,6 +404,42 @@ const ChatThreadPage = () => {
     }
   };
 
+  // Voice note: recording stops, then the audio is uploaded, transcribed and
+  // sent as its own message. The typed draft is left untouched.
+  const voice = useVoiceRecorder((rec) => {
+    sendVoice
+      .mutateAsync(rec)
+      .then(() => toast.success("Voice note sent"))
+      .catch((err) =>
+        toast.error(err instanceof Error ? err.message : "Could not send that voice note"),
+      );
+  });
+
+  useEffect(() => {
+    if (voice.error) {
+      toast.error(voice.error);
+      voice.setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.error]);
+
+  const attachPhoto = async (file: File | null) => {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("That photo is over 20MB — please choose a smaller one.");
+      return;
+    }
+    try {
+      await sendImage.mutateAsync({ file, caption: draft.trim() || undefined });
+      setDraft("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send that photo");
+    }
+  };
+
+
+
   if (!threadId) {
     return (
       <ScreenLayout>
@@ -489,12 +542,47 @@ const ChatThreadPage = () => {
                 const senderKey = mine ? "me" : (m.sender_id ?? "them");
                 const showName = prevSender !== senderKey;
                 prevSender = senderKey;
+                const senderName = mine ? "You" : (other?.name ?? "Them");
+                const meta = (m.meta ?? {}) as Record<string, unknown>;
+                if (m.kind === "voice") {
+                  return (
+                    <ChatVoiceBubble
+                      key={m.id}
+                      path={typeof meta.audio_path === "string" ? meta.audio_path : null}
+                      transcript={
+                        typeof meta.transcript === "string" ? meta.transcript : m.body || null
+                      }
+                      durationMs={
+                        typeof meta.duration_ms === "number" ? meta.duration_ms : null
+                      }
+                      createdAt={m.created_at}
+                      readAt={m.read_at}
+                      mine={mine}
+                      senderName={senderName}
+                      showName={showName}
+                    />
+                  );
+                }
+                if (m.kind === "image") {
+                  return (
+                    <ChatImageBubble
+                      key={m.id}
+                      path={typeof meta.image_path === "string" ? meta.image_path : null}
+                      caption={m.body === "Photo" ? null : m.body}
+                      createdAt={m.created_at}
+                      readAt={m.read_at}
+                      mine={mine}
+                      senderName={senderName}
+                      showName={showName}
+                    />
+                  );
+                }
                 return (
                   <MessageBubble
                     key={m.id}
                     m={m}
                     mine={mine}
-                    senderName={mine ? "You" : (other?.name ?? "Them")}
+                    senderName={senderName}
                     showName={showName}
                   />
                 );
@@ -604,25 +692,84 @@ const ChatThreadPage = () => {
 
 
 
+      {voice.recording && (
+        <div className="px-4 pb-1 flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-[11.5px] font-body text-warn">
+            <span className="size-2 rounded-full bg-warn animate-pulse" />
+            Recording {formatVoiceDuration(voice.elapsedMs)}
+          </span>
+          <button
+            type="button"
+            onClick={voice.cancel}
+            className="text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground underline underline-offset-2"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => void attachPhoto(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isViewingAs || sendImage.isPending || voice.recording}
+          aria-label="Attach a photo"
+          className="shrink-0 size-10 rounded-full border border-border bg-card flex items-center justify-center text-foreground/70 disabled:opacity-50"
+        >
+          {sendImage.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ImagePlus className="size-4" />
+          )}
+        </button>
         <div className="flex-1 min-w-0">
           <MentionTextarea
             value={draft}
             onChange={setDraft}
-            placeholder="Type a message · @ to tag"
+            placeholder={voice.recording ? "Recording a voice note…" : "Type a message · @ to tag"}
             rows={1}
             className="max-h-[120px] text-sm p-2.5 rounded-[14px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60"
           />
         </div>
-        <button
-          onClick={submit}
-          disabled={!draft.trim() || send.isPending || isViewingAs}
-          aria-label="Send"
-          className="shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
-        >
-          <Send className="size-4" />
-        </button>
+        {draft.trim() ? (
+          <button
+            onClick={submit}
+            disabled={send.isPending || isViewingAs}
+            aria-label="Send"
+            className="shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
+          >
+            <Send className="size-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={voice.recording ? voice.stop : () => void voice.start()}
+            disabled={isViewingAs || sendVoice.isPending}
+            aria-label={voice.recording ? "Stop and send voice note" : "Record a voice note"}
+            className={`shrink-0 size-10 rounded-full flex items-center justify-center disabled:opacity-50 ${
+              voice.recording
+                ? "bg-warn text-white"
+                : "bg-primary text-primary-foreground"
+            }`}
+          >
+            {sendVoice.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : voice.recording ? (
+              <Square className="size-4 fill-current" />
+            ) : (
+              <Mic className="size-4" />
+            )}
+          </button>
+        )}
       </div>
+
 
     </ScreenLayout>
   );
