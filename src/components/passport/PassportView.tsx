@@ -506,36 +506,9 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
       {/* Colour & chemical history — part of the profile dossier */}
       <ColourSection d={d} />
 
-      {/* Latest Strand summary — most recent only */}
-      {latestStrand && (
-        <>
-          <SubLabel>Latest Strand summary</SubLabel>
-          <div className="px-5">
-            <SurfaceCard>
-              <p className="text-[10.5px] font-body text-muted-foreground uppercase tracking-wider mb-2">
-                Updated {formatDate(latestStrand.created_at)} · {formatRelative(latestStrand.created_at)}
-              </p>
-              {latestStrand.overview && (
-                <p className="text-[13.5px] leading-relaxed text-foreground font-body whitespace-pre-wrap">
-                  {latestStrand.overview}
-                </p>
-              )}
-              {Array.isArray(latestStrand.action_plan) && (latestStrand.action_plan as unknown[]).length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-[10.5px] uppercase tracking-wider text-primary font-body font-semibold mb-2">Action plan</p>
-                  <ul className="space-y-1.5">
-                    {(latestStrand.action_plan as unknown[]).map((a, i) => (
-                      <li key={i} className="text-[13px] font-body leading-relaxed pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-primary">
-                        {typeof a === "string" ? a : humaniseValue(a) ?? ""}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </SurfaceCard>
-          </div>
-        </>
-      )}
+      {/* The "Latest Strand summary" block was removed with the Strand Summary
+          screen — it only restated data already shown in this passport. */}
+
 
       {/* Blood work — full details, embedded in Profile */}
       <BloodSection d={d} />
