@@ -509,28 +509,32 @@ Deno.serve(async (req) => {
     // Retry once, then fall back to the full corpus. Never block the user:
     // if retrieval still fails we generate anyway and stamp the payload so
     // ungrounded outputs are visible in the logs.
+    // 2026-08-09 FIDELITY FIX: the goal's authoritative chapters are passed IN
+    // FULL (chapter 1 always included) instead of top-k fragments. Fragments
+    // gave the model partial context, which it completed from general hair care
+    // knowledge — the defect this change exists to remove.
     let ragBlock = "";
     let ragPassageCount = 0;
     let ragProceduralCount = 0;
     let grounded = false;
-    const retrieve = async () => await retrieveProceduralPassages(ragQuery, 6, chapterFilter);
+    let sourceText = "";
+    let chaptersUsed: number[] = [];
     try {
-      let result: Awaited<ReturnType<typeof retrieve>>;
-      try {
-        result = await retrieve();
-      } catch {
-        result = await retrieve();
-      }
-      const passages = result.passages;
-      ragPassageCount = passages.length;
-      ragProceduralCount = result.procedural;
-      grounded = passages.length > 0;
-      if (passages.length > 0) {
-        ragBlock = `\n\nRETRIEVED MANUSCRIPT PASSAGES (these are the chapter-scoped verbatim teachings for this goal — draw all tips from here, tailored to the user's hair characteristics and health signals):\n\n${passages.map(renderPassageBlock).join("\n\n---\n\n")}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
+      const chapters = [
+        ...new Set([LANGUAGE_CHAPTER, ...chapterFilter, ...chaptersForSurface("goal-tip")]),
+      ].sort((a, b) => a - b);
+      const ctx = await loadChapters(chapters);
+      grounded = Boolean(ctx.text);
+      ragPassageCount = ctx.chunks;
+      sourceText = ctx.text;
+      chaptersUsed = ctx.chapters;
+      if (ctx.text) {
+        ragBlock = `\n\n${renderChapterBlock(ctx)}\n\n${FIDELITY_RULE}\n\n${GROUNDING_INSTRUCTION}\n\n${METHOD_AND_TIMING_RULE}`;
       }
     } catch {
       grounded = false;
     }
+
 
 
     if (!grounded) {
