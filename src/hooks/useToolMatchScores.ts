@@ -28,6 +28,7 @@ export function useToolMatchScores(tools: UserTool[], onScored?: () => void) {
   const { user } = useAuth();
   const [scores, setScores] = useState<Record<string, number>>({});
   const [scoring, setScoring] = useState(false);
+  const [failed, setFailed] = useState(false);
   const attempted = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -80,7 +81,13 @@ export function useToolMatchScores(tools: UserTool[], onScored?: () => void) {
         if (error) throw error;
         if (data?.error) throw new Error(String(data.error));
         const rows: ScoredRow[] = Array.isArray(data?.scores) ? data.scores : [];
-        if (cancelled || rows.length === 0) return;
+        if (cancelled) return;
+        if (rows.length === 0) {
+          // The gateway declined (credit limit) — let the surfaces say so.
+          setFailed(true);
+          return;
+        }
+        setFailed(false);
 
         setScores((prev) => {
           const next = { ...prev };
@@ -110,6 +117,7 @@ export function useToolMatchScores(tools: UserTool[], onScored?: () => void) {
         if (!cancelled) onScored?.();
       } catch (e) {
         console.warn("tool match scoring failed", e);
+        if (!cancelled) setFailed(true);
       } finally {
         if (!cancelled) setScoring(false);
       }
@@ -121,5 +129,5 @@ export function useToolMatchScores(tools: UserTool[], onScored?: () => void) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, tools.map((t) => `${t.id}:${matchScoreOf(t) ?? ""}`).join(",")]);
 
-  return { scores, scoring };
+  return { scores, scoring, failed };
 }
