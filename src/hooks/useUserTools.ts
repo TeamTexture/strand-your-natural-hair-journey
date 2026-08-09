@@ -208,7 +208,7 @@ export function useUserTools() {
       await load();
       return data as UserTool;
     },
-    [user, load],
+    [user, load, tools],
   );
 
   const updateTool = useCallback(
