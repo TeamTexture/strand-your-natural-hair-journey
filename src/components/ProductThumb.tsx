@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { usableImageUrl } from "@/lib/imageQuality";
 import { cn } from "@/lib/utils";
+
 
 /**
  * Small product thumbnail used across every product list (shelf, wishlist,
@@ -60,13 +62,13 @@ export default function ProductThumb({
   brand,
   name,
 }: ProductThumbProps) {
-  const [resolved, setResolved] = useState<string | null>(imageUrl ?? null);
+  const [resolved, setResolved] = useState<string | null>(usableImageUrl(imageUrl));
   const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
     setImgFailed(false);
     if (!storagePath) {
-      setResolved(imageUrl ?? null);
+      setResolved(usableImageUrl(imageUrl));
       return;
     }
     const now = Date.now();
@@ -83,7 +85,7 @@ export default function ProductThumb({
       if (cancelled) return;
       if (error) {
         console.warn("[ProductThumb] sign failed", { storagePath, error: error.message });
-        setResolved(imageUrl ?? null);
+        setResolved(usableImageUrl(imageUrl));
         return;
       }
       if (data?.signedUrl) {
@@ -93,7 +95,7 @@ export default function ProductThumb({
         });
         setResolved(data.signedUrl);
       } else {
-        setResolved(imageUrl ?? null);
+        setResolved(usableImageUrl(imageUrl));
       }
     })();
     return () => {
