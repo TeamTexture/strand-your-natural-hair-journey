@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Play, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProductThumb from "@/components/ProductThumb";
-import StarRating from "@/components/StarRating";
 import MatchStars from "@/components/MatchStars";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
@@ -222,9 +221,8 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                       {p?.brand && (
                         <span className="text-[11px] text-muted-foreground truncate">{p.brand}</span>
                       )}
-                      {typeof p?.rating === "number" && p.rating > 0 && (
-                        <StarRating value={p.rating} size="size-3" />
-                      )}
+                      <MatchStars item={p ?? null} size="sm" showValue={false} />
+
                     </span>
                   </span>
                   <ChevronRight className="size-4 text-muted-foreground shrink-0" />
@@ -265,12 +263,9 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                       {t?.brand && (
                         <span className="text-[11px] text-muted-foreground truncate">{t.brand}</span>
                       )}
-                      {typeof t?.rating === "number" && t.rating > 0 ? (
-                        <StarRating value={t.rating} size="size-3" />
-                      ) : (
-                        <MatchStars item={t ?? null} size="sm" showValue={false} />
-                      )}
+                      <MatchStars item={t ?? null} size="sm" showValue={false} />
                     </span>
+
                   </span>
                   <ChevronRight className="size-4 text-muted-foreground shrink-0" />
                 </button>
