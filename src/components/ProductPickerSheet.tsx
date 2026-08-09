@@ -21,7 +21,16 @@ interface Props {
   selectedIds: string[];
   /** Called when the user toggles a product on/off */
   onToggle: (productId: string) => void;
+  /**
+   * When provided, a pasted link is handed to the caller instead of taking the
+   * member off to the analysis screen — used by style record steps, which
+   * analyse in the background and attach the product when it lands.
+   */
+  onLinkSubmit?: (url: string) => void;
+  /** Copy shown under the link field when the caller analyses in background. */
+  linkHint?: string;
 }
+
 
 const Row = ({ p, selected, onClick }: { p: UserProduct; selected: boolean; onClick: () => void }) => (
   <button
