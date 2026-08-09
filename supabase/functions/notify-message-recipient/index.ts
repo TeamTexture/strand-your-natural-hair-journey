@@ -23,7 +23,10 @@ Deno.serve(async (req) => {
       .eq("id", message_id)
       .maybeSingle();
     if (!msg) return json({ ok: false, reason: "message_not_found" });
-    if (msg.kind !== "text") return json({ ok: true, skipped: "not_text" });
+    // Text and image messages both warrant an email; structured/system rows do not.
+    if (msg.kind !== "text" && msg.kind !== "image") {
+      return json({ ok: true, skipped: "not_notifiable" });
+    }
 
     const { data: thread } = await admin
       .from("chat_threads")

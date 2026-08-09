@@ -311,6 +311,50 @@ export function useSendChatMessage(threadId: string | null | undefined) {
   });
 }
 
+/**
+ * Sends an image inside a thread.
+ *
+ * The file is re-encoded to JPEG (so iPhone HEIC works) and uploaded into the
+ * private `chat-images` bucket under the thread id, which is what the storage
+ * policies key off. The message row carries kind = "image" with the storage
+ * path in `meta`; `body` holds the optional caption so notification and
+ * preview surfaces still have readable text.
+ */
+export function useSendChatImage(threadId: string | null | undefined) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const view = useActiveRoleView();
+  return useMutation({
+    mutationFn: async ({ file, caption }: { file: File; caption?: string }) => {
+      if (!threadId || !user?.id) throw new Error("Not ready");
+      const prepared = await prepareImageForAi(file);
+      const path = `${threadId}/${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("chat-images")
+        .upload(path, prepared.uploadFile, {
+          contentType: prepared.uploadFile.type || "image/jpeg",
+          upsert: false,
+        });
+      if (upErr) throw upErr;
+      const { error } = await supabase.from("chat_messages").insert({
+        thread_id: threadId,
+        sender_id: user.id,
+        sender_role: view,
+        kind: "image",
+        body: caption?.trim() || "Photo",
+        meta: { image_path: path, width: prepared.width, height: prepared.height },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat_messages", threadId] });
+      qc.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
+    },
+  });
+}
+
+
+
 export function useMarkThreadRead(threadId: string | null | undefined) {
   const qc = useQueryClient();
   const { user } = useAuth();
