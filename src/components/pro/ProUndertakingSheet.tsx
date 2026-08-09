@@ -102,7 +102,7 @@ const ProUndertakingSheet = ({ open, onOpenChange, context = "entry", onAccepted
         </p>
 
         <Link
-          to="/legal/professional-undertaking"
+          to="/legal/professional-data-handling"
           className="inline-flex items-center gap-1 text-[12px] text-primary underline underline-offset-4"
         >
           Read the Professional Data Handling Undertaking
