@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 /**
  * In-app video capture for a style-record step.
@@ -198,7 +197,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
         </div>
       )}
 
-      <div className={cn("grid gap-2", recorderAvailable ? "grid-cols-2" : "grid-cols-1")}>
+      <div className="grid grid-cols-1 gap-2">
         {recorderAvailable && (
           <Button
             type="button"
