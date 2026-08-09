@@ -122,10 +122,21 @@ const AdminBroadcast = () => {
         if (upErr) throw upErr;
         imagePath = path;
       }
+      // The voice note is uploaded once too, and transcribed once, so every
+      // recipient's row shares the same audio object and transcript.
+      let voicePath: string | null = null;
+      let transcript: string | null = null;
+      if (clip) {
+        voicePath = await uploadChatVoice(uuid(), clip.blob, clip.mimeType);
+        transcript = await transcribeChatVoice(clip.blob, clip.mimeType);
+      }
       const { data, error } = await supabase.rpc("admin_broadcast_message", {
         _audience: audience,
         _body: body.trim(),
         _image_path: imagePath,
+        _voice_path: voicePath,
+        _voice_transcript: transcript,
+        _voice_duration_ms: clip ? Math.round(clip.durationMs) : null,
       });
       if (error) throw error;
       return data as { recipients?: number } | null;
@@ -135,14 +146,16 @@ const AdminBroadcast = () => {
       setSent({ recipients: n, audience, body: body.trim() });
       setBody("");
       clearImage();
+      setClip(null);
       void qc.invalidateQueries({ queryKey: ["admin", "broadcasts"] });
       void qc.invalidateQueries({ queryKey: ["chat-threads"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not send"),
   });
 
-  // A photo on its own is a valid broadcast; text alone still is too.
-  const canSend = (body.trim().length > 1 || !!image) && !send.isPending;
+  // A photo or a voice note on its own is a valid broadcast; text alone still is too.
+  const canSend =
+    (body.trim().length > 1 || !!image || !!clip) && !send.isPending && !voice.recording;
 
 
   if (sent) {
