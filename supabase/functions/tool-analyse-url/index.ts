@@ -164,17 +164,30 @@ async function runClaude(args: {
   url: string;
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
+  pageTitle?: string;
+  pageText?: string;
 }): Promise<{
   payload: ToolAnalysisPayload;
   web_search_invocations: number;
   web_fetch_invocations: number;
 }> {
+  const pageBlock = args.pageText && args.pageText.length > 300
+    ? `Page content already retrieved for you (title: ${args.pageTitle || "unknown"}). Use THIS as your primary source — do NOT call web_fetch unless the brand or tool name is genuinely missing below:
+
+<page_content>
+${args.pageText.slice(0, 12_000)}
+</page_content>`
+    : `Use web_fetch on this URL first. If thin/gated, fall back to web_search (combined cap of 4).`;
+
   const userText = `Hair-tool product page URL to analyse: ${args.url}
 
-Use web_fetch on this URL first. If thin/gated, fall back to web_search (combined cap of 4). Return JSON only via the return_tool_analysis tool.
+${pageBlock}
+
+Return JSON only via the return_tool_analysis tool.
 
 User context (use to compute personalisation, ai_summary, use_cases, tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}`;
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const userContent: ContentBlockInput[] = [{ type: "text", text: userText }];
