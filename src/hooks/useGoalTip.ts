@@ -105,11 +105,35 @@ const cacheKey = (sig: string, goalId?: string, level?: number, variantKey = "n3
 
 /** Read the cached tip for this exact signature so a reload paints instantly
  *  instead of waiting ~4s for the AI round-trip. */
+/** A tip is only good output when it carries BOTH an action and a reason
+ *  (or, for the journal variant, steps that each do). Hollow payloads are
+ *  never written to cache and never read back from it. */
+const tipHasSubstance = (tip: GoalTip | null | undefined): boolean => {
+  if (!tip) return false;
+  if (Array.isArray(tip.steps) && tip.steps.length > 0) {
+    return tip.steps.every(
+      (s) => !!(s.action ?? "").trim() && !!(s.reason ?? "").trim(),
+    );
+  }
+  return (
+    !!(tip.action ?? "").trim() &&
+    !!((tip.reason ?? "").trim() || (tip.body ?? "").trim())
+  );
+};
+
 const readCachedTip = (sig: string, goalId?: string, level?: number, variantKey?: string): GoalTip | undefined => {
   if (!goalId || !sig) return undefined;
   try {
-    const raw = localStorage.getItem(cacheKey(sig, goalId, level, variantKey));
-    return raw ? (JSON.parse(raw) as GoalTip) : undefined;
+    const key = cacheKey(sig, goalId, level, variantKey);
+    const raw = localStorage.getItem(key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as GoalTip;
+    // READ-TIME GUARD — discard and regenerate rather than render a bare headline.
+    if (!tipHasSubstance(parsed)) {
+      localStorage.removeItem(key);
+      return undefined;
+    }
+    return parsed;
   } catch {
     return undefined;
   }
@@ -117,10 +141,13 @@ const readCachedTip = (sig: string, goalId?: string, level?: number, variantKey?
 
 const writeCachedTip = (sig: string, goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string) => {
   if (!goalId || !tip || !sig) return;
+  // WRITE-TIME GUARD — a cache is for good output only.
+  if (!tipHasSubstance(tip)) return;
   try {
     localStorage.setItem(cacheKey(sig, goalId, level, variantKey), JSON.stringify(tip));
   } catch { /* private mode / quota */ }
 };
+
 
 
 export const useGoalTip = (
