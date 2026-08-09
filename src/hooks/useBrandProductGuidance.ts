@@ -83,7 +83,8 @@ function fingerprintContext(context: Record<string, unknown>): string {
 }
 
 const cacheKind = (productId: string, fingerprint: string, surface: string) =>
-  `brand_product_guidance_v9:${surface}:${productId}:${fingerprint}`;
+  `brand_product_guidance_v10:${surface}:${productId}:${fingerprint}`;
+
 
 /** In-memory guard so two surfaces mounting at once don't both generate. */
 const inflight = new Map<string, Promise<BrandGuidance | null>>();
