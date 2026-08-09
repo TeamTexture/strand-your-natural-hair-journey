@@ -109,6 +109,8 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const [progress, setProgress] = useState<number | null>(null);
   const [recorderAvailable, setRecorderAvailable] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [compressPct, setCompressPct] = useState<number | null>(null);
+
   const [review, setReview] = useState<{ url: string; blob: Blob; mime: string } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [zoomCaps, setZoomCaps] = useState<ZoomCaps>(DEFAULT_ZOOM);
