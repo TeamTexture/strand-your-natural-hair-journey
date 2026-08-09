@@ -595,7 +595,7 @@ Deno.serve(async (req) => {
   const surface = (body as { surface?: string }).surface;
   const surfaceBlock =
     surface === "wash_day"
-      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested — longer output is rejected.\n- SENTENCE 1 — what to do with this product on their next wash day, naming the product once and the part of the product that does the work: a DECLARED INGREDIENT by name (or, for a tool, its stated material/function). No vague "nourishing formula".\n- SENTENCE 2 — WHY that ingredient or function matters for THIS member: state the physical mechanism, then tie it to one of their OWN recorded data points — hair type, porosity, density, surface texture, scalp condition, current or planned style, or a challenge/area of concern they logged. Use their wording for that data point.\n- The tip MUST contain at least one of the member's own recorded characteristics or challenges verbatim. A tip that would read the same for any member is rejected.\n- Reason must be a mechanism (what physically happens on the strand or scalp), never a benefit or outcome claim ("leaves hair soft", "boosts growth").\n- Where their hair data and the product's function do NOT align, say so plainly and briefly instead of inventing a fit.\n- No separate bullets on this surface — everything lives in those two sentences.\n- Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim the manuscript or the ingredient evidence does not support.`
+      ? `\n\nSURFACE: WASH DAY — SUCCINCT SPONSORED TIP\nAlso return a field "wash_day_tip": the ENTIRE tip body the member reads.\n- MAXIMUM 2 sentences and MAXIMUM 45 words in total. This is validated, not requested.\n- THREE THINGS ARE REQUIRED, and nothing else is:\n  1. AN ACTION — the first sentence tells this member what to physically DO with this product on their next wash day: the move, where on the head, and where it falls in their routine. Name the product once.\n  2. A MECHANISM — say what physically happens on the strand or scalp. Never an outcome or benefit: "leaves hair soft", "supports your length goal", "keeps hair healthy" are all rejected.\n  3. PERSONALISATION — it must connect to something this member has actually recorded: a hair characteristic, their current or planned style, a challenge or area of concern, a recorded goal label, or their last logged wash day. You may paraphrase their data; you do not have to quote it word for word.\n- PREFERRED, NOT REQUIRED: naming a declared ingredient and what it does is the cleanest route to the mechanism — use it when the ingredient list supports it. But a tip about SEQUENCE or TECHNIQUE is just as good and often better: "use it as your second cleanse, worked through the hair rather than the scalp" names no ingredient and is excellent guidance. Do not force chemistry into a tip that is really about order or method.\n- VARY THE SHAPE. Do not write every tip to the same template. Sometimes the useful thing is where it goes in the routine, sometimes how much, sometimes how long you leave it, sometimes what to pair or not pair it with, sometimes what to do differently in the member's current style.\n- Where their hair data and the product's function do NOT align, say so plainly and briefly instead of inventing a fit.\n- No bullets on this surface — everything lives in those two sentences.\n- Suggest, never instruct — this is a sponsored suggestion, not STRAND guidance. Make no claim the manuscript or the ingredient evidence does not support.`
       : "";
 
 
@@ -603,10 +603,15 @@ Deno.serve(async (req) => {
   // TWO-STAGE GROUNDED GENERATION. Stage 1 reads chapters 15, 14 + 1 in full and
   // extracts the evidence; this call (stage 2) receives the evidence, which stays
   // the primary source.
+  // REDUCED CONTEXT. Policy B already admits established cosmetic science for
+  // ingredients the book does not name, so three full chapters to explain a
+  // surfactant was mostly wasted spend. Chapter 1 (language, mandatory) plus
+  // chapter 15 (Understanding Ingredients) — the single most relevant chapter.
   const evid = await evidencePromptBlock({
     fn: "brand-product-guidance",
     surface: "brand-product-guidance",
     memberContext: userMsg.slice(0, 4000),
+    chapters: [1, 15],
   });
   const groundingBlock = evid.grounded ? `\n\n${evid.block}` : "";
 
@@ -646,9 +651,11 @@ Deno.serve(async (req) => {
     let clean: GuidancePayload | null = null;
     let lastProblems: string[] = [];
 
-    // Up to 3 attempts: the first generation plus two grounded regenerations
-    // driven by the exact structural failures found.
-    for (let attempt = 0; attempt < 3 && !clean; attempt++) {
+    // RETRY CAP: ONE. (Was 3 attempts / 2 retries.) One generation plus a single
+    // corrective regeneration, then serve the best candidate that satisfies the
+    // three hard rules and log the rest.
+    const MAX_ATTEMPTS = 2;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && !clean; attempt++) {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -706,7 +713,10 @@ Deno.serve(async (req) => {
         parsed = null;
       }
 
-      const result = validate(parsed, body.context ?? null, surface);
+      const result = validate(parsed, body.context ?? null, surface, declared);
+      // Soft signals are logged for author review and folded into the ONE
+      // retry as preferences. They never reject.
+      await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
       if (result.ok) {
         // Sanitise INSIDE the loop. The blood guardrail can strip a whole
         // sentence, and a stripped reason would otherwise ship an action-only
@@ -745,13 +755,17 @@ Deno.serve(async (req) => {
       } else {
         lastProblems = parsed === null ? ["Output was not valid JSON."] : result.problems;
       }
+      if (attempt + 1 >= MAX_ATTEMPTS) break;
       messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
       messages.push({
         role: "user",
         content:
           `That output was REJECTED. Fix every problem below and return the corrected JSON only. ` +
           `Do NOT pad, do NOT loosen grounding — drop a benefit before you invent one.\n- ` +
-          lastProblems.join("\n- "),
+          lastProblems.join("\n- ") +
+          (result.soft.length
+            ? `\n\nALSO PREFERRED (not required — do not sacrifice the three required things for these):\n- ${result.soft.join("\n- ")}`
+            : ""),
       });
     }
 
