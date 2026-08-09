@@ -682,6 +682,9 @@ export async function storeEvidenceSet(
         verify_tokens: input.verifyTokens ?? 0,
         policy: input.policy ?? "A",
         claim_sources: input.claimSources ?? [],
+        clarifications: input.clarifications ?? [],
+        clarification_governed: input.clarificationGoverned ?? false,
+
 
       })
       .select("id")
