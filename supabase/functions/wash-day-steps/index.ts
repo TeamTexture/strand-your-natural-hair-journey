@@ -197,6 +197,7 @@ Deno.serve(async (req) => {
     .join(" — ");
 
   const grounding = await buildGroundingBlock({
+    surface: "wash-day-steps",
     proceduralBias: true,
     fn: "wash-day-steps",
     functionKind: "wash-day-observation",

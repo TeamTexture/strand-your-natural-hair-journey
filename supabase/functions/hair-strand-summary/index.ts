@@ -186,6 +186,7 @@ Deno.serve(async (req: Request) => {
     const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
 
     const grounding = await buildGroundingBlock({
+    surface: "hair-strand-summary",
       fn: "hair-strand-summary",
       functionKind: "wash-day-observation",
       selectorContext: selectorCtx,

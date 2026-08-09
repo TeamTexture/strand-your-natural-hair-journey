@@ -281,6 +281,7 @@ async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
     bloodResults: body.bloodResults ?? [],
   } as Record<string, unknown>;
   const grounding = await buildGroundingBlock({
+    surface: "blood-ai-summary",
     fn: "blood-ai-summary",
     functionKind: "blood-ai-summary",
     selectorContext: selectorFromAiContext(groundingCtx),
@@ -681,7 +682,7 @@ Deno.serve(async (req: Request) => {
     return json(200, {
       cached: false,
       summary: await sanitiseAndLog(stamped, "blood-ai-summary", {
-        context: body.context,
+            context: body.context,
         grounding: groundingText,
       }),
     });

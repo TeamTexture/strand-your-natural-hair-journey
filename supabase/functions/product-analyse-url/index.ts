@@ -706,6 +706,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const tipsBlock = buildTipsLevelBlock(tipsLevel);
   const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
+    surface: "product-analyse-url",
     fn: "product-analyse-url",
     functionKind: "product-analyse-url",
     selectorContext: selectorFromAiContext(groundingCtx),

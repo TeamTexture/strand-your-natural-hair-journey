@@ -22,9 +22,18 @@ import {
 import type { FunctionKind, TopicId } from "./knowledge/types.ts";
 import { renderPassageBlock, retrievePassages } from "./rag.ts";
 import {
+  FIDELITY_RULE,
+  loadSurfaceChapters,
+  noteSourceText,
+  renderChapterBlock,
+  type ChapterContext,
+  type SurfaceKey,
+} from "./chapter-context.ts";
+import {
   METHOD_AND_TIMING_RULE,
   retrieveProceduralPassages,
 } from "./procedural-rag.ts";
+
 import { allChallenges, challengeText, challengesOf } from "./challenges.ts";
 
 /** The single wording used everywhere a passages block is injected. */
@@ -41,6 +50,10 @@ export interface GroundingResult {
   passages: number;
   /** Number of knowledge topics injected. */
   topics: number;
+  /** The raw manuscript text supplied to the model — the verifier's source. */
+  sourceText: string;
+  /** Chapters supplied in full (empty on the legacy fragment path). */
+  chapters: number[];
 }
 
 export interface GroundingInput {
@@ -52,8 +65,15 @@ export interface GroundingInput {
   forceTopics?: TopicId[];
   ragQuery: string;
   ragK?: number;
-  /** Optional chapter scoping. When it returns nothing we retry unscoped. */
+  /**
+   * FIDELITY PATH (preferred). Name the surface and its authoritative chapters
+   * are passed IN FULL — chapter 1 always included — and fragment retrieval is
+   * skipped. See _shared/chapter-context.ts.
+   */
+  surface?: SurfaceKey;
+  /** Optional chapter scoping for the legacy fragment path. */
   chapterFilter?: number[];
+
   /**
    * TIP SURFACES: bias retrieval toward PROCEDURAL passages (steps, timings,
    * frequencies, treatments) instead of thematic ones, and append the method
@@ -102,20 +122,31 @@ export async function buildGroundingBlock(
   });
   const topicBlocks = topics.map(renderTopicBlock);
 
-  let passageBlocks: string[] = [];
-  let grounded = false;
-  try {
-    const passages = await retrieveWithRetry(
-      input.ragQuery,
-      input.ragK ?? 4,
-      input.chapterFilter,
-      input.proceduralBias,
-    );
-    passageBlocks = passages.map(renderPassageBlock);
-    grounded = passageBlocks.length > 0;
-  } catch {
-    grounded = false;
+  // WHOLE-CHAPTER PATH (2026-08-09 fidelity fix). When the caller names its
+  // surface we pass the authoritative chapters IN FULL — chapter 1 always
+  // included — instead of top-k fragments. Fragment retrieval was the root
+  // cause of the model filling context gaps from general knowledge.
+  let chapterCtx: ChapterContext | null = null;
+  if (input.surface) {
+    chapterCtx = await loadSurfaceChapters(input.surface);
+    if (!chapterCtx.text) chapterCtx = null;
+  }
 
+  let passageBlocks: string[] = [];
+  let grounded = Boolean(chapterCtx);
+  if (!chapterCtx) {
+    try {
+      const passages = await retrieveWithRetry(
+        input.ragQuery,
+        input.ragK ?? 4,
+        input.chapterFilter,
+        input.proceduralBias,
+      );
+      passageBlocks = passages.map(renderPassageBlock);
+      grounded = passageBlocks.length > 0;
+    } catch {
+      grounded = false;
+    }
   }
 
   if (!grounded) {
@@ -124,6 +155,7 @@ export async function buildGroundingBlock(
       JSON.stringify({
         event: "manuscript_grounding_failed",
         fn: input.fn,
+        surface: input.surface ?? null,
         rag_k: input.ragK ?? 4,
         chapter_scoped: Boolean(input.chapterFilter?.length),
         topics: topicBlocks.length,
@@ -139,6 +171,10 @@ export async function buildGroundingBlock(
       }`,
     );
   }
+  if (chapterCtx) {
+    parts.push(renderChapterBlock(chapterCtx));
+    parts.push(FIDELITY_RULE);
+  }
   if (passageBlocks.length > 0) {
     parts.push(
       `RETRIEVED MANUSCRIPT PASSAGES (verbatim teachings retrieved for this user's data — draw every recommendation from here):\n\n${
@@ -150,13 +186,22 @@ export async function buildGroundingBlock(
   if (input.proceduralBias) parts.push(METHOD_AND_TIMING_RULE);
 
 
+  const sourceText = chapterCtx?.text ?? passageBlocks.join("\n\n");
+  const chaptersUsed = chapterCtx?.chapters ?? input.chapterFilter ?? [];
+  // Record what the model was given so the fidelity fail-safe in
+  // sanitiseAndLog can audit the response against this exact text.
+  noteSourceText(input.fn, sourceText, chaptersUsed);
+
   return {
     block: parts.length > 0 ? `\n\n${parts.join("\n\n")}` : "",
     grounded,
-    passages: passageBlocks.length,
+    passages: chapterCtx ? chapterCtx.chunks : passageBlocks.length,
     topics: topicBlocks.length,
+    sourceText,
+    chapters: chaptersUsed,
   };
 }
+
 
 /** Stamp the grounding provenance onto a payload object. */
 export function stampGrounding<T extends Record<string, unknown>>(

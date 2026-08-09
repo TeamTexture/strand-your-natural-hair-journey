@@ -92,6 +92,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
 
     const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
     const grounding = await buildGroundingBlock({
+    surface: "meal-ideas",
       fn: "meal-ideas",
       functionKind: "nutrition-plan",
       selectorContext: selectorFromAiContext(groundingCtx),

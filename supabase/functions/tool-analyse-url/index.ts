@@ -437,6 +437,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 
   const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
+    surface: "tool-analyse-url",
     fn: "tool-analyse-url",
     functionKind: "tool-analyse-url",
     selectorContext: selectorFromAiContext(groundingCtx),

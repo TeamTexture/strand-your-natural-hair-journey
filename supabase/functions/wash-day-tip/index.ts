@@ -325,6 +325,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   const ledgerBlock = buildAdviceLedgerBlock(ledger);
 
   const grounding = await buildGroundingBlock({
+    surface: isStyle ? "style-tip" : "wash-day-tip",
     proceduralBias: true,
     fn: isStyle ? "style-tip" : "wash-day-tip",
     functionKind: "wash-day-observation",
