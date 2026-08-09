@@ -15,14 +15,28 @@ import { myProfileKey } from "@/hooks/useMyProfile";
 import {
   CONSENT_DOCUMENT_VERSION,
   ConsentKey,
+  ConsentView,
+  keyAllowedInView,
+  PRO_UNDERTAKING_KEY,
   recordConsents,
 } from "@/lib/consent";
 
 interface Props {
   /** Mandatory keys still outstanding — only these are asked for again. */
   outstanding: ConsentKey[];
-  /** Optional keys this account's roles are offered. Never gates completion. */
+  /**
+   * Optional keys still genuinely UNANSWERED in the active view. An optional
+   * consent already granted or declined is never re-asked here.
+   */
   optionalKeys: ConsentKey[];
+  /**
+   * The view these requirements belong to. Anything not allowed in this view is
+   * dropped before rendering, so a professional or brand item can never surface
+   * on the end user side.
+   */
+  view?: ConsentView;
+  /** Current recorded state per optional key, so toggles never show a default. */
+  optionalGranted?: Partial<Record<ConsentKey, boolean>>;
 }
 
 const TICKBOX_LABEL = {
@@ -77,7 +91,12 @@ const DocLink = ({ to, label }: { to: string; label: string }) => (
   </Link>
 );
 
-const ConsentGateScreen = ({ outstanding, optionalKeys }: Props) => {
+const ConsentGateScreen = ({
+  outstanding,
+  optionalKeys,
+  view = "consumer",
+  optionalGranted = {},
+}: Props) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -86,19 +105,31 @@ const ConsentGateScreen = ({ outstanding, optionalKeys }: Props) => {
     () => ["terms", "privacy", "age_18", "medical_disclaimer"],
     [],
   );
-  const tier1Keys = useMemo(() => TIER1.filter((k) => outstanding.includes(k)), [TIER1, outstanding]);
+  // VIEW SCOPING, enforced here as well as upstream: a key that is not allowed
+  // in the active view is dropped, and the professional undertaking can never be
+  // part of this screen in any view — it lives on entering the pro view.
+  const scoped = useMemo(
+    () => outstanding.filter((k) => k !== PRO_UNDERTAKING_KEY && keyAllowedInView(k, view)),
+    [outstanding, view],
+  );
+  const scopedOptional = useMemo(
+    () => optionalKeys.filter((k) => k !== PRO_UNDERTAKING_KEY && keyAllowedInView(k, view)),
+    [optionalKeys, view],
+  );
+  const tier1Keys = useMemo(() => TIER1.filter((k) => scoped.includes(k)), [TIER1, scoped]);
   const needTier1 = tier1Keys.length > 0;
-  const needDisclaimer = outstanding.includes("medical_disclaimer");
-  const needHealth = outstanding.includes("health_data");
+  const needDisclaimer = scoped.includes("medical_disclaimer");
+  const needHealth = scoped.includes("health_data");
 
-  const offersOffered = optionalKeys.includes("personalised_offers");
-  const marketingOffered = optionalKeys.includes("marketing_email");
+  const offersOffered = scopedOptional.includes("personalised_offers");
+  const marketingOffered = scopedOptional.includes("marketing_email");
 
   const [tier1, setTier1] = useState(false);
   const [health, setHealth] = useState(false);
-  // TIER 3 — optional. Default OFF, and never blocks the continue button.
-  const [offers, setOffers] = useState(false);
-  const [marketing, setMarketing] = useState(false);
+  // TIER 3 — optional, and never blocks the continue button. Toggles reflect the
+  // member's recorded state; they only ever appear when never answered.
+  const [offers, setOffers] = useState(!!optionalGranted.personalised_offers);
+  const [marketing, setMarketing] = useState(!!optionalGranted.marketing_email);
   const [saving, setSaving] = useState(false);
 
   // The Professional Data Handling Undertaking is intentionally absent here —

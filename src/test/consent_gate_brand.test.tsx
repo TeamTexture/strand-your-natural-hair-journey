@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ConsentGateScreen from "@/pages/ConsentGateScreen";
-import { mandatoryKeysForRoles, optionalKeysForRoles } from "@/lib/consent";
+import { mandatoryKeysForView, optionalKeysForView, unansweredOptional, type ConsentView, type ConsentRow } from "@/lib/consent";
 
 const recorded: Array<Record<string, unknown>> = [];
 
@@ -27,13 +27,20 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => () => {} };
 });
 
-const renderGate = (roles: Parameters<typeof mandatoryKeysForRoles>[0]) =>
+const renderGate = (view: ConsentView, rows: ConsentRow[] = []) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
         <ConsentGateScreen
-          outstanding={mandatoryKeysForRoles(roles)}
-          optionalKeys={optionalKeysForRoles(roles)}
+          outstanding={mandatoryKeysForView(view)}
+          optionalKeys={unansweredOptional(rows, view)}
+          view={view}
+          optionalGranted={Object.fromEntries(
+            optionalKeysForView(view).map((k) => [
+              k,
+              rows.filter((r) => r.consent_key === k).slice(-1)[0]?.granted ?? false,
+            ]),
+          )}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -45,7 +52,7 @@ describe("consent gate — brand account", () => {
   });
 
   it("never prompts a brand for health data, the medical disclaimer or personalised offers", () => {
-    renderGate(["brand"]);
+    renderGate("brand");
     expect(screen.queryByText(/health information/i)).toBeNull();
     expect(screen.queryByText(/Medical Disclaimer/i)).toBeNull();
     expect(screen.queryByLabelText(/Personalised brand offers/i)).toBeNull();
@@ -53,7 +60,7 @@ describe("consent gate — brand account", () => {
   });
 
   it("lets a brand complete with the base acceptance alone, nothing pre-ticked", async () => {
-    renderGate(["brand"]);
+    renderGate("brand");
     const button = screen.getByRole("button", { name: /Accept and continue/i });
     expect(button).toBeDisabled();
 
@@ -73,7 +80,7 @@ describe("consent gate — brand account", () => {
   });
 
   it("a professional sees neither the undertaking nor health data at login", () => {
-    renderGate(["professional"]);
+    renderGate("pro");
     expect(screen.queryByText(/keep confidential any member health information/i)).toBeNull();
     expect(screen.queryByText(/I explicitly consent to STRAND processing my health/i)).toBeNull();
     expect(screen.getAllByText(/Medical Disclaimer/i).length).toBeGreaterThan(0);
@@ -81,7 +88,7 @@ describe("consent gate — brand account", () => {
 
 
   it("a consumer still gets the health data consent verbatim", () => {
-    renderGate(["consumer"]);
+    renderGate("consumer");
     expect(screen.getByText(/I explicitly consent to STRAND processing my health/i)).toBeTruthy();
   });
 });
