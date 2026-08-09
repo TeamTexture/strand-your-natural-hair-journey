@@ -517,10 +517,8 @@ const Home = () => {
               </div>
 
               {/* Hero photo */}
-              <button
-                onClick={() => navigate("/onboarding/strand-summary")}
+              <div
                 {...anchorProps("home-style-photo")}
-                aria-label="See My Strand Summary"
                 className="relative block w-full mb-5"
               >
                 <div className="absolute -inset-1.5 border border-[#C5A059]/40 rounded-[26px] rotate-1" />
