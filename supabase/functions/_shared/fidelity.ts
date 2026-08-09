@@ -86,7 +86,7 @@ const LEAVE_IN_HYDRATES: DeterministicRule = {
       const l = s.toLowerCase();
       if (!/\b(leave-?in|leave in|cream|butter|oil|sealant|styler)\b/.test(l)) continue;
       if (
-        /\b(hydrates?|hydrating|adds?\s+(?:moisture|hydration|water)|injects?\s+moisture|replenish(?:es|ing)?\s+moisture|delivers?\s+moisture|infuses?\s+(?:moisture|hydration)|moisturis(?:es|ing)\s+the\s+(?:hair|strand)/
+        /\b(?:hydrates?|hydrating|adds?\s+(?:moisture|hydration|water)|injects?\s+moisture|replenish(?:es|ing)?\s+moisture|delivers?\s+moisture|infuses?\s+(?:moisture|hydration)|moisturis(?:es|ing)\s+the\s+(?:hair|strand))\b/
           .test(l)
       ) {
         return s;
