@@ -5,6 +5,7 @@
 // goals or clinical data change.
 
 import { useQuery } from "@tanstack/react-query";
+import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
@@ -35,6 +36,10 @@ export function useStyleTip() {
     enabled: !!user?.id,
     staleTime: Infinity,
     gcTime: Infinity,
+    // Stale-while-revalidate — see src/lib/lastGoodTip.ts.
+    placeholderData: () =>
+      readLastGood<GuidanceTip[]>("style-tip", level, undefined, (t) =>
+        Array.isArray(t) && t.length > 0),
     queryFn: async (): Promise<GuidanceTip[]> => {
       if (!user?.id) return [];
       const [ctx, signals] = await Promise.all([
@@ -107,6 +112,8 @@ export function useStyleTip() {
       if (tip.technique) {
         tips.push({ priority: 5, short: tip.technique });
       }
+      writeLastGood<GuidanceTip[]>("style-tip", tips, level, undefined, (t) =>
+        Array.isArray(t) && t.length > 0);
       return tips;
     },
   });
