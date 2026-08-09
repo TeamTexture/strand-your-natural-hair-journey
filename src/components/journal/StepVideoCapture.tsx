@@ -102,6 +102,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [recorderAvailable, setRecorderAvailable] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [review, setReview] = useState<{ url: string; blob: Blob; mime: string } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [zoomCaps, setZoomCaps] = useState<ZoomCaps>(DEFAULT_ZOOM);
@@ -115,6 +116,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const stopTimerRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const nativeRef = useRef<HTMLInputElement>(null);
+  const awaitingNativeRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const canvasStreamRef = useRef<MediaStream | null>(null);
@@ -424,13 +426,44 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   };
 
   const onPick = async (file: File | undefined) => {
-    if (!file) return;
+    awaitingNativeRef.current = false;
+    if (!file) {
+      toast.error("No video came back from your camera — try again.");
+      return;
+    }
+    if (!file.size) {
+      toast.error("That clip came back empty — try recording it again.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error(`That clip is ${mb(file.size)} — record a shorter one.`);
+      return;
+    }
+    setPreparing(true);
     const duration = await readDuration(file);
+    setPreparing(false);
     if (duration !== null && duration > MAX_SECONDS + 1) {
       toast.error(`That clip is ${duration}s — keep it to ${MAX_SECONDS} seconds or shorter.`);
       return;
     }
     setReview({ url: URL.createObjectURL(file), blob: file, mime: file.type || "video/mp4" });
+    toast.success("Video ready — tap Save video to add it to this step");
+  };
+
+  /** After the native camera app closes, tell the member if nothing arrived. */
+  const openNativeCamera = () => {
+    awaitingNativeRef.current = true;
+    nativeRef.current?.click();
+    const check = () => {
+      window.setTimeout(() => {
+        if (awaitingNativeRef.current) {
+          awaitingNativeRef.current = false;
+          toast.error("Your camera didn't return a video — tap Open phone camera and try again.");
+        }
+      }, 1500);
+      window.removeEventListener("focus", check);
+    };
+    window.addEventListener("focus", check);
   };
 
   // ---- Pinch to zoom on the live preview -----------------------------------
@@ -454,7 +487,13 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   // ---- Review: watch it back, then save or retake -------------------------
   if (review) {
     return (
-      <div className="space-y-2">
+      <div
+        className="space-y-2"
+        ref={(el) => el?.scrollIntoView({ block: "center", behavior: "smooth" })}
+      >
+        <p className="text-[11px] font-medium text-primary">
+          Your clip is ready — watch it back, then tap Save video.
+        </p>
         <div className="rounded-[12px] overflow-hidden bg-black">
           <video
             ref={reviewRef}
@@ -574,10 +613,11 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
             variant="goldOutline"
             size="sm"
             className="h-10"
-            onClick={() => nativeRef.current?.click()}
-            disabled={uploading}
+            onClick={openNativeCamera}
+            disabled={uploading || preparing}
           >
-            <Camera className="size-4 mr-1.5" /> Open phone camera
+            {preparing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Camera className="size-4 mr-1.5" />}
+            {preparing ? "Checking your clip…" : "Open phone camera"}
           </Button>
         )}
 
