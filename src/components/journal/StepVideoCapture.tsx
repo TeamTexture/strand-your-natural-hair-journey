@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Video, Square, Upload, Loader2, SwitchCamera, RotateCcw, Check, X, Camera, ZoomIn } from "lucide-react";
 import { captureVideoPoster } from "@/lib/videoPoster";
+import { compressStepVideo } from "@/lib/videoCompress";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -26,14 +28,18 @@ import { Slider } from "@/components/ui/slider";
  */
 
 export const MAX_SECONDS = 30;
-const VIDEO_BITS_PER_SECOND = 3_000_000;
-const AUDIO_BITS_PER_SECOND = 96_000;
+/** ~2.5 Mbps is visually close to source on a 375px frame at a fraction of the size. */
+const VIDEO_BITS_PER_SECOND = 2_500_000;
+const AUDIO_BITS_PER_SECOND = 64_000;
 /** Portrait output size — every in-app clip is written at 9:16. */
 const OUT_W = 720;
 const OUT_H = 1280;
 const MAX_BYTES = 60 * 1024 * 1024;
+/** Raw phone-camera clips can be much larger; we compress before uploading. */
+const RAW_MAX_BYTES = 400 * 1024 * 1024;
 const BUCKET = "journal-videos";
 const POSTER_BUCKET = "journal-photos";
+
 
 /** Ordered by preference: mp4/h264 first because iOS produces and plays it. */
 const CANDIDATE_TYPES = [
@@ -103,6 +109,8 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const [progress, setProgress] = useState<number | null>(null);
   const [recorderAvailable, setRecorderAvailable] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [compressPct, setCompressPct] = useState<number | null>(null);
+
   const [review, setReview] = useState<{ url: string; blob: Blob; mime: string } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [zoomCaps, setZoomCaps] = useState<ZoomCaps>(DEFAULT_ZOOM);
@@ -435,20 +443,45 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       toast.error("That clip came back empty — try recording it again.");
       return;
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size > RAW_MAX_BYTES) {
       toast.error(`That clip is ${mb(file.size)} — record a shorter one.`);
       return;
     }
     setPreparing(true);
     const duration = await readDuration(file);
-    setPreparing(false);
     if (duration !== null && duration > MAX_SECONDS + 1) {
+      setPreparing(false);
       toast.error(`That clip is ${duration}s — keep it to ${MAX_SECONDS} seconds or shorter.`);
       return;
     }
-    setReview({ url: URL.createObjectURL(file), blob: file, mime: file.type || "video/mp4" });
-    toast.success("Video ready — tap Save video to add it to this step");
+
+    // Shrink big phone-camera files before they ever hit the network.
+    let blob: Blob = file;
+    let mime = file.type || "video/mp4";
+    let savedFrom: number | null = null;
+    if (file.size > MAX_BYTES / 6) {
+      setCompressPct(0);
+      const result = await compressStepVideo(file, setCompressPct);
+      setCompressPct(null);
+      blob = result.blob;
+      mime = result.mime;
+      if (result.compressed) savedFrom = result.originalBytes;
+    }
+    setPreparing(false);
+
+    if (blob.size > MAX_BYTES) {
+      toast.error(`That clip is ${mb(blob.size)} even after compressing — record a shorter one.`);
+      return;
+    }
+
+    setReview({ url: URL.createObjectURL(blob), blob, mime });
+    toast.success(
+      savedFrom
+        ? `Video ready — compressed from ${mb(savedFrom)} to ${mb(blob.size)}. Tap Save video.`
+        : "Video ready — tap Save video to add it to this step",
+    );
   };
+
 
   /** After the native camera app closes, tell the member if nothing arrived. */
   const openNativeCamera = () => {
@@ -617,7 +650,12 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
             disabled={uploading || preparing}
           >
             {preparing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Camera className="size-4 mr-1.5" />}
-            {preparing ? "Checking your clip…" : "Open phone camera"}
+            {preparing
+              ? compressPct !== null
+                ? `Compressing ${compressPct}%…`
+                : "Checking your clip…"
+              : "Open phone camera"}
+
           </Button>
         )}
 
@@ -654,10 +692,17 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
           size="sm"
           className="h-10"
           onClick={() => fileRef.current?.click()}
-          disabled={uploading || recording}
+          disabled={uploading || recording || preparing}
         >
-          {uploading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Upload className="size-4 mr-1.5" />}
-          {uploading ? "Uploading…" : "Choose video"}
+          {uploading || preparing ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Upload className="size-4 mr-1.5" />}
+          {uploading
+            ? "Uploading…"
+            : preparing
+              ? compressPct !== null
+                ? `Compressing ${compressPct}%…`
+                : "Checking your clip…"
+              : "Choose video"}
+
         </Button>
       </div>
 
