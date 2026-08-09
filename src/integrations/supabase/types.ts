@@ -514,6 +514,39 @@ export type Database = {
         }
         Relationships: []
       }
+      author_clarifications: {
+        Row: {
+          applies_to: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          position: string
+          sort_order: number
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          position: string
+          sort_order?: number
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          position?: string
+          sort_order?: number
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blood_panels: {
         Row: {
           created_at: string
@@ -4138,6 +4171,8 @@ export type Database = {
           attempts: number
           chapters: number[]
           claim_sources: Json
+          clarification_governed: boolean
+          clarifications: Json
           coverage: string
           coverage_reason: string | null
           created_at: string
@@ -4160,6 +4195,8 @@ export type Database = {
           attempts?: number
           chapters?: number[]
           claim_sources?: Json
+          clarification_governed?: boolean
+          clarifications?: Json
           coverage?: string
           coverage_reason?: string | null
           created_at?: string
@@ -4182,6 +4219,8 @@ export type Database = {
           attempts?: number
           chapters?: number[]
           claim_sources?: Json
+          clarification_governed?: boolean
+          clarifications?: Json
           coverage?: string
           coverage_reason?: string | null
           created_at?: string
