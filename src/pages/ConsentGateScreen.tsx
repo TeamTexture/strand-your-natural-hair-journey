@@ -15,19 +15,27 @@ import { myProfileKey } from "@/hooks/useMyProfile";
 import {
   CONSENT_DOCUMENT_VERSION,
   ConsentKey,
-  MANDATORY_KEYS,
   recordConsents,
 } from "@/lib/consent";
 
 interface Props {
   /** Mandatory keys still outstanding — only these are asked for again. */
   outstanding: ConsentKey[];
+  /** Optional keys this account's roles are offered. Never gates completion. */
+  optionalKeys: ConsentKey[];
 }
 
-const TICKBOX_LABEL: Record<string, string> = {
-  tier1: "I accept STRAND's Terms of Service and Privacy Policy, I confirm I am 18 or over, and I have read and understood the Medical Disclaimer.",
-  tier2:
+const TICKBOX_LABEL = {
+  /** Shown to consumers, professionals and admins — they all see guidance. */
+  tier1WithDisclaimer:
+    "I accept STRAND's Terms of Service and Privacy Policy, I confirm I am 18 or over, and I have read and understood the Medical Disclaimer.",
+  /** Brands never see hair guidance, so the medical disclaimer does not apply. */
+  tier1NoDisclaimer:
+    "I accept STRAND's Terms of Service and Privacy Policy, and I confirm I am 18 or over.",
+  health:
     "I explicitly consent to STRAND processing my health information — blood test results, scalp conditions, medications and health profile — to generate my personalised guidance. STRAND cannot be provided without this.",
+  professional:
+    "I undertake to keep confidential any member health information I am granted access to through STRAND, to use it only to provide care to that member, and to handle it in line with the Professional Data Handling Undertaking.",
 };
 
 const Tick = ({
@@ -71,40 +79,47 @@ const DocLink = ({ to, label }: { to: string; label: string }) => (
   </Link>
 );
 
-const ConsentGateScreen = ({ outstanding }: Props) => {
+const ConsentGateScreen = ({ outstanding, optionalKeys }: Props) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const needTier1 = useMemo(
-    () => outstanding.some((k) => k !== "health_data"),
-    [outstanding],
+  const TIER1 = useMemo<ConsentKey[]>(
+    () => ["terms", "privacy", "age_18", "medical_disclaimer"],
+    [],
   );
-  const needTier2 = outstanding.includes("health_data");
+  const tier1Keys = useMemo(() => TIER1.filter((k) => outstanding.includes(k)), [TIER1, outstanding]);
+  const needTier1 = tier1Keys.length > 0;
+  const needDisclaimer = outstanding.includes("medical_disclaimer");
+  const needHealth = outstanding.includes("health_data");
+  const needProfessional = outstanding.includes("professional_data_handling");
+
+  const offersOffered = optionalKeys.includes("personalised_offers");
+  const marketingOffered = optionalKeys.includes("marketing_email");
 
   const [tier1, setTier1] = useState(false);
-  const [tier2, setTier2] = useState(false);
+  const [health, setHealth] = useState(false);
+  const [professional, setProfessional] = useState(false);
   // TIER 3 — optional. Default OFF, and never blocks the continue button.
   const [offers, setOffers] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const mandatoryReady = (!needTier1 || tier1) && (!needTier2 || tier2);
+  const mandatoryReady =
+    (!needTier1 || tier1) && (!needHealth || health) && (!needProfessional || professional);
 
   const submit = async () => {
     if (!mandatoryReady) return;
     setSaving(true);
     try {
       const payload: Partial<Record<ConsentKey, boolean>> = {};
-      if (needTier1) {
-        for (const key of MANDATORY_KEYS) {
-          if (key !== "health_data" && outstanding.includes(key)) payload[key] = true;
-        }
-      }
-      if (needTier2) payload.health_data = true;
-      // Optional choices are always recorded — including a decline.
-      payload.personalised_offers = offers;
-      payload.marketing_email = marketing;
+      for (const key of tier1Keys) payload[key] = true;
+      if (needHealth) payload.health_data = true;
+      if (needProfessional) payload.professional_data_handling = true;
+      // Optional choices are always recorded — including a decline — but only
+      // for the keys this account's roles were actually offered.
+      if (offersOffered) payload.personalised_offers = offers;
+      if (marketingOffered) payload.marketing_email = marketing;
 
       await recordConsents(payload);
       await qc.invalidateQueries({ queryKey: consentKey(user?.id) });
@@ -132,20 +147,22 @@ const ConsentGateScreen = ({ outstanding }: Props) => {
         {needTier1 && (
           <SurfaceCard className="space-y-3">
             <Tick id="consent-tier1" checked={tier1} onChange={setTier1}>
-              {TICKBOX_LABEL.tier1}
+              {needDisclaimer ? TICKBOX_LABEL.tier1WithDisclaimer : TICKBOX_LABEL.tier1NoDisclaimer}
             </Tick>
             <div className="flex flex-wrap gap-x-4 gap-y-1 pl-8">
               <DocLink to="/legal/terms" label="Terms of Service" />
               <DocLink to="/legal/privacy" label="Privacy Policy" />
-              <DocLink to="/legal/medical-disclaimer" label="Medical Disclaimer" />
+              {needDisclaimer && (
+                <DocLink to="/legal/medical-disclaimer" label="Medical Disclaimer" />
+              )}
             </div>
           </SurfaceCard>
         )}
 
-        {needTier2 && (
+        {needHealth && (
           <SurfaceCard className="mt-3 space-y-3">
-            <Tick id="consent-tier2" checked={tier2} onChange={setTier2}>
-              {TICKBOX_LABEL.tier2}
+            <Tick id="consent-health-data" checked={health} onChange={setHealth}>
+              {TICKBOX_LABEL.health}
             </Tick>
             <div className="pl-8">
               <DocLink to="/legal/health-data" label="How we use health information" />
@@ -153,34 +170,62 @@ const ConsentGateScreen = ({ outstanding }: Props) => {
           </SurfaceCard>
         )}
 
+        {needProfessional && (
+          <SurfaceCard className="mt-3 space-y-3">
+            <Tick
+              id="consent-professional-data-handling"
+              checked={professional}
+              onChange={setProfessional}
+            >
+              {TICKBOX_LABEL.professional}
+            </Tick>
+            <div className="pl-8">
+              <DocLink
+                to="/legal/professional-undertaking"
+                label="Professional Data Handling Undertaking"
+              />
+            </div>
+          </SurfaceCard>
+        )}
+
+        {(offersOffered || marketingOffered) && (
         <div className="mt-7 border-t border-border/60 pt-1">
           <SectionLabel className="px-0">Optional — your choice</SectionLabel>
           <p className="text-[12px] leading-relaxed text-muted-foreground">
-            These are entirely optional. Leaving both off does not affect your access to STRAND in
+            These are entirely optional. Leaving them off does not affect your access to STRAND in
             any way, and you can change them any time in your profile.
           </p>
 
           <SurfaceCard className="mt-3 space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[13px] text-foreground">Personalised brand offers</p>
-                <p className="text-[12px] text-muted-foreground">
-                  Show offers matched to non-health details like your hair type and styles.
-                </p>
+            {offersOffered && (
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[13px] text-foreground">Personalised brand offers</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    Show offers matched to non-health details like your hair type and styles.
+                  </p>
+                </div>
+                <Switch checked={offers} onCheckedChange={setOffers} aria-label="Personalised brand offers" />
               </div>
-              <Switch checked={offers} onCheckedChange={setOffers} aria-label="Personalised brand offers" />
-            </div>
-            <div className="flex items-start justify-between gap-4 border-t border-border/60 pt-4">
-              <div>
-                <p className="text-[13px] text-foreground">Marketing emails</p>
-                <p className="text-[12px] text-muted-foreground">
-                  News, launches and occasional offers. Service emails are sent either way.
-                </p>
+            )}
+            {marketingOffered && (
+              <div
+                className={`flex items-start justify-between gap-4 ${
+                  offersOffered ? "border-t border-border/60 pt-4" : ""
+                }`}
+              >
+                <div>
+                  <p className="text-[13px] text-foreground">Marketing emails</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    News, launches and occasional offers. Service emails are sent either way.
+                  </p>
+                </div>
+                <Switch checked={marketing} onCheckedChange={setMarketing} aria-label="Marketing emails" />
               </div>
-              <Switch checked={marketing} onCheckedChange={setMarketing} aria-label="Marketing emails" />
-            </div>
+            )}
           </SurfaceCard>
         </div>
+        )}
 
         <Button
           variant="gold"
