@@ -172,7 +172,7 @@ const Journal = () => {
         ? await supabase
             .from("journal_steps")
             .select(
-              "id, entry_id, step_order, journal_step_media(storage_path, kind, sort_order), journal_step_products(user_product_id)",
+              "id, entry_id, step_order, journal_step_media(storage_path, poster_path, kind, sort_order), journal_step_products(user_product_id)",
             )
             .in("entry_id", ids)
             .order("step_order", { ascending: true })
@@ -182,7 +182,9 @@ const Journal = () => {
       type StepRow = {
         entry_id: string;
         step_order: number;
-        journal_step_media: { storage_path: string; kind: string; sort_order: number }[] | null;
+        journal_step_media:
+          | { storage_path: string; poster_path: string | null; kind: string; sort_order: number }[]
+          | null;
         journal_step_products: { user_product_id: string | null }[] | null;
       };
       const byEntry = new Map<string, StepRow[]>();
@@ -227,20 +229,26 @@ const Journal = () => {
               ),
             ),
           );
+          // A video cover always shows its captured still frame, so the card
+          // never renders a black rectangle. Photos sign as normal.
           let coverUrl: string | undefined;
+          let coverIsVideo = false;
           if (cover) {
-            const bucket = cover.kind === "video" ? "journal-videos" : PHOTO_BUCKET;
-            const { data: sig } = await supabase.storage
-              .from(bucket)
-              .createSignedUrl(cover.storage_path, 3600);
+            const isVideo = cover.kind === "video";
+            const usePoster = isVideo && !!cover.poster_path;
+            const bucket = isVideo && !usePoster ? "journal-videos" : PHOTO_BUCKET;
+            const path = usePoster ? cover.poster_path! : cover.storage_path;
+            const { data: sig } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
             coverUrl = sig?.signedUrl;
+            // Only treat it as a video when we're falling back to the clip itself.
+            coverIsVideo = isVideo && !usePoster;
           }
           return {
             ...e,
             stepCount: steps.length,
             productNames: names,
             coverUrl,
-            coverIsVideo: cover?.kind === "video",
+            coverIsVideo,
           };
         }),
       );
