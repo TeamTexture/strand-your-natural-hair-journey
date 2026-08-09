@@ -200,9 +200,9 @@ Deno.serve(async (req) => {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY missing" });
 
-  let aiResp: Response;
-  try {
-  // Knowledge topics + manuscript passages about this ingredient / its class.
+  // Knowledge topics + the authoritative chapters IN FULL for this ingredient.
+  // Declared outside the try so the fidelity fail-safe below can audit the
+  // response against the exact source text the model was given.
   const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
     surface: "ingredient-profile",
@@ -217,6 +217,10 @@ Deno.serve(async (req) => {
     ragK: 3,
   });
   const ragBlock = grounding.block;
+
+  let aiResp: Response;
+  try {
+
 
     aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
