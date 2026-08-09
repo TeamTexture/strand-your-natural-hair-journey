@@ -39,6 +39,9 @@ interface Props {
   onTranscript?: (text: string) => void;
   /** Hide the textarea when the field is voice-only alongside another input. */
   hideTextarea?: boolean;
+  /** Transcribe as soon as a recording is saved, with no extra tap. */
+  autoTranscribe?: boolean;
+
 }
 
 
@@ -89,6 +92,7 @@ const VoiceNoteField = ({
   errorMessage,
   onTranscript,
   hideTextarea = false,
+  autoTranscribe = false,
 }: Props) => {
   const { user } = useAuth();
   const [recording, setRecording] = useState(false);
@@ -189,6 +193,7 @@ const VoiceNoteField = ({
       if (error) throw error;
       onAudioPathChange?.(path);
       toast.success("Voice note saved");
+      if (autoTranscribe) void runTranscription(blob);
     } catch (e) {
       console.error("Upload failed:", e);
       toast.error("Could not save voice note");
@@ -225,13 +230,17 @@ const VoiceNoteField = ({
     await supabase.storage.from("voicenotes").remove([path]);
   };
 
-  const transcribe = async () => {
-    if (!signedUrl) return;
+  /** Transcribes a recording. Pass the fresh blob to skip the storage round-trip. */
+  const runTranscription = async (source?: Blob) => {
     setTranscribing(true);
     try {
-      // Re-fetch the file as a Blob to base64-encode it for the gateway.
-      const resp = await fetch(signedUrl);
-      const blob = await resp.blob();
+      let blob = source;
+      if (!blob) {
+        if (!signedUrl) return;
+        // Re-fetch the file as a Blob to base64-encode it for the gateway.
+        const resp = await fetch(signedUrl);
+        blob = await resp.blob();
+      }
       const audioBase64 = await blobToBase64(blob);
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: { audioBase64, mimeType: blob.type || "audio/webm" },
@@ -342,7 +351,7 @@ const VoiceNoteField = ({
             </button>
             <button
               type="button"
-              onClick={transcribe}
+              onClick={() => void runTranscription()}
               disabled={transcribing}
               className="text-[11px] uppercase tracking-[0.15em] text-primary border border-primary/40 bg-primary/5 rounded-full px-3 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
             >
