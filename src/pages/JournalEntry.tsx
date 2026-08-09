@@ -38,6 +38,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import StyleRecordSection from "@/components/journal/StyleRecordSection";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import ShareSheet from "@/components/ShareSheet";
@@ -211,6 +212,10 @@ interface DbJournalEntry {
   entry_date: string;
   photo_paths: string[];
   products_used: string[];
+  /** Style-record header — a journal entry is the record of achieving a style. */
+  style_name: string | null;
+  style_date: string | null;
+  status: string | null;
 }
 
 const JournalEntry = () => {
@@ -270,7 +275,7 @@ const JournalEntry = () => {
       setDbLoading(true);
       const { data, error } = await supabase
         .from("journal_entries")
-        .select("id, title, note, entry_date, photo_paths, products_used")
+        .select("id, title, note, entry_date, photo_paths, products_used, style_name, style_date, status")
         .eq("id", rawId)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -447,6 +452,8 @@ const JournalEntry = () => {
   useEffect(() => {
     const returnedProductId = (location.state as { journalAddProductId?: string } | null)?.journalAddProductId;
     if (!returnedProductId) return;
+    // A step-scoped return (?addToStep=…) is handled by StyleRecordSection.
+    if (new URLSearchParams(location.search).has("addToStep")) return;
     setPickerOpen(false);
     setState((prev) => {
       if (prev.productIds.includes(returnedProductId)) return prev;
@@ -470,6 +477,21 @@ const JournalEntry = () => {
         ? state.productIds.filter((k) => k !== productId)
         : [...state.productIds, productId],
     });
+  };
+
+  /** Persists the style-record header fields (style, date, complete flag). */
+  const updateStyleHeader = async (patch: {
+    style_name?: string | null;
+    style_date?: string | null;
+    status?: string;
+  }) => {
+    if (!dbEntry) return;
+    setDbEntry((prev) => (prev ? { ...prev, ...patch } : prev));
+    const { error } = await supabase.from("journal_entries").update(patch).eq("id", dbEntry.id);
+    if (error) {
+      console.error("style record header save failed", error);
+      toast.error("Couldn't save the style details");
+    }
   };
 
   const [saving, setSaving] = useState(false);
@@ -953,6 +975,31 @@ const JournalEntry = () => {
             </button>
           </div>
         </SurfaceCard>
+      </div>
+
+      {/* The style record — what style, when, and the ordered steps that got
+       *  them there. Steps hang off a saved row, so a brand-new entry asks for
+       *  a save first. Legacy entries (no steps) keep rendering their original
+       *  note, photos and products below, untouched. */}
+      <SectionLabel>Style record</SectionLabel>
+      <div className="px-5 pb-4">
+        {dbEntry ? (
+          <StyleRecordSection
+            entryId={dbEntry.id}
+            styleName={dbEntry.style_name}
+            styleDate={dbEntry.style_date}
+            status={dbEntry.status}
+            onHeaderChange={updateStyleHeader}
+            hasLegacyContent={(dbEntry.photo_paths?.length ?? 0) > 0 || !!dbEntry.note?.trim()}
+          />
+        ) : (
+          <SurfaceCard>
+            <p className="text-sm text-muted-foreground">
+              Save this entry first and you can record it step by step — each stage with its own
+              note, photos, video and products.
+            </p>
+          </SurfaceCard>
+        )}
       </div>
 
       {/* Photos gallery — Shopify-style sortable grid. First image is the cover. */}
