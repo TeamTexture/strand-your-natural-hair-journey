@@ -162,11 +162,11 @@ const JournalStepCard = ({
             rows={3}
           />
           {step.voice_transcript?.trim() && (
-            <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1">
+            <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Transcript
               </p>
-              <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{step.voice_transcript}</p>
+              <TranscriptBody text={step.voice_transcript} />
               <button
                 type="button"
                 onClick={() => onUpdate({ voice_transcript: null })}
@@ -185,15 +185,16 @@ const JournalStepCard = ({
             <p className="text-sm text-muted-foreground">No note for this step.</p>
           )}
           {step.voice_transcript?.trim() && (
-            <div className="rounded-[10px] bg-secondary/60 p-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+            <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Voice note
               </p>
-              <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{step.voice_transcript}</p>
+              <TranscriptBody text={step.voice_transcript} />
             </div>
           )}
         </>
       )}
+
 
       {/* Media */}
       {(step.media.length > 0 || editing) && (
