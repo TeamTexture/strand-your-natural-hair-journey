@@ -26,15 +26,16 @@ const fmtNum = (n: number) =>
 
 
 /** Rich "live" advert thumbnail — hero image at top with pulsing LIVE chip,
- *  then five insight tiles (impressions, expands, code copies, link clicks,
- *  wishlist), a computed engagement rate, and an explicit Review button. */
+ *  then the four headline figures (reach, interactions, codes copied, link
+ *  clicks), the bounded engagement rate, and an explicit Review button. */
 const LiveOfferCard = ({
   headline,
   heroImagePath,
   slots,
   startDate,
   endDate,
-  totals,
+  metrics,
+
   hasPendingRevision,
   revisionCount,
   onReview,
