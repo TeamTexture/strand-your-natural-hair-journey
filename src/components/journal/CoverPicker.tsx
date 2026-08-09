@@ -18,7 +18,7 @@ interface Props {
   coverMediaId: string | null;
   open: boolean;
   onClose: () => void;
-  onSaved: (coverMediaId: string | null) => void;
+  onSaved: (coverMediaId: string | null, coverPath?: string | null) => void;
   /** Called after a freshly uploaded photo is attached, so steps reload. */
   onMediaAdded?: () => void | Promise<void>;
 }
@@ -90,7 +90,7 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onM
         .update({ cover_path: path, cover_media_id: null })
         .eq("id", entryId);
       if (error) throw error;
-      onSaved(null);
+      onSaved(null, path);
       toast.success("Cover updated");
       onClose();
     } catch (e) {
@@ -113,7 +113,7 @@ const CoverPicker = ({ entryId, steps, coverMediaId, open, onClose, onSaved, onM
       toast.error("Couldn't save that cover");
       return;
     }
-    onSaved(value);
+    onSaved(value, null);
     toast.success(value ? "Cover updated" : "Cover set back to the first photo");
     onClose();
   };
