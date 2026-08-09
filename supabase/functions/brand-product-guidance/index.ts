@@ -18,12 +18,7 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardrail.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
-import {
-  FIDELITY_RULE,
-  loadSurfaceChapters,
-  noteSourceText,
-  renderChapterBlock,
-} from "../_shared/chapter-context.ts";
+import { evidencePromptBlock } from "../_shared/evidence.ts";
 import {
   validateTipAction,
   validateTipReason,
@@ -481,12 +476,15 @@ Deno.serve(async (req) => {
       : "";
 
 
-  // Whole-chapter manuscript grounding (chapters 15, 14 + 1), passed in full.
-  const chapterCtx = await loadSurfaceChapters("brand-product-guidance");
-  if (chapterCtx.text) noteSourceText(chapterCtx.text);
-  const groundingBlock = chapterCtx.text
-    ? `\n\n${renderChapterBlock(chapterCtx)}\n\n${FIDELITY_RULE}`
-    : "";
+  // TWO-STAGE GROUNDED GENERATION. Stage 1 reads chapters 15, 14 + 1 in full and
+  // extracts the evidence; this call (stage 2) receives the evidence ONLY, so the
+  // writer has no general ingredient knowledge available to it.
+  const evid = await evidencePromptBlock({
+    fn: "brand-product-guidance",
+    surface: "brand-product-guidance",
+    memberContext: userMsg.slice(0, 4000),
+  });
+  const groundingBlock = evid.grounded ? `\n\n${evid.block}` : "";
 
   const system = `${SYSTEM}${groundingBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,

@@ -11,8 +11,17 @@
 // user must never see raw citations because logging broke.
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
-import { enforceFidelity } from "./fidelity.ts";
+import { collectText, enforceFidelity, stripDeep } from "./fidelity.ts";
 import { lastSourceText } from "./chapter-context.ts";
+import {
+  lastEvidence,
+  logGenerationRejections,
+  mapClaimsToEvidence,
+  storeEvidenceSet,
+  type EvidenceSet,
+  type RejectionRow,
+} from "./evidence.ts";
+import { checkTerminology, loadLexicon } from "./terminology.ts";
 import {
   enforceBloodSafety,
   enforceStyleVerbatimDeep,
@@ -89,7 +98,14 @@ async function logViolation(
 export async function sanitiseAndLog<T>(
   value: T,
   functionName: string,
-  opts?: { context?: unknown; grounding?: string; chapters?: number[] },
+  opts?: {
+    context?: unknown;
+    grounding?: string;
+    chapters?: number[];
+    /** Surface key + member id, so the evidence set is auditable per member. */
+    surface?: string | null;
+    userId?: string | null;
+  },
 ): Promise<T> {
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
@@ -123,12 +139,94 @@ export async function sanitiseAndLog<T>(
   // unsupported is logged to ai_fidelity_rejections and removed from the
   // output. See _shared/fidelity.ts.
   const recorded = lastSourceText(functionName);
-  return await enforceFidelity(
+  const evidenceSet = lastEvidence(functionName);
+  const onEvidencePath = evidenceSet.items.length > 0;
+
+  out = await enforceFidelity(
     out,
     functionName,
     recorded.text || (opts?.grounding ?? ""),
     opts?.chapters ?? recorded.chapters,
+    // On the two-stage path the generic traceability audit is replaced by the
+    // stage 3 claim-to-evidence mapping below — one verifier call, not two.
+    { skipTraceability: onEvidencePath },
   );
+
+  if (!onEvidencePath) return out;
+  return await verifyStage3(out, functionName, evidenceSet, opts);
+}
+
+/**
+ * STAGE 3 + STAGE 4 of the grounded pipeline.
+ *
+ * Stage 3 — every substantive claim must map onto an evidence item, and the
+ * author's terminology lexicon is enforced deterministically. Anything that
+ * fails is logged and removed. Removing a sentence can only make the answer
+ * shorter and more conservative; where it removes a required field, the tip
+ * contract sees a blank action or reason, treats it as a HARD failure and
+ * regenerates once (and, failing twice, renders the "being prepared" state
+ * rather than a bare headline).
+ *
+ * Stage 4 — the evidence set is persisted next to the generated copy, keyed to
+ * it, so the author can audit any tip by chapter and page.
+ */
+async function verifyStage3<T>(
+  payload: T,
+  functionName: string,
+  evidenceSet: EvidenceSet,
+  opts?: { surface?: string | null; userId?: string | null },
+): Promise<T> {
+  const text = collectText(payload).join("\n");
+  let out = payload;
+  let violations: Array<{ claim: string; reason: string; rule: string; stage: RejectionRow["stage"] }> = [];
+  let verifyTokens = 0;
+
+  try {
+    const term = checkTerminology(text, await loadLexicon());
+    violations = term.map((v) => ({ ...v, stage: "terminology" as const }));
+
+    const mapping = await mapClaimsToEvidence(text, evidenceSet);
+    verifyTokens = mapping.tokens;
+    violations = violations.concat(
+      mapping.unmapped.map((v) => ({ ...v, stage: "stage3_mapping" as const })),
+    );
+  } catch (e) {
+    console.warn(`[stage3] verification error in ${functionName}:`, e);
+  }
+
+  if (violations.length > 0) {
+    console.warn(
+      JSON.stringify({
+        event: "stage3_rejection",
+        fn: functionName,
+        rules: violations.map((v) => v.rule),
+      }),
+    );
+    out = stripDeep(payload, violations.map((v) => v.claim));
+  }
+
+  const evidenceSetId = await storeEvidenceSet({
+    surface: opts?.surface ?? functionName,
+    functionName,
+    userId: opts?.userId ?? null,
+    set: evidenceSet,
+    tip: out,
+    verified: violations.length === 0,
+    verifyTokens,
+  });
+
+  await logGenerationRejections(
+    functionName,
+    violations.map((v) => ({
+      stage: v.stage,
+      rule: v.rule,
+      detail: v.reason,
+      offendingText: v.claim,
+    })),
+    { surface: opts?.surface ?? null, userId: opts?.userId ?? null, evidenceSetId },
+  );
+
+  return out;
 }
 
 /** Collapse the duplicated "TT" the model sometimes emits immediately before
