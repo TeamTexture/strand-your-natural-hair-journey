@@ -534,30 +534,37 @@ const JournalStepCard = ({
             </span>
           </div>
         )}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {editing && isOpen && (
             <>
-              <button
-                type="button"
-                aria-label="Move step up"
-                disabled={index === 0}
-                onClick={() => onMove("up")}
-                className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
-              >
-                <ChevronUp className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Move step down"
-                disabled={index === total - 1}
-                onClick={() => onMove("down")}
-                className="size-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
-              >
-                <ChevronDown className="size-3.5" />
-              </button>
+              {/* Reorder: grouped segmented control, clearly separate from collapse */}
+              <div className="flex items-center rounded-md border border-border bg-muted/40 overflow-hidden">
+                <button
+                  type="button"
+                  aria-label="Move step up"
+                  title="Move step up"
+                  disabled={index === 0}
+                  onClick={() => onMove("up")}
+                  className="h-7 w-7 flex items-center justify-center disabled:opacity-30"
+                >
+                  <ArrowUp className="size-3.5" />
+                </button>
+                <span className="h-4 w-px bg-border" aria-hidden />
+                <button
+                  type="button"
+                  aria-label="Move step down"
+                  title="Move step down"
+                  disabled={index === total - 1}
+                  onClick={() => onMove("down")}
+                  className="h-7 w-7 flex items-center justify-center disabled:opacity-30"
+                >
+                  <ArrowDown className="size-3.5" />
+                </button>
+              </div>
               <button
                 type="button"
                 aria-label="Delete step"
+                title="Delete step"
                 onClick={onDelete}
                 className="size-7 rounded-full border border-border flex items-center justify-center text-destructive"
               >
@@ -570,11 +577,15 @@ const JournalStepCard = ({
               type="button"
               onClick={onToggleExpand}
               aria-label={isOpen ? "Collapse step" : "Expand step"}
-              className="size-7 rounded-full border border-border flex items-center justify-center"
+              title={isOpen ? "Collapse step" : "Expand step"}
+              className="h-7 rounded-full border border-border bg-background px-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
             >
-              {isOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+              {isOpen ? "Close" : "Open"}
+              {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
             </button>
           )}
+        </div>
+
         </div>
       </div>
 
