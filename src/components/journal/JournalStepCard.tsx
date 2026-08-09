@@ -242,14 +242,36 @@ const JournalStepCard = ({
           <VoiceNoteField
             label="Short note"
             placeholder="Cleansed, blow dried on cool, sealed the ends…"
-            value={step.note ?? ""}
-            onChange={(next) => onUpdate({ note: next })}
+            value={noteDraft}
+            onChange={setNoteDraft}
             audioPath={step.voice_path}
             onAudioPathChange={(path) => onUpdate({ voice_path: path })}
             onTranscript={(text) => onUpdate({ voice_transcript: text })}
             folder={`journal-steps/${step.id}`}
             rows={3}
           />
+          {noteDirty && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="gold"
+                size="sm"
+                className="flex-1"
+                onClick={() => onUpdate({ note: noteDraft })}
+              >
+                Save note
+              </Button>
+              <Button
+                type="button"
+                variant="goldGhost"
+                size="sm"
+                onClick={() => setNoteDraft(step.note ?? "")}
+              >
+                Discard
+              </Button>
+            </div>
+          )}
+
           {step.voice_transcript?.trim() && (
             <div className="rounded-[10px] bg-secondary/60 p-2.5 space-y-1.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
