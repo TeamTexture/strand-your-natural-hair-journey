@@ -42,6 +42,26 @@ import { useJournalSteps } from "@/hooks/useJournalSteps";
 import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
 import PendingStepProducts from "@/components/journal/PendingStepProducts";
+import StepReviewCard from "@/components/journal/StepReviewCard";
+
+/** One at-a-glance figure, matching the wash day detail screen. */
+const Stat = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <div className="flex-1 min-w-0 rounded-2xl bg-primary/5 border border-primary/10 px-3 py-2.5 text-center">
+    <Icon className="size-4 text-primary mx-auto mb-1" />
+    <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">{label}</p>
+    <p className="text-sm font-semibold leading-tight truncate">{value}</p>
+  </div>
+);
+
+
 
 
 /**
