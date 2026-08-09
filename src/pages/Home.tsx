@@ -18,6 +18,8 @@ import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
+
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,7 +79,11 @@ const Home = () => {
   const renderRichText = useSmartInline();
   const location = useLocation();
   const { user } = useAuth();
+  // Start the sponsored wash day tip generating now, in the background, so the
+  // Wash Day screen renders it from cache instead of waiting on the model.
+  useWarmSponsoredWashDayTip();
   const greeting = getTimeBasedGreeting();
+
   const [firstName, setFirstName] = useState<string>("");
   // Home is intentionally STATIC while mounted: every data hook loads once
   // on entry, then no realtime channels, focus refetches, or interval polls
