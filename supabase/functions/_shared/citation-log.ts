@@ -19,8 +19,10 @@ import {
   mapClaimsToEvidence,
   storeEvidenceSet,
   type EvidenceSet,
+  type ExternalClaim,
   type RejectionRow,
 } from "./evidence.ts";
+
 import { checkTerminology, loadLexicon } from "./terminology.ts";
 import {
   enforceBloodSafety,
