@@ -208,6 +208,9 @@ export async function gatherEvidence(input: {
     const content = json?.choices?.[0]?.message?.content;
     const parsed = typeof content === "string" ? JSON.parse(content) : null;
     raw = Array.isArray(parsed?.evidence) ? parsed.evidence : [];
+    coverage = asCoverage(parsed?.coverage);
+    coverageReason = String(parsed?.coverage_reason ?? "").trim().slice(0, 400);
+    principle = String(parsed?.principle ?? "").trim().slice(0, 400);
   } catch (e) {
     console.error(JSON.stringify({ event: "stage1_failed", fn: input.fn, error: String(e) }));
     return EMPTY_EVIDENCE;
@@ -239,8 +242,24 @@ export async function gatherEvidence(input: {
       page_end: row.page_end ?? null,
       passage: passage.slice(0, 1600),
       relevance: String(r?.relevance ?? "").trim().slice(0, 400),
+      source: "manuscript",
     });
     if (items.length >= 10) break;
+  }
+
+  // A principle is MANDATORY outside explicit mode: extension and supplement
+  // reasoning is only permitted when a manuscript principle governs it. Without
+  // one we downgrade to explicit, which is the strictest mode — never the
+  // permissive one.
+  if (coverage !== "explicit" && !principle) {
+    console.warn(
+      JSON.stringify({
+        event: "coverage_downgraded_no_principle",
+        fn: input.fn,
+        requested: coverage,
+      }),
+    );
+    coverage = "explicit";
   }
 
   const set: EvidenceSet = {
@@ -248,6 +267,9 @@ export async function gatherEvidence(input: {
     chapters: [...new Set(items.map((i) => i.chapter))].sort((a, b) => a - b),
     tokens,
     sourceAvailable: true,
+    coverage,
+    coverageReason,
+    governingPrinciple: coverage === "explicit" ? "" : principle,
   };
   if (items.length) {
     if (stage1Cache.size > 64) stage1Cache.clear();
@@ -261,9 +283,11 @@ export async function gatherEvidence(input: {
       chapters: set.chapters,
       items: items.length,
       dropped: raw.length - items.length,
+      coverage: set.coverage,
       tokens,
     }),
   );
+
   return set;
 }
 
