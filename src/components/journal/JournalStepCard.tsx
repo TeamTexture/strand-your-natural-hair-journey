@@ -82,7 +82,9 @@ const JournalStepCard = ({
   onToggleProduct,
   onProductsChanged,
 }: Props) => {
+  const { user } = useAuth();
   const { startStepLinkScan } = useStepLinkScan();
+
 
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
