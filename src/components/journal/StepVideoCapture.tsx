@@ -94,6 +94,7 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
   const [recording, setRecording] = useState(false);
   const [remaining, setRemaining] = useState(MAX_SECONDS);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [recorderAvailable, setRecorderAvailable] = useState(false);
   const [review, setReview] = useState<{ url: string; blob: Blob; mime: string } | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -235,6 +236,25 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
     void openCamera(facing === "user" ? "environment" : "user");
   };
 
+  /** Uploads through a signed upload URL with XHR so we can report progress —
+   *  the storage SDK's upload() gives no progress events. */
+  const putWithProgress = (signedUrl: string, blob: Blob, mime: string) =>
+    new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", signedUrl, true);
+      xhr.setRequestHeader("content-type", mime || "video/mp4");
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`Upload failed (${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new Error("Network error while uploading"));
+      xhr.onabort = () => reject(new Error("Upload cancelled"));
+      xhr.send(blob);
+    });
+
   const upload = async (blob: Blob, mime: string, duration: number | null) => {
     if (!user) { toast.error("Please sign in"); return false; }
     if (!blob.size) { toast.error("That video file is empty — try recording again."); return false; }
@@ -243,21 +263,37 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
       return false;
     }
     setUploading(true);
+    setProgress(0);
     const path = `${user.id}/${folder}/${uuid()}.${extFor(mime)}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
-      contentType: mime || "video/mp4",
-      upsert: true,
-    });
-    setUploading(false);
-    if (error) {
-      console.error("video upload failed", error);
-      toast.error(`Couldn't save that video: ${error.message}`);
-      return false;
+    try {
+      const { data: signed, error: signErr } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUploadUrl(path);
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error("Couldn't start the upload");
+      await putWithProgress(signed.signedUrl, blob, mime);
+      setProgress(100);
+    } catch (e) {
+      // Fall back to the SDK upload (no progress) before giving up.
+      console.warn("signed upload failed, retrying directly", e);
+      const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
+        contentType: mime || "video/mp4",
+        upsert: true,
+      });
+      if (error) {
+        console.error("video upload failed", error);
+        setUploading(false);
+        setProgress(null);
+        toast.error(`Couldn't save that video: ${error.message}`);
+        return false;
+      }
     }
+    setUploading(false);
+    setProgress(null);
     onUploaded({ storage_path: path, duration_seconds: duration });
     toast.success("Video saved to this step");
     return true;
   };
+
 
   const stop = () => {
     if (recRef.current && recRef.current.state !== "inactive") recRef.current.stop();
@@ -412,12 +448,26 @@ const StepVideoCapture = ({ folder, onUploaded }: Props) => {
           </Button>
           <Button type="button" variant="gold" size="sm" className="h-10" onClick={() => void saveReview()} disabled={uploading}>
             {uploading ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
-            {uploading ? "Saving…" : "Save video"}
+            {uploading ? (progress !== null ? `Saving ${progress}%` : "Saving…") : "Save video"}
           </Button>
         </div>
+        {uploading && (
+          <div className="space-y-1">
+            <div className="h-1.5 w-full rounded-pill bg-secondary overflow-hidden">
+              <div
+                className="h-full rounded-pill bg-primary transition-[width] duration-200"
+                style={{ width: `${progress ?? 5}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Uploading {mb(review.blob.size)} — keep this screen open until it finishes.
+            </p>
+          </div>
+        )}
         <p className="text-[10px] text-muted-foreground leading-snug">
-          Watch it back, then save it to this step.
+          Watch it back, then save it to this step. You'll see it appear in the step once it's saved.
         </p>
+
       </div>
     );
   }
