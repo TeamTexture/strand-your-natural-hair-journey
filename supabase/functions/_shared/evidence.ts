@@ -419,14 +419,46 @@ REPORT as unmapped: mechanisms, causes, effects, benefits, harms, ingredient beh
 Reply with JSON only: {"unmapped":[{"claim":"<exact sentence from OUTPUT>","reason":"<which evidence is missing, one sentence>"}]}
 An empty array means every claim maps to evidence.`;
 
+/** Extra instructions for extension mode: the principle may be applied. */
+const EXTENSION_RULE = (principle: string) =>
+  `COVERAGE: EXTENSION. The evidence set does not name this reader's exact situation, but the author establishes a principle that governs it:
+
+GOVERNING PRINCIPLE: ${principle}
+
+A claim is MAPPED when it follows from the evidence set, OR when it is that principle applied to the reader's situation. Do not report a claim solely because the author never names this situation — that is what extension means.
+A claim is STILL a failure when it introduces an outside fact, mechanism, ingredient behaviour, statistic or product claim that neither the evidence nor the principle yields.`;
+
+/** Extra instructions for supplement mode: external claims are triaged. */
+const SUPPLEMENT_RULE = (principle: string) =>
+  `COVERAGE: SUPPLEMENT. The author does not cover this subject, so established science is permitted under her principle:
+
+GOVERNING PRINCIPLE: ${principle}
+
+Triage every claim the evidence set does not support into exactly one bucket:
+- "external": it is ESTABLISHED cosmetic science or trichology, is stated with confidence rather than hedged, and is CONSISTENT with the governing principle above. Put it in "external" with the principle it is consistent with.
+- "unmapped": anything else — a marketing or brand claim, industry/influencer consensus, a contested position, a trend, a plausible-sounding but unestablished mechanism, an invented number, or anything that CONTRADICTS the governing principle or the author's terminology. These are rejected.
+
+If a claim contradicts the author on any point, it is "unmapped", never "external". The author overrides established industry practice wherever they disagree.
+
+Reply with JSON only: {"unmapped":[{"claim":"...","reason":"..."}],"external":[{"claim":"...","basis":"<the established science, one line>","principle":"<the governing principle it is consistent with>"}]}`;
+
 export interface UnmappedClaim {
   claim: string;
   reason: string;
   rule: string;
 }
 
+export interface ExternalClaim {
+  claim: string;
+  basis: string;
+  principle: string;
+  source: "external";
+}
+
 export interface MappingResult {
   unmapped: UnmappedClaim[];
+  /** Supplement mode only: claims kept, but labelled as externally sourced. */
+  external: ExternalClaim[];
   tokens: number;
   /** False when the mapper could not run (transport failure) — fail open. */
   ran: boolean;
@@ -437,18 +469,25 @@ export interface MappingResult {
  * the claims that could not be mapped. On transport failure it returns ran:false
  * so a verifier outage cannot take the whole app down — the deterministic rules
  * and the terminology guard still apply.
+ *
+ * The mode comes from the evidence set's coverage classification, so a surface
+ * cannot ask for a laxer audit than stage 1 justified.
  */
 export async function mapClaimsToEvidence(
   output: string,
   set: EvidenceSet,
 ): Promise<MappingResult> {
   const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key || !output.trim() || !set.items.length) {
-    return { unmapped: [], tokens: 0, ran: false };
-  }
+  const empty: MappingResult = { unmapped: [], external: [], tokens: 0, ran: false };
+  if (!key || !output.trim() || !set.items.length) return empty;
   const evidence = set.items
     .map((it, i) => `[${i + 1}] ${it.passage}`)
     .join("\n\n");
+  const system = [
+    MAPPER_PROMPT,
+    set.coverage === "extension" ? EXTENSION_RULE(set.governingPrinciple) : "",
+    set.coverage === "supplement" ? SUPPLEMENT_RULE(set.governingPrinciple) : "",
+  ].filter(Boolean).join("\n\n");
   try {
     const res = await fetch(GATEWAY, {
       method: "POST",
@@ -458,12 +497,12 @@ export async function mapClaimsToEvidence(
         temperature: 0,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: MAPPER_PROMPT },
+          { role: "system", content: system },
           { role: "user", content: `EVIDENCE SET:\n${evidence}\n\n---\n\nOUTPUT:\n${output}` },
         ],
       }),
     });
-    if (!res.ok) return { unmapped: [], tokens: 0, ran: false };
+    if (!res.ok) return empty;
     const json = await res.json();
     const tokens = Number(json?.usage?.total_tokens ?? 0);
     const content = json?.choices?.[0]?.message?.content;
@@ -476,11 +515,35 @@ export async function mapClaimsToEvidence(
         reason: String(v.reason ?? "No evidence item supports this claim.").slice(0, 600),
         rule: "unmapped_claim",
       }));
-    return { unmapped, tokens, ran: true };
+    // External claims are only ever admitted in supplement mode. If the mapper
+    // returns them in any other mode they are rejected instead of kept.
+    const rawExternal = (Array.isArray(parsed?.external) ? parsed.external : [])
+      .filter((v: { claim?: unknown }) => typeof v?.claim === "string" && v.claim.trim())
+      .slice(0, 12);
+    if (set.coverage !== "supplement") {
+      for (const v of rawExternal) {
+        unmapped.push({
+          claim: String(v.claim).slice(0, 600),
+          reason: "Outside knowledge is not permitted in this coverage mode.",
+          rule: "external_claim_out_of_mode",
+        });
+      }
+      return { unmapped, external: [], tokens, ran: true };
+    }
+    const external: ExternalClaim[] = rawExternal.map(
+      (v: { claim: string; basis?: string; principle?: string }) => ({
+        claim: String(v.claim).slice(0, 600),
+        basis: String(v.basis ?? "").slice(0, 400),
+        principle: String(v.principle ?? set.governingPrinciple).slice(0, 400),
+        source: "external" as const,
+      }),
+    );
+    return { unmapped, external, tokens, ran: true };
   } catch {
-    return { unmapped: [], tokens: 0, ran: false };
+    return empty;
   }
 }
+
 
 // ---------------------------------------------------------------------------
 // Per-request evidence registry
