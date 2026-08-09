@@ -56,7 +56,11 @@ const SplashScreen = () => {
     ]);
 
     const roles = (roleRows ?? []).map((row) => row.role as string);
-    if (roles.includes("admin") || roles.includes("professional")) return "/";
+    // Deep links (e.g. an admin notification email) must survive the login hop.
+    if (roles.includes("admin") || roles.includes("professional")) {
+      return nextParam ? safeNext(nextParam, "/") : "/";
+    }
+
     if ((roles.includes("brand") || brandProfile) && !roles.includes("admin") && !roles.includes("professional")) {
       return getBrandEntryPath(userId, roles);
     }

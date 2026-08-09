@@ -69,6 +69,19 @@ const Index = () => {
       const hasAdmin = roles.includes("admin");
       const hasBrand = roles.includes("brand");
 
+      // A deep link that bounced through the auth gate (?next=…) wins for
+      // staff accounts — e.g. an admin notification email pointing at one
+      // message. Same-origin paths only.
+      const rawNext = new URLSearchParams(window.location.search).get("next");
+      const deepLink =
+        rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
+      if (deepLink && (hasAdmin || hasPro)) {
+        navigate(deepLink, { replace: true });
+        return;
+      }
+
+
+
       // Pro-intent shortcut: applicants (not yet approved) skip consumer
       // onboarding entirely and land on the pro landing screen.
       if (proApp && !hasPro && !hasAdmin && !hasBrand) {
