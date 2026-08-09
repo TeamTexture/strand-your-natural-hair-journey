@@ -256,6 +256,27 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.search, location.state, navigate, toggleProduct]);
 
+  // Warn before a browser/tab close while notes are unsaved.
+  useEffect(() => {
+    if (!dirtyCount) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirtyCount]);
+
+  const saveDrafts = async () => {
+    const entries = Object.entries(drafts);
+    setDrafts({});
+    await Promise.all(entries.map(([stepId, note]) => updateStep(stepId, { note })));
+  };
+
+  /** Runs `go` immediately when nothing is pending, otherwise asks first. */
+  const guardExit = (go: () => void) => {
+    if (!dirtyCount) { go(); return; }
+    pendingExit.current = go;
+    setGuardOpen(true);
+  };
+
   const complete = entry?.status === "complete";
 
   const setStatus = async (status: "in_progress" | "complete") => {
@@ -269,6 +290,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
     }
     if (status === "complete") navigate("/journal");
   };
+
 
   if (loading) {
     return (
