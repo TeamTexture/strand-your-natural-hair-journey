@@ -48,7 +48,23 @@ const fmt = (sec: number) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
+/** Reads the real error body out of a failed edge-function invocation. */
+const readInvokeError = async (error: unknown): Promise<string> => {
+  const ctx = (error as { context?: { text?: () => Promise<string> } })?.context;
+  if (ctx?.text) {
+    try {
+      const body = await ctx.text();
+      const parsed = JSON.parse(body) as { error?: string };
+      if (parsed?.error) return parsed.error;
+    } catch {
+      /* fall through to the generic message */
+    }
+  }
+  return error instanceof Error ? error.message : "Could not transcribe";
+};
+
 const blobToBase64 = (blob: Blob): Promise<string> =>
+
   new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onloadend = () => {
@@ -220,8 +236,10 @@ const VoiceNoteField = ({
       const { data, error } = await supabase.functions.invoke("transcribe-audio", {
         body: { audioBase64, mimeType: blob.type || "audio/webm" },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const message =
+        (data as { error?: string } | null)?.error ??
+        (error ? await readInvokeError(error) : null);
+      if (message) throw new Error(message);
       const text = (data?.text ?? "").toString().trim();
       if (!text) {
         toast("No speech detected");
@@ -237,8 +255,9 @@ const VoiceNoteField = ({
       }
     } catch (e) {
       console.error("transcribe failed", e);
-      toast.error("Could not transcribe");
+      toast.error(e instanceof Error ? e.message : "Could not transcribe");
     } finally {
+
       setTranscribing(false);
     }
   };
