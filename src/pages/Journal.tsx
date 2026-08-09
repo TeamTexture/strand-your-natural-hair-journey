@@ -220,8 +220,17 @@ const Journal = () => {
           const media = steps.flatMap((s) =>
             (s.journal_step_media ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
           );
-          // The member's chosen cover wins; if it's gone, fall back to the first.
-          const cover = media.find((m) => m.id === e.cover_media_id) ?? media[0];
+          // The member's chosen cover wins. On auto, prefer a real photo over a
+          // video's still frame (motion frames are usually blurred), then a
+          // video that has a captured poster, and only then whatever is first.
+          const chosen = e.cover_media_id
+            ? media.find((m) => m.id === e.cover_media_id)
+            : undefined;
+          const cover =
+            chosen ??
+            media.find((m) => m.kind === "photo") ??
+            media.find((m) => m.kind === "video" && !!m.poster_path) ??
+            media[0];
           const names = Array.from(
             new Set(
               steps.flatMap((s) =>
