@@ -267,11 +267,16 @@ async function verifyStage3<T>(
     policy?: "A" | "B";
     product?: PolicyBProduct;
   },
+  clar: { rejections: ClarificationViolation[]; governed: string[] } = {
+    rejections: [],
+    governed: [],
+  },
 ): Promise<T> {
   const policy = opts?.policy === "B" ? "B" : "A";
   const text = collectText(payload).join("\n");
   let out = payload;
   let violations: Array<{ claim: string; reason: string; rule: string; stage: RejectionRow["stage"] }> = [];
+
   let verifyTokens = 0;
   let external: ExternalClaim[] = [];
   let conflicts: ConflictHit[] = [];
