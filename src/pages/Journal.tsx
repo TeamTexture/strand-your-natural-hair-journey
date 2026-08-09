@@ -174,7 +174,7 @@ const Journal = () => {
         ? await supabase
             .from("journal_steps")
             .select(
-              "id, entry_id, step_order, journal_step_media(storage_path, poster_path, kind, sort_order), journal_step_products(user_product_id)",
+              "id, entry_id, step_order, journal_step_media(id, storage_path, poster_path, kind, sort_order), journal_step_products(user_product_id)",
             )
             .in("entry_id", ids)
             .order("step_order", { ascending: true })
