@@ -52,11 +52,14 @@ export interface EvidenceItem {
   /** One line: why this applies to THIS member. */
   relevance: string;
   /**
-   * Provenance. `manuscript` = the author's own text. `external` = established
-   * cosmetic science / trichology admitted ONLY in supplement mode, and only
-   * under a named manuscript principle (see `governingPrinciple`).
+   * Provenance. `manuscript` = the author's own text. `clarification` = the
+   * author's current stated position, which OVERRIDES the manuscript where the
+   * two differ. `external` = established cosmetic science / trichology admitted
+   * ONLY in supplement mode, and only under a named manuscript principle (see
+   * `governingPrinciple`).
    */
-  source?: "manuscript" | "external";
+  source?: "manuscript" | "clarification" | "external";
+
   /** For external items: the manuscript principle that constrains the claim. */
   constrained_by?: string;
 }
