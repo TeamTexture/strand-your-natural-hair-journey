@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { BRAND_CATEGORIES } from "@/lib/brandCategories";
 import { useSetBrandBloodVerification } from "@/hooks/useBloodTestBrands";
-import { Droplet, Pill, Eye, EyeOff, Ban, Undo2, Trash2 } from "lucide-react";
+import { Droplet, Pill, Eye, EyeOff, Ban, Undo2, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
