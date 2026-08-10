@@ -1,4 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
+import TimeSelect from "@/components/TimeSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Check } from "lucide-react";
@@ -428,12 +429,7 @@ const LogAppointment = () => {
             <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
               Time
             </span>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full px-3.5 py-3 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
-            />
+            <TimeSelect value={time} onChange={setTime} />
           </label>
         </div>
 
@@ -582,12 +578,7 @@ const LogAppointment = () => {
                   <span className="block text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
                     Time
                   </span>
-                  <input
-                    type="time"
-                    value={followUpTime}
-                    onChange={(e) => setFollowUpTime(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-card rounded-[10px] border border-border text-sm focus:outline-none focus:border-primary/60"
-                  />
+                  <TimeSelect value={followUpTime} onChange={setFollowUpTime} />
                 </label>
               </div>
               {followUpDate && proName.trim().length > 0 && (
