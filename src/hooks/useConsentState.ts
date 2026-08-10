@@ -55,10 +55,15 @@ export function useConsentState() {
         supabase.from("brand_profiles").select("id").eq("user_id", user!.id).limit(1),
       ]);
       const out: ConsentView[] = [];
-      if ((app.data ?? []).length) out.push("pro");
-      if ((brand.data ?? []).length) out.push("brand");
+      const meta = (user!.user_metadata ?? {}) as Record<string, unknown>;
+      // Sign-up intent counts: a pro or brand who has only just created their
+      // account has no application/profile row yet, and must still never be
+      // asked for member-only consents such as health data.
+      if ((app.data ?? []).length || meta.pro_intent === true) out.push("pro");
+      if ((brand.data ?? []).length || meta.brand_intent === true) out.push("brand");
       return out;
     },
+
   });
 
   const rows: ConsentRow[] = q.data ?? [];
