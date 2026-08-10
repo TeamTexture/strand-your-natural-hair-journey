@@ -85,6 +85,11 @@ export default function BrandTagControl({
   const canTag = isAdmin || isOwner;
   const canPromote = isAdmin;
   const shown = useMemo(() => visibleTags(tags), [tags]);
+  const hidden = useMemo(
+    () => tags.filter((t) => !shown.some((s) => s.id === t.id)),
+    [tags, shown],
+  );
+
   const brandName = brands.find((b) => b.id === brandId)?.brand_name ?? "";
 
   const pickBrand = (id: string) => {
