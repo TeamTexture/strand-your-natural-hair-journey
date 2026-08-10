@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star, KeyRound, Scissors } from "lucide-react";
+import { ChevronRight, User2, Tag, Inbox, CreditCard, LogOut, ShieldCheck, X, AlertCircle, Calendar, Users, Megaphone, BookOpen, MessageCircle, Star, KeyRound, Scissors, ClipboardList } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
@@ -265,6 +265,12 @@ const ProDashboard = () => {
             onClick={() => nav("/pro/clients")}
             tourId="pro-card-clients"
             count={activeClientsCount}
+          />
+          <Card
+            icon={ClipboardList}
+            title="Treatment plans"
+            sub={hasProAccess ? "Templates, assignments and weekly check-ins." : "Subscribe to build treatment plans."}
+            onClick={() => nav("/pro/treatment")}
           />
           <Card
             icon={Calendar}

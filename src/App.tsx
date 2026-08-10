@@ -70,6 +70,10 @@ const TreatmentPlanBuilder = lazyRetry(() => import("./pages/treatment/Treatment
 const TreatmentPlanDetail = lazyRetry(() => import("./pages/treatment/TreatmentPlanDetail"));
 const TreatmentProgress = lazyRetry(() => import("./pages/treatment/TreatmentProgress"));
 const TreatmentCheckin = lazyRetry(() => import("./pages/treatment/TreatmentCheckin"));
+const TreatmentInvitation = lazyRetry(() => import("./pages/treatment/TreatmentInvitation"));
+const ProTreatmentClients = lazyRetry(() => import("./pages/pro/ProTreatmentClients"));
+const ProTreatmentTemplate = lazyRetry(() => import("./pages/pro/ProTreatmentTemplate"));
+const ProTreatmentCheckin = lazyRetry(() => import("./pages/pro/ProTreatmentCheckin"));
 
 const Discounts = lazyRetry(() => import("./pages/Discounts"));
 const BloodHistory = lazyRetry(() => import("./pages/BloodHistory"));
@@ -348,6 +352,7 @@ const App = () => (
                <Route path="/treatment/:id/progress" element={<Paid><TreatmentProgress /></Paid>} />
                <Route path="/treatment/:id/checkin/:week" element={<Paid><TreatmentCheckin /></Paid>} />
                <Route path="/treatment/:id/checkin" element={<Paid><TreatmentCheckin /></Paid>} />
+               <Route path="/treatment/invitation/:assignmentId" element={<Protected><TreatmentInvitation /></Protected>} />
                <Route path="/journal" element={<Paid><Journal /></Paid>} />
 
               <Route path="/journal/entry/:id" element={<Paid><StyleRecord /></Paid>} />
@@ -492,6 +497,30 @@ const App = () => (
                 element={
                   <RoleGate allow={["professional", "admin"]}>
                     <ProSubGate><ProProfileGate><ProClientPassport /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/treatment"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProTreatmentClients /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/treatment/templates/:id"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProTreatmentTemplate /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/treatment/plan/:planId/week/:week"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProTreatmentCheckin /></ProProfileGate></ProSubGate>
                   </RoleGate>
                 }
               />

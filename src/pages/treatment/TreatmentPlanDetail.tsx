@@ -11,6 +11,9 @@ import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSetPlanStatus, useTreatmentPlan } from "@/hooks/useTreatmentPlans";
+import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAssignments";
+import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
+import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import {
   cadenceSummary,
@@ -58,6 +61,8 @@ const TreatmentPlanDetail = () => {
   const { bundle, loading } = useTreatmentPlan(id);
   const setStatus = useSetPlanStatus();
   const { checkins } = useTreatmentCheckins(id);
+  const { assignment } = usePlanAssignment(id);
+  const { setMediaConsent } = useInvitationActions();
 
   if (loading) {
     return (
@@ -92,6 +97,8 @@ const TreatmentPlanDetail = () => {
   const adherence = computeAdherence(schedule, entries, plan.start_date);
   const weeks = weekBreakdown(schedule, entries, plan.start_date, plan.duration_weeks, milestoneWeeks);
   const paused = plan.status === "paused";
+
+  const sharedWith = assignment?.assigner_type === "admin" ? "STRAND" : "your professional";
 
   const seeProgress = () => navigate(`/treatment/${plan.id}/progress`);
 
@@ -190,6 +197,33 @@ const TreatmentPlanDetail = () => {
             Edit schedule
           </Button>
         </div>
+
+        {/* who can see what — only when someone else is attached to this plan */}
+        {assignment && assignment.status === "accepted" && (
+          <div className="space-y-2">
+            <SectionLabel className="px-0 mt-0 mb-1.5">Sharing</SectionLabel>
+            <MediaConsentToggle
+              name={sharedWith}
+              value={assignment.media_sharing_consent}
+              disabled={setMediaConsent.isPending}
+              onChange={(on) =>
+                setMediaConsent.mutate(
+                  { assignmentId: assignment.id, on },
+                  {
+                    onSuccess: () =>
+                      toast.success(
+                        on
+                          ? "Sharing on — they can see your photos, videos and voice notes"
+                          : "Sharing off — everything you've recorded stays with you",
+                      ),
+                    onError: () => toast.error("Couldn't change that just now"),
+                  },
+                )
+              }
+            />
+            <WhatTheyCanSee name={sharedWith} />
+          </div>
+        )}
 
         {/* weeks */}
         <div className="space-y-2" id="treatment-weeks">
