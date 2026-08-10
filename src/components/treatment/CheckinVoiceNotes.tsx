@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Mic, Play, Square, Trash2 } from "lucide-react";
+import { Check, Loader2, Mic, Play, Square, Trash2, Type } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,20 @@ interface Props {
   notes: TreatmentMediaRow[];
   onUploaded: (row: TreatmentMediaRow) => void;
   onRemoved: (row: TreatmentMediaRow) => void;
+  /**
+   * When given, a saved voice note is transcribed and the words are handed back
+   * so they can land in her written answer. The audio stays saved either way.
+   */
+  onTranscript?: (text: string) => void;
 }
+
+const blobToBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onloadend = () => resolve(((r.result as string) ?? "").split(",")[1] ?? "");
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
 
 /** Twelve bars that move while recording. Purely a sense of "it's listening". */
 const Waveform = ({ active }: { active: boolean }) => (
@@ -49,10 +63,19 @@ const Waveform = ({ active }: { active: boolean }) => (
  * Voice notes for a check-in. Tap to start, tap to stop, hear it back before it
  * saves. Three minute cap with a countdown as it gets close.
  */
-const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRemoved }: Props) => {
+const CheckinVoiceNotes = ({
+  userId,
+  planId,
+  checkinId,
+  notes,
+  onUploaded,
+  onRemoved,
+  onTranscript,
+}: Props) => {
   const [pending, setPending] = useState<{ blob: Blob; mime: string; seconds: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const previewUrl = useMemo(() => (pending ? URL.createObjectURL(pending.blob) : null), [pending]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -74,8 +97,33 @@ const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRem
 
   const { urls } = useSignedMedia(notes.map((n) => n.storage_path));
 
-  const save = async () => {
+  /** Turns the words into text for her written answer. The audio stays saved. */
+  const transcribe = async (blob: Blob, mime: string) => {
+    if (!onTranscript) return;
+    setTranscribing(true);
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const { data, error: fnError } = await supabase.functions.invoke("transcribe-audio", {
+        body: { audioBase64, mimeType: mime || "audio/webm" },
+      });
+      if (fnError) throw fnError;
+      const text = ((data as { text?: string } | null)?.text ?? "").trim();
+      if (!text) {
+        toast("No speech picked up in that one — the voice note is still saved.");
+        return;
+      }
+      onTranscript(text);
+      toast.success("Added to your answer");
+    } catch {
+      toast("Couldn't turn that into text — the voice note is still saved.");
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const save = async (withTranscript: boolean) => {
     if (!pending || !checkinId) return;
+    const { blob, mime } = pending;
     setSaving(true);
     try {
       const row = await uploadTreatmentMedia({
@@ -91,6 +139,7 @@ const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRem
       setPending(null);
       setJustSaved(true);
       window.setTimeout(() => setJustSaved(false), 2600);
+      if (withTranscript) void transcribe(blob, mime);
     } catch (e) {
       toast.error(e instanceof TreatmentMediaError ? e.message : "That voice note didn't save.");
     }
@@ -109,9 +158,13 @@ const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRem
   return (
     <SurfaceCard className="space-y-3">
       <div>
-        <p className="font-body text-[14px] font-semibold">Say a few words</p>
+        <p className="font-body text-[14px] font-semibold">
+          {onTranscript ? "Or just say it out loud" : "Say a few words"}
+        </p>
         <p className="font-body text-[12px] text-muted-foreground mt-0.5">
-          Up to three minutes. Talking is usually quicker than typing.
+          {onTranscript
+            ? "Up to three minutes. We can write it out into your answer above, or keep it as audio only."
+            : "Up to three minutes. Talking is usually quicker than typing."}
         </p>
       </div>
 
@@ -155,14 +208,35 @@ const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRem
               {formatClock(pending.seconds)}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button className="rounded-pill" onClick={() => void save()} disabled={saving || !checkinId}>
-              {saving ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
-              {saving ? "Saving…" : "Keep it"}
-            </Button>
-            <Button variant="outline" className="rounded-pill" onClick={() => setPending(null)}>
-              Record again
-            </Button>
+          <div className="space-y-2">
+            {onTranscript && (
+              <Button
+                className="rounded-pill w-full"
+                onClick={() => void save(true)}
+                disabled={saving || transcribing || !checkinId}
+              >
+                {saving || transcribing ? (
+                  <Loader2 className="size-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Type className="size-4 mr-1.5" />
+                )}
+                {transcribing ? "Writing it out…" : "Keep it and write it out for me"}
+              </Button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={onTranscript ? "outline" : "default"}
+                className="rounded-pill"
+                onClick={() => void save(false)}
+                disabled={saving || !checkinId}
+              >
+                {saving ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
+                {saving ? "Saving…" : onTranscript ? "Keep the voice note only" : "Keep it"}
+              </Button>
+              <Button variant="outline" className="rounded-pill" onClick={() => setPending(null)}>
+                Record again
+              </Button>
+            </div>
           </div>
         </div>
       ) : recording ? (

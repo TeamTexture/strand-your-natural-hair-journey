@@ -292,6 +292,24 @@ const TreatmentCheckin = () => {
           )}
         </SurfaceCard>
 
+        {/* voice, sitting with the answer it feeds */}
+        <CheckinVoiceNotes
+          userId={user.id}
+          planId={plan.id}
+          checkinId={hasPlus ? checkin?.id ?? null : null}
+          notes={own.audio}
+          onUploaded={() => void refetch()}
+          onRemoved={() => void refetch()}
+          onTranscript={
+            hasPlus
+              ? (text) =>
+                  setNote((n) => (n.trim() ? `${n.replace(/\s+$/, "")}\n\n${text}` : text).slice(0, 2000))
+              : undefined
+          }
+        />
+
+
+
 
 
 
@@ -308,14 +326,6 @@ const TreatmentCheckin = () => {
         />
 
 
-        <CheckinVoiceNotes
-          userId={user.id}
-          planId={plan.id}
-          checkinId={hasPlus ? checkin?.id ?? null : null}
-          notes={own.audio}
-          onUploaded={() => void refetch()}
-          onRemoved={() => void refetch()}
-        />
 
         <CheckinVideo
           userId={user.id}
