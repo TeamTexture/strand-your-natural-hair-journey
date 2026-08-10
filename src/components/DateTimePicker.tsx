@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import TimeSelect from "@/components/TimeSelect";
 
 interface Props {
   /** Local "YYYY-MM-DDTHH:mm" 24h string, or "" */
@@ -26,22 +27,14 @@ const parseValue = (v: string) => {
 const buildValue = (date: Date, h24: number, minute: string): string =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(h24)}:${minute}`;
 
-const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
-const MINUTES = ["00", "15", "30", "45"];
-
 const to12h = (h24: number) => {
   const period: "AM" | "PM" = h24 >= 12 ? "PM" : "AM";
   const h = h24 % 12 === 0 ? 12 : h24 % 12;
   return { h, period };
 };
-const to24h = (h12: number, period: "AM" | "PM") => {
-  if (period === "AM") return h12 === 12 ? 0 : h12;
-  return h12 === 12 ? 12 : h12 + 12;
-};
 
 const DateTimePicker = ({ value, onChange, placeholder = "Pick date & time", minDate }: Props) => {
   const { date, h24, minute } = parseValue(value);
-  const { h: h12, period } = to12h(h24);
 
   const commit = (d: Date | undefined, nextH24: number, nextMinute: string) => {
     const base = d ?? date ?? new Date();
