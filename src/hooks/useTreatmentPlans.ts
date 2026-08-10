@@ -207,6 +207,7 @@ export function useLogTreatmentStep() {
       slot: TreatmentSlot;
       status: "completed" | "skipped";
       date?: string;
+      note?: string;
     }) => {
       const entry_date = v.date ?? todayKey();
       const { error } = await db.from("treatment_plan_entries").upsert(
@@ -217,6 +218,7 @@ export function useLogTreatmentStep() {
           entry_date,
           time_of_day: v.slot,
           status: v.status,
+          note: v.note?.trim() || null,
           completed_at: v.status === "completed" ? new Date().toISOString() : null,
         },
         { onConflict: "schedule_id,entry_date,time_of_day" },
@@ -250,7 +252,7 @@ export function useLogTreatmentStep() {
                     entry_date,
                     time_of_day: v.slot,
                     status: v.status,
-                    note: null,
+                    note: v.note?.trim() || null,
                     completed_at: v.status === "completed" ? new Date().toISOString() : null,
                   },
                 ],
