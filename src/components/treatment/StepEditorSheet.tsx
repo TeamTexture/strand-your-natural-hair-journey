@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import SectionLabel from "@/components/SectionLabel";
+import StepProductPicker from "@/components/treatment/StepProductPicker";
 import { cn } from "@/lib/utils";
 import type { ScheduleRow } from "@/lib/treatmentSchedule";
 import type { StepInput } from "@/hooks/useTreatmentPlans";
@@ -107,6 +108,7 @@ export const WeekWindowFields = ({
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  planId: string;
   durationWeeks: number;
   /** Existing row when editing; leave undefined to add a new step. */
   row?: ScheduleRow;
@@ -124,6 +126,7 @@ interface Props {
 const StepEditorSheet = ({
   open,
   onOpenChange,
+  planId,
   durationWeeks,
   row,
   defaultStartWeek,
@@ -138,6 +141,7 @@ const StepEditorSheet = ({
   const [timeOfDay, setTimeOfDay] = useState<StepInput["time_of_day"]>("evening");
   const [startWeek, setStartWeek] = useState<number | null>(null);
   const [endWeek, setEndWeek] = useState<number | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -148,6 +152,7 @@ const StepEditorSheet = ({
     setTimeOfDay((row?.time_of_day as StepInput["time_of_day"]) ?? "evening");
     setStartWeek(row ? row.start_week ?? null : defaultStartWeek && defaultStartWeek > 1 ? defaultStartWeek : null);
     setEndWeek(row?.end_week ?? null);
+    setProductId(row?.product_id ?? null);
   }, [open, row, defaultStartWeek]);
 
   const submit = () => {
@@ -167,6 +172,7 @@ const StepEditorSheet = ({
       time_of_day: timeOfDay,
       start_week: startWeek,
       end_week: endWeek,
+      product_id: productId,
     });
   };
 
@@ -229,6 +235,12 @@ const StepEditorSheet = ({
               ))}
             </div>
           </div>
+
+          <StepProductPicker
+            planId={planId}
+            value={productId}
+            onChange={setProductId}
+          />
 
           <WeekWindowFields
             durationWeeks={durationWeeks}

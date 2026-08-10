@@ -70,6 +70,26 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
     },
   });
 
+  // Product names for steps that have one attached.
+  const { data: planProducts = [] } = useQuery({
+    queryKey: ["plan-products-picker", planId],
+    enabled: !!planId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => { eq: (k: string, v: string) => Promise<{ data: unknown; error: unknown }> };
+        };
+      })
+        .from("treatment_plan_products")
+        .select("id, product_name")
+        .eq("plan_id", planId);
+      if (error) throw error;
+      return (data ?? []) as { id: string; product_name: string }[];
+    },
+  });
+  const productName = (id: string | null) =>
+    id ? planProducts.find((p) => p.id === id)?.product_name ?? null : null;
+
   const weeks = Array.from({ length: durationWeeks }, (_, i) => i + 1);
 
   const saveStep = (v: StepInput) => {
@@ -180,6 +200,11 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                             <p className="font-body text-[11px] text-muted-foreground">
                               {cadenceSummary(row, startDate)}
                             </p>
+                            {productName(row.product_id) && (
+                              <p className="font-body text-[11px] text-primary break-words">
+                                {productName(row.product_id)}
+                              </p>
+                            )}
                           </div>
                           {!disabled && (
                             <button
@@ -265,6 +290,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
             setAddingWeek(null);
           }
         }}
+        planId={planId}
         durationWeeks={durationWeeks}
         row={editing ?? undefined}
         defaultStartWeek={addingWeek}
