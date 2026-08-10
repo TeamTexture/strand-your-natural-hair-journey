@@ -169,6 +169,23 @@ const TreatmentPlanDetail = () => {
         {/* goal, challenges and the shape of the treatment, in one card */}
         <PlanOverviewCard goal={plan.goal} schedule={schedule} startDate={plan.start_date} />
 
+        <ReminderPicker
+          value={{
+            frequency: plan.reminder_frequency ?? "weekly",
+            weekday: plan.reminder_weekday ?? 0,
+            hour: plan.reminder_hour ?? 9,
+          }}
+          onChange={(next: ReminderSettings) => {
+            updateReminder.mutate(
+              { planId: plan.id, ...next },
+              {
+                onError: () => toast.error("Couldn't save that reminder just now"),
+                onSuccess: () => toast.success("Reminder updated"),
+              },
+            );
+          }}
+        />
+
         {/* the plan laid out in advance, and where it gets changed */}
         <div id="plan-timeline" className="scroll-mt-4">
           <PlanTimeline
@@ -202,23 +219,6 @@ const TreatmentPlanDetail = () => {
         </SurfaceCard>
 
         {!hasPlus && <TreatmentReadOnlyNotice next={`/treatment/${plan.id}`} />}
-
-        <ReminderPicker
-          value={{
-            frequency: plan.reminder_frequency ?? "weekly",
-            weekday: plan.reminder_weekday ?? 0,
-            hour: plan.reminder_hour ?? 9,
-          }}
-          onChange={(next: ReminderSettings) => {
-            updateReminder.mutate(
-              { planId: plan.id, ...next },
-              {
-                onError: () => toast.error("Couldn't save that reminder just now"),
-                onSuccess: () => toast.success("Reminder updated"),
-              },
-            );
-          }}
-        />
 
         {/* actions */}
         <div className="grid grid-cols-2 gap-2">
