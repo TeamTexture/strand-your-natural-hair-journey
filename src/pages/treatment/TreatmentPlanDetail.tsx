@@ -265,6 +265,10 @@ const TreatmentPlanDetail = () => {
         {/* member-initiated sharing — tag a professional into your own plan */}
         {id && <PlanSharesSection planId={id} />}
 
+        {/* appointments attached to this plan */}
+        {id && <PlanAppointmentsSection planId={id} disabled={!hasPlus} />}
+
+
         {/* retrospective logging — a missed day can still be recorded */}
         {plan.status === "active" && <CatchUpDays bundle={bundle} disabled={!hasPlus} />}
 
