@@ -4,6 +4,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { clearOnboardingDrafts } from "@/hooks/useOnboardingDraft";
 
 const SuccessScreen = () => {
   const navigate = useNavigate();
