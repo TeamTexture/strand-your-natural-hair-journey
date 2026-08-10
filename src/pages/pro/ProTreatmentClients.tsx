@@ -20,9 +20,12 @@ const FILTERS: { key: "all" | ClientPlanStatus; label: string }[] = [
   { key: "all", label: "All" },
   { key: "on_track", label: "On track" },
   { key: "quiet", label: "Quiet" },
+  { key: "awaiting_upgrade", label: "Awaiting upgrade" },
 ];
 
 const statusChip = (c: ProTreatmentClient) => {
+  if (c.planStatus === "awaiting_upgrade")
+    return { label: "Awaiting upgrade", tone: "warn" as const };
   if (c.planStatus === "not_started") return { label: "Not started", tone: "muted" as const };
   if (c.planStatus === "quiet")
     return { label: `Quiet · ${c.quietDays} days`, tone: "warn" as const };

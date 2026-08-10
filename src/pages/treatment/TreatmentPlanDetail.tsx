@@ -17,6 +17,8 @@ import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
 import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
+import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
 import {
   cadenceSummary,
   computeAdherence,
@@ -65,6 +67,9 @@ const TreatmentPlanDetail = () => {
   const { checkins } = useTreatmentCheckins(id);
   const { assignment } = usePlanAssignment(id);
   const { setMediaConsent } = useInvitationActions();
+  // Lapsed STRAND+ keeps every read: entries, check-ins and media all stay.
+  const { hasPlus } = usePlusAccess();
+
 
   if (loading) {
     return (
@@ -178,27 +183,34 @@ const TreatmentPlanDetail = () => {
           </div>
         </SurfaceCard>
 
+        {!hasPlus && <TreatmentReadOnlyNotice next={`/treatment/${plan.id}`} />}
+
         {/* actions */}
         <div className="grid grid-cols-2 gap-2">
           <Button className="rounded-pill col-span-2" onClick={() => openCheckin(currentWeek)}>
             <ClipboardCheck className="size-4 mr-1.5" />
-            {doneWeeks.has(currentWeek) ? `Week ${currentWeek} check-in` : `Week ${currentWeek} check-in`}
-          </Button>
-          <Button variant="outline" className="rounded-pill" onClick={seeProgress}>
-            <TrendingUp className="size-4 mr-1.5" /> See progress
-          </Button>
-          <Button variant="outline" className="rounded-pill" onClick={togglePause}>
-            {paused ? <Play className="size-4 mr-1.5" /> : <Pause className="size-4 mr-1.5" />}
-            {paused ? "Resume plan" : "Pause plan"}
+            {hasPlus ? `Week ${currentWeek} check-in` : `Read week ${currentWeek} check-in`}
           </Button>
           <Button
             variant="outline"
-            className="rounded-pill col-span-2"
-            onClick={notYet}
+            className={cn("rounded-pill", !hasPlus && "col-span-2")}
+            onClick={seeProgress}
           >
-            Edit schedule
+            <TrendingUp className="size-4 mr-1.5" /> See progress
           </Button>
+          {hasPlus && (
+            <>
+              <Button variant="outline" className="rounded-pill" onClick={togglePause}>
+                {paused ? <Play className="size-4 mr-1.5" /> : <Pause className="size-4 mr-1.5" />}
+                {paused ? "Resume plan" : "Pause plan"}
+              </Button>
+              <Button variant="outline" className="rounded-pill col-span-2" onClick={notYet}>
+                Edit schedule
+              </Button>
+            </>
+          )}
         </div>
+
 
         {/* who can see what — only when someone else is attached to this plan */}
         {assignment && assignment.status === "accepted" && (

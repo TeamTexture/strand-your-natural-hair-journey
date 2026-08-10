@@ -5095,6 +5095,8 @@ export type Database = {
           goal: string | null
           id: string
           notes: string | null
+          paused_at: string | null
+          paused_reason: string | null
           professional_id: string | null
           source_template_id: string | null
           start_date: string
@@ -5111,6 +5113,8 @@ export type Database = {
           goal?: string | null
           id?: string
           notes?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
           professional_id?: string | null
           source_template_id?: string | null
           start_date?: string
@@ -5127,6 +5131,8 @@ export type Database = {
           goal?: string | null
           id?: string
           notes?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
           professional_id?: string | null
           source_template_id?: string | null
           start_date?: string
@@ -6650,6 +6656,7 @@ export type Database = {
           subtitle: string
         }[]
       }
+      my_plus_status: { Args: never; Returns: boolean }
       note_booking_link_opened: {
         Args: { _thread_id: string }
         Returns: undefined
@@ -6669,6 +6676,7 @@ export type Database = {
         Args: { _plan_id: string; _user: string }
         Returns: boolean
       }
+      pause_lapsed_treatment_plans: { Args: never; Returns: number }
       pro_cancel_appointment: {
         Args: { _appointment_id: string; _reason: string }
         Returns: undefined

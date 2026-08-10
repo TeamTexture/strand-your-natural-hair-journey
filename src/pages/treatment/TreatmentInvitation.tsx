@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Calendar, Clock, Package } from "lucide-react";
+import { Calendar, Clock, Package, Sparkles } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -16,6 +16,7 @@ import {
   useInvitationDetail,
   type InvitationStep,
 } from "@/hooks/useTreatmentAssignments";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { cadenceSummary, type ScheduleRow } from "@/lib/treatmentSchedule";
 
 const stepLine = (s: InvitationStep) =>
@@ -41,6 +42,9 @@ const TreatmentInvitation = () => {
   const { invitation, loading } = useInvitationDetail(assignmentId);
   const { accept, decline, setMediaConsent } = useInvitationActions();
   const [shareMedia, setShareMedia] = useState(false);
+  // Reading the proposal is never gated. Accepting it is — treatment plans are
+  // STRAND+ for every client, including plans sent by a professional or STRAND.
+  const { hasPlus } = usePlusAccess();
 
   if (loading) {
     return (
@@ -166,10 +170,39 @@ const TreatmentInvitation = () => {
         <WhatTheyCanSee name={name} />
 
         <div className="space-y-2 pt-1">
-          <Button className="rounded-pill w-full" onClick={onAccept} disabled={accept.isPending}>
-            Accept this plan
-          </Button>
-          <MediaConsentToggle name={name} value={shareMedia} onChange={setShareMedia} />
+          {hasPlus ? (
+            <>
+              <Button className="rounded-pill w-full" onClick={onAccept} disabled={accept.isPending}>
+                Accept this plan
+              </Button>
+              <MediaConsentToggle name={name} value={shareMedia} onChange={setShareMedia} />
+            </>
+          ) : (
+            <SurfaceCard tone="gold" className="space-y-2">
+              <div className="flex items-start gap-2.5">
+                <span className="size-7 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                  <Sparkles className="size-3.5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-body text-[13.5px] font-semibold">
+                    Following a plan is a STRAND+ feature
+                  </p>
+                  <p className="font-body text-[12.5px] text-muted-foreground leading-snug mt-0.5">
+                    Reading it is free — you've just done that. To follow it day by day, tick steps
+                    off and save your weekly check-ins, you'll need STRAND+ at £14.99 a month.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={`/plus/upgrade?next=${encodeURIComponent(`/treatment/invitation/${assignmentId ?? ""}`)}`}
+                className="block"
+              >
+                <Button variant="gold" size="pill" className="w-full">
+                  Upgrade to accept
+                </Button>
+              </Link>
+            </SurfaceCard>
+          )}
           <button
             type="button"
             onClick={onDecline}

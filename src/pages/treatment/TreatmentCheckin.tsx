@@ -13,6 +13,8 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentPlan } from "@/hooks/useTreatmentPlans";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
+import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
 import {
   useCheckinMedia,
   useCheckinMutations,
@@ -46,6 +48,8 @@ const TreatmentCheckin = () => {
   const { bundle, loading } = useTreatmentPlan(id);
   const { checkins, media, loading: mediaLoading, refetch } = useTreatmentCheckins(id);
   const { ensureCheckin, saveCheckin, completeMilestone, clearMilestone } = useCheckinMutations(id);
+  // Lapsed STRAND+ reads and plays back everything, and writes nothing new.
+  const { hasPlus } = usePlusAccess();
 
   const [checkin, setCheckin] = useState<CheckinRow | null>(null);
   const [ratings, setRatings] = useState<CheckinRatings>(defaultRatings());
@@ -66,7 +70,7 @@ const TreatmentCheckin = () => {
 
   // Open (or reuse) the row for this week.
   useEffect(() => {
-    if (!bundle || checkin || ensureCheckin.isPending) return;
+    if (!bundle || checkin || ensureCheckin.isPending || !hasPlus) return;
     const existing = checkins.find((c) => c.week_number === week);
     if (existing) {
       setCheckin(existing);
@@ -77,7 +81,7 @@ const TreatmentCheckin = () => {
       { week, startDate: bundle.plan.start_date },
       { onSuccess: (row) => setCheckin(row), onError: () => toast.error("Couldn't open this check-in.") },
     );
-  }, [bundle, checkins, checkin, week, mediaLoading, ensureCheckin]);
+  }, [bundle, checkins, checkin, week, mediaLoading, ensureCheckin, hasPlus]);
 
   // Pull any answers already saved for this week, once.
   useEffect(() => {
@@ -133,6 +137,7 @@ const TreatmentCheckin = () => {
       <TitleBar title={`Week ${week} check-in`} backFallback={`/treatment/${plan.id}`} />
 
       <div className="px-5 pt-1 pb-10 space-y-4">
+        {!hasPlus && <TreatmentReadOnlyNotice next={`/treatment/${plan.id}/checkin/${week}`} />}
         <div>
           <h1 className="font-display text-[24px] leading-tight">Week {week} check-in</h1>
           <p className="font-body text-[13px] text-muted-foreground mt-1 leading-snug">
@@ -160,7 +165,7 @@ const TreatmentCheckin = () => {
             <CheckinPhotos
               userId={user.id}
               planId={plan.id}
-              checkinId={checkin?.id ?? null}
+              checkinId={hasPlus ? checkin?.id ?? null : null}
               photos={milestonePhotos}
               milestoneId={milestone.id}
               label={milestone.completed_at ? "Milestone photo added" : "Add the milestone photo"}
@@ -196,6 +201,7 @@ const TreatmentCheckin = () => {
                 max={m.scale.length}
                 step={1}
                 value={[ratings[m.key] ?? 3]}
+                disabled={!hasPlus}
                 onValueChange={([v]) => setRatings((r) => ({ ...r, [m.key]: v }))}
               />
             </SurfaceCard>
@@ -207,6 +213,7 @@ const TreatmentCheckin = () => {
           <p className="font-body text-[14px] font-semibold">Anything you want to remember</p>
           <Textarea
             value={note}
+            readOnly={!hasPlus}
             onChange={(e) => setNote(e.target.value.slice(0, 1200))}
             rows={4}
             placeholder="Optional — a line about how the week went."
@@ -218,7 +225,7 @@ const TreatmentCheckin = () => {
         <CheckinPhotos
           userId={user.id}
           planId={plan.id}
-          checkinId={checkin?.id ?? null}
+          checkinId={hasPlus ? checkin?.id ?? null : null}
           photos={otherPhotos}
           onUploaded={() => void refetch()}
           onRemoved={() => void refetch()}
@@ -229,7 +236,7 @@ const TreatmentCheckin = () => {
         <CheckinVoiceNotes
           userId={user.id}
           planId={plan.id}
-          checkinId={checkin?.id ?? null}
+          checkinId={hasPlus ? checkin?.id ?? null : null}
           notes={own.audio}
           onUploaded={() => void refetch()}
           onRemoved={() => void refetch()}
@@ -238,27 +245,31 @@ const TreatmentCheckin = () => {
         <CheckinVideo
           userId={user.id}
           planId={plan.id}
-          checkinId={checkin?.id ?? null}
+          checkinId={hasPlus ? checkin?.id ?? null : null}
           video={own.video}
           onUploaded={() => void refetch()}
           onRemoved={() => void refetch()}
         />
 
-        <Button
-          className="rounded-pill w-full"
-          onClick={save}
-          disabled={!checkin || saveCheckin.isPending}
-        >
-          {saveCheckin.isPending ? (
-            <Loader2 className="size-4 mr-1.5 animate-spin" />
-          ) : (
-            <Check className="size-4 mr-1.5" />
-          )}
-          Save check-in
-        </Button>
-        <p className="font-body text-[11px] text-muted-foreground text-center">
-          Photos, voice notes and clips save as you add them.
-        </p>
+        {hasPlus && (
+          <Button
+            className="rounded-pill w-full"
+            onClick={save}
+            disabled={!checkin || saveCheckin.isPending}
+          >
+            {saveCheckin.isPending ? (
+              <Loader2 className="size-4 mr-1.5 animate-spin" />
+            ) : (
+              <Check className="size-4 mr-1.5" />
+            )}
+            Save check-in
+          </Button>
+        )}
+        {hasPlus && (
+          <p className="font-body text-[11px] text-muted-foreground text-center">
+            Photos, voice notes and clips save as you add them.
+          </p>
+        )}
       </div>
     </ScreenLayout>
   );

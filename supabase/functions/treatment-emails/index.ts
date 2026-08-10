@@ -56,6 +56,15 @@ Deno.serve(async (req) => {
   const out: Record<string, unknown> = { ran_at: now.toISOString() };
 
   try {
+    // Treatment plans are STRAND+ only. A lapsed member's plan goes read-only
+    // (status 'paused'); nothing they recorded is ever removed.
+    const { data: paused, error: pErr } = await admin.rpc("pause_lapsed_treatment_plans");
+    out.paused_lapsed = pErr ? { error: pErr.message } : { plans: Number(paused ?? 0) };
+  } catch (e) {
+    out.paused_lapsed_error = String(e);
+  }
+
+  try {
     out.invitations = await sweepInvitations(admin);
   } catch (e) {
     out.invitations_error = String(e);
@@ -113,6 +122,12 @@ async function sendNudges(admin: SupabaseClient, today: string) {
   let skipped = 0;
   for (const row of (due ?? []) as Array<Record<string, unknown>>) {
     const userId = String(row.user_id);
+    // No nudge to a member who can no longer log anything.
+    const { data: plus } = await admin.rpc("has_active_plus_subscription", { _user: userId });
+    if (plus !== true) {
+      skipped += 1;
+      continue;
+    }
     const { data: u } = await admin.auth.admin.getUserById(userId);
     const email = u?.user?.email;
     if (!email) {
