@@ -27,10 +27,6 @@ const parseValue = (v: string) => {
 const buildValue = (date: Date, h24: number, minute: string): string =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(h24)}:${minute}`;
 
-const to12h = (h24: number) => {
-  const period: "AM" | "PM" = h24 >= 12 ? "PM" : "AM";
-  const h = h24 % 12 === 0 ? 12 : h24 % 12;
-  return { h, period };
 };
 
 const DateTimePicker = ({ value, onChange, placeholder = "Pick date & time", minDate }: Props) => {
