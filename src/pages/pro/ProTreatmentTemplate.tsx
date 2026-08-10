@@ -282,35 +282,41 @@ const ProTreatmentTemplate = () => {
           <SectionLabel className="px-0 mt-0 mb-1.5">Assign to a client</SectionLabel>
           <SurfaceCard>
             <p className="font-body text-[13px] text-muted-foreground leading-snug">
-              Your client needs STRAND+ (£14.99/mo) to accept and follow a plan — they can read the
-              whole thing without it. They also have to accept the plan before you can see anything
-              they record. Sharing
-              photos, videos and voice notes is a separate choice they make, and they can change it
-              at any time.
+              {PLUS_ASSIGN_NOTE} They also have to accept the plan before you can see anything they
+              record. Sharing photos, videos and voice notes is a separate choice they make, and
+              they can change it at any time.
             </p>
           </SurfaceCard>
-          <div className="space-y-1.5">
-            {proClients.map((c) => (
-              <SurfaceCard
-                key={c.consumer_id}
-                padded={false}
-                className="px-4 py-3 flex items-center gap-3"
-              >
-                <p className="font-body text-[14px] flex-1 min-w-0 [overflow-wrap:anywhere]">
-                  {c.display_name ?? "Client"}
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="rounded-pill shrink-0"
-                  disabled={!savedId || assign.isPending}
-                  onClick={() => doAssign(c.consumer_id)}
+          {clientsLoading ? null : plusClients.length === 0 ? (
+            <SurfaceCard>
+              <p className="font-body text-[13px] text-muted-foreground leading-snug">
+                {PLUS_ASSIGN_EMPTY}
+              </p>
+            </SurfaceCard>
+          ) : (
+            <div className="space-y-1.5">
+              {plusClients.map((c) => (
+                <SurfaceCard
+                  key={c.user_id}
+                  padded={false}
+                  className="px-4 py-3 flex items-center gap-3"
                 >
-                  Assign
-                </Button>
-              </SurfaceCard>
-            ))}
-          </div>
+                  <p className="font-body text-[14px] flex-1 min-w-0 [overflow-wrap:anywhere]">
+                    {c.name}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-pill shrink-0"
+                    disabled={!savedId || assign.isPending}
+                    onClick={() => doAssign(c.user_id)}
+                  >
+                    Assign
+                  </Button>
+                </SurfaceCard>
+              ))}
+            </div>
+          )}
           <SurfaceCard className="space-y-2">
             <p className="font-body text-[13px] font-semibold">Not on STRAND yet?</p>
             <Input
@@ -321,7 +327,8 @@ const ProTreatmentTemplate = () => {
               placeholder="their@email.com"
             />
             <p className="font-body text-[12px] text-muted-foreground leading-snug">
-              The invitation waits for them and appears as soon as they join with that address.
+              The invitation waits for them and appears as soon as they join with that address. They
+              will need STRAND+ to accept it, so the plan stays pending until they have it.
             </p>
             <Button
               variant="outline"
