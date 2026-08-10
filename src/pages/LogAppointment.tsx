@@ -19,6 +19,16 @@ import AddToCalendarButton from "@/components/AddToCalendarButton";
 import LevelGate from "@/components/tips/LevelGate";
 import { Camera, X } from "lucide-react";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const TYPES = ["Trichologist", "Dermatologist", "Curl Specialist", "Braider", "GP", "Stylist"];
 
@@ -179,6 +189,52 @@ const LogAppointment = () => {
     const selected = new Date(`${date}T00:00:00`);
     return selected < today;
   }, [fromId, date]);
+
+  // Cancelling keeps the record (and its notes) but takes it off the upcoming
+  // list; deleting removes it entirely. Both are only offered when editing an
+  // appointment that already exists.
+  const [confirming, setConfirming] = useState<"cancel" | "delete" | null>(null);
+  const [working, setWorking] = useState(false);
+
+  const afterRemoval = () => navigate(planId ? `/treatment/${planId}` : "/appointments");
+
+  const onCancelAppointment = async () => {
+    if (!user || !fromId) return;
+    setWorking(true);
+    const { error } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled", follow_up_needed: false })
+      .eq("id", fromId)
+      .eq("user_id", user.id);
+    setWorking(false);
+    setConfirming(null);
+    if (error) {
+      console.error("Appointment cancel failed:", error);
+      toast.error("Could not cancel appointment");
+      return;
+    }
+    toast.success("Appointment cancelled");
+    afterRemoval();
+  };
+
+  const onDeleteAppointment = async () => {
+    if (!user || !fromId) return;
+    setWorking(true);
+    const { error } = await supabase
+      .from("appointments")
+      .delete()
+      .eq("id", fromId)
+      .eq("user_id", user.id);
+    setWorking(false);
+    setConfirming(null);
+    if (error) {
+      console.error("Appointment delete failed:", error);
+      toast.error("Could not delete appointment");
+      return;
+    }
+    toast.success("Appointment deleted");
+    afterRemoval();
+  };
 
   const onSave = async () => {
     if (!user) {
@@ -629,7 +685,52 @@ const LogAppointment = () => {
             }}
           />
         )}
+
+        {fromId && (
+          <div className="mt-6 space-y-1.5">
+            <button
+              onClick={() => setConfirming("cancel")}
+              className="w-full font-body text-[13px] text-muted-foreground min-h-[44px]"
+            >
+              Cancel this appointment
+            </button>
+            <button
+              onClick={() => setConfirming("delete")}
+              className="w-full font-body text-[13px] text-destructive min-h-[44px]"
+            >
+              Delete this appointment
+            </button>
+          </div>
+        )}
       </div>
+
+      <AlertDialog open={!!confirming} onOpenChange={(o) => !o && setConfirming(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">
+              {confirming === "delete" ? "Delete this appointment?" : "Cancel this appointment?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirming === "delete"
+                ? "This removes the appointment and everything logged against it. This cannot be undone."
+                : "It comes off your upcoming appointments, but stays in your history as cancelled."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={working}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirming === "delete") void onDeleteAppointment();
+                else void onCancelAppointment();
+              }}
+            >
+              {confirming === "delete" ? "Delete" : "Cancel appointment"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };
