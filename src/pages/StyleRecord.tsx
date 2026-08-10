@@ -606,7 +606,6 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
         </Button>
 
         <div className="space-y-2 pt-2">
-          <BrandTagList taggableType="style_entry" taggableId={entryId} />
           <BrandTagControl taggableType="style_entry" taggableId={entryId} />
         </div>
       </div>

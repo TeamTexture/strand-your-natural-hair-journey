@@ -399,7 +399,6 @@ const TreatmentPlanDetail = () => {
         {/* brands credited on this plan */}
         <div className="space-y-2">
           <SectionLabel className="px-0 mt-0 mb-1.5">Brands</SectionLabel>
-          <BrandTagList taggableType="treatment_plan" taggableId={id} />
           <BrandTagControl taggableType="treatment_plan" taggableId={id} />
         </div>
       </div>

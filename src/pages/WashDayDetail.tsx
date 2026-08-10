@@ -751,7 +751,6 @@ const WashDayDetail = () => {
         )}
 
         <div className="space-y-2 pt-2">
-          <BrandTagList taggableType="wash_day" taggableId={id} />
           <BrandTagControl taggableType="wash_day" taggableId={id} />
         </div>
       </div>
