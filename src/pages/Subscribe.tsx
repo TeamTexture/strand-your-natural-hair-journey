@@ -132,6 +132,8 @@ const Subscribe = () => {
     },
   });
 
+  const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
+
   useEffect(() => {
     if (isSafeInternalPath(nextPath)) {
       try {
@@ -152,6 +154,35 @@ const Subscribe = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // After a successful Stripe checkout the webhook can take a few seconds to
+  // record the subscription. Poll until access lands, then send the member
+  // straight on to the next step (their blood-work analysis) instead of
+  // leaving them stranded on the membership page.
+  useEffect(() => {
+    if (!confirming) return;
+    const target = isSafeInternalPath(nextPath)
+      ? nextPath
+      : isSafeInternalPath(storedNextPath)
+        ? storedNextPath
+        : POST_PAYMENT_ANALYSIS_PATH;
+    if (hasAccess) {
+      try {
+        localStorage.removeItem("strand_subscribe_next");
+      } catch {}
+      setConfirming(false);
+      nav(target, { replace: true });
+      return;
+    }
+    const poll = window.setInterval(() => refetch(), 2000);
+    const giveUp = window.setTimeout(() => setConfirming(false), 25000);
+    return () => {
+      window.clearInterval(poll);
+      window.clearTimeout(giveUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirming, hasAccess]);
+
 
   const startCheckout = async () => {
     setBusy("subscribe");
