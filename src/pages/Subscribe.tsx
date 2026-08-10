@@ -277,6 +277,24 @@ const Subscribe = () => {
   if (roleLoading) return <LoadingDot />;
   if (!canUpgrade) return <Navigate to={homePath} replace />;
 
+  // Post-payment interstitial — celebratory, then straight into the app.
+  if (confirming) {
+    return (
+      <ScreenLayout>
+        <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-4">
+          <CheckCircle2 className="size-10 text-primary" />
+          <h1 className="font-display text-[26px] leading-tight text-foreground">
+            Welcome to STRAND
+          </h1>
+          <p className="font-body text-sm text-foreground/70 max-w-[260px]">
+            Your membership is active. Setting up your personal analysis…
+          </p>
+          <Loader2 className="size-5 animate-spin text-primary mt-2" />
+        </div>
+      </ScreenLayout>
+    );
+  }
+
   return (
     <ScreenLayout>
       <TitleBar title="Membership" onBack={hasAccess ? smartBack(nav, "/home") : undefined} />
