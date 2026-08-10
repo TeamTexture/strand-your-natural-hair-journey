@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
+import { usePlanProductLink } from "@/hooks/usePlanProductLink";
 import {
   useCreateTreatmentPlan,
   searchGlossary,
@@ -82,6 +84,8 @@ const emptyProduct = (): DraftProduct => ({
   brand: "",
   usage_notes: "",
   ingredient_id: null,
+  user_product_id: null,
+  image_url: null,
 });
 
 const TreatmentPlanBuilder = () => {
@@ -97,6 +101,12 @@ const TreatmentPlanBuilder = () => {
   const [steps, setSteps] = useState<DraftStep[]>([emptyStep()]);
   const [milestoneWeeks, setMilestoneWeeks] = useState<number[]>(defaultMilestoneWeeks(12));
   const [checkinReminder, setCheckinReminder] = useState(true);
+
+  // Adding products from the shelf or from a pasted product link.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const { resolveLink, busy: linkBusy } = usePlanProductLink();
 
   // Back-dated plans: which week of the plan today falls in.
   const startedWeek = Math.min(
