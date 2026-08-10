@@ -975,11 +975,8 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
-      {/* Treatment plan — sits above wash day / style logging by design */}
-      <div className="px-5 pt-1 pb-3 space-y-3">
-        <PendingPlanInvites />
-        <TodayTreatmentCard />
-      </div>
+
+
 
       <SectionHeader icon={ICONS.style} className="px-5 pt-1 pb-2">Quick actions</SectionHeader>
 
