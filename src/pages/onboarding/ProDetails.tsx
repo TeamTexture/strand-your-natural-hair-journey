@@ -40,6 +40,26 @@ const ProDetails = () => {
   const [notes, setNotes] = useState("");
   const [notesAudioPath, setNotesAudioPath] = useState<string | null>(null);
 
+  // Keep the professional's details, consultation date and notes if the member
+  // navigates back to an earlier step and returns.
+  useOnboardingDraft(
+    "pro-details",
+    { name, pickedFrom, bgInsta, bgWebsite, bgBookingUrl, type, clinic, date, notes, notesAudioPath },
+    (d) => {
+      if (d.name !== undefined) setName(d.name);
+      if (d.pickedFrom !== undefined) setPickedFrom(d.pickedFrom);
+      if (d.bgInsta !== undefined) setBgInsta(d.bgInsta);
+      if (d.bgWebsite !== undefined) setBgWebsite(d.bgWebsite);
+      if (d.bgBookingUrl !== undefined) setBgBookingUrl(d.bgBookingUrl);
+      if (d.type) setType(d.type);
+      if (d.clinic !== undefined) setClinic(d.clinic);
+      if (d.date !== undefined) setDate(d.date);
+      if (d.notes !== undefined) setNotes(d.notes);
+      if (d.notesAudioPath !== undefined) setNotesAudioPath(d.notesAudioPath);
+    },
+  );
+
+
 
   // Validate consultation date: must exist and be within 90 days.
   const { dateError, isWithinWindow, isExpired } = useMemo(() => {
