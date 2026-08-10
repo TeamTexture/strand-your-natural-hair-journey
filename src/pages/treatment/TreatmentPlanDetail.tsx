@@ -18,6 +18,7 @@ import CatchUpDays from "@/components/treatment/CatchUpDays";
 import PlanAppointmentsSection from "@/components/treatment/PlanAppointmentsSection";
 import PlanTimeline from "@/components/treatment/PlanTimeline";
 import PlanOverviewCard from "@/components/treatment/PlanOverviewCard";
+import PlanProductsSection from "@/components/treatment/PlanProductsSection";
 
 
 
