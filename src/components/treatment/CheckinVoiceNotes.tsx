@@ -158,9 +158,13 @@ const CheckinVoiceNotes = ({
   return (
     <SurfaceCard className="space-y-3">
       <div>
-        <p className="font-body text-[14px] font-semibold">Say a few words</p>
+        <p className="font-body text-[14px] font-semibold">
+          {onTranscript ? "Or just say it out loud" : "Say a few words"}
+        </p>
         <p className="font-body text-[12px] text-muted-foreground mt-0.5">
-          Up to three minutes. Talking is usually quicker than typing.
+          {onTranscript
+            ? "Up to three minutes. We can write it out into your answer above, or keep it as audio only."
+            : "Up to three minutes. Talking is usually quicker than typing."}
         </p>
       </div>
 
