@@ -1924,6 +1924,7 @@ const PassportProductDetail = ({ product, data, onBack, mode }: {
 
 const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
+  const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
 
   // Notes tab exists only in pro mode — admins are excluded by design from
