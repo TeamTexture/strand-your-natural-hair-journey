@@ -306,10 +306,10 @@ const TreatmentPlanDetail = () => {
                       )}
                     </p>
                     <p className="font-body text-[12px] text-muted-foreground">
-                      {w.state === "future"
-                        ? `${w.expectedFull} to come`
-                        : `${w.completed} of ${w.expected}${checkedIn ? " · Check-in saved" : ""}`}
+                      {w.line}
+                      {checkedIn && w.state !== "future" ? " · Check-in saved" : ""}
                     </p>
+
                   </div>
                   {w.isMilestone && (
                     <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary">
