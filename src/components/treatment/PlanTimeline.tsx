@@ -265,6 +265,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
             setAddingWeek(null);
           }
         }}
+        planId={planId}
         durationWeeks={durationWeeks}
         row={editing ?? undefined}
         defaultStartWeek={addingWeek}
