@@ -40,6 +40,8 @@ export interface ProductRow {
   usage_notes: string | null;
   step_order: number;
   ingredient_id: string | null;
+  user_product_id: string | null;
+  image_url: string | null;
 }
 
 export interface MilestoneRow {
@@ -304,6 +306,9 @@ export interface DraftProduct {
   brand: string;
   usage_notes: string;
   ingredient_id: string | null;
+  /** Set when the product came from the member's shelf or a scanned link. */
+  user_product_id?: string | null;
+  image_url?: string | null;
 }
 
 export interface DraftPlan {
@@ -357,6 +362,8 @@ export function useCreateTreatmentPlan() {
               usage_notes: p.usage_notes.trim() || null,
               step_order: i,
               ingredient_id: p.ingredient_id,
+              user_product_id: p.user_product_id ?? null,
+              image_url: p.image_url ?? null,
             })),
           )
           .select("id");
