@@ -401,6 +401,33 @@ const Appointments = () => {
             </>
           )}
 
+          {cancelled.length > 0 && (
+            <>
+              <SectionLabel>Cancelled</SectionLabel>
+              <div className="px-5 space-y-3 pb-4">
+                {cancelled.map((a) => {
+                  const highlight = focusApptId === a.id;
+                  return (
+                    <div
+                      key={a.id}
+                      id={`appt-${a.id}`}
+                      className={`rounded-[16px] transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+                    >
+                      <AppointmentCard
+                        appointment={a}
+                        variant="past"
+                        onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        onDelete={() => setDeleteTarget(a)}
+                      >
+                        <ApptPhotos appointmentId={a.id} />
+                      </AppointmentCard>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
 
         </>
       )}
