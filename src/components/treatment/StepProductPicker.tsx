@@ -203,7 +203,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
               disabled={busy}
               onClick={() => setShelfOpen(true)}
             >
-              <Plus className="size-3.5 mr-1" /> Shelf
+              <Plus className="size-3.5 mr-1" /> Your shelf
             </Button>
             <Button
               type="button"
@@ -212,7 +212,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
               disabled={busy}
               onClick={() => setBrandOpen(true)}
             >
-              <Store className="size-3.5 mr-1" /> Brand
+              <Store className="size-3.5 mr-1" /> Brand shelf
             </Button>
           </div>
           <div className="flex gap-1.5">
@@ -223,7 +223,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
               disabled={busy}
               onClick={() => setLinkOpen(true)}
             >
-              <Link2 className="size-3.5 mr-1" /> Link
+              <Link2 className="size-3.5 mr-1" /> Paste a link
             </Button>
             <Button
               type="button"
@@ -237,7 +237,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
               ) : (
                 <Camera className="size-3.5 mr-1" />
               )}
-              Scan
+              Scan the bottle
             </Button>
           </div>
         </>
