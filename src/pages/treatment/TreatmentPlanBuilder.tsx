@@ -216,6 +216,25 @@ const TreatmentPlanBuilder = () => {
 
               <div className="space-y-2">
                 <SectionLabel className="px-0 mt-0 mb-1.5">Starting</SectionLabel>
+                <div className="flex flex-wrap gap-2">
+                  <Chip
+                    active={toDateKey(startDate) === toDateKey(new Date())}
+                    onClick={() => setStartDate(new Date())}
+                  >
+                    Today
+                  </Chip>
+                  <Chip
+                    active={toDateKey(startDate) !== toDateKey(new Date())}
+                    onClick={() => {
+                      if (toDateKey(startDate) !== toDateKey(new Date())) return;
+                      const d = new Date();
+                      d.setDate(d.getDate() - 7);
+                      setStartDate(d);
+                    }}
+                  >
+                    Already started
+                  </Chip>
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left font-normal rounded-pill">
@@ -228,12 +247,19 @@ const TreatmentPlanBuilder = () => {
                       mode="single"
                       selected={startDate}
                       onSelect={(d) => d && setStartDate(d)}
+                      defaultMonth={startDate}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
                   </PopoverContent>
                 </Popover>
+                <p className="font-body text-[11.5px] text-foreground/60 leading-snug">
+                  {startedWeek > 1
+                    ? `Back-dated — you're picking this up in week ${startedWeek} of ${durationWeeks}. Earlier weeks stay open to log or check in on.`
+                    : "Pick a past date if you're already part-way through this plan."}
+                </p>
               </div>
+
             </SurfaceCard>
           </div>
         )}
