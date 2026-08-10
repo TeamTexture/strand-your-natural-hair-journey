@@ -48,7 +48,12 @@ import { useBloodPanelThumb } from "@/hooks/useBloodPanelThumbs";
 import {
   MARKER_EXPLANATIONS,
   CATEGORY_META,
+  FOOD_FIRST_NOTE,
+  NUTRITION_BOOK_REF,
+  foodsForDiet,
 } from "@/data/bloodMarkerExplanations";
+import { useDietType } from "@/hooks/useDietType";
+
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
@@ -192,6 +197,8 @@ export default function BloodPanelReview() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { level } = useTipsLevel();
+  const diet = useDietType();
+
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
@@ -449,13 +456,17 @@ export default function BloodPanelReview() {
               const tips: GuidanceTip[] = flaggedRows.map((r, i) => {
                 const info = MARKER_EXPLANATIONS[r.marker];
                 const status = (r.status ?? "untested") as BloodStatus;
-                const action = status === "low" ? info?.ifLow : status === "high" ? info?.ifHigh : undefined;
+                const foods = status === "low" ? foodsForDiet(info, diet).slice(0, 3) : [];
+                const short = foods.length
+                  ? `${r.marker}: build in food sources — ${foods.join(", ")}.`
+                  : `Take your ${r.marker.toLowerCase()} result to your GP for interpretation.`;
                 return {
                   priority: flaggedRows.length - i,
-                  short: action ? `${r.marker}: ${action}` : `Follow up on your ${r.marker.toLowerCase()} result with your GP.`,
+                  short,
                   why: info?.whyItMatters,
                 };
               });
+
               return (
                 <section className="space-y-2">
                   <SectionLabel>Priority actions</SectionLabel>
@@ -564,7 +575,7 @@ export default function BloodPanelReview() {
                                     {status === "low" && info.ifLow && (
                                       <div className="space-y-1.5">
                                         <p className="text-[11px] uppercase tracking-wide font-semibold text-foreground">
-                                          If low
+                                          What a low reading can mean
                                         </p>
                                         <AiProse text={info.ifLow} />
                                       </div>
@@ -572,12 +583,45 @@ export default function BloodPanelReview() {
                                     {status === "high" && info.ifHigh && (
                                       <div className="space-y-1.5">
                                         <p className="text-[11px] uppercase tracking-wide font-semibold text-foreground">
-                                          If high
+                                          What a high reading can mean
                                         </p>
                                         <AiProse text={info.ifHigh} />
                                       </div>
                                     )}
+                                    {(() => {
+                                      const foods = foodsForDiet(info, diet);
+                                      if (foods.length === 0) return null;
+                                      return (
+                                        <div className="space-y-2 rounded-xl bg-background/70 px-3 py-3 border border-border/50">
+                                          <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                            Where to find it in food
+                                            {diet === "vegan"
+                                              ? " — plant-based"
+                                              : diet === "vegetarian"
+                                                ? " — vegetarian"
+                                                : ""}
+                                          </p>
+                                          <ul className="space-y-1">
+                                            {foods.map((f) => (
+                                              <li key={f} className="flex gap-2 leading-relaxed">
+                                                <span className="mt-[6px] size-1 rounded-full bg-primary/60 shrink-0" aria-hidden />
+                                                <span>{f}</span>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      );
+                                    })()}
+                                    <div className="space-y-1.5 pt-1 border-t border-border/40">
+                                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                        {FOOD_FIRST_NOTE}
+                                      </p>
+                                      <p className="text-[11px] italic text-muted-foreground/90">
+                                        {NUTRITION_BOOK_REF}
+                                      </p>
+                                    </div>
                                   </>
+
                                 ) : (
                                   <p className="text-muted-foreground leading-relaxed">
                                     STRAND doesn't have a plain-English
