@@ -17,6 +17,7 @@ import PlanSharesSection from "@/components/treatment/PlanSharesSection";
 import CatchUpDays from "@/components/treatment/CatchUpDays";
 import PlanAppointmentsSection from "@/components/treatment/PlanAppointmentsSection";
 import PlanTimeline from "@/components/treatment/PlanTimeline";
+import PlanOverviewCard from "@/components/treatment/PlanOverviewCard";
 
 
 
@@ -164,12 +165,20 @@ const TreatmentPlanDetail = () => {
           </button>
         </div>
 
-        {plan.goal && (
-          <SurfaceCard tone="gold">
-            <SectionLabel className="px-0 mt-0 mb-1.5">What you're hoping for</SectionLabel>
-            <p className="font-body text-[14px] leading-snug mt-1 [overflow-wrap:anywhere]">{plan.goal}</p>
-          </SurfaceCard>
-        )}
+        {/* goal, challenges and the shape of the treatment, in one card */}
+        <PlanOverviewCard goal={plan.goal} schedule={schedule} startDate={plan.start_date} />
+
+        {/* the plan laid out in advance, and where it gets changed */}
+        <div id="plan-timeline" className="scroll-mt-4">
+          <PlanTimeline
+            planId={plan.id}
+            startDate={plan.start_date}
+            durationWeeks={plan.duration_weeks}
+            schedule={schedule}
+            disabled={!hasPlus || paused}
+          />
+        </div>
+
 
         {/* adherence */}
         <SurfaceCard className="flex items-center gap-4">
@@ -342,17 +351,6 @@ const TreatmentPlanDetail = () => {
           </div>
         </div>
 
-
-        {/* the plan laid out in advance, and where it gets changed */}
-        <div id="plan-timeline" className="scroll-mt-4">
-          <PlanTimeline
-            planId={plan.id}
-            startDate={plan.start_date}
-            durationWeeks={plan.duration_weeks}
-            schedule={schedule}
-            disabled={!hasPlus || paused}
-          />
-        </div>
 
         {/* products */}
         {products.length > 0 && (
