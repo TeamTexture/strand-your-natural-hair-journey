@@ -4875,6 +4875,7 @@ export type Database = {
           plan_id: string
           product_name: string
           step_order: number
+          storage_path: string | null
           updated_at: string
           usage_notes: string | null
           user_product_id: string | null
@@ -4888,6 +4889,7 @@ export type Database = {
           plan_id: string
           product_name: string
           step_order?: number
+          storage_path?: string | null
           updated_at?: string
           usage_notes?: string | null
           user_product_id?: string | null
@@ -4901,6 +4903,7 @@ export type Database = {
           plan_id?: string
           product_name?: string
           step_order?: number
+          storage_path?: string | null
           updated_at?: string
           usage_notes?: string | null
           user_product_id?: string | null
