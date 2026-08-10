@@ -80,70 +80,15 @@ const ProTreatmentCheckin = () => {
           <EmptyState icon="🌱" message={`${firstName} hasn't saved this week's check-in yet.`} />
         ) : (
           <>
-            <div className="space-y-1.5">
-              <SectionLabel className="px-0 mt-0 mb-1.5">How the week went</SectionLabel>
-              {CHECKIN_METRICS.map((m) => (
-                <SurfaceCard key={m.key} padded={false} className="px-4 py-3 flex items-center gap-3">
-                  <p className="font-body text-[13px] flex-1 min-w-0">{m.label}</p>
-                  <p className="font-body text-[13px] font-semibold shrink-0">
-                    {ratings[m.key] ? ratingLabel(m, ratings[m.key]) : "Not answered"}
-                  </p>
-                </SurfaceCard>
-              ))}
-            </div>
+            <CheckinReview
+              weekNumber={weekNo}
+              ratings={ratings}
+              note={review.checkin.note}
+              media={media as CheckinMediaRow[]}
+              mediaShared={review.mediaShared}
+              firstName={firstName}
+            />
 
-            {review.checkin.note && (
-              <SurfaceCard>
-                <SectionLabel className="px-0 mt-0 mb-1.5">In their words</SectionLabel>
-                <p className="font-body text-[14px] leading-snug [overflow-wrap:anywhere]">
-                  {review.checkin.note}
-                </p>
-              </SurfaceCard>
-            )}
-
-            <div className="space-y-2">
-              <SectionLabel className="px-0 mt-0 mb-1.5">Photos and recordings</SectionLabel>
-              {!review.mediaShared ? (
-                <p className="font-body text-[13px] text-muted-foreground">
-                  {firstName} hasn't shared photos or voice notes.
-                </p>
-              ) : media.length === 0 ? (
-                <p className="font-body text-[13px] text-muted-foreground">
-                  Nothing recorded for this week.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {media
-                      .filter((m) => m.media_type === "photo")
-                      .map((m) => (
-                        <img
-                          key={m.id}
-                          src={urls[m.storage_path] ?? ""}
-                          alt={`Week ${weekNo} photo`}
-                          loading="lazy"
-                          className="aspect-square w-full rounded-xl object-cover bg-muted"
-                        />
-                      ))}
-                  </div>
-                  {media
-                    .filter((m) => m.media_type === "audio")
-                    .map((m) => (
-                      <audio key={m.id} controls src={urls[m.storage_path] ?? ""} className="w-full" />
-                    ))}
-                  {media
-                    .filter((m) => m.media_type === "video")
-                    .map((m) => (
-                      <video
-                        key={m.id}
-                        controls
-                        src={urls[m.storage_path] ?? ""}
-                        className="w-full rounded-xl bg-muted"
-                      />
-                    ))}
-                </div>
-              )}
-            </div>
 
             <div className="space-y-2">
               <SectionLabel className="px-0 mt-0 mb-1.5">Reply</SectionLabel>
