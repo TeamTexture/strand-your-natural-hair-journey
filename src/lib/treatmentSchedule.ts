@@ -353,3 +353,62 @@ export function cadenceSummary(row: ScheduleRow, startDate?: string): string {
     row.time_of_day === "both" ? "Morning & evening" : row.time_of_day === "morning" ? "Morning" : "Evening";
   return `${when} · ${time}`;
 }
+
+/* ------------------------------------------------------------- streaks */
+
+export type DayState = "complete" | "partial" | "none";
+
+export interface StreakDay {
+  key: string;
+  /** Mon…Sun single letter, for the gamified strip. */
+  initial: string;
+  state: DayState;
+  isToday: boolean;
+}
+
+const dayHasCompleted = (entries: EntryRow[], key: string) =>
+  entries.some((e) => e.entry_date === key && e.status === "completed");
+
+const dayHasAny = (entries: EntryRow[], key: string) =>
+  entries.some((e) => e.entry_date === key);
+
+/**
+ * Consecutive days, counting back from today, on which at least one step was
+ * completed. Today not yet logged does NOT break the run — the streak is
+ * measured from yesterday in that case, so the number never drops to zero
+ * simply because it's early in the morning.
+ */
+export function currentStreak(entries: EntryRow[], today: string = todayKey()): number {
+  let cursor = dayHasCompleted(entries, today) ? today : addDays(today, -1);
+  let n = 0;
+  // Hard stop well beyond any plausible plan length.
+  while (n < 400 && dayHasCompleted(entries, cursor)) {
+    n += 1;
+    cursor = addDays(cursor, -1);
+  }
+  return n;
+}
+
+/** The last `n` calendar days, oldest first, for a streak strip. */
+export function streakDays(
+  entries: EntryRow[],
+  n = 7,
+  today: string = todayKey(),
+): StreakDay[] {
+  const initials = ["S", "M", "T", "W", "T", "F", "S"];
+  const out: StreakDay[] = [];
+  for (let i = n - 1; i >= 0; i -= 1) {
+    const key = addDays(today, -i);
+    out.push({
+      key,
+      initial: initials[fromDateKey(key).getDay()],
+      state: dayHasCompleted(entries, key)
+        ? "complete"
+        : dayHasAny(entries, key)
+          ? "partial"
+          : "none",
+      isToday: key === today,
+    });
+  }
+  return out;
+}

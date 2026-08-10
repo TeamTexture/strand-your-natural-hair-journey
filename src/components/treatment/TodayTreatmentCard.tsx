@@ -6,6 +6,8 @@ import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useDueToday, useLogTreatmentStep } from "@/hooks/useTreatmentPlans";
+import TreatmentStreak from "@/components/treatment/TreatmentStreak";
+import StepProductMarkers from "@/components/treatment/StepProductMarkers";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentPlusUpsell from "@/components/treatment/TreatmentPlusUpsell";
 import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
@@ -20,7 +22,7 @@ import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
  */
 const TodayTreatmentCard = () => {
   const navigate = useNavigate();
-  const { steps, streakLine, loading, hasActivePlan } = useDueToday();
+  const { steps, streakLine, streak, days, loading, hasActivePlan } = useDueToday();
   const { hasPlus, isLoading: plusLoading } = usePlusAccess();
   const { log, undo } = useLogTreatmentStep();
 
@@ -74,8 +76,10 @@ const TodayTreatmentCard = () => {
           </button>
         }
       >
-        Today's treatment
+        My treatment plan
       </SectionHeader>
+
+      <TreatmentStreak streak={streak} days={days} />
 
       {!hasPlus && <TreatmentReadOnlyNotice next="/home" />}
 
@@ -112,6 +116,7 @@ const TodayTreatmentCard = () => {
                     <p className="font-body text-[13px] text-muted-foreground mt-0.5">
                       {done ? "Marked as done" : "Skipped — picked back up next time"}
                     </p>
+                    <StepProductMarkers product={s.product} updateDue={!done} className="mt-2" />
                   </div>
                   {hasPlus && (
                     <button
@@ -150,6 +155,8 @@ const TodayTreatmentCard = () => {
                     </p>
                   )}
                 </div>
+
+                <StepProductMarkers product={s.product} updateDue />
 
                 {hasPlus && (
                   <>
