@@ -135,6 +135,8 @@ export interface DueStep {
   slot: TreatmentSlot;
   entry?: EntryRow;
   week: number;
+  /** The plan product this step uses, when one is attached. */
+  product?: ProductRow;
 }
 
 export function useDueToday() {
@@ -151,6 +153,7 @@ export function useDueToday() {
           row,
           slot,
           week: weekNumberFor(b.plan.start_date, today),
+          product: b.products.find((p) => p.id === row.product_id),
           entry: b.entries.find(
             (e) => e.schedule_id === row.id && e.entry_date === today && e.time_of_day === slot,
           ),
@@ -176,7 +179,12 @@ export function useDueToday() {
     return computeAdherence(rows, entries, start).line;
   }, [bundles]);
 
-  return { steps, streakLine, loading, hasActivePlan: bundles.length > 0 };
+  /** Gamified streak state across the active plans. */
+  const allEntries = useMemo(() => bundles.flatMap((b) => b.entries), [bundles]);
+  const streak = useMemo(() => currentStreak(allEntries, today), [allEntries, today]);
+  const days = useMemo(() => streakDays(allEntries, 7, today), [allEntries, today]);
+
+  return { steps, streakLine, streak, days, loading, hasActivePlan: bundles.length > 0 };
 }
 
 /* ------------------------------------------------------------- mutations */
