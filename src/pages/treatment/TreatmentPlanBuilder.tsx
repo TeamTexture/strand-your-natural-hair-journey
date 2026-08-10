@@ -109,6 +109,7 @@ const TreatmentPlanBuilder = () => {
 
   // Adding products from the shelf or from a pasted product link.
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const { resolveLink, busy: linkBusy } = usePlanProductLink();
