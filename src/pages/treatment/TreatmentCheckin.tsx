@@ -9,7 +9,6 @@ import SurfaceCard from "@/components/SurfaceCard";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentPlan } from "@/hooks/useTreatmentPlans";
@@ -22,9 +21,7 @@ import {
   type CheckinRow,
 } from "@/hooks/useTreatmentCheckin";
 import {
-  CHECKIN_METRICS,
   defaultRatings,
-  ratingLabel,
   ratingsWithDefaults,
   type CheckinRatings,
 } from "@/lib/treatmentCheckin";
@@ -34,8 +31,8 @@ import CheckinVoiceNotes from "@/components/treatment/CheckinVoiceNotes";
 import CheckinVideo from "@/components/treatment/CheckinVideo";
 
 /**
- * Weekly check-in. Four sliders read from CHECKIN_METRICS (never hardcoded
- * here), an optional note, and the media pipeline.
+ * Weekly check-in. One open question, plus the media pipeline — no scored
+ * sliders, because the numbers made it feel like a form.
  *
  * A check-in row is opened as soon as the screen loads so photos, voice notes
  * and video have something to attach to while she's still filling it in. It
@@ -149,8 +146,7 @@ const TreatmentCheckin = () => {
         <div>
           <h1 className="font-display text-[24px] leading-tight">Week {week} check-in</h1>
           <p className="font-body text-[13px] text-muted-foreground mt-1 leading-snug">
-            Tell us how it's going in your own words — write it, record it, or show it. The sliders are
-            optional.
+            Tell us how it's going in your own words — write it, record it, or show it.
           </p>
           <p className="font-body text-[12px] text-muted-foreground mt-1">
             {format(fromDateKey(range.start), "d MMM")} – {format(fromDateKey(range.end), "d MMM")}
