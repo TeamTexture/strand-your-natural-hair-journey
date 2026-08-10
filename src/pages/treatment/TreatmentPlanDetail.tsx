@@ -16,6 +16,7 @@ import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import PlanSharesSection from "@/components/treatment/PlanSharesSection";
 import CatchUpDays from "@/components/treatment/CatchUpDays";
 import PlanAppointmentsSection from "@/components/treatment/PlanAppointmentsSection";
+import PlanTimeline from "@/components/treatment/PlanTimeline";
 
 
 
@@ -27,7 +28,6 @@ import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
 import ReminderPicker, { type ReminderSettings } from "@/components/treatment/ReminderPicker";
 import {
-  cadenceSummary,
   computeAdherence,
   fromDateKey,
   todayKey,
@@ -128,8 +128,8 @@ const TreatmentPlanDetail = () => {
   );
 
 
-  const notYet = () =>
-    toast("Editing your schedule arrives with the check-in screens — pause or resume any time meanwhile.");
+  const scrollToTimeline = () =>
+    document.getElementById("plan-timeline")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const togglePause = () =>
     setStatus.mutate(
@@ -156,7 +156,7 @@ const TreatmentPlanDetail = () => {
             </p>
           </div>
           <button
-            onClick={notYet}
+            onClick={scrollToTimeline}
             aria-label="Edit plan"
             className="size-9 rounded-full bg-card border border-border flex items-center justify-center shrink-0 text-foreground/80"
           >
@@ -229,8 +229,16 @@ const TreatmentPlanDetail = () => {
                 {paused ? <Play className="size-4 mr-1.5" /> : <Pause className="size-4 mr-1.5" />}
                 {paused ? "Resume plan" : "Pause plan"}
               </Button>
-              <Button variant="outline" className="rounded-pill col-span-2" onClick={notYet}>
-                Edit schedule
+              <Button
+                variant="outline"
+                className="rounded-pill col-span-2"
+                onClick={() =>
+                  document
+                    .getElementById("plan-timeline")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                Edit the plan week by week
               </Button>
             </>
           )}
@@ -335,24 +343,15 @@ const TreatmentPlanDetail = () => {
         </div>
 
 
-        {/* schedule */}
-        <div className="space-y-2">
-          <SectionLabel className="px-0 mt-0 mb-1.5">Your steps</SectionLabel>
-          <div className="space-y-1.5">
-            {schedule.map((row) => (
-              <SurfaceCard key={row.id} className="space-y-0.5">
-                <p className="font-display text-[16px] leading-snug break-words">{row.task_name}</p>
-                <p className="font-body text-[12px] text-muted-foreground">
-                  {cadenceSummary(row, plan.start_date)}
-                </p>
-                {row.instructions && (
-                  <p className="font-body text-[13px] text-muted-foreground leading-snug pt-1 [overflow-wrap:anywhere]">
-                    {row.instructions}
-                  </p>
-                )}
-              </SurfaceCard>
-            ))}
-          </div>
+        {/* the plan laid out in advance, and where it gets changed */}
+        <div id="plan-timeline" className="scroll-mt-4">
+          <PlanTimeline
+            planId={plan.id}
+            startDate={plan.start_date}
+            durationWeeks={plan.duration_weeks}
+            schedule={schedule}
+            disabled={!hasPlus || paused}
+          />
         </div>
 
         {/* products */}

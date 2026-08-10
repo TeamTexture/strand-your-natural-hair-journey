@@ -31,6 +31,12 @@ export interface ScheduleRow {
   time_of_day: TreatmentTimeOfDay;
   product_id: string | null;
   step_order: number;
+  /**
+   * Optional week window, 1-indexed against the plan start. Null on both means
+   * "the whole plan" — which is how every pre-existing step behaves.
+   */
+  start_week?: number | null;
+  end_week?: number | null;
 }
 
 export interface EntryRow {
@@ -102,6 +108,10 @@ export function slotsFor(time_of_day: TreatmentTimeOfDay): TreatmentSlot[] {
  */
 export function isDueOn(row: ScheduleRow, startDate: string, dateKey: string): boolean {
   if (daysBetween(startDate, dateKey) < 0) return false;
+  // A step planned for later weeks isn't due before (or after) its window.
+  const week = weekNumberFor(startDate, dateKey);
+  if (row.start_week != null && week < row.start_week) return false;
+  if (row.end_week != null && week > row.end_week) return false;
   const weekday = fromDateKey(dateKey).getDay();
   if (row.cadence === "daily") return true;
   if (row.cadence === "specific_days") return (row.days_of_week ?? []).includes(weekday);
@@ -338,6 +348,23 @@ export function defaultMilestoneWeeks(durationWeeks: number): number[] {
 }
 
 /** Human summary of a schedule row's recurrence, e.g. "Mon, Thu · Evening". */
+/** "Weeks 3-6", "From week 4", "Up to week 8" — or "" for the whole plan. */
+export function weekWindowLabel(row: Pick<ScheduleRow, "start_week" | "end_week">): string {
+  const from = row.start_week ?? null;
+  const to = row.end_week ?? null;
+  if (from == null && to == null) return "";
+  if (from != null && to != null) return from === to ? `Week ${from}` : `Weeks ${from}-${to}`;
+  if (from != null) return `From week ${from}`;
+  return `Up to week ${to}`;
+}
+
+/** Does a step apply in a given 1-indexed plan week? */
+export function appliesInWeek(row: ScheduleRow, week: number): boolean {
+  if (row.start_week != null && week < row.start_week) return false;
+  if (row.end_week != null && week > row.end_week) return false;
+  return true;
+}
+
 export function cadenceSummary(row: ScheduleRow, startDate?: string): string {
   const when =
     row.cadence === "daily"
@@ -351,7 +378,11 @@ export function cadenceSummary(row: ScheduleRow, startDate?: string): string {
           : "Once a week";
   const time =
     row.time_of_day === "both" ? "Morning & evening" : row.time_of_day === "morning" ? "Morning" : "Evening";
-  return `${when} · ${time}`;
+  const window =
+    row.start_week != null || row.end_week != null
+      ? ` · ${weekWindowLabel(row)}`
+      : "";
+  return `${when} · ${time}${window}`;
 }
 
 /* ------------------------------------------------------------- streaks */
