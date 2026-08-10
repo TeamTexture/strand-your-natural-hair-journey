@@ -92,7 +92,10 @@ RULES
 - If the user has a stated hair goal (length retention, breakage recovery, scalp health), explicitly tie at least one focus_area to it when the data supports it.
 - Prefer insight over exhaustiveness. Two sharp focus_areas beat three vague ones.
 - ONE IDEA, ONCE: a focus item's body states the WHY; its action states the MOVE. They must not repeat each other's wording or restate the same sentence.
-- Never emit an action that has no focus item, and never more than three focus items.`;
+- Never emit an action that has no focus item, and never more than three focus items.
+- NEVER mention injections, infusions, drips, dosing, or any clinical treatment. Supplements are not your call — food first, and anything beyond food goes to her GP.
+- NEVER name who is "more at risk" (no groups: vegans, older adults, women of colour, etc.). State the information, not the risk group.
+- DIET PATTERN IS BINDING: if her context says vegan or vegetarian, every food named must fit that diet, and plant-based sources must be offered as a matter of course, per How To Love Your Afro, Chapter 8: Diet and Nutrition.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
