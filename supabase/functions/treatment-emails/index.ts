@@ -154,7 +154,7 @@ async function sendNudges(admin: SupabaseClient, today: string) {
         templateKey,
         to: email,
         recipientUserId: userId,
-        triggerEvent: "treatment_plan.week_end",
+        triggerEvent: "treatment_plan.reminder",
         relatedTable: "treatment_plans",
         relatedId: String(row.plan_id),
         // One key per plan per slot — a retry or overlapping run cannot double send.
