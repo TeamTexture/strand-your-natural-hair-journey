@@ -66,6 +66,9 @@ const ProfileStepPhotos = lazyRetry(() => import("./pages/onboarding/ProfileStep
 
 // Profile / blood / misc
 const MilestoneGallery = lazyRetry(() => import("./pages/MilestoneGallery"));
+const TreatmentPlanBuilder = lazyRetry(() => import("./pages/treatment/TreatmentPlanBuilder"));
+const TreatmentPlanDetail = lazyRetry(() => import("./pages/treatment/TreatmentPlanDetail"));
+
 const Discounts = lazyRetry(() => import("./pages/Discounts"));
 const BloodHistory = lazyRetry(() => import("./pages/BloodHistory"));
 const BloodUpload = lazyRetry(() => import("./pages/BloodUpload"));
