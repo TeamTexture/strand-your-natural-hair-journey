@@ -4856,34 +4856,40 @@ export type Database = {
           brand: string | null
           created_at: string
           id: string
+          image_url: string | null
           ingredient_id: string | null
           plan_id: string
           product_name: string
           step_order: number
           updated_at: string
           usage_notes: string | null
+          user_product_id: string | null
         }
         Insert: {
           brand?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           ingredient_id?: string | null
           plan_id: string
           product_name: string
           step_order?: number
           updated_at?: string
           usage_notes?: string | null
+          user_product_id?: string | null
         }
         Update: {
           brand?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           ingredient_id?: string | null
           plan_id?: string
           product_name?: string
           step_order?: number
           updated_at?: string
           usage_notes?: string | null
+          user_product_id?: string | null
         }
         Relationships: [
           {
@@ -4898,6 +4904,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_products_user_product_id_fkey"
+            columns: ["user_product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
             referencedColumns: ["id"]
           },
         ]
