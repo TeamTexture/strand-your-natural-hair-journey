@@ -491,7 +491,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         });
       }
 
-      // 5. Blood retest due — ~3 months since latest actual test date, OR never uploaded one.
+      // 5. Blood retest due — ~6 months since latest actual test date, OR never uploaded one.
       // IMPORTANT: use blood_panels.panel_date (the test date), not blood_results.updated_at
       // (the upload/save date), otherwise an old report uploaded today never appears due on Home.
       if (scheduledBloodDate) {
