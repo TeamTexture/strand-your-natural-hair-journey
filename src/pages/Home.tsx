@@ -667,7 +667,15 @@ const Home = () => {
                 })()}
               </div>
             </SurfaceCard>
+
+            {/* Treatment plans are a STRAND+ feature — only + members see them */}
+            <div className="space-y-3">
+              <PendingPlanInvites />
+              <TodayTreatmentCard />
+            </div>
+            </>
           );
+
         })()}
 
 
