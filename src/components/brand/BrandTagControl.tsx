@@ -108,7 +108,7 @@ export default function BrandTagControl({
     setEndsOn("");
   };
 
-  const disclosureMissing = tagType === "promoted" && !label.trim();
+  const disclosureMissing = canPromote && !!brandId && tagType === "promoted" && !label.trim();
 
   const hasBrand = !!brandId || !!customName.trim();
 
