@@ -23,6 +23,7 @@ import {
   Scale,
   FlaskConical,
   PackageCheck,
+  ClipboardList,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -477,6 +478,12 @@ const AdminHub = () => {
               stats ? `${stats.livePros} live · ${stats.activeProSubs} subscribed` : undefined
             }
             onClick={() => nav("/admin/professionals")}
+          />
+          <NavCard
+            icon={ClipboardList}
+            title="Treatment plans"
+            description="STRAND templates, assignments and plans across the platform"
+            onClick={() => nav("/admin/treatment")}
           />
           <NavCard
             icon={Building2}

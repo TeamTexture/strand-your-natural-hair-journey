@@ -294,6 +294,24 @@ const BrandDashboard = () => {
 
         {ownerMode !== "pro" && <ShelfEngagementSection />}
 
+        {ownerMode === "brand" && (
+          <button
+            onClick={() => nav("/brand/tags")}
+            className="w-full text-left rounded-[12px] border border-border bg-card p-3 flex items-center gap-3"
+          >
+            <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <Tag className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-body text-[13px] font-semibold">Where you're tagged</p>
+              <p className="text-[11px] text-foreground/60 font-body">
+                Editorial mentions and paid placements naming your brand
+              </p>
+            </div>
+            <span className="text-[11px] text-primary font-body">View &rarr;</span>
+          </button>
+        )}
+
         <div>
           <SectionLabel className="!px-0 !mt-0">Campaign calendar</SectionLabel>
           <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-1.5 leading-snug">
