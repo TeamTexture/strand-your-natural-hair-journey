@@ -199,20 +199,33 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                     </div>
                   )}
 
-                  {visits.map((a) => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => navigate(`/appointments/log?fromId=${a.id}&planId=${planId}`)}
-                      className="w-full text-left rounded-xl border border-border px-3 py-2"
-                    >
-                      <p className="font-body text-[13px] font-semibold break-words">{a.professional_name}</p>
-                      <p className="font-body text-[11px] text-muted-foreground">
-                        {format(fromDateKey(a.appointment_date), "EEE d MMM")}
-                        {a.appointment_time ? ` · ${a.appointment_time}` : ""} · tap to change
-                      </p>
-                    </button>
-                  ))}
+                  {visits.map((a) => {
+                    const off = a.status === "cancelled";
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => navigate(`/appointments/log?fromId=${a.id}&planId=${planId}`)}
+                        className={`w-full text-left rounded-xl border px-3 py-2 ${off ? "border-destructive/25 opacity-70" : "border-border"}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`font-body text-[13px] font-semibold break-words ${off ? "line-through text-muted-foreground" : ""}`}>
+                            {a.professional_name}
+                          </p>
+                          {off && (
+                            <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                              Cancelled
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-body text-[11px] text-muted-foreground">
+                          {format(fromDateKey(a.appointment_date), "EEE d MMM")}
+                          {a.appointment_time ? ` · ${a.appointment_time}` : ""} · tap to change
+                        </p>
+                      </button>
+                    );
+                  })}
+
 
                   {!disabled && (
                     <div className="flex flex-wrap gap-2 pt-0.5">

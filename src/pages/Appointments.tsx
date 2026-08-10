@@ -15,7 +15,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import TipsBlock from "@/components/tips/TipsBlock";
 import type { GuidanceTip } from "@/lib/tipsRender";
 import { supabase } from "@/integrations/supabase/client";
-import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
+import { isPastAppointment, upcomingAppointments, isCancelledAppointment } from "@/lib/appointmentState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
@@ -213,10 +213,15 @@ const Appointments = () => {
 
   // Upcoming: soonest first (ascending). Past: most recent first (descending).
   // Both lists go through the SHARED accessor — no local idea of "upcoming".
+  // Cancelled appointments stay in the diary in their own clearly-marked group.
   const upcoming = upcomingAppointments(filteredAppts);
-  const past = filteredAppts
-    .filter(isPastAppointment)
+  const cancelled = filteredAppts
+    .filter(isCancelledAppointment)
     .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
+  const past = filteredAppts
+    .filter((a) => isPastAppointment(a) && !isCancelledAppointment(a))
+    .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
+
 
   // After the upcoming list renders, mark those IDs as seen so the badge
   // doesn't linger between visits.
@@ -374,6 +379,33 @@ const Appointments = () => {
               <SectionLabel>Past</SectionLabel>
               <div className="px-5 space-y-3 pb-4">
                 {past.map((a) => {
+                  const highlight = focusApptId === a.id;
+                  return (
+                    <div
+                      key={a.id}
+                      id={`appt-${a.id}`}
+                      className={`rounded-[16px] transition ${highlight ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+                    >
+                      <AppointmentCard
+                        appointment={a}
+                        variant="past"
+                        onEdit={() => navigate(`/appointments/log?fromId=${a.id}`)}
+                        onDelete={() => setDeleteTarget(a)}
+                      >
+                        <ApptPhotos appointmentId={a.id} />
+                      </AppointmentCard>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {cancelled.length > 0 && (
+            <>
+              <SectionLabel>Cancelled</SectionLabel>
+              <div className="px-5 space-y-3 pb-4">
+                {cancelled.map((a) => {
                   const highlight = focusApptId === a.id;
                   return (
                     <div

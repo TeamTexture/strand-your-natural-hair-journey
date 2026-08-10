@@ -47,38 +47,56 @@ const PlanAppointmentsSection = ({ planId, disabled }: { planId: string; disable
   });
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const upcoming = appointments.filter((a) => a.status !== "completed" && a.status !== "cancelled" && a.appointment_date >= todayKey);
-  const past = appointments.filter((a) => !upcoming.includes(a));
+  // Cancelled visits stay in the plan diary, grouped and marked as cancelled.
+  const isCancelled = (a: PlanAppointment) => a.status === "cancelled";
+  const upcoming = appointments.filter(
+    (a) => a.status !== "completed" && !isCancelled(a) && a.appointment_date >= todayKey,
+  );
+  const cancelled = appointments.filter(isCancelled);
+  const past = appointments.filter((a) => !upcoming.includes(a) && !isCancelled(a));
+
 
   const schedule = () =>
     navigate(`/appointments/log?planId=${planId}`);
 
-  const row = (a: PlanAppointment, dim?: boolean) => (
-    <SurfaceCard
-      key={a.id}
-      className={dim ? "opacity-70 space-y-0.5" : "space-y-0.5"}
-      onClick={() => navigate(`/appointments/log?fromId=${a.id}&planId=${planId}`)}
-      role="button"
-      tabIndex={0}
-    >
-      <p className="font-body text-[14px] font-semibold break-words">{a.professional_name}</p>
-      <p className="font-body text-[12px] text-muted-foreground">
-        {format(fromDateKey(a.appointment_date), "EEE d MMM yyyy")}
-        {a.appointment_time ? ` · ${a.appointment_time}` : ""}
-        {a.professional_type ? ` · ${a.professional_type}` : ""}
-      </p>
-      {a.clinic_name && (
-        <p className="font-body text-[12px] text-muted-foreground flex items-center gap-1">
-          <MapPin className="size-3 shrink-0" /> <span className="break-words">{a.clinic_name}</span>
+  const row = (a: PlanAppointment, dim?: boolean) => {
+    const off = isCancelled(a);
+    return (
+      <SurfaceCard
+        key={a.id}
+        className={dim || off ? "opacity-70 space-y-0.5" : "space-y-0.5"}
+        onClick={() => navigate(`/appointments/log?fromId=${a.id}&planId=${planId}`)}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <p className={`font-body text-[14px] font-semibold break-words ${off ? "line-through text-muted-foreground" : ""}`}>
+            {a.professional_name}
+          </p>
+          {off && (
+            <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+              Cancelled
+            </span>
+          )}
+        </div>
+        <p className={`font-body text-[12px] text-muted-foreground ${off ? "line-through" : ""}`}>
+          {format(fromDateKey(a.appointment_date), "EEE d MMM yyyy")}
+          {a.appointment_time ? ` · ${a.appointment_time}` : ""}
+          {a.professional_type ? ` · ${a.professional_type}` : ""}
         </p>
-      )}
-      {a.reason && (
-        <p className="font-body text-[13px] text-muted-foreground leading-snug pt-1 [overflow-wrap:anywhere]">
-          {a.reason}
-        </p>
-      )}
-    </SurfaceCard>
-  );
+        {a.clinic_name && (
+          <p className="font-body text-[12px] text-muted-foreground flex items-center gap-1">
+            <MapPin className="size-3 shrink-0" /> <span className="break-words">{a.clinic_name}</span>
+          </p>
+        )}
+        {a.reason && (
+          <p className="font-body text-[13px] text-muted-foreground leading-snug pt-1 [overflow-wrap:anywhere]">
+            {a.reason}
+          </p>
+        )}
+      </SurfaceCard>
+    );
+  };
 
   return (
     <div className="space-y-2">
@@ -102,6 +120,15 @@ const PlanAppointmentsSection = ({ planId, disabled }: { planId: string; disable
               {past.map((a) => row(a, true))}
             </>
           )}
+          {cancelled.length > 0 && (
+            <>
+              <p className="font-body text-[11px] uppercase tracking-[0.16em] text-muted-foreground pt-1">
+                Cancelled
+              </p>
+              {cancelled.map((a) => row(a, true))}
+            </>
+          )}
+
         </div>
       )}
 
