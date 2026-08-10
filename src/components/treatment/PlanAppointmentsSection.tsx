@@ -47,7 +47,7 @@ const PlanAppointmentsSection = ({ planId, disabled }: { planId: string; disable
   });
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const upcoming = appointments.filter((a) => a.status !== "completed" && a.appointment_date >= todayKey);
+  const upcoming = appointments.filter((a) => a.status !== "completed" && a.status !== "cancelled" && a.appointment_date >= todayKey);
   const past = appointments.filter((a) => !upcoming.includes(a));
 
   const schedule = () =>
