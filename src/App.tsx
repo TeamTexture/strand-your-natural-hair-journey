@@ -132,6 +132,9 @@ const AdminReferrals = lazyRetry(() => import("./pages/admin/AdminReferrals"));
 const AdminViewAs = lazyRetry(() => import("./pages/admin/AdminViewAs"));
 const AdminBrands = lazyRetry(() => import("./pages/admin/AdminBrands"));
 const AdminBrandEdit = lazyRetry(() => import("./pages/admin/AdminBrandEdit"));
+const AdminTreatment = lazyRetry(() => import("./pages/admin/AdminTreatment"));
+const AdminTreatmentTemplate = lazyRetry(() => import("./pages/admin/AdminTreatmentTemplate"));
+const AdminTreatmentPlan = lazyRetry(() => import("./pages/admin/AdminTreatmentPlan"));
 const AdminMessages = lazyRetry(() => import("./pages/admin/AdminMessages"));
 const AdminBroadcast = lazyRetry(() => import("./pages/admin/AdminBroadcast"));
 const AdminBrandOffers = lazyRetry(() => import("./pages/admin/AdminBrandOffers"));
@@ -154,6 +157,7 @@ const BrandDashboard = lazyRetry(() => import("./pages/brand/BrandDashboard"));
 const BrandCreateOffer = lazyRetry(() => import("./pages/brand/BrandCreateOffer"));
 const BrandOfferDetail = lazyRetry(() => import("./pages/brand/BrandOfferDetail"));
 const BrandExtendOffer = lazyRetry(() => import("./pages/brand/BrandExtendOffer"));
+const BrandTagsReceived = lazyRetry(() => import("./pages/brand/BrandTagsReceived"));
 const BrandCheckoutSuccess = lazyRetry(() => import("./pages/brand/BrandCheckoutSuccess"));
 const BrandSubscribe = lazyRetry(() => import("./pages/brand/BrandSubscribe"));
 const BrandBilling = lazyRetry(() => import("./pages/brand/BrandBilling"));
@@ -589,6 +593,9 @@ const App = () => (
               <Route path="/admin/view-as" element={<RoleGate allow={["admin"]}><AdminViewAs /></RoleGate>} />
               <Route path="/admin/brands" element={<RoleGate allow={["admin"]}><AdminBrands /></RoleGate>} />
               <Route path="/admin/brands/:userId/edit" element={<RoleGate allow={["admin"]}><AdminBrandEdit /></RoleGate>} />
+              <Route path="/admin/treatment" element={<RoleGate allow={["admin"]}><AdminTreatment /></RoleGate>} />
+              <Route path="/admin/treatment/templates/:id" element={<RoleGate allow={["admin"]}><AdminTreatmentTemplate /></RoleGate>} />
+              <Route path="/admin/treatment/plan/:planId" element={<RoleGate allow={["admin"]}><AdminTreatmentPlan /></RoleGate>} />
               <Route path="/admin/shelf-review" element={<RoleGate allow={["admin"]}><AdminShelfReview /></RoleGate>} />
 
               <Route path="/admin/messages" element={<RoleGate allow={["admin"]}><AdminMessages /></RoleGate>} />
@@ -617,6 +624,7 @@ const App = () => (
               <Route path="/brand/offers/new" element={<BrandSubGate><BrandCreateOffer /></BrandSubGate>} />
               <Route path="/brand/offers/:id" element={<BrandSubGate><BrandOfferDetail /></BrandSubGate>} />
               <Route path="/brand/offers/:id/edit" element={<BrandSubGate><BrandCreateOffer /></BrandSubGate>} />
+              <Route path="/brand/tags" element={<BrandSubGate><BrandTagsReceived /></BrandSubGate>} />
               <Route path="/brand/offers/:id/extend" element={<BrandSubGate><BrandExtendOffer /></BrandSubGate>} />
               <Route path="/brand/checkout/success" element={<RoleGate allow={["brand", "admin"]}><BrandCheckoutSuccess /></RoleGate>} />
 
