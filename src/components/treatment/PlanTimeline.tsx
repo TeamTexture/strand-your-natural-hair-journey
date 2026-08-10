@@ -306,7 +306,8 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
 
 
               {open && (
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2 px-4 pb-4 pt-1 border-t border-border/60">
+
                   {steps.length === 0 ? (
                     <p className="font-body text-[13px] text-muted-foreground leading-snug">
                       Nothing planned for this week yet.
