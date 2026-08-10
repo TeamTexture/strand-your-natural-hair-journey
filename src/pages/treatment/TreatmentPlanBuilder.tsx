@@ -184,7 +184,7 @@ const TreatmentPlanBuilder = () => {
           <div className="space-y-4">
             <SurfaceCard className="space-y-3">
               <div className="space-y-1.5">
-                <SectionLabel>Plan name</SectionLabel>
+                <SectionLabel className="px-0 mt-0 mb-1.5">Plan name</SectionLabel>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -192,7 +192,7 @@ const TreatmentPlanBuilder = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <SectionLabel>What you're hoping for (optional)</SectionLabel>
+                <SectionLabel className="px-0 mt-0 mb-1.5">What you're hoping for (optional)</SectionLabel>
                 <Textarea
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
@@ -204,7 +204,7 @@ const TreatmentPlanBuilder = () => {
 
             <SurfaceCard className="space-y-3">
               <div className="space-y-2">
-                <SectionLabel>How long</SectionLabel>
+                <SectionLabel className="px-0 mt-0 mb-1.5">How long</SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {DURATIONS.map((w) => (
                     <Chip key={w} active={durationWeeks === w} onClick={() => setDuration(w)}>
@@ -215,7 +215,7 @@ const TreatmentPlanBuilder = () => {
               </div>
 
               <div className="space-y-2">
-                <SectionLabel>Starting</SectionLabel>
+                <SectionLabel className="px-0 mt-0 mb-1.5">Starting</SectionLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left font-normal rounded-pill">
@@ -244,7 +244,7 @@ const TreatmentPlanBuilder = () => {
             {products.map((p, i) => (
               <SurfaceCard key={i} className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <SectionLabel>Product {i + 1}</SectionLabel>
+                  <SectionLabel className="px-0 mt-0 mb-1.5">Product {i + 1}</SectionLabel>
                   {products.length > 1 && (
                     <button
                       onClick={() => setProducts((list) => list.filter((_, idx) => idx !== i))}
@@ -308,7 +308,7 @@ const TreatmentPlanBuilder = () => {
             {steps.map((s, i) => (
               <SurfaceCard key={i} className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <SectionLabel>Step {i + 1}</SectionLabel>
+                  <SectionLabel className="px-0 mt-0 mb-1.5">Step {i + 1}</SectionLabel>
                   {steps.length > 1 && (
                     <button
                       onClick={() => setSteps((list) => list.filter((_, idx) => idx !== i))}
@@ -332,7 +332,7 @@ const TreatmentPlanBuilder = () => {
                 />
 
                 <div className="space-y-2">
-                  <SectionLabel>How often</SectionLabel>
+                  <SectionLabel className="px-0 mt-0 mb-1.5">How often</SectionLabel>
                   <div className="flex flex-wrap gap-2">
                     <Chip active={s.cadence === "daily"} onClick={() => patchStep(i, { cadence: "daily" })}>
                       Every day
@@ -370,7 +370,7 @@ const TreatmentPlanBuilder = () => {
                 )}
 
                 <div className="space-y-2">
-                  <SectionLabel>Time of day</SectionLabel>
+                  <SectionLabel className="px-0 mt-0 mb-1.5">Time of day</SectionLabel>
                   <div className="flex flex-wrap gap-2">
                     {(["morning", "evening", "both"] as const).map((t) => (
                       <Chip key={t} active={s.time_of_day === t} onClick={() => patchStep(i, { time_of_day: t })}>
@@ -382,7 +382,7 @@ const TreatmentPlanBuilder = () => {
 
                 {namedProducts.length > 0 && (
                   <div className="space-y-2">
-                    <SectionLabel>Product used (optional)</SectionLabel>
+                    <SectionLabel className="px-0 mt-0 mb-1.5">Product used (optional)</SectionLabel>
                     <div className="flex flex-wrap gap-2">
                       {products.map((p, pi) =>
                         p.product_name.trim() ? (

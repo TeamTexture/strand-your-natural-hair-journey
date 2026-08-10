@@ -124,7 +124,7 @@ const TreatmentPlanDetail = () => {
 
         {plan.goal && (
           <SurfaceCard tone="gold">
-            <SectionLabel>What you're hoping for</SectionLabel>
+            <SectionLabel className="px-0 mt-0 mb-1.5">What you're hoping for</SectionLabel>
             <p className="font-body text-[14px] leading-snug mt-1 [overflow-wrap:anywhere]">{plan.goal}</p>
           </SurfaceCard>
         )}
@@ -169,7 +169,7 @@ const TreatmentPlanDetail = () => {
 
         {/* weeks */}
         <div className="space-y-2">
-          <SectionLabel>Week by week</SectionLabel>
+          <SectionLabel className="px-0 mt-0 mb-1.5">Week by week</SectionLabel>
           <div className="space-y-1.5">
             {weeks.map((w) => (
               <SurfaceCard
@@ -220,7 +220,7 @@ const TreatmentPlanDetail = () => {
 
         {/* schedule */}
         <div className="space-y-2">
-          <SectionLabel>Your steps</SectionLabel>
+          <SectionLabel className="px-0 mt-0 mb-1.5">Your steps</SectionLabel>
           <div className="space-y-1.5">
             {schedule.map((row) => (
               <SurfaceCard key={row.id} className="space-y-0.5">
@@ -241,7 +241,7 @@ const TreatmentPlanDetail = () => {
         {/* products */}
         {products.length > 0 && (
           <div className="space-y-2">
-            <SectionLabel>Products</SectionLabel>
+            <SectionLabel className="px-0 mt-0 mb-1.5">Products</SectionLabel>
             <div className="space-y-1.5">
               {products.map((p) => (
                 <SurfaceCard key={p.id} className="space-y-0.5">
