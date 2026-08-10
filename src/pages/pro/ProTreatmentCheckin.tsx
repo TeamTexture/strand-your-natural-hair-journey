@@ -10,7 +10,7 @@ import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useProCheckinReview, useSendCheckinComment } from "@/hooks/useProTreatment";
-import { CHECKIN_METRICS, ratingLabel } from "@/lib/treatmentCheckin";
+import CheckinReview, { type CheckinMediaRow } from "@/components/treatment/CheckinReview";
 import { signedMediaUrls } from "@/lib/treatmentMedia";
 
 /**
