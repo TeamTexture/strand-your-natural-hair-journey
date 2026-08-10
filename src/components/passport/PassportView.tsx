@@ -2,6 +2,8 @@ import { challengesOf, type ChallengeBearingGoal } from "@/lib/goalChallenges";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, RefreshCw, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, StickyNote } from "lucide-react";
 import ProClientNotes from "@/components/pro/ProClientNotes";
+import PassportTreatmentSection from "@/components/passport/PassportTreatmentSection";
+import { useNavigate } from "react-router-dom";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -29,7 +31,7 @@ import { matchScoreOf } from "@/lib/matchStars";
 
 type Section =
   | "profile" | "routine" | "products" | "nutrition"
-  | "appointments" | "journal" | "photos" | "goals" | "notes";
+  | "appointments" | "journal" | "photos" | "goals" | "treatment" | "notes";
 
 interface SectionSpec {
   key: Section;
@@ -46,6 +48,7 @@ const BASE_SECTIONS: SectionSpec[] = [
   { key: "journal", label: "Journal", count: (d) => d.journal.length },
   { key: "photos", label: "Photos", count: (d) => d.milestonePhotos.length + d.beforePhotos.length + d.moodboards.length },
   { key: "goals", label: "Goals", count: (d) => d.goals.length },
+  { key: "treatment", label: "Treatment", count: () => 0 },
 ];
 
 const NOTES_SECTION: SectionSpec = { key: "notes", label: "Notes", count: () => 0 };
@@ -1763,6 +1766,7 @@ const sectionIcon: Record<Section, React.ComponentType<{ className?: string }>> 
   journal: PenLine,
   photos: ImageIcon,
   goals: Target,
+  treatment: ListChecks,
   notes: StickyNote,
 };
 
@@ -1775,6 +1779,7 @@ const sectionSub: Record<Section, string> = {
   journal: "Entries with notes, mood and photos",
   photos: "Milestones, before shots, moodboards",
   goals: "What they want and why they're here",
+  treatment: "Plans they've accepted you onto",
   notes: "Your private working notes on this client",
 };
 
@@ -1919,6 +1924,7 @@ const PassportProductDetail = ({ product, data, onBack, mode }: {
 
 const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
+  const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
 
   // Notes tab exists only in pro mode — admins are excluded by design from
@@ -2072,6 +2078,17 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "journal" && <JournalSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
+          {section === "treatment" && (
+            <PassportTreatmentSection
+              clientUserId={userId}
+              clientName={data.clientName}
+              onOpenCheckin={
+                mode === "pro"
+                  ? (planId, week) => navigate(`/pro/treatment/plan/${planId}/week/${week}`)
+                  : undefined
+              }
+            />
+          )}
           {section === "notes" && mode === "pro" && <ProClientNotes consumerId={userId} />}
 
         </div>
