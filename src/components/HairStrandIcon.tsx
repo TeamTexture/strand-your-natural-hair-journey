@@ -4,31 +4,28 @@ interface Props {
   className?: string;
 }
 
+/**
+ * STRAND mark — vertical figure-eight, one continuous stroke.
+ * Geometry matches the master logo artwork: mirror-symmetric, crossing at 50%
+ * height, loops widest at 20% / 80%. Stroke is a presentation attribute so the
+ * mark still renders correctly if no stylesheet loads. Aspect ratio is 106:300.
+ */
 const HairStrandIcon = forwardRef<SVGSVGElement, Props>(({ className }, ref) => (
   <svg
     ref={ref}
-    viewBox="0 0 80 80"
+    viewBox="-3 -3 106 300"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
     aria-hidden="true"
   >
-
-    {/* Curved hair strand — single flowing coil */}
     <path
-      d="M40 6 C 56 14, 60 30, 46 40 C 32 50, 28 64, 44 74"
+      d="M50 147 C-11.07 102.2 -11.07 4.15 50 4.15 C111.07 4.15 111.07 102.2 50 147 C-11.07 191.8 -11.07 289.85 50 289.85 C111.07 289.85 111.07 191.8 50 147"
       stroke="currentColor"
-      strokeWidth="2.5"
+      strokeWidth="8.3"
       strokeLinecap="round"
+      strokeLinejoin="round"
       fill="none"
-    />
-    <path
-      d="M40 6 C 24 14, 20 30, 34 40 C 48 50, 52 64, 36 74"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      fill="none"
-      opacity="0.55"
     />
   </svg>
 ));
@@ -36,4 +33,3 @@ const HairStrandIcon = forwardRef<SVGSVGElement, Props>(({ className }, ref) => 
 HairStrandIcon.displayName = "HairStrandIcon";
 
 export default HairStrandIcon;
-
