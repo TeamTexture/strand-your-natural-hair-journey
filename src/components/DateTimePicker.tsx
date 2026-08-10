@@ -80,45 +80,19 @@ const DateTimePicker = ({ value, onChange, placeholder = "Pick date & time", min
             className={cn("p-3 pointer-events-auto")}
           />
         </div>
-        <div className="border-t border-border px-3 py-2.5 flex items-center gap-1.5 bg-card">
+        <div className="border-t border-border px-3 py-2.5 flex items-center gap-2 bg-card">
           <Clock className="size-4 text-foreground/60 shrink-0" />
-          <select
-            aria-label="Hour"
-            className="min-w-0 flex-1 h-9 rounded-md border border-border bg-background px-1.5 text-sm"
-            value={h12}
-            onChange={(e) => commit(date, to24h(Number(e.target.value), period), minute)}
-          >
-            {HOURS_12.map((h) => (
-              <option key={h} value={h}>{h}</option>
-            ))}
-          </select>
-          <span className="font-body text-sm text-foreground/60">:</span>
-          <select
-            aria-label="Minute"
-            className="min-w-0 flex-1 h-9 rounded-md border border-border bg-background px-1.5 text-sm"
-            value={minute}
-            onChange={(e) => commit(date, h24, e.target.value)}
-          >
-            {MINUTES.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-          <div className="inline-flex rounded-md border border-border overflow-hidden shrink-0">
-            {(["AM", "PM"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => commit(date, to24h(h12, p), minute)}
-                className={cn(
-                  "px-2.5 h-9 text-xs font-medium transition-colors",
-                  period === p ? "bg-primary text-primary-foreground" : "bg-background text-foreground/70",
-                )}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <TimeSelect
+            minuteStep={15}
+            value={`${pad(h24)}:${minute}`}
+            onChange={(v) => {
+              const h = Number(v.slice(0, 2));
+              if (Number.isNaN(h)) return;
+              commit(date, h, v.slice(3, 5));
+            }}
+          />
         </div>
+
       </PopoverContent>
     </Popover>
   );
