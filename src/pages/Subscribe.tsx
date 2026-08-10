@@ -28,7 +28,7 @@ import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
-import { isSafeInternalPath } from "@/lib/consumerOnboarding";
+import { isSafeInternalPath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import LoadingDot from "@/components/LoadingDot";
 import { smartBack } from "@/lib/smartBack";
@@ -132,6 +132,8 @@ const Subscribe = () => {
     },
   });
 
+  const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
+
   useEffect(() => {
     if (isSafeInternalPath(nextPath)) {
       try {
@@ -152,6 +154,35 @@ const Subscribe = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // After a successful Stripe checkout the webhook can take a few seconds to
+  // record the subscription. Poll until access lands, then send the member
+  // straight on to the next step (their blood-work analysis) instead of
+  // leaving them stranded on the membership page.
+  useEffect(() => {
+    if (!confirming) return;
+    const target = isSafeInternalPath(nextPath)
+      ? nextPath
+      : isSafeInternalPath(storedNextPath)
+        ? storedNextPath
+        : POST_PAYMENT_ANALYSIS_PATH;
+    if (hasAccess) {
+      try {
+        localStorage.removeItem("strand_subscribe_next");
+      } catch {}
+      setConfirming(false);
+      nav(target, { replace: true });
+      return;
+    }
+    const poll = window.setInterval(() => refetch(), 2000);
+    const giveUp = window.setTimeout(() => setConfirming(false), 25000);
+    return () => {
+      window.clearInterval(poll);
+      window.clearTimeout(giveUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirming, hasAccess]);
+
 
   const startCheckout = async () => {
     setBusy("subscribe");
@@ -245,6 +276,24 @@ const Subscribe = () => {
   // never shown the consumer paywall or plan upgrade options.
   if (roleLoading) return <LoadingDot />;
   if (!canUpgrade) return <Navigate to={homePath} replace />;
+
+  // Post-payment interstitial — celebratory, then straight into the app.
+  if (confirming) {
+    return (
+      <ScreenLayout>
+        <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-4">
+          <CheckCircle2 className="size-10 text-primary" />
+          <h1 className="font-display text-[26px] leading-tight text-foreground">
+            Welcome to STRAND
+          </h1>
+          <p className="font-body text-sm text-foreground/70 max-w-[260px]">
+            Your membership is active. Setting up your personal analysis…
+          </p>
+          <Loader2 className="size-5 animate-spin text-primary mt-2" />
+        </div>
+      </ScreenLayout>
+    );
+  }
 
   return (
     <ScreenLayout>
