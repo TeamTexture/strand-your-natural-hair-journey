@@ -491,7 +491,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         });
       }
 
-      // 5. Blood retest due — ~3 months since latest actual test date, OR never uploaded one.
+      // 5. Blood retest due — ~6 months since latest actual test date, OR never uploaded one.
       // IMPORTANT: use blood_panels.panel_date (the test date), not blood_results.updated_at
       // (the upload/save date), otherwise an old report uploaded today never appears due on Home.
       if (scheduledBloodDate) {
@@ -504,8 +504,8 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           tone: "warning",
           signature: alertSignature(ALERT_KEYS.BLOOD_TEST_SCHEDULED, [scheduledBloodDate]),
         });
-      } else if (lastBloodPanelDate && Number.isFinite(daysSinceBlood) && daysSinceBlood >= 85) {
-        const months = Math.max(3, Math.round(daysSinceBlood / 30));
+      } else if (lastBloodPanelDate && Number.isFinite(daysSinceBlood) && daysSinceBlood >= 175) {
+        const months = Math.max(6, Math.round(daysSinceBlood / 30));
         next.push({
           id: ALERT_KEYS.BLOOD_TEST_OVERDUE,
           emoji: "🧪",
