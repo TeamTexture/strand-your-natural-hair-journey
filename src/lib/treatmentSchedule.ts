@@ -199,6 +199,60 @@ export function computeAdherence(
   };
 }
 
+/* ------------------------------------------------------------- day counts */
+
+export interface DayCounts {
+  /** Calendar days in the window that expected at least one step (capped at today). */
+  daysDue: number;
+  /** Days where every step due that day was logged as completed. */
+  daysLogged: number;
+  /** Days where some but not all due steps were logged. */
+  daysPartial: number;
+}
+
+/**
+ * Day-level adherence: how many days she did everything she said she'd do.
+ * Used for daily routines, where "5 of 7 days" reads far better than steps.
+ */
+export function dayCounts(
+  rows: ScheduleRow[],
+  entries: EntryRow[],
+  startDate: string,
+  from: string,
+  to: string,
+  today: string = todayKey(),
+): DayCounts {
+  const first = daysBetween(startDate, from) < 0 ? startDate : from;
+  const last = minKey(to, today);
+  let daysDue = 0;
+  let daysLogged = 0;
+  let daysPartial = 0;
+  if (daysBetween(first, last) < 0) return { daysDue, daysLogged, daysPartial };
+  for (let key = first; daysBetween(key, last) >= 0; key = addDays(key, 1)) {
+    const due = dueSlotsOn(rows, startDate, key);
+    if (!due.length) continue;
+    daysDue += 1;
+    const done = due.filter(({ row, slot }) =>
+      entries.some(
+        (e) =>
+          e.schedule_id === row.id &&
+          e.entry_date === key &&
+          e.time_of_day === slot &&
+          e.status === "completed",
+      ),
+    ).length;
+    if (done === due.length) daysLogged += 1;
+    else if (done > 0) daysPartial += 1;
+  }
+  return { daysDue, daysLogged, daysPartial };
+}
+
+/** True when the routine expects something every single day — a daily rhythm. */
+export function isDailyPlan(rows: ScheduleRow[]): boolean {
+  return rows.some((r) => r.cadence === "daily");
+}
+
+
 /* ---------------------------------------------------------------- weeks */
 
 export interface WeekSummary {
@@ -212,6 +266,14 @@ export interface WeekSummary {
   expected: number;
   /** Full expected for the week ignoring the today cap — for future weeks. */
   expectedFull: number;
+  /** Days in the week that expected something, capped at today. */
+  daysDue: number;
+  /** Days where everything due was logged. */
+  daysLogged: number;
+  /** Days in the week that expect something, ignoring the today cap. */
+  daysDueFull: number;
+  /** One line in the member's own terms — days for daily routines, steps otherwise. */
+  line: string;
   isMilestone: boolean;
 }
 
@@ -224,12 +286,23 @@ export function weekBreakdown(
   today: string = todayKey(),
 ): WeekSummary[] {
   const currentWeek = weekNumberFor(startDate, today);
+  const daily = isDailyPlan(rows);
   return Array.from({ length: Math.max(1, durationWeeks) }, (_, i) => {
     const week = i + 1;
     const { start, end } = weekRange(startDate, week);
     const state: WeekSummary["state"] =
       currentWeek === 0 || week > currentWeek ? "future" : week === currentWeek ? "current" : "past";
     const scoped = computeAdherence(rows, entries, startDate, { from: start, to: end, today });
+    const days = dayCounts(rows, entries, startDate, start, end, today);
+    const daysFull = dayCounts(rows, entries, startDate, start, end, end);
+    const line =
+      state === "future"
+        ? daily
+          ? `${daysFull.daysDue} days to come`
+          : `${expectedOccurrences(rows, startDate, start, end, end)} to come`
+        : daily
+          ? `${days.daysLogged} of ${days.daysDue} day${days.daysDue === 1 ? "" : "s"} logged`
+          : `${scoped.completed} of ${scoped.expected} ${scoped.unit} logged`;
     return {
       week,
       start,
@@ -238,8 +311,13 @@ export function weekBreakdown(
       completed: scoped.completed,
       expected: scoped.expected,
       expectedFull: expectedOccurrences(rows, startDate, start, end, end),
+      daysDue: days.daysDue,
+      daysLogged: days.daysLogged,
+      daysDueFull: daysFull.daysDue,
+      line,
       isMilestone: milestoneWeeks.includes(week),
     };
+
   });
 }
 

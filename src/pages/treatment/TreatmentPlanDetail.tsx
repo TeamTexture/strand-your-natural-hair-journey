@@ -14,6 +14,8 @@ import { useSetPlanStatus, useTreatmentPlan, useUpdatePlanReminder } from "@/hoo
 import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAssignments";
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import PlanSharesSection from "@/components/treatment/PlanSharesSection";
+import CatchUpDays from "@/components/treatment/CatchUpDays";
+
 
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
 import BrandTagList from "@/components/brand/BrandTagList";
@@ -263,6 +265,10 @@ const TreatmentPlanDetail = () => {
         {/* member-initiated sharing — tag a professional into your own plan */}
         {id && <PlanSharesSection planId={id} />}
 
+        {/* retrospective logging — a missed day can still be recorded */}
+        {plan.status === "active" && <CatchUpDays bundle={bundle} disabled={!hasPlus} />}
+
+
 
         {/* weeks */}
         <div className="space-y-2" id="treatment-weeks">
@@ -306,10 +312,10 @@ const TreatmentPlanDetail = () => {
                       )}
                     </p>
                     <p className="font-body text-[12px] text-muted-foreground">
-                      {w.state === "future"
-                        ? `${w.expectedFull} to come`
-                        : `${w.completed} of ${w.expected}${checkedIn ? " · Check-in saved" : ""}`}
+                      {w.line}
+                      {checkedIn && w.state !== "future" ? " · Check-in saved" : ""}
                     </p>
+
                   </div>
                   {w.isMilestone && (
                     <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary">

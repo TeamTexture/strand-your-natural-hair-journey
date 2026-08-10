@@ -27,7 +27,10 @@ import {
 } from "@/lib/treatmentCheckin";
 import {
   computeAdherence,
+  dayCounts,
+  isDailyPlan,
   daysBetween,
+
   fromDateKey,
   todayKey,
   weekNumberFor,
@@ -136,6 +139,15 @@ const TreatmentCheckin = () => {
     to: range.end,
   });
   const overall = computeAdherence(bundle.schedule, bundle.entries, plan.start_date);
+  // Day-level view, which is what a daily routine actually feels like.
+  const weekDays = dayCounts(
+    bundle.schedule,
+    bundle.entries,
+    plan.start_date,
+    range.start,
+    range.end,
+  );
+
   const daysThisWeek = new Set(
     bundle.entries
       .filter(
@@ -196,11 +208,14 @@ const TreatmentCheckin = () => {
           </div>
           <p className="font-body text-[12px] text-muted-foreground leading-snug">
             {weekAdherence.hasData
-              ? `${weekAdherence.completed} of ${weekAdherence.expected} ${weekAdherence.unit} logged this week, across ${daysThisWeek} ${daysThisWeek === 1 ? "day" : "days"}.`
+              ? isDailyPlan(bundle.schedule)
+                ? `${weekDays.daysLogged} of ${weekDays.daysDue} day${weekDays.daysDue === 1 ? "" : "s"} fully logged this week — ${weekAdherence.completed} of ${weekAdherence.expected} ${weekAdherence.unit} in total.`
+                : `${weekAdherence.completed} of ${weekAdherence.expected} ${weekAdherence.unit} logged this week, across ${daysThisWeek} ${daysThisWeek === 1 ? "day" : "days"}.`
               : "Nothing was due this week yet."}
             {weekAdherence.skipped > 0 &&
               ` ${weekAdherence.skipped} marked as skipped — that still tells us something.`}
           </p>
+
           <p className="font-body text-[12px] text-muted-foreground leading-snug border-t border-border pt-2">
             Since you started:{" "}
             {overall.hasData

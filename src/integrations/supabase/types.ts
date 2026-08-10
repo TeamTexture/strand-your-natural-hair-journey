@@ -6969,6 +6969,8 @@ export type Database = {
       treatment_reminders_due: {
         Args: { _now: string }
         Returns: {
+          due_outstanding: number
+          due_tasks: string[]
           frequency: string
           local_date: string
           plan_id: string

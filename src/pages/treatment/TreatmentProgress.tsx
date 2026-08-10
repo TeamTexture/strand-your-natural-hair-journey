@@ -143,11 +143,32 @@ const TreatmentProgress = () => {
                 );
               })}
             </div>
+            <div className="space-y-1 pt-1">
+              {weeks
+                .filter((w) => w.state !== "future")
+                .slice()
+                .reverse()
+                .map((w) => (
+                  <div key={w.week} className="flex items-baseline justify-between gap-2">
+                    <span
+                      className={cn(
+                        "font-body text-[12px]",
+                        w.state === "current" ? "text-primary font-semibold" : "text-foreground/80",
+                      )}
+                    >
+                      Week {w.week}
+                      {w.state === "current" ? " · this week" : ""}
+                    </span>
+                    <span className="font-body text-[12px] text-muted-foreground">{w.line}</span>
+                  </div>
+                ))}
+            </div>
             <p className="font-body text-[12px] text-muted-foreground leading-snug">
               Each bar is what you logged that week. Weeks ahead of you are left empty — they're not
               counted.
             </p>
           </SurfaceCard>
+
         </div>
 
         {/* photo timeline */}
