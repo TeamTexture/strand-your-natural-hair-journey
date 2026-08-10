@@ -62,10 +62,19 @@ const Waveform = ({ active }: { active: boolean }) => (
  * Voice notes for a check-in. Tap to start, tap to stop, hear it back before it
  * saves. Three minute cap with a countdown as it gets close.
  */
-const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRemoved }: Props) => {
+const CheckinVoiceNotes = ({
+  userId,
+  planId,
+  checkinId,
+  notes,
+  onUploaded,
+  onRemoved,
+  onTranscript,
+}: Props) => {
   const [pending, setPending] = useState<{ blob: Blob; mime: string; seconds: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const previewUrl = useMemo(() => (pending ? URL.createObjectURL(pending.blob) : null), [pending]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -87,8 +96,33 @@ const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRem
 
   const { urls } = useSignedMedia(notes.map((n) => n.storage_path));
 
-  const save = async () => {
+  /** Turns the words into text for her written answer. The audio stays saved. */
+  const transcribe = async (blob: Blob, mime: string) => {
+    if (!onTranscript) return;
+    setTranscribing(true);
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const { data, error: fnError } = await supabase.functions.invoke("transcribe-audio", {
+        body: { audioBase64, mimeType: mime || "audio/webm" },
+      });
+      if (fnError) throw fnError;
+      const text = ((data as { text?: string } | null)?.text ?? "").trim();
+      if (!text) {
+        toast("No speech picked up in that one — the voice note is still saved.");
+        return;
+      }
+      onTranscript(text);
+      toast.success("Added to your answer");
+    } catch {
+      toast("Couldn't turn that into text — the voice note is still saved.");
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const save = async (withTranscript: boolean) => {
     if (!pending || !checkinId) return;
+    const { blob, mime } = pending;
     setSaving(true);
     try {
       const row = await uploadTreatmentMedia({
@@ -104,6 +138,7 @@ const CheckinVoiceNotes = ({ userId, planId, checkinId, notes, onUploaded, onRem
       setPending(null);
       setJustSaved(true);
       window.setTimeout(() => setJustSaved(false), 2600);
+      if (withTranscript) void transcribe(blob, mime);
     } catch (e) {
       toast.error(e instanceof TreatmentMediaError ? e.message : "That voice note didn't save.");
     }
