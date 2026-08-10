@@ -273,7 +273,9 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
       <DualPhotoCaptureSheet
         open={scanOpen}
         onOpenChange={setScanOpen}
-        onComplete={async (front, back) => {
+        busy={scanBusy}
+        preferCamera
+        onSubmit={async (front, back) => {
           setScanOpen(false);
           toast.info("Save your step first — the scanned product lands on your shelf.");
           await startScan(front, back, "shelf", {
