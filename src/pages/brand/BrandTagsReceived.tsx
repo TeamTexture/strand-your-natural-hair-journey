@@ -41,8 +41,9 @@ const BrandTagsReceived = () => {
           </SurfaceCard>
         ) : (
           tags.map((t) => {
-            const from = pretty(t.starts_on);
-            const to = pretty(t.ends_on);
+            const from = pretty(t.promotion_starts_on);
+            const to = pretty(t.promotion_ends_on);
+
             return (
               <SurfaceCard key={t.id} className="space-y-1">
                 <p className="font-display text-[15px] leading-tight">
