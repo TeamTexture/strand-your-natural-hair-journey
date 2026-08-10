@@ -255,13 +255,22 @@ const BrandAuth = () => {
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Public contact email</Label>
               <Input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="hello@yourbrand.com" />
+              <p className="text-[11px] font-body text-muted-foreground leading-snug">
+                Shown on your brand profile so STRAND members can contact you directly.
+              </p>
             </div>
           </>
         )}
         <div className="space-y-1.5">
-          <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Email</Label>
+          <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Internal email</Label>
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          {mode === "signup" && (
+            <p className="text-[11px] font-body text-muted-foreground leading-snug">
+              Your login, and how the STRAND admin team reaches you. Never shown to members.
+            </p>
+          )}
         </div>
+
         {mode === "signup" ? (
           <PasswordField
             label="Password"
