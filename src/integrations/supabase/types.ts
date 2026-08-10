@@ -6755,6 +6755,7 @@ export type Database = {
         Args: { _plan_id: string; _user: string }
         Returns: boolean
       }
+      passport_treatment_plans: { Args: { _client: string }; Returns: Json }
       pause_lapsed_treatment_plans: { Args: never; Returns: number }
       pro_cancel_appointment: {
         Args: { _appointment_id: string; _reason: string }
@@ -6930,6 +6931,7 @@ export type Database = {
         }
         Returns: string
       }
+      treatment_assignable_clients: { Args: never; Returns: Json }
       treatment_checkin_nudge_due: {
         Args: { _today: string }
         Returns: {
