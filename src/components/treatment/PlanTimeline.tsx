@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarPlus, ChevronDown, Pencil, Plus } from "lucide-react";
+import { CalendarPlus, ChevronDown, Copy, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -130,6 +130,49 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
   };
 
   const busy = addStep.isPending || updateStep.isPending || removeStep.isPending;
+  const [copying, setCopying] = useState(false);
+
+  /**
+   * Whole treatments often run on the same products from start to finish. This
+   * takes the products attached to one week's steps and puts them on every
+   * other step in the plan, matching by step name where it can.
+   */
+  const applyProductsEverywhere = async (week: number) => {
+    const source = schedule.filter((r) => appliesInWeek(r, week) && r.product_id);
+    if (source.length === 0) {
+      toast.error("Attach a product to a step in this week first");
+      return;
+    }
+    const byName = new Map(source.map((r) => [r.task_name.trim().toLowerCase(), r.product_id!]));
+    const fallback = source[0].product_id!;
+    const targets = schedule.filter((r) => !r.product_id);
+    if (targets.length === 0) {
+      toast.success("Every step already has a product");
+      return;
+    }
+    setCopying(true);
+    try {
+      for (const row of targets) {
+        await updateStep.mutateAsync({
+          id: row.id,
+          task_name: row.task_name,
+          instructions: row.instructions ?? null,
+          cadence: row.cadence,
+          days_of_week: row.days_of_week ?? null,
+          time_of_day: row.time_of_day,
+          start_week: row.start_week ?? null,
+          end_week: row.end_week ?? null,
+          product_id: byName.get(row.task_name.trim().toLowerCase()) ?? fallback,
+        });
+      }
+      toast.success(`Products applied to ${targets.length} step${targets.length === 1 ? "" : "s"}`);
+    } catch (e) {
+      console.error("apply products everywhere failed", e);
+      toast.error("Couldn't apply those products just now");
+    } finally {
+      setCopying(false);
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -177,9 +220,16 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                     {visits.length ? ` · ${visits.length} appointment${visits.length === 1 ? "" : "s"}` : ""}
                   </p>
                 </div>
-                <ChevronDown
-                  className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
-                />
+                <span className="flex items-center gap-2 shrink-0">
+                  {!disabled && (
+                    <span className="inline-flex items-center gap-1 rounded-pill border border-border px-2.5 py-1 font-body text-[11px] text-foreground/80">
+                      <Pencil className="size-3" /> {open ? "Editing" : "Edit week"}
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")}
+                  />
+                </span>
               </button>
 
               {open && (
@@ -263,7 +313,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                           setAddingWeek(week);
                         }}
                       >
-                        <Plus className="size-3.5 mr-1" /> Step in week {week}
+                        <Plus className="size-3.5 mr-1" /> Add step &amp; product
                       </Button>
                       <Button
                         variant="outline"
@@ -273,6 +323,17 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                       >
                         <CalendarPlus className="size-3.5 mr-1" /> Appointment
                       </Button>
+                      {steps.some((r) => r.product_id) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-pill w-full"
+                          disabled={copying}
+                          onClick={() => void applyProductsEverywhere(week)}
+                        >
+                          <Copy className="size-3.5 mr-1" /> Use these products for every week
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
