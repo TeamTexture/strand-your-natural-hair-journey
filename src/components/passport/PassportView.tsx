@@ -46,6 +46,7 @@ const BASE_SECTIONS: SectionSpec[] = [
   { key: "journal", label: "Journal", count: (d) => d.journal.length },
   { key: "photos", label: "Photos", count: (d) => d.milestonePhotos.length + d.beforePhotos.length + d.moodboards.length },
   { key: "goals", label: "Goals", count: (d) => d.goals.length },
+  { key: "treatment", label: "Treatment", count: () => 0 },
 ];
 
 const NOTES_SECTION: SectionSpec = { key: "notes", label: "Notes", count: () => 0 };
