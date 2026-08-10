@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import SectionLabel from "@/components/SectionLabel";
+import ProductThumb from "@/components/ProductThumb";
 import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
 import BrandCatalogueProductPicker from "@/components/treatment/BrandCatalogueProductPicker";
@@ -29,6 +30,7 @@ interface PlanProductRow {
   product_name: string;
   brand: string | null;
   image_url: string | null;
+  storage_path: string | null;
   user_product_id: string | null;
 }
 
@@ -65,7 +67,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
     queryFn: async (): Promise<PlanProductRow[]> => {
       const { data, error } = await db
         .from("treatment_plan_products")
-        .select("id, product_name, brand, image_url, user_product_id")
+        .select("id, product_name, brand, image_url, storage_path, user_product_id")
         .eq("plan_id", planId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -81,6 +83,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
     product_name: string;
     brand: string | null;
     image_url: string | null;
+    storage_path?: string | null;
     user_product_id: string | null;
   }) => {
     const existing = planProducts.find((p) =>
@@ -101,6 +104,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
           product_name: row.product_name,
           brand: row.brand,
           image_url: row.image_url,
+          storage_path: row.storage_path ?? null,
           user_product_id: row.user_product_id,
           step_order: planProducts.length,
         })
@@ -127,6 +131,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
       product_name: resolved.name,
       brand: resolved.brand,
       image_url: resolved.image_url,
+      storage_path: resolved.storage_path,
       user_product_id: resolved.id,
     });
   };
@@ -139,16 +144,14 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
 
       {selected ? (
         <div className="flex items-center gap-2.5 rounded-[12px] border border-border bg-card px-2.5 py-2">
-          <div className="size-9 rounded-[8px] bg-muted overflow-hidden shrink-0">
-            {selected.image_url && (
-              <img
-                src={selected.image_url}
-                alt={selected.product_name}
-                className="size-full object-cover"
-                loading="lazy"
-              />
-            )}
-          </div>
+          <ProductThumb
+            imageUrl={selected.image_url}
+            storagePath={selected.storage_path}
+            alt={selected.product_name}
+            brand={selected.brand}
+            name={selected.product_name}
+            wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+          />
           <div className="min-w-0 flex-1">
             <p className="font-body text-[13px] font-medium leading-snug break-words">
               {selected.product_name}
@@ -252,6 +255,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
             product_name: prod.name,
             brand: prod.brand ?? null,
             image_url: prod.image_url ?? null,
+            storage_path: prod.storage_path ?? null,
             user_product_id: prod.id,
           });
         }}

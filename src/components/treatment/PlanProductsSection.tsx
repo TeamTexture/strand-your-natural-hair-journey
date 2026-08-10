@@ -5,6 +5,7 @@ import { Link2, Loader2, Plus, Store, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import ProductThumb from "@/components/ProductThumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,6 +30,7 @@ export interface PlanProduct {
   brand: string | null;
   usage_notes: string | null;
   image_url: string | null;
+  storage_path: string | null;
   user_product_id: string | null;
 }
 
@@ -68,7 +70,7 @@ const PlanProductsSection = ({
     queryFn: async (): Promise<PlanProduct[]> => {
       const { data, error } = await db
         .from("treatment_plan_products")
-        .select("id, product_name, brand, image_url, user_product_id, usage_notes")
+        .select("id, product_name, brand, image_url, storage_path, user_product_id, usage_notes")
         .eq("plan_id", planId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -104,6 +106,7 @@ const PlanProductsSection = ({
     product_name: string;
     brand: string | null;
     image_url: string | null;
+    storage_path?: string | null;
     user_product_id: string | null;
   }) => {
     setSaving(true);
@@ -113,6 +116,7 @@ const PlanProductsSection = ({
         product_name: row.product_name,
         brand: row.brand,
         image_url: row.image_url,
+        storage_path: row.storage_path ?? null,
         user_product_id: row.user_product_id,
         step_order: products.length,
       });
@@ -147,6 +151,7 @@ const PlanProductsSection = ({
       product_name: resolved.name,
       brand: resolved.brand,
       image_url: resolved.image_url,
+      storage_path: resolved.storage_path,
       user_product_id: resolved.id,
     });
   };
@@ -170,18 +175,14 @@ const PlanProductsSection = ({
           return (
             <SurfaceCard key={p.id} className="space-y-0.5">
               <div className="flex items-start gap-3">
-                {(p.image_url || p.user_product_id) && (
-                  <div className="size-11 rounded-xl bg-muted overflow-hidden shrink-0">
-                    {p.image_url && (
-                      <img
-                        src={p.image_url}
-                        alt={p.product_name}
-                        className="size-full object-cover"
-                        loading="lazy"
-                      />
-                    )}
-                  </div>
-                )}
+                <ProductThumb
+                  imageUrl={p.image_url}
+                  storagePath={p.storage_path}
+                  alt={p.product_name}
+                  brand={p.brand}
+                  name={p.product_name}
+                  wrapperClassName="size-11 rounded-xl overflow-hidden bg-secondary shrink-0"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="font-body text-[14px] font-semibold break-words">
                     {p.product_name}
@@ -276,6 +277,7 @@ const PlanProductsSection = ({
             product_name: prod.name,
             brand: prod.brand ?? null,
             image_url: prod.image_url ?? null,
+            storage_path: prod.storage_path ?? null,
             user_product_id: prod.id,
           });
         }}
