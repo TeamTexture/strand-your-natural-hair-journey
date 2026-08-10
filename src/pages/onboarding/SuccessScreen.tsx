@@ -19,6 +19,13 @@ const SuccessScreen = () => {
       .eq("user_id", user.id);
   }, [user]);
 
+  // Onboarding is finished — the step drafts are no longer needed.
+  useEffect(() => {
+    clearOnboardingDrafts();
+  }, []);
+
+
+
   // Primary CTA — go into the app and trigger the guided home tour on arrival.
   const handleContinue = () => {
     localStorage.setItem("strand_walkthrough_complete", "true");
