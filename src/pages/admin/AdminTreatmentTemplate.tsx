@@ -99,11 +99,11 @@ const AdminTreatmentTemplate = () => {
 
   const matches = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return members
+    if (!q) return plusMembers.slice(0, 8);
+    return plusMembers
       .filter((m) => m.name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q))
       .slice(0, 8);
-  }, [members, search]);
+  }, [plusMembers, search]);
 
   const updateStep = (i: number, patch: Partial<AdminTemplateStep>) =>
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
