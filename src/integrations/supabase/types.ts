@@ -1475,9 +1475,10 @@ export type Database = {
       }
       brand_tags: {
         Row: {
-          brand_id: string
+          brand_id: string | null
           created_at: string
           created_by_user_id: string
+          custom_brand_name: string | null
           disclosure_label: string | null
           id: string
           promotion_ends_on: string | null
@@ -1488,9 +1489,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          brand_id: string
+          brand_id?: string | null
           created_at?: string
           created_by_user_id: string
+          custom_brand_name?: string | null
           disclosure_label?: string | null
           id?: string
           promotion_ends_on?: string | null
@@ -1501,9 +1503,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          brand_id?: string
+          brand_id?: string | null
           created_at?: string
           created_by_user_id?: string
+          custom_brand_name?: string | null
           disclosure_label?: string | null
           id?: string
           promotion_ends_on?: string | null
