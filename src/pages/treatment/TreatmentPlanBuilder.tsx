@@ -345,6 +345,13 @@ const TreatmentPlanBuilder = () => {
                   <Link2 className="size-4 mr-1.5" /> Paste a link
                 </Button>
               </div>
+              <Button
+                variant="outline"
+                className="w-full rounded-pill"
+                onClick={() => setBrandPickerOpen(true)}
+              >
+                <Store className="size-4 mr-1.5" /> From a brand's shelf
+              </Button>
               {linkOpen && (
                 <div className="space-y-2 pt-1">
                   <Input
