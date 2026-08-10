@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -55,6 +56,24 @@ const ProfileStep3Hair = () => {
   const [areas, setAreas] = useState(["Edges / hairline"]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
+
+  // Keep everything selected on this step if the member navigates back and forth.
+  useOnboardingDraft(
+    "profile-step-3-hair",
+    { diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
+    (d) => {
+      if (d.diameter) setDiameter(d.diameter);
+      if (d.texture) setTexture(d.texture);
+      if (d.density) setDensity(d.density);
+      if (d.porosity) setPorosity(d.porosity);
+      if (d.elasticity) setElasticity(d.elasticity);
+      if (d.scalp) setScalp(d.scalp);
+      if (d.diagnosed) setDiagnosed(d.diagnosed);
+      if (d.areas) setAreas(d.areas);
+      if (d.lengthInches !== undefined) setLengthInches(d.lengthInches);
+      if (d.lengthBucket !== undefined) setLengthBucket(d.lengthBucket);
+    },
+  );
   const { shouldAsk } = usePersonalisedOffersAsk();
   const [askOffers, setAskOffers] = useState(false);
 

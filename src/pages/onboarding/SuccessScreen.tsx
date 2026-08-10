@@ -4,6 +4,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { clearOnboardingDrafts } from "@/hooks/useOnboardingDraft";
 
 const SuccessScreen = () => {
   const navigate = useNavigate();
@@ -17,6 +18,13 @@ const SuccessScreen = () => {
       .update({ onboarding_completed_at: new Date().toISOString() })
       .eq("user_id", user.id);
   }, [user]);
+
+  // Onboarding is finished — the step drafts are no longer needed.
+  useEffect(() => {
+    clearOnboardingDrafts();
+  }, []);
+
+
 
   // Primary CTA — go into the app and trigger the guided home tour on arrival.
   const handleContinue = () => {

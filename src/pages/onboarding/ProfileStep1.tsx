@@ -1,5 +1,6 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, Stethoscope, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -180,6 +181,20 @@ const ProfileStep1 = () => {
   }, [user]);
 
   // If routed here with #postcode, scroll to and focus the postcode input.
+  // Keep anything typed on this step if the member navigates away and returns.
+  useOnboardingDraft(
+    "profile-step-1",
+    { name, phone, age, postcode, country, heritage },
+    (d) => {
+      if (d.name) setName(d.name);
+      if (d.phone) setPhone(d.phone);
+      if (d.age) setAge(d.age);
+      if (d.postcode) setPostcode(d.postcode);
+      if (d.country) setCountry(d.country);
+      if (d.heritage) setHeritage(d.heritage);
+    },
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash !== "#postcode") return;

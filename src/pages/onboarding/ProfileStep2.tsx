@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -55,6 +56,25 @@ const ProfileStep2 = () => {
   const [exercise, setExercise] = useState<string[]>(["1-3x per week"]);
   const [sleep, setSleep] = useState<string[]>(["Average"]);
   const [meds, setMeds] = useState<{ name: string; category: string }[]>([]);
+
+  // Keep everything typed on this step if the member navigates back and forth.
+  useOnboardingDraft(
+    "profile-step-2",
+    { lifeStage, contraception, conditions, diet, dietBalance, smoke, alcohol, water, exercise, sleep, meds },
+    (d) => {
+      if (d.lifeStage) setLifeStage(d.lifeStage);
+      if (d.contraception) setContraception(d.contraception);
+      if (d.conditions) setConditions(d.conditions);
+      if (d.diet) setDiet(d.diet);
+      if (d.dietBalance) setDietBalance(d.dietBalance);
+      if (d.smoke) setSmoke(d.smoke);
+      if (d.alcohol) setAlcohol(d.alcohol);
+      if (d.water) setWater(d.water);
+      if (d.exercise) setExercise(d.exercise);
+      if (d.sleep) setSleep(d.sleep);
+      if (d.meds) setMeds(d.meds);
+    },
+  );
 
   return (
     <ScreenLayout>

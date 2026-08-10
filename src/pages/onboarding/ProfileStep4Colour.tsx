@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -97,6 +98,36 @@ const ProfileStep4Colour = () => {
     extensions: null,
   });
   const [attrError, setAttrError] = useState(false);
+
+  // Keep everything entered on this step if the member navigates back and forth.
+  useOnboardingDraft(
+    "profile-step-4-colour",
+    {
+      colour, chemHist, style, howLongNum, howLongUnit, plansToChange, changeNum, changeUnit,
+      changingTo, defaultStyle, colourType, colourProduct, colourLast, colourReaction,
+      colourReactionDetails, colourReactionAudioPath, attrs, plannedAttrs,
+    },
+    (d) => {
+      if (d.colour) setColour(d.colour);
+      if (d.chemHist) setChemHist(d.chemHist);
+      if (d.style) setStyle(d.style);
+      if (d.howLongNum !== undefined) setHowLongNum(d.howLongNum);
+      if (d.howLongUnit) setHowLongUnit(d.howLongUnit);
+      if (d.plansToChange) setPlansToChange(d.plansToChange);
+      if (d.changeNum !== undefined) setChangeNum(d.changeNum);
+      if (d.changeUnit) setChangeUnit(d.changeUnit);
+      if (d.changingTo) setChangingTo(d.changingTo);
+      if (d.defaultStyle) setDefaultStyle(d.defaultStyle);
+      if (d.colourType) setColourType(d.colourType);
+      if (d.colourProduct) setColourProduct(d.colourProduct);
+      if (d.colourLast) setColourLast(d.colourLast);
+      if (d.colourReaction) setColourReaction(d.colourReaction);
+      if (d.colourReactionDetails !== undefined) setColourReactionDetails(d.colourReactionDetails);
+      if (d.colourReactionAudioPath !== undefined) setColourReactionAudioPath(d.colourReactionAudioPath);
+      if (d.attrs) setAttrs(d.attrs);
+      if (d.plannedAttrs) setPlannedAttrs(d.plannedAttrs);
+    },
+  );
 
   const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
