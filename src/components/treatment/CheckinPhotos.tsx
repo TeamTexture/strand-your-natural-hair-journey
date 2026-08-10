@@ -97,9 +97,9 @@ const CheckinPhotos = ({
         <span className="font-body text-[12px] text-muted-foreground">Optional</span>
       </div>
 
-      {photos.length > 0 && (
+      {shown.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
-          {photos.map((p) => (
+          {shown.map((p) => (
             <div key={p.id} className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
               {urls[p.storage_path] ? (
                 <img
@@ -129,21 +129,25 @@ const CheckinPhotos = ({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        // iPhone photos are HEIC; some pickers grey those out when the accept
+        // list is image/* alone, which reads as "it won't let me pick".
+        accept="image/*,.heic,.HEIC,.heif,.HEIF"
         multiple
-        capture={undefined}
         className="hidden"
         onChange={(e) => void pick(e.target.files)}
       />
       <button
         type="button"
-        disabled={busy || !checkinId}
+        disabled={!!busy || !checkinId}
         onClick={() => inputRef.current?.click()}
         className="w-full rounded-pill border border-dashed border-border py-2.5 font-body text-[13px] flex items-center justify-center gap-2 disabled:opacity-60"
       >
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
-        {busy ? "Adding…" : photos.length ? "Add another photo" : "Take or choose a photo"}
+        {busy ?? (shown.length ? "Add more photos" : "Take or choose photos")}
       </button>
+      <p className="font-body text-[11px] text-muted-foreground text-center">
+        You can choose more than one at a time.
+      </p>
     </SurfaceCard>
   );
 };
