@@ -71,7 +71,7 @@ const ForgotPassword = () => {
       <TitleBar title="Reset password" back />
       <div className="px-7 pt-2 pb-10">
         <div className="flex flex-col items-center text-center mb-6">
-          <HairStrandIcon className="w-12 h-12 text-primary mb-3" />
+          <HairStrandIcon className="h-12 w-auto text-primary mb-3" />
           <h2 className="font-display text-2xl font-semibold text-foreground mt-2">
             {sent ? "Check your inbox" : "Reset your password"}
           </h2>

@@ -102,7 +102,7 @@ const SplashScreen = () => {
       <div className="flex flex-col items-center justify-center flex-1 pt-8 gap-8">
         {/* Logo block */}
         <div className="flex flex-col items-center text-center">
-          <HairStrandIcon className="w-16 h-16 text-primary mb-6" />
+          <HairStrandIcon className="h-16 w-auto text-primary mb-6" />
 
           <h1 className="font-display text-primary text-6xl font-semibold tracking-strand uppercase">
             Strand

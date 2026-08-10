@@ -190,7 +190,7 @@ const BrandAuth = () => {
   return (
     <div className="flex flex-col h-full px-7 pb-8 bg-background overflow-y-auto">
       <div className="flex flex-col items-center text-center pt-6 gap-3">
-        <HairStrandIcon className="w-12 h-12 text-primary" />
+        <HairStrandIcon className="h-12 w-auto text-primary" />
         <h1 className="font-display text-primary text-4xl font-semibold tracking-strand uppercase">Strand</h1>
         <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">For Brands</p>
         <p className="max-w-[280px] text-foreground/75 text-sm leading-relaxed">

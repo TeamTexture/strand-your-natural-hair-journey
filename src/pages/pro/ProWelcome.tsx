@@ -76,7 +76,7 @@ const ProWelcome = () => {
       <div className="px-6 pt-4 pb-10 space-y-6">
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-3">
-            <HairStrandIcon className="w-12 h-12 text-primary" />
+            <HairStrandIcon className="h-12 w-auto text-primary" />
             <Sparkles className="absolute -top-1 -right-2 size-4 text-primary" />
           </div>
           <p className="font-display italic text-[11px] uppercase tracking-[0.28em] text-foreground/70">
