@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { WeekWindowFields } from "@/components/treatment/StepEditorSheet";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Store, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
+import BrandCatalogueProductPicker from "@/components/treatment/BrandCatalogueProductPicker";
 import ReminderPicker, {
   defaultReminder,
   type ReminderSettings,
@@ -108,6 +109,7 @@ const TreatmentPlanBuilder = () => {
 
   // Adding products from the shelf or from a pasted product link.
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const { resolveLink, busy: linkBusy } = usePlanProductLink();
@@ -345,6 +347,13 @@ const TreatmentPlanBuilder = () => {
                   <Link2 className="size-4 mr-1.5" /> Paste a link
                 </Button>
               </div>
+              <Button
+                variant="outline"
+                className="w-full rounded-pill"
+                onClick={() => setBrandPickerOpen(true)}
+              >
+                <Store className="size-4 mr-1.5" /> From a brand's shelf
+              </Button>
               {linkOpen && (
                 <div className="space-y-2 pt-1">
                   <Input
@@ -464,6 +473,31 @@ const TreatmentPlanBuilder = () => {
                   image_url: prod.image_url,
                 })
               }
+            />
+
+            <BrandCatalogueProductPicker
+              open={brandPickerOpen}
+              onOpenChange={setBrandPickerOpen}
+              onPick={(pick) => {
+                setProducts((list) => {
+                  const next = [...list];
+                  const patch = {
+                    product_name: pick.name,
+                    brand: pick.brand ?? "",
+                    usage_notes: "",
+                    ingredient_id: null,
+                    user_product_id: null,
+                    image_url: pick.image_url,
+                  };
+                  const blank = next.findIndex(
+                    (x) => !x.product_name.trim() && !x.brand.trim() && !x.usage_notes.trim(),
+                  );
+                  if (blank >= 0) next[blank] = patch;
+                  else next.push(patch);
+                  return next;
+                });
+                toast.success(`${pick.name} added`);
+              }}
             />
           </div>
         )}
