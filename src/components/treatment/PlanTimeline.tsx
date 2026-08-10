@@ -48,19 +48,9 @@ interface Props {
   goal: string | null;
   products: PlanProduct[];
   onProductsChanged: () => void;
-  onCheckin: (week: number) => void;
   /** Read-only when the plan is paused or she isn't on STRAND+. */
   disabled?: boolean;
 }
-
-/** current | needs check-in | checked in | ahead */
-type Tier = "a" | "b" | "c" | "d";
-
-const tierOf = (w: WeekSummary, checkedIn: boolean): Tier => {
-  if (w.state === "current") return "a";
-  if (w.state === "future") return "d";
-  return checkedIn ? "c" : "b";
-};
 
 /**
  * THE PLAN — the whole treatment in one place: a quiet line for what she's
@@ -78,7 +68,6 @@ const PlanTimeline = ({
   goal,
   products,
   onProductsChanged,
-  onCheckin,
   disabled,
 }: Props) => {
   const navigate = useNavigate();
@@ -240,8 +229,8 @@ const PlanTimeline = ({
             {weeks.map((w) => {
               const week = w.week;
               const checkedIn = checkedInWeeks.has(week);
-              const tier = tierOf(w, checkedIn);
               const isOpen = openWeek === week;
+              const isCurrent = week === currentWeek;
               const { start, end } = weekRange(startDate, week);
               const steps = schedule
                 .filter((r) => appliesInWeek(r, week))
@@ -250,29 +239,15 @@ const PlanTimeline = ({
                 (a) => a.appointment_date >= start && a.appointment_date <= end,
               );
 
-              const shell = {
-                a: "bg-primary border-primary text-primary-foreground",
-                b: "bg-card border-primary border-[1.5px]",
-                c: "bg-card border-border",
-                d: "bg-secondary/60 border-border/60 text-muted-foreground",
-              }[tier];
-
-              const eyebrow = {
-                a: "text-primary-foreground/75",
-                b: "text-primary",
-                c: "text-muted-foreground",
-                d: "text-muted-foreground",
-              }[tier];
-
-              const meta = {
-                a: "text-primary-foreground/80",
-                b: "text-muted-foreground",
-                c: "text-muted-foreground",
-                d: "text-muted-foreground",
-              }[tier];
-
               return (
-                <SurfaceCard key={week} padded={false} className={cn("overflow-hidden", shell)}>
+                <SurfaceCard
+                  key={week}
+                  padded={false}
+                  className={cn(
+                    "overflow-hidden bg-card",
+                    isCurrent ? "border-primary/60" : "border-border",
+                  )}
+                >
                   <button
                     type="button"
                     onClick={() => setOpenWeek(isOpen ? null : week)}
@@ -281,27 +256,17 @@ const PlanTimeline = ({
                   >
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <p
-                          className={cn(
-                            "font-body text-[10px] uppercase tracking-[0.18em]",
-                            eyebrow,
-                          )}
-                        >
-                          {tier === "a" ? "This week" : tier === "d" ? "Ahead" : "Week"}
-                        </p>
-                        <p
-                          className={cn(
-                            "font-display leading-tight mt-0.5",
-                            tier === "a" ? "text-[24px]" : "text-[17px]",
-                          )}
-                        >
-                          Week {week}
-                        </p>
-                        <p className={cn("font-body text-[11.5px] mt-1", meta)}>
+                        {isCurrent && (
+                          <p className="font-body text-[10px] uppercase tracking-[0.18em] text-primary">
+                            You are here
+                          </p>
+                        )}
+                        <p className="font-display text-[17px] leading-tight mt-0.5">Week {week}</p>
+                        <p className="font-body text-[11.5px] text-muted-foreground mt-1">
                           {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")}{" "}
                           · {w.line}
                         </p>
-                        {tier === "c" && (
+                        {checkedIn && (
                           <p className="mt-1 flex items-center gap-1.5 font-body text-[11.5px] text-muted-foreground">
                             <span className="size-4 rounded-full bg-good/15 text-good flex items-center justify-center">
                               <Check className="size-2.5" />
@@ -313,21 +278,13 @@ const PlanTimeline = ({
 
                       <span className="shrink-0 flex items-center gap-1.5">
                         {w.isMilestone && (
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-pill px-2 py-0.5 font-body text-[10px] font-semibold",
-                              tier === "a"
-                                ? "bg-background/25 text-primary-foreground"
-                                : "bg-primary/10 text-primary",
-                            )}
-                          >
+                          <span className="inline-flex items-center gap-1 rounded-pill bg-primary/10 px-2 py-0.5 font-body text-[10px] font-semibold text-primary">
                             <Camera className="size-3" /> Photo
                           </span>
                         )}
                         <ChevronDown
                           className={cn(
-                            "size-4 transition-transform",
-                            tier === "a" ? "text-primary-foreground/80" : "text-muted-foreground",
+                            "size-4 text-muted-foreground transition-transform",
                             isOpen && "rotate-180",
                           )}
                         />
@@ -335,56 +292,16 @@ const PlanTimeline = ({
                     </div>
                   </button>
 
-                  {/* the check-in affordance, per tier */}
-                  {tier === "a" && (
-                    <div className="px-4 pb-3.5">
-                      <Button
-                        className="rounded-pill w-full bg-background text-primary hover:bg-background/90"
-                        onClick={() => onCheckin(week)}
-                      >
-                        Check in for week {week}
-                      </Button>
-                    </div>
-                  )}
-                  {tier === "b" && (
-                    <div className="px-4 pb-3.5 space-y-1.5">
-                      <p className="font-body text-[12px] text-muted-foreground leading-snug">
-                        No check-in for this week yet, which is completely fine — you can still
-                        write it now.
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="rounded-pill w-full"
-                        onClick={() => onCheckin(week)}
-                      >
-                        Check in for week {week}
-                      </Button>
-                    </div>
-                  )}
-                  {tier === "c" && (
-                    <div className="px-4 pb-3.5">
-                      <button
-                        type="button"
-                        onClick={() => onCheckin(week)}
-                        className="font-body text-[12px] text-primary underline underline-offset-2"
-                      >
-                        Read your week {week} check-in
-                      </button>
-                    </div>
-                  )}
-
                   {isOpen && (
                     <div
                       className={cn(
-                        "space-y-2 px-4 pb-4 pt-3 border-t",
-                        tier === "a" ? "border-primary-foreground/20" : "border-border/60",
+                        "space-y-2 px-4 pb-4 pt-3 border-t border-border/60",
                       )}
                     >
                       {steps.length === 0 ? (
                         <p
                           className={cn(
-                            "font-body text-[13px] leading-snug",
-                            tier === "a" ? "text-primary-foreground/85" : "text-muted-foreground",
+                            "font-body text-[13px] leading-snug text-muted-foreground",
                           )}
                         >
                           Nothing planned for this week yet.
@@ -395,10 +312,7 @@ const PlanTimeline = ({
                             <div
                               key={row.id}
                               className={cn(
-                                "rounded-xl border px-3 py-2 flex items-start gap-2",
-                                tier === "a"
-                                  ? "border-primary-foreground/25 bg-background/10"
-                                  : "border-border",
+                                "rounded-xl border border-border px-3 py-2 flex items-start gap-2",
                               )}
                             >
                               <div className="min-w-0 flex-1">
@@ -407,10 +321,7 @@ const PlanTimeline = ({
                                 </p>
                                 <p
                                   className={cn(
-                                    "font-body text-[11px]",
-                                    tier === "a"
-                                      ? "text-primary-foreground/80"
-                                      : "text-muted-foreground",
+                                    "font-body text-[11px] text-muted-foreground",
                                   )}
                                 >
                                   {cadenceSummary(row, startDate)}
@@ -427,8 +338,7 @@ const PlanTimeline = ({
                                     />
                                     <span
                                       className={cn(
-                                        "font-body text-[11px] break-words",
-                                        tier === "a" ? "text-primary-foreground" : "text-primary",
+                                        "font-body text-[11px] break-words text-primary",
                                       )}
                                     >
                                       {productFor(row.product_id)!.product_name}
@@ -445,10 +355,7 @@ const PlanTimeline = ({
                                     setEditing(row);
                                   }}
                                   className={cn(
-                                    "min-h-[32px]",
-                                    tier === "a"
-                                      ? "text-primary-foreground/85"
-                                      : "text-muted-foreground",
+                                    "min-h-[32px] text-muted-foreground",
                                   )}
                                 >
                                   <Pencil className="size-4" />
