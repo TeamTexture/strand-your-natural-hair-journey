@@ -10,7 +10,7 @@ import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useSetPlanStatus, useTreatmentPlan } from "@/hooks/useTreatmentPlans";
+import { useSetPlanStatus, useTreatmentPlan, useUpdatePlanReminder } from "@/hooks/useTreatmentPlans";
 import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAssignments";
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
@@ -19,6 +19,7 @@ import BrandTagControl from "@/components/brand/BrandTagControl";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
+import ReminderPicker, { type ReminderSettings } from "@/components/treatment/ReminderPicker";
 import {
   cadenceSummary,
   computeAdherence,
@@ -184,6 +185,23 @@ const TreatmentPlanDetail = () => {
         </SurfaceCard>
 
         {!hasPlus && <TreatmentReadOnlyNotice next={`/treatment/${plan.id}`} />}
+
+        <ReminderPicker
+          value={{
+            frequency: plan.reminder_frequency ?? "weekly",
+            weekday: plan.reminder_weekday ?? 0,
+            hour: plan.reminder_hour ?? 9,
+          }}
+          onChange={(next: ReminderSettings) => {
+            updateReminder.mutate(
+              { planId: plan.id, ...next },
+              {
+                onError: () => toast.error("Couldn't save that reminder just now"),
+                onSuccess: () => toast.success("Reminder updated"),
+              },
+            );
+          }}
+        />
 
         {/* actions */}
         <div className="grid grid-cols-2 gap-2">

@@ -30,6 +30,10 @@ export interface TreatmentPlanRow {
   status: PlanStatus;
   professional_id: string | null;
   notes: string | null;
+  reminder_frequency: "off" | "daily" | "weekly";
+  reminder_weekday: number;
+  reminder_hour: number;
+  reminder_timezone: string | null;
 }
 
 export interface ProductRow {
@@ -68,7 +72,7 @@ const db = supabase as unknown as {
 async function loadBundles(userId: string, statuses: PlanStatus[]): Promise<PlanBundle[]> {
   const { data: plans, error } = await db
     .from("treatment_plans")
-    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes")
+    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone")
     .eq("user_id", userId)
     .in("status", statuses)
     .order("created_at", { ascending: false });
@@ -289,6 +293,41 @@ export function useSetPlanStatus() {
   });
 }
 
+/** Change the check-in reminder cadence on an existing plan. */
+export function useUpdatePlanReminder() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      planId: string;
+      frequency: "off" | "daily" | "weekly";
+      weekday: number;
+      hour: number;
+    }) => {
+      const { error } = await db
+        .from("treatment_plans")
+        .update({
+          reminder_frequency: v.frequency,
+          reminder_weekday: v.weekday,
+          reminder_hour: v.hour,
+          reminder_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London",
+        })
+        .eq("id", v.planId);
+      if (error) throw error;
+      if (v.frequency !== "off") {
+        await db
+          .from("email_preferences")
+          .upsert(
+            { user_id: user!.id, treatment_checkin_reminders: true },
+            { onConflict: "user_id" },
+          );
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["treatment-plans", user?.id] }),
+  });
+}
+
 /* -------------------------------------------------------------- creation */
 
 export interface DraftStep {
@@ -320,6 +359,10 @@ export interface DraftPlan {
   steps: DraftStep[];
   milestoneWeeks: number[];
   checkinReminder: boolean;
+  /** Reminder cadence chosen by the member, in their own local time. */
+  reminderFrequency: "off" | "daily" | "weekly";
+  reminderWeekday: number;
+  reminderHour: number;
 }
 
 export function useCreateTreatmentPlan() {
@@ -343,6 +386,11 @@ export function useCreateTreatmentPlan() {
           end_date: endKey,
           duration_weeks: draft.duration_weeks,
           status: "active",
+          reminder_frequency: draft.reminderFrequency,
+          reminder_weekday: draft.reminderWeekday,
+          reminder_hour: draft.reminderHour,
+          reminder_timezone:
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London",
         })
         .select("id")
         .single();
@@ -401,7 +449,7 @@ export function useCreateTreatmentPlan() {
       }
 
       // Weekly check-in reminder preference. Sending comes later.
-      if (draft.checkinReminder) {
+      if (draft.checkinReminder && draft.reminderFrequency !== "off") {
         await db
           .from("email_preferences")
           .upsert(
