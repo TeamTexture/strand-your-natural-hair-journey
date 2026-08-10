@@ -157,16 +157,11 @@ const CheckinVoiceNotes = ({
 
   return (
     <SurfaceCard className="space-y-3">
-      <div>
-        <p className="font-body text-[14px] font-semibold">
-          {onTranscript ? "Or just say it out loud" : "Say a few words"}
-        </p>
-        <p className="font-body text-[12px] text-muted-foreground mt-0.5">
-          {onTranscript
-            ? "Up to three minutes. We can write it out into your answer above, or keep it as audio only."
-            : "Up to three minutes. Talking is usually quicker than typing."}
-        </p>
-      </div>
+      <p className="font-body text-[12px] text-muted-foreground">
+        {onTranscript
+          ? "Prefer to talk? Record up to three minutes — we can write it into your answer above, or keep it as audio only."
+          : "Record up to three minutes. Talking is usually quicker than typing."}
+      </p>
 
       {notes.length > 0 && (
         <div className="space-y-1.5">
