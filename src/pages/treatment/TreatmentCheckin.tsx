@@ -9,7 +9,6 @@ import SurfaceCard from "@/components/SurfaceCard";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useTreatmentPlan } from "@/hooks/useTreatmentPlans";
@@ -22,9 +21,7 @@ import {
   type CheckinRow,
 } from "@/hooks/useTreatmentCheckin";
 import {
-  CHECKIN_METRICS,
   defaultRatings,
-  ratingLabel,
   ratingsWithDefaults,
   type CheckinRatings,
 } from "@/lib/treatmentCheckin";
@@ -34,8 +31,8 @@ import CheckinVoiceNotes from "@/components/treatment/CheckinVoiceNotes";
 import CheckinVideo from "@/components/treatment/CheckinVideo";
 
 /**
- * Weekly check-in. Four sliders read from CHECKIN_METRICS (never hardcoded
- * here), an optional note, and the media pipeline.
+ * Weekly check-in. One open question, plus the media pipeline — no scored
+ * sliders, because the numbers made it feel like a form.
  *
  * A check-in row is opened as soon as the screen loads so photos, voice notes
  * and video have something to attach to while she's still filling it in. It
@@ -149,8 +146,7 @@ const TreatmentCheckin = () => {
         <div>
           <h1 className="font-display text-[24px] leading-tight">Week {week} check-in</h1>
           <p className="font-body text-[13px] text-muted-foreground mt-1 leading-snug">
-            Tell us how it's going in your own words — write it, record it, or show it. The sliders are
-            optional.
+            Tell us how it's going in your own words — write it, record it, or show it.
           </p>
           <p className="font-body text-[12px] text-muted-foreground mt-1">
             {format(fromDateKey(range.start), "d MMM")} – {format(fromDateKey(range.end), "d MMM")}
@@ -225,34 +221,8 @@ const TreatmentCheckin = () => {
           )}
         </SurfaceCard>
 
-        {/* sliders — driven entirely by the metric config */}
-        <p className="font-body text-[12px] text-muted-foreground px-0.5">
-          Optional — four quick sliders, if you want to track the numbers too.
-        </p>
-        <div className="space-y-2">
-          {CHECKIN_METRICS.map((m) => (
-            <SurfaceCard key={m.key} className="space-y-2.5">
-              <div>
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-body text-[14px] font-semibold">{m.label}</p>
-                  <p className="font-display text-[15px] text-primary text-right leading-tight">
-                    {ratingLabel(m, ratings[m.key] ?? 3)}
-                  </p>
-                </div>
-                <p className="font-body text-[12px] text-muted-foreground mt-0.5">{m.helper}</p>
-              </div>
-              <Slider
-                aria-label={m.label}
-                min={1}
-                max={m.scale.length}
-                step={1}
-                value={[ratings[m.key] ?? 3]}
-                disabled={!hasPlus}
-                onValueChange={([v]) => setRatings((r) => ({ ...r, [m.key]: v }))}
-              />
-            </SurfaceCard>
-          ))}
-        </div>
+
+
 
 
         {/* media */}
