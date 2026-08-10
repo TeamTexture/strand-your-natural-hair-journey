@@ -39,8 +39,9 @@ export type BrandTagType = "editorial" | "promoted";
 
 export interface BrandTag {
   id: string;
-  brand_id: string;
-  brand_user_id: string;
+  /** Null when the member typed a brand that isn't on STRAND. */
+  brand_id: string | null;
+  brand_user_id: string | null;
   brand_name: string;
   logo_path: string | null;
   tag_type: BrandTagType;
@@ -115,7 +116,8 @@ export function useSaveBrandTag(taggableType: TaggableType, taggableId?: string 
   const { user } = useAuth();
   return useMutation({
     mutationFn: async (v: {
-      brand_id: string;
+      brand_id?: string | null;
+      custom_brand_name?: string | null;
       tag_type: BrandTagType;
       disclosure_label?: string | null;
       promotion_starts_on?: string | null;
@@ -126,8 +128,12 @@ export function useSaveBrandTag(taggableType: TaggableType, taggableId?: string 
       if (v.tag_type === "promoted" && !v.disclosure_label?.trim()) {
         throw new Error("A promoted tag needs a disclosure label before it can be saved.");
       }
+      if (!v.brand_id && !v.custom_brand_name?.trim()) {
+        throw new Error("Pick a brand, or type the brand's name.");
+      }
       const { error } = await db.from("brand_tags").insert({
-        brand_id: v.brand_id,
+        brand_id: v.brand_id || null,
+        custom_brand_name: v.brand_id ? null : v.custom_brand_name!.trim(),
         taggable_type: taggableType,
         taggable_id: taggableId,
         tag_type: v.tag_type,

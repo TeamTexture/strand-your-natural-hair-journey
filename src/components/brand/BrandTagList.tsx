@@ -30,13 +30,19 @@ const TagRow = ({ tag }: { tag: BrandTag }) => {
         promoted ? "border-primary/50 bg-primary/10" : "border-border bg-card",
       )}
     >
-      <button
-        type="button"
-        onClick={() => nav(`/brands/${tag.brand_user_id}`)}
-        className="font-display text-[14px] text-primary underline underline-offset-2 decoration-primary/40 text-left [overflow-wrap:anywhere]"
-      >
-        {tag.brand_name}
-      </button>
+      {tag.brand_user_id ? (
+        <button
+          type="button"
+          onClick={() => nav(`/brands/${tag.brand_user_id}`)}
+          className="font-display text-[14px] text-primary underline underline-offset-2 decoration-primary/40 text-left [overflow-wrap:anywhere]"
+        >
+          {tag.brand_name}
+        </button>
+      ) : (
+        <p className="font-display text-[14px] text-foreground [overflow-wrap:anywhere]">
+          {tag.brand_name}
+        </p>
+      )}
       {promoted && (
         <p className="mt-1 font-body text-[12px] font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">
           {tag.disclosure_label}
