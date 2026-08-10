@@ -106,7 +106,12 @@ const MessageNotifications = () => {
     const t = threadIndex.get(m.thread_id);
     const name = senderNameFor(t);
     toast(name, {
-      description: shortPreview(m.body || ""),
+      description:
+        m.kind === "voice"
+          ? "🎤 Voice note"
+          : m.kind === "image"
+            ? "📷 Photo"
+            : shortPreview(m.body || ""),
       position: "top-center",
       duration: 4500,
       icon: <MessageCircle className="size-4 text-primary" />,
