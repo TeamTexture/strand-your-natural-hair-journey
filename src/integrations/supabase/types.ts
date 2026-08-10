@@ -6612,6 +6612,10 @@ export type Database = {
           status: Database["public"]["Enums"]["brand_offer_status"]
         }[]
       }
+      campaign_owner_access: {
+        Args: { _owner_type: string; _user: string }
+        Returns: boolean
+      }
       can_manage_pro_profile: {
         Args: { _profile_id: string; _user_id?: string }
         Returns: boolean
