@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ConsentKey,
   ConsentRole,
@@ -40,14 +41,39 @@ export function useConsentState() {
     queryFn: () => fetchConsentRows(user!.id),
   });
 
+  // A brand new professional or brand does NOT hold their role yet — it is
+  // granted on approval. Without this, they fall back to the member matrix and
+  // get asked for health-data consent, which they must never be asked for.
+  const pending = useQuery({
+    queryKey: ["consent-pending-views", user?.id],
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<ConsentView[]> => {
+      const [app, brand] = await Promise.all([
+        supabase.from("pro_applications").select("id").eq("user_id", user!.id).limit(1),
+        supabase.from("brand_profiles").select("id").eq("user_id", user!.id).limit(1),
+      ]);
+      const out: ConsentView[] = [];
+      if ((app.data ?? []).length) out.push("pro");
+      if ((brand.data ?? []).length) out.push("brand");
+      return out;
+    },
+  });
+
   const rows: ConsentRow[] = q.data ?? [];
   const consentRoles = roles as ConsentRole[];
   // Clamp the remembered/route view to a view this account may actually enter.
-  const view: ConsentView = resolveConsentView(activeView as ConsentView, consentRoles);
+  const view: ConsentView = resolveConsentView(
+    activeView as ConsentView,
+    consentRoles,
+    pending.data ?? [],
+  );
   const latest = latestByKey(rows);
-  const outstanding = rolesLoading ? [] : outstandingMandatory(rows, view);
+  const gateLoading = rolesLoading || pending.isLoading;
+  const outstanding = gateLoading ? [] : outstandingMandatory(rows, view);
   // Only optional items that have NEVER been answered are still outstanding.
-  const optionalOutstanding = rolesLoading ? [] : unansweredOptional(rows, view);
+  const optionalOutstanding = gateLoading ? [] : unansweredOptional(rows, view);
 
   const isGranted = (key: ConsentKey) => !!latest[key]?.granted;
 
@@ -65,8 +91,8 @@ export function useConsentState() {
     /** Optional keys still genuinely unanswered — the only ones safe to ask for. */
     optionalOutstanding,
     needsConsent:
-      !!user && !q.isLoading && !rolesLoading && !q.isError && outstanding.length > 0,
-    isLoading: q.isLoading || rolesLoading,
+      !!user && !q.isLoading && !gateLoading && !q.isError && outstanding.length > 0,
+    isLoading: q.isLoading || gateLoading,
     refetch: q.refetch,
   };
 }
