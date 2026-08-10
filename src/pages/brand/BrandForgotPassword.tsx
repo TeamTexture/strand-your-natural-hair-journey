@@ -69,7 +69,7 @@ const BrandForgotPassword = () => {
       <TitleBar title="Reset password" back />
       <div className="px-7 pt-2 pb-10">
         <div className="flex flex-col items-center text-center mb-6">
-          <HairStrandIcon className="w-12 h-12 text-primary mb-3" />
+          <HairStrandIcon className="h-12 w-auto text-primary mb-3" />
           <p className="font-display italic text-[13px] text-foreground/70 uppercase tracking-[0.25em]">
             For Brands
           </p>

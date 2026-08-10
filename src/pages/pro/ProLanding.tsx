@@ -92,7 +92,7 @@ const ProLanding = () => {
       <TitleBar title="STRAND Pro" back={false} />
       <div className="px-6 pt-2 pb-10 space-y-6">
         <div className="flex flex-col items-center text-center pt-2">
-          <HairStrandIcon className="w-10 h-10 text-primary mb-3" />
+          <HairStrandIcon className="h-10 w-auto text-primary mb-3" />
           <p className="font-display italic text-[11px] uppercase tracking-[0.25em] text-foreground/70">
             The Strand Council
           </p>

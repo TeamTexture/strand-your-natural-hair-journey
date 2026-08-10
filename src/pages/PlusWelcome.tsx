@@ -21,7 +21,7 @@ const PlusWelcome = () => {
     <ScreenLayout>
       <div className="px-5 pt-10 pb-10 text-center space-y-5">
         <div className="mx-auto size-20 rounded-full bg-primary/15 text-primary border border-primary/30 flex items-center justify-center">
-          <HairStrandIcon className="size-9" />
+          <HairStrandIcon className="h-9 w-auto" />
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 mx-auto">
           <Sparkles className="w-3.5 h-3.5 text-primary" />

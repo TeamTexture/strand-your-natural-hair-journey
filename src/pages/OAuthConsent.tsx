@@ -127,7 +127,7 @@ export default function OAuthConsent() {
       <TitleBar title="Connection request" />
       <div className="px-7 pt-2 pb-10 flex flex-col h-full">
         <div className="flex flex-col items-center text-center mb-6">
-          <HairStrandIcon className="w-12 h-12 text-primary mb-4" />
+          <HairStrandIcon className="h-12 w-auto text-primary mb-4" />
           <h1 className="font-display text-2xl leading-tight mb-2">
             Connect {clientName} to STRAND
           </h1>

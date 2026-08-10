@@ -279,7 +279,7 @@ const Subscribe = () => {
         {/* Hero */}
         <div className="text-center pt-1 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25">
-            <HairStrandIcon className="w-3.5 h-3.5 text-primary" />
+            <HairStrandIcon className="h-4 w-auto text-primary" />
             <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
               The STRAND Membership
             </span>
@@ -298,7 +298,7 @@ const Subscribe = () => {
         {/* Section header */}
         <div className="text-center pt-2 space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brown/10 border border-brown/20">
-            <HairStrandIcon className="w-3 h-3 text-brown" />
+            <HairStrandIcon className="h-3.5 w-auto text-brown" />
             <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-brown">
               What's inside
             </span>
