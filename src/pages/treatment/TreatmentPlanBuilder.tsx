@@ -24,6 +24,8 @@ import {
   DAY_LABELS,
   defaultMilestoneWeeks,
   toDateKey,
+  todayKey,
+  weekNumberFor,
 } from "@/lib/treatmentSchedule";
 
 /** Segmented progress indicator — four steps, current one filled. */
@@ -95,6 +97,12 @@ const TreatmentPlanBuilder = () => {
   const [steps, setSteps] = useState<DraftStep[]>([emptyStep()]);
   const [milestoneWeeks, setMilestoneWeeks] = useState<number[]>(defaultMilestoneWeeks(12));
   const [checkinReminder, setCheckinReminder] = useState(true);
+
+  // Back-dated plans: which week of the plan today falls in.
+  const startedWeek = Math.min(
+    durationWeeks,
+    Math.max(1, weekNumberFor(toDateKey(startDate), todayKey())),
+  );
 
   // Glossary autocomplete state, keyed by product index.
   const [suggestions, setSuggestions] = useState<
