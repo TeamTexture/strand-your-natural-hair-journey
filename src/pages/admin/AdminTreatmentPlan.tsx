@@ -9,7 +9,6 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 import {
   useAdminPlan,

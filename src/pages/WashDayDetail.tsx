@@ -16,7 +16,6 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
-import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";

@@ -41,7 +41,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useJournalSteps } from "@/hooks/useJournalSteps";
 import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
-import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 import PendingStepProducts from "@/components/journal/PendingStepProducts";
 import StepReviewCard from "@/components/journal/StepReviewCard";
