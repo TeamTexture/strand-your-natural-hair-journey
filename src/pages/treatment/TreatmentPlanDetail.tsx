@@ -320,6 +320,7 @@ const TreatmentPlanDetail = () => {
                       {p.usage_notes}
                     </p>
                   )}
+                  <BrandTagList taggableType="treatment_plan_product" taggableId={p.id} />
                 </SurfaceCard>
               ))}
             </div>
