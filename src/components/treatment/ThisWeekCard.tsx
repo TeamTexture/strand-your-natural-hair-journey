@@ -24,9 +24,11 @@ import {
 } from "@/lib/treatmentSchedule";
 
 /**
- * THIS WEEK — the only thing open when the page loads. The steps that apply
- * right now, a row of day circles per step, and anything else that belongs to
- * this week. The single place the current week's steps and ticks render.
+ * THIS WEEK'S RECORD — a record, not a logging screen.
+ *
+ * Daily logging lives on Home, where the daily rhythm belongs. This is where
+ * she sees what the week actually looks like so far. Tapping an empty past day
+ * fills a gap; today and the days ahead are hers to log from Home.
  */
 const ThisWeekCard = ({
   bundle,
@@ -58,7 +60,7 @@ const ThisWeekCard = ({
         <div className="flex items-start gap-2 px-4 pt-3.5">
           <div className="min-w-0 flex-1">
             <p className="font-body text-[10px] uppercase tracking-[0.18em] text-primary">
-              This week
+              This week's record
             </p>
             <h2 className="font-display text-[20px] leading-tight mt-0.5">Week {currentWeek}</h2>
             <p className="font-body text-[11.5px] text-muted-foreground mt-0.5">
@@ -134,6 +136,12 @@ const ThisWeekCard = ({
                 </div>
               );
             })
+          )}
+
+          {steps.length > 0 && (
+            <p className="font-body text-[11.5px] text-muted-foreground leading-snug">
+              Tap an earlier day to fill a gap. Today's steps are logged from your home screen.
+            </p>
           )}
 
           {visits.length > 0 && (
