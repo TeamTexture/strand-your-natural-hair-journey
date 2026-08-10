@@ -4991,6 +4991,53 @@ export type Database = {
           },
         ]
       }
+      treatment_plan_template_steps: {
+        Row: {
+          cadence: Database["public"]["Enums"]["treatment_cadence"]
+          created_at: string
+          days_of_week: number[]
+          id: string
+          instructions: string | null
+          step_order: number
+          task_name: string
+          template_id: string
+          time_of_day: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at: string
+        }
+        Insert: {
+          cadence?: Database["public"]["Enums"]["treatment_cadence"]
+          created_at?: string
+          days_of_week?: number[]
+          id?: string
+          instructions?: string | null
+          step_order?: number
+          task_name: string
+          template_id: string
+          time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at?: string
+        }
+        Update: {
+          cadence?: Database["public"]["Enums"]["treatment_cadence"]
+          created_at?: string
+          days_of_week?: number[]
+          id?: string
+          instructions?: string | null
+          step_order?: number
+          task_name?: string
+          template_id?: string
+          time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_template_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_plan_templates: {
         Row: {
           created_at: string
@@ -4998,6 +5045,7 @@ export type Database = {
           duration_weeks: number
           id: string
           is_archived: boolean
+          milestone_weeks: number[]
           owner_type: Database["public"]["Enums"]["treatment_assigner_type"]
           owner_user_id: string
           photo_milestone_weeks: number[]
@@ -5011,6 +5059,7 @@ export type Database = {
           duration_weeks?: number
           id?: string
           is_archived?: boolean
+          milestone_weeks?: number[]
           owner_type: Database["public"]["Enums"]["treatment_assigner_type"]
           owner_user_id: string
           photo_milestone_weeks?: number[]
@@ -5024,6 +5073,7 @@ export type Database = {
           duration_weeks?: number
           id?: string
           is_archived?: boolean
+          milestone_weeks?: number[]
           owner_type?: Database["public"]["Enums"]["treatment_assigner_type"]
           owner_user_id?: string
           photo_milestone_weeks?: number[]
@@ -6081,6 +6131,10 @@ export type Database = {
     }
     Functions: {
       accept_enquiry: { Args: { _enquiry_id: string }; Returns: string }
+      accept_treatment_assignment: {
+        Args: { _assignment_id: string }
+        Returns: string
+      }
       account_type_of: { Args: { _user_id: string }; Returns: string }
       ad_audience_floor: { Args: never; Returns: number }
       ad_delivery_for_slot: {
@@ -6270,6 +6324,14 @@ export type Database = {
         Args: { _admin_notes?: string; _application_id: string }
         Returns: string
       }
+      assign_treatment_template: {
+        Args: {
+          _client_user_id?: string
+          _invited_email?: string
+          _template_id: string
+        }
+        Returns: string
+      }
       brand_catalogue_items: {
         Args: { _kind?: string; _limit?: number; _search?: string }
         Returns: {
@@ -6448,6 +6510,7 @@ export type Database = {
         }
         Returns: string
       }
+      claim_my_treatment_invites: { Args: never; Returns: number }
       confirm_brand_offer_revision_payment: {
         Args: {
           _payment_intent_id: string
@@ -6455,6 +6518,10 @@ export type Database = {
           _session_id: string
         }
         Returns: boolean
+      }
+      decline_treatment_assignment: {
+        Args: { _assignment_id: string }
+        Returns: undefined
       }
       expire_unpaid_brand_offer_revisions: { Args: never; Returns: number }
       forum_author_info: {
@@ -6628,6 +6695,7 @@ export type Database = {
           review_count: number
         }[]
       }
+      pro_treatment_clients: { Args: never; Returns: Json }
       purge_ad_events: { Args: never; Returns: number }
       queue_appointment_reminders: { Args: never; Returns: number }
       record_ad_event:
@@ -6746,6 +6814,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_treatment_media_consent: {
+        Args: { _assignment_id: string; _on: boolean }
+        Returns: undefined
+      }
       start_member_dm: { Args: { _other_user: string }; Returns: string }
       strand_today_london: { Args: never; Returns: string }
       submit_brand_offer_revision: {
@@ -6766,6 +6838,11 @@ export type Database = {
         Returns: string
       }
       treatment_checkin_plan: { Args: { _checkin_id: string }; Returns: string }
+      treatment_client_thread: {
+        Args: { _client_user_id: string }
+        Returns: string
+      }
+      treatment_invitation: { Args: { _assignment_id: string }; Returns: Json }
       withdraw_brand_offer_revision: {
         Args: { _revision_id: string }
         Returns: undefined
