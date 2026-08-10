@@ -25,7 +25,14 @@ import {
   ratingsWithDefaults,
   type CheckinRatings,
 } from "@/lib/treatmentCheckin";
-import { fromDateKey, todayKey, weekNumberFor, weekRange } from "@/lib/treatmentSchedule";
+import {
+  computeAdherence,
+  daysBetween,
+  fromDateKey,
+  todayKey,
+  weekNumberFor,
+  weekRange,
+} from "@/lib/treatmentSchedule";
 import CheckinPhotos from "@/components/treatment/CheckinPhotos";
 import CheckinVoiceNotes from "@/components/treatment/CheckinVoiceNotes";
 import CheckinVideo from "@/components/treatment/CheckinVideo";
@@ -123,6 +130,26 @@ const TreatmentCheckin = () => {
   const { plan } = bundle;
   const range = weekRange(plan.start_date, week);
 
+  // What she said she'd do at the start, measured against what she actually logged.
+  const weekAdherence = computeAdherence(bundle.schedule, bundle.entries, plan.start_date, {
+    from: range.start,
+    to: range.end,
+  });
+  const overall = computeAdherence(bundle.schedule, bundle.entries, plan.start_date);
+  const daysThisWeek = new Set(
+    bundle.entries
+      .filter(
+        (e) =>
+          e.status === "completed" &&
+          daysBetween(range.start, e.entry_date) >= 0 &&
+          daysBetween(e.entry_date, range.end) >= 0,
+      )
+      .map((e) => e.entry_date),
+  ).size
+  const daysOverall = new Set(
+    bundle.entries.filter((e) => e.status === "completed").map((e) => e.entry_date),
+  ).size;
+
   const save = () => {
     if (!checkin) return;
     saveCheckin.mutate(
@@ -152,6 +179,35 @@ const TreatmentCheckin = () => {
             {format(fromDateKey(range.start), "d MMM")} – {format(fromDateKey(range.end), "d MMM")}
           </p>
         </div>
+
+        {/* what she committed to, against what she logged */}
+        <SurfaceCard className="space-y-2.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="font-body text-[14px] font-semibold">How the week went to plan</p>
+            <p className="font-display text-[17px] text-primary leading-none">
+              {weekAdherence.hasData ? `${weekAdherence.percent}%` : "—"}
+            </p>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary/80"
+              style={{ width: `${weekAdherence.hasData ? weekAdherence.percent : 0}%` }}
+            />
+          </div>
+          <p className="font-body text-[12px] text-muted-foreground leading-snug">
+            {weekAdherence.hasData
+              ? `${weekAdherence.completed} of ${weekAdherence.expected} ${weekAdherence.unit} logged this week, across ${daysThisWeek} ${daysThisWeek === 1 ? "day" : "days"}.`
+              : "Nothing was due this week yet."}
+            {weekAdherence.skipped > 0 &&
+              ` ${weekAdherence.skipped} marked as skipped — that still tells us something.`}
+          </p>
+          <p className="font-body text-[12px] text-muted-foreground leading-snug border-t border-border pt-2">
+            Since you started:{" "}
+            {overall.hasData
+              ? `${overall.completed} of ${overall.expected} ${overall.unit}, on ${daysOverall} ${daysOverall === 1 ? "day" : "days"} (${overall.percent}%).`
+              : "your plan hasn't come due yet."}
+          </p>
+        </SurfaceCard>
 
         {/* milestone leads */}
         {milestone && (
