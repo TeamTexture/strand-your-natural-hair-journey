@@ -100,7 +100,12 @@ const AdminTreatmentPlan = () => {
           {weeks.map((w) => (
             <SurfaceCard key={w.week} className="py-3 flex items-center justify-between gap-3">
               <p className="font-body text-[13px]">Week {w.week}</p>
-              <p className="font-body text-[12px] text-muted-foreground">{w.line}</p>
+              <p className="font-body text-[12px] text-muted-foreground">
+                {w.state === "future"
+                  ? "Not started yet"
+                  : `${w.completed} of ${Math.max(w.expected, w.completed)} done`}
+              </p>
+
             </SurfaceCard>
           ))}
         </div>
