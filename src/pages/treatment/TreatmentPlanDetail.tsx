@@ -1,14 +1,22 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { useSetPlanStatus, useTreatmentPlan, useUpdatePlanReminder } from "@/hooks/useTreatmentPlans";
+import {
+  useSetPlanStatus,
+  useTreatmentPlan,
+  useUpdateCheckinCadence,
+  useUpdatePlanReminder,
+} from "@/hooks/useTreatmentPlans";
 import PlanHowItWorks from "@/components/treatment/PlanHowItWorks";
+import PlanActionBlock from "@/components/treatment/PlanActionBlock";
+import PlanStreakCard from "@/components/treatment/PlanStreakCard";
+import PlanCheckinsSection from "@/components/treatment/PlanCheckinsSection";
 import ThisWeekCard from "@/components/treatment/ThisWeekCard";
 import PlanTimeline from "@/components/treatment/PlanTimeline";
 import PlanSettings from "@/components/treatment/PlanSettings";
@@ -17,6 +25,7 @@ import { type ReminderSettings } from "@/components/treatment/ReminderPicker";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import {
+  checkinCycles,
   computeAdherence,
   fromDateKey,
   todayKey,
@@ -25,9 +34,12 @@ import {
 } from "@/lib/treatmentSchedule";
 
 /**
- * A member's treatment plan, in four zones: what's happening now (header),
- * how to use it, this week, the whole plan, then settings. Everything the page
- * could ever do is still here — it just isn't all shouting at once.
+ * A member's treatment plan. Two rhythms live in this app and only one of them
+ * belongs here: the DAILY rhythm (steps, ticks, streak) is Home's job, and this
+ * page carries the CHECK-IN rhythm — reflection at the end of a cycle she chose.
+ *
+ * Order matters: one thing to do, then the run, then the record of this week,
+ * then check-ins, then the whole plan, then settings.
  */
 const TreatmentPlanDetail = () => {
   const { id } = useParams();
@@ -35,9 +47,11 @@ const TreatmentPlanDetail = () => {
   const { bundle, loading, refetch } = useTreatmentPlan(id);
   const setStatus = useSetPlanStatus();
   const updateReminder = useUpdatePlanReminder();
-  const { checkins } = useTreatmentCheckins(id);
+  const updateCadence = useUpdateCheckinCadence();
+  const { checkins, media } = useTreatmentCheckins(id);
   // Lapsed STRAND+ keeps every read: entries, check-ins and media all stay.
   const { hasPlus } = usePlusAccess();
+  const [settingsRow, setSettingsRow] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -76,12 +90,17 @@ const TreatmentPlanDetail = () => {
 
   const openCheckin = (week: number) => navigate(`/treatment/${plan.id}/checkin/${week}`);
 
+  const everyWeeks = plan.checkin_every_weeks ?? 1;
+  const cycles = checkinCycles(plan.start_date, plan.duration_weeks, everyWeeks);
+  const savedWeeks = new Set(
+    checkins.filter((c) => c.submitted_at).map((c) => c.week_number),
+  );
+
   const currentWeek = Math.max(
     1,
     Math.min(plan.duration_weeks, weekNumberFor(plan.start_date, todayKey())),
   );
   const thisWeek = weeks.find((w) => w.week === currentWeek);
-  const doneWeeks = new Set(checkins.filter((c) => c.submitted_at).map((c) => c.week_number));
 
   const togglePause = () =>
     setStatus.mutate(
@@ -93,12 +112,19 @@ const TreatmentPlanDetail = () => {
       },
     );
 
+  const openCadence = () => {
+    setSettingsRow("cadence");
+    requestAnimationFrame(() =>
+      document.getElementById("plan-settings")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  };
+
   return (
     <ScreenLayout>
       <TitleBar title="Treatment plan" backFallback="/home" />
 
       <div className="px-5 pt-1 pb-8 space-y-4">
-        {/* ZONE 1 — header */}
+        {/* header */}
         <div className="space-y-2.5">
           <div className="min-w-0">
             <h1 className="font-display text-[24px] leading-tight break-words">{plan.title}</h1>
@@ -133,18 +159,26 @@ const TreatmentPlanDetail = () => {
             </p>
           </div>
 
-          <Button className="rounded-pill w-full" onClick={() => openCheckin(currentWeek)}>
-            <ClipboardCheck className="size-4 mr-1.5" />
-            {hasPlus ? `Log week ${currentWeek} check-in` : `Read week ${currentWeek} check-in`}
-          </Button>
-
           {!hasPlus && <TreatmentReadOnlyNotice next={`/treatment/${plan.id}`} />}
         </div>
 
-        {/* ZONE 2 — how this works */}
+        {/* the one thing to do — or nothing at all */}
+        <PlanActionBlock
+          bundle={bundle}
+          cycles={cycles}
+          savedWeeks={savedWeeks}
+          milestoneWeeks={milestoneWeeks}
+          onCheckin={openCheckin}
+          disabled={readOnly}
+        />
+
+        {/* how this works */}
         <PlanHowItWorks planId={plan.id} />
 
-        {/* ZONE 3 — this week */}
+        {/* the run */}
+        <PlanStreakCard entries={entries} />
+
+        {/* this week's record */}
         <ThisWeekCard
           bundle={bundle}
           currentWeek={currentWeek}
@@ -152,22 +186,36 @@ const TreatmentPlanDetail = () => {
           disabled={readOnly}
         />
 
-        {/* ZONE 4 — the whole plan */}
+        {/* check-ins */}
+        <PlanCheckinsSection
+          cycles={cycles}
+          checkins={checkins}
+          media={media}
+          schedule={schedule}
+          entries={entries}
+          startDate={plan.start_date}
+          everyWeeks={everyWeeks}
+          milestoneWeeks={milestoneWeeks}
+          onCheckin={openCheckin}
+          onChangeCadence={openCadence}
+          disabled={readOnly}
+        />
+
+        {/* the whole plan */}
         <PlanTimeline
           planId={plan.id}
           startDate={plan.start_date}
           durationWeeks={plan.duration_weeks}
           schedule={schedule}
           weeks={weeks}
-          checkedInWeeks={doneWeeks}
+          checkedInWeeks={savedWeeks}
           goal={plan.goal}
           products={products}
           onProductsChanged={() => void refetch()}
-          onCheckin={openCheckin}
           disabled={readOnly}
         />
 
-        {/* ZONE 5 — settings */}
+        {/* settings */}
         <PlanSettings
           planId={plan.id}
           reminder={{
@@ -184,6 +232,18 @@ const TreatmentPlanDetail = () => {
               },
             )
           }
+          checkinEveryWeeks={everyWeeks}
+          onCadenceChange={(weeksPer) =>
+            updateCadence.mutate(
+              { planId: plan.id, everyWeeks: weeksPer },
+              {
+                onSuccess: () => toast.success("Check-in rhythm updated"),
+                onError: () => toast.error("Couldn't save that just now"),
+              },
+            )
+          }
+          expanded={settingsRow}
+          onExpandedChange={setSettingsRow}
           paused={paused}
           onTogglePause={togglePause}
           hasPlus={hasPlus}
