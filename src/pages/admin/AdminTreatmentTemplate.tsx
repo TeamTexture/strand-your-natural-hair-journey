@@ -301,17 +301,23 @@ const AdminTreatmentTemplate = () => {
           <SectionLabel className="px-0 mt-0 mb-1.5">Assign to a member</SectionLabel>
           <SurfaceCard>
             <p className="font-body text-[13px] text-muted-foreground leading-snug">
-              The member needs STRAND+ (£14.99/mo) to accept and follow a plan — reading it is free.
-              They have to accept the plan first. Photos, videos and voice notes stay private
-              unless they separately choose to share them.
+              {PLUS_ASSIGN_NOTE} They have to accept the plan first. Photos, videos and voice notes
+              stay private unless they separately choose to share them.
             </p>
           </SurfaceCard>
 
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search members by name or email"
+            placeholder="Search STRAND+ members by name or email"
           />
+          {!membersLoading && plusMembers.length === 0 && (
+            <SurfaceCard>
+              <p className="font-body text-[13px] text-muted-foreground leading-snug">
+                No members hold STRAND+ yet, so there's no one to assign a plan to.
+              </p>
+            </SurfaceCard>
+          )}
           {matches.map((m) => (
             <button key={m.user_id} className="w-full text-left" onClick={() => doAssign(m.user_id)}>
               <SurfaceCard className="py-3">
@@ -336,7 +342,8 @@ const AdminTreatmentTemplate = () => {
               placeholder="name@example.com"
             />
             <p className="font-body text-[12px] text-muted-foreground leading-snug">
-              If they're not on STRAND yet, the invitation waits and resolves when they sign up.
+              If they're not on STRAND yet, the invitation waits and resolves when they sign up. They
+              will need STRAND+ to accept it, so the plan stays pending until they have it.
             </p>
             <Button
               variant="outline"
