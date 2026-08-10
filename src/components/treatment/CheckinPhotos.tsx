@@ -36,15 +36,24 @@ const CheckinPhotos = ({
   label = "Add a photo",
 }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const { urls } = useSignedMedia(photos.map((p) => p.storage_path));
+  const [busy, setBusy] = useState<string | null>(null);
+  // Rows we've just uploaded, so the tile appears immediately rather than
+  // waiting on the refetch — otherwise a good upload looks like a failure.
+  const [justAdded, setJustAdded] = useState<TreatmentMediaRow[]>([]);
+  const shown = [...photos, ...justAdded.filter((j) => !photos.some((p) => p.id === j.id))];
+  const { urls } = useSignedMedia(shown.map((p) => p.storage_path));
 
   const pick = async (files: FileList | null) => {
-    if (!files?.length || !checkinId) return;
-    setBusy(true);
-    for (const file of Array.from(files)) {
+    if (!files?.length) return;
+    if (!checkinId) {
+      toast.error("This check-in is still opening. Try again in a moment.");
+      return;
+    }
+    const list = Array.from(files);
+    for (let i = 0; i < list.length; i++) {
+      setBusy(list.length > 1 ? `Adding ${i + 1} of ${list.length}…` : "Adding…");
       try {
-        const prepared = await prepareCheckinPhoto(file);
+        const prepared = await prepareCheckinPhoto(list[i]);
         if (prepared.size > MEDIA_RULES.photo.maxBytes) {
           toast.error("That photo is still too large after resizing. Try another one.");
           continue;
@@ -58,14 +67,17 @@ const CheckinPhotos = ({
           file: prepared,
           mimeType: prepared.type || "image/jpeg",
         });
+        setJustAdded((prev) => [...prev, row]);
         onUploaded(row);
       } catch (e) {
         toast.error(
-          e instanceof TreatmentMediaError ? e.message : "We couldn't add that photo just now.",
+          e instanceof TreatmentMediaError || e instanceof Error
+            ? e.message
+            : "We couldn't add that photo just now.",
         );
       }
     }
-    setBusy(false);
+    setBusy(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -85,9 +97,9 @@ const CheckinPhotos = ({
         <span className="font-body text-[12px] text-muted-foreground">Optional</span>
       </div>
 
-      {photos.length > 0 && (
+      {shown.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
-          {photos.map((p) => (
+          {shown.map((p) => (
             <div key={p.id} className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
               {urls[p.storage_path] ? (
                 <img
@@ -117,21 +129,25 @@ const CheckinPhotos = ({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        // iPhone photos are HEIC; some pickers grey those out when the accept
+        // list is image/* alone, which reads as "it won't let me pick".
+        accept="image/*,.heic,.HEIC,.heif,.HEIF"
         multiple
-        capture={undefined}
         className="hidden"
         onChange={(e) => void pick(e.target.files)}
       />
       <button
         type="button"
-        disabled={busy || !checkinId}
+        disabled={!!busy || !checkinId}
         onClick={() => inputRef.current?.click()}
         className="w-full rounded-pill border border-dashed border-border py-2.5 font-body text-[13px] flex items-center justify-center gap-2 disabled:opacity-60"
       >
         {busy ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
-        {busy ? "Adding…" : photos.length ? "Add another photo" : "Take or choose a photo"}
+        {busy ?? (shown.length ? "Add more photos" : "Take or choose photos")}
       </button>
+      <p className="font-body text-[11px] text-muted-foreground text-center">
+        You can choose more than one at a time.
+      </p>
     </SurfaceCard>
   );
 };
