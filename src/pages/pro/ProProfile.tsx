@@ -817,6 +817,7 @@ const ProProfile = () => {
                         Opens
                       </Label>
                       <TimeSelect
+                            minuteStep={15}
                         value={dh.open}
                         onChange={(v) => updateHours(d.key, { open: v })}
                       />
@@ -826,6 +827,7 @@ const ProProfile = () => {
                         Closes
                       </Label>
                       <TimeSelect
+                            minuteStep={15}
                         value={dh.close}
                         onChange={(v) => updateHours(d.key, { close: v })}
                       />
