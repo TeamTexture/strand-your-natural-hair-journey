@@ -225,34 +225,8 @@ const TreatmentCheckin = () => {
           )}
         </SurfaceCard>
 
-        {/* sliders — driven entirely by the metric config */}
-        <p className="font-body text-[12px] text-muted-foreground px-0.5">
-          Optional — four quick sliders, if you want to track the numbers too.
-        </p>
-        <div className="space-y-2">
-          {CHECKIN_METRICS.map((m) => (
-            <SurfaceCard key={m.key} className="space-y-2.5">
-              <div>
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="font-body text-[14px] font-semibold">{m.label}</p>
-                  <p className="font-display text-[15px] text-primary text-right leading-tight">
-                    {ratingLabel(m, ratings[m.key] ?? 3)}
-                  </p>
-                </div>
-                <p className="font-body text-[12px] text-muted-foreground mt-0.5">{m.helper}</p>
-              </div>
-              <Slider
-                aria-label={m.label}
-                min={1}
-                max={m.scale.length}
-                step={1}
-                value={[ratings[m.key] ?? 3]}
-                disabled={!hasPlus}
-                onValueChange={([v]) => setRatings((r) => ({ ...r, [m.key]: v }))}
-              />
-            </SurfaceCard>
-          ))}
-        </div>
+
+
 
 
         {/* media */}
