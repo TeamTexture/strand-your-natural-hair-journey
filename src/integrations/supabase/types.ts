@@ -5111,6 +5111,10 @@ export type Database = {
           paused_at: string | null
           paused_reason: string | null
           professional_id: string | null
+          reminder_frequency: string
+          reminder_hour: number
+          reminder_timezone: string
+          reminder_weekday: number
           source_template_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["treatment_plan_status"]
@@ -5129,6 +5133,10 @@ export type Database = {
           paused_at?: string | null
           paused_reason?: string | null
           professional_id?: string | null
+          reminder_frequency?: string
+          reminder_hour?: number
+          reminder_timezone?: string
+          reminder_weekday?: number
           source_template_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["treatment_plan_status"]
@@ -5147,6 +5155,10 @@ export type Database = {
           paused_at?: string | null
           paused_reason?: string | null
           professional_id?: string | null
+          reminder_frequency?: string
+          reminder_hour?: number
+          reminder_timezone?: string
+          reminder_weekday?: number
           source_template_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["treatment_plan_status"]
@@ -6897,6 +6909,20 @@ export type Database = {
         }[]
       }
       treatment_invitation: { Args: { _assignment_id: string }; Returns: Json }
+      treatment_reminders_due: {
+        Args: { _now: string }
+        Returns: {
+          frequency: string
+          local_date: string
+          plan_id: string
+          plan_title: string
+          steps_logged: number
+          user_id: string
+          week_end: string
+          week_number: number
+          week_start: string
+        }[]
+      }
       withdraw_brand_offer_revision: {
         Args: { _revision_id: string }
         Returns: undefined
