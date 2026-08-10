@@ -212,72 +212,102 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
           const keyProduct = productFor(steps.find((r) => r.product_id)?.product_id ?? null);
 
           return (
-            <SurfaceCard key={week} className={cn("space-y-2", isNow && "border-primary/50 bg-primary/[0.04]")}>
+            <SurfaceCard
+              key={week}
+              padded={false}
+              className={cn(
+                "overflow-hidden transition-colors",
+                isNow ? "border-primary/45 bg-primary/[0.05]" : "bg-card",
+              )}
+            >
               <button
                 type="button"
                 onClick={() => setOpenWeek(open ? null : week)}
-                className="w-full flex items-center gap-3 text-left"
+                className="w-full px-4 py-3.5 text-left"
               >
-                {keyProduct ? (
-                  <ProductThumb
-                    imageUrl={keyProduct.image_url}
-                    storagePath={keyProduct.storage_path}
-                    alt={keyProduct.product_name}
-                    brand={keyProduct.brand}
-                    name={keyProduct.product_name}
-                    wrapperClassName="size-11 rounded-[12px] overflow-hidden bg-secondary border border-border/60 shrink-0"
-                  />
-                ) : (
-                  <span className="size-11 rounded-[12px] bg-secondary/60 border border-border/60 shrink-0 flex items-center justify-center font-display text-[15px] text-foreground/50">
-                    {week}
-                  </span>
-                )}
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="font-body text-[14px] font-semibold leading-tight shrink-0">
-                      Week {week}
-                    </p>
-                    {isNow && (
-                      <span className="shrink-0 rounded-pill bg-primary/15 px-2 py-[2px] font-body text-[9px] uppercase tracking-[0.14em] text-primary">
-                        Now
-                      </span>
+                {/* eyebrow: week + dates + affordance */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "font-body text-[10px] uppercase tracking-[0.18em]",
+                      isNow ? "text-primary" : "text-muted-foreground",
                     )}
-                  </div>
-                  {keyStep && (
-                    <p className="font-body text-[12px] text-foreground/75 leading-tight truncate mt-0.5">
-                      {keyStep.task_name}
-                      {keyProduct ? ` · ${keyProduct.product_name}` : ""}
-                    </p>
-                  )}
-                  <p className="font-body text-[11px] text-muted-foreground leading-tight truncate mt-0.5">
-                    {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")} ·{" "}
-                    {steps.length} step{steps.length === 1 ? "" : "s"}
-                    {visits.length ? ` · ${visits.length} appointment${visits.length === 1 ? "" : "s"}` : ""}
-                  </p>
-                </div>
-
-                <span className="flex items-center gap-1.5 shrink-0">
-                  {!disabled && (
-                    <span
-                      aria-label={open ? "Editing week" : "Edit week"}
-                      className={cn(
-                        "size-8 rounded-full border flex items-center justify-center",
-                        open ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-card text-foreground/70",
-                      )}
-                    >
-                      <Pencil className="size-3.5" />
+                  >
+                    Week {week}
+                  </span>
+                  {isNow && (
+                    <span className="rounded-pill bg-primary/15 px-2 py-[2px] font-body text-[9px] uppercase tracking-[0.14em] text-primary">
+                      Now
                     </span>
                   )}
-                  <ChevronDown
-                    className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")}
-                  />
-                </span>
+                  <span className="ml-auto flex items-center gap-1.5 shrink-0">
+                    {!disabled && (
+                      <span
+                        aria-label={open ? "Editing week" : "Edit week"}
+                        className={cn(
+                          "size-7 rounded-full border flex items-center justify-center",
+                          open
+                            ? "border-primary/50 bg-primary/10 text-primary"
+                            : "border-border bg-background text-foreground/60",
+                        )}
+                      >
+                        <Pencil className="size-3" />
+                      </span>
+                    )}
+                    <ChevronDown
+                      className={cn(
+                        "size-4 text-muted-foreground transition-transform",
+                        open && "rotate-180",
+                      )}
+                    />
+                  </span>
+                </div>
+
+                {/* the step, in full */}
+                {keyStep && (
+                  <p className="font-display text-[17px] leading-snug mt-1.5 [overflow-wrap:anywhere]">
+                    {keyStep.task_name}
+                  </p>
+                )}
+
+                <p className="font-body text-[11.5px] text-muted-foreground mt-1">
+                  {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")} ·{" "}
+                  {steps.length} step{steps.length === 1 ? "" : "s"}
+                  {visits.length
+                    ? ` · ${visits.length} appointment${visits.length === 1 ? "" : "s"}`
+                    : ""}
+                </p>
+
+                {/* the product, named in full */}
+                {keyProduct && (
+                  <div className="mt-2.5 flex items-center gap-2.5 rounded-[12px] border border-border/70 bg-background/70 p-2">
+                    <ProductThumb
+                      imageUrl={keyProduct.image_url}
+                      storagePath={keyProduct.storage_path}
+                      alt={keyProduct.product_name}
+                      brand={keyProduct.brand}
+                      name={keyProduct.product_name}
+                      wrapperClassName="size-10 rounded-[9px] overflow-hidden bg-secondary shrink-0"
+                    />
+                    <div className="min-w-0">
+                      {keyProduct.brand && (
+                        <p className="font-body text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground">
+                          {keyProduct.brand}
+                        </p>
+                      )}
+                      <p className="font-body text-[12.5px] leading-snug text-foreground/85 [overflow-wrap:anywhere]">
+                        {keyProduct.product_name}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </button>
 
 
+
               {open && (
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2 px-4 pb-4 pt-1 border-t border-border/60">
+
                   {steps.length === 0 ? (
                     <p className="font-body text-[13px] text-muted-foreground leading-snug">
                       Nothing planned for this week yet.
