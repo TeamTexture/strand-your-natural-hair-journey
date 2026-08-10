@@ -10,11 +10,14 @@ import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
+import ReminderPicker, {
+  defaultReminder,
+  type ReminderSettings,
+} from "@/components/treatment/ReminderPicker";
 import { usePlanProductLink } from "@/hooks/usePlanProductLink";
 import {
   useCreateTreatmentPlan,
@@ -100,7 +103,7 @@ const TreatmentPlanBuilder = () => {
   const [products, setProducts] = useState<DraftProduct[]>([emptyProduct()]);
   const [steps, setSteps] = useState<DraftStep[]>([emptyStep()]);
   const [milestoneWeeks, setMilestoneWeeks] = useState<number[]>(defaultMilestoneWeeks(12));
-  const [checkinReminder, setCheckinReminder] = useState(true);
+  const [reminder, setReminder] = useState<ReminderSettings>(defaultReminder);
 
   // Adding products from the shelf or from a pasted product link.
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -210,7 +213,10 @@ const TreatmentPlanBuilder = () => {
                 : null,
           })),
         milestoneWeeks,
-        checkinReminder,
+        checkinReminder: reminder.frequency !== "off",
+        reminderFrequency: reminder.frequency,
+        reminderWeekday: reminder.weekday,
+        reminderHour: reminder.hour,
       });
       toast.success("Your plan is live");
       navigate(`/treatment/${planId}`, { replace: true });
@@ -568,13 +574,7 @@ const TreatmentPlanBuilder = () => {
               <Plus className="size-4 mr-1.5" /> Add another step
             </Button>
 
-            <SurfaceCard className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-body text-[14px] font-semibold">Remind me to check in</p>
-                <p className="font-body text-[12px] text-muted-foreground">Sundays, by email.</p>
-              </div>
-              <Switch checked={checkinReminder} onCheckedChange={setCheckinReminder} />
-            </SurfaceCard>
+            <ReminderPicker value={reminder} onChange={setReminder} />
           </div>
         )}
 

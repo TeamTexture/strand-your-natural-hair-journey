@@ -113,8 +113,11 @@ async function sweepInvitations(admin: SupabaseClient) {
 /* -------------------------------------------- client weekly check-in ------ */
 
 async function sendNudges(admin: SupabaseClient, today: string) {
-  const { data: due, error } = await admin.rpc("treatment_checkin_nudge_due", {
-    _today: today,
+  // Each plan carries its own cadence (daily / weekly on a chosen day) and hour
+  // in the member's timezone. This runs hourly and only picks the plans whose
+  // chosen slot is the current local hour.
+  const { data: due, error } = await admin.rpc("treatment_reminders_due", {
+    _now: new Date().toISOString(),
   });
   if (error) throw new Error(error.message);
 
@@ -140,6 +143,9 @@ async function sendNudges(admin: SupabaseClient, today: string) {
       .eq("user_id", userId)
       .maybeSingle();
 
+    const daily = String(row.frequency) === "daily";
+    const slot = daily ? String(row.local_date) : `w${row.week_number}`;
+
     const res = await dispatchEmail(
       {
         templateKey: "treatment-checkin-nudge",
@@ -148,8 +154,9 @@ async function sendNudges(admin: SupabaseClient, today: string) {
         triggerEvent: "treatment_plan.week_end",
         relatedTable: "treatment_plans",
         relatedId: String(row.plan_id),
-        // One key per plan per week — a retry or overlapping run cannot double send.
-        idempotencyKey: `treatment-checkin-nudge:${row.plan_id}:w${row.week_number}`,
+        // One key per plan per slot — a retry or overlapping run cannot double send.
+        idempotencyKey: `treatment-checkin-nudge:${row.plan_id}:${slot}`,
+
         data: {
           name: pr?.display_name ? String(pr.display_name).split(" ")[0] : "there",
           plan_id: String(row.plan_id),
