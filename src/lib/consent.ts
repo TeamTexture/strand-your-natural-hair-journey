@@ -129,7 +129,16 @@ export function resolveConsentView(
   const allowed = new Set<ConsentView>(roles.map(viewForRole));
   pendingViews.forEach((v) => allowed.add(v));
   if (!allowed.size) return "consumer";
-  return allowed.has(activeView) ? activeView : "consumer";
+  if (allowed.has(activeView)) return activeView;
+  // The route said one thing but the account cannot be inside that view. Fall
+  // back to a view it CAN be inside — a pro/brand part-way through their own
+  // sign-up walks through shared onboarding routes, and must be scoped to their
+  // own journey rather than dropped onto the member matrix.
+  for (const v of ["pro", "brand", "admin"] as ConsentView[]) {
+    if (allowed.has(v)) return v;
+  }
+  return "consumer";
+
 }
 
 
