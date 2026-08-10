@@ -263,6 +263,10 @@ const TreatmentPlanDetail = () => {
         {/* member-initiated sharing — tag a professional into your own plan */}
         {id && <PlanSharesSection planId={id} />}
 
+        {/* retrospective logging — a missed day can still be recorded */}
+        {plan.status === "active" && <CatchUpDays bundle={bundle} disabled={!hasPlus} />}
+
+
 
         {/* weeks */}
         <div className="space-y-2" id="treatment-weeks">
