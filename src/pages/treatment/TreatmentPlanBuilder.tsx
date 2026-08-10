@@ -474,6 +474,31 @@ const TreatmentPlanBuilder = () => {
                 })
               }
             />
+
+            <BrandCatalogueProductPicker
+              open={brandPickerOpen}
+              onOpenChange={setBrandPickerOpen}
+              onPick={(pick) => {
+                setProducts((list) => {
+                  const next = [...list];
+                  const patch = {
+                    product_name: pick.name,
+                    brand: pick.brand ?? "",
+                    usage_notes: "",
+                    ingredient_id: null,
+                    user_product_id: null,
+                    image_url: pick.image_url,
+                  };
+                  const blank = next.findIndex(
+                    (x) => !x.product_name.trim() && !x.brand.trim() && !x.usage_notes.trim(),
+                  );
+                  if (blank >= 0) next[blank] = patch;
+                  else next.push(patch);
+                  return next;
+                });
+                toast.success(`${pick.name} added`);
+              }}
+            />
           </div>
         )}
 
