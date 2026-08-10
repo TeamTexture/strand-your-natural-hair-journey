@@ -42,6 +42,9 @@ export const ALERT_KEYS = {
 
   // One-time optional-consent ask, shown once after the hair profile is done
   PERSONALISED_OFFERS_ASK: "personalised_offers_ask",
+
+  // "How this works" strip on a treatment plan — signature is the plan id
+  TREATMENT_HOW_IT_WORKS: "treatment_how_it_works",
 } as const;
 
 export type AlertKey = (typeof ALERT_KEYS)[keyof typeof ALERT_KEYS];
