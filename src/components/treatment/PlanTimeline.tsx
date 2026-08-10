@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
+import ProductThumb from "@/components/ProductThumb";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -81,14 +82,20 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
         };
       })
         .from("treatment_plan_products")
-        .select("id, product_name")
+        .select("id, product_name, brand, image_url, storage_path")
         .eq("plan_id", planId);
       if (error) throw error;
-      return (data ?? []) as { id: string; product_name: string }[];
+      return (data ?? []) as {
+        id: string;
+        product_name: string;
+        brand: string | null;
+        image_url: string | null;
+        storage_path: string | null;
+      }[];
     },
   });
-  const productName = (id: string | null) =>
-    id ? planProducts.find((p) => p.id === id)?.product_name ?? null : null;
+  const productFor = (id: string | null) =>
+    id ? planProducts.find((p) => p.id === id) ?? null : null;
 
   const weeks = Array.from({ length: durationWeeks }, (_, i) => i + 1);
 
@@ -250,10 +257,20 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                             <p className="font-body text-[11px] text-muted-foreground">
                               {cadenceSummary(row, startDate)}
                             </p>
-                            {productName(row.product_id) && (
-                              <p className="font-body text-[11px] text-primary break-words">
-                                {productName(row.product_id)}
-                              </p>
+                            {productFor(row.product_id) && (
+                              <span className="mt-1 flex items-center gap-1.5">
+                                <ProductThumb
+                                  imageUrl={productFor(row.product_id)!.image_url}
+                                  storagePath={productFor(row.product_id)!.storage_path}
+                                  alt={productFor(row.product_id)!.product_name}
+                                  brand={productFor(row.product_id)!.brand}
+                                  name={productFor(row.product_id)!.product_name}
+                                  wrapperClassName="size-6 rounded-[6px] overflow-hidden bg-secondary shrink-0"
+                                />
+                                <span className="font-body text-[11px] text-primary break-words">
+                                  {productFor(row.product_id)!.product_name}
+                                </span>
+                              </span>
                             )}
                           </div>
                           {!disabled && (

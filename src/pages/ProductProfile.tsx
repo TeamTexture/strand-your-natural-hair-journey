@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Trash2, ArrowDownToLine } from "lucide-react";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
+import ProductThumb from "@/components/ProductThumb";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -365,13 +366,15 @@ const ProductProfile = () => {
     <ScreenLayout bottomNav={false}>
       <TitleBar title={titleCategory || "Product"} back tips />
       <div className="px-5 pb-8 space-y-4">
-        <div className="w-full aspect-square rounded-[18px] border border-border overflow-hidden bg-secondary">
-          {product.image_url ? (
-            <img src={product.image_url} alt={product.name} className="size-full object-cover" />
-          ) : (
-            <div className="size-full flex items-center justify-center text-6xl bg-primary/10">🧴</div>
-          )}
-        </div>
+        <ProductThumb
+          imageUrl={product.image_url}
+          storagePath={product.storage_path}
+          alt={product.name}
+          brand={product.brand}
+          name={product.name}
+          cover
+          wrapperClassName="w-full aspect-square rounded-[18px] border border-border overflow-hidden bg-secondary"
+        />
 
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">

@@ -48,6 +48,7 @@ export interface ProductRow {
   ingredient_id: string | null;
   user_product_id: string | null;
   image_url: string | null;
+  storage_path?: string | null;
 }
 
 export interface MilestoneRow {
@@ -363,6 +364,7 @@ export interface DraftProduct {
   /** Set when the product came from the member's shelf or a scanned link. */
   user_product_id?: string | null;
   image_url?: string | null;
+  storage_path?: string | null;
 }
 
 export interface DraftPlan {
@@ -427,6 +429,7 @@ export function useCreateTreatmentPlan() {
               ingredient_id: p.ingredient_id,
               user_product_id: p.user_product_id ?? null,
               image_url: p.image_url ?? null,
+              storage_path: p.storage_path ?? null,
             })),
           )
           .select("id");
