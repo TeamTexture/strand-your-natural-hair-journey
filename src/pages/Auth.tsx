@@ -237,7 +237,7 @@ const Auth = () => {
               STRAND unlocks with two things on file:
             </p>
             <ul className="mt-1.5 text-[12px] text-foreground/85 leading-snug space-y-0.5 font-body">
-              <li>• A blood test within the last 3 months</li>
+              <li>• A blood test within the last 6 months</li>
               <li>• A professional hair consultation within the last 3 months</li>
             </ul>
             <button
