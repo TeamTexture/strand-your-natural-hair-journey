@@ -348,6 +348,9 @@ export interface DraftStep {
   time_of_day: "morning" | "evening" | "both";
   /** Index into the draft product list, or null. */
   productIndex: number | null;
+  /** Optional week window — null on both means the whole plan. */
+  start_week?: number | null;
+  end_week?: number | null;
 }
 
 export interface DraftProduct {
@@ -441,6 +444,8 @@ export function useCreateTreatmentPlan() {
             product_id:
               s.productIndex != null && productIds[s.productIndex] ? productIds[s.productIndex] : null,
             step_order: i,
+            start_week: s.start_week ?? null,
+            end_week: s.end_week ?? null,
           })),
         );
         if (sErr) throw sErr;
@@ -484,4 +489,77 @@ export async function searchGlossary(term: string) {
     .ilike("display_name", `%${q}%`)
     .limit(5);
   return (data ?? []) as { id: string; display_name: string; category: string | null }[];
+}
+
+/* ---------------------------------------------------- editing the schedule */
+
+export interface StepInput {
+  task_name: string;
+  instructions: string | null;
+  cadence: "daily" | "specific_days" | "weekly";
+  days_of_week: number[] | null;
+  time_of_day: "morning" | "evening" | "both";
+  product_id?: string | null;
+  start_week?: number | null;
+  end_week?: number | null;
+}
+
+/**
+ * Add, change or drop a step on a live plan — including steps planned for weeks
+ * that haven't arrived yet. Past logs are left alone: a step's history stays
+ * attached to it, so editing a step never rewrites what she already logged.
+ */
+export function usePlanScheduleEditor(planId?: string) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["treatment-plans", user?.id] });
+
+  const addStep = useMutation({
+    mutationFn: async (v: StepInput & { step_order: number }) => {
+      const { error } = await db.from("treatment_plan_schedule").insert({
+        plan_id: planId,
+        task_name: v.task_name.trim(),
+        instructions: v.instructions?.trim() || null,
+        cadence: v.cadence,
+        days_of_week: v.cadence === "specific_days" ? v.days_of_week ?? [] : null,
+        time_of_day: v.time_of_day,
+        product_id: v.product_id ?? null,
+        step_order: v.step_order,
+        start_week: v.start_week ?? null,
+        end_week: v.end_week ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const updateStep = useMutation({
+    mutationFn: async (v: StepInput & { id: string }) => {
+      const { error } = await db
+        .from("treatment_plan_schedule")
+        .update({
+          task_name: v.task_name.trim(),
+          instructions: v.instructions?.trim() || null,
+          cadence: v.cadence,
+          days_of_week: v.cadence === "specific_days" ? v.days_of_week ?? [] : null,
+          time_of_day: v.time_of_day,
+          product_id: v.product_id ?? null,
+          start_week: v.start_week ?? null,
+          end_week: v.end_week ?? null,
+        })
+        .eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const removeStep = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db.from("treatment_plan_schedule").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  return { addStep, updateStep, removeStep };
 }
