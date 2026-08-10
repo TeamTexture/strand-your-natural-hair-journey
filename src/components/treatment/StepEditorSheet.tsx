@@ -110,6 +110,8 @@ interface Props {
   durationWeeks: number;
   /** Existing row when editing; leave undefined to add a new step. */
   row?: ScheduleRow;
+  /** When adding a step from a later week, start its window there. */
+  defaultStartWeek?: number | null;
   saving?: boolean;
   onSave: (v: StepInput) => void;
   onDelete?: () => void;
@@ -124,6 +126,7 @@ const StepEditorSheet = ({
   onOpenChange,
   durationWeeks,
   row,
+  defaultStartWeek,
   saving,
   onSave,
   onDelete,
@@ -143,9 +146,9 @@ const StepEditorSheet = ({
     setCadence((row?.cadence as StepInput["cadence"]) ?? "daily");
     setDays(row?.days_of_week ?? []);
     setTimeOfDay((row?.time_of_day as StepInput["time_of_day"]) ?? "evening");
-    setStartWeek(row?.start_week ?? null);
+    setStartWeek(row ? row.start_week ?? null : defaultStartWeek && defaultStartWeek > 1 ? defaultStartWeek : null);
     setEndWeek(row?.end_week ?? null);
-  }, [open, row]);
+  }, [open, row, defaultStartWeek]);
 
   const submit = () => {
     if (name.trim().length < 2) {

@@ -254,6 +254,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
         }}
         durationWeeks={durationWeeks}
         row={editing ?? undefined}
+        defaultStartWeek={addingWeek}
         saving={busy}
         onSave={saveStep}
         onDelete={editing ? dropStep : undefined}

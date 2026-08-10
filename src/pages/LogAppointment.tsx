@@ -35,6 +35,7 @@ const LogAppointment = () => {
   const fromId = searchParams.get("fromId");
   // When arriving from a treatment plan the appointment is attached to it.
   const planId = searchParams.get("planId");
+  const prefillDate = searchParams.get("date");
 
   const [query, setQuery] = useState("");
   const [pickedFromDirectory, setPickedFromDirectory] = useState<Professional | null>(null);
@@ -42,7 +43,7 @@ const LogAppointment = () => {
   const [proName, setProName] = useState("");
   const [proType, setProType] = useState("Dermatologist");
   const [clinic, setClinic] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(prefillDate ?? "");
   const [time, setTime] = useState("");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
