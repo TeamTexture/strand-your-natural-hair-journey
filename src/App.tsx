@@ -68,6 +68,8 @@ const ProfileStepPhotos = lazyRetry(() => import("./pages/onboarding/ProfileStep
 const MilestoneGallery = lazyRetry(() => import("./pages/MilestoneGallery"));
 const TreatmentPlanBuilder = lazyRetry(() => import("./pages/treatment/TreatmentPlanBuilder"));
 const TreatmentPlanDetail = lazyRetry(() => import("./pages/treatment/TreatmentPlanDetail"));
+const TreatmentProgress = lazyRetry(() => import("./pages/treatment/TreatmentProgress"));
+const TreatmentCheckin = lazyRetry(() => import("./pages/treatment/TreatmentCheckin"));
 
 const Discounts = lazyRetry(() => import("./pages/Discounts"));
 const BloodHistory = lazyRetry(() => import("./pages/BloodHistory"));
@@ -343,6 +345,9 @@ const App = () => (
                <Route path="/products/ingredient-research" element={<Paid><IngredientResearch /></Paid>} />
                <Route path="/treatment/new" element={<Paid><TreatmentPlanBuilder /></Paid>} />
                <Route path="/treatment/:id" element={<Paid><TreatmentPlanDetail /></Paid>} />
+               <Route path="/treatment/:id/progress" element={<Paid><TreatmentProgress /></Paid>} />
+               <Route path="/treatment/:id/checkin/:week" element={<Paid><TreatmentCheckin /></Paid>} />
+               <Route path="/treatment/:id/checkin" element={<Paid><TreatmentCheckin /></Paid>} />
                <Route path="/journal" element={<Paid><Journal /></Paid>} />
 
               <Route path="/journal/entry/:id" element={<Paid><StyleRecord /></Paid>} />
