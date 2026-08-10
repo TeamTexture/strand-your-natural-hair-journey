@@ -4434,6 +4434,564 @@ export type Database = {
           },
         ]
       }
+      treatment_plan_assignments: {
+        Row: {
+          accepted_at: string | null
+          client_user_id: string | null
+          created_at: string
+          declined_at: string | null
+          id: string
+          invited_email: string | null
+          media_consent_granted_at: string | null
+          media_consent_revoked_at: string | null
+          media_sharing_consent: boolean
+          plan_consent_granted_at: string | null
+          plan_id: string | null
+          professional_id: string
+          status: Database["public"]["Enums"]["treatment_assignment_status"]
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          client_user_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          id?: string
+          invited_email?: string | null
+          media_consent_granted_at?: string | null
+          media_consent_revoked_at?: string | null
+          media_sharing_consent?: boolean
+          plan_consent_granted_at?: string | null
+          plan_id?: string | null
+          professional_id: string
+          status?: Database["public"]["Enums"]["treatment_assignment_status"]
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          client_user_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          id?: string
+          invited_email?: string | null
+          media_consent_granted_at?: string | null
+          media_consent_revoked_at?: string | null
+          media_sharing_consent?: boolean
+          plan_consent_granted_at?: string | null
+          plan_id?: string | null
+          professional_id?: string
+          status?: Database["public"]["Enums"]["treatment_assignment_status"]
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_assignments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_checkin_comments: {
+        Row: {
+          body: string
+          chat_message_id: string | null
+          checkin_id: string
+          created_at: string
+          id: string
+          professional_id: string
+          thread_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          chat_message_id?: string | null
+          checkin_id: string
+          created_at?: string
+          id?: string
+          professional_id: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          chat_message_id?: string | null
+          checkin_id?: string
+          created_at?: string
+          id?: string
+          professional_id?: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_checkin_comments_chat_message_id_fkey"
+            columns: ["chat_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_checkin_comments_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_checkins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_checkin_comments_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_checkins: {
+        Row: {
+          created_at: string
+          id: string
+          plan_id: string
+          ratings: Json
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
+          written_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_id: string
+          ratings?: Json
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+          week_end_date: string
+          week_number: number
+          week_start_date: string
+          written_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_id?: string
+          ratings?: Json
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          week_end_date?: string
+          week_number?: number
+          week_start_date?: string
+          written_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_checkins_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_entries: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          entry_date: string
+          id: string
+          note: string | null
+          plan_id: string
+          schedule_id: string
+          status: Database["public"]["Enums"]["treatment_entry_status"]
+          time_of_day: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          entry_date: string
+          id?: string
+          note?: string | null
+          plan_id: string
+          schedule_id: string
+          status?: Database["public"]["Enums"]["treatment_entry_status"]
+          time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          note?: string | null
+          plan_id?: string
+          schedule_id?: string
+          status?: Database["public"]["Enums"]["treatment_entry_status"]
+          time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_entries_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_entries_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_schedule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_media: {
+        Row: {
+          caption: string | null
+          captured_at: string
+          checkin_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          file_size_bytes: number
+          id: string
+          media_type: Database["public"]["Enums"]["treatment_media_type"]
+          milestone_id: string | null
+          mime_type: string
+          plan_id: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          captured_at?: string
+          checkin_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes: number
+          id?: string
+          media_type: Database["public"]["Enums"]["treatment_media_type"]
+          milestone_id?: string | null
+          mime_type: string
+          plan_id: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          captured_at?: string
+          checkin_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number
+          id?: string
+          media_type?: Database["public"]["Enums"]["treatment_media_type"]
+          milestone_id?: string | null
+          mime_type?: string
+          plan_id?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_media_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_checkins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_media_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_media_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_milestones: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          label: string
+          media_id: string | null
+          plan_id: string
+          prompt: string | null
+          updated_at: string
+          week_number: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          media_id?: string | null
+          plan_id: string
+          prompt?: string | null
+          updated_at?: string
+          week_number: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          media_id?: string | null
+          plan_id?: string
+          prompt?: string | null
+          updated_at?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_milestones_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_milestones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_products: {
+        Row: {
+          brand: string | null
+          created_at: string
+          id: string
+          ingredient_id: string | null
+          plan_id: string
+          product_name: string
+          step_order: number
+          updated_at: string
+          usage_notes: string | null
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          plan_id: string
+          product_name: string
+          step_order?: number
+          updated_at?: string
+          usage_notes?: string | null
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          id?: string
+          ingredient_id?: string | null
+          plan_id?: string
+          product_name?: string
+          step_order?: number
+          updated_at?: string
+          usage_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_products_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "glossary_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_products_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_schedule: {
+        Row: {
+          cadence: Database["public"]["Enums"]["treatment_cadence"]
+          created_at: string
+          days_of_week: number[] | null
+          id: string
+          instructions: string | null
+          plan_id: string
+          product_id: string | null
+          step_order: number
+          task_name: string
+          time_of_day: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at: string
+        }
+        Insert: {
+          cadence?: Database["public"]["Enums"]["treatment_cadence"]
+          created_at?: string
+          days_of_week?: number[] | null
+          id?: string
+          instructions?: string | null
+          plan_id: string
+          product_id?: string | null
+          step_order?: number
+          task_name: string
+          time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at?: string
+        }
+        Update: {
+          cadence?: Database["public"]["Enums"]["treatment_cadence"]
+          created_at?: string
+          days_of_week?: number[] | null
+          id?: string
+          instructions?: string | null
+          plan_id?: string
+          product_id?: string | null
+          step_order?: number
+          task_name?: string
+          time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_schedule_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_plan_schedule_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plan_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_weeks: number
+          id: string
+          is_archived: boolean
+          photo_milestone_weeks: number[]
+          professional_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          is_archived?: boolean
+          photo_milestone_weeks?: number[]
+          professional_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          is_archived?: boolean
+          photo_milestone_weeks?: number[]
+          professional_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      treatment_plans: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          duration_weeks: number
+          end_date: string | null
+          goal: string | null
+          id: string
+          notes: string | null
+          professional_id: string | null
+          source_template_id: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["treatment_plan_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          duration_weeks?: number
+          end_date?: string | null
+          goal?: string | null
+          id?: string
+          notes?: string | null
+          professional_id?: string | null
+          source_template_id?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["treatment_plan_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          duration_weeks?: number
+          end_date?: string | null
+          goal?: string | null
+          id?: string
+          notes?: string | null
+          professional_id?: string | null
+          source_template_id?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["treatment_plan_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plans_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_advice_ledger: {
         Row: {
           action_key: string
@@ -5823,6 +6381,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_accepted_plan_access: {
+        Args: { _plan_id: string; _pro?: string }
+        Returns: boolean
+      }
       has_active_brand_subscription: {
         Args: { _user: string }
         Returns: boolean
@@ -5842,6 +6404,10 @@ export type Database = {
       has_active_pro_subscription: { Args: { _pro: string }; Returns: boolean }
       has_active_promotion_eligibility: {
         Args: { _owner_type: string; _user: string }
+        Returns: boolean
+      }
+      has_media_access: {
+        Args: { _plan_id: string; _pro?: string }
         Returns: boolean
       }
       has_professional_undertaking: { Args: { _pro: string }; Returns: boolean }
@@ -5917,6 +6483,10 @@ export type Database = {
           _url: string
         }
         Returns: undefined
+      }
+      owns_treatment_plan: {
+        Args: { _plan_id: string; _user: string }
+        Returns: boolean
       }
       pro_cancel_appointment: {
         Args: { _appointment_id: string; _reason: string }
@@ -6087,6 +6657,11 @@ export type Database = {
         }
         Returns: string
       }
+      treatment_checkin_owner: {
+        Args: { _checkin_id: string }
+        Returns: string
+      }
+      treatment_checkin_plan: { Args: { _checkin_id: string }; Returns: string }
       withdraw_brand_offer_revision: {
         Args: { _revision_id: string }
         Returns: undefined
@@ -6134,6 +6709,21 @@ export type Database = {
         | "clarifying"
         | "density_growth"
         | "scalp_health"
+      treatment_assignment_status:
+        | "pending"
+        | "accepted"
+        | "declined"
+        | "revoked"
+      treatment_cadence: "daily" | "specific_days" | "weekly"
+      treatment_entry_status: "completed" | "skipped"
+      treatment_media_type: "photo" | "video" | "audio"
+      treatment_plan_status:
+        | "draft"
+        | "active"
+        | "paused"
+        | "completed"
+        | "abandoned"
+      treatment_time_of_day: "morning" | "evening" | "both"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6302,6 +6892,23 @@ export const Constants = {
         "density_growth",
         "scalp_health",
       ],
+      treatment_assignment_status: [
+        "pending",
+        "accepted",
+        "declined",
+        "revoked",
+      ],
+      treatment_cadence: ["daily", "specific_days", "weekly"],
+      treatment_entry_status: ["completed", "skipped"],
+      treatment_media_type: ["photo", "video", "audio"],
+      treatment_plan_status: [
+        "draft",
+        "active",
+        "paused",
+        "completed",
+        "abandoned",
+      ],
+      treatment_time_of_day: ["morning", "evening", "both"],
     },
   },
 } as const

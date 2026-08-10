@@ -1,0 +1,10 @@
+REVOKE EXECUTE ON FUNCTION public.has_accepted_plan_access(uuid, uuid) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.has_media_access(uuid, uuid) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.owns_treatment_plan(uuid, uuid) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.treatment_checkin_plan(uuid) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.treatment_checkin_owner(uuid) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.has_accepted_plan_access(uuid, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.has_media_access(uuid, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.owns_treatment_plan(uuid, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.treatment_checkin_plan(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.treatment_checkin_owner(uuid) TO authenticated, service_role;
