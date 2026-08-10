@@ -5007,6 +5007,59 @@ export type Database = {
           },
         ]
       }
+      treatment_plan_shares: {
+        Row: {
+          created_at: string
+          id: string
+          invited_email: string | null
+          invited_name: string | null
+          media_revoked_at: string | null
+          owner_user_id: string
+          plan_id: string
+          professional_user_id: string | null
+          responded_at: string | null
+          share_media: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_email?: string | null
+          invited_name?: string | null
+          media_revoked_at?: string | null
+          owner_user_id: string
+          plan_id: string
+          professional_user_id?: string | null
+          responded_at?: string | null
+          share_media?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_email?: string | null
+          invited_name?: string | null
+          media_revoked_at?: string | null
+          owner_user_id?: string
+          plan_id?: string
+          professional_user_id?: string | null
+          responded_at?: string | null
+          share_media?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_shares_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_plan_template_steps: {
         Row: {
           cadence: Database["public"]["Enums"]["treatment_cadence"]
@@ -6552,6 +6605,7 @@ export type Database = {
         Returns: string
       }
       claim_my_treatment_invites: { Args: never; Returns: number }
+      claim_my_treatment_shares: { Args: never; Returns: number }
       confirm_brand_offer_revision_payment: {
         Args: {
           _payment_intent_id: string
@@ -6909,6 +6963,7 @@ export type Database = {
         }[]
       }
       treatment_invitation: { Args: { _assignment_id: string }; Returns: Json }
+      treatment_pro_search: { Args: { _q: string }; Returns: Json }
       treatment_reminders_due: {
         Args: { _now: string }
         Returns: {
@@ -6922,6 +6977,11 @@ export type Database = {
           week_number: number
           week_start: string
         }[]
+      }
+      treatment_share_detail: { Args: { _share_id: string }; Returns: Json }
+      treatment_share_respond: {
+        Args: { _accept: boolean; _share_id: string }
+        Returns: Json
       }
       withdraw_brand_offer_revision: {
         Args: { _revision_id: string }

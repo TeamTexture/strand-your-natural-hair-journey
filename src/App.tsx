@@ -71,6 +71,8 @@ const TreatmentPlanDetail = lazyRetry(() => import("./pages/treatment/TreatmentP
 const TreatmentProgress = lazyRetry(() => import("./pages/treatment/TreatmentProgress"));
 const TreatmentCheckin = lazyRetry(() => import("./pages/treatment/TreatmentCheckin"));
 const TreatmentInvitation = lazyRetry(() => import("./pages/treatment/TreatmentInvitation"));
+const TreatmentShareInvitation = lazyRetry(() => import("./pages/treatment/TreatmentShareInvitation"));
+
 const ProTreatmentClients = lazyRetry(() => import("./pages/pro/ProTreatmentClients"));
 const ProTreatmentTemplate = lazyRetry(() => import("./pages/pro/ProTreatmentTemplate"));
 const ProTreatmentCheckin = lazyRetry(() => import("./pages/pro/ProTreatmentCheckin"));
@@ -359,6 +361,8 @@ const App = () => (
                <Route path="/treatment/:id/checkin/:week" element={<Paid><TreatmentCheckin /></Paid>} />
                <Route path="/treatment/:id/checkin" element={<Paid><TreatmentCheckin /></Paid>} />
                <Route path="/treatment/invitation/:assignmentId" element={<Protected><TreatmentInvitation /></Protected>} />
+               <Route path="/treatment/share/:shareId" element={<Protected><TreatmentShareInvitation /></Protected>} />
+
                <Route path="/journal" element={<Paid><Journal /></Paid>} />
 
               <Route path="/journal/entry/:id" element={<Paid><StyleRecord /></Paid>} />

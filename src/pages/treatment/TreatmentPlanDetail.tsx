@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { useSetPlanStatus, useTreatmentPlan, useUpdatePlanReminder } from "@/hooks/useTreatmentPlans";
 import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAssignments";
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
+import PlanSharesSection from "@/components/treatment/PlanSharesSection";
+
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
 import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
@@ -257,6 +259,10 @@ const TreatmentPlanDetail = () => {
             <WhatTheyCanSee name={sharedWith} />
           </div>
         )}
+
+        {/* member-initiated sharing — tag a professional into your own plan */}
+        {id && <PlanSharesSection planId={id} />}
+
 
         {/* weeks */}
         <div className="space-y-2" id="treatment-weeks">
