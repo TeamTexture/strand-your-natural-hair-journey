@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/popover";
 import ProAvatar from "@/components/ProAvatar";
 import { renderMentions } from "@/lib/renderMentions";
+import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
