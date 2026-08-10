@@ -78,6 +78,23 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
                 </p>
               );
             }
+            if (m.kind === "voice") {
+              const vm = m.meta ?? {};
+              return (
+                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <div className="max-w-[82%]">
+                    <ChatVoiceBubble
+                      path={typeof vm.audio_path === "string" ? vm.audio_path : null}
+                      transcript={typeof vm.transcript === "string" ? vm.transcript : m.body || null}
+                      durationMs={typeof vm.duration_ms === "number" ? vm.duration_ms : null}
+                      createdAt={m.created_at}
+                      readAt={m.read_at}
+                      mine={mine}
+                    />
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div
@@ -98,6 +115,7 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
                 </div>
               </div>
             );
+
           })
         )}
         <div ref={endRef} />
