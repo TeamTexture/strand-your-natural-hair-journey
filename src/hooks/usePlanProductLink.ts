@@ -12,6 +12,8 @@ export interface ResolvedPlanProduct {
   name: string;
   brand: string | null;
   image_url: string | null;
+  /** Photo saved in storage for this product, when there is one. */
+  storage_path: string | null;
 }
 
 /**
@@ -64,6 +66,7 @@ export function usePlanProductLink() {
             name: row.name,
             brand: row.brand ?? null,
             image_url: row.image_url ?? null,
+            storage_path: row.storage_path ?? null,
           };
         }
 
@@ -102,6 +105,7 @@ export function usePlanProductLink() {
             name: saveFields.name,
             brand: saveFields.brand ?? null,
             image_url: safeImage ?? null,
+            storage_path: row.storage_path ?? null,
           };
         }
 
@@ -142,6 +146,7 @@ export function usePlanProductLink() {
           name: saveFields.name,
           brand: saveFields.brand ?? null,
           image_url: safeImage ?? null,
+          storage_path: null,
         };
       } catch (e) {
         console.error("plan product link failed", e);
