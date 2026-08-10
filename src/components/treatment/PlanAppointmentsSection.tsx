@@ -47,8 +47,14 @@ const PlanAppointmentsSection = ({ planId, disabled }: { planId: string; disable
   });
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const upcoming = appointments.filter((a) => a.status !== "completed" && a.status !== "cancelled" && a.appointment_date >= todayKey);
-  const past = appointments.filter((a) => !upcoming.includes(a));
+  // Cancelled visits stay in the plan diary, grouped and marked as cancelled.
+  const isCancelled = (a: PlanAppointment) => a.status === "cancelled";
+  const upcoming = appointments.filter(
+    (a) => a.status !== "completed" && !isCancelled(a) && a.appointment_date >= todayKey,
+  );
+  const cancelled = appointments.filter(isCancelled);
+  const past = appointments.filter((a) => !upcoming.includes(a) && !isCancelled(a));
+
 
   const schedule = () =>
     navigate(`/appointments/log?planId=${planId}`);
