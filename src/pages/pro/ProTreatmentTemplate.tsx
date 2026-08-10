@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useProClients } from "@/hooks/useProClients";
+import {
+  useAssignableClients,
+  PLUS_ASSIGN_NOTE,
+  PLUS_ASSIGN_EMPTY,
+} from "@/hooks/useAssignableClients";
 import {
   useAssignTemplate,
   useProTemplates,
