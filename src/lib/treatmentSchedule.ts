@@ -199,6 +199,60 @@ export function computeAdherence(
   };
 }
 
+/* ------------------------------------------------------------- day counts */
+
+export interface DayCounts {
+  /** Calendar days in the window that expected at least one step (capped at today). */
+  daysDue: number;
+  /** Days where every step due that day was logged as completed. */
+  daysLogged: number;
+  /** Days where some but not all due steps were logged. */
+  daysPartial: number;
+}
+
+/**
+ * Day-level adherence: how many days she did everything she said she'd do.
+ * Used for daily routines, where "5 of 7 days" reads far better than steps.
+ */
+export function dayCounts(
+  rows: ScheduleRow[],
+  entries: EntryRow[],
+  startDate: string,
+  from: string,
+  to: string,
+  today: string = todayKey(),
+): DayCounts {
+  const first = daysBetween(startDate, from) < 0 ? startDate : from;
+  const last = minKey(to, today);
+  let daysDue = 0;
+  let daysLogged = 0;
+  let daysPartial = 0;
+  if (daysBetween(first, last) < 0) return { daysDue, daysLogged, daysPartial };
+  for (let key = first; daysBetween(key, last) >= 0; key = addDays(key, 1)) {
+    const due = dueSlotsOn(rows, startDate, key);
+    if (!due.length) continue;
+    daysDue += 1;
+    const done = due.filter(({ row, slot }) =>
+      entries.some(
+        (e) =>
+          e.schedule_id === row.id &&
+          e.entry_date === key &&
+          e.time_of_day === slot &&
+          e.status === "completed",
+      ),
+    ).length;
+    if (done === due.length) daysLogged += 1;
+    else if (done > 0) daysPartial += 1;
+  }
+  return { daysDue, daysLogged, daysPartial };
+}
+
+/** True when the routine expects something every single day — a daily rhythm. */
+export function isDailyPlan(rows: ScheduleRow[]): boolean {
+  return rows.some((r) => r.cadence === "daily");
+}
+
+
 /* ---------------------------------------------------------------- weeks */
 
 export interface WeekSummary {
