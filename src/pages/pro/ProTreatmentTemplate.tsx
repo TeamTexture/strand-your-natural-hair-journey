@@ -71,7 +71,7 @@ const ProTreatmentTemplate = () => {
   const existing = templates.find((t) => t.id === id) ?? null;
   const save = useSaveTemplate();
   const assign = useAssignTemplate();
-  const { data: proClients = [] } = useProClients();
+  const { clients: plusClients, loading: clientsLoading } = useAssignableClients();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
