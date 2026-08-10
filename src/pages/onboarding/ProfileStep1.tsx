@@ -1,5 +1,6 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, Stethoscope, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
