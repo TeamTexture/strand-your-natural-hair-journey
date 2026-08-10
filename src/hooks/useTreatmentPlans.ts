@@ -7,7 +7,9 @@ import {
   type ScheduleRow,
   type TreatmentSlot,
   computeAdherence,
+  currentStreak,
   dueSlotsOn,
+  streakDays,
   todayKey,
   weekNumberFor,
 } from "@/lib/treatmentSchedule";
