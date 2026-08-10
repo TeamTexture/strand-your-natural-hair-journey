@@ -258,6 +258,10 @@ const TreatmentPlanDetail = () => {
           </div>
         )}
 
+        {/* member-initiated sharing — tag a professional into your own plan */}
+        {id && <PlanSharesSection planId={id} />}
+
+
         {/* weeks */}
         <div className="space-y-2" id="treatment-weeks">
           <SectionLabel className="px-0 mt-0 mb-1.5">Week by week</SectionLabel>
