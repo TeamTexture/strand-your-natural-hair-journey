@@ -71,3 +71,7 @@ export const appointmentTitleOf = (a: AppointmentLike): string => {
 };
 
 export const isPastDateIso = (iso: string): boolean => !!iso && iso < todayIso();
+
+/** Cancelled appointments stay in the diary — they are never hidden, only marked. */
+export const isCancelledAppointment = (a: AppointmentLike): boolean =>
+  (a.status ?? "").toLowerCase() === "cancelled";
