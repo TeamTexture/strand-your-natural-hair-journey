@@ -10,6 +10,7 @@ import MainPhotoPicker from "@/components/style/MainPhotoPicker";
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
+import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
 import ListRow from "@/components/nav/ListRow";
 import { ICONS } from "@/lib/iconMap";
