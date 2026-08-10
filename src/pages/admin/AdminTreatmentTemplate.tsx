@@ -80,7 +80,7 @@ const AdminTreatmentTemplate = () => {
   const [savedId, setSavedId] = useState<string | null>(isNew ? null : (id ?? null));
   const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
-  const { members } = useAdminMemberOptions(true);
+  const { clients: plusMembers, loading: membersLoading } = useAssignableClients();
 
   useEffect(() => {
     if (!existing) return;
