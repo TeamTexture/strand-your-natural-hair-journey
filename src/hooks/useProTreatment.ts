@@ -27,7 +27,7 @@ const db = supabase as unknown as {
   rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>;
 };
 
-export type ClientPlanStatus = "not_started" | "on_track" | "quiet";
+export type ClientPlanStatus = "not_started" | "awaiting_upgrade" | "on_track" | "quiet";
 
 export interface ProTreatmentClient {
   assignment_id: string;
@@ -36,6 +36,8 @@ export interface ProTreatmentClient {
   client_name: string;
   invited_email: string | null;
   media_sharing_consent: boolean;
+  /** Treatment plans are STRAND+ for every client — pending without it can't be accepted. */
+  client_has_plus: boolean;
   template_title: string | null;
   plan: {
     id: string;
@@ -78,6 +80,9 @@ function derive(row: any): ProTreatmentClient {
     const anchor = row.last_entry_date ?? plan.start_date;
     quietDays = Math.max(0, daysBetween(anchor, today));
     planStatus = quietDays >= QUIET_AFTER_DAYS ? "quiet" : "on_track";
+  } else if (row.status === "pending" && row.client_user_id && row.client_has_plus === false) {
+    planStatus = "awaiting_upgrade";
+    line = "Waiting on STRAND+";
   }
 
   return {
@@ -109,7 +114,12 @@ export function useProTreatmentClients() {
   });
 
   const clients = useMemo(() => {
-    const rank: Record<ClientPlanStatus, number> = { quiet: 0, not_started: 1, on_track: 2 };
+    const rank: Record<ClientPlanStatus, number> = {
+      quiet: 0,
+      awaiting_upgrade: 1,
+      not_started: 2,
+      on_track: 3,
+    };
     return [...(q.data ?? [])].sort(
       (a, b) => rank[a.planStatus] - rank[b.planStatus] || b.quietDays - a.quietDays,
     );

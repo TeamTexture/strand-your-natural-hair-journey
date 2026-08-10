@@ -297,7 +297,8 @@ const AdminTreatmentTemplate = () => {
           <SectionLabel className="px-0 mt-0 mb-1.5">Assign to a member</SectionLabel>
           <SurfaceCard>
             <p className="font-body text-[13px] text-muted-foreground leading-snug">
-              The member has to accept the plan first. Photos, videos and voice notes stay private
+              The member needs STRAND+ (£14.99/mo) to accept and follow a plan — reading it is free.
+              They have to accept the plan first. Photos, videos and voice notes stay private
               unless they separately choose to share them.
             </p>
           </SurfaceCard>

@@ -211,6 +211,8 @@ const Help = lazyRetry(() => import("./pages/Help"));
 const Contact = lazyRetry(() => import("./pages/Contact"));
 
 // STRAND+
+import PlusGate from "./components/PlusGate";
+
 const PlusUpgrade = lazyRetry(() => import("./pages/PlusUpgrade"));
 const PlusWelcome = lazyRetry(() => import("./pages/PlusWelcome"));
 const Forum = lazyRetry(() => import("./pages/Forum"));
@@ -351,7 +353,7 @@ const App = () => (
               <Route path="/products/brand/:brand" element={<Paid><BrandProducts /></Paid>} />
               <Route path="/products/by-ingredient" element={<Paid><ProductsByIngredient /></Paid>} />
                <Route path="/products/ingredient-research" element={<Paid><IngredientResearch /></Paid>} />
-               <Route path="/treatment/new" element={<Paid><TreatmentPlanBuilder /></Paid>} />
+               <Route path="/treatment/new" element={<Paid><PlusGate title="Treatment plans"><TreatmentPlanBuilder /></PlusGate></Paid>} />
                <Route path="/treatment/:id" element={<Paid><TreatmentPlanDetail /></Paid>} />
                <Route path="/treatment/:id/progress" element={<Paid><TreatmentProgress /></Paid>} />
                <Route path="/treatment/:id/checkin/:week" element={<Paid><TreatmentCheckin /></Paid>} />

@@ -6,6 +6,9 @@ import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useDueToday, useLogTreatmentStep } from "@/hooks/useTreatmentPlans";
+import { usePlusAccess } from "@/hooks/usePlusAccess";
+import TreatmentPlusUpsell from "@/components/treatment/TreatmentPlusUpsell";
+import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
 import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
 
 /**
@@ -18,9 +21,14 @@ import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
 const TodayTreatmentCard = () => {
   const navigate = useNavigate();
   const { steps, streakLine, loading, hasActivePlan } = useDueToday();
+  const { hasPlus, isLoading: plusLoading } = usePlusAccess();
   const { log, undo } = useLogTreatmentStep();
 
-  if (loading) return null;
+  if (loading || plusLoading) return null;
+
+  // Treatment plans are STRAND+ for every client, no exceptions. A Basic member
+  // with no plan gets the offer; one with a plan keeps read access to it.
+  if (!hasPlus && !hasActivePlan) return <TreatmentPlusUpsell />;
 
   if (!hasActivePlan) {
     return (
@@ -39,6 +47,7 @@ const TodayTreatmentCard = () => {
       </div>
     );
   }
+
 
   const onDone = (planId: string, scheduleId: string, slot: "morning" | "evening") =>
     log.mutate(
@@ -67,6 +76,9 @@ const TodayTreatmentCard = () => {
       >
         Today's treatment
       </SectionHeader>
+
+      {!hasPlus && <TreatmentReadOnlyNotice next="/home" />}
+
 
       {steps.length === 0 ? (
         <SurfaceCard>
@@ -101,18 +113,20 @@ const TodayTreatmentCard = () => {
                       {done ? "Marked as done" : "Skipped — picked back up next time"}
                     </p>
                   </div>
-                  <button
-                    onClick={() =>
-                      s.entry &&
-                      undo.mutate(
-                        { entryId: s.entry.id },
-                        { onError: () => toast.error("Couldn't undo that just now") },
-                      )
-                    }
-                    className="font-body text-[12px] text-primary shrink-0 min-h-[44px] px-1"
-                  >
-                    Undo
-                  </button>
+                  {hasPlus && (
+                    <button
+                      onClick={() =>
+                        s.entry &&
+                        undo.mutate(
+                          { entryId: s.entry.id },
+                          { onError: () => toast.error("Couldn't undo that just now") },
+                        )
+                      }
+                      className="font-body text-[12px] text-primary shrink-0 min-h-[44px] px-1"
+                    >
+                      Undo
+                    </button>
+                  )}
                 </SurfaceCard>
               );
             }
@@ -137,18 +151,22 @@ const TodayTreatmentCard = () => {
                   )}
                 </div>
 
-                <Button
-                  className="w-full rounded-pill"
-                  onClick={() => onDone(s.plan.id, s.row.id, s.slot)}
-                >
-                  Mark as done
-                </Button>
-                <button
-                  onClick={() => onSkip(s.plan.id, s.row.id, s.slot)}
-                  className="w-full font-body text-[13px] text-muted-foreground min-h-[40px]"
-                >
-                  {skipLabel(s.slot)}
-                </button>
+                {hasPlus && (
+                  <>
+                    <Button
+                      className="w-full rounded-pill"
+                      onClick={() => onDone(s.plan.id, s.row.id, s.slot)}
+                    >
+                      Mark as done
+                    </Button>
+                    <button
+                      onClick={() => onSkip(s.plan.id, s.row.id, s.slot)}
+                      className="w-full font-body text-[13px] text-muted-foreground min-h-[40px]"
+                    >
+                      {skipLabel(s.slot)}
+                    </button>
+                  </>
+                )}
               </SurfaceCard>
             );
           })}

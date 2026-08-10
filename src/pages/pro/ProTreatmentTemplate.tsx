@@ -282,7 +282,9 @@ const ProTreatmentTemplate = () => {
           <SectionLabel className="px-0 mt-0 mb-1.5">Assign to a client</SectionLabel>
           <SurfaceCard>
             <p className="font-body text-[13px] text-muted-foreground leading-snug">
-              Your client has to accept the plan before you can see anything they record. Sharing
+              Your client needs STRAND+ (£14.99/mo) to accept and follow a plan — they can read the
+              whole thing without it. They also have to accept the plan before you can see anything
+              they record. Sharing
               photos, videos and voice notes is a separate choice they make, and they can change it
               at any time.
             </p>
