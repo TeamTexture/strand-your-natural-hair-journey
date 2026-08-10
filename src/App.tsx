@@ -500,6 +500,30 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/pro/treatment"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProTreatmentClients /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/treatment/templates/:id"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProTreatmentTemplate /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
+              <Route
+                path="/pro/treatment/plan/:planId/week/:week"
+                element={
+                  <RoleGate allow={["professional", "admin"]}>
+                    <ProSubGate><ProProfileGate><ProTreatmentCheckin /></ProProfileGate></ProSubGate>
+                  </RoleGate>
+                }
+              />
 
 
 
