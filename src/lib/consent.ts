@@ -113,16 +113,25 @@ export function viewForRole(role: ConsentRole): ConsentView {
  * Clamp the active view to something the account may actually be inside.
  * A route can only put a member in a view their roles allow (RoleGate), but the
  * remembered view in sessionStorage is untrusted, so verify it here too.
- * No roles yet ⇒ treat as a member.
+ *
+ * `pendingViews` covers accounts that have started a professional application
+ * or a brand sign-up but do not hold the role yet (it is granted on approval).
+ * They are inside the pro/brand journey, so they must never be asked for
+ * member-only consents such as health data.
+ *
+ * No roles and nothing pending ⇒ treat as a member.
  */
 export function resolveConsentView(
   activeView: ConsentView,
   roles: ConsentRole[],
+  pendingViews: ConsentView[] = [],
 ): ConsentView {
   const allowed = new Set<ConsentView>(roles.map(viewForRole));
-  if (!roles.length) return "consumer";
+  pendingViews.forEach((v) => allowed.add(v));
+  if (!allowed.size) return "consumer";
   return allowed.has(activeView) ? activeView : "consumer";
 }
+
 
 /**
  * Legacy exports — the full member matrix. Kept because settings screens and
