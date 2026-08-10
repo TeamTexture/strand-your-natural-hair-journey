@@ -62,6 +62,7 @@ import { useMyProfile } from "@/hooks/useMyProfile";
 import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useBrandLockout } from "@/hooks/useBrandLockout";
 import { useProSubscription } from "@/hooks/useProSubscription";
+import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
@@ -120,6 +121,7 @@ const GlobalMenu = () => {
   const { isConsumer, isProfessional, isAdmin, isBrand } = useRoles();
   const { data: myProfile, isLoading: profileLoading } = useMyProfile();
   const { isActive: proSubActive } = useProSubscription();
+  const { hasAccess: memberHasAccess } = useConsumerSubscription();
   const { data: pendingApplicationsCount = 0 } = usePendingApplicationsCount();
   const { isRestricted } = useAccessRestricted();
   // An unpaid brand account gets no navigation at all — the paywall screen
@@ -169,6 +171,23 @@ const GlobalMenu = () => {
   if (hidden) return null;
 
   const isOnboarding = ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p));
+
+  // The guidance strip only appears once the member is truly inside the app:
+  // onboarding finished, membership active, and Home reached at least once.
+  const onboardingDone = !!myProfile?.onboarding_completed_at;
+  const reachedHome = (() => {
+    try {
+      if (location.pathname.startsWith("/home")) {
+        localStorage.setItem("strand.reachedHome", "1");
+        return true;
+      }
+      return localStorage.getItem("strand.reachedHome") === "1";
+    } catch {
+      return location.pathname.startsWith("/home");
+    }
+  })();
+  const showTipsStrip =
+    !isOnboarding && onboardingDone && memberHasAccess && reachedHome;
 
   const activeView: "consumer" | "pro" | "admin" | "brand" = routeView ?? rememberedView;
 
@@ -387,7 +406,7 @@ const GlobalMenu = () => {
           </div>
 
         </div>
-      {activeView === "consumer" && <GlobalTipsDensityStrip />}
+      {activeView === "consumer" && showTipsStrip && <GlobalTipsDensityStrip />}
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
