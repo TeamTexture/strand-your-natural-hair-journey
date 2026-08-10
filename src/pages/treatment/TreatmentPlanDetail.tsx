@@ -325,8 +325,28 @@ const TreatmentPlanDetail = () => {
             <div className="space-y-1.5">
               {products.map((p) => (
                 <SurfaceCard key={p.id} className="space-y-0.5">
-                  <p className="font-body text-[14px] font-semibold break-words">{p.product_name}</p>
-                  {p.brand && <p className="font-body text-[12px] text-muted-foreground">{p.brand}</p>}
+                  <div className="flex items-start gap-3">
+                    {(p.image_url || p.user_product_id) && (
+                      <div className="size-11 rounded-xl bg-muted overflow-hidden shrink-0">
+                        {p.image_url && (
+                          <img src={p.image_url} alt={p.product_name} className="size-full object-cover" loading="lazy" />
+                        )}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-body text-[14px] font-semibold break-words">{p.product_name}</p>
+                      {p.brand && <p className="font-body text-[12px] text-muted-foreground">{p.brand}</p>}
+                      {p.user_product_id && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/products/profile/${p.user_product_id}`)}
+                          className="font-body text-[12px] text-primary underline underline-offset-2 mt-0.5"
+                        >
+                          Open on your shelf
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   {p.usage_notes && (
                     <p className="font-body text-[13px] text-muted-foreground leading-snug pt-1 [overflow-wrap:anywhere]">
                       {p.usage_notes}
