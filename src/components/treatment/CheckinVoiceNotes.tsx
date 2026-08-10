@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Mic, Play, Square, Trash2 } from "lucide-react";
+import { Check, Loader2, Mic, Play, Square, Trash2, Type } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
