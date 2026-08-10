@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
+import { usePlanProductLink } from "@/hooks/usePlanProductLink";
 import {
   useCreateTreatmentPlan,
   searchGlossary,
@@ -82,6 +84,8 @@ const emptyProduct = (): DraftProduct => ({
   brand: "",
   usage_notes: "",
   ingredient_id: null,
+  user_product_id: null,
+  image_url: null,
 });
 
 const TreatmentPlanBuilder = () => {
@@ -97,6 +101,12 @@ const TreatmentPlanBuilder = () => {
   const [steps, setSteps] = useState<DraftStep[]>([emptyStep()]);
   const [milestoneWeeks, setMilestoneWeeks] = useState<number[]>(defaultMilestoneWeeks(12));
   const [checkinReminder, setCheckinReminder] = useState(true);
+
+  // Adding products from the shelf or from a pasted product link.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const { resolveLink, busy: linkBusy } = usePlanProductLink();
 
   // Back-dated plans: which week of the plan today falls in.
   const startedWeek = Math.min(
@@ -133,6 +143,41 @@ const TreatmentPlanBuilder = () => {
     () => products.filter((p) => p.product_name.trim().length > 0),
     [products],
   );
+
+  /** Fills the first blank slot, otherwise appends a new one. */
+  const addResolvedProduct = (p: {
+    id: string;
+    name: string;
+    brand: string | null;
+    image_url: string | null;
+  }) => {
+    setProducts((list) => {
+      const next = [...list];
+      const patch: DraftProduct = {
+        product_name: p.name,
+        brand: p.brand ?? "",
+        usage_notes: "",
+        ingredient_id: null,
+        user_product_id: p.id,
+        image_url: p.image_url,
+      };
+      const blank = next.findIndex(
+        (x) => !x.product_name.trim() && !x.brand.trim() && !x.usage_notes.trim(),
+      );
+      if (blank >= 0) next[blank] = patch;
+      else next.push(patch);
+      return next;
+    });
+  };
+
+  const addFromLink = async () => {
+    const resolved = await resolveLink(linkUrl);
+    if (!resolved) return;
+    addResolvedProduct(resolved);
+    setLinkUrl("");
+    setLinkOpen(false);
+    toast.success(`${resolved.name} added — it's on your shelf too`);
+  };
 
   const canContinue =
     step === 1
@@ -275,6 +320,54 @@ const TreatmentPlanBuilder = () => {
         {/* ---------------------------------------------------------- step 2 */}
         {step === 2 && (
           <div className="space-y-3">
+            <SurfaceCard className="space-y-2">
+              <SectionLabel className="px-0 mt-0 mb-1.5">Add a product you already have</SectionLabel>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  className="rounded-pill"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  <ShoppingBag className="size-4 mr-1.5" /> My shelf
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-pill"
+                  onClick={() => setLinkOpen((v) => !v)}
+                >
+                  <Link2 className="size-4 mr-1.5" /> Paste a link
+                </Button>
+              </div>
+              {linkOpen && (
+                <div className="space-y-2 pt-1">
+                  <Input
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="Paste the product page link"
+                    inputMode="url"
+                    autoCapitalize="none"
+                  />
+                  <Button
+                    className="w-full rounded-pill"
+                    disabled={linkBusy || !linkUrl.trim()}
+                    onClick={() => void addFromLink()}
+                  >
+                    {linkBusy ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin" /> Reading that product…
+                      </span>
+                    ) : (
+                      "Add from link"
+                    )}
+                  </Button>
+                  <p className="font-body text-[11.5px] text-muted-foreground leading-snug">
+                    We read the page, analyse the ingredients against your profile, and add it to
+                    your shelf as well as this plan.
+                  </p>
+                </div>
+              )}
+            </SurfaceCard>
+
             {products.map((p, i) => (
               <SurfaceCard key={i} className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
@@ -289,12 +382,28 @@ const TreatmentPlanBuilder = () => {
                     </button>
                   )}
                 </div>
-                <Input
-                  value={p.product_name}
-                  onChange={(e) => void onProductNameChange(i, e.target.value)}
-                  placeholder="Product or ingredient name"
-                />
-                {!p.ingredient_id && (suggestions[i]?.length ?? 0) > 0 && (
+                {p.user_product_id ? (
+                  <div className="flex items-center gap-3">
+                    <div className="size-11 rounded-xl bg-muted overflow-hidden shrink-0">
+                      {p.image_url && (
+                        <img src={p.image_url} alt={p.product_name} className="size-full object-cover" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-body text-[13.5px] font-semibold break-words">
+                        {p.product_name}
+                      </p>
+                      <p className="font-body text-[11.5px] text-primary">From your shelf</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Input
+                    value={p.product_name}
+                    onChange={(e) => void onProductNameChange(i, e.target.value)}
+                    placeholder="Product or ingredient name"
+                  />
+                )}
+                {!p.user_product_id && !p.ingredient_id && (suggestions[i]?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {suggestions[i].map((s) => (
                       <Chip
@@ -313,11 +422,13 @@ const TreatmentPlanBuilder = () => {
                 {p.ingredient_id && (
                   <p className="font-body text-[12px] text-primary">Linked to your ingredient glossary</p>
                 )}
-                <Input
-                  value={p.brand}
-                  onChange={(e) => patchProduct(i, { brand: e.target.value })}
-                  placeholder="Brand (optional)"
-                />
+                {!p.user_product_id && (
+                  <Input
+                    value={p.brand}
+                    onChange={(e) => patchProduct(i, { brand: e.target.value })}
+                    placeholder="Brand (optional)"
+                  />
+                )}
                 <Textarea
                   value={p.usage_notes}
                   onChange={(e) => patchProduct(i, { usage_notes: e.target.value })}
@@ -333,6 +444,20 @@ const TreatmentPlanBuilder = () => {
             >
               <Plus className="size-4 mr-1.5" /> Add another product
             </Button>
+
+            <ShelfProductPicker
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+              usedIds={products.map((p) => p.user_product_id).filter(Boolean) as string[]}
+              onPick={(prod) =>
+                addResolvedProduct({
+                  id: prod.id,
+                  name: prod.name,
+                  brand: prod.brand,
+                  image_url: prod.image_url,
+                })
+              }
+            />
           </div>
         )}
 
