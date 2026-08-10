@@ -2,16 +2,28 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarPlus, ChevronDown, Copy, Pencil, Plus } from "lucide-react";
+import {
+  CalendarPlus,
+  Camera,
+  Check,
+  ChevronDown,
+  Copy,
+  ListOrdered,
+  Pencil,
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
-import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import ProductThumb from "@/components/ProductThumb";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import StepEditorSheet from "@/components/treatment/StepEditorSheet";
+import PlanProductsSection, { type PlanProduct } from "@/components/treatment/PlanProductsSection";
+import PlanAppointmentRow, {
+  usePlanAppointments,
+} from "@/components/treatment/PlanAppointmentRow";
+import { useChallenges } from "@/hooks/useChallenges";
 import {
   appliesInWeek,
   cadenceSummary,
@@ -20,56 +32,67 @@ import {
   weekNumberFor,
   weekRange,
   type ScheduleRow,
+  type WeekSummary,
 } from "@/lib/treatmentSchedule";
 import { usePlanScheduleEditor, type StepInput } from "@/hooks/useTreatmentPlans";
-
-type PlanAppointment = {
-  id: string;
-  professional_name: string;
-  appointment_date: string;
-  appointment_time: string | null;
-  reason: string | null;
-  status: string;
-};
 
 interface Props {
   planId: string;
   startDate: string;
   durationWeeks: number;
   schedule: ScheduleRow[];
+  /** Week rows, already derived by the date engine. */
+  weeks: WeekSummary[];
+  /** Weeks with a submitted check-in. */
+  checkedInWeeks: Set<number>;
+  goal: string | null;
+  products: PlanProduct[];
+  onProductsChanged: () => void;
+  onCheckin: (week: number) => void;
   /** Read-only when the plan is paused or she isn't on STRAND+. */
   disabled?: boolean;
 }
 
+/** current | needs check-in | checked in | ahead */
+type Tier = "a" | "b" | "c" | "d";
+
+const tierOf = (w: WeekSummary, checkedIn: boolean): Tier => {
+  if (w.state === "current") return "a";
+  if (w.state === "future") return "d";
+  return checkedIn ? "c" : "b";
+};
+
 /**
- * The whole plan, week by week — every step that applies in that week and every
- * appointment sitting in it. This is where she lays the plan out in advance and
- * where she comes back to change a step or move a visit.
+ * THE PLAN — the whole treatment in one place: a quiet line for what she's
+ * hoping for and working against, then every week, then the products and the
+ * full step sequence at the foot. This is the only week list on the page and
+ * the only place a step, product or appointment gets edited.
  */
-const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: Props) => {
+const PlanTimeline = ({
+  planId,
+  startDate,
+  durationWeeks,
+  schedule,
+  weeks,
+  checkedInWeeks,
+  goal,
+  products,
+  onProductsChanged,
+  onCheckin,
+  disabled,
+}: Props) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { challenges } = useChallenges();
   const { addStep, updateStep, removeStep } = usePlanScheduleEditor(planId);
+  const appointments = usePlanAppointments(planId);
 
   const currentWeek = Math.max(1, Math.min(durationWeeks, weekNumberFor(startDate, todayKey())));
+  const [open, setOpen] = useState(false);
   const [openWeek, setOpenWeek] = useState<number | null>(currentWeek);
+  const [allSteps, setAllSteps] = useState(false);
   const [editing, setEditing] = useState<ScheduleRow | null>(null);
   const [addingWeek, setAddingWeek] = useState<number | null>(null);
-
-  const { data: appointments = [] } = useQuery({
-    queryKey: ["plan-appointments", planId, user?.id],
-    enabled: !!user && !!planId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("id, professional_name, appointment_date, appointment_time, reason, status")
-        .eq("user_id", user!.id)
-        .eq("treatment_plan_id", planId)
-        .order("appointment_date", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as PlanAppointment[];
-    },
-  });
+  const [copying, setCopying] = useState(false);
 
   // Product names for steps that have one attached.
   const { data: planProducts = [] } = useQuery({
@@ -97,7 +120,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
   const productFor = (id: string | null) =>
     id ? planProducts.find((p) => p.id === id) ?? null : null;
 
-  const weeks = Array.from({ length: durationWeeks }, (_, i) => i + 1);
+  const orderedSteps = [...schedule].sort((a, b) => a.step_order - b.step_order);
 
   const saveStep = (v: StepInput) => {
     if (editing) {
@@ -137,7 +160,6 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
   };
 
   const busy = addStep.isPending || updateStep.isPending || removeStep.isPending;
-  const [copying, setCopying] = useState(false);
 
   /**
    * Whole treatments often run on the same products from start to finish. This
@@ -182,250 +204,358 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-end justify-between gap-2">
-        <SectionLabel className="px-0 mt-0 mb-1.5">The plan, week by week</SectionLabel>
-        {!disabled && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setAddingWeek(currentWeek);
-            }}
-            className="font-body text-[12px] text-primary underline underline-offset-2 mb-1.5"
-          >
-            Add a step
-          </button>
-        )}
-      </div>
+    <SurfaceCard padded={false} className="overflow-hidden">
+      {/* the accordion itself, closed by default */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full px-4 py-3.5 flex items-center gap-3 text-left"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="font-body text-[14px] font-semibold">The plan</p>
+          <p className="font-body text-[11.5px] text-muted-foreground mt-0.5">
+            {durationWeeks} week{durationWeeks === 1 ? "" : "s"} · {orderedSteps.length} step
+            {orderedSteps.length === 1 ? "" : "s"} · every week, and where you change it
+          </p>
+        </div>
+        <ChevronDown
+          className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
+        />
+      </button>
 
-      <div className="space-y-1.5">
-        {weeks.map((week) => {
-          const { start, end } = weekRange(startDate, week);
-          const steps = schedule.filter((r) => appliesInWeek(r, week));
-          const visits = appointments.filter(
-            (a) => a.appointment_date >= start && a.appointment_date <= end,
-          );
-          const open = openWeek === week;
-          const isNow = week === currentWeek;
-          const keyStep = steps[0] ?? null;
-          const keyProduct = productFor(steps.find((r) => r.product_id)?.product_id ?? null);
+      {open && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/60 pt-3">
+          {/* what she's hoping for, and working against — one quiet line */}
+          {(goal || challenges.length > 0) && (
+            <p className="font-body text-[12.5px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+              {goal ? <span className="text-foreground">{goal}</span> : null}
+              {goal && challenges.length > 0 ? " · " : ""}
+              {challenges.length > 0 ? `Working against ${challenges.join(", ")}` : ""}
+            </p>
+          )}
 
-          return (
-            <SurfaceCard
-              key={week}
-              padded={false}
-              className={cn(
-                "overflow-hidden transition-colors",
-                isNow ? "border-primary/45 bg-primary/[0.05]" : "bg-card",
-              )}
-            >
+          {/* the single week list */}
+          <div className="space-y-1.5">
+            {weeks.map((w) => {
+              const week = w.week;
+              const checkedIn = checkedInWeeks.has(week);
+              const tier = tierOf(w, checkedIn);
+              const isOpen = openWeek === week;
+              const { start, end } = weekRange(startDate, week);
+              const steps = schedule
+                .filter((r) => appliesInWeek(r, week))
+                .sort((a, b) => a.step_order - b.step_order);
+              const visits = appointments.filter(
+                (a) => a.appointment_date >= start && a.appointment_date <= end,
+              );
+
+              const shell = {
+                a: "bg-primary border-primary text-primary-foreground",
+                b: "bg-card border-primary border-[1.5px]",
+                c: "bg-card border-border",
+                d: "bg-secondary/60 border-border/60 text-muted-foreground",
+              }[tier];
+
+              const eyebrow = {
+                a: "text-primary-foreground/75",
+                b: "text-primary",
+                c: "text-muted-foreground",
+                d: "text-muted-foreground",
+              }[tier];
+
+              const meta = {
+                a: "text-primary-foreground/80",
+                b: "text-muted-foreground",
+                c: "text-muted-foreground",
+                d: "text-muted-foreground",
+              }[tier];
+
+              return (
+                <SurfaceCard key={week} padded={false} className={cn("overflow-hidden", shell)}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenWeek(isOpen ? null : week)}
+                    aria-expanded={isOpen}
+                    className="w-full px-4 py-3.5 text-left"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={cn(
+                            "font-body text-[10px] uppercase tracking-[0.18em]",
+                            eyebrow,
+                          )}
+                        >
+                          {tier === "a" ? "This week" : tier === "d" ? "Ahead" : "Week"}
+                        </p>
+                        <p
+                          className={cn(
+                            "font-display leading-tight mt-0.5",
+                            tier === "a" ? "text-[24px]" : "text-[17px]",
+                          )}
+                        >
+                          Week {week}
+                        </p>
+                        <p className={cn("font-body text-[11.5px] mt-1", meta)}>
+                          {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")}{" "}
+                          · {w.line}
+                        </p>
+                        {tier === "c" && (
+                          <p className="mt-1 flex items-center gap-1.5 font-body text-[11.5px] text-muted-foreground">
+                            <span className="size-4 rounded-full bg-good/15 text-good flex items-center justify-center">
+                              <Check className="size-2.5" />
+                            </span>
+                            Check-in saved
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="shrink-0 flex items-center gap-1.5">
+                        {w.isMilestone && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-pill px-2 py-0.5 font-body text-[10px] font-semibold",
+                              tier === "a"
+                                ? "bg-background/25 text-primary-foreground"
+                                : "bg-primary/10 text-primary",
+                            )}
+                          >
+                            <Camera className="size-3" /> Photo
+                          </span>
+                        )}
+                        <ChevronDown
+                          className={cn(
+                            "size-4 transition-transform",
+                            tier === "a" ? "text-primary-foreground/80" : "text-muted-foreground",
+                            isOpen && "rotate-180",
+                          )}
+                        />
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* the check-in affordance, per tier */}
+                  {tier === "a" && (
+                    <div className="px-4 pb-3.5">
+                      <Button
+                        className="rounded-pill w-full bg-background text-primary hover:bg-background/90"
+                        onClick={() => onCheckin(week)}
+                      >
+                        Check in for week {week}
+                      </Button>
+                    </div>
+                  )}
+                  {tier === "b" && (
+                    <div className="px-4 pb-3.5 space-y-1.5">
+                      <p className="font-body text-[12px] text-muted-foreground leading-snug">
+                        No check-in for this week yet, which is completely fine — you can still
+                        write it now.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="rounded-pill w-full"
+                        onClick={() => onCheckin(week)}
+                      >
+                        Check in for week {week}
+                      </Button>
+                    </div>
+                  )}
+                  {tier === "c" && (
+                    <div className="px-4 pb-3.5">
+                      <button
+                        type="button"
+                        onClick={() => onCheckin(week)}
+                        className="font-body text-[12px] text-primary underline underline-offset-2"
+                      >
+                        Read your week {week} check-in
+                      </button>
+                    </div>
+                  )}
+
+                  {isOpen && (
+                    <div
+                      className={cn(
+                        "space-y-2 px-4 pb-4 pt-3 border-t",
+                        tier === "a" ? "border-primary-foreground/20" : "border-border/60",
+                      )}
+                    >
+                      {steps.length === 0 ? (
+                        <p
+                          className={cn(
+                            "font-body text-[13px] leading-snug",
+                            tier === "a" ? "text-primary-foreground/85" : "text-muted-foreground",
+                          )}
+                        >
+                          Nothing planned for this week yet.
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {steps.map((row) => (
+                            <div
+                              key={row.id}
+                              className={cn(
+                                "rounded-xl border px-3 py-2 flex items-start gap-2",
+                                tier === "a"
+                                  ? "border-primary-foreground/25 bg-background/10"
+                                  : "border-border",
+                              )}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="font-body text-[13px] font-semibold break-words">
+                                  {row.task_name}
+                                </p>
+                                <p
+                                  className={cn(
+                                    "font-body text-[11px]",
+                                    tier === "a"
+                                      ? "text-primary-foreground/80"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
+                                  {cadenceSummary(row, startDate)}
+                                </p>
+                                {productFor(row.product_id) && (
+                                  <span className="mt-1 flex items-center gap-1.5">
+                                    <ProductThumb
+                                      imageUrl={productFor(row.product_id)!.image_url}
+                                      storagePath={productFor(row.product_id)!.storage_path}
+                                      alt={productFor(row.product_id)!.product_name}
+                                      brand={productFor(row.product_id)!.brand}
+                                      name={productFor(row.product_id)!.product_name}
+                                      wrapperClassName="size-6 rounded-[6px] overflow-hidden bg-secondary shrink-0"
+                                    />
+                                    <span
+                                      className={cn(
+                                        "font-body text-[11px] break-words",
+                                        tier === "a" ? "text-primary-foreground" : "text-primary",
+                                      )}
+                                    >
+                                      {productFor(row.product_id)!.product_name}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                              {!disabled && (
+                                <button
+                                  type="button"
+                                  aria-label={`Edit ${row.task_name}`}
+                                  onClick={() => {
+                                    setAddingWeek(null);
+                                    setEditing(row);
+                                  }}
+                                  className={cn(
+                                    "min-h-[32px]",
+                                    tier === "a"
+                                      ? "text-primary-foreground/85"
+                                      : "text-muted-foreground",
+                                  )}
+                                >
+                                  <Pencil className="size-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {visits.map((a) => (
+                        <PlanAppointmentRow key={a.id} appointment={a} planId={planId} />
+                      ))}
+
+                      {!disabled && (
+                        <div className="flex flex-wrap gap-2 pt-0.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-pill bg-background"
+                            onClick={() => {
+                              setEditing(null);
+                              setAddingWeek(week);
+                            }}
+                          >
+                            <Plus className="size-3.5 mr-1" /> Add step &amp; product
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-pill bg-background"
+                            onClick={() => navigate(`/appointments/log?planId=${planId}&date=${start}`)}
+                          >
+                            <CalendarPlus className="size-3.5 mr-1" /> Appointment
+                          </Button>
+                          {steps.some((r) => r.product_id) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-pill w-full bg-background"
+                              disabled={copying}
+                              onClick={() => void applyProductsEverywhere(week)}
+                            >
+                              <Copy className="size-3.5 mr-1" /> Use these products for every week
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </SurfaceCard>
+              );
+            })}
+          </div>
+
+          {/* the whole protocol, one tap away */}
+          {orderedSteps.length > 0 && (
+            <SurfaceCard padded={false} className="overflow-hidden">
               <button
                 type="button"
-                onClick={() => setOpenWeek(open ? null : week)}
-                className="w-full px-4 py-3.5 text-left"
+                onClick={() => setAllSteps((v) => !v)}
+                aria-expanded={allSteps}
+                className="w-full px-4 py-3 flex items-center gap-3 text-left"
               >
-                {/* eyebrow: week + dates + affordance */}
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "font-body text-[10px] uppercase tracking-[0.18em]",
-                      isNow ? "text-primary" : "text-muted-foreground",
-                    )}
-                  >
-                    Week {week}
-                  </span>
-                  {isNow && (
-                    <span className="rounded-pill bg-primary/15 px-2 py-[2px] font-body text-[9px] uppercase tracking-[0.14em] text-primary">
-                      Now
-                    </span>
+                <ListOrdered className="size-4 shrink-0 text-primary" strokeWidth={1.75} />
+                <span className="min-w-0 flex-1 font-body text-[13.5px] font-semibold">
+                  All steps
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform",
+                    allSteps && "rotate-180",
                   )}
-                  <span className="ml-auto flex items-center gap-1.5 shrink-0">
-                    {!disabled && (
-                      <span
-                        aria-label={open ? "Editing week" : "Edit week"}
-                        className={cn(
-                          "size-7 rounded-full border flex items-center justify-center",
-                          open
-                            ? "border-primary/50 bg-primary/10 text-primary"
-                            : "border-border bg-background text-foreground/60",
-                        )}
-                      >
-                        <Pencil className="size-3" />
-                      </span>
-                    )}
-                    <ChevronDown
-                      className={cn(
-                        "size-4 text-muted-foreground transition-transform",
-                        open && "rotate-180",
-                      )}
-                    />
-                  </span>
-                </div>
-
-                {/* the step, in full */}
-                {keyStep && (
-                  <p className="font-display text-[17px] leading-snug mt-1.5 [overflow-wrap:anywhere]">
-                    {keyStep.task_name}
-                  </p>
-                )}
-
-                <p className="font-body text-[11.5px] text-muted-foreground mt-1">
-                  {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")} ·{" "}
-                  {steps.length} step{steps.length === 1 ? "" : "s"}
-                  {visits.length
-                    ? ` · ${visits.length} appointment${visits.length === 1 ? "" : "s"}`
-                    : ""}
-                </p>
-
-                {/* the product, named in full */}
-                {keyProduct && (
-                  <div className="mt-2.5 flex items-center gap-2.5 rounded-[12px] border border-border/70 bg-background/70 p-2">
-                    <ProductThumb
-                      imageUrl={keyProduct.image_url}
-                      storagePath={keyProduct.storage_path}
-                      alt={keyProduct.product_name}
-                      brand={keyProduct.brand}
-                      name={keyProduct.product_name}
-                      wrapperClassName="size-10 rounded-[9px] overflow-hidden bg-secondary shrink-0"
-                    />
-                    <div className="min-w-0">
-                      {keyProduct.brand && (
-                        <p className="font-body text-[9.5px] uppercase tracking-[0.16em] text-muted-foreground">
-                          {keyProduct.brand}
-                        </p>
-                      )}
-                      <p className="font-body text-[12.5px] leading-snug text-foreground/85 [overflow-wrap:anywhere]">
-                        {keyProduct.product_name}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                />
               </button>
-
-
-
-              {open && (
-                <div className="space-y-2 px-4 pb-4 pt-1 border-t border-border/60">
-
-                  {steps.length === 0 ? (
-                    <p className="font-body text-[13px] text-muted-foreground leading-snug">
-                      Nothing planned for this week yet.
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {steps.map((row) => (
-                        <div
-                          key={row.id}
-                          className="rounded-xl border border-border px-3 py-2 flex items-start gap-2"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="font-body text-[13px] font-semibold break-words">{row.task_name}</p>
-                            <p className="font-body text-[11px] text-muted-foreground">
-                              {cadenceSummary(row, startDate)}
-                            </p>
-                            {productFor(row.product_id) && (
-                              <span className="mt-1 flex items-center gap-1.5">
-                                <ProductThumb
-                                  imageUrl={productFor(row.product_id)!.image_url}
-                                  storagePath={productFor(row.product_id)!.storage_path}
-                                  alt={productFor(row.product_id)!.product_name}
-                                  brand={productFor(row.product_id)!.brand}
-                                  name={productFor(row.product_id)!.product_name}
-                                  wrapperClassName="size-6 rounded-[6px] overflow-hidden bg-secondary shrink-0"
-                                />
-                                <span className="font-body text-[11px] text-primary break-words">
-                                  {productFor(row.product_id)!.product_name}
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                          {!disabled && (
-                            <button
-                              type="button"
-                              aria-label={`Edit ${row.task_name}`}
-                              onClick={() => {
-                                setAddingWeek(null);
-                                setEditing(row);
-                              }}
-                              className="text-muted-foreground min-h-[32px]"
-                            >
-                              <Pencil className="size-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {visits.map((a) => {
-                    const off = a.status === "cancelled";
-                    return (
-                      <button
-                        key={a.id}
-                        type="button"
-                        onClick={() => navigate(`/appointments/log?fromId=${a.id}&planId=${planId}`)}
-                        className={`w-full text-left rounded-xl border px-3 py-2 ${off ? "border-destructive/25 opacity-70" : "border-border"}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className={`font-body text-[13px] font-semibold break-words ${off ? "line-through text-muted-foreground" : ""}`}>
-                            {a.professional_name}
-                          </p>
-                          {off && (
-                            <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
-                              Cancelled
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-body text-[11px] text-muted-foreground">
-                          {format(fromDateKey(a.appointment_date), "EEE d MMM")}
-                          {a.appointment_time ? ` · ${a.appointment_time}` : ""} · tap to change
+              {allSteps && (
+                <ul className="px-4 pb-4 space-y-2.5 border-t border-border/60 pt-3">
+                  {orderedSteps.map((s, i) => (
+                    <li key={s.id} className="flex items-start gap-3 min-w-0">
+                      <span className="mt-[1px] size-6 rounded-full border border-border/70 bg-background flex items-center justify-center shrink-0 font-display text-[11px] leading-none text-primary">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="font-body text-[13.5px] font-medium leading-snug break-words">
+                          {s.task_name}
                         </p>
-                      </button>
-                    );
-                  })}
-
-
-                  {!disabled && (
-                    <div className="flex flex-wrap gap-2 pt-0.5">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-pill"
-                        onClick={() => {
-                          setEditing(null);
-                          setAddingWeek(week);
-                        }}
-                      >
-                        <Plus className="size-3.5 mr-1" /> Add step &amp; product
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-pill"
-                        onClick={() => navigate(`/appointments/log?planId=${planId}&date=${start}`)}
-                      >
-                        <CalendarPlus className="size-3.5 mr-1" /> Appointment
-                      </Button>
-                      {steps.some((r) => r.product_id) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-pill w-full"
-                          disabled={copying}
-                          onClick={() => void applyProductsEverywhere(week)}
-                        >
-                          <Copy className="size-3.5 mr-1" /> Use these products for every week
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        <p className="font-body text-[11px] text-muted-foreground leading-snug">
+                          {cadenceSummary(s, startDate)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </SurfaceCard>
-          );
-        })}
-      </div>
+          )}
+
+          {/* the products this plan runs on */}
+          <PlanProductsSection
+            planId={planId}
+            products={products}
+            schedule={schedule}
+            canEdit={!disabled}
+            onChanged={onProductsChanged}
+          />
+        </div>
+      )}
 
       <StepEditorSheet
         open={!!editing || addingWeek != null}
@@ -444,7 +574,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
         onDelete={editing ? dropStep : undefined}
         key={editing?.id ?? `add-${addingWeek ?? "x"}`}
       />
-    </div>
+    </SurfaceCard>
   );
 };
 
