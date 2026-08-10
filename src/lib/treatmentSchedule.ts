@@ -266,6 +266,14 @@ export interface WeekSummary {
   expected: number;
   /** Full expected for the week ignoring the today cap — for future weeks. */
   expectedFull: number;
+  /** Days in the week that expected something, capped at today. */
+  daysDue: number;
+  /** Days where everything due was logged. */
+  daysLogged: number;
+  /** Days in the week that expect something, ignoring the today cap. */
+  daysDueFull: number;
+  /** One line in the member's own terms — days for daily routines, steps otherwise. */
+  line: string;
   isMilestone: boolean;
 }
 
@@ -278,12 +286,23 @@ export function weekBreakdown(
   today: string = todayKey(),
 ): WeekSummary[] {
   const currentWeek = weekNumberFor(startDate, today);
+  const daily = isDailyPlan(rows);
   return Array.from({ length: Math.max(1, durationWeeks) }, (_, i) => {
     const week = i + 1;
     const { start, end } = weekRange(startDate, week);
     const state: WeekSummary["state"] =
       currentWeek === 0 || week > currentWeek ? "future" : week === currentWeek ? "current" : "past";
     const scoped = computeAdherence(rows, entries, startDate, { from: start, to: end, today });
+    const days = dayCounts(rows, entries, startDate, start, end, today);
+    const daysFull = dayCounts(rows, entries, startDate, start, end, end);
+    const line =
+      state === "future"
+        ? daily
+          ? `${daysFull.daysDue} days to come`
+          : `${expectedOccurrences(rows, startDate, start, end, end)} to come`
+        : daily
+          ? `${days.daysLogged} of ${days.daysDue} day${days.daysDue === 1 ? "" : "s"} logged`
+          : `${scoped.completed} of ${scoped.expected} ${scoped.unit} logged`;
     return {
       week,
       start,
@@ -292,8 +311,13 @@ export function weekBreakdown(
       completed: scoped.completed,
       expected: scoped.expected,
       expectedFull: expectedOccurrences(rows, startDate, start, end, end),
+      daysDue: days.daysDue,
+      daysLogged: days.daysLogged,
+      daysDueFull: daysFull.daysDue,
+      line,
       isMilestone: milestoneWeeks.includes(week),
     };
+
   });
 }
 
