@@ -289,7 +289,7 @@ export function useAssignAdminTemplate() {
       });
       if (error) throw error;
       // Invitation email. Fire-and-forget: never block the assignment on email.
-      void db.functions.invoke("treatment-invite-email", {
+      void supabase.functions.invoke("treatment-invite-email", {
         body: { assignment_id: data as string },
       });
       return data as string;
