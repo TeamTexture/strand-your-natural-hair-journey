@@ -1,4 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
+import TimeSelect from "@/components/TimeSelect";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -815,20 +816,18 @@ const ProProfile = () => {
                       <Label className="text-[10px] font-body uppercase tracking-[0.12em] text-muted-foreground">
                         Opens
                       </Label>
-                      <Input
-                        type="time"
+                      <TimeSelect
                         value={dh.open}
-                        onChange={(e) => updateHours(d.key, { open: e.target.value })}
+                        onChange={(v) => updateHours(d.key, { open: v })}
                       />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] font-body uppercase tracking-[0.12em] text-muted-foreground">
                         Closes
                       </Label>
-                      <Input
-                        type="time"
+                      <TimeSelect
                         value={dh.close}
-                        onChange={(e) => updateHours(d.key, { close: e.target.value })}
+                        onChange={(v) => updateHours(d.key, { close: v })}
                       />
                     </div>
                   </div>
