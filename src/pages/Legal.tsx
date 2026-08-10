@@ -57,7 +57,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Who can use STRAND",
         body: [
-          `You must be 18 or over. You must provide accurate information and keep your account details secure. You are responsible for everything done through your account.`,
+          `You must be 16 or over. You must provide accurate information and keep your account details secure. You are responsible for everything done through your account.`,
           `We may refuse, suspend or close an account where these terms are breached, where information provided is false, or where we reasonably believe use of the service risks harm to you or others.`,
         ],
       },
@@ -255,7 +255,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Children",
         body: [
-          `STRAND is for adults. We do not knowingly collect data about anyone under 18. If you believe we have, contact us and we will delete it.`,
+          `STRAND is for people aged 16 and over. We do not knowingly collect data about anyone under 16. If you believe we have, contact us and we will delete it.`,
         ],
       },
       {
