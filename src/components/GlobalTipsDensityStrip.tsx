@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { CheckCircle2, ListChecks, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, ListChecks, Sparkles } from "lucide-react";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_LABEL, type TipsLevel } from "@/lib/tipsLevel";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,26 @@ const densityCopy: Record<TipsLevel, { icon: typeof CheckCircle2; label: string;
 };
 
 
+const COLLAPSE_KEY = "strand.tipsStrip.collapsed";
+
 const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
   const { level } = useTipsLevel();
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [collapsed]);
+
   const location = useLocation();
   // Nutrition/diet guidance ignores the guidance level — always full detail.
   const isNutrition = location.pathname.startsWith("/nutrition");
@@ -48,6 +66,20 @@ const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
         className,
       )}
     >
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-label="Show guidance level detail"
+          className="w-full flex items-center gap-2 text-left"
+        >
+          <Icon className="size-3.5 text-primary shrink-0" />
+          <span className="text-[10px] uppercase tracking-[0.12em] text-primary font-body font-bold truncate">
+            {section} · {isNutrition ? "Full plan" : TIPS_LEVEL_LABEL[level]}
+          </span>
+          <ChevronDown className="size-3.5 text-primary/70 ml-auto shrink-0" />
+        </button>
+      ) : (
       <div className="flex items-start gap-2.5">
         <span className="mt-0.5 size-7 rounded-full bg-primary/12 flex items-center justify-center shrink-0">
           <Icon className="size-3.5 text-primary" />
@@ -60,7 +92,16 @@ const GlobalTipsDensityStrip = ({ className }: { className?: string }) => {
             <span className="font-semibold text-foreground">{meta.label}.</span> {meta.body}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          aria-label="Minimise guidance level bar"
+          className="size-6 rounded-full flex items-center justify-center text-primary/70 hover:bg-primary/10 transition-colors shrink-0"
+        >
+          <ChevronUp className="size-3.5" />
+        </button>
       </div>
+      )}
     </div>
   );
 };
