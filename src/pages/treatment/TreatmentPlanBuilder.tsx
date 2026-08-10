@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { WeekWindowFields } from "@/components/treatment/StepEditorSheet";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Trash2 } from "lucide-react";
@@ -544,6 +545,13 @@ const TreatmentPlanBuilder = () => {
                     ))}
                   </div>
                 </div>
+
+                <WeekWindowFields
+                  durationWeeks={durationWeeks}
+                  startWeek={s.start_week ?? null}
+                  endWeek={s.end_week ?? null}
+                  onChange={(v) => patchStep(i, v)}
+                />
 
                 {namedProducts.length > 0 && (
                   <div className="space-y-2">
