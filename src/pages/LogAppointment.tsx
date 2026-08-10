@@ -32,6 +32,8 @@ const LogAppointment = () => {
   const { pros } = useDirectoryProfessionals();
   const [searchParams] = useSearchParams();
   const fromId = searchParams.get("fromId");
+  // When arriving from a treatment plan the appointment is attached to it.
+  const planId = searchParams.get("planId");
 
   const [query, setQuery] = useState("");
   const [pickedFromDirectory, setPickedFromDirectory] = useState<Professional | null>(null);
@@ -201,6 +203,7 @@ const LogAppointment = () => {
       // Only carry the platform link when the user picked a LIVE professional
       // (seed directory pros have no proUserId). Free-text entries stay unlinked.
       linked_pro_user_id: pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null,
+      ...(planId ? { treatment_plan_id: planId } : {}),
 
     };
 
@@ -276,6 +279,7 @@ const LogAppointment = () => {
         follow_up_date: null,
         follow_up_time: null,
         linked_pro_user_id: pickedFromDirectory?.proUserId ?? existingLinkedProId ?? null,
+        ...(planId ? { treatment_plan_id: planId } : {}),
       };
 
       const { error: followErr } = await supabase.from("appointments").insert(followPayload);
@@ -292,12 +296,26 @@ const LogAppointment = () => {
       navigate(`/reviews/new?appointmentId=${reviewableId}`);
       return;
     }
+    if (planId) {
+      navigate(`/treatment/${planId}`);
+      return;
+    }
     navigate("/appointments");
   };
 
   return (
     <ScreenLayout bottomNav>
-      <TitleBar title="Log Appointment" onBack={smartBack(navigate, "/appointments")} />
+      <TitleBar
+        title="Log Appointment"
+        onBack={smartBack(navigate, planId ? `/treatment/${planId}` : "/appointments")}
+      />
+      {planId && (
+        <div className="px-5 pt-2">
+          <p className="font-body text-[12px] text-muted-foreground">
+            This appointment will sit with your treatment plan.
+          </p>
+        </div>
+      )}
 
       <div className="px-5 pb-8 space-y-4">
         {prefilled && (

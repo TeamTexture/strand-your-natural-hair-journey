@@ -15,6 +15,8 @@ import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAss
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import PlanSharesSection from "@/components/treatment/PlanSharesSection";
 import CatchUpDays from "@/components/treatment/CatchUpDays";
+import PlanAppointmentsSection from "@/components/treatment/PlanAppointmentsSection";
+
 
 
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
@@ -264,6 +266,10 @@ const TreatmentPlanDetail = () => {
 
         {/* member-initiated sharing — tag a professional into your own plan */}
         {id && <PlanSharesSection planId={id} />}
+
+        {/* appointments attached to this plan */}
+        {id && <PlanAppointmentsSection planId={id} disabled={!hasPlus} />}
+
 
         {/* retrospective logging — a missed day can still be recorded */}
         {plan.status === "active" && <CatchUpDays bundle={bundle} disabled={!hasPlus} />}
