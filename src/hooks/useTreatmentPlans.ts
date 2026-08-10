@@ -36,7 +36,10 @@ export interface TreatmentPlanRow {
   reminder_weekday: number;
   reminder_hour: number;
   reminder_timezone: string | null;
+  /** Weeks per check-in cycle: 1, 2 or 4. Defaults to 1 for every older plan. */
+  checkin_every_weeks: number;
 }
+
 
 export interface ProductRow {
   id: string;
