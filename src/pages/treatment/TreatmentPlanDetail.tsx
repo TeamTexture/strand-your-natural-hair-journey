@@ -70,7 +70,7 @@ const AdherenceRing = ({ percent }: { percent: number }) => {
 const TreatmentPlanDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { bundle, loading } = useTreatmentPlan(id);
+  const { bundle, loading, refetch } = useTreatmentPlan(id);
   const setStatus = useSetPlanStatus();
   const updateReminder = useUpdatePlanReminder();
   const { checkins } = useTreatmentCheckins(id);
