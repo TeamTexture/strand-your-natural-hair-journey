@@ -1473,6 +1473,56 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_tags: {
+        Row: {
+          brand_id: string
+          created_at: string
+          created_by_user_id: string
+          disclosure_label: string | null
+          id: string
+          promotion_ends_on: string | null
+          promotion_starts_on: string | null
+          tag_type: Database["public"]["Enums"]["brand_tag_type"]
+          taggable_id: string
+          taggable_type: string
+          updated_at: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          created_by_user_id: string
+          disclosure_label?: string | null
+          id?: string
+          promotion_ends_on?: string | null
+          promotion_starts_on?: string | null
+          tag_type: Database["public"]["Enums"]["brand_tag_type"]
+          taggable_id: string
+          taggable_type: string
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          created_by_user_id?: string
+          disclosure_label?: string | null
+          id?: string
+          promotion_ends_on?: string | null
+          promotion_starts_on?: string | null
+          tag_type?: Database["public"]["Enums"]["brand_tag_type"]
+          taggable_id?: string
+          taggable_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_tags_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           body: string
@@ -4440,6 +4490,8 @@ export type Database = {
       treatment_plan_assignments: {
         Row: {
           accepted_at: string | null
+          assigner_type: Database["public"]["Enums"]["treatment_assigner_type"]
+          assigner_user_id: string
           client_user_id: string | null
           created_at: string
           declined_at: string | null
@@ -4450,13 +4502,15 @@ export type Database = {
           media_sharing_consent: boolean
           plan_consent_granted_at: string | null
           plan_id: string | null
-          professional_id: string
+          professional_id: string | null
           status: Database["public"]["Enums"]["treatment_assignment_status"]
           template_id: string | null
           updated_at: string
         }
         Insert: {
           accepted_at?: string | null
+          assigner_type: Database["public"]["Enums"]["treatment_assigner_type"]
+          assigner_user_id: string
           client_user_id?: string | null
           created_at?: string
           declined_at?: string | null
@@ -4467,13 +4521,15 @@ export type Database = {
           media_sharing_consent?: boolean
           plan_consent_granted_at?: string | null
           plan_id?: string | null
-          professional_id: string
+          professional_id?: string | null
           status?: Database["public"]["Enums"]["treatment_assignment_status"]
           template_id?: string | null
           updated_at?: string
         }
         Update: {
           accepted_at?: string | null
+          assigner_type?: Database["public"]["Enums"]["treatment_assigner_type"]
+          assigner_user_id?: string
           client_user_id?: string | null
           created_at?: string
           declined_at?: string | null
@@ -4484,7 +4540,7 @@ export type Database = {
           media_sharing_consent?: boolean
           plan_consent_granted_at?: string | null
           plan_id?: string | null
-          professional_id?: string
+          professional_id?: string | null
           status?: Database["public"]["Enums"]["treatment_assignment_status"]
           template_id?: string | null
           updated_at?: string
@@ -4843,6 +4899,41 @@ export type Database = {
           },
         ]
       }
+      treatment_plan_professional_tags: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          plan_id: string
+          professional_id: string
+          tagged_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          plan_id: string
+          professional_id: string
+          tagged_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          plan_id?: string
+          professional_id?: string
+          tagged_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plan_professional_tags_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_plan_schedule: {
         Row: {
           cadence: Database["public"]["Enums"]["treatment_cadence"]
@@ -4907,8 +4998,10 @@ export type Database = {
           duration_weeks: number
           id: string
           is_archived: boolean
+          owner_type: Database["public"]["Enums"]["treatment_assigner_type"]
+          owner_user_id: string
           photo_milestone_weeks: number[]
-          professional_id: string
+          professional_id: string | null
           title: string
           updated_at: string
         }
@@ -4918,8 +5011,10 @@ export type Database = {
           duration_weeks?: number
           id?: string
           is_archived?: boolean
+          owner_type: Database["public"]["Enums"]["treatment_assigner_type"]
+          owner_user_id: string
           photo_milestone_weeks?: number[]
-          professional_id: string
+          professional_id?: string | null
           title: string
           updated_at?: string
         }
@@ -4929,8 +5024,10 @@ export type Database = {
           duration_weeks?: number
           id?: string
           is_archived?: boolean
+          owner_type?: Database["public"]["Enums"]["treatment_assigner_type"]
+          owner_user_id?: string
           photo_milestone_weeks?: number[]
-          professional_id?: string
+          professional_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -6314,6 +6411,10 @@ export type Database = {
           tool_kind: string
         }[]
       }
+      brand_tag_target_owner: {
+        Args: { _taggable_id: string; _taggable_type: string }
+        Returns: string
+      }
       brand_taken_placements: {
         Args: never
         Returns: {
@@ -6686,6 +6787,7 @@ export type Database = {
         | "rejected"
         | "cancelled"
       brand_placement_slot: "home" | "products" | "wash_day" | "pro_welcome"
+      brand_tag_type: "editorial" | "promoted"
       pro_application_status: "pending" | "approved" | "rejected" | "suspended"
       pro_discipline:
         | "Trichologist"
@@ -6712,6 +6814,7 @@ export type Database = {
         | "clarifying"
         | "density_growth"
         | "scalp_health"
+      treatment_assigner_type: "professional" | "admin"
       treatment_assignment_status:
         | "pending"
         | "accepted"
@@ -6866,6 +6969,7 @@ export const Constants = {
         "cancelled",
       ],
       brand_placement_slot: ["home", "products", "wash_day", "pro_welcome"],
+      brand_tag_type: ["editorial", "promoted"],
       pro_application_status: ["pending", "approved", "rejected", "suspended"],
       pro_discipline: [
         "Trichologist",
@@ -6895,6 +6999,7 @@ export const Constants = {
         "density_growth",
         "scalp_health",
       ],
+      treatment_assigner_type: ["professional", "admin"],
       treatment_assignment_status: [
         "pending",
         "accepted",
