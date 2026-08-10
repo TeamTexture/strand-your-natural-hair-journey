@@ -139,6 +139,15 @@ const TreatmentCheckin = () => {
     to: range.end,
   });
   const overall = computeAdherence(bundle.schedule, bundle.entries, plan.start_date);
+  // Day-level view, which is what a daily routine actually feels like.
+  const weekDays = dayCounts(
+    bundle.schedule,
+    bundle.entries,
+    plan.start_date,
+    range.start,
+    range.end,
+  );
+
   const daysThisWeek = new Set(
     bundle.entries
       .filter(
