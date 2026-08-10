@@ -2075,6 +2075,17 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
           {section === "journal" && <JournalSection d={data} />}
           {section === "photos" && <PhotosSection d={data} />}
           {section === "goals" && <GoalsSection d={data} />}
+          {section === "treatment" && (
+            <PassportTreatmentSection
+              clientUserId={userId}
+              clientName={data.clientName}
+              onOpenCheckin={
+                mode === "pro"
+                  ? (planId, week) => navigate(`/pro/treatment/plan/${planId}/week/${week}`)
+                  : undefined
+              }
+            />
+          )}
           {section === "notes" && mode === "pro" && <ProClientNotes consumerId={userId} />}
 
         </div>
