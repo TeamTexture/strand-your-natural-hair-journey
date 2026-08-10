@@ -491,6 +491,7 @@ export type Database = {
           reminder_sent_at: string | null
           service: string | null
           status: string
+          treatment_plan_id: string | null
           updated_at: string
           user_id: string
         }
@@ -518,6 +519,7 @@ export type Database = {
           reminder_sent_at?: string | null
           service?: string | null
           status?: string
+          treatment_plan_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -545,10 +547,19 @@ export type Database = {
           reminder_sent_at?: string | null
           service?: string | null
           status?: string
+          treatment_plan_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "appointments_treatment_plan_id_fkey"
+            columns: ["treatment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       author_clarifications: {
         Row: {
