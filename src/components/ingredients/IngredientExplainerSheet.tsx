@@ -7,7 +7,6 @@ import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { matchScoreOf } from "@/lib/matchStars";
 import ProseText from "@/components/guidance/ProseText";
-import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 
 const VERDICT = {
@@ -233,7 +232,6 @@ export default function IngredientExplainerSheet({
 
         {glossaryId && (
           <div className="mt-3 space-y-2">
-            <BrandTagList taggableType="glossary_term" taggableId={glossaryId} />
             <BrandTagControl taggableType="glossary_term" taggableId={glossaryId} />
           </div>
         )}

@@ -85,6 +85,11 @@ export default function BrandTagControl({
   const canTag = isAdmin || isOwner;
   const canPromote = isAdmin;
   const shown = useMemo(() => visibleTags(tags), [tags]);
+  const hidden = useMemo(
+    () => tags.filter((t) => !shown.some((s) => s.id === t.id)),
+    [tags, shown],
+  );
+
   const brandName = brands.find((b) => b.id === brandId)?.brand_name ?? "";
 
   const pickBrand = (id: string) => {
@@ -149,7 +154,11 @@ export default function BrandTagControl({
       <SectionLabel className="px-0 mt-0 mb-1.5">{title}</SectionLabel>
 
       {shown.length > 0 ? (
-        <BrandTagList taggableType={taggableType} tags={shown} />
+        <BrandTagList
+          taggableType={taggableType}
+          tags={shown}
+          onRemove={canTag ? (t) => del.mutate(t.id) : undefined}
+        />
       ) : (
         !loading &&
         canTag && (
@@ -157,34 +166,28 @@ export default function BrandTagControl({
         )
       )}
 
-      {canTag && tags.length > 0 && (
+      {/* Promoted tags outside their window are hidden from the list above, so
+          an admin still needs a way to see and remove them. */}
+      {isAdmin && hidden.length > 0 && (
         <div className="space-y-1.5">
-          {tags.map((t) => (
+          {hidden.map((t) => (
             <div key={t.id} className="flex items-center gap-2">
               <p className="flex-1 min-w-0 font-body text-[12px] text-muted-foreground [overflow-wrap:anywhere]">
-                {t.brand_name}
-                {isAdmin
-                  ? ` · ${t.tag_type === "promoted" ? "Promoted" : "Editorial"}${
-                      t.tag_type === "promoted" && !promotionIsLive(t)
-                        ? " · outside its dates, hidden"
-                        : ""
-                    }`
-                  : ""}
+                {t.brand_name} · outside its dates, hidden
               </p>
-              {(isAdmin || t.tag_type === "editorial") && (
-                <button
-                  type="button"
-                  aria-label={`Remove ${t.brand_name} tag`}
-                  onClick={() => del.mutate(t.id)}
-                  className="size-8 rounded-full border border-border flex items-center justify-center shrink-0 text-muted-foreground"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              )}
+              <button
+                type="button"
+                aria-label={`Remove ${t.brand_name} tag`}
+                onClick={() => del.mutate(t.id)}
+                className="size-8 rounded-full border border-border flex items-center justify-center shrink-0 text-muted-foreground"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
             </div>
           ))}
         </div>
       )}
+
 
       {canTag && (
         <Button variant="outline" className="rounded-pill w-full" onClick={() => setOpen(true)}>

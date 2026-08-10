@@ -41,7 +41,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useJournalSteps } from "@/hooks/useJournalSteps";
 import JournalStepCard from "@/components/journal/JournalStepCard";
 import EmptyState from "@/components/EmptyState";
-import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 import PendingStepProducts from "@/components/journal/PendingStepProducts";
 import StepReviewCard from "@/components/journal/StepReviewCard";
@@ -606,7 +605,6 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
         </Button>
 
         <div className="space-y-2 pt-2">
-          <BrandTagList taggableType="style_entry" taggableId={entryId} />
           <BrandTagControl taggableType="style_entry" taggableId={entryId} />
         </div>
       </div>

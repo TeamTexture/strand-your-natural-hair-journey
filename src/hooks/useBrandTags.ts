@@ -131,19 +131,33 @@ export function useSaveBrandTag(taggableType: TaggableType, taggableId?: string 
       if (!v.brand_id && !v.custom_brand_name?.trim()) {
         throw new Error("Pick a brand, or type the brand's name.");
       }
-      const { error } = await db.from("brand_tags").insert({
-        brand_id: v.brand_id || null,
-        custom_brand_name: v.brand_id ? null : v.custom_brand_name!.trim(),
-        taggable_type: taggableType,
-        taggable_id: taggableId,
-        tag_type: v.tag_type,
-        disclosure_label: v.tag_type === "promoted" ? v.disclosure_label!.trim() : null,
-        promotion_starts_on: v.tag_type === "promoted" ? v.promotion_starts_on || null : null,
-        promotion_ends_on: v.tag_type === "promoted" ? v.promotion_ends_on || null : null,
-        created_by_user_id: user!.id,
-      });
+      const { data, error } = await db
+        .from("brand_tags")
+        .insert({
+          brand_id: v.brand_id || null,
+          custom_brand_name: v.brand_id ? null : v.custom_brand_name!.trim(),
+          taggable_type: taggableType,
+          taggable_id: taggableId,
+          tag_type: v.tag_type,
+          disclosure_label: v.tag_type === "promoted" ? v.disclosure_label!.trim() : null,
+          promotion_starts_on: v.tag_type === "promoted" ? v.promotion_starts_on || null : null,
+          promotion_ends_on: v.tag_type === "promoted" ? v.promotion_ends_on || null : null,
+          created_by_user_id: user!.id,
+        })
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
+      // Tell the brand it has been credited. Fire-and-forget: a failed
+      // notification must never fail the tag.
+      if (v.brand_id && data?.id) {
+        try {
+          await supabase.functions.invoke("notify-brand-tag", { body: { tag_id: data.id } });
+        } catch {
+          /* ignore */
+        }
+      }
     },
+
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["brand-tags", taggableType, taggableId] });
     },

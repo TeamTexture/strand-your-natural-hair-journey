@@ -653,6 +653,25 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     "brand_offers",
   ),
 
+  // A brand has been credited on a member's record (treatment plan, wash day,
+  // style record, glossary entry). The email NEVER names the member or
+  // reproduces any record detail — brands only ever see the aggregate.
+  "brand-tagged": t(
+    "brand-tagged",
+    "transactional",
+    true,
+    () => "Your brand has been credited on STRAND",
+    (d) => [
+      `Hi ${s(d.brand_name, "there")},`,
+      `Your brand has been tagged on ${s(d.surface, "a member's record")} in STRAND.`,
+      "For privacy we don't share who tagged you or any detail of their record — you can see your credits in your brand dashboard.",
+    ],
+    () => ({ label: "See your brand credits", path: "/brand/tags" }),
+    undefined,
+    { eyebrow: "Brand credit" },
+  ),
+
+
   // ---------------- Treatment plans ----------------------------------------
 
   // Once at the end of a plan week, only if the member switched reminders on.

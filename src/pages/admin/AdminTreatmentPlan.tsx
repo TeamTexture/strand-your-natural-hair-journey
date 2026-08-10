@@ -9,7 +9,6 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import BrandTagList from "@/components/brand/BrandTagList";
 import BrandTagControl from "@/components/brand/BrandTagControl";
 import {
   useAdminPlan,
@@ -212,7 +211,6 @@ const AdminTreatmentPlan = () => {
 
         <div className="space-y-2">
           <SectionLabel className="px-0 mt-0 mb-1.5">Brands</SectionLabel>
-          <BrandTagList taggableType="treatment_plan" taggableId={plan.plan_id} />
           <BrandTagControl taggableType="treatment_plan" taggableId={plan.plan_id} />
         </div>
       </div>
