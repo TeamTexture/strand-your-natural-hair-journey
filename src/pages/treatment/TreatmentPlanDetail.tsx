@@ -14,6 +14,8 @@ import { useSetPlanStatus, useTreatmentPlan, useUpdatePlanReminder } from "@/hoo
 import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAssignments";
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import PlanSharesSection from "@/components/treatment/PlanSharesSection";
+import CatchUpDays from "@/components/treatment/CatchUpDays";
+
 
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
 import BrandTagList from "@/components/brand/BrandTagList";
