@@ -662,14 +662,18 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     "transactional",
     false,
     (d) => `Your week ${s(d.week, "")} check-in`.replace("  ", " "),
-    (d) => [
-      `Hi ${s(d.name, "there")},`,
-      `You have reached the end of week ${s(d.week, "1")} of ${s(d.plan_title, "your plan")}.`,
-      Number(d.steps_logged ?? 0) > 0
-        ? `You logged ${d.steps_logged} step${Number(d.steps_logged) === 1 ? "" : "s"} this week.`
-        : "Whenever you are ready, you can tell us how the week felt.",
-      "The check-in takes a moment and helps you see how things are moving over time.",
-    ],
+    (d) => {
+      const tasks = Array.isArray(d.due_tasks) ? (d.due_tasks as string[]) : [];
+      return [
+        `Hi ${s(d.name, "there")},`,
+        `You have reached the end of week ${s(d.week, "1")} of ${s(d.plan_title, "your plan")}.`,
+        Number(d.steps_logged ?? 0) > 0
+          ? `You logged ${d.steps_logged} step${Number(d.steps_logged) === 1 ? "" : "s"} this week.`
+          : "Whenever you are ready, you can tell us how the week felt.",
+        tasks.length ? `Your plan asks for: ${tasks.join(", ")}.` : "",
+        "The check-in takes a moment, and you can still log any day you missed.",
+      ].filter(Boolean);
+    },
     (d) => ({
       label: "Check in",
       path: `/treatment/${s(d.plan_id)}/checkin/${s(d.week, "1")}`,
@@ -677,6 +681,32 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     "treatment_checkin_reminders",
     { eyebrow: "Treatment plan" },
   ),
+
+  // Daily reminder. Names the exact steps due today — the whole point is that
+  // she does not have to open the app to remember what she committed to.
+  "treatment-daily-reminder": t(
+    "treatment-daily-reminder",
+    "transactional",
+    false,
+    (d) => `Today on ${s(d.plan_title, "your plan")}`,
+    (d) => {
+      const tasks = Array.isArray(d.due_tasks) ? (d.due_tasks as string[]) : [];
+      const outstanding = Number(d.due_outstanding ?? 0);
+      return [
+        `Hi ${s(d.name, "there")},`,
+        tasks.length
+          ? `Today on ${s(d.plan_title, "your plan")}: ${tasks.join(", ")}.`
+          : `A quick nudge for ${s(d.plan_title, "your plan")}.`,
+        outstanding === 0
+          ? "Everything due today is already logged — nothing else needed."
+          : "Tick it off in STRAND once it's done, or log it later if today runs away with you.",
+      ].filter(Boolean);
+    },
+    (d) => ({ label: "Open your plan", path: `/treatment/${s(d.plan_id)}` }),
+    "treatment_checkin_reminders",
+    { eyebrow: "Treatment plan" },
+  ),
+
 
   // Weekly digest for professionals and admins. Counts and names only —
   // never ratings, notes, photos, voice notes or signed URLs.
