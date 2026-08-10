@@ -504,8 +504,8 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           tone: "warning",
           signature: alertSignature(ALERT_KEYS.BLOOD_TEST_SCHEDULED, [scheduledBloodDate]),
         });
-      } else if (lastBloodPanelDate && Number.isFinite(daysSinceBlood) && daysSinceBlood >= 85) {
-        const months = Math.max(3, Math.round(daysSinceBlood / 30));
+      } else if (lastBloodPanelDate && Number.isFinite(daysSinceBlood) && daysSinceBlood >= 175) {
+        const months = Math.max(6, Math.round(daysSinceBlood / 30));
         next.push({
           id: ALERT_KEYS.BLOOD_TEST_OVERDUE,
           emoji: "🧪",
