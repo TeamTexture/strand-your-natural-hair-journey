@@ -89,6 +89,13 @@ const TreatmentPlanDetail = () => {
   const weeks = weekBreakdown(schedule, entries, plan.start_date, plan.duration_weeks, milestoneWeeks);
   const paused = plan.status === "paused";
 
+  /** Scrolls to the week-by-week breakdown — the progress view for now. */
+  const seeProgress = () =>
+    document.getElementById("treatment-weeks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const notYet = () =>
+    toast("Editing your schedule arrives with the check-in screens — pause or resume any time meanwhile.");
+
   const togglePause = () =>
     setStatus.mutate(
       { planId: plan.id, status: paused ? "active" : "paused" },
@@ -114,7 +121,7 @@ const TreatmentPlanDetail = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate(`/treatment/${plan.id}/edit`)}
+            onClick={notYet}
             aria-label="Edit plan"
             className="size-9 rounded-full bg-card border border-border flex items-center justify-center shrink-0 text-foreground/80"
           >
@@ -151,7 +158,7 @@ const TreatmentPlanDetail = () => {
 
         {/* actions */}
         <div className="grid grid-cols-2 gap-2">
-          <Button className="rounded-pill" onClick={() => navigate(`/treatment/${plan.id}/progress`)}>
+          <Button className="rounded-pill" onClick={seeProgress}>
             <TrendingUp className="size-4 mr-1.5" /> See progress
           </Button>
           <Button variant="outline" className="rounded-pill" onClick={togglePause}>
@@ -161,14 +168,14 @@ const TreatmentPlanDetail = () => {
           <Button
             variant="outline"
             className="rounded-pill col-span-2"
-            onClick={() => navigate(`/treatment/${plan.id}/edit`)}
+            onClick={notYet}
           >
             Edit schedule
           </Button>
         </div>
 
         {/* weeks */}
-        <div className="space-y-2">
+        <div className="space-y-2" id="treatment-weeks">
           <SectionLabel className="px-0 mt-0 mb-1.5">Week by week</SectionLabel>
           <div className="space-y-1.5">
             {weeks.map((w) => (
