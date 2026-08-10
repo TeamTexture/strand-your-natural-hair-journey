@@ -8,6 +8,7 @@ import { renderMentions } from "@/lib/renderMentions";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
 import {
   messageIsMine,
   useChatThread,
