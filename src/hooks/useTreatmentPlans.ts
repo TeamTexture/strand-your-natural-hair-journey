@@ -78,7 +78,7 @@ const db = supabase as unknown as {
 async function loadBundles(userId: string, statuses: PlanStatus[]): Promise<PlanBundle[]> {
   const { data: plans, error } = await db
     .from("treatment_plans")
-    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone")
+    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone, checkin_every_weeks")
     .eq("user_id", userId)
     .in("status", statuses)
     .order("created_at", { ascending: false });
