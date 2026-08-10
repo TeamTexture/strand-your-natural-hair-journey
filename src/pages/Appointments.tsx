@@ -15,7 +15,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import TipsBlock from "@/components/tips/TipsBlock";
 import type { GuidanceTip } from "@/lib/tipsRender";
 import { supabase } from "@/integrations/supabase/client";
-import { isPastAppointment, upcomingAppointments } from "@/lib/appointmentState";
+import { isPastAppointment, upcomingAppointments, isCancelledAppointment } from "@/lib/appointmentState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
