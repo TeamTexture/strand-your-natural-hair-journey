@@ -212,44 +212,61 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
           const keyProduct = productFor(steps.find((r) => r.product_id)?.product_id ?? null);
 
           return (
-            <SurfaceCard key={week} className={cn("space-y-2", isNow && "border-primary/50")}>
+            <SurfaceCard key={week} className={cn("space-y-2", isNow && "border-primary/50 bg-primary/[0.04]")}>
               <button
                 type="button"
                 onClick={() => setOpenWeek(open ? null : week)}
-                className="w-full flex items-center justify-between gap-2 text-left"
+                className="w-full flex items-center gap-3 text-left"
               >
-                {keyProduct && (
+                {keyProduct ? (
                   <ProductThumb
                     imageUrl={keyProduct.image_url}
                     storagePath={keyProduct.storage_path}
                     alt={keyProduct.product_name}
                     brand={keyProduct.brand}
                     name={keyProduct.product_name}
-                    wrapperClassName="size-10 rounded-[10px] overflow-hidden bg-secondary shrink-0"
+                    wrapperClassName="size-11 rounded-[12px] overflow-hidden bg-secondary border border-border/60 shrink-0"
                   />
+                ) : (
+                  <span className="size-11 rounded-[12px] bg-secondary/60 border border-border/60 shrink-0 flex items-center justify-center font-display text-[15px] text-foreground/50">
+                    {week}
+                  </span>
                 )}
+
                 <div className="min-w-0 flex-1">
-                  <p className="font-body text-[14px] font-semibold">
-                    Week {week}
-                    {isNow ? " · this week" : ""}
-                  </p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="font-body text-[14px] font-semibold leading-tight shrink-0">
+                      Week {week}
+                    </p>
+                    {isNow && (
+                      <span className="shrink-0 rounded-pill bg-primary/15 px-2 py-[2px] font-body text-[9px] uppercase tracking-[0.14em] text-primary">
+                        Now
+                      </span>
+                    )}
+                  </div>
                   {keyStep && (
-                    <p className="font-body text-[12px] text-foreground/80 truncate">
+                    <p className="font-body text-[12px] text-foreground/75 leading-tight truncate mt-0.5">
                       {keyStep.task_name}
                       {keyProduct ? ` · ${keyProduct.product_name}` : ""}
                     </p>
                   )}
-                  <p className="font-body text-[12px] text-muted-foreground">
+                  <p className="font-body text-[11px] text-muted-foreground leading-tight truncate mt-0.5">
                     {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")} ·{" "}
                     {steps.length} step{steps.length === 1 ? "" : "s"}
                     {visits.length ? ` · ${visits.length} appointment${visits.length === 1 ? "" : "s"}` : ""}
                   </p>
                 </div>
 
-                <span className="flex items-center gap-2 shrink-0">
+                <span className="flex items-center gap-1.5 shrink-0">
                   {!disabled && (
-                    <span className="inline-flex items-center gap-1 rounded-pill border border-border px-2.5 py-1 font-body text-[11px] text-foreground/80">
-                      <Pencil className="size-3" /> {open ? "Editing" : "Edit week"}
+                    <span
+                      aria-label={open ? "Editing week" : "Edit week"}
+                      className={cn(
+                        "size-8 rounded-full border flex items-center justify-center",
+                        open ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-card text-foreground/70",
+                      )}
+                    >
+                      <Pencil className="size-3.5" />
                     </span>
                   )}
                   <ChevronDown
@@ -257,6 +274,7 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                   />
                 </span>
               </button>
+
 
               {open && (
                 <div className="space-y-2 pt-1">
