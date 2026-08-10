@@ -443,6 +443,28 @@ const ThreadQuickView = ({
             const senderKey = mine ? "me" : (m.sender_id ?? "them");
             const showName = prevSender !== senderKey;
             prevSender = senderKey;
+            if (m.kind === "voice") {
+              const vm = (m.meta ?? {}) as Record<string, unknown>;
+              return (
+                <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                  {showName && (
+                    <span className={`text-[9.5px] font-body font-semibold mb-0.5 px-1 ${mine ? "text-primary" : "text-brown"}`}>
+                      {mine ? "You" : display.name}
+                    </span>
+                  )}
+                  <div className="max-w-[80%]">
+                    <ChatVoiceBubble
+                      path={typeof vm.audio_path === "string" ? vm.audio_path : null}
+                      transcript={typeof vm.transcript === "string" ? vm.transcript : m.body || null}
+                      durationMs={typeof vm.duration_ms === "number" ? vm.duration_ms : null}
+                      createdAt={m.created_at}
+                      readAt={m.read_at}
+                      mine={mine}
+                    />
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                 {showName && (
@@ -461,6 +483,7 @@ const ThreadQuickView = ({
                 </div>
               </div>
             );
+
           });
         })()}
       </div>
