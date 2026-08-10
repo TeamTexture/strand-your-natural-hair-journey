@@ -59,7 +59,7 @@ export default function BrandTagControl({
   taggableId,
   /** True when the signed-in member owns the tagged record. */
   isOwner = false,
-  title = "Brands tagged",
+  title = "Brands",
   className,
 }: {
   taggableType: TaggableType;
