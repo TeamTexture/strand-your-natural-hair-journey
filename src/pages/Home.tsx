@@ -972,7 +972,13 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
+      {/* Treatment plan — sits above wash day / style logging by design */}
+      <div className="px-5 pt-1 pb-3">
+        <TodayTreatmentCard />
+      </div>
+
       <SectionHeader icon={ICONS.style} className="px-5 pt-1 pb-2">Quick actions</SectionHeader>
+
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-2.5">
 
         <button
