@@ -28,7 +28,7 @@ import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
-import { isSafeInternalPath } from "@/lib/consumerOnboarding";
+import { isSafeInternalPath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import LoadingDot from "@/components/LoadingDot";
 import { smartBack } from "@/lib/smartBack";
