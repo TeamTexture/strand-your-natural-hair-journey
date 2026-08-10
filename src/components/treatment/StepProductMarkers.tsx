@@ -62,7 +62,6 @@ const StepProductMarkers = ({
         icon={Package}
         label={product.product_name}
         needsUpdate={updateDue}
-        aria-hidden={undefined}
       />
       <Marker
         icon={Tag}
