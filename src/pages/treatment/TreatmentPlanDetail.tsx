@@ -28,7 +28,6 @@ import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
 import ReminderPicker, { type ReminderSettings } from "@/components/treatment/ReminderPicker";
 import {
-  cadenceSummary,
   computeAdherence,
   fromDateKey,
   todayKey,
@@ -129,8 +128,8 @@ const TreatmentPlanDetail = () => {
   );
 
 
-  const notYet = () =>
-    toast("Editing your schedule arrives with the check-in screens — pause or resume any time meanwhile.");
+  const scrollToTimeline = () =>
+    document.getElementById("plan-timeline")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const togglePause = () =>
     setStatus.mutate(
@@ -157,7 +156,7 @@ const TreatmentPlanDetail = () => {
             </p>
           </div>
           <button
-            onClick={notYet}
+            onClick={scrollToTimeline}
             aria-label="Edit plan"
             className="size-9 rounded-full bg-card border border-border flex items-center justify-center shrink-0 text-foreground/80"
           >
