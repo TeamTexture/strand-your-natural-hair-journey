@@ -180,6 +180,20 @@ const ProfileStep1 = () => {
   }, [user]);
 
   // If routed here with #postcode, scroll to and focus the postcode input.
+  // Keep anything typed on this step if the member navigates away and returns.
+  useOnboardingDraft(
+    "profile-step-1",
+    { name, phone, age, postcode, country, heritage },
+    (d) => {
+      if (d.name) setName(d.name);
+      if (d.phone) setPhone(d.phone);
+      if (d.age) setAge(d.age);
+      if (d.postcode) setPostcode(d.postcode);
+      if (d.country) setCountry(d.country);
+      if (d.heritage) setHeritage(d.heritage);
+    },
+  );
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash !== "#postcode") return;
