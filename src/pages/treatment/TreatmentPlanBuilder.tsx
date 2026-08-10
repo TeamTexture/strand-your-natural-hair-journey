@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
+import ProductThumb from "@/components/ProductThumb";
 import BrandCatalogueProductPicker from "@/components/treatment/BrandCatalogueProductPicker";
 import ReminderPicker, {
   defaultReminder,
@@ -91,6 +92,7 @@ const emptyProduct = (): DraftProduct => ({
   ingredient_id: null,
   user_product_id: null,
   image_url: null,
+  storage_path: null,
 });
 
 const TreatmentPlanBuilder = () => {
@@ -156,6 +158,7 @@ const TreatmentPlanBuilder = () => {
     name: string;
     brand: string | null;
     image_url: string | null;
+    storage_path?: string | null;
   }) => {
     setProducts((list) => {
       const next = [...list];
@@ -166,6 +169,7 @@ const TreatmentPlanBuilder = () => {
         ingredient_id: null,
         user_product_id: p.id,
         image_url: p.image_url,
+        storage_path: p.storage_path ?? null,
       };
       const blank = next.findIndex(
         (x) => !x.product_name.trim() && !x.brand.trim() && !x.usage_notes.trim(),
@@ -400,11 +404,14 @@ const TreatmentPlanBuilder = () => {
                 </div>
                 {p.user_product_id ? (
                   <div className="flex items-center gap-3">
-                    <div className="size-11 rounded-xl bg-muted overflow-hidden shrink-0">
-                      {p.image_url && (
-                        <img src={p.image_url} alt={p.product_name} className="size-full object-cover" />
-                      )}
-                    </div>
+                    <ProductThumb
+                      imageUrl={p.image_url}
+                      storagePath={p.storage_path}
+                      alt={p.product_name}
+                      brand={p.brand}
+                      name={p.product_name}
+                      wrapperClassName="size-11 rounded-xl overflow-hidden bg-secondary shrink-0"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="font-body text-[13.5px] font-semibold break-words">
                         {p.product_name}
@@ -471,6 +478,7 @@ const TreatmentPlanBuilder = () => {
                   name: prod.name,
                   brand: prod.brand,
                   image_url: prod.image_url,
+                  storage_path: prod.storage_path,
                 })
               }
             />
@@ -488,6 +496,7 @@ const TreatmentPlanBuilder = () => {
                     ingredient_id: null,
                     user_product_id: null,
                     image_url: pick.image_url,
+                    storage_path: null,
                   };
                   const blank = next.findIndex(
                     (x) => !x.product_name.trim() && !x.brand.trim() && !x.usage_notes.trim(),
