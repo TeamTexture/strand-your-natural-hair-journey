@@ -237,29 +237,46 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
     );
   }
 
-  // Past appointment — muted grey treatment
+  // Past appointment — muted grey treatment. Cancelled appointments STAY in the
+  // diary; they're only marked, never removed.
+  const isCancelled = appointment.status === "cancelled";
   const statusLabel =
     appointment.status === "completed"
       ? "Completed"
-      : appointment.status === "cancelled"
+      : isCancelled
         ? "Cancelled"
         : appointment.status === "no_show"
           ? "No-show"
           : "Past";
 
   return (
-    <div className="rounded-[22px] border border-border bg-secondary/70 shadow-sm">
+    <div
+      className={cn(
+        "rounded-[22px] border shadow-sm",
+        isCancelled ? "border-destructive/25 bg-secondary/40" : "border-border bg-secondary/70",
+      )}
+    >
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex flex-col items-start gap-0.5">
             <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-semibold font-body">
               {kicker}
             </p>
-            <p className="font-display text-foreground text-lg font-bold leading-tight tracking-tight">
+            <p
+              className={cn(
+                "font-display text-lg font-bold leading-tight tracking-tight",
+                isCancelled ? "text-muted-foreground line-through" : "text-foreground",
+              )}
+            >
               {formattedDate}
             </p>
             {formattedTime && (
-              <p className="text-foreground/80 text-[13px] font-bold font-body tracking-wide">
+              <p
+                className={cn(
+                  "text-[13px] font-bold font-body tracking-wide",
+                  isCancelled ? "text-muted-foreground line-through" : "text-foreground/80",
+                )}
+              >
                 {formattedTime}
               </p>
             )}
@@ -269,12 +286,15 @@ const AppointmentCard = ({ appointment, variant, onEdit, onDelete, onProClick, o
               "text-[10px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1 rounded-full shrink-0",
               appointment.status === "completed"
                 ? "bg-good/15 text-good"
-                : "bg-muted text-muted-foreground",
+                : isCancelled
+                  ? "bg-destructive/10 text-destructive border border-destructive/20"
+                  : "bg-muted text-muted-foreground",
             )}
           >
             {statusLabel}
           </span>
         </div>
+
 
         <ProBlock>
           <ProAvatar
