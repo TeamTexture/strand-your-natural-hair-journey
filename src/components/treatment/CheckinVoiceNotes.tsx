@@ -23,7 +23,20 @@ interface Props {
   notes: TreatmentMediaRow[];
   onUploaded: (row: TreatmentMediaRow) => void;
   onRemoved: (row: TreatmentMediaRow) => void;
+  /**
+   * When given, a saved voice note is transcribed and the words are handed back
+   * so they can land in her written answer. The audio stays saved either way.
+   */
+  onTranscript?: (text: string) => void;
 }
+
+const blobToBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onloadend = () => resolve(((r.result as string) ?? "").split(",")[1] ?? "");
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
 
 /** Twelve bars that move while recording. Purely a sense of "it's listening". */
 const Waveform = ({ active }: { active: boolean }) => (
