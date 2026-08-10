@@ -11,12 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
-  useAdminMemberOptions,
   useAdminTemplates,
   useAssignAdminTemplate,
   useSaveAdminTemplate,
   type AdminTemplateStep,
 } from "@/hooks/useAdminTreatment";
+import {
+  useAssignableClients,
+  PLUS_ASSIGN_NOTE,
+  PLUS_ASSIGN_EMPTY,
+} from "@/hooks/useAssignableClients";
 import { DAY_LABELS, defaultMilestoneWeeks } from "@/lib/treatmentSchedule";
 
 const CADENCES: { key: AdminTemplateStep["cadence"]; label: string }[] = [
