@@ -358,6 +358,7 @@ const TreatmentPlanDetail = () => {
           <PlanProductsSection
             planId={id}
             products={products}
+            schedule={schedule}
             canEdit={hasPlus && !paused}
             onChanged={() => void refetch()}
           />

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link2, Loader2, Plus, Store, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -20,6 +21,7 @@ import BrandCatalogueProductPicker, {
   useBrandLinkMap,
 } from "@/components/treatment/BrandCatalogueProductPicker";
 import { usePlanProductLink } from "@/hooks/usePlanProductLink";
+import type { ScheduleRow } from "@/lib/treatmentSchedule";
 
 export interface PlanProduct {
   id: string;
@@ -33,6 +35,8 @@ export interface PlanProduct {
 interface Props {
   planId: string;
   products: PlanProduct[];
+  /** The plan's steps, so each product shows the step(s) that use it. */
+  schedule?: ScheduleRow[];
   /** Read-only plans (assigned, not owned) hide the add/remove controls. */
   canEdit?: boolean;
   onChanged: () => void;
@@ -46,8 +50,48 @@ const db = supabase as any;
  * from a brand's shelf on STRAND, or paste a link — and a brand name that
  * belongs to a listed brand becomes a link through to that brand.
  */
-const PlanProductsSection = ({ planId, products, canEdit = true, onChanged }: Props) => {
+const PlanProductsSection = ({
+  planId,
+  products: initialProducts,
+  schedule = [],
+  canEdit = true,
+  onChanged,
+}: Props) => {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  // Shares the picker's cache, so a product attached to a step upstairs shows
+  // here straight away.
+  const { data: live } = useQuery({
+    queryKey: ["plan-products-picker", planId],
+    enabled: !!planId,
+    queryFn: async (): Promise<PlanProduct[]> => {
+      const { data, error } = await db
+        .from("treatment_plan_products")
+        .select("id, product_name, brand, image_url, user_product_id, usage_notes")
+        .eq("plan_id", planId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PlanProduct[];
+    },
+  });
+
+  const products = live ?? initialProducts;
+
+  const stepsFor = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of schedule) {
+      const pid = (row as ScheduleRow & { product_id?: string | null }).product_id;
+      if (!pid) continue;
+      map.set(pid, [...(map.get(pid) ?? []), row.task_name]);
+    }
+    return map;
+  }, [schedule]);
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["plan-products-picker", planId] });
+    onChanged();
+  };
   const brandLinks = useBrandLinkMap();
   const { resolveLink, busy } = usePlanProductLink();
   const [shelfOpen, setShelfOpen] = useState(false);
@@ -74,7 +118,7 @@ const PlanProductsSection = ({ planId, products, canEdit = true, onChanged }: Pr
       });
       if (error) throw error;
       toast.success(`${row.product_name} added to this plan`);
-      onChanged();
+      refresh();
     } catch (e) {
       console.error("add plan product failed", e);
       toast.error("Couldn't add that product. Please try again.");
@@ -87,7 +131,7 @@ const PlanProductsSection = ({ planId, products, canEdit = true, onChanged }: Pr
     try {
       const { error } = await db.from("treatment_plan_products").delete().eq("id", id);
       if (error) throw error;
-      onChanged();
+      refresh();
     } catch (e) {
       console.error("remove plan product failed", e);
       toast.error("Couldn't remove that product.");
@@ -156,6 +200,11 @@ const PlanProductsSection = ({ planId, products, canEdit = true, onChanged }: Pr
                         {p.brand}
                       </p>
                     ))}
+                  {(stepsFor.get(p.id)?.length ?? 0) > 0 && (
+                    <p className="font-body text-[12px] text-muted-foreground mt-0.5 [overflow-wrap:anywhere]">
+                      Used in: {stepsFor.get(p.id)!.join(", ")}
+                    </p>
+                  )}
                   {p.user_product_id && (
                     <button
                       type="button"
