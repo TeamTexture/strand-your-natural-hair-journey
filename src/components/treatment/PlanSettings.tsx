@@ -109,7 +109,7 @@ const PlanSettings = ({
   const toggle = (key: string) => onExpandedChange(openRow === key ? null : key);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" id="plan-settings">
       <SectionLabel className="px-0 mt-0 mb-1.5">Plan settings</SectionLabel>
 
       <SurfaceCard padded={false} className="overflow-hidden divide-y divide-border/60">
