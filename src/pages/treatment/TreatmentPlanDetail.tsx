@@ -14,6 +14,8 @@ import { useSetPlanStatus, useTreatmentPlan } from "@/hooks/useTreatmentPlans";
 import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAssignments";
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
+import BrandTagList from "@/components/brand/BrandTagList";
+import BrandTagControl from "@/components/brand/BrandTagControl";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import {
   cadenceSummary,
@@ -318,11 +320,19 @@ const TreatmentPlanDetail = () => {
                       {p.usage_notes}
                     </p>
                   )}
+                  <BrandTagList taggableType="treatment_plan_product" taggableId={p.id} />
                 </SurfaceCard>
               ))}
             </div>
           </div>
         )}
+
+        {/* brands credited on this plan */}
+        <div className="space-y-2">
+          <SectionLabel className="px-0 mt-0 mb-1.5">Brands</SectionLabel>
+          <BrandTagList taggableType="treatment_plan" taggableId={id} />
+          <BrandTagControl taggableType="treatment_plan" taggableId={id} />
+        </div>
       </div>
     </ScreenLayout>
   );

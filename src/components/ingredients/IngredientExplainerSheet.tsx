@@ -7,6 +7,8 @@ import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { matchScoreOf } from "@/lib/matchStars";
 import ProseText from "@/components/guidance/ProseText";
+import BrandTagList from "@/components/brand/BrandTagList";
+import BrandTagControl from "@/components/brand/BrandTagControl";
 
 const VERDICT = {
   good: { label: "Works with your hair", icon: CheckCircle2, cls: "bg-good/12 border-good/30" },
@@ -73,6 +75,7 @@ export default function IngredientExplainerSheet({
       : kind === "class"
       ? "Ingredient family"
       : head.category ?? "";
+  const glossaryId = (explainer?.glossary as { id?: string } | undefined)?.id ?? cached?.id ?? null;
   const shelfLabel = kind === "class" ? "On your shelf" : "Also on your shelf";
 
   return (
@@ -225,6 +228,13 @@ export default function IngredientExplainerSheet({
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {glossaryId && (
+          <div className="mt-3 space-y-2">
+            <BrandTagList taggableType="glossary_term" taggableId={glossaryId} />
+            <BrandTagControl taggableType="glossary_term" taggableId={glossaryId} />
           </div>
         )}
       </SheetContent>
