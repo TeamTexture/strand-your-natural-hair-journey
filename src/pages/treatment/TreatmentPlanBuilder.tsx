@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { WeekWindowFields } from "@/components/treatment/StepEditorSheet";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { CalendarIcon, Link2, Loader2, Plus, ShoppingBag, Store, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
