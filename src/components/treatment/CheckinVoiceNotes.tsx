@@ -203,14 +203,35 @@ const CheckinVoiceNotes = ({
               {formatClock(pending.seconds)}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button className="rounded-pill" onClick={() => void save()} disabled={saving || !checkinId}>
-              {saving ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
-              {saving ? "Saving…" : "Keep it"}
-            </Button>
-            <Button variant="outline" className="rounded-pill" onClick={() => setPending(null)}>
-              Record again
-            </Button>
+          <div className="space-y-2">
+            {onTranscript && (
+              <Button
+                className="rounded-pill w-full"
+                onClick={() => void save(true)}
+                disabled={saving || transcribing || !checkinId}
+              >
+                {saving || transcribing ? (
+                  <Loader2 className="size-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Type className="size-4 mr-1.5" />
+                )}
+                {transcribing ? "Writing it out…" : "Keep it and write it out for me"}
+              </Button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={onTranscript ? "outline" : "default"}
+                className="rounded-pill"
+                onClick={() => void save(false)}
+                disabled={saving || !checkinId}
+              >
+                {saving ? <Loader2 className="size-4 mr-1.5 animate-spin" /> : <Check className="size-4 mr-1.5" />}
+                {saving ? "Saving…" : onTranscript ? "Keep the voice note only" : "Keep it"}
+              </Button>
+              <Button variant="outline" className="rounded-pill" onClick={() => setPending(null)}>
+                Record again
+              </Button>
+            </div>
           </div>
         </div>
       ) : recording ? (
