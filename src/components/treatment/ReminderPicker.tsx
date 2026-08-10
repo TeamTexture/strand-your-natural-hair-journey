@@ -1,4 +1,5 @@
 import SurfaceCard from "@/components/SurfaceCard";
+import TimeSelect from "@/components/TimeSelect";
 import { cn } from "@/lib/utils";
 
 export interface ReminderSettings {
@@ -11,7 +12,6 @@ export const defaultReminder: ReminderSettings = { frequency: "weekly", weekday:
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const HOURS = [7, 8, 9, 12, 15, 18, 20, 21];
 
 export function reminderSummary(r: ReminderSettings) {
   if (r.frequency === "off") return "No reminders";
@@ -105,13 +105,14 @@ const ReminderPicker = ({
       {value.frequency !== "off" && (
         <div className="space-y-1.5">
           <p className="font-body text-[12px] text-muted-foreground">What time</p>
-          <div className="flex flex-wrap gap-1.5">
-            {HOURS.map((h) => (
-              <Pill key={h} active={value.hour === h} onClick={() => set({ hour: h })}>
-                {formatHour(h)}
-              </Pill>
-            ))}
-          </div>
+          <TimeSelect
+            minuteStep={0}
+            value={`${String(value.hour).padStart(2, "0")}:00`}
+            onChange={(v) => {
+              const h = Number(v.slice(0, 2));
+              if (!Number.isNaN(h)) set({ hour: h });
+            }}
+          />
         </div>
       )}
     </SurfaceCard>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import TimeSelect from "@/components/TimeSelect";
 import { CalendarPlus, CalendarClock, Droplets } from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -149,12 +150,7 @@ const NextWashDayBox = ({ suggestedDate }: Props) => {
                   </label>
                   <label className="font-body text-[11px] text-muted-foreground">
                     Time (optional)
-                    <input
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-[13px] text-foreground font-body"
-                    />
+                    <TimeSelect className="mt-1" value={time} onChange={setTime} />
                   </label>
                   <Button
                     variant="gold"
