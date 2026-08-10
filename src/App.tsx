@@ -70,6 +70,10 @@ const TreatmentPlanBuilder = lazyRetry(() => import("./pages/treatment/Treatment
 const TreatmentPlanDetail = lazyRetry(() => import("./pages/treatment/TreatmentPlanDetail"));
 const TreatmentProgress = lazyRetry(() => import("./pages/treatment/TreatmentProgress"));
 const TreatmentCheckin = lazyRetry(() => import("./pages/treatment/TreatmentCheckin"));
+const TreatmentInvitation = lazyRetry(() => import("./pages/treatment/TreatmentInvitation"));
+const ProTreatmentClients = lazyRetry(() => import("./pages/pro/ProTreatmentClients"));
+const ProTreatmentTemplate = lazyRetry(() => import("./pages/pro/ProTreatmentTemplate"));
+const ProTreatmentCheckin = lazyRetry(() => import("./pages/pro/ProTreatmentCheckin"));
 
 const Discounts = lazyRetry(() => import("./pages/Discounts"));
 const BloodHistory = lazyRetry(() => import("./pages/BloodHistory"));
