@@ -16,6 +16,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
+import BrandTagList from "@/components/brand/BrandTagList";
+import BrandTagControl from "@/components/brand/BrandTagControl";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -747,6 +749,11 @@ const WashDayDetail = () => {
             </button>
           </>
         )}
+
+        <div className="space-y-2 pt-2">
+          <BrandTagList taggableType="wash_day" taggableId={id} />
+          <BrandTagControl taggableType="wash_day" taggableId={id} />
+        </div>
       </div>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
