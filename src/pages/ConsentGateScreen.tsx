@@ -42,10 +42,10 @@ interface Props {
 const TICKBOX_LABEL = {
   /** Shown to consumers, professionals and admins — they all see guidance. */
   tier1WithDisclaimer:
-    "I accept STRAND's Terms of Service and Privacy Policy, I confirm I am 18 or over, and I have read and understood the Medical Disclaimer.",
+    "I accept STRAND's Terms of Service and Privacy Policy, I confirm I am 16 or over, and I have read and understood the Medical Disclaimer.",
   /** Brands never see hair guidance, so the medical disclaimer does not apply. */
   tier1NoDisclaimer:
-    "I accept STRAND's Terms of Service and Privacy Policy, and I confirm I am 18 or over.",
+    "I accept STRAND's Terms of Service and Privacy Policy, and I confirm I am 16 or over.",
   health:
     "I explicitly consent to STRAND processing my health information — blood test results, scalp conditions, medications and health profile — to generate my personalised guidance. STRAND cannot be provided without this.",
 };
