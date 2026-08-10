@@ -337,8 +337,11 @@ const App = () => (
               <Route path="/tools/:id" element={<Paid><ToolProfile /></Paid>} />
               <Route path="/products/brand/:brand" element={<Paid><BrandProducts /></Paid>} />
               <Route path="/products/by-ingredient" element={<Paid><ProductsByIngredient /></Paid>} />
-              <Route path="/products/ingredient-research" element={<Paid><IngredientResearch /></Paid>} />
-              <Route path="/journal" element={<Paid><Journal /></Paid>} />
+               <Route path="/products/ingredient-research" element={<Paid><IngredientResearch /></Paid>} />
+               <Route path="/treatment/new" element={<Paid><TreatmentPlanBuilder /></Paid>} />
+               <Route path="/treatment/:id" element={<Paid><TreatmentPlanDetail /></Paid>} />
+               <Route path="/journal" element={<Paid><Journal /></Paid>} />
+
               <Route path="/journal/entry/:id" element={<Paid><StyleRecord /></Paid>} />
               <Route path="/journal/moodboards" element={<Paid><MoodboardList /></Paid>} />
               <Route path="/journal/moodboards/:id" element={<Paid><MoodboardBoard /></Paid>} />
