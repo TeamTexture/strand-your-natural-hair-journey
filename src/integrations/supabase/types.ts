@@ -1929,6 +1929,7 @@ export type Database = {
           forum_replies: boolean
           marketing_consent: boolean
           marketing_consent_at: string | null
+          treatment_checkin_reminders: boolean
           unsubscribe_token: string
           updated_at: string
           user_id: string
@@ -1943,6 +1944,7 @@ export type Database = {
           forum_replies?: boolean
           marketing_consent?: boolean
           marketing_consent_at?: string | null
+          treatment_checkin_reminders?: boolean
           unsubscribe_token?: string
           updated_at?: string
           user_id: string
@@ -1957,6 +1959,7 @@ export type Database = {
           forum_replies?: boolean
           marketing_consent?: boolean
           marketing_consent_at?: string | null
+          treatment_checkin_reminders?: boolean
           unsubscribe_token?: string
           updated_at?: string
           user_id?: string

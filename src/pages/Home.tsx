@@ -9,6 +9,8 @@ import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
+import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
+
 import ListRow from "@/components/nav/ListRow";
 import { ICONS } from "@/lib/iconMap";
 import { useQueryClient } from "@tanstack/react-query";
@@ -972,7 +974,13 @@ const Home = () => {
         </SurfaceCard>
       </div>
 
+      {/* Treatment plan — sits above wash day / style logging by design */}
+      <div className="px-5 pt-1 pb-3">
+        <TodayTreatmentCard />
+      </div>
+
       <SectionHeader icon={ICONS.style} className="px-5 pt-1 pb-2">Quick actions</SectionHeader>
+
       <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-2.5">
 
         <button
