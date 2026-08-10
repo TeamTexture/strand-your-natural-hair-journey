@@ -51,17 +51,18 @@ const TodayTreatmentCard = () => {
   }
 
 
-  const onDone = (planId: string, scheduleId: string, slot: "morning" | "evening") =>
-    log.mutate(
-      { planId, scheduleId, slot, status: "completed" },
-      { onError: () => toast.error("Couldn't save that just now — try again") },
-    );
-
   const onSkip = (planId: string, scheduleId: string, slot: "morning" | "evening") =>
     log.mutate(
       { planId, scheduleId, slot, status: "skipped" },
       { onError: () => toast.error("Couldn't save that just now — try again") },
     );
+
+  // Logged steps drop off the card straight away and the next one takes its
+  // place — she only ever sees what's still outstanding.
+  const pending = steps.filter((s) => !s.entry);
+  const loggedToday = steps.filter((s) => s.entry);
+  const current = pending[0];
+  const lastLogged = loggedToday[loggedToday.length - 1];
 
   return (
     <div className="space-y-2" data-tour="treatment-today">
@@ -83,7 +84,6 @@ const TodayTreatmentCard = () => {
 
       {!hasPlus && <TreatmentReadOnlyNotice next="/home" />}
 
-
       {steps.length === 0 ? (
         <SurfaceCard>
           <p className="font-display text-[16px] leading-snug">Nothing due today.</p>
@@ -91,94 +91,117 @@ const TodayTreatmentCard = () => {
             Your next step comes round on schedule.
           </p>
         </SurfaceCard>
+      ) : !current ? (
+        <SurfaceCard tone="green" className="flex items-start gap-3">
+          <span className="mt-0.5 size-6 rounded-full flex items-center justify-center shrink-0 bg-good/20 text-good">
+            <Check className="size-3.5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-[16px] leading-snug">That's today logged.</p>
+            <p className="font-body text-[13px] text-muted-foreground mt-0.5">
+              {loggedToday.length === 1
+                ? "One step logged."
+                : `${loggedToday.length} steps logged.`}{" "}
+              Your next step comes round on schedule.
+            </p>
+          </div>
+        </SurfaceCard>
       ) : (
-        <div className="space-y-2.5">
-          {steps.map((s) => {
-            const done = s.entry?.status === "completed";
-            const skipped = s.entry?.status === "skipped";
-            const logged = done || skipped;
+        <SurfaceCard className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
+              {slotLabel(current.slot)}
+            </p>
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary whitespace-nowrap">
+              Week {current.week} of {current.plan.duration_weeks}
+            </span>
+          </div>
 
-            if (logged) {
-              return (
-                <SurfaceCard key={s.key} tone={done ? "green" : "card"} className="flex items-start gap-3">
-                  <span
-                    className={`mt-0.5 size-6 rounded-full flex items-center justify-center shrink-0 ${
-                      done ? "bg-good/20 text-good" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {done ? <Check className="size-3.5" /> : <RotateCcw className="size-3.5" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                      {slotLabel(s.slot)}
-                    </p>
-                    <p className="font-display text-[16px] leading-snug break-words">{s.row.task_name}</p>
-                    <p className="font-body text-[13px] text-muted-foreground mt-0.5">
-                      {done ? "Marked as done" : "Skipped — picked back up next time"}
-                    </p>
-                    <StepProductMarkers product={s.product} updateDue={!done} className="mt-2" />
-                  </div>
-                  {hasPlus && (
-                    <button
-                      onClick={() =>
-                        s.entry &&
-                        undo.mutate(
-                          { entryId: s.entry.id },
-                          { onError: () => toast.error("Couldn't undo that just now") },
-                        )
-                      }
-                      className="font-body text-[12px] text-primary shrink-0 min-h-[44px] px-1"
-                    >
-                      Undo
-                    </button>
-                  )}
-                </SurfaceCard>
-              );
+          <div className="min-w-0">
+            <h3 className="font-display text-[18px] leading-tight break-words">
+              {current.row.task_name}
+            </h3>
+            {current.row.instructions && (
+              <p className="font-body text-[13px] text-muted-foreground leading-snug mt-1 [overflow-wrap:anywhere]">
+                {current.row.instructions}
+              </p>
+            )}
+          </div>
+
+          <StepProductMarkers product={current.product} updateDue />
+
+          {pending.length > 1 && (
+            <p className="font-body text-[12px] text-muted-foreground">
+              {pending.length - 1} more due today after this one.
+            </p>
+          )}
+
+          {hasPlus && (
+            <>
+              <Button className="w-full rounded-pill" onClick={() => setLogging(true)}>
+                Log this step
+              </Button>
+              <button
+                onClick={() => onSkip(current.plan.id, current.row.id, current.slot)}
+                className="w-full font-body text-[13px] text-muted-foreground min-h-[40px]"
+              >
+                {skipLabel(current.slot)}
+              </button>
+            </>
+          )}
+        </SurfaceCard>
+      )}
+
+      {hasPlus && lastLogged?.entry && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <p className="font-body text-[12px] text-muted-foreground min-w-0 truncate">
+            {lastLogged.entry.status === "completed" ? "Logged" : "Skipped"}:{" "}
+            {lastLogged.row.task_name}
+          </p>
+          <button
+            onClick={() =>
+              undo.mutate(
+                { entryId: lastLogged.entry!.id },
+                { onError: () => toast.error("Couldn't undo that just now") },
+              )
             }
-
-            return (
-              <SurfaceCard key={s.key} className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
-                    {slotLabel(s.slot)}
-                  </p>
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary whitespace-nowrap">
-                    Week {s.week} of {s.plan.duration_weeks}
-                  </span>
-                </div>
-
-                <div className="min-w-0">
-                  <h3 className="font-display text-[18px] leading-tight break-words">{s.row.task_name}</h3>
-                  {s.row.instructions && (
-                    <p className="font-body text-[13px] text-muted-foreground leading-snug mt-1 [overflow-wrap:anywhere]">
-                      {s.row.instructions}
-                    </p>
-                  )}
-                </div>
-
-                <StepProductMarkers product={s.product} updateDue />
-
-                {hasPlus && (
-                  <>
-                    <Button
-                      className="w-full rounded-pill"
-                      onClick={() => onDone(s.plan.id, s.row.id, s.slot)}
-                    >
-                      Mark as done
-                    </Button>
-                    <button
-                      onClick={() => onSkip(s.plan.id, s.row.id, s.slot)}
-                      className="w-full font-body text-[13px] text-muted-foreground min-h-[40px]"
-                    >
-                      {skipLabel(s.slot)}
-                    </button>
-                  </>
-                )}
-              </SurfaceCard>
-            );
-          })}
+            className="font-body text-[12px] text-primary shrink-0 min-h-[36px] px-1 inline-flex items-center gap-1"
+          >
+            <RotateCcw className="size-3" />
+            Undo
+          </button>
         </div>
       )}
+
+      {current && (
+        <StepLogSheet
+          open={logging}
+          onOpenChange={setLogging}
+          taskName={current.row.task_name}
+          slot={current.slot}
+          instructions={current.row.instructions}
+          saving={log.isPending}
+          onSave={(note) =>
+            log.mutate(
+              {
+                planId: current.plan.id,
+                scheduleId: current.row.id,
+                slot: current.slot,
+                status: "completed",
+                note,
+              },
+              {
+                onSuccess: () => {
+                  setLogging(false);
+                  toast.success("Logged");
+                },
+                onError: () => toast.error("Couldn't save that just now — try again"),
+              },
+            )
+          }
+        />
+      )}
+
 
       {streakLine && (
         <p className="font-body text-[12px] text-muted-foreground px-1">{streakLine}</p>
