@@ -50,7 +50,11 @@ export const MEDIA_RULES: Record<
     maxBytes: 15 * 1024 * 1024,
     maxSeconds: 180,
   },
-  video: { mimes: ["video/mp4"], maxBytes: 50 * 1024 * 1024, maxSeconds: 60 },
+  video: {
+    mimes: ["video/mp4", "video/quicktime", "video/webm"],
+    maxBytes: 50 * 1024 * 1024,
+    maxSeconds: 60,
+  },
 };
 
 export const PHOTO_MAX_EDGE = 1600;
@@ -68,6 +72,8 @@ const extFor = (mime: string) =>
     "audio/mp4": "m4a",
     "audio/mpeg": "mp3",
     "video/mp4": "mp4",
+    "video/quicktime": "mov",
+    "video/webm": "webm",
   })[mime] ?? "bin";
 
 /** Drops any `;codecs=…` suffix — the constraint wants the bare type. */
@@ -81,7 +87,7 @@ export function describeRejection(type: TreatmentMediaType, mime: string, bytes:
   const rules = MEDIA_RULES[type];
   if (!rules.mimes.includes(baseMime(mime))) {
     if (type === "video")
-      return "That clip isn't an MP4. Record it with your phone's camera app, or save it as MP4 and try again.";
+      return "We can't read that clip's format. Record it here with your camera, or choose one from your camera roll.";
     if (type === "photo") return "That file isn't a photo we can read. A JPEG, PNG or WebP works.";
     return "We couldn't read that recording. Record it here and it'll save in the right format.";
   }
@@ -243,3 +249,25 @@ export const formatClock = (seconds: number) => {
   const t = Math.max(0, Math.round(seconds));
   return `${Math.floor(t / 60)}:${`${t % 60}`.padStart(2, "0")}`;
 };
+
+/** Pixel size of a video, so we can nudge her to hold the phone upright. */
+export const readVideoDimensions = (
+  blob: Blob,
+): Promise<{ width: number; height: number } | null> =>
+  new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement("video");
+    el.preload = "metadata";
+    el.onloadedmetadata = () => {
+      const out = el.videoWidth && el.videoHeight
+        ? { width: el.videoWidth, height: el.videoHeight }
+        : null;
+      URL.revokeObjectURL(url);
+      resolve(out);
+    };
+    el.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    el.src = url;
+  });

@@ -41,6 +41,14 @@ import CheckinVideo from "@/components/treatment/CheckinVideo";
  * and video have something to attach to while she's still filling it in. It
  * only counts as done once she saves, which sets submitted_at.
  */
+/** Gentle openers she can tap instead of staring at an empty box. */
+const CHECKIN_PROMPTS = [
+  "What's working:",
+  "What's harder than I expected:",
+  "My scalp has felt:",
+  "Something I noticed:",
+];
+
 const TreatmentCheckin = () => {
   const { id, week: weekParam } = useParams();
   const navigate = useNavigate();
@@ -141,7 +149,8 @@ const TreatmentCheckin = () => {
         <div>
           <h1 className="font-display text-[24px] leading-tight">Week {week} check-in</h1>
           <p className="font-body text-[13px] text-muted-foreground mt-1 leading-snug">
-            Four sliders, then say a few words. About two minutes.
+            Tell us how it's going in your own words — write it, record it, or show it. The sliders are
+            optional.
           </p>
           <p className="font-body text-[12px] text-muted-foreground mt-1">
             {format(fromDateKey(range.start), "d MMM")} – {format(fromDateKey(range.end), "d MMM")}
@@ -182,7 +191,44 @@ const TreatmentCheckin = () => {
           </SurfaceCard>
         )}
 
+        {/* the open answer — leads, because it's the part she actually wants to say */}
+        <SurfaceCard className="space-y-2">
+          <div>
+            <p className="font-display text-[18px] leading-snug">How's it going?</p>
+            <p className="font-body text-[12px] text-muted-foreground mt-0.5 leading-snug">
+              Say as much or as little as you like — in writing, out loud, or with a photo or clip below.
+            </p>
+          </div>
+          <Textarea
+            value={note}
+            readOnly={!hasPlus}
+            onChange={(e) => setNote(e.target.value.slice(0, 2000))}
+            rows={5}
+            placeholder="What's felt different this week? Anything that's been easy, or a struggle?"
+            className="font-body text-[14px]"
+          />
+          {hasPlus && (
+            <div className="flex flex-wrap gap-1.5">
+              {CHECKIN_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() =>
+                    setNote((n) => (n.trim() ? `${n.replace(/\s+$/, "")}\n\n${prompt} ` : `${prompt} `).slice(0, 2000))
+                  }
+                  className="rounded-pill border border-border px-2.5 py-1 font-body text-[11px] text-muted-foreground"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+        </SurfaceCard>
+
         {/* sliders — driven entirely by the metric config */}
+        <p className="font-body text-[12px] text-muted-foreground px-0.5">
+          Optional — four quick sliders, if you want to track the numbers too.
+        </p>
         <div className="space-y-2">
           {CHECKIN_METRICS.map((m) => (
             <SurfaceCard key={m.key} className="space-y-2.5">
@@ -208,18 +254,6 @@ const TreatmentCheckin = () => {
           ))}
         </div>
 
-        {/* note */}
-        <SurfaceCard className="space-y-2">
-          <p className="font-body text-[14px] font-semibold">Anything you want to remember</p>
-          <Textarea
-            value={note}
-            readOnly={!hasPlus}
-            onChange={(e) => setNote(e.target.value.slice(0, 1200))}
-            rows={4}
-            placeholder="Optional — a line about how the week went."
-            className="font-body text-[14px]"
-          />
-        </SurfaceCard>
 
         {/* media */}
         <CheckinPhotos

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Film, Loader2, Lock, Trash2 } from "lucide-react";
+import { Film, Loader2, Lock, Trash2, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -14,6 +14,7 @@ import {
   deleteTreatmentMedia,
   describeRejection,
   readMediaDuration,
+  readVideoDimensions,
   uploadTreatmentMedia,
   type TreatmentMediaRow,
 } from "@/lib/treatmentMedia";
@@ -34,20 +35,28 @@ interface Props {
  */
 const CheckinVideo = ({ userId, planId, checkinId, video, onUploaded, onRemoved }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { hasPlus, isLoading } = usePlusAccess();
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const { urls } = useSignedMedia(video ? [video.storage_path] : []);
+
+  const resetInputs = () => {
+    if (inputRef.current) inputRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
+  };
 
   const pick = async (file?: File | null) => {
     setProblem(null);
+    setHint(null);
     if (!file || !checkinId) return;
     const mime = baseMime(file.type);
     const rejection = describeRejection("video", mime, file.size);
     if (rejection) {
       setProblem(rejection);
-      if (inputRef.current) inputRef.current.value = "";
+      resetInputs();
       return;
     }
     setBusy(true);
@@ -58,9 +67,12 @@ const CheckinVideo = ({ userId, planId, checkinId, video, onUploaded, onRemoved 
           `That clip runs ${seconds} seconds. Videos here are up to ${VIDEO_MAX_SECONDS} seconds — trim it in your camera roll and choose it again.`,
         );
         setBusy(false);
-        if (inputRef.current) inputRef.current.value = "";
+        resetInputs();
         return;
       }
+      const size = await readVideoDimensions(file);
+      if (size && size.width > size.height)
+        setHint("That one's landscape. Held upright, it fills the timeline properly next time.");
       const row = await uploadTreatmentMedia({
         userId,
         planId,
@@ -75,7 +87,7 @@ const CheckinVideo = ({ userId, planId, checkinId, video, onUploaded, onRemoved 
       setProblem(e instanceof TreatmentMediaError ? e.message : "We couldn't add that clip just now.");
     }
     setBusy(false);
-    if (inputRef.current) inputRef.current.value = "";
+    resetInputs();
   };
 
   const remove = async () => {
@@ -111,7 +123,8 @@ const CheckinVideo = ({ userId, planId, checkinId, video, onUploaded, onRemoved 
       <div>
         <p className="font-body text-[14px] font-semibold">Add a short clip</p>
         <p className="font-body text-[12px] text-muted-foreground mt-0.5">
-          One per check-in, up to {VIDEO_MAX_SECONDS} seconds. MP4 from your camera roll.
+          One per check-in, up to {VIDEO_MAX_SECONDS} seconds. Record it here, or choose one from your
+          camera roll. Hold your phone upright so it saves vertical.
         </p>
       </div>
 
@@ -136,22 +149,44 @@ const CheckinVideo = ({ userId, planId, checkinId, video, onUploaded, onRemoved 
       ) : (
         <>
           <input
-            ref={inputRef}
+            ref={cameraRef}
             type="file"
-            accept="video/mp4"
+            accept="video/*"
+            capture="user"
             className="hidden"
             onChange={(e) => void pick(e.target.files?.[0])}
           />
-          <button
-            type="button"
-            disabled={busy || !checkinId}
-            onClick={() => inputRef.current?.click()}
-            className="w-full rounded-pill border border-dashed border-border py-2.5 font-body text-[13px] flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Film className="size-4" />}
-            {busy ? "Adding…" : "Choose a clip"}
-          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={(e) => void pick(e.target.files?.[0])}
+          />
+          <div className="space-y-2">
+            <button
+              type="button"
+              disabled={busy || !checkinId}
+              onClick={() => cameraRef.current?.click()}
+              className="w-full rounded-pill bg-primary text-primary-foreground py-2.5 font-body text-[13px] flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <Video className="size-4" />}
+              {busy ? "Adding…" : "Record a clip"}
+            </button>
+            <button
+              type="button"
+              disabled={busy || !checkinId}
+              onClick={() => inputRef.current?.click()}
+              className="w-full rounded-pill border border-dashed border-border py-2.5 font-body text-[13px] flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              <Film className="size-4" /> Choose from camera roll
+            </button>
+          </div>
         </>
+      )}
+
+      {hint && !problem && (
+        <p className="font-body text-[12px] text-muted-foreground leading-snug">{hint}</p>
       )}
 
       {problem ? (
