@@ -29,7 +29,7 @@ import { matchScoreOf } from "@/lib/matchStars";
 
 type Section =
   | "profile" | "routine" | "products" | "nutrition"
-  | "appointments" | "journal" | "photos" | "goals" | "notes";
+  | "appointments" | "journal" | "photos" | "goals" | "treatment" | "notes";
 
 interface SectionSpec {
   key: Section;
