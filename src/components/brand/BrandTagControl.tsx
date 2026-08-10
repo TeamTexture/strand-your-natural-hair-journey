@@ -76,6 +76,7 @@ export default function BrandTagControl({
   const { brands } = useBrandTagOptions(open);
 
   const [brandId, setBrandId] = useState<string>("");
+  const [customName, setCustomName] = useState("");
   const [tagType, setTagType] = useState<BrandTagType>("editorial");
   const [label, setLabel] = useState("");
   const [startsOn, setStartsOn] = useState("");
@@ -88,6 +89,7 @@ export default function BrandTagControl({
 
   const pickBrand = (id: string) => {
     setBrandId(id);
+    setCustomName("");
     const name = brands.find((b) => b.id === id)?.brand_name ?? "";
     if (tagType === "promoted") setLabel(defaultDisclosure(name));
   };
@@ -99,23 +101,27 @@ export default function BrandTagControl({
 
   const reset = () => {
     setBrandId("");
+    setCustomName("");
     setTagType("editorial");
     setLabel("");
     setStartsOn("");
     setEndsOn("");
   };
 
-  const disclosureMissing = tagType === "promoted" && !label.trim();
+  const disclosureMissing = canPromote && !!brandId && tagType === "promoted" && !label.trim();
+
+  const hasBrand = !!brandId || !!customName.trim();
 
   const submit = () => {
-    if (!brandId) return toast("Pick a brand first");
+    if (!hasBrand) return toast("Pick a brand, or type the brand's name");
     if (disclosureMissing) {
       return toast("A promoted tag needs a disclosure label before you can save it");
     }
     save.mutate(
       {
-        brand_id: brandId,
-        tag_type: tagType,
+        brand_id: brandId || null,
+        custom_brand_name: customName,
+        tag_type: brandId ? tagType : "editorial",
         disclosure_label: label,
         promotion_starts_on: startsOn || null,
         promotion_ends_on: endsOn || null,
@@ -156,8 +162,14 @@ export default function BrandTagControl({
           {tags.map((t) => (
             <div key={t.id} className="flex items-center gap-2">
               <p className="flex-1 min-w-0 font-body text-[12px] text-muted-foreground [overflow-wrap:anywhere]">
-                {t.brand_name} · {t.tag_type === "promoted" ? "Promoted" : "Editorial"}
-                {t.tag_type === "promoted" && !promotionIsLive(t) ? " · outside its dates, hidden" : ""}
+                {t.brand_name}
+                {isAdmin
+                  ? ` · ${t.tag_type === "promoted" ? "Promoted" : "Editorial"}${
+                      t.tag_type === "promoted" && !promotionIsLive(t)
+                        ? " · outside its dates, hidden"
+                        : ""
+                    }`
+                  : ""}
               </p>
               {(isAdmin || t.tag_type === "editorial") && (
                 <button
@@ -197,12 +209,27 @@ export default function BrandTagControl({
                 ))}
                 {!brands.length && (
                   <p className="font-body text-[13px] text-muted-foreground">
-                    No brands available to tag yet.
+                    No brands on STRAND to pick from yet.
                   </p>
                 )}
               </div>
+              <div className="mt-2.5">
+                <SectionLabel className="px-0 mt-0 mb-1.5">
+                  Or type a brand that isn't on STRAND
+                </SectionLabel>
+                <Input
+                  value={customName}
+                  onChange={(e) => {
+                    setCustomName(e.target.value);
+                    if (e.target.value.trim()) setBrandId("");
+                  }}
+                  maxLength={60}
+                  placeholder="Brand name"
+                />
+              </div>
             </div>
 
+            {canPromote && (
             <div>
               <SectionLabel className="px-0 mt-0 mb-1.5">Kind of tag</SectionLabel>
               <div className="flex flex-wrap gap-1.5">
@@ -221,8 +248,9 @@ export default function BrandTagControl({
                   : "An editorial tag is a straight credit. It carries no disclosure and no promotional styling."}
               </p>
             </div>
+            )}
 
-            {tagType === "promoted" && (
+            {canPromote && !!brandId && tagType === "promoted" && (
               <>
                 <div>
                   <SectionLabel className="px-0 mt-0 mb-1.5">Disclosure label</SectionLabel>
@@ -260,7 +288,7 @@ export default function BrandTagControl({
             <Button
               className="rounded-pill w-full"
               onClick={submit}
-              disabled={save.isPending || !brandId || disclosureMissing}
+              disabled={save.isPending || !hasBrand || disclosureMissing}
             >
               Save tag
             </Button>
