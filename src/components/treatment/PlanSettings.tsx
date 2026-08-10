@@ -1,6 +1,15 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, ChevronRight, Images, Pause, Play, Tag, Users } from "lucide-react";
+import {
+  Bell,
+  CalendarClock,
+  ChevronDown,
+  ChevronRight,
+  Images,
+  Pause,
+  Play,
+  Tag,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -21,9 +30,21 @@ interface Props {
   paused: boolean;
   onTogglePause: () => void;
   hasPlus: boolean;
+  /** Weeks per check-in cycle: 1, 2 or 4. */
+  checkinEveryWeeks: number;
+  onCadenceChange: (everyWeeks: number) => void;
+  /** Which row is open — held by the page so other sections can open one. */
+  expanded: string | null;
+  onExpandedChange: (key: string | null) => void;
   /** Writes are off when STRAND+ has lapsed or the plan is paused. */
   disabled: boolean;
 }
+
+const CADENCE_OPTIONS = [
+  { weeks: 1, label: "Every week" },
+  { weeks: 2, label: "Every 2 weeks" },
+  { weeks: 4, label: "Every 4 weeks" },
+];
 
 const Row = ({
   icon: Icon,
@@ -77,11 +98,15 @@ const PlanSettings = ({
   paused,
   onTogglePause,
   hasPlus,
+  checkinEveryWeeks,
+  onCadenceChange,
+  expanded,
+  onExpandedChange,
   disabled,
 }: Props) => {
   const navigate = useNavigate();
-  const [openRow, setOpenRow] = useState<string | null>(null);
-  const toggle = (key: string) => setOpenRow((v) => (v === key ? null : key));
+  const openRow = expanded;
+  const toggle = (key: string) => onExpandedChange(openRow === key ? null : key);
 
   return (
     <div className="space-y-2">
@@ -100,6 +125,43 @@ const PlanSettings = ({
           {openRow === "reminder" && (
             <div className="px-4 pb-4">
               <ReminderPicker value={reminder} onChange={onReminderChange} disabled={disabled} />
+            </div>
+          )}
+        </div>
+
+        {/* check-in cadence */}
+        <div>
+          <Row
+            icon={CalendarClock}
+            label="How often I check in"
+            value={CADENCE_OPTIONS.find((o) => o.weeks === checkinEveryWeeks)?.label ?? "Every week"}
+            open={openRow === "cadence"}
+            onClick={() => toggle("cadence")}
+          />
+          {openRow === "cadence" && (
+            <div className="px-4 pb-4 space-y-2">
+              <div className="flex gap-1.5">
+                {CADENCE_OPTIONS.map((o) => (
+                  <button
+                    key={o.weeks}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onCadenceChange(o.weeks)}
+                    className={cn(
+                      "flex-1 rounded-pill border px-2 py-2 font-body text-[12px] disabled:opacity-60",
+                      o.weeks === checkinEveryWeeks
+                        ? "border-primary bg-primary/10 text-primary font-semibold"
+                        : "border-border text-muted-foreground",
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <p className="font-body text-[11.5px] text-muted-foreground leading-snug">
+                Check-ins you've already saved stay exactly as they are. This only changes the
+                cycles still ahead of you.
+              </p>
             </div>
           )}
         </div>
