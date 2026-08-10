@@ -344,6 +344,28 @@ export function useUpdatePlanReminder() {
   });
 }
 
+/**
+ * How often she reflects. Changing this never touches a saved check-in: those
+ * keep the closing week they were written for, and the new cadence only shapes
+ * cycles that haven't closed yet.
+ */
+export function useUpdateCheckinCadence() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { planId: string; everyWeeks: number }) => {
+      const { error } = await db
+        .from("treatment_plans")
+        .update({ checkin_every_weeks: v.everyWeeks })
+        .eq("id", v.planId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["treatment-plans", user?.id] }),
+  });
+}
+
+
+
 /* -------------------------------------------------------------- creation */
 
 export interface DraftStep {
