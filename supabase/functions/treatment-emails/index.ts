@@ -145,17 +145,20 @@ async function sendNudges(admin: SupabaseClient, today: string) {
 
     const daily = String(row.frequency) === "daily";
     const slot = daily ? String(row.local_date) : `w${row.week_number}`;
+    const tasks = Array.isArray(row.due_tasks) ? (row.due_tasks as string[]) : [];
+    // A daily reminder names today's steps; the weekly one asks for the check-in.
+    const templateKey = daily ? "treatment-daily-reminder" : "treatment-checkin-nudge";
 
     const res = await dispatchEmail(
       {
-        templateKey: "treatment-checkin-nudge",
+        templateKey,
         to: email,
         recipientUserId: userId,
         triggerEvent: "treatment_plan.week_end",
         relatedTable: "treatment_plans",
         relatedId: String(row.plan_id),
         // One key per plan per slot — a retry or overlapping run cannot double send.
-        idempotencyKey: `treatment-checkin-nudge:${row.plan_id}:${slot}`,
+        idempotencyKey: `${templateKey}:${row.plan_id}:${slot}`,
 
         data: {
           name: pr?.display_name ? String(pr.display_name).split(" ")[0] : "there",
@@ -163,6 +166,8 @@ async function sendNudges(admin: SupabaseClient, today: string) {
           plan_title: row.plan_title ?? "your plan",
           week: row.week_number,
           steps_logged: Number(row.steps_logged ?? 0),
+          due_tasks: tasks,
+          due_outstanding: Number(row.due_outstanding ?? 0),
         },
       },
       admin,
