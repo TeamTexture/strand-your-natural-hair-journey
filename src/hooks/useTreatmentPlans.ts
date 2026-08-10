@@ -36,7 +36,10 @@ export interface TreatmentPlanRow {
   reminder_weekday: number;
   reminder_hour: number;
   reminder_timezone: string | null;
+  /** Weeks per check-in cycle: 1, 2 or 4. Defaults to 1 for every older plan. */
+  checkin_every_weeks: number;
 }
+
 
 export interface ProductRow {
   id: string;
@@ -75,7 +78,7 @@ const db = supabase as unknown as {
 async function loadBundles(userId: string, statuses: PlanStatus[]): Promise<PlanBundle[]> {
   const { data: plans, error } = await db
     .from("treatment_plans")
-    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone")
+    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone, checkin_every_weeks")
     .eq("user_id", userId)
     .in("status", statuses)
     .order("created_at", { ascending: false });
@@ -340,6 +343,28 @@ export function useUpdatePlanReminder() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["treatment-plans", user?.id] }),
   });
 }
+
+/**
+ * How often she reflects. Changing this never touches a saved check-in: those
+ * keep the closing week they were written for, and the new cadence only shapes
+ * cycles that haven't closed yet.
+ */
+export function useUpdateCheckinCadence() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { planId: string; everyWeeks: number }) => {
+      const { error } = await db
+        .from("treatment_plans")
+        .update({ checkin_every_weeks: v.everyWeeks })
+        .eq("id", v.planId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["treatment-plans", user?.id] }),
+  });
+}
+
+
 
 /* -------------------------------------------------------------- creation */
 

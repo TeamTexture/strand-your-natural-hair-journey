@@ -443,3 +443,169 @@ export function streakDays(
   }
   return out;
 }
+
+/* -------------------------------------------------------- check-in cycles */
+
+/**
+ * CHECK-IN CYCLES — the reflection rhythm, which is NOT the daily rhythm.
+ *
+ * A plan checks in every `checkin_every_weeks` weeks. Each cycle CLOSES on a
+ * week, and that closing week is what `treatment_plan_checkins.week_number`
+ * holds. A 12-week plan on a 4-week cadence closes at weeks 4, 8 and 12; a
+ * 1-week cadence closes every week, exactly as plans behaved before.
+ *
+ * A check-in can never be the action at the START of its own period — you
+ * cannot reflect on a fortnight on its first morning. Everything here is
+ * derived at read time; no state is stored.
+ */
+export type CheckinState = "not_open" | "open" | "saved" | "missed";
+
+export interface CheckinCycle {
+  /** 1-indexed cycle number. */
+  cycle: number;
+  /** First plan week the cycle covers. */
+  startWeek: number;
+  /** The week the cycle closes on — the check-in's week_number. */
+  closingWeek: number;
+  /** Inclusive calendar range of the whole cycle. */
+  start: string;
+  end: string;
+  /** The day the check-in becomes available: the start of the closing week. */
+  opensOn: string;
+}
+
+/** Every check-in cycle in a plan, in order. */
+export function checkinCycles(
+  startDate: string,
+  durationWeeks: number,
+  everyWeeks = 1,
+): CheckinCycle[] {
+  const step = Math.max(1, everyWeeks);
+  const total = Math.max(1, durationWeeks);
+  const count = Math.ceil(total / step);
+  return Array.from({ length: count }, (_, i) => {
+    const startWeek = i * step + 1;
+    const closingWeek = Math.min((i + 1) * step, total);
+    return {
+      cycle: i + 1,
+      startWeek,
+      closingWeek,
+      start: weekRange(startDate, startWeek).start,
+      end: weekRange(startDate, closingWeek).end,
+      opensOn: weekRange(startDate, closingWeek).start,
+    };
+  });
+}
+
+/**
+ * State of one cycle. `saved` wins over everything; a cycle whose successor has
+ * already opened and was never submitted is `missed` — which is never styled as
+ * a failure, and stays fillable for as long as the plan exists.
+ */
+export function cycleState(
+  cycle: CheckinCycle,
+  cycles: CheckinCycle[],
+  saved: boolean,
+  today: string = todayKey(),
+): CheckinState {
+  if (saved) return "saved";
+  if (daysBetween(cycle.opensOn, today) < 0) return "not_open";
+  const next = cycles.find((c) => c.cycle === cycle.cycle + 1);
+  if (next && daysBetween(next.opensOn, today) >= 0) return "missed";
+  return "open";
+}
+
+/** The cycle a date falls inside. */
+export function cycleFor(cycles: CheckinCycle[], dateKey: string): CheckinCycle | null {
+  return (
+    cycles.find(
+      (c) => daysBetween(c.start, dateKey) >= 0 && daysBetween(dateKey, c.end) >= 0,
+    ) ?? null
+  );
+}
+
+/** "You were consistent 24 of 28 days this cycle" — never a percentage to beat. */
+export function cycleConsistencyLine(
+  rows: ScheduleRow[],
+  entries: EntryRow[],
+  startDate: string,
+  cycle: CheckinCycle,
+  today: string = todayKey(),
+): string {
+  const days = dayCounts(rows, entries, startDate, cycle.start, cycle.end, today);
+  if (!days.daysDue) return "Nothing was due in this stretch.";
+  return `You were consistent ${days.daysLogged} of ${days.daysDue} day${
+    days.daysDue === 1 ? "" : "s"
+  } this cycle`;
+}
+
+/* -------------------------------------------------- streak, with a grace day */
+
+export const HABIT_MILESTONES = [7, 21, 30];
+
+export interface StreakStats {
+  /** Days in the current run, one grace day forgiven. */
+  current: number;
+  /** Longest run ever recorded on this plan. */
+  best: number;
+  /** The single forgiven day in the current run, when one was used. */
+  graceKey: string | null;
+  /** The next habit milestone, or null once 30 days is passed. */
+  nextMilestone: number | null;
+  /** Days still to go to that milestone. */
+  toMilestone: number;
+}
+
+/** Every calendar day with at least one completed entry, oldest first. */
+const completedDayKeys = (entries: EntryRow[]): string[] =>
+  Array.from(
+    new Set(entries.filter((e) => e.status === "completed").map((e) => e.entry_date)),
+  ).sort();
+
+/** Longest run of consecutive completed days ever. No grace — this is a record. */
+function bestRun(entries: EntryRow[]): number {
+  const keys = completedDayKeys(entries);
+  let best = 0;
+  let run = 0;
+  let prev: string | null = null;
+  for (const key of keys) {
+    run = prev && daysBetween(prev, key) === 1 ? run + 1 : 1;
+    prev = key;
+    if (run > best) best = run;
+  }
+  return best;
+}
+
+/**
+ * The current run, counting back from today, forgiving exactly ONE missed day.
+ * A single gap does not reset anything: life happens, and a hair treatment is
+ * not a game you can lose.
+ */
+export function streakStats(entries: EntryRow[], today: string = todayKey()): StreakStats {
+  const done = new Set(completedDayKeys(entries));
+  let cursor = done.has(today) ? today : addDays(today, -1);
+  let current = 0;
+  let graceKey: string | null = null;
+  for (let guard = 0; guard < 400; guard += 1) {
+    if (done.has(cursor)) {
+      current += 1;
+      cursor = addDays(cursor, -1);
+      continue;
+    }
+    // One forgiven day, and only when the run genuinely continues behind it.
+    if (!graceKey && current > 0 && done.has(addDays(cursor, -1))) {
+      graceKey = cursor;
+      cursor = addDays(cursor, -1);
+      continue;
+    }
+    break;
+  }
+  const next = HABIT_MILESTONES.find((m) => m > current) ?? null;
+  return {
+    current,
+    best: Math.max(bestRun(entries), current),
+    graceKey,
+    nextMilestone: next,
+    toMilestone: next ? next - current : 0,
+  };
+}

@@ -5177,6 +5177,7 @@ export type Database = {
       }
       treatment_plans: {
         Row: {
+          checkin_every_weeks: number
           created_at: string
           created_by_user_id: string
           duration_weeks: number
@@ -5199,6 +5200,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          checkin_every_weeks?: number
           created_at?: string
           created_by_user_id: string
           duration_weeks?: number
@@ -5221,6 +5223,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          checkin_every_weeks?: number
           created_at?: string
           created_by_user_id?: string
           duration_weeks?: number
