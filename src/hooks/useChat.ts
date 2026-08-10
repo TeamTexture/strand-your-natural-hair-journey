@@ -202,7 +202,10 @@ export function useChatThreadMeta(threads: ChatThread[] | undefined) {
       for (const m of previewRes.data ?? []) {
         const cur = get(m.thread_id);
         if (!cur.preview) {
-          cur.preview = m.body ?? "";
+          // A voice note is previewed as a voice note — never as its transcript.
+          cur.preview =
+            m.kind === "voice" ? "🎤 Voice note" : m.kind === "image" ? "📷 Photo" : m.body ?? "";
+
           cur.preview_mine = isMine(m);
           cur.preview_read = !!m.read_at;
           cur.preview_sender_id = m.sender_id ?? null;
