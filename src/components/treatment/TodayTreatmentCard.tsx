@@ -83,8 +83,6 @@ const TodayTreatmentCard = () => {
         My treatment plan
       </SectionHeader>
 
-      <TreatmentStreak streak={streak} days={days} />
-
       {!hasPlus && <TreatmentReadOnlyNotice next="/home" />}
 
       {steps.length === 0 ? (
@@ -141,9 +139,30 @@ const TodayTreatmentCard = () => {
 
           {hasPlus && (
             <>
-              <Button className="w-full rounded-pill" onClick={() => setLogging(true)}>
+              {/* One tap logs it. Any extra step here is what kills adherence. */}
+              <Button
+                className="w-full rounded-pill"
+                disabled={log.isPending}
+                onClick={() =>
+                  log.mutate(
+                    {
+                      planId: current.plan.id,
+                      scheduleId: current.row.id,
+                      slot: current.slot,
+                      status: "completed",
+                    },
+                    { onError: () => toast.error("Couldn't save that just now — try again") },
+                  )
+                }
+              >
                 Log this step
               </Button>
+              <button
+                onClick={() => setLogging(true)}
+                className="w-full font-body text-[12.5px] text-primary min-h-[36px]"
+              >
+                Log it with a note
+              </button>
               <button
                 onClick={() => onSkip(current.plan.id, current.row.id, current.slot)}
                 className="w-full font-body text-[13px] text-muted-foreground min-h-[40px]"
@@ -154,6 +173,8 @@ const TodayTreatmentCard = () => {
           )}
         </SurfaceCard>
       )}
+
+      <TreatmentStreak streak={streak} days={days} />
 
       {hasPlus && lastLogged?.entry && (
         <div className="flex items-center justify-between gap-2 px-1">
