@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
+import BrandCatalogueProductPicker from "@/components/treatment/BrandCatalogueProductPicker";
 import ReminderPicker, {
   defaultReminder,
   type ReminderSettings,
