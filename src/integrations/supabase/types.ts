@@ -6276,6 +6276,7 @@ export type Database = {
         Returns: Json
       }
       admin_pro_usage_detail: { Args: { _pro: string }; Returns: Json }
+      admin_professional_options: { Args: never; Returns: Json }
       admin_restrict_user: { Args: { _user_id: string }; Returns: undefined }
       admin_role_history: {
         Args: { _user_id: string }
@@ -6311,6 +6312,7 @@ export type Database = {
           total: number
         }[]
       }
+      admin_treatment_plans: { Args: never; Returns: Json }
       admin_unrestrict_user: { Args: { _user_id: string }; Returns: undefined }
       apply_brand_offer_revision_targeting: {
         Args: { _revision_id: string }
@@ -6473,9 +6475,14 @@ export type Database = {
           tool_kind: string
         }[]
       }
+      brand_tag_options: { Args: never; Returns: Json }
       brand_tag_target_owner: {
         Args: { _taggable_id: string; _taggable_type: string }
         Returns: string
+      }
+      brand_tags_for: {
+        Args: { _taggable_id: string; _taggable_type: string }
+        Returns: Json
       }
       brand_taken_placements: {
         Args: never
