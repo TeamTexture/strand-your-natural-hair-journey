@@ -730,6 +730,34 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     },
   ),
 
+  // A member has tagged a professional into their own plan. Read-only access,
+  // and never implies media is included.
+  "treatment-plan-share": t(
+    "treatment-plan-share",
+    "transactional",
+    true,
+    (d) => `${s(d.member_name, "A STRAND member")} would like you to follow their treatment plan`,
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `${s(d.member_name, "A STRAND member")} has shared their treatment plan with you on STRAND so you can follow their progress.`,
+      "Open the invitation to see what the plan involves and decide whether to accept. You'll see the plan, the steps they tick off and their weekly check-ins — photos, videos and voice notes stay private unless they switch sharing on.",
+    ],
+    (d) => ({
+      label: "Review the invitation",
+      path: `/treatment/share/${s(d.share_id)}`,
+    }),
+    undefined,
+    {
+      eyebrow: "Treatment plan",
+      rows: (d) => [
+        { label: "Plan", value: s(d.plan_title, "Treatment plan") },
+        { label: "Length", value: s(d.duration, "—") },
+        { label: "From", value: s(d.member_name, "A STRAND member") },
+      ],
+    },
+  ),
+
+
   // ---------------- Marketing (consent required, unsubscribe rendered) ----
 
 
