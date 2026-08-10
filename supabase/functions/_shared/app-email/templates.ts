@@ -22,7 +22,9 @@ export type PreferenceKey =
   | "forum_replies"
   | "enquiry_updates"
   | "appointment_reminders"
-  | "brand_offers";
+  | "brand_offers"
+  | "treatment_checkin_reminders"
+  | "treatment_weekly_digest";
 
 export interface EmailTemplate {
   key: string;
