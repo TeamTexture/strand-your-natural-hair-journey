@@ -22,7 +22,9 @@ export type PreferenceKey =
   | "forum_replies"
   | "enquiry_updates"
   | "appointment_reminders"
-  | "brand_offers";
+  | "brand_offers"
+  | "treatment_checkin_reminders"
+  | "treatment_weekly_digest";
 
 export interface EmailTemplate {
   key: string;
@@ -651,7 +653,85 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     "brand_offers",
   ),
 
+  // ---------------- Treatment plans ----------------------------------------
+
+  // Once at the end of a plan week, only if the member switched reminders on.
+  // Warm, no urgency, no percentages, never mentions a zero.
+  "treatment-checkin-nudge": t(
+    "treatment-checkin-nudge",
+    "transactional",
+    false,
+    (d) => `Your week ${s(d.week, "")} check-in`.replace("  ", " "),
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `You have reached the end of week ${s(d.week, "1")} of ${s(d.plan_title, "your plan")}.`,
+      Number(d.steps_logged ?? 0) > 0
+        ? `You logged ${d.steps_logged} step${Number(d.steps_logged) === 1 ? "" : "s"} this week.`
+        : "Whenever you are ready, you can tell us how the week felt.",
+      "The check-in takes a moment and helps you see how things are moving over time.",
+    ],
+    (d) => ({
+      label: "Check in",
+      path: `/treatment/${s(d.plan_id)}/checkin/${s(d.week, "1")}`,
+    }),
+    "treatment_checkin_reminders",
+    { eyebrow: "Treatment plan" },
+  ),
+
+  // Weekly digest for professionals and admins. Counts and names only —
+  // never ratings, notes, photos, voice notes or signed URLs.
+  "treatment-weekly-digest": t(
+    "treatment-weekly-digest",
+    "transactional",
+    false,
+    () => "Your weekly client summary",
+    (d) => {
+      const total = Number(d.clients_total ?? 0);
+      const checked = Array.isArray(d.checked_in) ? (d.checked_in as string[]) : [];
+      const quiet = Array.isArray(d.quiet) ? (d.quiet as string[]) : [];
+      return [
+        `Hi ${s(d.name, "there")},`,
+        `You have ${total} client${total === 1 ? "" : "s"} on an active plan.`,
+        checked.length
+          ? `Checked in this week: ${checked.join(", ")}.`
+          : "No check-ins came in this week.",
+        quiet.length ? `Quieter this week: ${quiet.join(", ")}.` : "",
+        "Open STRAND to read anything that has been shared with you.",
+      ].filter(Boolean);
+    },
+    (d) => ({ label: "Open your clients", path: s(d.path, "/pro/treatment") }),
+    "treatment_weekly_digest",
+    { eyebrow: "Treatment plans", footerNote: "Client check-in content stays inside STRAND." },
+  ),
+
+  // Assignment created. Never implies that accepting shares media.
+  "treatment-plan-invitation": t(
+    "treatment-plan-invitation",
+    "transactional",
+    true,
+    (d) => `${s(d.sender_name, "A professional")} has shared a treatment plan with you`,
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `${s(d.sender_name, "A professional")} has put together a treatment plan for you on STRAND.`,
+      "Open the invitation to read the plan in full and decide whether to accept it. Nothing starts until you do.",
+    ],
+    (d) => ({
+      label: "Review the plan",
+      path: `/treatment/invitation/${s(d.assignment_id)}`,
+    }),
+    undefined,
+    {
+      eyebrow: "Treatment plan",
+      rows: (d) => [
+        { label: "Plan", value: s(d.plan_title, "Treatment plan") },
+        { label: "Length", value: s(d.duration, "—") },
+        { label: "From", value: s(d.sender_name, "STRAND") },
+      ],
+    },
+  ),
+
   // ---------------- Marketing (consent required, unsubscribe rendered) ----
+
 
   "marketing-brand-offer": t(
     "marketing-brand-offer",

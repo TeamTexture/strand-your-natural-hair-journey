@@ -1980,6 +1980,7 @@ export type Database = {
           marketing_consent: boolean
           marketing_consent_at: string | null
           treatment_checkin_reminders: boolean
+          treatment_weekly_digest: boolean
           unsubscribe_token: string
           updated_at: string
           user_id: string
@@ -1995,6 +1996,7 @@ export type Database = {
           marketing_consent?: boolean
           marketing_consent_at?: string | null
           treatment_checkin_reminders?: boolean
+          treatment_weekly_digest?: boolean
           unsubscribe_token?: string
           updated_at?: string
           user_id: string
@@ -2010,6 +2012,7 @@ export type Database = {
           marketing_consent?: boolean
           marketing_consent_at?: string | null
           treatment_checkin_reminders?: boolean
+          treatment_weekly_digest?: boolean
           unsubscribe_token?: string
           updated_at?: string
           user_id?: string
@@ -6840,6 +6843,18 @@ export type Database = {
         }
         Returns: string
       }
+      treatment_checkin_nudge_due: {
+        Args: { _today: string }
+        Returns: {
+          plan_id: string
+          plan_title: string
+          steps_logged: number
+          user_id: string
+          week_end: string
+          week_number: number
+          week_start: string
+        }[]
+      }
       treatment_checkin_owner: {
         Args: { _checkin_id: string }
         Returns: string
@@ -6848,6 +6863,17 @@ export type Database = {
       treatment_client_thread: {
         Args: { _client_user_id: string }
         Returns: string
+      }
+      treatment_digest_for_recipient: {
+        Args: { _recipient: string; _week_end: string; _week_start: string }
+        Returns: Json
+      }
+      treatment_digest_recipients: {
+        Args: never
+        Returns: {
+          is_admin: boolean
+          user_id: string
+        }[]
       }
       treatment_invitation: { Args: { _assignment_id: string }; Returns: Json }
       withdraw_brand_offer_revision: {
