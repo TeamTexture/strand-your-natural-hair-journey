@@ -208,6 +208,8 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
           );
           const open = openWeek === week;
           const isNow = week === currentWeek;
+          const keyStep = steps[0] ?? null;
+          const keyProduct = productFor(steps.find((r) => r.product_id)?.product_id ?? null);
 
           return (
             <SurfaceCard key={week} className={cn("space-y-2", isNow && "border-primary/50")}>
@@ -216,17 +218,34 @@ const PlanTimeline = ({ planId, startDate, durationWeeks, schedule, disabled }: 
                 onClick={() => setOpenWeek(open ? null : week)}
                 className="w-full flex items-center justify-between gap-2 text-left"
               >
-                <div className="min-w-0">
+                {keyProduct && (
+                  <ProductThumb
+                    imageUrl={keyProduct.image_url}
+                    storagePath={keyProduct.storage_path}
+                    alt={keyProduct.product_name}
+                    brand={keyProduct.brand}
+                    name={keyProduct.product_name}
+                    wrapperClassName="size-10 rounded-[10px] overflow-hidden bg-secondary shrink-0"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
                   <p className="font-body text-[14px] font-semibold">
                     Week {week}
                     {isNow ? " · this week" : ""}
                   </p>
+                  {keyStep && (
+                    <p className="font-body text-[12px] text-foreground/80 truncate">
+                      {keyStep.task_name}
+                      {keyProduct ? ` · ${keyProduct.product_name}` : ""}
+                    </p>
+                  )}
                   <p className="font-body text-[12px] text-muted-foreground">
                     {format(fromDateKey(start), "d MMM")} – {format(fromDateKey(end), "d MMM")} ·{" "}
                     {steps.length} step{steps.length === 1 ? "" : "s"}
                     {visits.length ? ` · ${visits.length} appointment${visits.length === 1 ? "" : "s"}` : ""}
                   </p>
                 </div>
+
                 <span className="flex items-center gap-2 shrink-0">
                   {!disabled && (
                     <span className="inline-flex items-center gap-1 rounded-pill border border-border px-2.5 py-1 font-body text-[11px] text-foreground/80">
