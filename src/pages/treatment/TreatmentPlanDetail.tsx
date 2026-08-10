@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Camera, Check, Pause, Pencil, Play, TrendingUp } from "lucide-react";
+import { Camera, Check, ClipboardCheck, Pause, Pencil, Play, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -11,11 +11,14 @@ import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSetPlanStatus, useTreatmentPlan } from "@/hooks/useTreatmentPlans";
+import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import {
   cadenceSummary,
   computeAdherence,
   fromDateKey,
+  todayKey,
   weekBreakdown,
+  weekNumberFor,
 } from "@/lib/treatmentSchedule";
 
 /** Adherence ring — percentage inside, raw count beneath. Never red. */
@@ -54,6 +57,7 @@ const TreatmentPlanDetail = () => {
   const navigate = useNavigate();
   const { bundle, loading } = useTreatmentPlan(id);
   const setStatus = useSetPlanStatus();
+  const { checkins } = useTreatmentCheckins(id);
 
   if (loading) {
     return (
@@ -89,9 +93,18 @@ const TreatmentPlanDetail = () => {
   const weeks = weekBreakdown(schedule, entries, plan.start_date, plan.duration_weeks, milestoneWeeks);
   const paused = plan.status === "paused";
 
-  /** Scrolls to the week-by-week breakdown — the progress view for now. */
-  const seeProgress = () =>
-    document.getElementById("treatment-weeks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const seeProgress = () => navigate(`/treatment/${plan.id}/progress`);
+
+  const openCheckin = (week: number) => navigate(`/treatment/${plan.id}/checkin/${week}`);
+
+  const currentWeek = Math.max(
+    1,
+    Math.min(plan.duration_weeks, weekNumberFor(plan.start_date, todayKey())),
+  );
+  const doneWeeks = new Set(
+    checkins.filter((c) => c.submitted_at).map((c) => c.week_number),
+  );
+
 
   const notYet = () =>
     toast("Editing your schedule arrives with the check-in screens — pause or resume any time meanwhile.");
@@ -158,7 +171,11 @@ const TreatmentPlanDetail = () => {
 
         {/* actions */}
         <div className="grid grid-cols-2 gap-2">
-          <Button className="rounded-pill" onClick={seeProgress}>
+          <Button className="rounded-pill col-span-2" onClick={() => openCheckin(currentWeek)}>
+            <ClipboardCheck className="size-4 mr-1.5" />
+            {doneWeeks.has(currentWeek) ? `Week ${currentWeek} check-in` : `Week ${currentWeek} check-in`}
+          </Button>
+          <Button variant="outline" className="rounded-pill" onClick={seeProgress}>
             <TrendingUp className="size-4 mr-1.5" /> See progress
           </Button>
           <Button variant="outline" className="rounded-pill" onClick={togglePause}>
@@ -178,52 +195,60 @@ const TreatmentPlanDetail = () => {
         <div className="space-y-2" id="treatment-weeks">
           <SectionLabel className="px-0 mt-0 mb-1.5">Week by week</SectionLabel>
           <div className="space-y-1.5">
-            {weeks.map((w) => (
-              <SurfaceCard
-                key={w.week}
-                padded={false}
-                className={cn(
-                  "px-4 py-3 flex items-center gap-3",
-                  w.state === "current" && "border-primary/50 bg-primary/5",
-                  w.state === "future" && "opacity-55",
-                )}
-              >
-                <span
+            {weeks.map((w) => {
+              const checkedIn = doneWeeks.has(w.week);
+              const openable = w.state !== "future";
+              return (
+                <SurfaceCard
+                  key={w.week}
+                  padded={false}
                   className={cn(
-                    "size-6 rounded-full flex items-center justify-center shrink-0",
-                    w.state === "past" ? "bg-good/15 text-good" : "bg-muted text-muted-foreground",
+                    "px-4 py-3 flex items-center gap-3",
+                    w.state === "current" && "border-primary/50 bg-primary/5",
+                    w.state === "future" && "opacity-55",
                   )}
+                  onClick={openable ? () => openCheckin(w.week) : undefined}
+                  role={openable ? "button" : undefined}
+                  tabIndex={openable ? 0 : undefined}
                 >
-                  {w.state === "past" ? (
-                    <Check className="size-3.5" />
-                  ) : (
-                    <span className="font-body text-[11px]">{w.week}</span>
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-[14px] font-semibold">
-                    Week {w.week}
-                    {w.state === "current" && (
-                      <span className="ml-2 text-[10px] uppercase tracking-[0.16em] text-primary">
-                        This week
-                      </span>
+                  <span
+                    className={cn(
+                      "size-6 rounded-full flex items-center justify-center shrink-0",
+                      w.state === "past" ? "bg-good/15 text-good" : "bg-muted text-muted-foreground",
                     )}
-                  </p>
-                  <p className="font-body text-[12px] text-muted-foreground">
-                    {w.state === "future"
-                      ? `${w.expectedFull} to come`
-                      : `${w.completed} of ${w.expected}`}
-                  </p>
-                </div>
-                {w.isMilestone && (
-                  <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary">
-                    <Camera className="size-3" /> Photo
+                  >
+                    {w.state === "past" ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <span className="font-body text-[11px]">{w.week}</span>
+                    )}
                   </span>
-                )}
-              </SurfaceCard>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-body text-[14px] font-semibold">
+                      Week {w.week}
+                      {w.state === "current" && (
+                        <span className="ml-2 text-[10px] uppercase tracking-[0.16em] text-primary">
+                          This week
+                        </span>
+                      )}
+                    </p>
+                    <p className="font-body text-[12px] text-muted-foreground">
+                      {w.state === "future"
+                        ? `${w.expectedFull} to come`
+                        : `${w.completed} of ${w.expected}${checkedIn ? " · Check-in saved" : ""}`}
+                    </p>
+                  </div>
+                  {w.isMilestone && (
+                    <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary">
+                      <Camera className="size-3" /> Photo
+                    </span>
+                  )}
+                </SurfaceCard>
+              );
+            })}
           </div>
         </div>
+
 
         {/* schedule */}
         <div className="space-y-2">
