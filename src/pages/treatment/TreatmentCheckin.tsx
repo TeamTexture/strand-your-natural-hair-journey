@@ -326,14 +326,6 @@ const TreatmentCheckin = () => {
         />
 
 
-        <CheckinVoiceNotes
-          userId={user.id}
-          planId={plan.id}
-          checkinId={hasPlus ? checkin?.id ?? null : null}
-          notes={own.audio}
-          onUploaded={() => void refetch()}
-          onRemoved={() => void refetch()}
-        />
 
         <CheckinVideo
           userId={user.id}
