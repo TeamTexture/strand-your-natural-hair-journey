@@ -9,6 +9,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
+import ProductThumb from "@/components/ProductThumb";
 
 /**
  * Picks a product the member already keeps on their shelf, so a treatment plan
@@ -85,11 +86,14 @@ const ShelfProductPicker = ({ open, onOpenChange, usedIds = [], onPick }: Props)
                   (used ? "opacity-50" : "active:bg-muted")
                 }
               >
-                <div className="size-11 rounded-xl bg-muted overflow-hidden shrink-0">
-                  {p.image_url && (
-                    <img src={p.image_url} alt={p.name} className="size-full object-cover" loading="lazy" />
-                  )}
-                </div>
+                <ProductThumb
+                  imageUrl={p.image_url}
+                  storagePath={p.storage_path}
+                  alt={p.name}
+                  brand={p.brand}
+                  name={p.name}
+                  wrapperClassName="size-11 rounded-xl overflow-hidden bg-secondary shrink-0"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="font-body text-[13.5px] font-semibold text-foreground break-words">
                     {p.name}

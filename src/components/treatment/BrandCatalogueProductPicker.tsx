@@ -8,6 +8,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import ProductThumb from "@/components/ProductThumb";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -194,16 +195,13 @@ const BrandCatalogueProductPicker = ({ open, onOpenChange, onPick }: Props) => {
                   }}
                   className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2.5 text-left min-h-[44px]"
                 >
-                  <div className="size-10 rounded-xl bg-muted overflow-hidden shrink-0">
-                    {r.image_url && (
-                      <img
-                        src={r.image_url}
-                        alt={r.name}
-                        className="size-full object-cover"
-                        loading="lazy"
-                      />
-                    )}
-                  </div>
+                  <ProductThumb
+                    imageUrl={r.image_url}
+                    alt={r.name}
+                    brand={r.brand ?? chosen.brand_name}
+                    name={r.name}
+                    wrapperClassName="size-10 rounded-xl overflow-hidden bg-secondary shrink-0"
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block font-body text-[14px] font-semibold break-words">
                       {r.name}
