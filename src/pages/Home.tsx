@@ -605,7 +605,9 @@ const Home = () => {
             { key: "messages", label: "Messages", sub: "Member DMs", emoji: "✉️", count: plusCounts.messages, to: "/messages" },
           ];
           return (
+            <>
             <SurfaceCard padded={false} className="border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent">
+
               <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                 <span className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
                   ✦ STRAND+ Alerts{totalCount > 0 ? ` (${totalCount})` : ""}
