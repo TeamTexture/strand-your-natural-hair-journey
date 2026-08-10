@@ -348,6 +348,7 @@ const App = () => (
                <Route path="/treatment/:id/progress" element={<Paid><TreatmentProgress /></Paid>} />
                <Route path="/treatment/:id/checkin/:week" element={<Paid><TreatmentCheckin /></Paid>} />
                <Route path="/treatment/:id/checkin" element={<Paid><TreatmentCheckin /></Paid>} />
+               <Route path="/treatment/invitation/:assignmentId" element={<Protected><TreatmentInvitation /></Protected>} />
                <Route path="/journal" element={<Paid><Journal /></Paid>} />
 
               <Route path="/journal/entry/:id" element={<Paid><StyleRecord /></Paid>} />
