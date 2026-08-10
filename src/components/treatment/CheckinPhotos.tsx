@@ -36,15 +36,24 @@ const CheckinPhotos = ({
   label = "Add a photo",
 }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const { urls } = useSignedMedia(photos.map((p) => p.storage_path));
+  const [busy, setBusy] = useState<string | null>(null);
+  // Rows we've just uploaded, so the tile appears immediately rather than
+  // waiting on the refetch — otherwise a good upload looks like a failure.
+  const [justAdded, setJustAdded] = useState<TreatmentMediaRow[]>([]);
+  const shown = [...photos, ...justAdded.filter((j) => !photos.some((p) => p.id === j.id))];
+  const { urls } = useSignedMedia(shown.map((p) => p.storage_path));
 
   const pick = async (files: FileList | null) => {
-    if (!files?.length || !checkinId) return;
-    setBusy(true);
-    for (const file of Array.from(files)) {
+    if (!files?.length) return;
+    if (!checkinId) {
+      toast.error("This check-in is still opening. Try again in a moment.");
+      return;
+    }
+    const list = Array.from(files);
+    for (let i = 0; i < list.length; i++) {
+      setBusy(list.length > 1 ? `Adding ${i + 1} of ${list.length}…` : "Adding…");
       try {
-        const prepared = await prepareCheckinPhoto(file);
+        const prepared = await prepareCheckinPhoto(list[i]);
         if (prepared.size > MEDIA_RULES.photo.maxBytes) {
           toast.error("That photo is still too large after resizing. Try another one.");
           continue;
@@ -58,14 +67,17 @@ const CheckinPhotos = ({
           file: prepared,
           mimeType: prepared.type || "image/jpeg",
         });
+        setJustAdded((prev) => [...prev, row]);
         onUploaded(row);
       } catch (e) {
         toast.error(
-          e instanceof TreatmentMediaError ? e.message : "We couldn't add that photo just now.",
+          e instanceof TreatmentMediaError || e instanceof Error
+            ? e.message
+            : "We couldn't add that photo just now.",
         );
       }
     }
-    setBusy(false);
+    setBusy(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
