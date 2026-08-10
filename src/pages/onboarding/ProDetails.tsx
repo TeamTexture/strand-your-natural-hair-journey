@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
