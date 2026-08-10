@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ import StepProductMarkers from "@/components/treatment/StepProductMarkers";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentPlusUpsell from "@/components/treatment/TreatmentPlusUpsell";
 import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
+import StepLogSheet from "@/components/treatment/StepLogSheet";
 import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
 
 /**
@@ -25,6 +27,7 @@ const TodayTreatmentCard = () => {
   const { steps, streakLine, streak, days, loading, hasActivePlan } = useDueToday();
   const { hasPlus, isLoading: plusLoading } = usePlusAccess();
   const { log, undo } = useLogTreatmentStep();
+  const [logging, setLogging] = useState(false);
 
   if (loading || plusLoading) return null;
 
