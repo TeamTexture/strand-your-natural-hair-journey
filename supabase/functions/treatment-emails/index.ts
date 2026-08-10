@@ -40,6 +40,14 @@ Deno.serve(async (req) => {
     return json({ error: "Unauthorized" }, 401);
   }
 
+  // `force` runs both send types outside their normal window. Idempotency keys
+  // mean it can never duplicate a send — used for verification only.
+  let force = false;
+  try {
+    const body = await req.json();
+    force = body?.force === true;
+  } catch { /* no body */ }
+
   const admin = serviceClient();
   const now = new Date();
   const hour = now.getUTCHours();
@@ -55,14 +63,14 @@ Deno.serve(async (req) => {
 
   try {
     out.nudges =
-      hour >= NUDGE_FROM_HOUR ? await sendNudges(admin, today) : { skipped: "outside_window" };
+      force || hour >= NUDGE_FROM_HOUR ? await sendNudges(admin, today) : { skipped: "outside_window" };
   } catch (e) {
     out.nudges_error = String(e);
   }
 
   try {
     out.digests =
-      now.getUTCDay() === DIGEST_DOW && hour >= DIGEST_FROM_HOUR
+      force || (now.getUTCDay() === DIGEST_DOW && hour >= DIGEST_FROM_HOUR)
         ? await sendDigests(admin, now)
         : { skipped: "outside_window" };
   } catch (e) {
