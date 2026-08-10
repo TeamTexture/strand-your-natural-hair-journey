@@ -27,7 +27,10 @@ import {
 } from "@/lib/treatmentCheckin";
 import {
   computeAdherence,
+  dayCounts,
+  isDailyPlan,
   daysBetween,
+
   fromDateKey,
   todayKey,
   weekNumberFor,
