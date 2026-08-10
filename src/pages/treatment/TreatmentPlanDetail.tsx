@@ -15,6 +15,8 @@ import { useInvitationActions, usePlanAssignment } from "@/hooks/useTreatmentAss
 import MediaConsentToggle from "@/components/treatment/MediaConsentToggle";
 import PlanSharesSection from "@/components/treatment/PlanSharesSection";
 import CatchUpDays from "@/components/treatment/CatchUpDays";
+import PlanAppointmentsSection from "@/components/treatment/PlanAppointmentsSection";
+
 
 
 import WhatTheyCanSee from "@/components/treatment/WhatTheyCanSee";
