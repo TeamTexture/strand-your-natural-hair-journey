@@ -30,7 +30,7 @@ export interface PlanProduct {
   brand: string | null;
   usage_notes: string | null;
   image_url: string | null;
-  storage_path: string | null;
+  storage_path?: string | null;
   user_product_id: string | null;
 }
 
