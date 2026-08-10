@@ -4969,10 +4969,12 @@ export type Database = {
           cadence: Database["public"]["Enums"]["treatment_cadence"]
           created_at: string
           days_of_week: number[] | null
+          end_week: number | null
           id: string
           instructions: string | null
           plan_id: string
           product_id: string | null
+          start_week: number | null
           step_order: number
           task_name: string
           time_of_day: Database["public"]["Enums"]["treatment_time_of_day"]
@@ -4982,10 +4984,12 @@ export type Database = {
           cadence?: Database["public"]["Enums"]["treatment_cadence"]
           created_at?: string
           days_of_week?: number[] | null
+          end_week?: number | null
           id?: string
           instructions?: string | null
           plan_id: string
           product_id?: string | null
+          start_week?: number | null
           step_order?: number
           task_name: string
           time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
@@ -4995,10 +4999,12 @@ export type Database = {
           cadence?: Database["public"]["Enums"]["treatment_cadence"]
           created_at?: string
           days_of_week?: number[] | null
+          end_week?: number | null
           id?: string
           instructions?: string | null
           plan_id?: string
           product_id?: string | null
+          start_week?: number | null
           step_order?: number
           task_name?: string
           time_of_day?: Database["public"]["Enums"]["treatment_time_of_day"]
