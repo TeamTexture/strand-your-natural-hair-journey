@@ -898,35 +898,39 @@ export default function BloodUpload() {
                   {unknown.map((r) => (
                     <div
                       key={r.marker}
-                      className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-muted/30"
+                      className="p-3 rounded-xl border border-border bg-muted/30 space-y-2"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-body font-medium break-words">{r.marker}</p>
-                        <p className="text-[11px] text-foreground/60 font-body break-words">
-                          As read: {r.raw_marker} · {r.raw_value}
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-body font-medium text-foreground [overflow-wrap:anywhere] min-w-0">
+                          {r.marker}
                         </p>
+                        <button
+                          onClick={() => removeRow(r.marker)}
+                          className="size-7 rounded-full hover:bg-muted flex items-center justify-center shrink-0"
+                          aria-label="Remove marker"
+                        >
+                          <X className="size-4" />
+                        </button>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-2">
                         <Input
                           type="number"
                           step="0.01"
                           value={Number.isFinite(r.value) ? r.value : ""}
                           onChange={(e) => updateValue(r.marker, e.target.value)}
-                          className="h-8 w-20 text-right text-sm"
+                          className="h-9 w-24 text-right text-sm shrink-0"
                         />
-                        <span className="text-[11px] text-foreground/60 font-body w-14">
+                        <span className="text-[11px] text-foreground/60 font-body [overflow-wrap:anywhere] min-w-0">
                           {r.unit || "—"}
                         </span>
                       </div>
-                      <button
-                        onClick={() => removeRow(r.marker)}
-                        className="size-7 rounded-full hover:bg-muted flex items-center justify-center shrink-0"
-                        aria-label="Remove marker"
-                      >
-                        <X className="size-4" />
-                      </button>
+
+                      <p className="text-[11px] text-foreground/55 font-body [overflow-wrap:anywhere] pt-0.5 border-t border-border/60">
+                        As read: {r.raw_marker} · {r.raw_value}
+                      </p>
                     </div>
+
                   ))}
                 </div>
               </SurfaceCard>
