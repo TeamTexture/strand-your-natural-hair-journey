@@ -213,10 +213,15 @@ const Appointments = () => {
 
   // Upcoming: soonest first (ascending). Past: most recent first (descending).
   // Both lists go through the SHARED accessor — no local idea of "upcoming".
+  // Cancelled appointments stay in the diary in their own clearly-marked group.
   const upcoming = upcomingAppointments(filteredAppts);
-  const past = filteredAppts
-    .filter(isPastAppointment)
+  const cancelled = filteredAppts
+    .filter(isCancelledAppointment)
     .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
+  const past = filteredAppts
+    .filter((a) => isPastAppointment(a) && !isCancelledAppointment(a))
+    .sort((a, b) => b.appointment_date.localeCompare(a.appointment_date));
+
 
   // After the upcoming list renders, mark those IDs as seen so the badge
   // doesn't linger between visits.
