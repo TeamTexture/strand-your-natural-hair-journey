@@ -65,6 +65,7 @@ const TreatmentPlanDetail = () => {
   const navigate = useNavigate();
   const { bundle, loading } = useTreatmentPlan(id);
   const setStatus = useSetPlanStatus();
+  const updateReminder = useUpdatePlanReminder();
   const { checkins } = useTreatmentCheckins(id);
   const { assignment } = usePlanAssignment(id);
   const { setMediaConsent } = useInvitationActions();
