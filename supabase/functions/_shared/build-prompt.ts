@@ -261,6 +261,25 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     ),
   });
 
+  // ── UNCONFIRMED PROFILE — hedge, do not assert ────────────────────
+  // `profileConfirmed: false` means an earlier onboarding pre-filled some of
+  // her answers, so we cannot treat them as her own words yet.
+  if (
+    input.user_context &&
+    (input.user_context as Record<string, unknown>).profileConfirmed === false
+  ) {
+    systemBlocks.push({
+      type: "text",
+      text: [
+        "UNCONFIRMED PROFILE — this member has not yet confirmed her profile answers in her own words; some were filled in automatically by an earlier version of the app.",
+        "Do NOT state any hair characteristic, scalp condition, diagnosis, diet or style as established fact about her.",
+        "Refer to what is on record instead: \"your profile records low porosity\", \"your profile lists a plant-based diet\".",
+        "Where the guidance depends on such a characteristic, say plainly that it is based on what is on record and can be updated.",
+        "Change nothing else: same voice, same manuscript grounding, same level of detail.",
+      ].join("\n"),
+    });
+  }
+
   // ── STYLE PLAYBOOK — manuscript-derived, per-style ──────────────
   // When the user has a current style on file, inject the exact HTLA
   // protocol for that style (wear window, tension, scalp, moisture,

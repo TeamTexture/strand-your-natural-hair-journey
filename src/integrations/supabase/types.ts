@@ -4146,6 +4146,7 @@ export type Database = {
           personalised_offers_consent: boolean
           phone_number: string | null
           postcode: string | null
+          profile_confirmed_at: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           tips_level: number
@@ -4170,6 +4171,7 @@ export type Database = {
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
+          profile_confirmed_at?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           tips_level?: number
@@ -4194,6 +4196,7 @@ export type Database = {
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
+          profile_confirmed_at?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           tips_level?: number

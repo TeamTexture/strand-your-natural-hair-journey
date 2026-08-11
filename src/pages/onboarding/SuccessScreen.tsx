@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearOnboardingDrafts } from "@/hooks/useOnboardingDraft";
+import { stampProfileConfirmedOnOnboarding } from "@/lib/profileConfirmation";
 
 const SuccessScreen = () => {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ const SuccessScreen = () => {
       .from("profiles")
       .update({ onboarding_completed_at: new Date().toISOString() })
       .eq("user_id", user.id);
+    // Every question was answered explicitly in this flow, so the member is
+    // confirmed by definition — no reconfirmation prompt for new members.
+    void stampProfileConfirmedOnOnboarding(user.id);
   }, [user]);
 
   // Onboarding is finished — the step drafts are no longer needed.
