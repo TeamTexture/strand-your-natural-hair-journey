@@ -8,6 +8,7 @@
 // happens when the panel ids change (or the user forces a refresh).
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { requireAuthedUser } from "../_shared/auth.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 
@@ -102,6 +103,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // Signed-in members only: this endpoint bills the AI budget and reads clinical context.
+  const auth = await requireAuthedUser(req);
+  if (auth instanceof Response) return auth;
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");

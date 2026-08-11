@@ -9,6 +9,7 @@
 // the tagging action that triggered it.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { dispatchEmail, serviceClient } from "../_shared/app-email/core.ts";
+import { requireServiceOrAuthedUser } from "../_shared/auth.ts";
 
 const SURFACE_LABEL: Record<string, string> = {
   treatment_plan: "a member's treatment plan",
@@ -20,6 +21,12 @@ const SURFACE_LABEL: Record<string, string> = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Only the member who tagged the brand (or a trusted server call) may fire this.
+  const auth = await requireServiceOrAuthedUser(req);
+  if (auth instanceof Response) return auth;
+
+
 
   try {
     const { tag_id } = await req.json().catch(() => ({}));
