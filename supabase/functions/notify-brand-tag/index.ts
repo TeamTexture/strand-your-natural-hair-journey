@@ -22,6 +22,12 @@ const SURFACE_LABEL: Record<string, string> = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Only the member who tagged the brand (or a trusted server call) may fire this.
+  const auth = await requireServiceOrAuthedUser(req);
+  if (auth instanceof Response) return auth;
+
+
+
   try {
     const { tag_id } = await req.json().catch(() => ({}));
     if (!tag_id) return json({ ok: false, reason: "missing tag_id" });
