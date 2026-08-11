@@ -53,7 +53,7 @@ const Field = ({ id, label, answered, invalid, hint, registerRef, children }: Fi
         <span
           className={cn(
             "text-[10px] uppercase tracking-[0.14em] font-body",
-            invalid ? "text-alert-dark" : "text-muted-foreground/70",
+            invalid ? "text-destructive" : "text-muted-foreground/70",
           )}
         >
           Required
