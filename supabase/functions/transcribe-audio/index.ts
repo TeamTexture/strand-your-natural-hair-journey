@@ -1,5 +1,8 @@
 // Transcribes a short audio clip via the Lovable AI Gateway speech-to-text API.
 // POST { audioBase64: string, mimeType: string } -> { text: string }
+import { requireAuthedUser } from "../_shared/auth.ts";
+
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -38,6 +41,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Paid speech-to-text — signed-in members only.
+  const auth = await requireAuthedUser(req);
+  if (auth instanceof Response) return auth;
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

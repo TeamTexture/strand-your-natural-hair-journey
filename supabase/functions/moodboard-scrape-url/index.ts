@@ -1,6 +1,8 @@
 // Scrape a webpage (or Google Images results page, or a direct image URL) and
 // return a list of image URLs the user can add to their mood board.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAuthedUser } from "../_shared/auth.ts";
+import { assertPublicHttpUrl } from "../_shared/ssrf.ts";
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 const MAX_IMAGES = 40;
@@ -208,6 +210,10 @@ async function scrapePinterestPin(target: URL): Promise<{ source: string; images
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Server-side fetching of a caller-supplied URL — signed-in members only.
+  const auth = await requireAuthedUser(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const { url } = (await req.json().catch(() => ({}))) as { url?: string };
     if (!url || typeof url !== "string") {
@@ -217,22 +223,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Normalise + basic validation
-    let target: URL;
-    try {
-      target = new URL(url.trim());
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid URL" }), {
+    // Normalise + SSRF validation: http(s) only, no credentials, no
+    // loopback/private/link-local/metadata destinations.
+    const checked = await assertPublicHttpUrl(url);
+    if ("error" in checked) {
+      return new Response(JSON.stringify({ error: checked.error }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!/^https?:$/.test(target.protocol)) {
-      return new Response(JSON.stringify({ error: "URL must be http(s)" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const target = checked.url;
 
     // Direct image URL? Skip scraping — just echo it back.
     if (isLikelyImage(target.toString()) || await detectRemoteImage(target.toString())) {

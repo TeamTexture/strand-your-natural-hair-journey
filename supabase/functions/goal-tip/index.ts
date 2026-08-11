@@ -5,6 +5,7 @@
 // other goals). Returns { tip: { headline, body, actions[] } } where
 // actions are 2-3 concrete next-step strings the user can act on.
 
+import { requireAuthedUser } from "../_shared/auth.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
@@ -485,6 +486,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Paid AI generation — signed-in members only.
+  const auth = await requireAuthedUser(req);
+  if (auth instanceof Response) return auth;
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
