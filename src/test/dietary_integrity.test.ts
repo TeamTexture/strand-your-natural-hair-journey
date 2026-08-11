@@ -16,7 +16,7 @@ import {
  */
 
 const BANNED: Record<string, RegExp[]> = {
-  vegan: [/\bmeat\b/i, /\bfish\b/i, /shellfish/i, /\beggs?\b/i, /dairy/i, /cheese/i, /milk/i, /salmon/i, /sardines/i, /mackerel/i, /tuna/i, /honey/i, /gelatine/i],
+  vegan: [/\bmeat\b/i, /\bfish\b/i, /shellfish/i, /\beggs?\b/i, /dairy/i, /cheese/i, /\bcow'?s milk\b/i, /salmon/i, /sardines/i, /mackerel/i, /tuna/i, /honey/i, /gelatine/i],
   vegetarian: [/\bmeat\b/i, /\bfish\b/i, /shellfish/i, /salmon/i, /sardines/i, /mackerel/i, /tuna/i, /gelatine/i],
   pescatarian: [/\bmeat\b/i, /poultry/i, /\bchicken\b/i, /\bbeef\b/i, /\bliver\b/i],
   other: [/\bmeat\b/i, /\bfish\b/i, /shellfish/i, /\beggs?\b/i, /dairy/i, /cheese/i],
