@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toggleWithNone } from "@/lib/healthOptions";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -21,6 +22,8 @@ interface TGProps {
   value: string[];
   onChange: (next: string[]) => void;
   multi?: boolean;
+  /** When set, this option is affirmative and mutually exclusive with the rest. */
+  noneLabel?: string;
 }
 const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
   const toggle = (opt: string) => {
