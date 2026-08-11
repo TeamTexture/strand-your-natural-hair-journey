@@ -66,7 +66,8 @@ const ProfileStep1 = () => {
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [postcode, setPostcode] = useState("");
-  const [country, setCountry] = useState("United Kingdom");
+  // No default: country feeds the hard-water logic, so it must be an explicit answer.
+  const [country, setCountry] = useState("");
   const [heritage, setHeritage] = useState("");
 
   // Profile photo state
