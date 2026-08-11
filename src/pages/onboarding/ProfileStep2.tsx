@@ -162,7 +162,6 @@ const ProfileStep2 = () => {
       if (d.contraception) setContraception(d.contraception);
       if (d.conditions) setConditions(d.conditions);
       if (typeof d.diet === "string") setDiet(d.diet);
-      if (Array.isArray(d.diet) && d.diet[0]) setDiet(d.diet[0] as string);
       if (d.dietOther) setDietOther(d.dietOther);
       if (typeof d.dietBalance === "string") setDietBalance(d.dietBalance);
       if (typeof d.smoke === "string") setSmoke(d.smoke);
