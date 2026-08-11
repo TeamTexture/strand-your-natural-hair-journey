@@ -444,6 +444,66 @@ export function streakDays(
   return out;
 }
 
+export interface RunDay extends StreakDay {
+  /** 1-indexed position in the run, so the strip can be read like a counter. */
+  index: number;
+  /** A day that hasn't happened yet — drawn as an empty slot on the right. */
+  future: boolean;
+  /** The one forgiven day inside the run. */
+  grace: boolean;
+  /** A habit milestone lands on this slot. */
+  milestone: number | null;
+}
+
+/**
+ * THE RUN, READ LEFT TO RIGHT.
+ *
+ * `streakDays` is a calendar window, so a young run bunches up on the right —
+ * which reads backwards. This anchors on the day the current run STARTED and
+ * walks forward, so day one of the run is always the leftmost bead and the days
+ * still to come sit empty on the right, exactly the way a counter reads.
+ */
+export function runChain(
+  entries: EntryRow[],
+  today: string = todayKey(),
+  span?: number,
+): RunDay[] {
+  const initials = ["S", "M", "T", "W", "T", "F", "S"];
+  const stats = streakStats(entries, today);
+  // Where the visible run begins: the first day of the current run, or today.
+  const back = Math.max(0, stats.current + (stats.graceKey ? 1 : 0) - 1);
+  const startsToday = stats.current === 0;
+  const anchor = startsToday
+    ? today
+    : addDays(dayHasCompleted(entries, today) ? today : addDays(today, -1), -back);
+
+  const target = stats.nextMilestone ?? Math.max(stats.current, 7);
+  const length = Math.max(span ?? target, 7);
+
+  const out: RunDay[] = [];
+  for (let i = 0; i < length; i += 1) {
+    const key = addDays(anchor, i);
+    const future = key > today;
+    out.push({
+      key,
+      index: i + 1,
+      initial: initials[fromDateKey(key).getDay()],
+      state: future
+        ? "none"
+        : dayHasCompleted(entries, key)
+          ? "complete"
+          : dayHasAny(entries, key)
+            ? "partial"
+            : "none",
+      isToday: key === today,
+      future,
+      grace: key === stats.graceKey,
+      milestone: HABIT_MILESTONES.includes(i + 1) ? i + 1 : null,
+    });
+  }
+  return out;
+}
+
 /* -------------------------------------------------------- check-in cycles */
 
 /**
