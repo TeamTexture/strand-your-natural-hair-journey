@@ -642,14 +642,20 @@ const ProfileStep1 = () => {
         {/* Country */}
         <label className="block">
           <FieldLabel>Country of Residence</FieldLabel>
-          <FieldFrame filled={true} invalid={submitted && !isUK}>
+          <FieldFrame filled={country !== ""} invalid={submitted && !!errors.country}>
             <select
               name="country"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
               autoComplete="country-name"
-              className="w-full appearance-none bg-transparent px-3.5 py-3 text-sm text-foreground focus:outline-none rounded-[10px] pr-10 min-h-[44px]"
+              className={cn(
+                "w-full appearance-none bg-transparent px-3.5 py-3 text-sm focus:outline-none rounded-[10px] pr-10 min-h-[44px]",
+                country === "" ? "text-muted-foreground/60" : "text-foreground",
+              )}
             >
+              <option value="" disabled>
+                Select your country…
+              </option>
               {COUNTRIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -660,7 +666,7 @@ const ProfileStep1 = () => {
         </label>
 
         {/* UK-only block */}
-        {!isUK && (
+        {country !== "" && !isUK && (
           <SurfaceCard tone="orange" className="space-y-3">
             <p className="text-sm leading-snug">
               <span className="font-semibold">STRAND is currently only available in the UK. </span>
