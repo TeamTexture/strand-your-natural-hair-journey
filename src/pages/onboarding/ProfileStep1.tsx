@@ -279,13 +279,37 @@ const ProfileStep1 = () => {
     age: age === "" ? "Select your age" : "",
     postcode:
       postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
-    country: !isUK ? "STRAND is only available in the UK right now" : "",
+    country:
+      country === ""
+        ? "Select your country of residence"
+        : !isUK
+          ? "STRAND is only available in the UK right now"
+          : "",
   };
   const canContinue = Object.values(errors).every((e) => e === "");
 
+  const FIELD_LABELS: Record<keyof typeof errors, string> = {
+    photo: "your profile photo",
+    name: "your full name",
+    phone: "your mobile number",
+    age: "your age",
+    postcode: "your postcode",
+    country: "your country of residence",
+  };
+
   const handleContinue = async () => {
     setSubmitted(true);
-    if (!canContinue) return;
+    if (!canContinue) {
+      const missing = (Object.keys(errors) as Array<keyof typeof errors>).filter(
+        (k) => errors[k] !== "",
+      );
+      if (missing.length) {
+        toast.error(
+          `Please add ${FIELD_LABELS[missing[0]]} — ${missing.length} question${missing.length === 1 ? "" : "s"} still to go.`,
+        );
+      }
+      return;
+    }
     const trimmedPostcode = postcode.trim().toUpperCase();
     const heritageArr = heritage ? [heritage] : [];
     const ageNumForPayload = age === "" ? null : parseInt(String(age), 10);
