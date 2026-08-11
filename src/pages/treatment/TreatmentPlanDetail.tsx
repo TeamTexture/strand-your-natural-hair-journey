@@ -23,6 +23,8 @@ import PlanSettings from "@/components/treatment/PlanSettings";
 import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNotice";
 import { type ReminderSettings } from "@/components/treatment/ReminderPicker";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
+import PlanProgressPhotos from "@/components/treatment/PlanProgressPhotos";
+import { useAuth } from "@/hooks/useAuth";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import {
   checkinCycles,
@@ -48,7 +50,8 @@ const TreatmentPlanDetail = () => {
   const setStatus = useSetPlanStatus();
   const updateReminder = useUpdatePlanReminder();
   const updateCadence = useUpdateCheckinCadence();
-  const { checkins, media } = useTreatmentCheckins(id);
+  const { checkins, media, refetch: refetchMedia } = useTreatmentCheckins(id);
+  const { user } = useAuth();
   // Lapsed STRAND+ keeps every read: entries, check-ins and media all stay.
   const { hasPlus } = usePlusAccess();
   const [settingsRow, setSettingsRow] = useState<string | null>(null);
@@ -185,6 +188,17 @@ const TreatmentPlanDetail = () => {
           isMilestone={milestoneWeeks.includes(currentWeek)}
           disabled={readOnly}
         />
+
+        {/* progress photos — addable any day, not only at a check-in */}
+        {user && (
+          <PlanProgressPhotos
+            userId={user.id}
+            planId={plan.id}
+            media={media}
+            onChanged={() => void refetchMedia()}
+            disabled={readOnly}
+          />
+        )}
 
         {/* check-ins */}
         <PlanCheckinsSection
