@@ -42,7 +42,7 @@ const Field = ({ id, label, answered, invalid, hint, registerRef, children }: Fi
     ref={(el) => registerRef(id, el)}
     className={cn(
       "rounded-[14px] transition-all scroll-mt-24",
-      invalid && "ring-2 ring-alert-dark/70 bg-alert-dark/5 -mx-2 px-2 py-2",
+      invalid && "ring-2 ring-destructive/70 bg-destructive/5 -mx-2 px-2 py-2",
     )}
   >
     <div className="flex items-baseline justify-between gap-2 mb-2">
