@@ -13,6 +13,8 @@ import {
   loadClinicalContext,
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
+import { DIET_OPTIONS, canonDiet, displayDiet } from "@/lib/dietaryPattern";
+
 
 const LIFE_STAGE = ["Pregnant", "Postpartum", "Perimenopause", "Menopause", "None currently"];
 const CONTRACEPTION = ["Hormonal pill", "IUD hormonal", "Implant", "HRT", "Fertility treatment", "None non-hormonal"];
@@ -20,7 +22,7 @@ const CONDITIONS = [
   "Thyroid condition", "PCOS", "Anaemia", "Diabetes", "Lupus", "Coeliac", "Psoriasis",
   "Eczema", "Chronic stress / anxiety", "Eating disorder", "Alopecia", "Cancer / chemo", "None",
 ];
-const DIET = ["Omnivore", "Vegetarian", "Vegan", "Pescatarian", "Other"];
+const DIET = [...DIET_OPTIONS];
 const DIET_BALANCE = ["Very varied", "Fairly balanced", "Limited / restricted"];
 const SMOKE = ["No", "Occasionally", "Regularly", "Ex-smoker"];
 const ALCOHOL = ["None", "Light social", "Moderate", "Heavy"];
@@ -28,13 +30,6 @@ const WATER = ["Under 1 litre", "1-2 litres", "2+ litres"];
 const EXERCISE = ["Rarely", "1-3x per week", "4-5x per week", "Daily"];
 const SLEEP = ["Poor", "Average", "Good"];
 
-const canonDiet = (v: string): string => {
-  const l = v.toLowerCase();
-  if (l === "vegan") return "vegan";
-  if (l === "vegetarian") return "vegetarian";
-  if (l) return "omnivore";
-  return "unknown";
-};
 const canonAlcohol = (v: string): string => {
   const l = v.toLowerCase();
   if (l === "none") return "none";
@@ -44,14 +39,6 @@ const canonAlcohol = (v: string): string => {
   return "unknown";
 };
 
-const displayDiet = (canon: string | null | undefined): string => {
-  switch (canon) {
-    case "vegan": return "Vegan";
-    case "vegetarian": return "Vegetarian";
-    case "omnivore": return "Omnivore";
-    default: return "";
-  }
-};
 const displayAlcohol = (canon: string | null | undefined): string => {
   switch (canon) {
     case "none": return "None";
@@ -61,6 +48,7 @@ const displayAlcohol = (canon: string | null | undefined): string => {
     default: return "";
   }
 };
+
 
 export default function HealthFieldsSection() {
   const { user } = useAuth();
@@ -188,6 +176,16 @@ export default function HealthFieldsSection() {
         kind={{ type: "chip-single", options: DIET }}
         onSave={(v) => upsertHealth({ diet: canonDiet(String(v)) })}
       />
+      {canonDiet(h?.diet) === "other" && (
+        <ReviewField
+          label="What you avoid"
+          value={h?.dietOther ?? ""}
+          hint="Optional. Tell us what you don't eat and your guidance will match it. Until you do, we keep every food suggestion plant-based."
+          kind={{ type: "text", placeholder: "e.g. no dairy, no pork", maxLength: 200 }}
+          onSave={(v) => upsertHealth({ diet_other: String(v).trim() || null })}
+        />
+      )}
+
       <ReviewField
         label="Diet balance"
         value={(h?.dietBalance ?? [])[0] ?? ""}

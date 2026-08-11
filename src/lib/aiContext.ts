@@ -426,6 +426,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
         contraception: clinical.health.contraception,
         conditions: clinical.health.conditions,
         diet: clinical.health.diet,
+        dietOther: clinical.health.dietOther,
         dietBalance: clinical.health.dietBalance,
         smoke: clinical.health.smoke,
         alcohol: clinical.health.alcohol,

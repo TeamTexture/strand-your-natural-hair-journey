@@ -12,7 +12,13 @@
 //
 // Surfaces on the Blood Panel Review page as expandable dropdowns.
 
-export type DietType = "vegan" | "vegetarian" | "omnivore" | "unknown";
+import {
+  canonDiet,
+  type DietaryPattern,
+} from "@/lib/dietaryPattern";
+
+/** Kept as an alias so existing imports stay valid. */
+export type DietType = DietaryPattern;
 
 export interface MarkerExplanation {
   what: string; // one-sentence "what this measures"
@@ -21,7 +27,9 @@ export interface MarkerExplanation {
   plantFoods?: string[];
   /** Dairy and eggs — shown to vegetarians and omnivores. */
   vegetarianFoods?: string[];
-  /** Meat, fish and shellfish — shown to omnivores only. */
+  /** Fish and shellfish — shown to pescatarians and omnivores. */
+  fishFoods?: string[];
+  /** Meat and poultry — shown to omnivores only. */
   animalFoods?: string[];
   /** What a low reading can mean, including for hair. Non-diagnostic. */
   ifLow?: string;
@@ -40,16 +48,25 @@ export const NUTRITION_BOOK_REF =
 /** Food list for a member, filtered by their diet type. */
 export function foodsForDiet(
   info: MarkerExplanation | undefined,
-  diet: DietType,
+  diet: DietType | string,
 ): string[] {
   if (!info) return [];
+  const d = canonDiet(diet);
   const out = [...(info.plantFoods ?? [])];
-  if (diet === "vegetarian" || diet === "omnivore" || diet === "unknown") {
+  // Dairy and eggs: vegetarian, pescatarian and omnivore.
+  if (d === "vegetarian" || d === "pescatarian" || d === "omnivore") {
     out.push(...(info.vegetarianFoods ?? []));
   }
-  if (diet === "omnivore" || diet === "unknown") {
+  // Fish and shellfish: pescatarian and omnivore.
+  if (d === "pescatarian" || d === "omnivore") {
+    out.push(...(info.fishFoods ?? []));
+  }
+  // Meat and poultry: omnivore only.
+  if (d === "omnivore") {
     out.push(...(info.animalFoods ?? []));
   }
+  // "other" and "unknown" fall through to plant sources only — we do not know
+  // what they avoid, so we never guess that animal foods are acceptable.
   return out;
 }
 
@@ -69,7 +86,8 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "pair any of these with vitamin C — citrus, peppers, strawberries — which the book notes improves absorption from plant sources",
     ],
     vegetarianFoods: ["eggs"],
-    animalFoods: ["red meat", "sardines and other oily fish", "shellfish"],
+    fishFoods: ["sardines and other oily fish", "shellfish"],
+    animalFoods: ["red meat"],
     ifLow: "Low iron stores are associated with more shedding and slower, weaker regrowth, and often show up alongside tiredness. It's a result worth taking to your GP so they can interpret it properly.",
     ifHigh: "Raised ferritin can reflect a number of things, including inflammation. Your GP is the right person to look into it.",
   },
@@ -79,7 +97,8 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "A single snapshot rather than the full picture — it reads best alongside ferritin and transferrin saturation.",
     plantFoods: ["lentils and beans", "tofu", "pumpkin and sesame seeds", "dark leafy greens", "fortified cereals"],
     vegetarianFoods: ["eggs"],
-    animalFoods: ["red meat", "oily fish", "shellfish"],
+    fishFoods: ["oily fish", "shellfish"],
+    animalFoods: ["red meat"],
     ifLow: "Less iron in circulation on the day. On its own it says little, so read it with ferritin and take the pattern to your GP.",
     ifHigh: "Can simply reflect timing around iron-rich food or a recent meal. Your GP can put it in context.",
   },
@@ -109,7 +128,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "sensible daylight on your skin through the brighter months",
     ],
     vegetarianFoods: ["eggs", "fortified dairy"],
-    animalFoods: ["oily fish — salmon, mackerel, sardines, tuna"],
+    fishFoods: ["oily fish — salmon, mackerel, sardines, tuna"],
     ifLow: "A low reading is common and is a straightforward conversation to have with your GP, who can advise on what to do next.",
     ifHigh: "High readings are unusual. Your GP can look at why.",
   },
@@ -124,7 +143,8 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "some fortified spreads and meat alternatives",
     ],
     vegetarianFoods: ["dairy — milk, cheese, yoghurt", "eggs"],
-    animalFoods: ["fish", "meat", "shellfish"],
+    fishFoods: ["fish", "shellfish"],
+    animalFoods: ["meat"],
     ifLow: "A low result can show up as tiredness and increased shedding, because red blood cell production is affected. Your GP is the person to interpret it and decide what happens next.",
     ifHigh: "Usually nothing to act on yourself — your GP can tell you whether it needs looking at.",
   },
@@ -155,7 +175,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "mango and apricots",
     ],
     vegetarianFoods: ["eggs", "dairy"],
-    animalFoods: ["oily fish"],
+    fishFoods: ["oily fish"],
     ifLow: "Can show up in scalp dryness and slower renewal. Food sources are the first place to look; your GP can advise beyond that.",
     ifHigh: "High readings usually come from concentrated sources rather than food. Worth raising with your GP.",
   },
@@ -178,7 +198,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "The book is deliberately unromantic about biotin: there is no single miracle nutrient, and most varied diets already supply it.",
     plantFoods: ["nuts and seeds", "sweet potato", "oats", "legumes", "avocado"],
     vegetarianFoods: ["eggs", "dairy"],
-    animalFoods: ["salmon"],
+    fishFoods: ["salmon"],
     ifLow: "A genuinely low result is unusual and worth discussing with your GP rather than self-managing.",
     ifHigh: "High biotin can skew other test results, including thyroid ones — tell whoever ordered your test.",
   },
@@ -196,7 +216,8 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "tofu and tempeh",
     ],
     vegetarianFoods: ["cheese", "eggs"],
-    animalFoods: ["shellfish", "red meat"],
+    fishFoods: ["shellfish"],
+    animalFoods: ["red meat"],
     ifLow: "Low zinc is associated with shedding, slower growth and an unsettled scalp. Take it to your GP for interpretation.",
     ifHigh: "High zinc can affect how your body handles copper. One for your GP.",
   },
@@ -225,7 +246,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "mushrooms and lentils",
     ],
     vegetarianFoods: ["eggs", "dairy"],
-    animalFoods: ["fish"],
+    fishFoods: ["fish"],
     ifLow: "Worth discussing with your GP alongside your thyroid markers.",
     ifHigh: "Selenium is one where more is not better, and excess is linked to hair loss. Raise a high reading with your GP.",
   },
@@ -239,7 +260,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "mushrooms",
       "wholegrains",
     ],
-    animalFoods: ["shellfish"],
+    fishFoods: ["shellfish"],
     ifLow: "Read alongside zinc by your GP, as the two interact.",
     ifHigh: "Your GP can look at why it's raised.",
   },
@@ -254,7 +275,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "plenty of vegetables, pulses and wholegrains",
       "filtered water — the book flags hydration and water quality directly",
     ],
-    animalFoods: ["oily fish — salmon, mackerel, sardines"],
+    fishFoods: ["oily fish — salmon, mackerel, sardines"],
     ifHigh: "Raised CRP means something is inflamed, not what. Your GP interprets it.",
   },
   "Blood Glucose": {
@@ -280,7 +301,8 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "quinoa and brown rice",
     ],
     vegetarianFoods: ["dairy", "eggs"],
-    animalFoods: ["meat", "fish"],
+    fishFoods: ["fish"],
+    animalFoods: ["meat"],
     ifLow: "Can reflect protein intake or absorption. Worth reviewing your protein foods and discussing the result with your GP.",
     ifHigh: "Often simply reflects hydration on the day.",
   },

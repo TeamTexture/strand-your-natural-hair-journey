@@ -29,6 +29,7 @@ import { matchScoreOf } from "@/lib/matchStars";
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { washStepLabel } from "@/lib/washSteps";
+import { displayDiet } from "@/lib/dietaryPattern";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { formatTime12h } from "@/lib/formatTime";
 
@@ -366,7 +367,8 @@ export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: 
     cur.row("Life stage", toText(h.lifeStage));
     cur.row("Contraception", toText(h.contraception));
     cur.row("Medical conditions", toText(h.conditions), h.conditions?.length ? COLORS.warn : COLORS.charcoal);
-    cur.row("Diet type", toText(h.diet));
+    cur.row("Diet type", displayDiet(h.diet) || "—");
+    if (h.dietOther) cur.row("Foods avoided", toText(h.dietOther));
     cur.row("Diet balance", toText(h.dietBalance));
     cur.row("Smoke", toText(h.smoke));
     cur.row("Alcohol", toText(h.alcohol));

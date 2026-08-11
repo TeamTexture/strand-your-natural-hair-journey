@@ -31,6 +31,8 @@ interface RequestBody {
   force?: boolean;
   context?: Record<string, unknown>;
   diet?: string;
+  /** Free text: what an "Other" member avoids. */
+  dietOther?: string;
   alcohol?: string;
   flaggedMarkers?: string[];
 }
@@ -59,6 +61,7 @@ interface NutritionPlanPayload {
 
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
+import { dietConstraintBlock } from "../_shared/diet.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -233,7 +236,7 @@ OUTPUT RULES
 
 4. FOOD NAMES. Use specific everyday food names available in most UK supermarkets (e.g. "mackerel", "spinach", "eggs", "lentils", "pumpkin seeds"). DO NOT tie food recommendations to the user's location, city, region, culture, or heritage — never write "because you're in the UK", "as an African / Caribbean woman", "your heritage foods", "jollof base", "callaloo", "ackee", "plantain", or any other location- or ethnicity-anchored food framing. Recommend food purely based on the NUTRIENT it delivers and how it lands against this user's blood markers, life stage, medications and diet pattern.
 
-5. DIET PATTERN HARD RULE. Never recommend animal foods to a vegan. Never recommend pork or shellfish if the diet field excludes them. Always offer a plant alternative when the user is plant-based.
+5. DIET PATTERN HARD RULE. The DIETARY PATTERN block in this request is binding and overrides every other instruction. Every food you name — in a supplement card, a diet card, an avoid card or the summary — must be permitted for that pattern. Substitute, never subtract: if iron or protein guidance would normally point to red meat or liver, give the equivalent permitted source instead, and never return a shorter or thinner section because of the pattern. A pescatarian gets fish-based iron and omega-3 sources surfaced; a vegan and a vegetarian get plant equivalents. Where the pattern is "other" or "unknown" and no exclusions were given, keep every recommendation plant-based rather than guessing.
 
 6. BLOOD MARKERS. Every flagged low/high marker MUST be addressed by at least one supplement OR diet card with a targeted lever + plain-English mechanism.
 
@@ -252,9 +255,12 @@ async function runClaude(args: {
   body: RequestBody;
   recentWashSignals: unknown[];
 }): Promise<NutritionPlanPayload> {
-  const userText = `User-supplied profile:
+  const userText = `${dietConstraintBlock(args.body.diet, args.body.dietOther)}
+
+User-supplied profile:
 ${JSON.stringify({
   diet: args.body.diet ?? "unknown",
+  dietOther: args.body.dietOther ?? "",
   alcohol: args.body.alcohol ?? "unknown",
   flaggedMarkers: args.body.flaggedMarkers ?? [],
 }, null, 2)}
@@ -376,6 +382,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
   const userPayload = {
+    dietaryConstraint: dietConstraintBlock(body.diet, body.dietOther),
     diet: body.diet ?? "unknown",
     alcohol: body.alcohol ?? "unknown",
     flaggedMarkers: body.flaggedMarkers ?? [],
@@ -409,7 +416,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list with doses, the full list of meal ideas, the full list of foods and habits to avoid, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
+            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list with doses, the full list of meal ideas, the full list of foods and habits to avoid, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [
@@ -531,7 +538,7 @@ Deno.serve(async (req: Request) => {
     if (!user) return json(401, { error: "Unauthorized" });
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
-    const { force, context, diet, alcohol, flaggedMarkers } = body;
+    const { force, context, diet, dietOther, alcohol, flaggedMarkers } = body;
 
     const provider = readAiProvider("STRAND_AI_PROVIDER_NUTRITION");
     console.log("[nutrition-debug] start", {
@@ -549,6 +556,7 @@ Deno.serve(async (req: Request) => {
       model_version: MODEL_VERSION,
       provider,
       diet: diet ?? null,
+      dietOther: dietOther ?? null,
       alcohol: alcohol ?? null,
       flaggedMarkers: (flaggedMarkers ?? []).slice().sort(),
       blood: ((context as { bloodResults?: unknown[] })?.bloodResults ?? []),

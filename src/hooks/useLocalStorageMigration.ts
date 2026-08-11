@@ -16,6 +16,7 @@
 // See docs/PHASE_1_PLAN.md §4.
 
 import { useEffect } from "react";
+import { canonDiet } from "@/lib/dietaryPattern";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { invalidateClinicalContextCache } from "@/lib/clinicalContext";
@@ -241,7 +242,7 @@ async function migrateHealthProfile(userId: string): Promise<void> {
         life_stage_enc: enc.life_stage,
         contraception_enc: enc.contraception,
         medical_conditions_enc: enc.medical_conditions,
-        diet: local.diet ?? null,
+        diet: local.diet ? canonDiet(local.diet) : null,
         diet_balance: (local.dietBalance ?? [])[0] ?? null,
         smoke: (local.smoke ?? [])[0] ?? null,
         alcohol: local.alcohol ?? null,

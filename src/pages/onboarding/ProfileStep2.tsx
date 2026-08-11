@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { encryptForStorage } from "@/lib/clinicalContext";
+import { DIET_OPTIONS, canonDiet } from "@/lib/dietaryPattern";
 
 interface TagGroupProps {
   label: string;
@@ -55,17 +56,19 @@ const ProfileStep2 = () => {
   const [water, setWater] = useState<string[]>(["1-2 litres"]);
   const [exercise, setExercise] = useState<string[]>(["1-3x per week"]);
   const [sleep, setSleep] = useState<string[]>(["Average"]);
+  const [dietOther, setDietOther] = useState("");
   const [meds, setMeds] = useState<{ name: string; category: string }[]>([]);
 
   // Keep everything typed on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-2",
-    { lifeStage, contraception, conditions, diet, dietBalance, smoke, alcohol, water, exercise, sleep, meds },
+    { lifeStage, contraception, conditions, diet, dietOther, dietBalance, smoke, alcohol, water, exercise, sleep, meds },
     (d) => {
       if (d.lifeStage) setLifeStage(d.lifeStage);
       if (d.contraception) setContraception(d.contraception);
       if (d.conditions) setConditions(d.conditions);
       if (d.diet) setDiet(d.diet);
+      if (d.dietOther) setDietOther(d.dietOther);
       if (d.dietBalance) setDietBalance(d.dietBalance);
       if (d.smoke) setSmoke(d.smoke);
       if (d.alcohol) setAlcohol(d.alcohol);
@@ -109,7 +112,25 @@ const ProfileStep2 = () => {
 
         <div className="border-t border-border my-2" />
 
-        <TagGroup single label="Diet Type" options={["Omnivore", "Vegetarian", "Vegan", "Pescatarian", "Other"]} value={diet} onChange={setDiet} />
+        <TagGroup single label="Diet Type" options={[...DIET_OPTIONS]} value={diet} onChange={setDiet} />
+        {canonDiet(diet[0]) === "other" && (
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+              What You Avoid
+            </div>
+            <input
+              type="text"
+              value={dietOther}
+              maxLength={200}
+              onChange={(e) => setDietOther(e.target.value)}
+              placeholder="e.g. no dairy, no pork"
+              className="w-full rounded-[14px] border border-border bg-card px-3 py-2.5 text-[15px] font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+            />
+            <p className="mt-1.5 text-[12px] italic text-muted-foreground leading-snug">
+              Optional. Until you tell us, we keep every food suggestion plant-based rather than guess.
+            </p>
+          </div>
+        )}
         <TagGroup single label="Diet Balance" options={["Very varied", "Fairly balanced", "Limited / restricted"]} value={dietBalance} onChange={setDietBalance} />
         <TagGroup single label="Do You Smoke" options={["No", "Occasionally", "Regularly", "Ex-smoker"]} value={smoke} onChange={setSmoke} />
         <TagGroup single label="Alcohol" options={["None", "Light social", "Moderate", "Heavy"]} value={alcohol} onChange={setAlcohol} />
@@ -120,11 +141,7 @@ const ProfileStep2 = () => {
         <MedicationPicker value={meds} onChange={setMeds} />
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
-          const dietRaw = (diet[0] || "").toLowerCase();
-          const dietCanon =
-            dietRaw === "vegan" ? "vegan" :
-            dietRaw === "vegetarian" ? "vegetarian" :
-            dietRaw ? "omnivore" : "unknown";
+          const dietCanon = canonDiet(diet[0]);
           const alcoholRaw = (alcohol[0] || "").toLowerCase();
           const alcoholCanon =
             alcoholRaw === "none" ? "none" :
@@ -132,7 +149,7 @@ const ProfileStep2 = () => {
             alcoholRaw.includes("moderate") ? "moderate" :
             alcoholRaw.includes("heavy") ? "heavy" : "unknown";
           localStorage.setItem("strand_health_profile", JSON.stringify({
-            lifeStage, contraception, conditions, diet: dietCanon, dietBalance,
+            lifeStage, contraception, conditions, diet: dietCanon, dietOther, dietBalance,
             smoke, alcohol: alcoholCanon, water, exercise, sleep,
             medications: meds.map((m) => m.name),
           }));
@@ -157,6 +174,7 @@ const ProfileStep2 = () => {
                     contraception_enc: enc.contraception,
                     medical_conditions_enc: enc.medical_conditions,
                     diet: dietCanon,
+                    diet_other: dietCanon === "other" ? (dietOther.trim() || null) : null,
                     diet_balance: dietBalance[0] ?? null,
                     smoke: smoke[0] ?? null,
                     alcohol: alcoholCanon,
