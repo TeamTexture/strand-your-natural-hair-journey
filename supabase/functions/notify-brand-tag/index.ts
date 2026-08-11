@@ -9,6 +9,7 @@
 // the tagging action that triggered it.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { dispatchEmail, serviceClient } from "../_shared/app-email/core.ts";
+import { requireServiceOrAuthedUser } from "../_shared/auth.ts";
 
 const SURFACE_LABEL: Record<string, string> = {
   treatment_plan: "a member's treatment plan",
