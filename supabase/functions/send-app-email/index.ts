@@ -3,6 +3,7 @@
 // so browser callers and other edge functions cannot drift apart.
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { dispatchEmail } from "../_shared/app-email/core.ts";
+import { requireServiceOrAuthedUser } from "../_shared/auth.ts";
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), {
@@ -12,6 +13,12 @@ const json = (b: unknown, status = 200) =>
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Branded transactional email on STRAND's sending domain: never an open
+  // relay. Trusted server-to-server callers (service role) or a signed-in
+  // member only.
+  const caller = await requireServiceOrAuthedUser(req);
+  if (caller instanceof Response) return caller;
 
   let body: Record<string, unknown>;
   try {

@@ -14,6 +14,7 @@
 // immediately; the generation loop runs in the background.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAdminOrService } from "../_shared/auth.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -42,6 +43,13 @@ interface Product {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Up to 400 AI generations per run: admin approval flow or trusted
+  // server-to-server callers (the Stripe webhook) only.
+  const caller = await requireAdminOrService(req);
+  if (caller instanceof Response) return caller;
+
+
 
   const url = Deno.env.get("SUPABASE_URL");
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
