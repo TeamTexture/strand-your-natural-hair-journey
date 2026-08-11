@@ -9,6 +9,7 @@ import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { challengeSummary } from "@/lib/goalChallenges";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { canonDiet } from "@/lib/dietaryPattern";
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
 
 // ─── Brand tokens (mirrors fullProfilePdf.ts) ─────────────────────────────
@@ -422,7 +423,14 @@ export async function generateProfessionalSnapshotPdf(
     anyKeyword(m.name || "", HAIR_MED_KEYWORDS) || anyKeyword(m.category || "", HAIR_MED_KEYWORDS)
   );
   const dietFlag: string[] = [];
-  if (health?.diet && /veg|vegan|plant/i.test(health.diet)) dietFlag.push("plant-based diet — screen iron / B12 / zinc");
+  const dietCanon = canonDiet(health?.diet);
+  if (dietCanon === "vegan" || dietCanon === "vegetarian") {
+    dietFlag.push("plant-based diet — screen iron / B12 / zinc");
+  } else if (dietCanon === "pescatarian") {
+    dietFlag.push("pescatarian (no meat or poultry) — screen iron");
+  } else if (dietCanon === "other") {
+    dietFlag.push("dietary pattern recorded as other" + (health?.dietOther ? ` — avoids: ${health.dietOther}` : " — exclusions not recorded"));
+  }
   if ((health?.dietBalance ?? []).some(x => /low protein|low iron/i.test(x))) dietFlag.push("self-reported low iron/protein intake");
   const sleepPoor = (health?.sleep ?? []).some(x => /poor|broken|<\s*6/i.test(x));
   const stressFlag: string[] = [];

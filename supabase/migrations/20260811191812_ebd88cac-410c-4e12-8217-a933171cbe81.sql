@@ -1,0 +1,1 @@
+ALTER TABLE public.user_health_profile ADD COLUMN IF NOT EXISTS diet_other text;

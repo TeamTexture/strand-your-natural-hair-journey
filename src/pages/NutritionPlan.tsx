@@ -24,13 +24,16 @@ import AiProse from "@/components/tips/AiProse";
 import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tipsRender";
 import type { TipsLevel } from "@/lib/tipsLevel";
 import { smartBack } from "@/lib/smartBack";
+import { canonDiet, suppressesAnimalFoods, type DietaryPattern } from "@/lib/dietaryPattern";
 
 
-type Diet = "omnivore" | "vegetarian" | "vegan" | "unknown";
+type Diet = DietaryPattern;
 type Alcohol = "none" | "light" | "moderate" | "heavy" | "unknown";
 
 interface Profile {
   diet: Diet;
+  /** Free text for "Other" members — what they told us they avoid. */
+  dietOther: string;
   alcohol: Alcohol;
   flagged: Set<string>;
 }
@@ -427,7 +430,9 @@ const filterSupplementsByLevel = (
 
 
 const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
-  const isVeg = p.diet === "vegan" || p.diet === "vegetarian";
+  // No animal-derived suggestion unless we know it is acceptable.
+  const noAnimal = suppressesAnimalFoods(p.diet) && !p.dietOther.trim();
+  const plantB12 = p.diet === "vegan" || p.diet === "vegetarian" || noAnimal;
   const out: AiSupplement[] = [];
   if (p.flagged.has("Ferritin")) out.push({
     emoji: "🩸", name: "Iron", dose: "One 200 mg tablet with orange juice", priority: "high",
@@ -437,7 +442,7 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
     emoji: "☀️", name: "Vitamin D3", dose: "1000–2000 IU daily with breakfast", priority: "high",
     body: "**Why it matters:** Vitamin D helps switch your follicles back into their growth phase and supports scalp health.\n\n**How to use it:** Take it daily with breakfast or another meal that contains some fat, because vitamin D absorbs better that way.\n\n**Watch out for:** If you already take a high-dose vitamin D prescription, check your dose before adding another supplement.",
   });
-  if (p.flagged.has("Vitamin B12") || isVeg) out.push({
+  if (p.flagged.has("Vitamin B12") || plantB12) out.push({
     emoji: "🌱", name: "Vitamin B12", dose: "Methylcobalamin 1000 mcg daily", priority: "high",
     body: "**Why it matters:** B12 is what your blood cells use to carry oxygen to every follicle.\n\n**How to use it:** Take a small daily supplement consistently, especially if you eat little or no animal food.\n\n**Watch out for:** If you take metformin or long-term reflux medication, B12 can run low more easily, so it is worth tracking.",
   });
@@ -445,9 +450,21 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
     emoji: "⚙️", name: "Zinc", dose: "8–11 mg daily (never above 40 mg)", priority: "medium",
     body: "**Why it matters:** Zinc helps your follicles build the proteins that make up each strand and keeps scalp oil in balance.\n\n**How to use it:** Keep the dose modest and take it with food if it makes you feel nauseous.\n\n**Watch out for:** Going too high can work against you, so avoid stacking multiple zinc supplements.",
   });
+  const omegaPaired =
+    p.diet === "vegan" || noAnimal
+      ? "Flaxseed, chia, walnuts, hemp seeds and seaweed."
+      : p.diet === "vegetarian"
+        ? "Flaxseed, chia, walnuts, hemp seeds and eggs."
+        : "Sardines, mackerel, salmon, eggs, pumpkin seeds and walnuts.";
   out.push({
-    emoji: "🐟", name: "Omega-3", dose: "1000 mg fish oil (or algae oil if plant-based) daily", priority: "medium",
-    body: "**Why it matters:** Omega-3s help calm inflammation around the follicle and keep your scalp's oil layer supple, which supports flexible strands.\n\n**How to use it:** Take it with a main meal that already contains fat so your body absorbs it well.\n\n**Best paired with:** Oily fish, eggs, pumpkin seeds, walnuts or an algae oil option if you are plant-based.\n\n**Watch out for:** If you take blood-thinning medication or have surgery planned, check with your GP before starting.",
+    emoji: p.diet === "pescatarian" || p.diet === "omnivore" ? "🐟" : "🌿",
+    name: "Omega-3",
+    dose:
+      p.diet === "pescatarian" || p.diet === "omnivore"
+        ? "1000 mg fish oil daily"
+        : "1000 mg algae oil daily",
+    priority: "medium",
+    body: `**Why it matters:** Omega-3s help calm inflammation around the follicle and keep your scalp's oil layer supple, which supports flexible strands.\n\n**How to use it:** Take it with a main meal that already contains fat so your body absorbs it well.\n\n**Best paired with:** ${omegaPaired}\n\n**Watch out for:** If you take blood-thinning medication or have surgery planned, check with your GP before starting.`,
   });
   return out;
 };
@@ -462,6 +479,7 @@ const NutritionPlan = () => {
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [profile, setProfile] = useState<Profile>({
     diet: "unknown",
+    dietOther: "",
     alcohol: "unknown",
     flagged: new Set(),
   });
@@ -497,6 +515,7 @@ const NutritionPlan = () => {
         body: {
           context,
           diet: currentProfile.diet,
+          dietOther: currentProfile.dietOther,
           alcohol: currentProfile.alcohol,
           flaggedMarkers: Array.from(currentProfile.flagged),
           exclude,
@@ -579,6 +598,7 @@ const NutritionPlan = () => {
         force,
         context,
         diet: currentProfile.diet,
+        dietOther: currentProfile.dietOther,
         alcohol: currentProfile.alcohol,
         flaggedMarkers: Array.from(currentProfile.flagged),
       });
@@ -623,9 +643,10 @@ const NutritionPlan = () => {
           });
         }
         const clinical = await loadClinicalContext();
-        const diet = ((clinical.health?.diet ?? "") as Diet) || "unknown";
+        const diet = canonDiet(clinical.health?.diet);
+        const dietOther = clinical.health?.dietOther ?? "";
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
-        const next = { diet, alcohol, flagged };
+        const next = { diet, dietOther, alcohol, flagged };
         setProfile(next);
         void fetchPlan(false, next);
       } finally {

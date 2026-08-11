@@ -1,3 +1,4 @@
+import { displayDiet } from "@/lib/dietaryPattern";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -208,7 +209,7 @@ const Profile = () => {
   const health: HealthProfile = useMemo(() => ({
     conditions: clinical?.health?.conditions,
     medications: clinical?.health?.medications,
-    diet: clinical?.health?.diet,
+    diet: displayDiet(clinical?.health?.diet) || undefined,
     smoke: clinical?.health?.smoke?.[0],
     alcohol: clinical?.health?.alcohol,
   }), [clinical]);

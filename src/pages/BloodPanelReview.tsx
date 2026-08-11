@@ -599,7 +599,11 @@ export default function BloodPanelReview() {
                                               ? " — plant-based"
                                               : diet === "vegetarian"
                                                 ? " — vegetarian"
-                                                : ""}
+                                                : diet === "pescatarian"
+                                                  ? " — pescatarian"
+                                                  : diet === "other" || diet === "unknown"
+                                                    ? " — plant-based"
+                                                    : ""}
                                           </p>
                                           <ul className="space-y-1">
                                             {foods.map((f) => (

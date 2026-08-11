@@ -40,6 +40,8 @@ export interface HealthSlice {
   contraception: string[];
   conditions: string[];
   diet: string;
+  /** Free text: what an "Other" member avoids. Empty unless diet === "other". */
+  dietOther: string;
   dietBalance: string[];
   smoke: string[];
   alcohol: string;
@@ -214,6 +216,7 @@ interface LegacyHealth {
   contraception?: unknown;
   conditions?: unknown;
   diet?: unknown;
+  dietOther?: unknown;
   dietBalance?: unknown;
   smoke?: unknown;
   alcohol?: unknown;
@@ -292,6 +295,7 @@ function healthFromLocal(): HealthSlice | null {
     contraception: ensureStringArray(raw.contraception),
     conditions: ensureStringArray(raw.conditions),
     diet: typeof raw.diet === "string" ? raw.diet : "",
+    dietOther: typeof raw.dietOther === "string" ? raw.dietOther : "",
     dietBalance: ensureStringArray(raw.dietBalance),
     smoke: ensureStringArray(raw.smoke),
     alcohol: typeof raw.alcohol === "string" ? raw.alcohol : "",
@@ -512,7 +516,7 @@ async function loadClinicalContextUncached(
         supabase
           .from("user_health_profile")
           .select(
-            "diet, diet_balance, smoke, alcohol, daily_water, exercise, sleep_quality",
+            "diet, diet_other, diet_balance, smoke, alcohol, daily_water, exercise, sleep_quality",
           )
           .eq("user_id", userId)
           .maybeSingle(),
@@ -591,6 +595,7 @@ async function loadClinicalContextUncached(
         contraception: decrypted?.health?.contraception ?? [],
         conditions: decrypted?.health?.medical_conditions ?? [],
         diet: healthRow.diet ?? "",
+        dietOther: healthRow.diet_other ?? "",
         dietBalance: wrap(healthRow.diet_balance),
         smoke: wrap(healthRow.smoke),
         alcohol: healthRow.alcohol ?? "",
@@ -609,6 +614,7 @@ async function loadClinicalContextUncached(
         contraception: [],
         conditions: [],
         diet: "",
+        dietOther: "",
         dietBalance: [],
         smoke: [],
         alcohol: "",

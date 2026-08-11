@@ -5494,6 +5494,7 @@ export type Database = {
           daily_water: string | null
           diet: string | null
           diet_balance: string | null
+          diet_other: string | null
           exercise: string | null
           id: string
           life_stage_enc: string | null
@@ -5510,6 +5511,7 @@ export type Database = {
           daily_water?: string | null
           diet?: string | null
           diet_balance?: string | null
+          diet_other?: string | null
           exercise?: string | null
           id?: string
           life_stage_enc?: string | null
@@ -5526,6 +5528,7 @@ export type Database = {
           daily_water?: string | null
           diet?: string | null
           diet_balance?: string | null
+          diet_other?: string | null
           exercise?: string | null
           id?: string
           life_stage_enc?: string | null

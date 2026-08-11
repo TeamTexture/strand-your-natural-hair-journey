@@ -20,12 +20,14 @@ const corsHeaders = {
 interface RequestBody {
   context?: Record<string, unknown>;
   diet?: string;
+  dietOther?: string;
   alcohol?: string;
   flaggedMarkers?: string[];
   /** Meal names already shown or saved — the model must not repeat them. */
   exclude?: string[];
 }
 
+import { dietConstraintBlock } from "../_shared/diet.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -36,7 +38,7 @@ const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
 
 TASK
 You write 6 personalised, easy-to-cook meal ideas for a textured-hair-tracking app. Each meal must be:
-- Directly aligned with this user's flagged blood markers, life stage, medications, dietary pattern (respect vegan/vegetarian absolutely — never suggest animal foods to a vegan), and hair goals.
+- Directly aligned with this user's flagged blood markers, life stage, medications, dietary pattern and hair goals. The DIETARY PATTERN block in the user message is binding and overrides everything else: every ingredient in every meal must be permitted for it. Substitute, never subtract — if a meal would normally rely on an excluded food, build the same nutrient from a permitted one, and still return six full meals.
 - SIMPLE. Everyday ingredients you'd find in a normal UK supermarket. No obscure specialty items. No sous-vide. No 90-minute recipes.
 - Grounded in nutrients — every meal explains in plain English WHICH nutrients it delivers and WHY they matter to this user.
 - Culturally aware. Use the user's heritage / cultural background (from context.hairProfile, context.healthProfile, professional notes, location) as a flavour lens where relevant — e.g. jollof-style rice, ackee & callaloo, plantain, Nigerian pepper soup, jerk seasoning, Caribbean rice and peas, Ethiopian lentil stew — mixed with general easy meals. Never say "because you're X ethnicity" — the cuisine is a familiar frame, the nutrient is the reason.
@@ -88,10 +90,13 @@ Deno.serve(async (req) => {
 
     const body: RequestBody = await req.json().catch(() => ({}));
 
-    const userPayload = `USER CONTEXT (full profile — bloods, hair, health, goals, style, professional, location, history):
+    const userPayload = `${dietConstraintBlock(body.diet, body.dietOther)}
+
+USER CONTEXT (full profile — bloods, hair, health, goals, style, professional, location, history):
 ${JSON.stringify(body.context ?? {}, null, 2)}
 
 Diet pattern: ${body.diet ?? "unknown"}
+Foods this member avoids, in their own words: ${body.dietOther ?? "not recorded"}
 Alcohol pattern: ${body.alcohol ?? "unknown"}
 Flagged blood markers to prioritise: ${JSON.stringify(body.flaggedMarkers ?? [])}
 Already seen or saved meals — DO NOT return any of these, and do not return a

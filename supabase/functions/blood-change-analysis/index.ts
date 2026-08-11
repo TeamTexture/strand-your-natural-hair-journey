@@ -56,6 +56,7 @@ interface Payload {
   context?: Record<string, unknown>;
 }
 
+import { dietConstraintBlock } from "../_shared/diet.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -95,7 +96,7 @@ RULES
 - Never emit an action that has no focus item, and never more than three focus items.
 - NEVER mention injections, infusions, drips, dosing, or any clinical treatment. Supplements are not your call — food first, and anything beyond food goes to her GP.
 - NEVER name who is "more at risk" (no groups: vegans, older adults, women of colour, etc.). State the information, not the risk group.
-- DIET PATTERN IS BINDING: if her context says vegan or vegetarian, every food named must fit that diet, and plant-based sources must be offered as a matter of course, per How To Love Your Afro, Chapter 8: Diet and Nutrition.`;
+- DIET PATTERN IS BINDING: the DIETARY PATTERN block in the user message overrides every other instruction. Every food named must be permitted for that pattern, plant-based sources are offered as a matter of course, and where a nutrient would normally point to an excluded food you give a permitted source of the same nutrient instead — never a shorter answer, per How To Love Your Afro, Chapter 8: Diet and Nutrition.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -106,7 +107,9 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     const body: Payload = await req.json();
 
+    const healthProfile = ((body.context ?? {}) as { healthProfile?: { diet?: string; dietOther?: string } }).healthProfile;
     const userPayload = JSON.stringify({
+      dietaryConstraint: dietConstraintBlock(healthProfile?.diet, healthProfile?.dietOther),
       latestPanel: body.latestPanel,
       previousPanel: body.previousPanel,
       deltas: body.deltas ?? [],
