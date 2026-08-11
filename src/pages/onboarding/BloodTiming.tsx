@@ -16,7 +16,8 @@ const LOLA_URL = "https://lolahealth.com/?srsltid=AfmBOopC3BcYrhp3GEEOOo1kCw-uXt
 
 const BloodTiming = () => {
   const navigate = useNavigate();
-  const [choice, setChoice] = useState<"yes" | "no">("yes");
+  // No default — this question must be answered, not assumed.
+  const [choice, setChoice] = useState<"yes" | "no" | null>(null);
 
   const copyCode = async () => {
     try {
@@ -71,6 +72,12 @@ const BloodTiming = () => {
             </button>
           ))}
         </div>
+
+        {!choice && (
+          <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
+            Choose one of the two answers above to continue.
+          </p>
+        )}
 
         {choice === "no" ? (
           <>
@@ -144,7 +151,7 @@ const BloodTiming = () => {
               Skip for now — upload what I have
             </Button>
           </>
-        ) : (
+        ) : choice === "yes" ? (
           <div className="space-y-3 mt-4">
             <Button
               variant="gold"
@@ -156,7 +163,7 @@ const BloodTiming = () => {
               Upload my tests
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
     </ScreenLayout>
   );

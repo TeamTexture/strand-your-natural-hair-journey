@@ -69,7 +69,7 @@ import {
 } from "../_shared/grounding.ts";
 
 const TASK_PROMPT_LOVABLE = `TASK
-Generate a deeply personalised hair-nutrition plan with two parts: foods to eat ("diet") and things to limit ("avoid"). Speak in STRAND's professional advisory voice.
+Generate a deeply personalised hair-nutrition plan with two parts: foods to eat ("diet") and what to pair, time or watch for ("avoid"). The "avoid" cards are NOT about eating less — they cover pairing, timing and medication interactions only. Speak in STRAND's professional advisory voice.
 
 Voice for this task: follow the VOICE PRINCIPLES above. In every card body, lead with the mechanism (why this nutrient or food matters at the cellular / follicular level, in plain English), then bridge with a connective ("which is why", "so", "this means") into THIS user's specific data — heritage, life stage, medication, blood marker, goal. Talk to "you", not "your hair". Translate any clinical term on first use in a card. No "queen" / "you've got this" energy, praise, flattery, or conversational preamble.
 
@@ -81,7 +81,7 @@ PERSONALISATION RULES — apply ALL of these together, not in isolation:
 5. Diet pattern: vegan / vegetarian / pescatarian / omnivore — never recommend animal foods to a vegan; always offer culturally relevant plant alternatives.
 6. Blood markers: every flagged low/high marker must be addressed in the diet section with at least one targeted food explanation.
 7. Hair goals: e.g. length retention needs steady protein + iron; thinning recovery needs zinc + biotin + omega-3; postpartum shedding needs ferritin + vitamin D rebuild.
-8. Avoid list MUST also be personalised — reference THEIR alcohol level, their medications (e.g. "with metformin, avoid X"), their actual habits if known.
+8. The "avoid" cards MUST also be personalised — reference THEIR medications, markers or timing (e.g. "iron and levothyroxine four hours apart"). Never frame them as eating less, cutting back or limiting food.
 
 FORMAT
 Return JSON only via the provided tool. Each card has:
@@ -91,7 +91,7 @@ Return JSON only via the provided tool. Each card has:
 
 OUTPUT REQUIREMENTS:
 - diet: 6–10 cards covering protein, iron-support, fat-soluble vitamins, omega-3, antioxidants, B-vitamins. Heavily weighted toward addressing flagged deficiencies first.
-- avoid: 4–6 cards, each genuinely personalised. Don't just list "sugar" — say WHY it matters for HER (e.g. inflammation worsens androgenic thinning if PCOS).
+- avoid: 4–6 cards, each genuinely personalised, and each about PAIRING, TIMING or a medication/supplement interaction rather than eating less (e.g. "have tea between meals rather than alongside them, because tannins bind the iron in that meal"). No calorie, gram or portion figures. No restriction language.
 - summary: TWO ultra-short paragraphs (see SUMMARY FORMATTING). One sentence each, max 22 words. Translate the blood work into plain English — no preamble, no "this plan will…".
 
 CRITICAL: Never produce generic text. If a card could apply to anyone, rewrite it to reference at least one specific data point about THIS user.`;
@@ -192,7 +192,7 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (3-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 things to limit), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
+  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (3-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 pairing, timing or interaction notes — never "eat less of this"), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
 
 CRITICAL LANGUAGE RULE — PLAIN ENGLISH FOR AMATEURS.
 Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No jargon dumps.
@@ -244,7 +244,7 @@ OUTPUT RULES
 
 8. AGE / LIFE STAGE. Reference perimenopause, menopause, postpartum, breastfeeding, or younger training-heavy life stages where relevant — nutrient needs shift materially at each.
 
-9. AVOID LIST. Each avoid card must be personalised — name the medication, marker, or habit it ties to. Plain English.
+9. AVOID CARDS. Each one must be personalised — name the medication, marker or timing it ties to — and each must be additive: what to pair with what, and when. Never tell the member to cut back, limit, reduce or give up a food, and never give a calorie, macro, gram or portion figure. Plain English.
 
 10. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
 
@@ -416,7 +416,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list with doses, the full list of meal ideas, the full list of foods and habits to avoid, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
+            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list (no dosing figures), the full list of meal ideas, the full list of pairing and timing notes, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [

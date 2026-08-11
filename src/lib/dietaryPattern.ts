@@ -110,6 +110,26 @@ export const suppressesAnimalFoods = (d: DietaryPattern): boolean =>
  * nutritional guidance. Names the excluded foods explicitly — the model is
  * never left to infer them.
  */
+
+/**
+ * Nutrition safety — applies to EVERY member, independent of dietary pattern.
+ *
+ * STRAND does not collect any signal about disordered eating, so nutrition
+ * output must never depend on one. Guidance is additive and food-positive only.
+ * Dietary exclusions are a separate thing: they are about what a member does
+ * not eat, never about telling anyone to eat less.
+ */
+export const NUTRITION_SAFETY_BLOCK = [
+  "NUTRITION SAFETY — HARD CONSTRAINT, APPLIES TO EVERY MEMBER, NO EXCEPTIONS.",
+  "Never give calorie targets, gram or macro targets, weight targets, or portion prescriptions (no \"150g of\", \"two portions of\", \"three times a week\").",
+  "Never use restriction or deficit framing. These are banned outright: cut back, cut out, cut down, limit, avoid eating, reduce your intake, eat less, don't eat, give up, in moderation, clean eating, detox, cheat, treat, guilty, good food, bad food.",
+  "Guidance is additive and food-positive only: name the foods that supply a nutrient and say why that nutrient matters for Afro and textured hair.",
+  "Where guidance would otherwise tell the member to have less of something, say what to ADD or WHEN to have things instead — pair an iron food with a vitamin C food; have tea between meals rather than alongside them. Pairing and timing are allowed; eating less is not.",
+  "Never comment on body weight, size or shape, and never imply a member should change either.",
+  "No supplement dosing figures.",
+  "Never use hair typing terminology (no 3C, 4C, \"type 4\"). Say Afro and textured hair.",
+].join("\n");
+
 export function dietConstraintBlock(
   diet: string | null | undefined,
   dietOther?: string | null,
@@ -136,5 +156,7 @@ export function dietConstraintBlock(
       `The member has told us what they avoid, in their own words: "${dietOther.trim()}". Honour this exactly, and you may recommend animal foods that it does not exclude.`,
     );
   }
+  lines.push("");
+  lines.push(NUTRITION_SAFETY_BLOCK);
   return lines.join("\n");
 }

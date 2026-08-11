@@ -14,21 +14,29 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 import { DIET_OPTIONS, canonDiet, displayDiet } from "@/lib/dietaryPattern";
+import {
+  LIFE_STAGE_OPTIONS,
+  CONTRACEPTION_OPTIONS,
+  CONDITIONS_OPTIONS,
+  DIET_BALANCE_OPTIONS,
+  SMOKE_OPTIONS,
+  ALCOHOL_OPTIONS,
+  WATER_OPTIONS,
+  EXERCISE_OPTIONS,
+  SLEEP_OPTIONS,
+} from "@/lib/healthOptions";
 
 
-const LIFE_STAGE = ["Pregnant", "Postpartum", "Perimenopause", "Menopause", "None currently"];
-const CONTRACEPTION = ["Hormonal pill", "IUD hormonal", "Implant", "HRT", "Fertility treatment", "None non-hormonal"];
-const CONDITIONS = [
-  "Thyroid condition", "PCOS", "Anaemia", "Diabetes", "Lupus", "Coeliac", "Psoriasis",
-  "Eczema", "Chronic stress / anxiety", "Eating disorder", "Alopecia", "Cancer / chemo", "None",
-];
+const LIFE_STAGE = [...LIFE_STAGE_OPTIONS];
+const CONTRACEPTION = [...CONTRACEPTION_OPTIONS];
+const CONDITIONS = [...CONDITIONS_OPTIONS];
 const DIET = [...DIET_OPTIONS];
-const DIET_BALANCE = ["Very varied", "Fairly balanced", "Limited / restricted"];
-const SMOKE = ["No", "Occasionally", "Regularly", "Ex-smoker"];
-const ALCOHOL = ["None", "Light social", "Moderate", "Heavy"];
-const WATER = ["Under 1 litre", "1-2 litres", "2+ litres"];
-const EXERCISE = ["Rarely", "1-3x per week", "4-5x per week", "Daily"];
-const SLEEP = ["Poor", "Average", "Good"];
+const DIET_BALANCE = [...DIET_BALANCE_OPTIONS];
+const SMOKE = [...SMOKE_OPTIONS];
+const ALCOHOL = [...ALCOHOL_OPTIONS];
+const WATER = [...WATER_OPTIONS];
+const EXERCISE = [...EXERCISE_OPTIONS];
+const SLEEP = [...SLEEP_OPTIONS];
 
 const canonAlcohol = (v: string): string => {
   const l = v.toLowerCase();

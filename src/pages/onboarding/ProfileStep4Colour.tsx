@@ -70,25 +70,24 @@ const COLOUR_TIMEFRAMES = [
 
 const ProfileStep4Colour = () => {
   const navigate = useNavigate();
-  const [colour, setColour] = useState([NATURAL_NEVER]);
-  const [chemHist, setChemHist] = useState(["None"]);
-  const [style, setStyle] = useState(["Box braids"]);
-  const [howLongNum, setHowLongNum] = useState("9");
-  const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("days");
-  const [plansToChange, setPlansToChange] = useState<"yes" | "no">("no");
+  // No pre-filled answers anywhere on this step — a silent default became the
+  // member's real profile and drove their guidance.
+  const [colour, setColour] = useState<string[]>([]);
+  const [chemHist, setChemHist] = useState<string[]>([]);
+  const [style, setStyle] = useState<string[]>([]);
+  const [howLongNum, setHowLongNum] = useState("");
+  const [howLongUnit, setHowLongUnit] = useState<"days" | "weeks" | "months">("weeks");
+  const [plansToChange, setPlansToChange] = useState<"yes" | "no" | null>(null);
   const [changeNum, setChangeNum] = useState("");
   const [changeUnit, setChangeUnit] = useState<"days" | "weeks" | "months">("weeks");
-  const [changingTo, setChangingTo] = useState<string[]>(["Loose natural"]);
-  const [defaultStyle, setDefaultStyle] = useState<string[]>([
-    "Box braids",
-    "Loose natural",
-  ]);
+  const [changingTo, setChangingTo] = useState<string[]>([]);
+  const [defaultStyle, setDefaultStyle] = useState<string[]>([]);
 
   // ── Colour History (added for consultation data) ──
-  const [colourType, setColourType] = useState<string>("Not sure");
-  const [colourProduct, setColourProduct] = useState<string>("Not sure");
-  const [colourLast, setColourLast] = useState<string>("Never coloured");
-  const [colourReaction, setColourReaction] = useState<"yes" | "no">("no");
+  const [colourType, setColourType] = useState<string>("");
+  const [colourProduct, setColourProduct] = useState<string>("");
+  const [colourLast, setColourLast] = useState<string>("");
+  const [colourReaction, setColourReaction] = useState<"yes" | "no" | null>(null);
   const [colourReactionDetails, setColourReactionDetails] = useState("");
   const [colourReactionAudioPath, setColourReactionAudioPath] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState(false);
@@ -164,7 +163,7 @@ const ProfileStep4Colour = () => {
               <div>
                 <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Colour type</div>
                 <Select value={colourType} onValueChange={setColourType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select colour type…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_TYPES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
@@ -174,7 +173,7 @@ const ProfileStep4Colour = () => {
               <div>
                 <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Product used</div>
                 <Select value={colourProduct} onValueChange={setColourProduct}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select product used…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_PRODUCTS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
@@ -191,7 +190,7 @@ const ProfileStep4Colour = () => {
                   When was your last colour treatment?
                 </div>
                 <Select value={colourLast} onValueChange={setColourLast}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select a timeframe…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_TIMEFRAMES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
@@ -201,7 +200,7 @@ const ProfileStep4Colour = () => {
               <TagGroup
                 label="Have you ever had a reaction to hair colour?"
                 options={["Yes", "No"]}
-                value={colourReaction === "yes" ? ["Yes"] : ["No"]}
+                value={colourReaction === "yes" ? ["Yes"] : colourReaction === "no" ? ["No"] : []}
                 onChange={(v) => {
                   setColourReaction(v.includes("Yes") ? "yes" : "no");
                   setReactionError(false);
@@ -350,6 +349,31 @@ const ProfileStep4Colour = () => {
           size="pill"
           className="mt-4"
           onClick={async () => {
+            // Every answer on this step must be explicit.
+            const gaps: string[] = [];
+            if (colour.length === 0) gaps.push("current colour status");
+            if (!isNaturalNever) {
+              if (chemHist.length === 0) gaps.push("chemical history");
+              if (!colourType) gaps.push("colour type");
+              if (!colourProduct) gaps.push("product used");
+              if (!colourLast) gaps.push("last colour treatment");
+              if (!colourReaction) gaps.push("colour reaction");
+            }
+            if (!style[0]) gaps.push("current hairstyle");
+            if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
+              gaps.push("how long in this style");
+            }
+            if (!plansToChange) gaps.push("plans to change style");
+            if (plansToChange === "yes") {
+              if (changeNum.trim() === "") gaps.push("when you plan to change");
+              if (changingTo.length === 0) gaps.push("what you are changing to");
+            }
+            if (defaultStyle.length === 0) gaps.push("default / normal style");
+            if (gaps.length > 0) {
+              toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+              return;
+            }
+
             // Require reaction details (text or voice note) when a reaction is flagged.
             if (
               !isNaturalNever &&

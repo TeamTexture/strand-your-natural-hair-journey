@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toggleWithNone } from "@/lib/healthOptions";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -21,11 +22,13 @@ interface TGProps {
   value: string[];
   onChange: (next: string[]) => void;
   multi?: boolean;
+  /** When set, this option is affirmative and mutually exclusive with the rest. */
+  noneLabel?: string;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
   const toggle = (opt: string) => {
     if (multi) {
-      onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+      onChange(noneLabel ? toggleWithNone(value, opt, noneLabel) : value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
     } else {
       onChange([opt]);
     }
@@ -46,14 +49,16 @@ const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) =>
 
 const ProfileStep3Hair = () => {
   const navigate = useNavigate();
-  const [diameter, setDiameter] = useState(["Medium"]);
-  const [texture, setTexture] = useState(["Rough / crinkly"]);
-  const [density, setDensity] = useState(["High"]);
-  const [porosity, setPorosity] = useState(["High — raised cuticle"]);
-  const [elasticity, setElasticity] = useState(["Strong — stretches and bounces back"]);
-  const [scalp, setScalp] = useState(["Dry"]);
-  const [diagnosed, setDiagnosed] = useState(["Traction alopecia"]);
-  const [areas, setAreas] = useState(["Edges / hairline"]);
+  // No defaults — these are clinical markers taken from the member's
+  // consultation, so a pre-selected answer would be a fabricated diagnosis.
+  const [diameter, setDiameter] = useState<string[]>([]);
+  const [texture, setTexture] = useState<string[]>([]);
+  const [density, setDensity] = useState<string[]>([]);
+  const [porosity, setPorosity] = useState<string[]>([]);
+  const [elasticity, setElasticity] = useState<string[]>([]);
+  const [scalp, setScalp] = useState<string[]>([]);
+  const [diagnosed, setDiagnosed] = useState<string[]>([]);
+  const [areas, setAreas] = useState<string[]>([]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
 
@@ -103,12 +108,12 @@ const ProfileStep3Hair = () => {
             "Telogen effluvium", "Seborrheic dermatitis", "Folliculitis",
             "Scalp psoriasis", "Scalp eczema", "None diagnosed",
           ]}
-          value={diagnosed} onChange={setDiagnosed}
+          value={diagnosed} onChange={setDiagnosed} noneLabel="None diagnosed"
         />
         <TagGroup
           label="Areas of Concern"
           options={["Edges / hairline", "Temples", "Crown", "Nape", "Overall thinning", "None"]}
-          value={areas} onChange={setAreas}
+          value={areas} onChange={setAreas} noneLabel="None"
         />
 
         <HairLengthPicker
@@ -122,6 +127,19 @@ const ProfileStep3Hair = () => {
 
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
+          const gaps: string[] = [];
+          if (diameter.length === 0) gaps.push("strand diameter");
+          if (texture.length === 0) gaps.push("surface texture");
+          if (density.length === 0) gaps.push("density");
+          if (porosity.length === 0) gaps.push("porosity");
+          if (elasticity.length === 0) gaps.push("elasticity");
+          if (scalp.length === 0) gaps.push("scalp condition");
+          if (diagnosed.length === 0) gaps.push("diagnosed conditions");
+          if (areas.length === 0) gaps.push("areas of concern");
+          if (gaps.length > 0) {
+            toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+            return;
+          }
           localStorage.setItem("strand_hair_profile", JSON.stringify({
             diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas,
             length_inches: lengthInches, length_bucket: lengthBucket,

@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils";
 
 const ProGate = () => {
   const navigate = useNavigate();
-  const [choice, setChoice] = useState<"yes" | "no">("yes");
+  // No default — the member must actively answer this. Pre-answering "yes"
+  // silently skipped the booking requirement.
+  const [choice, setChoice] = useState<"yes" | "no" | null>(null);
 
   return (
     <ScreenLayout>
@@ -59,19 +61,27 @@ const ProGate = () => {
           </p>
         </button>
 
+        {!choice && (
+          <p className="text-[12px] font-body text-muted-foreground text-center leading-snug pt-1">
+            Choose one of the two answers above to continue.
+          </p>
+        )}
+
         <Button
           variant="gold"
           size="pill"
           className="mt-4"
-          onClick={() =>
+          disabled={!choice}
+          onClick={() => {
+            if (!choice) return;
             navigate(
               choice === "yes"
                 ? "/onboarding/pro-details"
                 : "/directory?consultation=1",
-            )
-          }
+            );
+          }}
         >
-          {choice === "yes" ? "Continue →" : "See verified professionals →"}
+          {choice === "no" ? "See verified professionals →" : "Continue →"}
         </Button>
         {choice === "no" && (
           <p className="text-[12px] text-muted-foreground text-center leading-snug pt-2">
