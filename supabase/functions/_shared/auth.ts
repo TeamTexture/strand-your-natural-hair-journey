@@ -47,3 +47,44 @@ export async function requireAuthedUser(
   if (!data?.user) return json(401, { error: "unauthorized" });
   return { user: data.user, supabase };
 }
+
+/** True when the caller presented the service role key (server-to-server). */
+export function isServiceRoleCaller(req: Request): boolean {
+  const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!svc) return false;
+  const header = req.headers.get("Authorization") ?? "";
+  const bearer = header.replace(/^Bearer\s+/i, "").trim();
+  const apikey = req.headers.get("apikey")?.trim() ?? "";
+  return bearer === svc || apikey === svc;
+}
+
+/**
+ * Allows trusted server-to-server calls (service role key) OR a signed-in user.
+ * Returns `null` for a service-role caller, `{ user, supabase }` for a member,
+ * or a 401 `Response` the caller should return directly.
+ */
+export async function requireServiceOrAuthedUser(
+  req: Request,
+): Promise<AuthSuccess | null | Response> {
+  if (isServiceRoleCaller(req)) return null;
+  return await requireAuthedUser(req);
+}
+
+/**
+ * Allows trusted server-to-server calls (service role key) OR a signed-in
+ * admin. Returns `null` for a service-role caller, `{ user, supabase }` for an
+ * admin, or a 401/403 `Response`.
+ */
+export async function requireAdminOrService(
+  req: Request,
+): Promise<AuthSuccess | null | Response> {
+  if (isServiceRoleCaller(req)) return null;
+  const auth = await requireAuthedUser(req);
+  if (auth instanceof Response) return auth;
+  const { data, error } = await auth.supabase.rpc("has_role", {
+    _user_id: auth.user.id,
+    _role: "admin",
+  });
+  if (error || data !== true) return json(403, { error: "forbidden" });
+  return auth;
+}
