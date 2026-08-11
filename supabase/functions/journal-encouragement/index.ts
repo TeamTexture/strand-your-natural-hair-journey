@@ -10,6 +10,7 @@
 // - No medical or growth claims.
 // - Two lines, tight word counts, modern voice.
 
+import { requireAuthedUser } from "../_shared/auth.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
@@ -72,6 +73,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Paid AI generation — signed-in members only.
+  const auth = await requireAuthedUser(req);
+  if (auth instanceof Response) return auth;
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
