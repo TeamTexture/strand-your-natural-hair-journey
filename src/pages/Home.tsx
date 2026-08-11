@@ -10,6 +10,7 @@ import MainPhotoPicker from "@/components/style/MainPhotoPicker";
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
+import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
 import ListRow from "@/components/nav/ListRow";
@@ -401,6 +402,7 @@ const Home = () => {
 
   return (
     <ScreenLayout bottomNav>
+      <ProfileReconfirmPrompt />
       {/* greeting */}
       <header className="px-5 pt-3 pb-2 flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
