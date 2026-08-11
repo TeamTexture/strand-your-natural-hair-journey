@@ -22,10 +22,10 @@ interface TGProps {
   onChange: (next: string[]) => void;
   multi?: boolean;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
   const toggle = (opt: string) => {
     if (multi) {
-      onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+      onChange(noneLabel ? toggleWithNone(value, opt, noneLabel) : value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
     } else {
       onChange([opt]);
     }
@@ -105,12 +105,12 @@ const ProfileStep3Hair = () => {
             "Telogen effluvium", "Seborrheic dermatitis", "Folliculitis",
             "Scalp psoriasis", "Scalp eczema", "None diagnosed",
           ]}
-          value={diagnosed} onChange={setDiagnosed}
+          value={diagnosed} onChange={setDiagnosed} noneLabel="None diagnosed"
         />
         <TagGroup
           label="Areas of Concern"
           options={["Edges / hairline", "Temples", "Crown", "Nape", "Overall thinning", "None"]}
-          value={areas} onChange={setAreas}
+          value={areas} onChange={setAreas} noneLabel="None"
         />
 
         <HairLengthPicker

@@ -69,6 +69,20 @@ export const SLEEP_OPTIONS = ["Poor", "Average", "Good"] as const;
  * every other condition. An empty array is not a valid answer — the member has
  * to actively say either what applies or that nothing does.
  */
+export function toggleWithNone(
+  current: string[],
+  option: string,
+  noneLabel: string,
+): string[] {
+  if (option === noneLabel) {
+    return current.includes(noneLabel) ? [] : [noneLabel];
+  }
+  const withoutNone = current.filter((v) => v !== noneLabel);
+  return withoutNone.includes(option)
+    ? withoutNone.filter((v) => v !== option)
+    : [...withoutNone, option];
+}
+
 export function toggleCondition(current: string[], option: string): string[] {
   if (option === CONDITIONS_NONE) {
     return current.includes(CONDITIONS_NONE) ? [] : [CONDITIONS_NONE];
