@@ -18,6 +18,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { markSectionConfirmed } from "@/lib/profileConfirmation";
 import { useAuth } from "@/hooks/useAuth";
 import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
 import {

@@ -7,6 +7,7 @@ import TitleBar from "@/components/TitleBar";
 import LevelGate from "@/components/tips/LevelGate";
 import ReviewField from "@/components/ReviewField";
 import { supabase } from "@/integrations/supabase/client";
+import { markSectionConfirmed } from "@/lib/profileConfirmation";
 import { useAuth } from "@/hooks/useAuth";
 import {
   encryptForStorage,
@@ -63,6 +64,8 @@ const HairReview = () => {
       .upsert({ user_id: user.id, ...patch }, { onConflict: "user_id" });
     if (error) throw error;
     invalidate();
+    // Saving here counts as the member confirming this section in her own words.
+    void markSectionConfirmed(user.id, "hair");
     toast.success("Saved");
   };
 
