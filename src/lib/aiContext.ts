@@ -85,6 +85,10 @@ export interface AiContext {
   }>;
   /** Support scale 1–4. Drives how verbose / beginner-friendly AI copy is. */
   tipsLevel: TipsLevel;
+  /** False while the member has never confirmed her own profile answers (some
+   *  were pre-filled by an earlier onboarding). Prompts must then hedge —
+   *  state what is on record rather than asserting it is true of her hair. */
+  profileConfirmed: boolean;
   shelf: Array<Record<string, unknown>>;
   tools: Array<Record<string, unknown>>;
   wishlist: Array<Record<string, unknown>>;
@@ -386,6 +390,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
   }
 
   // Support level — DB is source of truth, localStorage is the fast fallback.
+  let profileConfirmed = false;
   let tipsLevel: TipsLevel = DEFAULT_TIPS_LEVEL;
   try {
     const cached = typeof window === "undefined" ? null : localStorage.getItem(TIPS_LEVEL_STORAGE_KEY);
@@ -393,10 +398,13 @@ async function buildAiContextUncached(): Promise<AiContext> {
     if (userId) {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("tips_level")
+        .select("tips_level, profile_confirmed_at")
         .eq("user_id", userId)
         .maybeSingle();
-      if (prof) tipsLevel = coerceTipsLevel(prof.tips_level);
+      if (prof) {
+        tipsLevel = coerceTipsLevel(prof.tips_level);
+        profileConfirmed = !!prof.profile_confirmed_at;
+      }
     }
   } catch {
     tipsLevel = DEFAULT_TIPS_LEVEL;
@@ -502,6 +510,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
       return out;
     })(),
     tipsLevel,
+    profileConfirmed,
     shelf,
     tools,
     wishlist,
