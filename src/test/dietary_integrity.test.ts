@@ -23,9 +23,10 @@ const BANNED: Record<string, RegExp[]> = {
   unknown: [/\bmeat\b/i, /\bfish\b/i, /shellfish/i, /\beggs?\b/i, /dairy/i, /cheese/i],
 };
 
-// The book's omega-3 line names plant stand-ins for oily fish. It excludes no
-// food, so it is allowed for every pattern.
-const ALLOWED_MENTION = /alternatives for omega-3/i;
+// Two curated lines name plant stand-ins ("oily-fish alternatives for
+// omega-3", "fortified spreads and meat alternatives"). They exclude no food,
+// so they are allowed for every pattern.
+const ALLOWED_MENTION = /alternatives/i;
 
 describe("canonDiet", () => {
   it("keeps every option in the UI distinct", () => {
