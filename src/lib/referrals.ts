@@ -45,7 +45,10 @@ export async function logReferralClick(params: {
   }
 }
 
-/** Log an attribution event (enquiry sent, or enquiry → booked appointment). */
+/** Log an attribution event (enquiry sent, or enquiry → booked appointment).
+ *  Goes through the `log_referral_attribution` routine so the row is always
+ *  stamped with the signed-in member, carries no monetary values, and can only
+ *  reference the member's own enquiry / appointment. */
 export async function logReferralAttribution(params: {
   eventType: "enquiry" | "booking";
   proUserId?: string | null;
@@ -55,17 +58,17 @@ export async function logReferralAttribution(params: {
 }) {
   try {
     const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return;
-    await supabase.from("pro_referral_attributions").insert({
-      consumer_id: userId,
-      pro_user_id: params.proUserId ?? null,
-      directory_id: params.directoryId ?? null,
-      enquiry_id: params.enquiryId ?? null,
-      appointment_id: params.appointmentId ?? null,
-      event_type: params.eventType,
-    });
+    if (!auth.user?.id) return;
+    const { error } = await supabase.rpc("log_referral_attribution" as never, {
+      p_event_type: params.eventType,
+      p_pro_user_id: params.proUserId ?? null,
+      p_directory_id: params.directoryId ?? null,
+      p_enquiry_id: params.enquiryId ?? null,
+      p_appointment_id: params.appointmentId ?? null,
+    } as never);
+    if (error) throw error;
   } catch (err) {
     console.warn("referral attribution log failed", err);
   }
 }
+
