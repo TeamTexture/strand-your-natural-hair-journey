@@ -41,6 +41,7 @@ import {
   recordAdvice,
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
+import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -195,6 +196,8 @@ Deno.serve(async (req) => {
   const { data: userData } = await userClient.auth.getUser();
   const user = userData?.user;
   if (!user) return json(401, { error: "unauthenticated" });
+  // Paid feature: a lapsed membership loses AI guidance.
+  if (!(await isEntitled(user.id))) return membershipRequired();
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   let body: Body;

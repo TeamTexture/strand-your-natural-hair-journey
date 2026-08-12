@@ -6,7 +6,7 @@
 // the schema is smaller — see _shared/tool-schema.ts.
 
 import { corsHeaders } from "../_shared/cors.ts";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";

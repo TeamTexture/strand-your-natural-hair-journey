@@ -34,9 +34,12 @@ export function useMyProfile() {
   return useQuery({
     queryKey: myProfileKey(user?.id),
     enabled: !!user?.id,
-    staleTime: 5 * 60_000,
+    // Entitlement lives on this row (complimentary_access), so it revalidates
+    // on focus — an access switch-off must be noticed in-session.
+    staleTime: 30_000,
     gcTime: 30 * 60_000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+
     queryFn: async (): Promise<MyProfileRow | null> => {
       const { data, error } = await withAuthLockRetry(() =>
         supabase.from("profiles").select(COLUMNS).eq("user_id", user!.id).maybeSingle(),

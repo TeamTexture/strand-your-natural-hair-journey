@@ -20,10 +20,12 @@ export const CONTRACEPTION_OPTIONS = [
   "Hormonal pill",
   "IUD hormonal",
   "Implant",
+  "Depo Provera injection",
   "HRT",
   "Fertility treatment",
   "None non-hormonal",
 ] as const;
+
 
 /** The affirmative "nothing applies" answer for the multi-select condition list. */
 export const CONDITIONS_NONE = "None";
@@ -49,7 +51,14 @@ export const DIET_BALANCE_OPTIONS = [
   "Limited / restricted",
 ] as const;
 
-export const SMOKE_OPTIONS = ["No", "Occasionally", "Regularly", "Ex-smoker"] as const;
+export const SMOKE_OPTIONS = [
+  "No",
+  "Occasionally",
+  "Regularly",
+  "Vape",
+  "Ex-smoker",
+] as const;
+
 
 export const ALCOHOL_OPTIONS = ["None", "Light social", "Moderate", "Heavy"] as const;
 

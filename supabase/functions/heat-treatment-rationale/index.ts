@@ -12,7 +12,7 @@
 //      → now surfaces a real error via aiErrorResponse
 
 import { json, preflight } from "../_shared/cors.ts";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";

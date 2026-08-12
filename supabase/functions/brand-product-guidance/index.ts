@@ -12,7 +12,7 @@
 // unchanged.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { BLOOD_CLAIM_RULES, VERBATIM_VALUE_RULE } from "../_shared/blood-guardrail.ts";
@@ -564,7 +564,7 @@ Deno.serve(async (req) => {
 
   let auth: Awaited<ReturnType<typeof requireAuthedUser>> | null = null;
   if (!isServiceCall) {
-    auth = await requireAuthedUser(req);
+    auth = await requireAuthedUser(req, { allowBrand: true });
     if (auth instanceof Response) return auth;
   }
 

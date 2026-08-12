@@ -136,36 +136,22 @@ const Discounts = () => {
           </>
         )}
 
-        <SectionLabel>Water & wash day</SectionLabel>
-        <OfferCard
-          icon={Droplets}
-          brand="Hello Klean"
-          tagline="Shower filter — softens water"
-          blurb="A shower filter that reduces mineral load at the tap. Especially helpful if you live in a hard-water area — less build-up on the strand, softer curls between clarifying washes."
-          code={HELLO_KLEAN_CODE}
-          url={HELLO_KLEAN_URL}
-          cta="Shop Hello Klean"
-        />
+        {/*
+          Hello Klean, Daye and Lola Health are hidden until their partnerships
+          are signed off. The codes and URLs stay in this file so the cards can
+          be switched back on — do not delete them.
+        */}
 
-        <SectionLabel>Wellbeing</SectionLabel>
-        <OfferCard
-          icon={Flower2}
-          brand="Daye"
-          tagline="Gynae health & period care"
-          blurb="Clean-ingredient tampons and diagnostics from a women-led gynae health company. Small everyday choices that support the wider hormonal picture."
-          code={DAYE_CODE}
-          url={DAYE_URL}
-          cta="Shop Daye"
-        />
-        <OfferCard
-          icon={HeartPulse}
-          brand="Lola Health"
-          tagline="At-home blood testing"
-          blurb="Home blood panels for the markers that matter to hair — iron, ferritin, thyroid, vitamin D. Results you can drop straight into your STRAND blood history."
-          code={LOLA_HEALTH_CODE}
-          url={LOLA_HEALTH_URL}
-          cta="Shop Lola Health"
-        />
+        {(proOffers?.length ?? 0) === 0 && (brandOffers?.length ?? 0) === 0 && (
+          <div className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
+            <p className="font-body text-[12.5px] text-foreground/75 leading-relaxed">
+              No offers just now. New partner discounts land here as they go live — we'll let you
+              know when they do.
+            </p>
+          </div>
+        )}
+
+
 
         <p className="text-[10.5px] font-body text-muted-foreground text-center pt-2">
           Discount codes are provided by partners and may change. If a code stops working, let us

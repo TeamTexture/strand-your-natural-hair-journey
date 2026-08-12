@@ -16,7 +16,7 @@
 // Lovable AI Gateway, structured output via tool calling.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import {
