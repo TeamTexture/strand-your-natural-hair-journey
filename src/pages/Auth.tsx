@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import PasswordField from "@/components/PasswordField";
 import PasswordErrorNotice from "@/components/PasswordErrorNotice";
+import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -74,9 +75,14 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
+  // Post-signup booking step: the two booking routes are only offered once the
+  // account actually exists, never before.
+  const [justCreated, setJustCreated] = useState(false);
+  const [bloodSheetOpen, setBloodSheetOpen] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   useEffect(() => {
+    if (justCreated) return;
     if (!authLoading && user) {
       // If already signed in, send to the welcome gate so multi-role users
       // (consumer + pro + admin) can pick which area to enter.
@@ -85,7 +91,7 @@ const Auth = () => {
         navigate(target, { replace: true });
       })();
     }
-  }, [authLoading, user, navigate, params]);
+  }, [authLoading, user, navigate, params, justCreated]);
 
 
   const passwordsMatch = mode !== "signup" || password === confirmPassword;
@@ -193,7 +199,7 @@ const Auth = () => {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
         }
         toast.success("Welcome to Strand");
-        navigate("/setup", { replace: true });
+        setJustCreated(true);
         return;
       } else {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -219,6 +225,46 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  if (justCreated) {
+    return (
+      <ScreenLayout>
+        <TitleBar title="Account created" />
+        <div className="px-7 pt-2 pb-10 flex flex-col h-full">
+          <div className="flex flex-col items-center text-center mb-7">
+            <HairStrandIcon className="h-12 w-auto text-primary mb-4" />
+            <h2 className="font-display text-[22px] text-foreground">You're in</h2>
+            <p className="mt-1.5 font-body text-[13px] text-muted-foreground max-w-[260px] leading-snug">
+              STRAND unlocks with a blood test from the last 6 months and a professional
+              consultation from the last 3. Book what you still need — you can do this now or later.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Button variant="gold" size="pill" onClick={() => setBloodSheetOpen(true)}>
+              Book a blood test →
+            </Button>
+            <Button variant="gold" size="pill" onClick={() => navigate("/directory")}>
+              Book a consultation →
+            </Button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate("/setup", { replace: true })}
+            className="mt-6 text-center text-xs text-primary hover:underline"
+          >
+            Skip for now — continue setting up
+          </button>
+        </div>
+        <BloodTestRoutesSheet
+          open={bloodSheetOpen}
+          onOpenChange={setBloodSheetOpen}
+          reason="Two ways to get your bloods done."
+        />
+      </ScreenLayout>
+    );
+  }
 
   return (
     <ScreenLayout>
