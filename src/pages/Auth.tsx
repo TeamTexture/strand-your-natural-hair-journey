@@ -225,6 +225,46 @@ const Auth = () => {
     }
   };
 
+  if (justCreated) {
+    return (
+      <ScreenLayout>
+        <TitleBar title="Account created" />
+        <div className="px-7 pt-2 pb-10 flex flex-col h-full">
+          <div className="flex flex-col items-center text-center mb-7">
+            <HairStrandIcon className="h-12 w-auto text-primary mb-4" />
+            <h2 className="font-display text-[22px] text-foreground">You're in</h2>
+            <p className="mt-1.5 font-body text-[13px] text-muted-foreground max-w-[260px] leading-snug">
+              STRAND unlocks with a blood test from the last 6 months and a professional
+              consultation from the last 3. Book what you still need — you can do this now or later.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Button variant="gold" size="pill" onClick={() => setBloodSheetOpen(true)}>
+              Book a blood test →
+            </Button>
+            <Button variant="gold" size="pill" onClick={() => navigate("/directory")}>
+              Book a consultation →
+            </Button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate("/setup", { replace: true })}
+            className="mt-6 text-center text-xs text-primary hover:underline"
+          >
+            Skip for now — continue setting up
+          </button>
+        </div>
+        <BloodTestRoutesSheet
+          open={bloodSheetOpen}
+          onOpenChange={setBloodSheetOpen}
+          reason="Two ways to get your bloods done."
+        />
+      </ScreenLayout>
+    );
+  }
+
   return (
     <ScreenLayout>
       <TitleBar title={mode === "signup" ? "Create your account" : "Welcome back"} back />
