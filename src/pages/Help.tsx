@@ -242,6 +242,43 @@ const Help = () => {
         </p>
       </div>
 
+      {/* Walkthroughs */}
+      <SectionLabel>Walkthroughs</SectionLabel>
+      <div className="px-5 pb-2">
+        <p className="font-body text-sm text-foreground/85 leading-snug">
+          Short videos on how each part of STRAND works — rewatch any time.
+        </p>
+        <SurfaceCard tone="gold" className="mt-2.5">
+          <p className="text-[12px] text-foreground/85 leading-snug">
+            The first two cover registering your account and your blood test.
+            Watch those before anything else.
+          </p>
+        </SurfaceCard>
+      </div>
+      <div className="px-5 pb-3 space-y-3">
+        {WALKTHROUGHS.map((w, idx) => (
+          <SurfaceCard key={w.id} className="overflow-hidden p-0">
+            <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+              <iframe
+                src={w.embedUrl}
+                title={`${w.category} — ${w.title}`}
+                loading="lazy"
+                allowFullScreen
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            </div>
+            <div className="p-4">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-primary font-medium">
+                {idx + 1}. {w.category}
+              </p>
+              <p className="text-sm font-semibold leading-tight mt-1">
+                {w.title}
+              </p>
+            </div>
+          </SurfaceCard>
+        ))}
+      </div>
+
       {/* About STRAND */}
       <SectionLabel>About STRAND</SectionLabel>
       <div className="px-5 pb-3">
