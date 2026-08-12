@@ -6774,6 +6774,16 @@ export type Database = {
         Args: { _salon_id: string; _user_id?: string }
         Returns: boolean
       }
+      log_referral_attribution: {
+        Args: {
+          p_appointment_id?: string
+          p_directory_id?: string
+          p_enquiry_id?: string
+          p_event_type: string
+          p_pro_user_id?: string
+        }
+        Returns: undefined
+      }
       manuscript_chapters: {
         Args: { chapter_numbers: number[] }
         Returns: {
@@ -6877,30 +6887,18 @@ export type Database = {
       pro_treatment_clients: { Args: never; Returns: Json }
       purge_ad_events: { Args: never; Returns: number }
       queue_appointment_reminders: { Args: never; Returns: number }
-      record_ad_event:
-        | {
-            Args: {
-              p_brand_product_id?: string
-              p_event_type?: string
-              p_match_reason?: Json
-              p_offer_id?: string
-              p_slot?: string
-              p_was_matched?: boolean
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_brand_product_id?: string
-              p_event_type?: string
-              p_match_reason?: Json
-              p_offer_id?: string
-              p_slot?: string
-              p_unit?: string
-              p_was_matched?: boolean
-            }
-            Returns: undefined
-          }
+      record_ad_event: {
+        Args: {
+          p_brand_product_id?: string
+          p_event_type?: string
+          p_match_reason?: Json
+          p_offer_id?: string
+          p_slot?: string
+          p_unit?: string
+          p_was_matched?: boolean
+        }
+        Returns: undefined
+      }
       record_consents: {
         Args: {
           _consents: Json
