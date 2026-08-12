@@ -560,7 +560,7 @@ const Directory = () => {
                     Book consultation
                   </button>
                 )}
-                {p.instaUrl && (
+                {consultHref && (
                   <p className="mt-2 text-center text-[10px] text-muted-foreground">
                     Opens {p.name}'s own booking page
                   </p>
