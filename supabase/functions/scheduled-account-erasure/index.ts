@@ -49,8 +49,13 @@ const MEMBER_BUCKETS = [
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
-  // Server-to-server only. No member or admin can trigger an erasure run.
-  if (!isServiceRoleCaller(req)) return json(401, { error: "unauthorized" });
+  // Server-to-server only: the scheduler presents a shared token, or a trusted
+  // service-role caller invokes it directly. No member or admin can trigger a run.
+  const token = Deno.env.get("ACCOUNT_ERASURE_TOKEN") ?? "";
+  const presented = req.headers.get("x-erasure-token") ?? "";
+  const scheduled = !!token && presented === token;
+  if (!scheduled && !isServiceRoleCaller(req)) return json(401, { error: "unauthorized" });
+
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
