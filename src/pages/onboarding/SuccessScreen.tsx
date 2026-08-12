@@ -6,10 +6,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { clearOnboardingDrafts } from "@/hooks/useOnboardingDraft";
 import { stampProfileConfirmedOnOnboarding } from "@/lib/profileConfirmation";
+import ActivatingMembership from "@/components/ActivatingMembership";
+import { useMembershipActivation } from "@/hooks/useMembershipActivation";
+
+// Where a new member lands once their membership is confirmed.
+const LANDING = "/nutrition-plan";
 
 const SuccessScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  // Ask Stripe for the truth rather than waiting on the webhook.
+  const { state, hasAccess, retry } = useMembershipActivation(true);
 
   // Mark onboarding complete on the profile so the next login skips onboarding.
   useEffect(() => {
@@ -28,28 +35,34 @@ const SuccessScreen = () => {
     clearOnboardingDrafts();
   }, []);
 
-
-
-  // Primary CTA — go into the app and trigger the guided home tour on arrival.
+  // Primary CTA — run the feature-highlight intro, then land on nutrition.
+  // The anchored home tour flag stays set so it still fires the first time the
+  // member opens Home.
   const handleContinue = () => {
-    localStorage.setItem("strand_walkthrough_complete", "true");
-    // Clear old + new tour flags so returning users also get the refreshed tour once.
     localStorage.removeItem("strand_home_tour_seen_v1");
     localStorage.removeItem("strand_home_tour_seen_v2");
+    localStorage.removeItem("strand_home_tour_seen_v3");
     localStorage.setItem("strand_home_tour_pending", "1");
-    navigate("/home", { replace: true });
+    navigate("/walkthrough", { replace: true, state: { returnTo: LANDING } });
   };
 
-  const handleTakeTour = () => {
-    navigate("/walkthrough", { state: { returnTo: "/home" } });
+  const handleSkip = () => {
+    localStorage.setItem("strand_walkthrough_complete", "true");
+    localStorage.setItem("strand_home_tour_pending", "1");
+    navigate(LANDING, { replace: true });
   };
 
-  // Auto-route forward after a moment so the success screen still feels celebratory
+  // Auto-forward only once access is actually confirmed — never blind.
   useEffect(() => {
+    if (!hasAccess) return;
     const t = window.setTimeout(handleContinue, 2200);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasAccess]);
+
+  if (state !== "active") {
+    return <ActivatingMembership stuck={state === "stuck"} onRetry={retry} />;
+  }
 
   return (
     <ScreenLayout>
@@ -68,10 +81,10 @@ const SuccessScreen = () => {
         </Button>
         <button
           type="button"
-          onClick={handleTakeTour}
+          onClick={handleSkip}
           className="mt-3 font-body text-[13px] text-primary hover:underline underline-offset-4 self-center min-h-[44px] px-2"
         >
-          Take a quick tour of STRAND
+          Skip the intro
         </button>
       </div>
     </ScreenLayout>

@@ -1,22 +1,21 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Users, BookOpen, Calendar, MessageCircle, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import { Button } from "@/components/ui/button";
 import HairStrandIcon from "@/components/HairStrandIcon";
-import { usePlusAccess } from "@/hooks/usePlusAccess";
-
-const LINKS = [
-  { icon: Users, label: "Community forum", to: "/forum" },
-  { icon: MessageCircle, label: "Messages", to: "/messages" },
-  { icon: BookOpen, label: "Library", to: "/plus/library" },
-  { icon: Calendar, label: "Events", to: "/plus/events" },
-];
+import ActivatingMembership from "@/components/ActivatingMembership";
+import { useMembershipActivation } from "@/hooks/useMembershipActivation";
 
 const PlusWelcome = () => {
   const nav = useNavigate();
-  const { refetch } = usePlusAccess();
-  useEffect(() => { refetch(); }, [refetch]);
+  // Verify with Stripe directly — do not wait for the webhook, and do not
+  // navigate into a gated route until access is confirmed.
+  const { state, retry } = useMembershipActivation(true);
+
+  if (state !== "active") {
+    return <ActivatingMembership stuck={state === "stuck"} onRetry={retry} />;
+  }
+
   return (
     <ScreenLayout>
       <div className="px-5 pt-10 pb-10 text-center space-y-5">
@@ -35,22 +34,7 @@ const PlusWelcome = () => {
         <p className="font-body text-[13.5px] text-foreground/70 leading-relaxed max-w-[300px] mx-auto">
           The community, courses, events and members-only chat are all live for you now.
         </p>
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          {LINKS.map((l) => {
-            const Icon = l.icon;
-            return (
-              <button
-                key={l.to}
-                onClick={() => nav(l.to)}
-                className="rounded-[14px] p-4 border border-border bg-card text-left hover:bg-muted/40 transition-colors"
-              >
-                <Icon className="size-5 text-primary mb-1.5" />
-                <p className="font-body text-[12.5px] font-semibold leading-tight">{l.label}</p>
-              </button>
-            );
-          })}
-        </div>
-        <Button variant="gold" size="pill" className="w-full" onClick={() => nav("/home")}>
+        <Button variant="gold" size="pill" className="w-full" onClick={() => nav("/nutrition-plan")}>
           <span className="inline-flex items-center gap-2">Continue to STRAND <ArrowRight className="size-4" /></span>
         </Button>
       </div>
