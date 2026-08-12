@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { verifyConsumerMembership } from "@/lib/membershipVerify";
+import ActivatingMembership from "@/components/ActivatingMembership";
+
 import {
   CreditCard,
   CheckCircle2,
@@ -133,6 +138,9 @@ const Subscribe = () => {
   });
 
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
+  const [activationStuck, setActivationStuck] = useState(false);
+  const qc = useQueryClient();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (isSafeInternalPath(nextPath)) {
@@ -144,7 +152,6 @@ const Subscribe = () => {
     const c = params.get("checkout");
     if (c === "success") {
       toast.success("Welcome to STRAND. Your membership is active.");
-      refetch();
       params.delete("checkout");
       setParams(params, { replace: true });
     } else if (c === "cancelled") {
@@ -155,12 +162,11 @@ const Subscribe = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // After a successful Stripe checkout the webhook can take a few seconds to
-  // record the subscription. Poll until access lands, then send the member
-  // straight on to the next step (their blood-work analysis) instead of
-  // leaving them stranded on the membership page.
+  // Stripe redirects back before the webhook has written the row, so we ask
+  // Stripe directly and invalidate the paywall's own cache key. A paid member
+  // is held here until access is confirmed — never dropped on the paywall.
   useEffect(() => {
-    if (!confirming) return;
+    if (!confirming || activationStuck) return;
     const target = isSafeInternalPath(nextPath)
       ? nextPath
       : isSafeInternalPath(storedNextPath)
@@ -174,14 +180,21 @@ const Subscribe = () => {
       nav(target, { replace: true });
       return;
     }
-    const poll = window.setInterval(() => refetch(), 2000);
-    const giveUp = window.setTimeout(() => setConfirming(false), 25000);
+    void verifyConsumerMembership(qc, user?.id);
+    const poll = window.setInterval(() => void verifyConsumerMembership(qc, user?.id), 2500);
+    const giveUp = window.setTimeout(() => setActivationStuck(true), 10000);
     return () => {
       window.clearInterval(poll);
       window.clearTimeout(giveUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirming, hasAccess]);
+  }, [confirming, hasAccess, activationStuck]);
+
+  const retryActivation = () => {
+    setActivationStuck(false);
+    setConfirming(true);
+  };
+
 
 
   const startCheckout = async () => {
@@ -277,8 +290,14 @@ const Subscribe = () => {
   if (roleLoading) return <LoadingDot />;
   if (!canUpgrade) return <Navigate to={homePath} replace />;
 
+  // Paid but not yet confirmed — recovery screen, never the paywall.
+  if (activationStuck) {
+    return <ActivatingMembership stuck onRetry={retryActivation} />;
+  }
+
   // Post-payment interstitial — celebratory, then straight into the app.
   if (confirming) {
+
     return (
       <ScreenLayout>
         <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-4">

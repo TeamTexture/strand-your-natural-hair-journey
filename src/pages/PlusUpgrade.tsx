@@ -31,9 +31,15 @@ const PlusUpgrade = () => {
     refetch();
   }, [refetch, searchParams]);
 
+  // Returning from Stripe: hand straight over to the welcome screen, which
+  // verifies with Stripe rather than waiting on the webhook. Never leave a
+  // member who has just paid sitting on the upgrade page.
   useEffect(() => {
-    if (hasPlus) nav("/plus/welcome?checkout=success", { replace: true });
-  }, [hasPlus, nav]);
+    if (searchParams.get("checkout") === "success" || hasPlus) {
+      nav("/plus/welcome?checkout=success", { replace: true });
+    }
+  }, [hasPlus, nav, searchParams]);
+
 
   const upgrade = async () => {
     setBusy(true);
