@@ -509,11 +509,69 @@ const Directory = () => {
         {!isOwn && (() => {
           const tier = p.listingTier ?? (p.proUserId ? "full" : "external_link");
           const websiteHref = p.website ? normalizeWebsiteUrl(p.website) : "";
+          const bookingHref = p.bookingUrl
+            ? normalizeWebsiteUrl(p.bookingUrl) || ""
+            : "";
 
-          // ONE front door to booking: every listing offers the same
-          // in-app "Enquire now" action. The professional's external
-          // booking link is never a CTA here — it surfaces inside the
-          // enquiry thread once they accept.
+          // PRE-ACCESS: one action only — "Book consultation" — pointing at the
+          // professional's own booking link (their website is the fallback).
+          // In-app enquiries need a membership, so they're not offered here.
+          if (preAccess) {
+            const consultHref = bookingHref || websiteHref;
+            const trackTarget = p.proUserId ?? p.directoryId ?? p.id;
+            return (
+              <div className="mt-3">
+                {consultHref ? (
+                  <a
+                    href={buildTrackedUrl(consultHref, trackTarget)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      void logReferralClick({
+                        targetUrl: consultHref,
+                        proUserId: p.proUserId ?? null,
+                        directoryId: p.directoryId ?? null,
+                      });
+                    }}
+                    className="w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                  >
+                    Book consultation
+                  </a>
+                ) : p.businessEmail ? (
+                  <a
+                    href={`mailto:${p.businessEmail}?subject=Consultation%20enquiry`}
+                    className="w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                  >
+                    Book consultation
+                  </a>
+                ) : p.businessPhone ? (
+                  <a
+                    href={`tel:${p.businessPhone.replace(/\s+/g, "")}`}
+                    className="w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-primary text-primary-foreground rounded-md font-medium min-h-[44px] flex items-center justify-center text-center"
+                  >
+                    Book consultation
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toast("Booking details coming soon")}
+                    className="w-full py-2 text-[11px] uppercase tracking-[0.1em] bg-secondary/60 text-muted-foreground rounded-md min-h-[44px]"
+                  >
+                    Book consultation
+                  </button>
+                )}
+                {p.instaUrl && (
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground">
+                    Opens {p.name}'s own booking page
+                  </p>
+                )}
+              </div>
+            );
+          }
+
+          // MEMBERS: ONE front door to booking — the in-app enquiry. The
+          // professional's external booking link surfaces inside the thread
+          // once they accept.
           const enquireAction =
             tier === "full" && (p.proUserId || p.proProfileId) && canEnquire ? (
               <ProContactAction
@@ -542,6 +600,7 @@ const Directory = () => {
                 Enquire now
               </button>
             ) : null;
+
 
           return (
             <div
