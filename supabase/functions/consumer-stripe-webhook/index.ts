@@ -114,6 +114,13 @@ async function upsertFromSubscription(
   const periodEnd = (item as any)?.current_period_end ?? (sub as any).current_period_end ?? null;
   const tier = await tierForPrice(stripe, priceId);
 
+  // PAUSE TRAP — Stripe leaves `status` as `active` while collection is paused,
+  // so the pause is persisted separately and entitlement reads that flag.
+  const pause = (sub as any).pause_collection as
+    | { behavior?: string; resumes_at?: number | null }
+    | null
+    | undefined;
+
   await admin.from("consumer_subscriptions").upsert(
     {
       user_id: userId,
@@ -124,7 +131,12 @@ async function upsertFromSubscription(
       price_id: priceId,
       cancel_at_period_end: sub.cancel_at_period_end ?? false,
       tier,
+      paused: !!pause,
+      pause_resumes_at: pause?.resumes_at
+        ? new Date(pause.resumes_at * 1000).toISOString()
+        : null,
     },
     { onConflict: "user_id" },
   );
 }
+

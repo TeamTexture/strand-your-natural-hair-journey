@@ -25,6 +25,22 @@ export function subscriptionGrantsAccess(
   return false;
 }
 
+/**
+ * PAUSE TRAP — Stripe's `pause_collection` leaves `status` as `active`, so a
+ * paused member would otherwise keep free access to paid AI work. The persisted
+ * `paused` flag is read first and always wins over status.
+ */
+export function rowGrantsAccess(row: {
+  status?: string | null;
+  current_period_end?: string | null;
+  paused?: boolean | null;
+} | null | undefined): boolean {
+  if (!row) return false;
+  if (row.paused) return false;
+  return subscriptionGrantsAccess(row.status, row.current_period_end ?? null);
+}
+
+
 export interface EntitlementOptions {
   /** Allow brand accounts through (brand-facing AI surfaces only). */
   allowBrand?: boolean;
@@ -41,22 +57,34 @@ export async function isEntitled(
 
   const [{ data: roles }, { data: profile }, { data: sub }] = await Promise.all([
     admin.from("user_roles").select("role").eq("user_id", userId),
-    admin.from("profiles").select("complimentary_access").eq("user_id", userId).maybeSingle(),
+    admin
+      .from("profiles")
+      .select("complimentary_access, deletion_requested_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
     admin
       .from("consumer_subscriptions")
-      .select("status, current_period_end")
+      .select("status, current_period_end, paused")
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
 
+  const prof = profile as
+    | { complimentary_access?: boolean; deletion_requested_at?: string | null }
+    | null;
+  // A member who has asked for erasure has no app access while the request stands.
+  if (prof?.deletion_requested_at) return false;
+
   const roleSet = new Set(((roles ?? []) as { role: string }[]).map((r) => r.role));
   if (roleSet.has("admin") || roleSet.has("professional")) return true;
   if (opts.allowBrand && roleSet.has("brand")) return true;
-  if ((profile as { complimentary_access?: boolean } | null)?.complimentary_access) return true;
+  if (prof?.complimentary_access) return true;
 
-  const row = sub as { status?: string; current_period_end?: string | null } | null;
-  return subscriptionGrantsAccess(row?.status, row?.current_period_end ?? null);
+  return rowGrantsAccess(
+    sub as { status?: string; current_period_end?: string | null; paused?: boolean } | null,
+  );
 }
+
 
 /** The 402 body a lapsed member gets back. */
 export function membershipRequired(): Response {

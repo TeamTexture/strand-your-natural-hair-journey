@@ -11,15 +11,14 @@ import { CONSENT_DOCUMENT_VERSION } from "@/lib/consent";
  * marked placeholder listing what they must cover. They must be drafted by a
  * solicitor.
  *
- * INTERIM DOCUMENTS — the other five documents (Terms of Service, Privacy Policy,
- * Medical Disclaimer, How we use health information, and the Professional Data
- * Handling Undertaking) are STRAND's own interim wording and are PENDING
- * SOLICITOR REVIEW. They must be reviewed and signed off by a qualified
- * solicitor before publishing.
+ * The other five documents (Terms of Service, Privacy Policy, Medical
+ * Disclaimer, How we use health information, and the Professional Data Handling
+ * Undertaking) have been reviewed and are the published wording.
  *
- * Company details, ICO status, data region, retention periods and the liability
- * cap are all filled in. No square-bracket placeholders remain in any of the five
- * documents. Do not ship a document with a bracket still in it.
+ * Company details, ICO registration (ZC216631, registered 7 August 2026), data
+ * region, retention periods and the liability cap are all filled in. No
+ * square-bracket placeholders remain in any of the five documents. Do not ship a
+ * document with a bracket still in it.
  *
  * When the final wording lands, bump CONSENT_DOCUMENT_VERSION so every member
  * is asked to accept the new version.
@@ -27,6 +26,7 @@ import { CONSENT_DOCUMENT_VERSION } from "@/lib/consent";
  * Paragraph text is verbatim. A leading `**label**` in a paragraph renders bold;
  * nothing else in the text is transformed.
  */
+
 interface LegalDoc {
   title: string;
   lastUpdated: string;
@@ -161,7 +161,9 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Who is responsible for your data",
         body: [
-          `Team Texture Ltd, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE, is the data controller for the personal data described here. Our registration with the Information Commissioner's Office is pending.`,
+          `Team Texture Ltd, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE, is the data controller for the personal data described here. We are registered with the Information Commissioner's Office under registration reference ZC216631, registered on 7 August 2026.`,
+          `The ICO keeps a public register of data controllers, which is searchable at ico.org.uk, so you can check our registration yourself at any time.`,
+
           `For any question about your data, or to exercise a right, contact info@teamtexture.co.uk or use the data protection complaint form in the app.`,
         ],
       },

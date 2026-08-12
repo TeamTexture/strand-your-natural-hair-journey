@@ -7,6 +7,8 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import AccountControls from "@/components/AccountControls";
+
 import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
@@ -139,6 +141,11 @@ const DataAccess = () => {
         )}
       </div>
 
+      {/* Membership controls and the member's own right to erasure. */}
+      <div className="px-5 pb-8">
+        <AccountControls />
+      </div>
+
       {/* Statutory route to complain about how we handle personal data. */}
       <div className="px-5 pb-8">
         <button
@@ -162,6 +169,7 @@ const DataAccess = () => {
           </SurfaceCard>
         </button>
       </div>
+
 
 
 
