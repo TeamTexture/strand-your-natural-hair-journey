@@ -194,7 +194,7 @@ const Subscribe = () => {
   // actually has access must not be left staring at the membership page —
   // forward them to where they were headed, or to their blood analysis.
   useEffect(() => {
-    if (confirming || accessLoading || !hasAccess) return;
+    if (confirming || isLoading || !hasAccess) return;
     const pending = isSafeInternalPath(nextPath)
       ? nextPath
       : isSafeInternalPath(storedNextPath)
@@ -206,7 +206,7 @@ const Subscribe = () => {
     } catch {}
     nav(pending === "/subscribe" ? POST_PAYMENT_ANALYSIS_PATH : pending, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirming, hasAccess, accessLoading]);
+  }, [confirming, hasAccess, isLoading]);
 
 
   const retryActivation = () => {
