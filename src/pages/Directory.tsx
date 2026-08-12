@@ -62,6 +62,14 @@ const Directory = () => {
   // Booking a professional is not a member-only feature: professionals are also
   // end users and must be able to enquire with their peers.
   const canEnquire = memberActions || allowsProFeatures(roleView);
+  // PRE-ACCESS BROWSING (signed out, or signed up but not yet through
+  // onboarding/payment). In-app enquiries aren't available to them, so the card
+  // offers ONE action: book a consultation on the professional's own booking
+  // link. While membership is still resolving we assume access, so an existing
+  // member never sees the pre-access CTA flash.
+  const { hasAccess, isLoading: membershipLoading } = useConsumerSubscription();
+  const preAccess = !user || (!membershipLoading && !hasAccess);
+
 
   const navigate = useNavigate();
   const [showTop, setShowTop] = useState(false);
