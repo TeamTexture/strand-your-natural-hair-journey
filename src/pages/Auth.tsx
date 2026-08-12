@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import PasswordField from "@/components/PasswordField";
 import PasswordErrorNotice from "@/components/PasswordErrorNotice";
+import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
