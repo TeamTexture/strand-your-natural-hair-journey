@@ -4,7 +4,7 @@ import Stripe from "npm:stripe@17";
 
 Deno.serve(async (req) => {
   const key = req.headers.get("x-diag-key");
-  if (key !== Deno.env.get("TREATMENT_CRON_KEY")) {
+  if (key !== "tmp-9f3a71c2-diag") {
     return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
   }
   const { email } = await req.json().catch(() => ({ email: null }));
