@@ -12,7 +12,7 @@
 // brand-product-guidance (ToolGuidanceCard), so the two never contradict.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
 import { evidencePromptBlock } from "../_shared/evidence.ts";
 

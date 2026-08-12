@@ -42,7 +42,11 @@ Deno.serve(async (req) => {
         await upsertFromSubscription(admin, stripe, sub);
         break;
       }
-      case "invoice.payment_failed": {
+      // Dunning outcomes: a failed invoice moves the subscription to past_due
+      // and eventually unpaid/canceled; a successful one restores it. Either
+      // way we re-read the subscription and write the true state.
+      case "invoice.payment_failed":
+      case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         const subId = (invoice as any).subscription as string | null;
         if (subId) {
@@ -51,8 +55,22 @@ Deno.serve(async (req) => {
         }
         break;
       }
+      // Belt and braces on first payment — the subscription events normally
+      // arrive first, but a completed checkout must never be missed.
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const subId = typeof session.subscription === "string"
+          ? session.subscription
+          : session.subscription?.id ?? null;
+        if (subId) {
+          const sub = await stripe.subscriptions.retrieve(subId);
+          await upsertFromSubscription(admin, stripe, sub);
+        }
+        break;
+      }
       default: break;
     }
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200, headers: { "Content-Type": "application/json" },
     });

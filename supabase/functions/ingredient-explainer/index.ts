@@ -21,7 +21,7 @@
 // KB + RAG, and every response passes through sanitiseAndLog.
 
 import { json, preflight } from "../_shared/cors.ts";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";

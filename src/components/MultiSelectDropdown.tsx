@@ -8,6 +8,8 @@ interface Props {
   value: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  /** Cap on selections; `1` makes this behave as a single-select. */
+  maxSelected?: number;
 }
 
 /**
@@ -20,6 +22,7 @@ const MultiSelectDropdown = ({
   value,
   onChange,
   placeholder = "Select one or more…",
+  maxSelected,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -34,8 +37,21 @@ const MultiSelectDropdown = ({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  const toggle = (opt: string) =>
-    onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+  const single = maxSelected === 1;
+  const toggle = (opt: string) => {
+    if (value.includes(opt)) {
+      onChange(value.filter((v) => v !== opt));
+      return;
+    }
+    // A single-select replaces the choice and closes; a capped multi-select ignores extras.
+    if (single) {
+      onChange([opt]);
+      setOpen(false);
+      return;
+    }
+    if (maxSelected && value.length >= maxSelected) return;
+    onChange([...value, opt]);
+  };
   const remove = (opt: string) => onChange(value.filter((v) => v !== opt));
 
   return (

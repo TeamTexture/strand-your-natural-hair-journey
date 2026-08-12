@@ -30,6 +30,7 @@ import {
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
+import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -430,6 +431,8 @@ Deno.serve(async (req: Request) => {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
     if (!user) return json(401, { error: "Unauthorized" });
+    // Paid feature: a lapsed membership loses AI guidance.
+    if (!(await isEntitled(user.id))) return membershipRequired();
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
     const { force, bloodResults } = body;

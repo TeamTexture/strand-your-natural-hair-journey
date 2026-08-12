@@ -62,6 +62,7 @@ import {
   buildAdviceLedgerBlock,
   recordAdvice,
 } from "../_shared/advice-ledger.ts";
+import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
@@ -135,6 +136,8 @@ Deno.serve(async (req: Request) => {
     const { data: userRes } = await userClient.auth.getUser();
     const user = userRes?.user;
     if (!user) return json(401, { error: "Invalid token" });
+    // Paid feature: a lapsed membership loses AI guidance.
+    if (!(await isEntitled(user.id))) return membershipRequired();
 
     const body = (await req.json().catch(() => ({}))) as Body;
     const context = (body.context ?? {}) as Record<string, unknown>;

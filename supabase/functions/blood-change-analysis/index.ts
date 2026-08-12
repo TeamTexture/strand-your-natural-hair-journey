@@ -8,7 +8,7 @@
 // happens when the panel ids change (or the user forces a refresh).
 
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { requireAuthedUser } from "../_shared/auth.ts";
+import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 

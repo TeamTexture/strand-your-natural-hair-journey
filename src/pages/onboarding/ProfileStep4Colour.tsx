@@ -321,6 +321,7 @@ const ProfileStep4Colour = () => {
               value={changingTo}
               onChange={setChangingTo}
               placeholder="Select your next style…"
+              maxSelected={1}
             />
 
             {(styleAsksTension(changingTo[0]) || styleAsksExtensions(changingTo[0])) && (

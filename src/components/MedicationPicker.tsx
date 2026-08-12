@@ -63,11 +63,13 @@ const MedicationPicker = ({ value, onChange, label = "Medications" }: Props) => 
     setOpen(false);
   };
 
+  /** Free-text entries are capped so a pasted paragraph can't become a "medication". */
   const addFreeText = () => {
-    const name = query.trim();
+    const name = query.trim().slice(0, 60);
     if (!name || atLimit) return;
     addMed({ name, category: "Other" });
   };
+
 
   const remove = (name: string) =>
     onChange(value.filter((m) => m.name !== name));
