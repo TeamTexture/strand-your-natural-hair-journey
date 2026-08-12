@@ -74,9 +74,14 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
+  // Post-signup booking step: the two booking routes are only offered once the
+  // account actually exists, never before.
+  const [justCreated, setJustCreated] = useState(false);
+  const [bloodSheetOpen, setBloodSheetOpen] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   useEffect(() => {
+    if (justCreated) return;
     if (!authLoading && user) {
       // If already signed in, send to the welcome gate so multi-role users
       // (consumer + pro + admin) can pick which area to enter.
@@ -85,7 +90,7 @@ const Auth = () => {
         navigate(target, { replace: true });
       })();
     }
-  }, [authLoading, user, navigate, params]);
+  }, [authLoading, user, navigate, params, justCreated]);
 
 
   const passwordsMatch = mode !== "signup" || password === confirmPassword;
