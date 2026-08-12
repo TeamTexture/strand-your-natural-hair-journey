@@ -25,6 +25,8 @@ import DirectoryReviewPreview from "@/components/DirectoryReviewPreview";
 import { normalizeWebsiteUrl } from "@/lib/socialLinks";
 import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
+import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
