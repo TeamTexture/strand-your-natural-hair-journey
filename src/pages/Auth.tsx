@@ -198,7 +198,7 @@ const Auth = () => {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
         }
         toast.success("Welcome to Strand");
-        navigate("/setup", { replace: true });
+        setJustCreated(true);
         return;
       } else {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
