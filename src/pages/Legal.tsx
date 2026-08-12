@@ -211,7 +211,7 @@ const DOCS: Record<string, LegalDoc> = {
         heading: "Who we share it with",
         body: [
           `**Professionals** — only those you have specifically granted access to, and only for as long as you allow it. You can revoke access at any time.`,
-          `**Our service providers** — Supabase (hosting, database and file storage), Stripe (payments), Resend (email), and the artificial intelligence providers that generate your guidance. Each is bound by contract to process data only on our instructions and to keep it secure.`,
+          `**Our service providers** — Supabase (hosting, database and file storage), Stripe (payments), Resend (email), Loom (video hosting for in-app walkthrough videos), and the artificial intelligence providers that generate your guidance. Each is bound by contract to process data only on our instructions and to keep it secure.`,
           `**Nobody else** — we do not sell your personal data, and we do not share it with brands or advertisers.`,
           `We may disclose information where the law requires it, or to protect someone's safety.`,
         ],
