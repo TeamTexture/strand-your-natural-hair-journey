@@ -4,8 +4,16 @@
 // Stripe redirects the member back the instant payment succeeds, which is
 // often BEFORE the webhook has written `consumer_subscriptions`. Rather than
 // waiting to be told, this function asks Stripe directly for the caller's own
-// subscriptions and writes the true state. It only ever reads and writes the
-// authenticated caller's row.
+// subscriptions and writes the true state.
+//
+// Lookup is deliberately broad, because a member can end up with more than one
+// Stripe customer (guest checkout, email typo, an old cancelled customer). We
+// gather every candidate customer plus any subscription tagged with the user id
+// and pick the live one — a single stale customer must never mask a real,
+// paid-for subscription.
+//
+// Admins may pass `{ user_id }` to run the same repair for a member who is
+// stuck; everyone else can only ever verify themselves.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { preflight, json } from "../_shared/cors.ts";
@@ -20,8 +28,6 @@ Deno.serve(async (req) => {
 
   const auth = await requireAuthedUser(req);
   if (auth instanceof Response) return auth;
-  const userId = auth.user.id;
-  const email = auth.user.email ?? undefined;
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   if (!stripeKey) return json(500, { error: "Stripe not configured" });
@@ -32,44 +38,87 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  let userId = auth.user.id;
+  let email = auth.user.email ?? undefined;
+
+  // Admin-only support path: repair another member's entitlement.
   try {
-    // 1. Find this caller's Stripe customer — never anybody else's.
+    const body = await req.json().catch(() => ({}));
+    const requested = (body as any)?.user_id as string | undefined;
+    if (requested && requested !== userId) {
+      const { data: isAdmin } = await auth.supabase.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (isAdmin !== true) return json(403, { error: "forbidden" });
+      const { data: target, error } = await admin.auth.admin.getUserById(requested);
+      if (error || !target?.user) return json(404, { error: "user not found" });
+      userId = target.user.id;
+      email = target.user.email ?? undefined;
+    }
+  } catch {
+    /* no body — verify the caller */
+  }
+
+  try {
+    // 1. Collect every plausible Stripe customer for this member.
+    const candidates = new Set<string>();
     const { data: existing } = await admin
       .from("consumer_subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", userId)
       .maybeSingle();
+    const known = (existing as any)?.stripe_customer_id as string | null ?? null;
+    if (known) candidates.add(known);
 
-    let customerId = (existing as any)?.stripe_customer_id as string | null ?? null;
-
-    if (!customerId && email) {
-      const found = await stripe.customers.list({ email, limit: 10 });
-      const match = found.data.find(
-        (c) => (c.metadata?.consumer_user_id ?? "") === userId,
-      ) ?? found.data[0];
-      customerId = match?.id ?? null;
+    if (email) {
+      const found = await stripe.customers.list({ email, limit: 20 });
+      for (const c of found.data) candidates.add(c.id);
     }
 
-    if (!customerId) return json(200, { active: false, reason: "no_customer" });
+    // 2. Collect subscriptions: any tagged with the user id, plus every
+    //    subscription belonging to a candidate customer.
+    const subs: Stripe.Subscription[] = [];
+    try {
+      const tagged = await stripe.subscriptions.search({
+        query: `metadata['consumer_user_id']:'${userId}'`,
+        limit: 20,
+      });
+      subs.push(...tagged.data);
+    } catch (e) {
+      console.warn("subscription search unavailable", e);
+    }
+    for (const customer of candidates) {
+      const list = await stripe.subscriptions.list({
+        customer,
+        status: "all",
+        limit: 20,
+        expand: ["data.items.data.price"],
+      });
+      subs.push(...list.data);
+    }
 
-    const subs = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "all",
-      limit: 20,
-      expand: ["data.items.data.price"],
-    });
-
-    const live = subs.data.find((s) => ACTIVE.has(s.status));
-    const chosen = live ?? subs.data[0] ?? null;
+    const unique = new Map(subs.map((s) => [s.id, s]));
+    const all = [...unique.values()];
+    const chosen = all.find((s) => ACTIVE.has(s.status)) ?? all[0] ?? null;
 
     if (!chosen) {
-      await admin.from("consumer_subscriptions").upsert(
-        { user_id: userId, stripe_customer_id: customerId, status: "none" },
-        { onConflict: "user_id" },
-      );
-      return json(200, { active: false, reason: "no_subscription" });
+      if (known) {
+        await admin
+          .from("consumer_subscriptions")
+          .update({ status: "none" })
+          .eq("user_id", userId);
+      }
+      return json(200, {
+        active: false,
+        reason: candidates.size ? "no_subscription" : "no_customer",
+        customers_checked: candidates.size,
+      });
     }
 
+    const customerId = typeof chosen.customer === "string"
+      ? chosen.customer
+      : chosen.customer.id;
     const item = chosen.items.data[0];
     const priceId = item?.price?.id ?? null;
     const periodEnd = (item as any)?.current_period_end ??
@@ -77,7 +126,8 @@ Deno.serve(async (req) => {
 
     const plusId = Deno.env.get("STRIPE_PLUS_PRICE_ID") ?? "";
     const tier: "standard" | "plus" =
-      (plusId && priceId === plusId) || (priceId && await priceIsStrandPlus(stripe, priceId))
+      (plusId && priceId === plusId) ||
+        (priceId && await priceIsStrandPlus(stripe, priceId))
         ? "plus"
         : "standard";
 
