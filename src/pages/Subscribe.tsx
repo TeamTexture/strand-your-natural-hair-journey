@@ -190,6 +190,25 @@ const Subscribe = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirming, hasAccess, activationStuck]);
 
+  // A member who was bounced here by the paywall (so a `next` path exists) but
+  // actually has access must not be left staring at the membership page —
+  // forward them to where they were headed, or to their blood analysis.
+  useEffect(() => {
+    if (confirming || accessLoading || !hasAccess) return;
+    const pending = isSafeInternalPath(nextPath)
+      ? nextPath
+      : isSafeInternalPath(storedNextPath)
+        ? storedNextPath
+        : null;
+    if (!pending) return;
+    try {
+      localStorage.removeItem("strand_subscribe_next");
+    } catch {}
+    nav(pending === "/subscribe" ? POST_PAYMENT_ANALYSIS_PATH : pending, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirming, hasAccess, accessLoading]);
+
+
   const retryActivation = () => {
     setActivationStuck(false);
     setConfirming(true);
