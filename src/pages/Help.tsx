@@ -18,6 +18,48 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 
+interface Walkthrough {
+  id: string;
+  category: string;
+  title: string;
+  embedUrl: string;
+}
+
+// In-app walkthrough videos, hosted on Loom. The first two cover registering
+// and the blood test, so members can get set up before exploring the rest.
+const WALKTHROUGHS: Walkthrough[] = [
+  {
+    id: "getting-started",
+    category: "Getting started",
+    title: "How onboarding works, start to finish",
+    embedUrl: "https://www.loom.com/embed/5f202daa2e534b6fa8d21c8792cfdd2c",
+  },
+  {
+    id: "your-blood-work",
+    category: "Your blood work",
+    title: "Unlocking hair growth with blood work",
+    embedUrl: "https://www.loom.com/embed/d9904d76c04d4b16a4f3cb5603e4920f",
+  },
+  {
+    id: "wash-days-and-booking",
+    category: "Wash days and booking",
+    title: "Wash days, and booking a professional",
+    embedUrl: "https://www.loom.com/embed/f19ec50f4fae474a8857c5516540f655",
+  },
+  {
+    id: "products",
+    category: "Products",
+    title: "Scanning products and reading ingredients",
+    embedUrl: "https://www.loom.com/embed/4b9af503670140f4aac7cd132ed90019",
+  },
+  {
+    id: "personalisation",
+    category: "Personalisation",
+    title: "How STRAND personalises your guidance and offers",
+    embedUrl: "https://www.loom.com/embed/b2c7417a59934531b1af6dfb43fed2ac",
+  },
+];
+
 interface Retailer {
   name: string;
   region: string;
