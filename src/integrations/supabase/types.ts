@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_erasure_runs: {
+        Row: {
+          cap: number
+          details: Json
+          dry_run: boolean
+          eligible_count: number
+          error: string | null
+          id: string
+          processed_count: number
+          ran_at: string
+          user_ids: string[]
+        }
+        Insert: {
+          cap: number
+          details?: Json
+          dry_run?: boolean
+          eligible_count?: number
+          error?: string | null
+          id?: string
+          processed_count?: number
+          ran_at?: string
+          user_ids?: string[]
+        }
+        Update: {
+          cap?: number
+          details?: Json
+          dry_run?: boolean
+          eligible_count?: number
+          error?: string | null
+          id?: string
+          processed_count?: number
+          ran_at?: string
+          user_ids?: string[]
+        }
+        Relationships: []
+      }
       ad_consent_log: {
         Row: {
           changed_at: string
@@ -1640,6 +1676,8 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           id: string
+          pause_resumes_at: string | null
+          paused: boolean
           price_id: string | null
           status: string
           stripe_customer_id: string | null
@@ -1653,6 +1691,8 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          pause_resumes_at?: string | null
+          paused?: boolean
           price_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -1666,6 +1706,8 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          pause_resumes_at?: string | null
+          paused?: boolean
           price_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -4139,6 +4181,7 @@ export type Database = {
           consent_updated_at: string | null
           country: string
           created_at: string
+          deletion_requested_at: string | null
           display_name: string | null
           heritage: string[]
           id: string
@@ -4164,6 +4207,7 @@ export type Database = {
           consent_updated_at?: string | null
           country?: string
           created_at?: string
+          deletion_requested_at?: string | null
           display_name?: string | null
           heritage?: string[]
           id?: string
@@ -4189,6 +4233,7 @@ export type Database = {
           consent_updated_at?: string | null
           country?: string
           created_at?: string
+          deletion_requested_at?: string | null
           display_name?: string | null
           heritage?: string[]
           id?: string

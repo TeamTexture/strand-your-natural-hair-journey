@@ -37,3 +37,28 @@ export function subscriptionGrantsAccess(
   if (GRACE_STATUSES.has(status)) return periodLive;
   return false;
 }
+
+/**
+ * PAUSE TRAP — Stripe's `pause_collection` leaves the subscription `status` as
+ * `active`. Reading status alone would keep serving a paused member for free,
+ * so the persisted `paused` flag is checked first and always wins.
+ */
+export interface EntitlementRow {
+  status?: string | null;
+  current_period_end?: string | null;
+  paused?: boolean | null;
+}
+
+export function subscriptionIsPaused(row: EntitlementRow | null | undefined): boolean {
+  return !!row?.paused;
+}
+
+export function rowGrantsAccess(
+  row: EntitlementRow | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!row) return false;
+  if (subscriptionIsPaused(row)) return false;
+  return subscriptionGrantsAccess(row.status, row.current_period_end ?? null, now);
+}
+

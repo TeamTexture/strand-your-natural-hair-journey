@@ -15,10 +15,11 @@ export interface MyProfileRow {
   complimentary_access: boolean | null;
   onboarding_completed_at: string | null;
   profile_confirmed_at: string | null;
+  deletion_requested_at: string | null;
 }
 
 const COLUMNS =
-  "id, user_id, display_name, avatar_url, postcode, tips_level, tips_level_prompted_at, access_restricted, complimentary_access, onboarding_completed_at, profile_confirmed_at";
+  "id, user_id, display_name, avatar_url, postcode, tips_level, tips_level_prompted_at, access_restricted, complimentary_access, onboarding_completed_at, profile_confirmed_at, deletion_requested_at";
 
 export const myProfileKey = (userId?: string) => ["my-profile", userId] as const;
 

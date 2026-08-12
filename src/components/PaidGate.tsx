@@ -3,6 +3,9 @@ import { Navigate, useLocation } from "react-router-dom";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
 import MembershipEnded from "@/components/MembershipEnded";
+import MembershipPaused from "@/components/MembershipPaused";
+import DeletionPending from "@/components/DeletionPending";
+
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useRoles } from "@/hooks/useRoles";
 import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
@@ -28,8 +31,16 @@ const PaidGate = ({ children }: Props) => (
 );
 
 const PaidGateInner = ({ children }: { children: ReactNode }) => {
-  const { hasAccess, isLoading, isBrand, isAdminOrPro, lapsed, refetch } =
-    useConsumerSubscription();
+  const {
+    hasAccess,
+    isLoading,
+    isBrand,
+    isAdminOrPro,
+    lapsed,
+    paused,
+    deletionRequestedAt,
+    refetch,
+  } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
   const location = useLocation();
 
@@ -41,6 +52,13 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
   }, [location.pathname]);
 
   if (isLoading || rolesLoading) return <LoadingDot />;
+
+  // A member's own erasure request closes the app for them, with an explanation
+  // and a one-tap route back. Checked before roles so it is never invisible.
+  if (deletionRequestedAt) return <DeletionPending />;
+  // Stripe leaves a paused subscription as `active` — the pause flag decides.
+  if (paused) return <MembershipPaused />;
+
   // Professionals live entirely on the pro side — no consumer app access.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
@@ -56,6 +74,7 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
   }
   return <>{children}</>;
 };
+
 
 
 export default PaidGate;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { subscriptionGrantsAccess } from "@/lib/entitlement";
+import { subscriptionGrantsAccess, rowGrantsAccess } from "@/lib/entitlement";
 
 const FUTURE = new Date(Date.now() + 30 * 864e5).toISOString();
 const PAST = new Date(Date.now() - 5 * 864e5).toISOString();
@@ -29,5 +29,22 @@ describe("subscriptionGrantsAccess", () => {
     expect(subscriptionGrantsAccess(null, FUTURE)).toBe(false);
     expect(subscriptionGrantsAccess("unpaid", FUTURE)).toBe(false);
     expect(subscriptionGrantsAccess("incomplete_expired", FUTURE)).toBe(false);
+  });
+});
+
+describe("rowGrantsAccess — pause trap", () => {
+  it("a paused subscription grants no access even though Stripe says active", () => {
+    expect(rowGrantsAccess({ status: "active", current_period_end: FUTURE, paused: true }))
+      .toBe(false);
+  });
+
+  it("resuming restores access", () => {
+    expect(rowGrantsAccess({ status: "active", current_period_end: FUTURE, paused: false }))
+      .toBe(true);
+  });
+
+  it("pause never rescues a lapsed period", () => {
+    expect(rowGrantsAccess({ status: "active", current_period_end: PAST, paused: false }))
+      .toBe(false);
   });
 });

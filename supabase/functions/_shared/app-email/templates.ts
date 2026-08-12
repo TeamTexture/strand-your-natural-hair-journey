@@ -344,8 +344,35 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ],
     (d) => ({ label: "Open billing", path: s(d.billing_path, "/profile") }),
   ),
+  "account-deletion-requested": t(
+    "account-deletion-requested",
+    "transactional",
+    true,
+    () => "Your STRAND account is scheduled for deletion",
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `We have received your request to delete your STRAND account. Your membership has been cancelled and the app is closed for you now.`,
+      `Nothing has been erased yet. Your data stays exactly as it is until ${s(d.erase_on, "30 days from today")}, when it will be erased and cannot be recovered.`,
+      `Changed your mind? Sign in and choose "Cancel my deletion request" in your data and account settings. Everything comes straight back.`,
+      `We keep payment records for six years because tax law requires it, and records of any data protection complaint for six years so we can show we handled it properly. Everything else is erased.`,
+    ],
+    () => ({ label: "Cancel my deletion request", path: "/profile/data-access" }),
+  ),
+  "account-deletion-cancelled": t(
+    "account-deletion-cancelled",
+    "transactional",
+    true,
+    () => "Your STRAND account is staying with us",
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      "Your deletion request has been cancelled and nothing was erased. Your account and all your records are back as they were.",
+      "If you did not do this, reply to this email straight away.",
+    ],
+    () => ({ label: "Open STRAND", path: "/home" }),
+  ),
 
   // ---------------- Enquiries and appointments ----------------
+
   "pro-new-enquiry": t(
     "pro-new-enquiry",
     "transactional",

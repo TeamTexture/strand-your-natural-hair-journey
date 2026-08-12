@@ -43,11 +43,17 @@ Deno.serve(async (req) => {
 
     if (!sub?.stripe_customer_id) return json({ error: "No Stripe customer on file" }, 400);
 
+    // The portal is configured in Stripe to cancel at the end of the billing
+    // period, so a cancellation there honours the paid period like ours does.
+    const body = await req.json().catch(() => ({}));
+    const rawPath = String((body as any)?.return_path ?? "/subscribe");
+    const returnPath = rawPath.startsWith("/") ? rawPath : "/subscribe";
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
     const portal = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
-      return_url: `${origin}/subscribe`,
+      return_url: `${origin}${returnPath}`,
     });
+
 
     return json({ url: portal.url });
   } catch (e) {

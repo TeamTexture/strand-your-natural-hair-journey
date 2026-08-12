@@ -14,6 +14,8 @@ export type ConsumerSubscription = {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   tier?: "standard" | "plus" | null;
+  paused?: boolean | null;
+  pause_resumes_at?: string | null;
 };
 
 /**
@@ -24,9 +26,13 @@ export type ConsumerSubscription = {
  *   - role is admin or professional (they're never paywalled on the consumer side)
  *   - the Stripe subscription's paid period is still good (see `lib/entitlement`)
  *
+ * PAUSE TRAP — Stripe leaves `status` as `active` when `pause_collection` is
+ * set, so a paused subscription must be read from the persisted `paused` column,
+ * never inferred from status. A paused member has no app access.
+ *
  * This query deliberately opts back INTO focus revalidation, against the global
- * QueryClient defaults: a cancellation or a complimentary-access switch-off has
- * to be noticed in-session, not only after a hard reload.
+ * QueryClient defaults: a cancellation, a pause or a complimentary-access
+ * switch-off has to be noticed in-session, not only after a hard reload.
  */
 export function useConsumerSubscription() {
   const { user, loading: authLoading } = useAuth();
@@ -53,20 +59,32 @@ export function useConsumerSubscription() {
 
 
   const sub = subQ.data ?? null;
-  const stripeActive = !!sub &&
+  const paused = !!sub?.paused;
+  const stripeActive = !paused && !!sub &&
     subscriptionGrantsAccess(sub.status, sub.current_period_end);
 
   const complimentary = !!profileQ.data?.complimentary_access;
   const isAdminOrPro = isAdmin || isProfessional;
-  const hasAccess = stripeActive || complimentary || isAdminOrPro;
+  const deletionRequestedAt =
+    (profileQ.data as { deletion_requested_at?: string | null } | undefined)
+      ?.deletion_requested_at ?? null;
+
+  // A pause or a pending erasure request removes access for everyone, including
+  // complimentary and staff accounts, so the state is never invisible.
+  const hasAccess =
+    !deletionRequestedAt && !paused &&
+    (stripeActive || complimentary || isAdminOrPro);
 
   /** True when they once had a membership record and it no longer grants access. */
-  const lapsed = !hasAccess && !!sub && sub.status !== "none";
+  const lapsed = !hasAccess && !paused && !deletionRequestedAt && !!sub && sub.status !== "none";
 
 
   return {
     subscription: sub,
     stripeActive,
+    paused,
+    pauseResumesAt: sub?.pause_resumes_at ?? null,
+    deletionRequestedAt,
     complimentary,
     isAdminOrPro,
     isBrand,
@@ -80,3 +98,4 @@ export function useConsumerSubscription() {
     },
   };
 }
+
