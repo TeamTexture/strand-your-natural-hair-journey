@@ -590,7 +590,33 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
 
 
 
+  // A new member, professional or brand has registered. Internal only.
+  "admin-signup-received": t(
+    "admin-signup-received",
+    "transactional",
+    true,
+    (d) => `New STRAND ${s(d.kindLabel, "sign-up")} — ${s(d.name, s(d.email, "unknown"))}`,
+    (d) => [
+      `A new ${s(d.kindLabel, "account")} has just registered on STRAND.`,
+      s(d.note),
+    ].filter(Boolean),
+    (d) => ({ label: s(d.ctaLabel, "Open admin"), path: s(d.path, "/admin") }),
+    undefined,
+    {
+      eyebrow: "Admin",
+      legacy: true,
+      footerNote: "You are receiving this because you are an admin on STRAND.",
+      rows: (d) => [
+        { label: "Type", value: s(d.kindLabel) },
+        { label: "Name", value: s(d.name) },
+        { label: "Email", value: s(d.email) },
+        { label: "Registered", value: s(d.registered) },
+      ],
+    },
+  ),
+
   "admin-application-received": t(
+
     "admin-application-received",
     "transactional",
     true,
