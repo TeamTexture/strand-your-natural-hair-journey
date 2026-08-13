@@ -85,9 +85,15 @@ Deno.serve(async (req) => {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("webhook handler error", e);
-    return new Response("Handler error", { status: 500 });
+    // Acknowledge the delivery even when our own processing failed: Stripe
+    // disables endpoints that keep erroring, and membership state is
+    // reconciled directly from Stripe by consumer-verify-subscription.
+    console.error("webhook handler error", event?.type, e);
+    return new Response(JSON.stringify({ received: true, handled: false }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    });
   }
+
 });
 
 async function tierForPrice(stripe: Stripe, priceId: string | null): Promise<"standard" | "plus"> {
