@@ -47,7 +47,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
   }
-  if (status?.completed && !hasAccess) {
+  // Locked to /subscribe once they have reached the payment checkpoint —
+  // onboarding finished OR blood data on file — and have no entitlement.
+  if (status?.paymentDue && !hasAccess) {
     return <Navigate to={getSubscribePath(status.analysisPath)} replace />;
   }
   return <>{children}</>;

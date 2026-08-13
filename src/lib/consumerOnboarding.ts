@@ -62,10 +62,19 @@ export async function getConsumerOnboardingStatus(userId: string) {
   if ((hairRes.count ?? 0) > 0) resumePath = "/onboarding/profile-step-4-colour";
   if ((styleRes.count ?? 0) > 0) resumePath = "/onboarding/blood-timing";
 
+  // PAYMENT CHECKPOINT — blood data on file is the point in the flow where the
+  // member is asked to pay (see BloodHormones). Anyone who reached that point by
+  // another route (direct blood upload, blood history, a skipped step) must be
+  // sent to /subscribe too, otherwise they roam the app never having been asked.
+  const bloodOnFile =
+    (bloodResultsRes.count ?? 0) > 0 || (bloodPanelsRes.count ?? 0) > 0;
+
   return {
     completed: markedComplete || dataComplete,
     markedComplete,
     dataComplete,
+    bloodOnFile,
+    paymentDue: markedComplete || dataComplete || bloodOnFile,
     resumePath,
     analysisPath: POST_PAYMENT_ANALYSIS_PATH,
   };
