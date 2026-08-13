@@ -157,7 +157,9 @@ const BrandAuth = () => {
         // before it existed, or the role gate on /brand/subscribe bounces
         // this account onto the consumer side.
         await qc.invalidateQueries({ queryKey: ["user-roles"] });
+        void notifyAdminSignup("brand", { name: brandName.trim() });
         toast.success("Brand account created");
+
         // Brands pay the annual access fee BEFORE landing in the dashboard.
         nav(BRAND_ACCESS_PATH, { replace: true });
       } else {
