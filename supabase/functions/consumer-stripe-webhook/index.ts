@@ -7,10 +7,13 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-  const webhookSecret =
-    Deno.env.get("STRIPE_CONSUMER_WEBHOOK_SECRET") ??
-    Deno.env.get("STRIPE_WEBHOOK_SECRET");
-  if (!stripeKey || !webhookSecret) {
+  // The endpoint may have been created in Stripe with either signing secret —
+  // try every one we hold rather than failing the delivery on a mismatch.
+  const secrets = [
+    Deno.env.get("STRIPE_CONSUMER_WEBHOOK_SECRET"),
+    Deno.env.get("STRIPE_WEBHOOK_SECRET"),
+  ].filter((s): s is string => !!s);
+  if (!stripeKey || secrets.length === 0) {
     console.error("stripe secrets missing");
     return new Response("Server misconfigured", { status: 500 });
   }
@@ -20,13 +23,20 @@ Deno.serve(async (req) => {
   if (!signature) return new Response("Missing signature", { status: 400 });
 
   const raw = await req.text();
-  let event: Stripe.Event;
-  try {
-    event = await stripe.webhooks.constructEventAsync(raw, signature, webhookSecret);
-  } catch (err) {
-    console.error("signature verification failed", err);
+  let event: Stripe.Event | null = null;
+  for (const secret of secrets) {
+    try {
+      event = await stripe.webhooks.constructEventAsync(raw, signature, secret);
+      break;
+    } catch {
+      // try the next candidate secret
+    }
+  }
+  if (!event) {
+    console.error("signature verification failed for all configured secrets");
     return new Response("Invalid signature", { status: 400 });
   }
+
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
