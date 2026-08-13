@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { BRAND_CATEGORIES, type BrandCategory } from "@/lib/brandCategories";
 import { getBrandEntryPath, BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
 import { useQueryClient } from "@tanstack/react-query";
+import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
 
 /**
  * Dedicated brand auth surface. Signup collects brand_name + contact +

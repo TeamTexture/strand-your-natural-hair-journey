@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
 const disciplines: Discipline[] = [
