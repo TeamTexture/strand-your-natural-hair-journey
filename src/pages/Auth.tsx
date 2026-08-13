@@ -198,7 +198,9 @@ const Auth = () => {
         if (uid) {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
         }
+        void notifyAdminSignup("member", { name: name || null });
         toast.success("Welcome to Strand");
+
         setJustCreated(true);
         return;
       } else {
