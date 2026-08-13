@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { BRAND_CATEGORIES, type BrandCategory } from "@/lib/brandCategories";
 import { getBrandEntryPath, BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
 import { useQueryClient } from "@tanstack/react-query";
+import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
 
 /**
  * Dedicated brand auth surface. Signup collects brand_name + contact +
@@ -156,7 +157,9 @@ const BrandAuth = () => {
         // before it existed, or the role gate on /brand/subscribe bounces
         // this account onto the consumer side.
         await qc.invalidateQueries({ queryKey: ["user-roles"] });
+        void notifyAdminSignup("brand", { name: brandName.trim() });
         toast.success("Brand account created");
+
         // Brands pay the annual access fee BEFORE landing in the dashboard.
         nav(BRAND_ACCESS_PATH, { replace: true });
       } else {

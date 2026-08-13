@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
 
 type Discipline = Database["public"]["Enums"]["pro_discipline"];
 const disciplines: Discipline[] = [
@@ -123,7 +124,12 @@ const ProAuth = () => {
             discipline,
           } as never);
         }
+        void notifyAdminSignup("professional", {
+          name: fullName,
+          note: businessName ? `Business: ${businessName}` : null,
+        });
         toast.success("Welcome to STRAND Pro.");
+
         nav("/pro/landing", { replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
