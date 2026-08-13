@@ -330,10 +330,11 @@ const App = () => (
 
               {/* Main app */}
               <Route path="/home" element={<Paid><Home /></Paid>} />
-              <Route path="/profile/personal" element={<Onboard><PersonalDetailsReview /></Onboard>} />
-              <Route path="/profile/health" element={<Onboard><HealthReview /></Onboard>} />
-              <Route path="/profile/hair" element={<Onboard><HairReview /></Onboard>} />
-              <Route path="/profile/colour" element={<Onboard><ColourReview /></Onboard>} />
+              <Route path="/profile/personal" element={<Paid><PersonalDetailsReview /></Paid>} />
+              <Route path="/profile/health" element={<Paid><HealthReview /></Paid>} />
+              <Route path="/profile/hair" element={<Paid><HairReview /></Paid>} />
+              <Route path="/profile/colour" element={<Paid><ColourReview /></Paid>} />
+
               <Route path="/home/style" element={<Paid><SetCurrentStyle /></Paid>} />
               <Route path="/wash-day" element={<Paid><WashDayHub /></Paid>} />
               <Route path="/wash-day/:id" element={<Paid><WashDayDetail /></Paid>} />
@@ -381,12 +382,14 @@ const App = () => (
                   </RoleGate>
                 }
               />
-              <Route path="/profile" element={<Onboard><Profile /></Onboard>} />
-              <Route path="/profile/milestones" element={<Onboard><MilestoneGallery /></Onboard>} />
-              <Route path="/profile/discounts" element={<Onboard><Discounts /></Onboard>} />
-              <Route path="/blood-history" element={<Onboard><BloodHistory /></Onboard>} />
+              <Route path="/profile" element={<Paid><Profile /></Paid>} />
+              <Route path="/profile/milestones" element={<Paid><MilestoneGallery /></Paid>} />
+              <Route path="/profile/discounts" element={<Paid><Discounts /></Paid>} />
+              <Route path="/blood-history" element={<Paid><BloodHistory /></Paid>} />
+              {/* Part of the onboarding capture flow (?onboarding=1) — stays pre-payment. */}
               <Route path="/blood-upload" element={<Onboard><BloodUpload /></Onboard>} />
-              <Route path="/blood-panel/:id" element={<Onboard><BloodPanelReview /></Onboard>} />
+              <Route path="/blood-panel/:id" element={<Paid><BloodPanelReview /></Paid>} />
+
 
               <Route path="/nutrition-plan" element={<Paid><NutritionPlan /></Paid>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
