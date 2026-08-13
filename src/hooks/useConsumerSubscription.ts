@@ -64,6 +64,11 @@ export function useConsumerSubscription() {
     subscriptionGrantsAccess(sub.status, sub.current_period_end);
 
   const complimentary = !!profileQ.data?.complimentary_access;
+  // FORCED PAYMENT — an admin-set flag on the profile. While it is set, nothing
+  // except a live Stripe membership opens the app: no complimentary access, no
+  // onboarding grace. It clears itself in effect the moment they pay.
+  const paymentRequired =
+    !!(profileQ.data as { payment_required_at?: string | null } | undefined)?.payment_required_at;
   const isAdminOrPro = isAdmin || isProfessional;
   const deletionRequestedAt =
     (profileQ.data as { deletion_requested_at?: string | null } | undefined)
@@ -73,7 +78,7 @@ export function useConsumerSubscription() {
   // complimentary and staff accounts, so the state is never invisible.
   const hasAccess =
     !deletionRequestedAt && !paused &&
-    (stripeActive || complimentary || isAdminOrPro);
+    (paymentRequired ? stripeActive : stripeActive || complimentary || isAdminOrPro);
 
   /** True when they once had a membership record and it no longer grants access. */
   const lapsed = !hasAccess && !paused && !deletionRequestedAt && !!sub && sub.status !== "none";
@@ -86,6 +91,7 @@ export function useConsumerSubscription() {
     pauseResumesAt: sub?.pause_resumes_at ?? null,
     deletionRequestedAt,
     complimentary,
+    paymentRequired,
     isAdminOrPro,
     isBrand,
     hasAccess,

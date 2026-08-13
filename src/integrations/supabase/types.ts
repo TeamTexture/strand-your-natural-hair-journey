@@ -4186,6 +4186,7 @@ export type Database = {
           heritage: string[]
           id: string
           onboarding_completed_at: string | null
+          payment_required_at: string | null
           personalised_offers_consent: boolean
           phone_number: string | null
           postcode: string | null
@@ -4212,6 +4213,7 @@ export type Database = {
           heritage?: string[]
           id?: string
           onboarding_completed_at?: string | null
+          payment_required_at?: string | null
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
@@ -4238,6 +4240,7 @@ export type Database = {
           heritage?: string[]
           id?: string
           onboarding_completed_at?: string | null
+          payment_required_at?: string | null
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null

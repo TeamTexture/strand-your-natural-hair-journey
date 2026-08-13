@@ -32,7 +32,7 @@ const OnboardingGate = ({ children }: Props) => (
 
 const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const { hasAccess, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
+  const { hasAccess, paymentRequired, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
   const { data: status, isLoading: profileLoading } = useQuery({
@@ -49,7 +49,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   }
   // Locked to /subscribe once they have reached the payment checkpoint —
   // onboarding finished OR blood data on file — and have no entitlement.
-  if (status?.paymentDue && !hasAccess) {
+  if ((paymentRequired || status?.paymentDue) && !hasAccess) {
     return <Navigate to={getSubscribePath(status.analysisPath)} replace />;
   }
   return <>{children}</>;
