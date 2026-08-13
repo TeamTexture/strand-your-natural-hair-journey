@@ -382,12 +382,14 @@ const App = () => (
                   </RoleGate>
                 }
               />
-              <Route path="/profile" element={<Onboard><Profile /></Onboard>} />
-              <Route path="/profile/milestones" element={<Onboard><MilestoneGallery /></Onboard>} />
-              <Route path="/profile/discounts" element={<Onboard><Discounts /></Onboard>} />
-              <Route path="/blood-history" element={<Onboard><BloodHistory /></Onboard>} />
+              <Route path="/profile" element={<Paid><Profile /></Paid>} />
+              <Route path="/profile/milestones" element={<Paid><MilestoneGallery /></Paid>} />
+              <Route path="/profile/discounts" element={<Paid><Discounts /></Paid>} />
+              <Route path="/blood-history" element={<Paid><BloodHistory /></Paid>} />
+              {/* Part of the onboarding capture flow (?onboarding=1) — stays pre-payment. */}
               <Route path="/blood-upload" element={<Onboard><BloodUpload /></Onboard>} />
-              <Route path="/blood-panel/:id" element={<Onboard><BloodPanelReview /></Onboard>} />
+              <Route path="/blood-panel/:id" element={<Paid><BloodPanelReview /></Paid>} />
+
 
               <Route path="/nutrition-plan" element={<Paid><NutritionPlan /></Paid>} />
               <Route path="/help" element={<Protected><Help /></Protected>} />
