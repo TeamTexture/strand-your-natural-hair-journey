@@ -276,6 +276,12 @@ const GlobalEffects = () => {
   return null;
 };
 
+// Resets the crash boundary on navigation so a broken screen never sticks.
+const RouteCrashGuard = ({ children }: { children: ReactNode }) => {
+  const location = useLocation();
+  return <RouteErrorBoundary resetKey={location.pathname}>{children}</RouteErrorBoundary>;
+};
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
