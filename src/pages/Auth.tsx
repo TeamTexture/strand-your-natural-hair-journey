@@ -88,8 +88,15 @@ const Auth = () => {
       // If already signed in, send to the welcome gate so multi-role users
       // (consumer + pro + admin) can pick which area to enter.
       (async () => {
-        const target = await getPostSignInTarget(user.id, params.get("next"));
-        navigate(target, { replace: true });
+        try {
+          const target = await getPostSignInTarget(user.id, params.get("next"));
+          navigate(target, { replace: true });
+        } catch (error: unknown) {
+          console.error("[auth] couldn't resolve post-sign-in route", error);
+          // OnboardingGate checks the database and forwards this safe entry to
+          // the earliest genuinely incomplete step.
+          navigate("/onboarding/profile-step-1", { replace: true });
+        }
       })();
     }
   }, [authLoading, user, navigate, params, justCreated]);

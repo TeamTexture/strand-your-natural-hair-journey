@@ -68,13 +68,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logUserSession(s.user.id, "auth-change");
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-      if (data.session?.user?.id) {
-        logUserSession(data.session.user.id, "app-open");
-      }
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+        if (data.session?.user?.id) {
+          logUserSession(data.session.user.id, "app-open");
+        }
+      })
+      .catch((error: unknown) => {
+        // A failed session restore must never leave the app as a blank,
+        // permanent loading screen. The signed-out screen remains usable and
+        // the member can sign in again without losing their saved answers.
+        console.error("[auth] session restore failed", error);
+        setSession(null);
+      })
+      .finally(() => setLoading(false));
     return () => sub.subscription.unsubscribe();
   }, []);
 

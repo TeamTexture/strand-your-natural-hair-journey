@@ -42,6 +42,7 @@ const Index = () => {
     }
     setChecking(true);
     (async () => {
+      try {
       const [{ data: profile }, { data: roleRows }, { data: proApp }, { data: brandProf }, onboardingStatus] = await Promise.all([
         supabase
           .from("profiles")
@@ -143,7 +144,22 @@ const Index = () => {
           // Ignore private browsing/storage failures.
         }
       }
-      setChecking(false);
+      } catch (error: unknown) {
+        // Email confirmations and old bookmarks often arrive during a brief
+        // network/auth refresh. Never strand the member on an empty loader:
+        // this safe entry is subsequently corrected to their earliest
+        // incomplete step by OnboardingGate.
+        console.error("[welcome] couldn't resolve account destination", error);
+        setDestinations([
+          {
+            path: "/onboarding/profile-step-1",
+            label: "Continue setting up STRAND",
+            sub: "Your saved answers are still here",
+          },
+        ]);
+      } finally {
+        setChecking(false);
+      }
     })();
   }, [loading, user, navigate]);
 
