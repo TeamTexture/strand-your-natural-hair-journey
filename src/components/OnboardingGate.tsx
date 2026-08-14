@@ -106,11 +106,26 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
       return <Navigate to={status?.resumePath ?? "/onboarding/profile-step-1"} replace />;
     }
   }
+  // The blood-work screens are one multi-step form. Saving the first panel makes
+  // the profile "complete", so paywalling immediately threw members out halfway
+  // through and lost the markers they had not saved yet. Let them finish the
+  // blood flow first; the paywall then catches them on the way to Home.
+  const bloodFlowPaths = new Set([
+    "/onboarding/blood-timing",
+    "/blood-upload",
+    "/onboarding/blood-iron-vitamins",
+    "/onboarding/blood-minerals",
+    "/onboarding/blood-thyroid",
+    "/onboarding/blood-hormones",
+  ]);
+  const inBloodFlow = bloodFlowPaths.has(location.pathname);
+
   // A forced-payment flag must never interrupt data capture. It becomes a hard
   // paywall only after the full profile and blood-work flow is complete.
-  if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess) {
+  if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess && !inBloodFlow) {
     return <Navigate to={getSubscribePath(status?.analysisPath)} replace />;
   }
+
 
   // Old bookmarks and emailed links can point back into capture screens after
   // onboarding is complete. Never reopen those stale forms or expose the menu
