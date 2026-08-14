@@ -1,12 +1,11 @@
 import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
-import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useRoles } from "@/hooks/useRoles";
-import { BRAND_ACCESS_PATH, getConsumerOnboardingStatus, getSubscribePath } from "@/lib/consumerOnboarding";
+import { BRAND_ACCESS_PATH, getSubscribePath } from "@/lib/consumerOnboarding";
 
 interface Props {
   children: ReactNode;
@@ -31,27 +30,17 @@ const OnboardingGate = ({ children }: Props) => (
 );
 
 const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
   const location = useLocation();
   const { hasAccess, paymentRequired, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
-  const { data: status, isLoading: profileLoading, isError: profileError, refetch } = useQuery({
-    // Completion belongs to the member, not the current screen. Keeping the
-    // pathname out prevents every corrective redirect from restarting this
-    // request and producing a loading/redirect loop on slower connections.
-    queryKey: ["consumer_onboarding_route", user?.id],
-    enabled: !!user?.id,
-    queryFn: () => {
-      if (!user?.id) throw new Error("A signed-in member is required for onboarding");
-      return getConsumerOnboardingStatus(user.id);
-    },
-  });
+  const { data: status, isLoading: profileLoading, isError: profileError, refetch } = useOnboardingStatus();
 
   // Do not replace a usable onboarding screen with a full-page loader during
   // background revalidation. That flash was experienced as a blank/glitching
   // page on slower mobile connections.
-  if (subLoading || profileLoading || rolesLoading) return <LoadingDot />;
+  if (!status && (subLoading || profileLoading || rolesLoading)) return <LoadingDot />;
+
   // Never interpret an unavailable status response as an empty profile. Keep
   // every saved stage intact and let the member retry the read in place.
   if (profileError || !status) {
