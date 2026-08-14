@@ -47,11 +47,13 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
   }
-  // Locked to /subscribe once they have reached the payment checkpoint —
-  // onboarding finished OR blood data on file — and have no entitlement.
+  // Locked to /subscribe once onboarding data capture is finished (or an admin
+  // has forced payment) and there is no entitlement. Members still mid-capture
+  // pass through so they can finish their profile before being asked to pay.
   if ((paymentRequired || status?.paymentDue) && !hasAccess) {
-    return <Navigate to={getSubscribePath(status.analysisPath)} replace />;
+    return <Navigate to={getSubscribePath(status?.analysisPath)} replace />;
   }
+
   return <>{children}</>;
 };
 
