@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ const BloodTiming = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Blood Test" onBack={onboardingBack(navigate, "/onboarding/blood-timing")} right={<span>7 of 9</span>} />
-      <ProgressDots total={9} current={7} />
+      <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-4">
         <h2 className="font-display text-[22px] leading-tight text-center pt-2">

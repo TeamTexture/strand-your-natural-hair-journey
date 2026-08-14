@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -32,7 +32,7 @@ const BloodMinerals = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Minerals" onBack={onboardingBack(navigate, "/onboarding/blood-minerals")} right={<span>2 of 4</span>} />
-      <ProgressDots total={4} current={2} />
+      <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>Mineral deficiencies are commonly missed and directly affect hair growth and scalp health.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-3">

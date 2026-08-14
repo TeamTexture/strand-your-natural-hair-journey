@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import Tag from "@/components/Tag";
 import MedicationPicker from "@/components/MedicationPicker";
@@ -296,7 +296,7 @@ const ProfileStep2 = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Health Profile" onBack={onboardingBack(navigate, "/onboarding/profile-step-2")} right={<span>2 of 9</span>} />
-      <ProgressDots total={9} current={2} />
+      <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>
         Hormones and health conditions are the biggest drivers of hair behaviour. All data is private.
       </ItalicSub>

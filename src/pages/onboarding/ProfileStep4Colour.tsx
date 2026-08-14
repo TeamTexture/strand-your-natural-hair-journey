@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import Tag from "@/components/Tag";
 
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
@@ -138,7 +138,7 @@ const ProfileStep4Colour = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} right={<span>6 of 9</span>} />
-      <ProgressDots total={9} current={6} />
+      <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-5">
         <TagGroup

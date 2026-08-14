@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, Stethoscope, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import HardWaterHint from "@/components/HardWaterHint";
@@ -400,7 +400,7 @@ const ProfileStep1 = () => {
   return (
     <ScreenLayout>
       <TitleBar title="About You" right={<span>1 of 9</span>} />
-      <ProgressDots total={9} current={1} />
+      <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>This shapes every recommendation Strand makes.</ItalicSub>
 
       <div className="px-5 pt-1 pb-3">
