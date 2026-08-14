@@ -108,6 +108,8 @@ async function fileToBase64(file: File): Promise<string> {
 
 export default function BloodUpload() {
   const navigate = useNavigate();
+  const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
+
   const { user } = useAuth();
   const { hasAccess } = useConsumerSubscription();
   const { level } = useTipsLevel();
