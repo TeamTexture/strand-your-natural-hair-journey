@@ -4,6 +4,7 @@ import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import LevelGate from "@/components/tips/LevelGate";
@@ -90,7 +91,7 @@ const ProfileStep3Hair = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Hair Characteristics" right={<span>5 of 9</span>} />
+      <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} right={<span>5 of 9</span>} />
       <ProgressDots total={9} current={5} />
       <LevelGate min={2}><ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub></LevelGate>
 

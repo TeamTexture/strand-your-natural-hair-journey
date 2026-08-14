@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -30,7 +31,7 @@ const BloodMinerals = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Minerals" right={<span>2 of 4</span>} />
+      <TitleBar title="Minerals" onBack={onboardingBack(navigate, "/onboarding/blood-minerals")} right={<span>2 of 4</span>} />
       <ProgressDots total={4} current={2} />
       <ItalicSub>Mineral deficiencies are commonly missed and directly affect hair growth and scalp health.</ItalicSub>
 

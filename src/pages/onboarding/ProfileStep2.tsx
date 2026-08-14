@@ -3,6 +3,7 @@ import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import Tag from "@/components/Tag";
@@ -285,7 +286,7 @@ const ProfileStep2 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Health Profile" right={<span>2 of 9</span>} />
+      <TitleBar title="Health Profile" onBack={onboardingBack(navigate, "/onboarding/profile-step-2")} right={<span>2 of 9</span>} />
       <ProgressDots total={9} current={2} />
       <ItalicSub>
         Hormones and health conditions are the biggest drivers of hair behaviour. All data is private.

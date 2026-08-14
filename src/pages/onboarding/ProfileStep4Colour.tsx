@@ -3,6 +3,7 @@ import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import Tag from "@/components/Tag";
 
@@ -133,7 +134,7 @@ const ProfileStep4Colour = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Colour & Style" right={<span>6 of 9</span>} />
+      <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} right={<span>6 of 9</span>} />
       <ProgressDots total={9} current={6} />
 
       <div className="px-5 pb-8 space-y-5">

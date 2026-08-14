@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -56,7 +57,7 @@ const BloodHormones = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Hormones" right={<span>4 of 4</span>} />
+      <TitleBar title="Hormones" onBack={onboardingBack(navigate, "/onboarding/blood-hormones")} right={<span>4 of 4</span>} />
       <ProgressDots total={4} current={4} />
       <ItalicSub>Hormonal imbalances are one of the most common but least investigated causes of hair loss in women.</ItalicSub>
 
