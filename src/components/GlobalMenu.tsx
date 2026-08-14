@@ -112,7 +112,7 @@ const BRAND_NAV: NavItem[] = [
 
 // Keep app navigation hidden until the member is inside the paid app.
 const HIDDEN_PREFIXES = ["/auth", "/.lovable"];
-const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup"];
+const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup", "/blood-upload", "/subscribe"];
 
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();

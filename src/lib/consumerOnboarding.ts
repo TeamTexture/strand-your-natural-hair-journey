@@ -80,7 +80,10 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // never restarts the whole journey from step 1.
   let resumePath = "/onboarding/profile-step-1";
   if (basicComplete) resumePath = "/onboarding/profile-step-2";
-  if (healthComplete) resumePath = "/onboarding/profile-step-3-hair";
+  // The consultation choice/details steps do not persist their own database
+  // marker, so a returning member must resume at that fork rather than being
+  // jumped straight to the screen labelled 5 of 9.
+  if (healthComplete) resumePath = "/onboarding/pro-gate";
   if (hairComplete) resumePath = "/onboarding/profile-step-4-colour";
   if (styleComplete) resumePath = "/onboarding/blood-timing";
 
