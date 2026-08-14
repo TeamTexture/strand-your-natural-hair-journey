@@ -5,6 +5,7 @@ import LoadingDot from "@/components/LoadingDot";
 import MembershipEnded from "@/components/MembershipEnded";
 import MembershipPaused from "@/components/MembershipPaused";
 import DeletionPending from "@/components/DeletionPending";
+import ProgressCheckFailed from "@/components/ProgressCheckFailed";
 
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
