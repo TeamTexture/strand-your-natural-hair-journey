@@ -27,9 +27,10 @@ interface TGProps {
   noneLabel?: string;
 }
 const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
+  const safeValue = Array.isArray(value) ? value : [];
   const toggle = (opt: string) => {
     if (multi) {
-      onChange(noneLabel ? toggleWithNone(value, opt, noneLabel) : value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+      onChange(noneLabel ? toggleWithNone(safeValue, opt, noneLabel) : safeValue.includes(opt) ? safeValue.filter((v) => v !== opt) : [...safeValue, opt]);
     } else {
       onChange([opt]);
     }
@@ -39,7 +40,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: 
       <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
-          <Tag key={o} selected={value.includes(o)} onClick={() => toggle(o)}>
+          <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
             {o}
           </Tag>
         ))}
@@ -68,16 +69,19 @@ const ProfileStep3Hair = () => {
     "profile-step-3-hair",
     { diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
     (d) => {
-      if (d.diameter) setDiameter(d.diameter);
-      if (d.texture) setTexture(d.texture);
-      if (d.density) setDensity(d.density);
-      if (d.porosity) setPorosity(d.porosity);
-      if (d.elasticity) setElasticity(d.elasticity);
-      if (d.scalp) setScalp(d.scalp);
-      if (d.diagnosed) setDiagnosed(d.diagnosed);
-      if (d.areas) setAreas(d.areas);
-      if (d.lengthInches !== undefined) setLengthInches(d.lengthInches);
-      if (d.lengthBucket !== undefined) setLengthBucket(d.lengthBucket);
+      // Older saved drafts used different shapes. Only restore values the
+      // current controls can render; malformed arrays previously crashed on
+      // `.includes()` immediately after a refresh.
+      if (Array.isArray(d.diameter)) setDiameter(d.diameter.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.texture)) setTexture(d.texture.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.density)) setDensity(d.density.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.porosity)) setPorosity(d.porosity.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.elasticity)) setElasticity(d.elasticity.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.diagnosed)) setDiagnosed(d.diagnosed.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.areas)) setAreas(d.areas.filter((v): v is string => typeof v === "string"));
+      if (typeof d.lengthInches === "string") setLengthInches(d.lengthInches);
+      if (typeof d.lengthBucket === "string") setLengthBucket(d.lengthBucket);
     },
   );
   const { shouldAsk } = usePersonalisedOffersAsk();

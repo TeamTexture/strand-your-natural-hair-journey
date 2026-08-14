@@ -37,17 +37,18 @@ interface TGProps {
   onChange: (n: string[]) => void;
   multi?: boolean;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => (
-  <div>
+const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
+  const safeValue = Array.isArray(value) ? value : [];
+  return <div>
     <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
     <div className="flex flex-wrap gap-2">
       {options.map((o) => (
         <Tag
           key={o}
-          selected={value.includes(o)}
+          selected={safeValue.includes(o)}
           onClick={() =>
             multi
-              ? onChange(value.includes(o) ? value.filter((v) => v !== o) : [...value, o])
+              ? onChange(safeValue.includes(o) ? safeValue.filter((v) => v !== o) : [...safeValue, o])
               : onChange([o])
           }
         >
@@ -55,8 +56,8 @@ const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) =>
         </Tag>
       ))}
     </div>
-  </div>
-);
+  </div>;
+};
 
 const COLOUR_TYPES = ["Professional colour", "Box dye", "Henna", "Not sure"];
 const COLOUR_PRODUCTS = ["Colour", "Lightener (bleach)", "Not sure"];
@@ -108,24 +109,24 @@ const ProfileStep4Colour = () => {
       colourReactionDetails, colourReactionAudioPath, attrs, plannedAttrs,
     },
     (d) => {
-      if (d.colour) setColour(d.colour);
-      if (d.chemHist) setChemHist(d.chemHist);
-      if (d.style) setStyle(d.style);
-      if (d.howLongNum !== undefined) setHowLongNum(d.howLongNum);
-      if (d.howLongUnit) setHowLongUnit(d.howLongUnit);
-      if (d.plansToChange) setPlansToChange(d.plansToChange);
-      if (d.changeNum !== undefined) setChangeNum(d.changeNum);
-      if (d.changeUnit) setChangeUnit(d.changeUnit);
-      if (d.changingTo) setChangingTo(d.changingTo);
-      if (d.defaultStyle) setDefaultStyle(d.defaultStyle);
-      if (d.colourType) setColourType(d.colourType);
-      if (d.colourProduct) setColourProduct(d.colourProduct);
-      if (d.colourLast) setColourLast(d.colourLast);
-      if (d.colourReaction) setColourReaction(d.colourReaction);
-      if (d.colourReactionDetails !== undefined) setColourReactionDetails(d.colourReactionDetails);
-      if (d.colourReactionAudioPath !== undefined) setColourReactionAudioPath(d.colourReactionAudioPath);
-      if (d.attrs) setAttrs(d.attrs);
-      if (d.plannedAttrs) setPlannedAttrs(d.plannedAttrs);
+      if (Array.isArray(d.colour)) setColour(d.colour.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.chemHist)) setChemHist(d.chemHist.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.style)) setStyle(d.style.filter((v): v is string => typeof v === "string"));
+      if (typeof d.howLongNum === "string") setHowLongNum(d.howLongNum);
+      if (d.howLongUnit === "days" || d.howLongUnit === "weeks" || d.howLongUnit === "months") setHowLongUnit(d.howLongUnit);
+      if (d.plansToChange === "yes" || d.plansToChange === "no") setPlansToChange(d.plansToChange);
+      if (typeof d.changeNum === "string") setChangeNum(d.changeNum);
+      if (d.changeUnit === "days" || d.changeUnit === "weeks" || d.changeUnit === "months") setChangeUnit(d.changeUnit);
+      if (Array.isArray(d.changingTo)) setChangingTo(d.changingTo.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.defaultStyle)) setDefaultStyle(d.defaultStyle.filter((v): v is string => typeof v === "string"));
+      if (typeof d.colourType === "string") setColourType(d.colourType);
+      if (typeof d.colourProduct === "string") setColourProduct(d.colourProduct);
+      if (typeof d.colourLast === "string") setColourLast(d.colourLast);
+      if (d.colourReaction === "yes" || d.colourReaction === "no") setColourReaction(d.colourReaction);
+      if (typeof d.colourReactionDetails === "string") setColourReactionDetails(d.colourReactionDetails);
+      if (typeof d.colourReactionAudioPath === "string" || d.colourReactionAudioPath === null) setColourReactionAudioPath(d.colourReactionAudioPath);
+      if (d.attrs && typeof d.attrs === "object") setAttrs(d.attrs);
+      if (d.plannedAttrs && typeof d.plannedAttrs === "object") setPlannedAttrs(d.plannedAttrs);
     },
   );
 

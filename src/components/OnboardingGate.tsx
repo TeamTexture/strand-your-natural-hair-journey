@@ -37,9 +37,15 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
   const { data: status, isLoading: profileLoading, isFetching: profileFetching } = useQuery({
-    queryKey: ["consumer_onboarding_route", user?.id, location.pathname],
+    // Completion belongs to the member, not the current screen. Keeping the
+    // pathname out prevents every corrective redirect from restarting this
+    // request and producing a loading/redirect loop on slower connections.
+    queryKey: ["consumer_onboarding_route", user?.id],
     enabled: !!user?.id,
-    queryFn: () => getConsumerOnboardingStatus(user!.id),
+    queryFn: () => {
+      if (!user?.id) throw new Error("A signed-in member is required for onboarding");
+      return getConsumerOnboardingStatus(user.id);
+    },
   });
 
   if (subLoading || profileLoading || profileFetching || rolesLoading) return <LoadingDot />;

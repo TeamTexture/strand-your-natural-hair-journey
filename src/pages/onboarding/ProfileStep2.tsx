@@ -159,9 +159,9 @@ const ProfileStep2 = () => {
     "profile-step-2",
     { lifeStage, contraception, conditions, diet, dietOther, dietBalance, smoke, alcohol, water, exercise, sleep, meds },
     (d) => {
-      if (d.lifeStage) setLifeStage(d.lifeStage);
-      if (d.contraception) setContraception(d.contraception);
-      if (d.conditions) setConditions(d.conditions);
+      if (Array.isArray(d.lifeStage)) setLifeStage(d.lifeStage.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.contraception)) setContraception(d.contraception.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.conditions)) setConditions(d.conditions.filter((v): v is string => typeof v === "string"));
       if (typeof d.diet === "string") setDiet(d.diet);
       if (d.dietOther) setDietOther(d.dietOther);
       if (typeof d.dietBalance === "string") setDietBalance(d.dietBalance);
@@ -170,7 +170,12 @@ const ProfileStep2 = () => {
       if (typeof d.water === "string") setWater(d.water);
       if (typeof d.exercise === "string") setExercise(d.exercise);
       if (typeof d.sleep === "string") setSleep(d.sleep);
-      if (d.meds) setMeds(d.meds);
+      if (Array.isArray(d.meds)) {
+        setMeds(d.meds.filter(
+          (m): m is { name: string; category: string } =>
+            !!m && typeof m === "object" && typeof m.name === "string" && typeof m.category === "string",
+        ));
+      }
     },
   );
 

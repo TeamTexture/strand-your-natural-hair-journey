@@ -83,20 +83,22 @@ export function toggleWithNone(
   option: string,
   noneLabel: string,
 ): string[] {
+  const safeCurrent = Array.isArray(current) ? current : [];
   if (option === noneLabel) {
-    return current.includes(noneLabel) ? [] : [noneLabel];
+    return safeCurrent.includes(noneLabel) ? [] : [noneLabel];
   }
-  const withoutNone = current.filter((v) => v !== noneLabel);
+  const withoutNone = safeCurrent.filter((v) => v !== noneLabel);
   return withoutNone.includes(option)
     ? withoutNone.filter((v) => v !== option)
     : [...withoutNone, option];
 }
 
 export function toggleCondition(current: string[], option: string): string[] {
+  const safeCurrent = Array.isArray(current) ? current : [];
   if (option === CONDITIONS_NONE) {
-    return current.includes(CONDITIONS_NONE) ? [] : [CONDITIONS_NONE];
+    return safeCurrent.includes(CONDITIONS_NONE) ? [] : [CONDITIONS_NONE];
   }
-  const withoutNone = current.filter((v) => v !== CONDITIONS_NONE);
+  const withoutNone = safeCurrent.filter((v) => v !== CONDITIONS_NONE);
   return withoutNone.includes(option)
     ? withoutNone.filter((v) => v !== option)
     : [...withoutNone, option];
