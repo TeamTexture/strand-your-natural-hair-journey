@@ -43,9 +43,10 @@ const BloodHormones = () => {
       toast.error("Could not save. Check your connection.");
       return;
     }
-    // Gates read a cached copy of onboarding progress — refresh it before the
-    // next screen judges her on pre-save data.
-    await invalidateOnboardingStatus();
+    // Payment must not wait for a six-table background progress refresh. On
+    // slower tablets that extra request kept the member on this screen even
+    // though her blood work had already saved successfully.
+    void invalidateOnboardingStatus();
     // Members who already have access (or are editing their bloods later)
     // must never be bounced back into the paywall.
     navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());

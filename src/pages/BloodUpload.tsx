@@ -528,7 +528,7 @@ export default function BloodUpload() {
         // then use the entitlement itself for a deterministic handoff. Running
         // a second six-table progress read here caused slow/tablet connections
         // to bounce members back into onboarding instead of reaching payment.
-        await invalidateOnboardingStatus();
+        void invalidateOnboardingStatus();
         navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
