@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -13,6 +14,13 @@ const ProGate = () => {
   // No default — the member must actively answer this. Pre-answering "yes"
   // silently skipped the booking requirement.
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
+  useOnboardingDraft(
+    "pro-gate",
+    { choice },
+    (draft) => {
+      if (draft.choice === "yes" || draft.choice === "no") setChoice(draft.choice);
+    },
+  );
 
   return (
     <ScreenLayout>
