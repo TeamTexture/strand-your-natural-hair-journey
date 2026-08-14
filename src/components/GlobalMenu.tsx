@@ -110,9 +110,7 @@ const BRAND_NAV: NavItem[] = [
 
 
 
-// Hide menu on splash and auth. Onboarding/walkthrough/setup keep the top
-// bar so users always have a back button and a way to sign out — otherwise
-// they can get stranded on step 1 with no exit.
+// Keep app navigation hidden until the member is inside the paid app.
 const HIDDEN_PREFIXES = ["/auth", "/.lovable"];
 const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup"];
 
@@ -165,6 +163,7 @@ const GlobalMenu = () => {
     !session ||
     isRestricted ||
     brandLocked ||
+    ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p)) ||
     location.pathname === "/" ||
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
 

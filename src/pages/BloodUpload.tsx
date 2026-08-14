@@ -35,7 +35,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
-import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { getConsumerOnboardingStatus, getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
@@ -520,11 +520,13 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        await supabase
-          .from("profiles")
-          .update({ onboarding_completed_at: new Date().toISOString() })
-          .eq("user_id", user.id);
-        navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());
+        const onboarding = await getConsumerOnboardingStatus(user.id);
+        navigate(
+          onboarding.dataComplete
+            ? hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath()
+            : onboarding.resumePath,
+          { replace: true },
+        );
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {

@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
@@ -32,6 +32,7 @@ const OnboardingGate = ({ children }: Props) => (
 
 const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const { hasAccess, paymentRequired, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
@@ -46,6 +47,13 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
+  }
+  if (!status?.dataComplete && location.pathname !== status?.resumePath) {
+    const allowedHairPrelude = !status?.hairComplete && status?.healthComplete &&
+      ["/onboarding/pro-gate", "/onboarding/pro-book", "/onboarding/pro-details"].includes(location.pathname);
+    if (!allowedHairPrelude) {
+      return <Navigate to={status?.resumePath ?? "/onboarding/profile-step-1"} replace />;
+    }
   }
   // Locked to /subscribe once onboarding data capture is finished (or an admin
   // has forced payment) and there is no entitlement. Members still mid-capture

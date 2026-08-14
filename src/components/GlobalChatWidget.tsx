@@ -33,7 +33,7 @@ import {
 } from "@/hooks/useChat";
 
 // Hide on splash / auth / restricted screens (parity with GlobalMenu).
-const HIDDEN_PREFIXES = ["/auth", "/.lovable"];
+const HIDDEN_PREFIXES = ["/auth", "/.lovable", "/onboarding", "/walkthrough", "/setup", "/subscribe", "/blood-upload"];
 
 const GlobalChatWidget = () => {
   const { user, session } = useAuth();
