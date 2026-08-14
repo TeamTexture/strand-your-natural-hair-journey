@@ -48,10 +48,21 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
   }
-  if (!status?.dataComplete && location.pathname !== status?.resumePath) {
-    const allowedHairPrelude = !status?.hairComplete && status?.healthComplete &&
-      ["/onboarding/pro-gate", "/onboarding/pro-book", "/onboarding/pro-details"].includes(location.pathname);
-    if (!allowedHairPrelude) {
+  if (!status?.dataComplete) {
+    const allowed = new Set(["/onboarding/profile-step-1"]);
+    if (status?.basicComplete) allowed.add("/onboarding/profile-step-2");
+    if (status?.healthComplete) {
+      allowed.add("/onboarding/pro-gate");
+      allowed.add("/onboarding/pro-book");
+      allowed.add("/onboarding/pro-details");
+      allowed.add("/onboarding/profile-step-3-hair");
+    }
+    if (status?.hairComplete) allowed.add("/onboarding/profile-step-4-colour");
+    if (status?.styleComplete) {
+      allowed.add("/onboarding/blood-timing");
+      allowed.add("/blood-upload");
+    }
+    if (!allowed.has(location.pathname)) {
       return <Navigate to={status?.resumePath ?? "/onboarding/profile-step-1"} replace />;
     }
   }
