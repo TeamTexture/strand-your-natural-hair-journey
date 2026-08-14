@@ -264,21 +264,36 @@ export async function persistBloodValues() {
   const panelId = await ensureDraftPanel(user.id);
   if (!panelId) return { ok: false, reason: "panel_create_failed" as const };
 
-  // Within the CURRENT draft panel, replace the markers we're about to write
-  // (idempotent when the user re-visits a sub-step). Prior panels are left
-  // untouched so history is preserved.
-  await supabase
+  // Never delete the saved copy before its replacement exists. Tablet/mobile
+  // connections can drop between requests; deleting first made an interrupted
+  // retry remove blood work that had already been saved.
+  const markers = combined.map((r) => r.marker);
+  const { data: previousRows, error: previousRowsError } = await supabase
     .from("blood_results")
-    .delete()
+    .select("id")
     .eq("user_id", user.id)
     .eq("panel_id" as never, panelId as never)
-    .in(
-      "marker",
-      combined.map((r) => r.marker),
-    );
+    .in("marker", markers);
+  if (previousRowsError) {
+    return { ok: false, reason: "existing_results_read_failed" as const, error: previousRowsError };
+  }
+
   const rowsWithPanel = combined.map((r) => ({ ...r, panel_id: panelId } as never));
   const { error } = await supabase.from("blood_results").insert(rowsWithPanel);
   if (error) return { ok: false, reason: "insert_failed" as const, error };
+
+  const previousIds = (previousRows ?? []).map((row) => row.id);
+  if (previousIds.length > 0) {
+    const { error: cleanupError } = await supabase
+      .from("blood_results")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("panel_id" as never, panelId as never)
+      .in("id", previousIds);
+    // The new rows are already safe. A failed cleanup may briefly leave duplicate
+    // history rows, but must not make the save look failed or prompt another write.
+    if (cleanupError) console.warn("[blood_results] previous-row cleanup failed", cleanupError);
+  }
   return { ok: true, count: combined.length, panelId };
 }
 
