@@ -14,39 +14,63 @@ export async function getConsumerOnboardingStatus(userId: string) {
   const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("onboarding_completed_at")
+      .select("onboarding_completed_at, avatar_url, display_name, phone_number, birth_year, postcode, country")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
       .from("user_health_profile")
-      .select("user_id", { count: "exact", head: true })
-      .eq("user_id", userId),
+      .select("life_stage_enc, contraception_enc, medical_conditions_enc, diet, diet_balance, smoke, alcohol, daily_water, exercise, sleep_quality")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase
       .from("user_hair_profile")
-      .select("user_id", { count: "exact", head: true })
-      .eq("user_id", userId),
+      .select("diameter, surface_texture, density, porosity, elasticity, scalp_condition_enc, diagnosed_conditions_enc, areas_of_concern")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase
       .from("user_style_profile")
-      .select("user_id", { count: "exact", head: true })
-      .eq("user_id", userId),
+      .select("current_colour_status, current_hairstyle, style_set_at, default_styles")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase
       .from("blood_results")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .eq("status", "logged"),
     supabase
       .from("blood_panels")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
   ]);
 
-  const markedComplete = !!(
-    profileRes.data as { onboarding_completed_at?: string | null } | null
-  )?.onboarding_completed_at;
-  const dataComplete =
-    (healthRes.count ?? 0) > 0 &&
-    (hairRes.count ?? 0) > 0 &&
-    (styleRes.count ?? 0) > 0 &&
-    ((bloodResultsRes.count ?? 0) > 0 || (bloodPanelsRes.count ?? 0) > 0);
+  const profile = profileRes.data;
+  const health = healthRes.data;
+  const hair = hairRes.data;
+  const style = styleRes.data;
+  const basicComplete = !!(
+    profile?.avatar_url && profile.display_name?.trim() && profile.phone_number?.trim() &&
+    profile.birth_year && profile.postcode?.trim() && profile.country?.trim()
+  );
+  const healthFieldsComplete = !!(
+    health?.life_stage_enc && health.contraception_enc && health.medical_conditions_enc &&
+    health.diet && health.diet_balance && health.smoke && health.alcohol &&
+    health.daily_water && health.exercise && health.sleep_quality
+  );
+  const hairFieldsComplete = !!(
+    hair?.diameter && hair.surface_texture && hair.density && hair.porosity &&
+    hair.elasticity && hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
+    Array.isArray(hair.areas_of_concern) && hair.areas_of_concern.length > 0
+  );
+  const styleFieldsComplete = !!(
+    style?.current_colour_status && style.current_hairstyle && style.style_set_at &&
+    Array.isArray(style.default_styles) && style.default_styles.length > 0
+  );
+  const healthComplete = basicComplete && healthFieldsComplete;
+  const hairComplete = healthComplete && hairFieldsComplete;
+  const styleComplete = hairComplete && styleFieldsComplete;
+  const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
+  const dataComplete = basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
+  const markedComplete = !!profile?.onboarding_completed_at;
 
   if (dataComplete && !markedComplete) {
     void supabase
@@ -58,21 +82,26 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // Where a part-way user should be dropped back in, so returning mid-flow
   // never restarts the whole journey from step 1.
   let resumePath = "/onboarding/profile-step-1";
-  if ((healthRes.count ?? 0) > 0) resumePath = "/onboarding/profile-step-3-hair";
-  if ((hairRes.count ?? 0) > 0) resumePath = "/onboarding/profile-step-4-colour";
-  if ((styleRes.count ?? 0) > 0) resumePath = "/onboarding/blood-timing";
+  if (basicComplete) resumePath = "/onboarding/profile-step-2";
+  // The consultation choice/details steps do not persist their own database
+  // marker, so a returning member must resume at that fork rather than being
+  // jumped straight to the screen labelled 5 of 9.
+  if (healthComplete) resumePath = "/onboarding/pro-gate";
+  if (hairComplete) resumePath = "/onboarding/profile-step-4-colour";
+  if (styleComplete) resumePath = "/onboarding/blood-timing";
 
   // Blood data on file is NOT a payment checkpoint on its own — members often
   // upload bloods before finishing their hair/style profile, and blocking them
   // there left them stranded mid-onboarding. Payment is only due once the whole
   // onboarding data set is captured; the paywall on /home catches the rest.
-  const bloodOnFile =
-    (bloodResultsRes.count ?? 0) > 0 || (bloodPanelsRes.count ?? 0) > 0;
-
   return {
-    completed: markedComplete || dataComplete,
+    completed: dataComplete,
     markedComplete,
     dataComplete,
+    basicComplete,
+    healthComplete,
+    hairComplete,
+    styleComplete,
     bloodOnFile,
     paymentDue: dataComplete,
 

@@ -8,7 +8,9 @@ import DeletionPending from "@/components/DeletionPending";
 
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useRoles } from "@/hooks/useRoles";
-import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { BRAND_ACCESS_PATH, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 
 interface Props {
   children: ReactNode;
@@ -42,7 +44,13 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
     refetch,
   } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
+  const { user } = useAuth();
   const location = useLocation();
+  const { data: onboarding, isLoading: onboardingLoading } = useQuery({
+    queryKey: ["consumer_onboarding_gate", user?.id],
+    enabled: !!user?.id,
+    queryFn: () => getConsumerOnboardingStatus(user?.id ?? ""),
+  });
 
   // Revalidate entitlement on every route change into a paid area, so a
   // cancellation mid-session is caught without a hard reload.
@@ -51,7 +59,7 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  if (isLoading || rolesLoading) return <LoadingDot />;
+  if (isLoading || rolesLoading || onboardingLoading) return <LoadingDot />;
 
   // A member's own erasure request closes the app for them, with an explanation
   // and a one-tap route back. Checked before roles so it is never invisible.
@@ -63,6 +71,10 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
+  }
+
+  if (!isAdminOrPro && !onboarding?.dataComplete) {
+    return <Navigate to={onboarding?.resumePath ?? "/onboarding/profile-step-1"} replace />;
   }
 
   if (!hasAccess) {

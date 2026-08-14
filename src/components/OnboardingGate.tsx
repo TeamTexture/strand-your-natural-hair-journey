@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
@@ -32,20 +32,39 @@ const OnboardingGate = ({ children }: Props) => (
 
 const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const location = useLocation();
   const { hasAccess, paymentRequired, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
-  const { data: status, isLoading: profileLoading } = useQuery({
-    queryKey: ["profile_onboarding_completed", user?.id],
+  const { data: status, isLoading: profileLoading, isFetching: profileFetching } = useQuery({
+    queryKey: ["consumer_onboarding_route", user?.id, location.pathname],
     enabled: !!user?.id,
     queryFn: () => getConsumerOnboardingStatus(user!.id),
   });
 
-  if (subLoading || profileLoading || rolesLoading) return <LoadingDot />;
+  if (subLoading || profileLoading || profileFetching || rolesLoading) return <LoadingDot />;
   // Professionals live entirely on the pro side — no consumer onboarding.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
+  }
+  if (!status?.dataComplete) {
+    const allowed = new Set(["/onboarding/profile-step-1"]);
+    if (status?.basicComplete) allowed.add("/onboarding/profile-step-2");
+    if (status?.healthComplete) {
+      allowed.add("/onboarding/pro-gate");
+      allowed.add("/onboarding/pro-book");
+      allowed.add("/onboarding/pro-details");
+      allowed.add("/onboarding/profile-step-3-hair");
+    }
+    if (status?.hairComplete) allowed.add("/onboarding/profile-step-4-colour");
+    if (status?.styleComplete) {
+      allowed.add("/onboarding/blood-timing");
+      allowed.add("/blood-upload");
+    }
+    if (!allowed.has(location.pathname)) {
+      return <Navigate to={status?.resumePath ?? "/onboarding/profile-step-1"} replace />;
+    }
   }
   // Locked to /subscribe once onboarding data capture is finished (or an admin
   // has forced payment) and there is no entitlement. Members still mid-capture
