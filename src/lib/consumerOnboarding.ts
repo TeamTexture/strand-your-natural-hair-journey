@@ -51,20 +51,23 @@ export async function getConsumerOnboardingStatus(userId: string) {
     profile?.avatar_url && profile.display_name?.trim() && profile.phone_number?.trim() &&
     profile.birth_year && profile.postcode?.trim() && profile.country?.trim()
   );
-  const healthComplete = !!(
+  const healthFieldsComplete = !!(
     health?.life_stage_enc && health.contraception_enc && health.medical_conditions_enc &&
     health.diet && health.diet_balance && health.smoke && health.alcohol &&
     health.daily_water && health.exercise && health.sleep_quality
   );
-  const hairComplete = !!(
+  const hairFieldsComplete = !!(
     hair?.diameter && hair.surface_texture && hair.density && hair.porosity &&
     hair.elasticity && hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
     Array.isArray(hair.areas_of_concern) && hair.areas_of_concern.length > 0
   );
-  const styleComplete = !!(
+  const styleFieldsComplete = !!(
     style?.current_colour_status && style.current_hairstyle && style.style_set_at &&
     Array.isArray(style.default_styles) && style.default_styles.length > 0
   );
+  const healthComplete = basicComplete && healthFieldsComplete;
+  const hairComplete = healthComplete && hairFieldsComplete;
+  const styleComplete = hairComplete && styleFieldsComplete;
   const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
   const dataComplete = basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
   const markedComplete = !!profile?.onboarding_completed_at;
