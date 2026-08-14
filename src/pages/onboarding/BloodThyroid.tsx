@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -28,7 +29,7 @@ const BloodThyroid = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Thyroid" right={<span>3 of 4</span>} />
+      <TitleBar title="Thyroid" onBack={onboardingBack(navigate, "/onboarding/blood-thyroid")} right={<span>3 of 4</span>} />
       <ProgressDots total={4} current={3} />
       <ItalicSub>Both underactive and overactive thyroid are a leading cause of hair shedding and texture changes.</ItalicSub>
 

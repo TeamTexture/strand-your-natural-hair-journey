@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Suspense } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { Suspense, type ReactNode } from "react";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { lazyRetry } from "@/lib/lazyRetry";
 import { isTransientAuthLockError } from "@/lib/retryQuery";
 
@@ -276,6 +277,12 @@ const GlobalEffects = () => {
   return null;
 };
 
+// Resets the crash boundary on navigation so a broken screen never sticks.
+const RouteCrashGuard = ({ children }: { children: ReactNode }) => {
+  const location = useLocation();
+  return <RouteErrorBoundary resetKey={location.pathname}>{children}</RouteErrorBoundary>;
+};
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -300,6 +307,7 @@ const App = () => (
                 <AccessRestrictedGate>
                 <BrandPaywallGate>
                 <ConsentGate>
+                <RouteCrashGuard>
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
               <Route path="/" element={<Index />} />
@@ -682,6 +690,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
                 </Routes>
                 </Suspense>
+                </RouteCrashGuard>
                 </ConsentGate>
                 </BrandPaywallGate>
                 </AccessRestrictedGate>

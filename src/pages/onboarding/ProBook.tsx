@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -108,7 +109,7 @@ const ProBook = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Book a Professional" right={<span>3 of 9</span>} />
+      <TitleBar title="Book a Professional" onBack={onboardingBack(navigate, "/onboarding/pro-book")} right={<span>3 of 9</span>} />
       <ProgressDots total={9} current={3} />
 
       <div className="px-5 pb-8 space-y-4">

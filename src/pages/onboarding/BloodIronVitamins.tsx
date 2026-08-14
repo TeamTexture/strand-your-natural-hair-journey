@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -30,7 +31,7 @@ const BloodIronVitamins = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Iron & Vitamins" right={<span>1 of 4</span>} />
+      <TitleBar title="Iron & Vitamins" onBack={onboardingBack(navigate, "/onboarding/blood-iron-vitamins")} right={<span>1 of 4</span>} />
       <ProgressDots total={4} current={1} />
       <ItalicSub>Enter values from your report. Skip anything not tested — add later.</ItalicSub>
 

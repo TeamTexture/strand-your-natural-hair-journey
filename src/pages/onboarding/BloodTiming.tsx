@@ -4,6 +4,7 @@ import { Copy, ExternalLink, Stethoscope, Upload } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
+import { onboardingBack } from "@/lib/onboardingFlow";
 import ProgressDots from "@/components/ProgressDots";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -30,7 +31,7 @@ const BloodTiming = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Blood Test" right={<span>7 of 9</span>} />
+      <TitleBar title="Blood Test" onBack={onboardingBack(navigate, "/onboarding/blood-timing")} right={<span>7 of 9</span>} />
       <ProgressDots total={9} current={7} />
 
       <div className="px-5 pb-8 space-y-4">
