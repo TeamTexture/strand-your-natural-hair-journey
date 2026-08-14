@@ -36,7 +36,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { hasAccess, paymentRequired, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
-  const { data: status, isLoading: profileLoading, isFetching: profileFetching } = useQuery({
+  const { data: status, isLoading: profileLoading } = useQuery({
     // Completion belongs to the member, not the current screen. Keeping the
     // pathname out prevents every corrective redirect from restarting this
     // request and producing a loading/redirect loop on slower connections.
@@ -48,7 +48,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     },
   });
 
-  if (subLoading || profileLoading || profileFetching || rolesLoading) return <LoadingDot />;
+  // Do not replace a usable onboarding screen with a full-page loader during
+  // background revalidation. That flash was experienced as a blank/glitching
+  // page on slower mobile connections.
+  if (subLoading || profileLoading || rolesLoading) return <LoadingDot />;
   // Professionals live entirely on the pro side — no consumer onboarding.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
@@ -76,6 +79,28 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   // paywall only after the full profile and blood-work flow is complete.
   if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess) {
     return <Navigate to={getSubscribePath(status?.analysisPath)} replace />;
+  }
+
+  // Old bookmarks and emailed links can point back into capture screens after
+  // onboarding is complete. Never reopen those stale forms or expose the menu
+  // around them; paid members return to Home instead.
+  const capturePaths = new Set([
+    "/onboarding/profile-step-1",
+    "/onboarding/profile-step-2",
+    "/onboarding/pro-gate",
+    "/onboarding/pro-book",
+    "/onboarding/pro-details",
+    "/onboarding/profile-step-3-hair",
+    "/onboarding/profile-step-4-colour",
+    "/onboarding/blood-timing",
+    "/blood-upload",
+    "/onboarding/blood-iron-vitamins",
+    "/onboarding/blood-minerals",
+    "/onboarding/blood-thyroid",
+    "/onboarding/blood-hormones",
+  ]);
+  if (status?.dataComplete && hasAccess && capturePaths.has(location.pathname)) {
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;

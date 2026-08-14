@@ -13,8 +13,6 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 
@@ -32,7 +30,6 @@ const MARKERS = [
 
 const BloodHormones = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { values, setValue } = useBloodValues();
   const { unknown, setUnknown } = useUnknownMarkers();
   const { hasAccess } = useConsumerSubscription();
@@ -43,12 +40,6 @@ const BloodHormones = () => {
     if (!res.ok) {
       toast.error("Could not save. Check your connection.");
       return;
-    }
-    if (user?.id) {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_completed_at: new Date().toISOString() })
-        .eq("user_id", user.id);
     }
     // Members who already have access (or are editing their bloods later)
     // must never be bounced back into the paywall.
