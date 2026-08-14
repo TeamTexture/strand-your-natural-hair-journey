@@ -32,7 +32,9 @@ export function useOnboardingDraft<T extends Record<string, unknown>>(
       const raw = localStorage.getItem(onboardingDraftKey(key));
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") restoreRef.current(parsed as Partial<T>);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          restoreRef.current(parsed as Partial<T>);
+        }
       }
     } catch {
       /* ignore corrupt drafts */

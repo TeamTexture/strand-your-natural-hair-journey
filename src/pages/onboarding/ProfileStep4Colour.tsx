@@ -37,17 +37,18 @@ interface TGProps {
   onChange: (n: string[]) => void;
   multi?: boolean;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => (
-  <div>
+const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
+  const safeValue = Array.isArray(value) ? value : [];
+  return <div>
     <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
     <div className="flex flex-wrap gap-2">
       {options.map((o) => (
         <Tag
           key={o}
-          selected={value.includes(o)}
+          selected={safeValue.includes(o)}
           onClick={() =>
             multi
-              ? onChange(value.includes(o) ? value.filter((v) => v !== o) : [...value, o])
+              ? onChange(safeValue.includes(o) ? safeValue.filter((v) => v !== o) : [...safeValue, o])
               : onChange([o])
           }
         >
@@ -55,8 +56,8 @@ const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) =>
         </Tag>
       ))}
     </div>
-  </div>
-);
+  </div>;
+};
 
 const COLOUR_TYPES = ["Professional colour", "Box dye", "Henna", "Not sure"];
 const COLOUR_PRODUCTS = ["Colour", "Lightener (bleach)", "Not sure"];

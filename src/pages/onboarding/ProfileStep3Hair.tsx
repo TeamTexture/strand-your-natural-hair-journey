@@ -27,9 +27,10 @@ interface TGProps {
   noneLabel?: string;
 }
 const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
+  const safeValue = Array.isArray(value) ? value : [];
   const toggle = (opt: string) => {
     if (multi) {
-      onChange(noneLabel ? toggleWithNone(value, opt, noneLabel) : value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt]);
+      onChange(noneLabel ? toggleWithNone(safeValue, opt, noneLabel) : safeValue.includes(opt) ? safeValue.filter((v) => v !== opt) : [...safeValue, opt]);
     } else {
       onChange([opt]);
     }
@@ -39,7 +40,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: 
       <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
-          <Tag key={o} selected={value.includes(o)} onClick={() => toggle(o)}>
+          <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
             {o}
           </Tag>
         ))}
