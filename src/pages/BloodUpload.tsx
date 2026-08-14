@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle, Camera } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
@@ -547,6 +548,7 @@ export default function BloodUpload() {
   return (
     <ScreenLayout>
       <TitleBar title="Upload blood test" onBack={isOnboarding ? onboardingBack(navigate, "/blood-upload") : smartBack(navigate, "/blood-history")} />
+      {isOnboarding && <OnboardingGuide className="pt-2 pb-1" />}
 
       <div className="px-5 pt-2 pb-10 space-y-4">
         <LevelGate min={2}>

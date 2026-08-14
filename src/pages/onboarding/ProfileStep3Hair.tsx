@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import LevelGate from "@/components/tips/LevelGate";
 import Tag from "@/components/Tag";
@@ -100,7 +100,7 @@ const ProfileStep3Hair = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} right={<span>5 of 9</span>} />
-      <ProgressDots total={9} current={5} />
+      <OnboardingGuide className="pt-2 pb-1" />
       <LevelGate min={2}><ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub></LevelGate>
 
       <div className="px-5 pb-8 space-y-5">

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ const ProGate = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Your Hair Analysis" onBack={onboardingBack(navigate, "/onboarding/pro-gate")} right={<span>3 of 9</span>} />
-      <ProgressDots total={9} current={3} />
+      <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard className="text-center py-6">

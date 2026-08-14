@@ -5,7 +5,7 @@ import { AlertCircle, Check, CalendarX } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import FormField from "@/components/FormField";
 import Tag from "@/components/Tag";
@@ -120,7 +120,7 @@ const ProDetails = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Your Professional" onBack={onboardingBack(navigate, "/onboarding/pro-details")} right={<span>4 of 9</span>} />
-      <ProgressDots total={9} current={4} />
+      <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>Search our directory or add your professional manually.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-4">

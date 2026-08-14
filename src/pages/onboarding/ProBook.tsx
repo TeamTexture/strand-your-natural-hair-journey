@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
-import ProgressDots from "@/components/ProgressDots";
+import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
@@ -110,7 +110,7 @@ const ProBook = () => {
   return (
     <ScreenLayout>
       <TitleBar title="Book a Professional" onBack={onboardingBack(navigate, "/onboarding/pro-book")} right={<span>3 of 9</span>} />
-      <ProgressDots total={9} current={3} />
+      <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard tone="orange">
