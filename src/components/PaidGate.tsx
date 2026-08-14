@@ -7,10 +7,9 @@ import MembershipPaused from "@/components/MembershipPaused";
 import DeletionPending from "@/components/DeletionPending";
 
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useRoles } from "@/hooks/useRoles";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { BRAND_ACCESS_PATH, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
+import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
 
 interface Props {
   children: ReactNode;
@@ -44,13 +43,10 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
     refetch,
   } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
-  const { user } = useAuth();
   const location = useLocation();
-  const { data: onboarding, isLoading: onboardingLoading } = useQuery({
-    queryKey: ["consumer_onboarding_gate", user?.id],
-    enabled: !!user?.id,
-    queryFn: () => getConsumerOnboardingStatus(user?.id ?? ""),
-  });
+  // Shares the route gate's cached read, so moving between paid screens no
+  // longer refires a six-request profile check or flashes a full-page loader.
+  const { data: onboarding, isLoading: onboardingLoading, isError: onboardingError } = useOnboardingStatus();
 
   // Revalidate entitlement on every route change into a paid area, so a
   // cancellation mid-session is caught without a hard reload.
@@ -59,7 +55,8 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  if (isLoading || rolesLoading || onboardingLoading) return <LoadingDot />;
+  if (!onboarding && (isLoading || rolesLoading || onboardingLoading)) return <LoadingDot />;
+
 
   // A member's own erasure request closes the app for them, with an explanation
   // and a one-tap route back. Checked before roles so it is never invisible.

@@ -43,7 +43,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
 
   // Never interpret an unavailable status response as an empty profile. Keep
   // every saved stage intact and let the member retry the read in place.
-  if (profileError || !status) {
+  if (!status) {
     return (
       <div className="flex-1 flex items-center justify-center px-6 py-10 bg-background">
         <div className="w-full max-w-[300px] rounded-lg border border-border bg-card p-5 text-center">
