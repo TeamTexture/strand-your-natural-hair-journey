@@ -72,10 +72,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
       return <Navigate to={status?.resumePath ?? "/onboarding/profile-step-1"} replace />;
     }
   }
-  // Locked to /subscribe once onboarding data capture is finished (or an admin
-  // has forced payment) and there is no entitlement. Members still mid-capture
-  // pass through so they can finish their profile before being asked to pay.
-  if ((paymentRequired || status?.paymentDue) && !hasAccess) {
+  // A forced-payment flag must never interrupt data capture. It becomes a hard
+  // paywall only after the full profile and blood-work flow is complete.
+  if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess) {
     return <Navigate to={getSubscribePath(status?.analysisPath)} replace />;
   }
 
