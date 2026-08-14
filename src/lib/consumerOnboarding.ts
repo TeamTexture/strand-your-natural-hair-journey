@@ -62,10 +62,10 @@ export async function getConsumerOnboardingStatus(userId: string) {
   if ((hairRes.count ?? 0) > 0) resumePath = "/onboarding/profile-step-4-colour";
   if ((styleRes.count ?? 0) > 0) resumePath = "/onboarding/blood-timing";
 
-  // PAYMENT CHECKPOINT — blood data on file is the point in the flow where the
-  // member is asked to pay (see BloodHormones). Anyone who reached that point by
-  // another route (direct blood upload, blood history, a skipped step) must be
-  // sent to /subscribe too, otherwise they roam the app never having been asked.
+  // Blood data on file is NOT a payment checkpoint on its own — members often
+  // upload bloods before finishing their hair/style profile, and blocking them
+  // there left them stranded mid-onboarding. Payment is only due once the whole
+  // onboarding data set is captured; the paywall on /home catches the rest.
   const bloodOnFile =
     (bloodResultsRes.count ?? 0) > 0 || (bloodPanelsRes.count ?? 0) > 0;
 
@@ -74,7 +74,8 @@ export async function getConsumerOnboardingStatus(userId: string) {
     markedComplete,
     dataComplete,
     bloodOnFile,
-    paymentDue: markedComplete || dataComplete || bloodOnFile,
+    paymentDue: dataComplete,
+
     resumePath,
     analysisPath: POST_PAYMENT_ANALYSIS_PATH,
   };
