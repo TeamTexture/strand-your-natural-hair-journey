@@ -36,13 +36,13 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { hasAccess, paymentRequired, isBrand, isAdminOrPro, isLoading: subLoading } = useConsumerSubscription();
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
-  const { data: status, isLoading: profileLoading } = useQuery({
-    queryKey: ["profile_onboarding_completed", user?.id],
+  const { data: status, isLoading: profileLoading, isFetching: profileFetching } = useQuery({
+    queryKey: ["consumer_onboarding_route", user?.id, location.pathname],
     enabled: !!user?.id,
     queryFn: () => getConsumerOnboardingStatus(user!.id),
   });
 
-  if (subLoading || profileLoading || rolesLoading) return <LoadingDot />;
+  if (subLoading || profileLoading || profileFetching || rolesLoading) return <LoadingDot />;
   // Professionals live entirely on the pro side — no consumer onboarding.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
