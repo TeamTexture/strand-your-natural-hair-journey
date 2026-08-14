@@ -17,6 +17,7 @@ import { HERITAGE_OPTIONS } from "@/data/heritage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 const AVATAR_BUCKET = "avatars";
@@ -62,6 +63,7 @@ const ages = Array.from({ length: 80 - 16 + 1 }, (_, i) => 16 + i);
 const ProfileStep1 = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
@@ -357,18 +359,22 @@ const ProfileStep1 = () => {
       };
       if (birth_year !== null) update.birth_year = birth_year;
       try {
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .upsert(
             { user_id: user.id, ...update },
             { onConflict: "user_id" },
           );
+        if (error) throw error;
       } catch (err) {
         console.warn("[strand] profiles upsert (step 1) failed", err);
+        toast.error("Could not save your profile. Your answers are still here — please try again.");
+        return;
       }
 
     }
 
+    await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
     navigate("/onboarding/profile-step-2");
   };
 

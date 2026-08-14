@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toggleWithNone } from "@/lib/healthOptions";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
@@ -51,6 +52,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: 
 
 const ProfileStep3Hair = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   // No defaults — these are clinical markers taken from the member's
   // consultation, so a pre-selected answer would be a fabricated diagnosis.
   const [diameter, setDiameter] = useState<string[]>([]);
@@ -87,8 +89,10 @@ const ProfileStep3Hair = () => {
   const { shouldAsk } = usePersonalisedOffersAsk();
   const [askOffers, setAskOffers] = useState(false);
 
-  const goNext = () => {
+  const goNext = async () => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
+    const { data } = await supabase.auth.getUser();
+    await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", data.user?.id] });
     navigate("/onboarding/profile-step-4-colour");
   };
 
@@ -188,7 +192,7 @@ const ProfileStep3Hair = () => {
             setAskOffers(true);
             return;
           }
-          goNext();
+           void goNext();
         }}>
           Continue →
         </Button>
@@ -196,7 +200,7 @@ const ProfileStep3Hair = () => {
           open={askOffers}
           onFinish={() => {
             setAskOffers(false);
-            goNext();
+             void goNext();
           }}
         />
       </div>

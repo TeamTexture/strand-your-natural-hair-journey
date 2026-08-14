@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
@@ -72,6 +73,7 @@ const COLOUR_TIMEFRAMES = [
 
 const ProfileStep4Colour = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
@@ -512,6 +514,8 @@ const ProfileStep4Colour = () => {
             // Same-tab listeners (Home banner) need a custom event because the
             // browser `storage` event only fires in OTHER tabs.
             window.dispatchEvent(new Event("strand:style-updated"));
+            const { data: currentUser } = await supabase.auth.getUser();
+            await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
             navigate("/onboarding/blood-timing");
           }}
         >
