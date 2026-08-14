@@ -15,6 +15,7 @@ import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/u
 import { toast } from "sonner";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 
 const MARKERS = [
@@ -33,6 +34,7 @@ const BloodHormones = () => {
   const { values, setValue } = useBloodValues();
   const { unknown, setUnknown } = useUnknownMarkers();
   const { hasAccess } = useConsumerSubscription();
+  const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
 
 
   const onContinue = async () => {
@@ -41,6 +43,9 @@ const BloodHormones = () => {
       toast.error("Could not save. Check your connection.");
       return;
     }
+    // Gates read a cached copy of onboarding progress — refresh it before the
+    // next screen judges her on pre-save data.
+    await invalidateOnboardingStatus();
     // Members who already have access (or are editing their bloods later)
     // must never be bounced back into the paywall.
     navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());
