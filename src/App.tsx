@@ -307,6 +307,7 @@ const App = () => (
                 <AccessRestrictedGate>
                 <BrandPaywallGate>
                 <ConsentGate>
+                <RouteCrashGuard>
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
               <Route path="/" element={<Index />} />
