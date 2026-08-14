@@ -70,9 +70,18 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
   }
 
-  if (!isAdminOrPro && !onboarding?.dataComplete) {
-    return <Navigate to={onboarding?.resumePath ?? "/onboarding/profile-step-1"} replace />;
+  // A failed progress read is NOT an unfinished profile. Sending members back
+  // to step one on a dropped request is what made a finished profile look like
+  // it had been wiped, so hold the screen and let them retry instead.
+  if (!isAdminOrPro && !onboarding) {
+    if (onboardingError) return <ProgressCheckFailed />;
+    return <LoadingDot />;
   }
+
+  if (!isAdminOrPro && !onboarding.dataComplete) {
+    return <Navigate to={onboarding.resumePath ?? "/onboarding/profile-step-1"} replace />;
+  }
+
 
   if (!hasAccess) {
     // A member whose membership has ended gets an explanation, never a silent
