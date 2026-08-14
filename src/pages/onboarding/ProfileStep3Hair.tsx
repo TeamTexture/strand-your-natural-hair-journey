@@ -68,16 +68,19 @@ const ProfileStep3Hair = () => {
     "profile-step-3-hair",
     { diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
     (d) => {
-      if (d.diameter) setDiameter(d.diameter);
-      if (d.texture) setTexture(d.texture);
-      if (d.density) setDensity(d.density);
-      if (d.porosity) setPorosity(d.porosity);
-      if (d.elasticity) setElasticity(d.elasticity);
-      if (d.scalp) setScalp(d.scalp);
-      if (d.diagnosed) setDiagnosed(d.diagnosed);
-      if (d.areas) setAreas(d.areas);
-      if (d.lengthInches !== undefined) setLengthInches(d.lengthInches);
-      if (d.lengthBucket !== undefined) setLengthBucket(d.lengthBucket);
+      // Older saved drafts used different shapes. Only restore values the
+      // current controls can render; malformed arrays previously crashed on
+      // `.includes()` immediately after a refresh.
+      if (Array.isArray(d.diameter)) setDiameter(d.diameter.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.texture)) setTexture(d.texture.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.density)) setDensity(d.density.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.porosity)) setPorosity(d.porosity.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.elasticity)) setElasticity(d.elasticity.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.diagnosed)) setDiagnosed(d.diagnosed.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.areas)) setAreas(d.areas.filter((v): v is string => typeof v === "string"));
+      if (typeof d.lengthInches === "string") setLengthInches(d.lengthInches);
+      if (typeof d.lengthBucket === "string") setLengthBucket(d.lengthBucket);
     },
   );
   const { shouldAsk } = usePersonalisedOffersAsk();

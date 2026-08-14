@@ -39,7 +39,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { data: status, isLoading: profileLoading, isFetching: profileFetching } = useQuery({
     queryKey: ["consumer_onboarding_route", user?.id, location.pathname],
     enabled: !!user?.id,
-    queryFn: () => getConsumerOnboardingStatus(user!.id),
+    queryFn: () => {
+      if (!user?.id) throw new Error("A signed-in member is required for onboarding");
+      return getConsumerOnboardingStatus(user.id);
+    },
   });
 
   if (subLoading || profileLoading || profileFetching || rolesLoading) return <LoadingDot />;
