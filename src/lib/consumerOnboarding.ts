@@ -35,8 +35,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     supabase
       .from("blood_results")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "logged"),
+      .eq("user_id", userId),
     supabase
       .from("blood_panels")
       .select("id", { count: "exact", head: true })
