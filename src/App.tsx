@@ -690,6 +690,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
                 </Routes>
                 </Suspense>
+                </RouteCrashGuard>
                 </ConsentGate>
                 </BrandPaywallGate>
                 </AccessRestrictedGate>
