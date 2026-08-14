@@ -45,24 +45,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   // Never interpret an unavailable status response as an empty profile. Keep
   // every saved stage intact and let the member retry the read in place.
   if (!status) {
-    return (
-      <div className="flex-1 flex items-center justify-center px-6 py-10 bg-background">
-        <div className="w-full max-w-[300px] rounded-lg border border-border bg-card p-5 text-center">
-          <h1 className="font-display text-lg text-foreground">We couldn't check your progress</h1>
-          <p className="mt-2 text-[13px] leading-snug text-muted-foreground font-body">
-            Your answers are still saved. Check your connection and try again.
-          </p>
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            className="mt-4 w-full min-h-[44px] rounded-pill bg-primary text-primary-foreground text-sm font-body"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    );
+    if (profileError) return <ProgressCheckFailed onRetry={() => void refetch()} />;
+    return <LoadingDot />;
   }
+
   // Professionals live entirely on the pro side — no consumer onboarding.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
   if (isBrand && !isAdminOrPro) {
