@@ -43,6 +43,18 @@ export async function getConsumerOnboardingStatus(userId: string) {
       .eq("user_id", userId),
   ]);
 
+  const readError = [
+    profileRes.error,
+    healthRes.error,
+    hairRes.error,
+    styleRes.error,
+    bloodResultsRes.error,
+    bloodPanelsRes.error,
+  ].find(Boolean);
+  // A failed read is not an incomplete profile. Treating a timeout/auth-lock as
+  // empty data sent members back to step one and made saved answers appear lost.
+  if (readError) throw readError;
+
   const profile = profileRes.data;
   const health = healthRes.data;
   const hair = hairRes.data;

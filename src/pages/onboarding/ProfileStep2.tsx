@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
@@ -131,6 +132,7 @@ const SectionHeading = ({ children }: { children: React.ReactNode }) => (
 /* ── screen ───────────────────────────────────────────────────────────── */
 
 const ProfileStep2 = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   // No defaults. Every answer must be given by the member — we never assert a
   // life stage, a condition-free history or a lifestyle on anyone's behalf.
@@ -286,6 +288,8 @@ const ProfileStep2 = () => {
       return;
     }
     localStorage.setItem("strand_onboarding_step", "/onboarding/pro-gate");
+    const { data: currentUser } = await supabase.auth.getUser();
+    await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
     navigate("/onboarding/pro-gate");
   };
 
