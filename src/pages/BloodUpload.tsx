@@ -37,6 +37,7 @@ import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
 import { getConsumerOnboardingStatus, getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
@@ -107,6 +108,8 @@ async function fileToBase64(file: File): Promise<string> {
 
 export default function BloodUpload() {
   const navigate = useNavigate();
+  const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
+
   const { user } = useAuth();
   const { hasAccess } = useConsumerSubscription();
   const { level } = useTipsLevel();
@@ -522,6 +525,9 @@ export default function BloodUpload() {
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
         const onboarding = await getConsumerOnboardingStatus(user.id);
+        // Gates share a cached copy of this read — refresh it before we move,
+        // so the next screen never judges her on pre-save progress.
+        await invalidateOnboardingStatus();
         navigate(
           onboarding.dataComplete
             ? hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath()
