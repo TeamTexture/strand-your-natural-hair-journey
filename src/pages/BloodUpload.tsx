@@ -36,7 +36,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
-import { getConsumerOnboardingStatus, getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { titleCase } from "@/lib/humanise";
@@ -524,16 +524,12 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        const onboarding = await getConsumerOnboardingStatus(user.id);
-        // Gates share a cached copy of this read — refresh it before we move,
-        // so the next screen never judges her on pre-save progress.
+        // The panel has already saved successfully. Refresh the shared status,
+        // then use the entitlement itself for a deterministic handoff. Running
+        // a second six-table progress read here caused slow/tablet connections
+        // to bounce members back into onboarding instead of reaching payment.
         await invalidateOnboardingStatus();
-        navigate(
-          onboarding.dataComplete
-            ? hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath()
-            : onboarding.resumePath,
-          { replace: true },
-        );
+        navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
@@ -592,7 +588,9 @@ export default function BloodUpload() {
                 variant="gold"
                 size="pill"
                 className="w-full"
-                onClick={() => navigate("/onboarding/blood-ai-summary")}
+                onClick={() =>
+                  navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true })
+                }
               >
                 Continue to Analysis →
               </Button>
