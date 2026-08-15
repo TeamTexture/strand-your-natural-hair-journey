@@ -829,8 +829,8 @@ const NutritionPlan = () => {
       // THREE DISTINCT STATES. A failed request must never be reported to the
       // member as her data being incomplete.
       const missing: Array<{ label: string; to: string }> = [];
-      if (hasHealthProfile === false) missing.push({ label: "your health and diet answers", to: "/onboarding/profile-2" });
-      if (hasBloodPanel === false) missing.push({ label: "a logged blood test", to: "/blood" });
+      if (hasHealthProfile === false) missing.push({ label: "your health and diet answers", to: "/onboarding/profile-step-2" });
+      if (hasBloodPanel === false) missing.push({ label: "a logged blood test", to: "/blood-upload" });
 
       if (missing.length > 0) {
         return (
