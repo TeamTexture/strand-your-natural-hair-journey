@@ -1,4 +1,3 @@
-import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
@@ -28,7 +27,6 @@ import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
-import { challengeSummary } from "@/lib/goalChallenges";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
@@ -36,7 +34,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
-import { Ruler, Sparkles, Lightbulb } from "lucide-react";
+import { Sparkles, Lightbulb } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import {
@@ -46,6 +44,10 @@ import {
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
 import HomeTour from "@/components/HomeTour";
+import GoalEditorSheet from "@/components/GoalEditorSheet";
+import ChallengesEditorSheet from "@/components/journal/ChallengesEditorSheet";
+import GoalsChallengesPrompt from "@/components/GoalsChallengesPrompt";
+import { useChallenges } from "@/hooks/useChallenges";
 import AppointmentFollowUpDialog from "@/components/AppointmentFollowUpDialog";
 import HelloKleanDialog from "@/components/HelloKleanDialog";
 import { consumeHelloKleanPrompt } from "@/lib/discounts";
@@ -99,11 +101,14 @@ const Home = () => {
   const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
   const { products: shelfProducts, loading: shelfLoading, sponsoredById: shelfSponsoredById } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
-  const { lengthGoal } = useGoals();
+  const { primaryGoal } = useGoals();
+  const { challenges } = useChallenges();
+  const [goalEditorOpen, setGoalEditorOpen] = useState(false);
+  const [challengesOpen, setChallengesOpen] = useState(false);
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   // Home shows EXACTLY ONE tip — the STRAND tip. The fuller
   // multi-tip "How you'll get there" playbook lives on the Style Journal.
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal, { single: true });
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(primaryGoal, { single: true });
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
@@ -362,29 +367,18 @@ const Home = () => {
   const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
 
   const goalName = (() => {
-    if (!lengthGoal) return "No goal set yet";
-    const title = lengthGoal.title?.trim();
+    if (!primaryGoal) return "No goal set yet";
+    const title = primaryGoal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
       return title.length > 20 ? `${title.slice(0, 20)}…` : title;
     }
     return "Your goal";
   })();
 
-  // Short goal word for the STRAND tip chip ("Length", "Moisture").
+  // Short chip for the STRAND tip — the member's OWN words, never a category.
   const goalChipLabel = (() => {
-    if (!lengthGoal) return null;
-    const kindMap: Record<string, string> = {
-      length_retention: "Length",
-      moisture: "Moisture",
-      scalp_health: "Scalp",
-      breakage: "Breakage",
-      definition: "Definition",
-      protective_styling: "Protective styling",
-      growth: "Growth",
-      thickness: "Thickness",
-    };
-    if (lengthGoal.kind && kindMap[lengthGoal.kind]) return kindMap[lengthGoal.kind];
-    const title = lengthGoal.title?.trim();
+    if (!primaryGoal) return null;
+    const title = primaryGoal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
       const words = title.split(/\s+/).slice(0, 2).join(" ");
       return words.length > 18 ? `${words.slice(0, 18)}…` : words;
@@ -462,7 +456,7 @@ const Home = () => {
           icon={ICONS.goal}
           value={goalName}
           label="Goal focus"
-          tone={lengthGoal ? "good" : "muted"}
+          tone={primaryGoal ? "good" : "muted"}
           to="/journal"
         />
         <StatTile
@@ -1147,6 +1141,16 @@ const Home = () => {
         )}
       </div>
 
+      <GoalEditorSheet
+        open={goalEditorOpen}
+        onOpenChange={setGoalEditorOpen}
+        goal={primaryGoal}
+      />
+      <ChallengesEditorSheet open={challengesOpen} onOpenChange={setChallengesOpen} />
+      <GoalsChallengesPrompt
+        onAddGoal={() => setGoalEditorOpen(true)}
+        onAddChallenges={() => setChallengesOpen(true)}
+      />
       <HomeTour />
       <AppointmentFollowUpDialog />
       <HelloKleanDialog open={helloKleanOpen} onOpenChange={setHelloKleanOpen} userId={user?.id} />
