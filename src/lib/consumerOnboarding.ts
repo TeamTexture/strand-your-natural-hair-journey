@@ -76,14 +76,20 @@ export async function getConsumerOnboardingStatus(userId: string) {
     style?.current_colour_status && style.current_hairstyle && style.style_set_at &&
     Array.isArray(style.default_styles) && style.default_styles.length > 0
   );
-  const healthComplete = basicComplete && healthFieldsComplete;
-  const hairComplete = healthComplete && hairFieldsComplete;
-  const styleComplete = hairComplete && styleFieldsComplete;
-  const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
-  const dataComplete = basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
   const markedComplete = !!profile?.onboarding_completed_at;
+  // Once a member has finished onboarding, a later edit that clears one optional
+  // field (e.g. colour status, default styles) must never re-open the capture
+  // flow. onboarding_completed_at is the durable answer; the field checks only
+  // drive members who have not finished yet.
+  const basicOk = basicComplete || markedComplete;
+  const healthComplete = markedComplete || (basicComplete && healthFieldsComplete);
+  const hairComplete = markedComplete || (healthComplete && hairFieldsComplete);
+  const styleComplete = markedComplete || (hairComplete && styleFieldsComplete);
+  const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
+  const fieldsComplete = basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
+  const dataComplete = fieldsComplete || markedComplete;
 
-  if (dataComplete && !markedComplete) {
+  if (fieldsComplete && !markedComplete) {
     void supabase
       .from("profiles")
       .update({ onboarding_completed_at: new Date().toISOString() })
@@ -93,7 +99,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // Where a part-way user should be dropped back in, so returning mid-flow
   // never restarts the whole journey from step 1.
   let resumePath = "/onboarding/profile-step-1";
-  if (basicComplete) resumePath = "/onboarding/profile-step-2";
+  if (basicOk) resumePath = "/onboarding/profile-step-2";
   // The consultation choice/details steps do not persist their own database
   // marker, so a returning member must resume at that fork rather than being
   // jumped straight to the screen labelled 5 of 9.
@@ -109,7 +115,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     completed: dataComplete,
     markedComplete,
     dataComplete,
-    basicComplete,
+    basicComplete: basicOk,
     healthComplete,
     hairComplete,
     styleComplete,
