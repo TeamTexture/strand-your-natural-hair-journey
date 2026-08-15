@@ -826,13 +826,50 @@ const NutritionPlan = () => {
           </SurfaceCard>
         );
       }
+      // THREE DISTINCT STATES. A failed request must never be reported to the
+      // member as her data being incomplete.
+      const missing: Array<{ label: string; to: string }> = [];
+      if (hasHealthProfile === false) missing.push({ label: "your health and diet answers", to: "/onboarding/profile-2" });
+      if (hasBloodPanel === false) missing.push({ label: "a logged blood test", to: "/blood" });
+
+      if (missing.length > 0) {
+        return (
+          <SurfaceCard tone="gold">
+            <p className="text-xs font-body leading-[1.6]">
+              To build this section STRAND still needs {missing.map((m) => m.label).join(" and ")}.
+            </p>
+            <div className="mt-3 flex flex-col gap-2">
+              {missing.map((m) => (
+                <button
+                  key={m.to}
+                  type="button"
+                  onClick={() => navigate(m.to)}
+                  className="w-full px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                >
+                  Add {m.label}
+                </button>
+              ))}
+            </div>
+          </SurfaceCard>
+        );
+      }
+
       return (
         <SurfaceCard tone="gold">
-          <p className="text-xs font-body leading-relaxed">
-            Your personalised guidance will appear here once your profile is complete.
+          <p className="text-xs font-body leading-[1.6]">
+            We couldn't generate this part of your plan just now. Your profile and
+            blood work are fine — this was a problem on our side.
           </p>
+          <button
+            type="button"
+            onClick={() => void fetchPlan(true, profile)}
+            className="mt-3 w-full px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+          >
+            Try again
+          </button>
         </SurfaceCard>
       );
+
     }
     return shown.map((c, i) =>
       kind === "diet" ? (
