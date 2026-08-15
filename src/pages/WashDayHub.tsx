@@ -650,14 +650,25 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
   // the member sees a visible one-line state with a retry rather than a hole
   // in the page.
   if (!tip) {
+    const working = isLoading || isFetching;
     return (
       <GuidanceCard tone="gold" eyebrow="Your wash day tip" icon={Sparkles} headline="Your tip is being prepared">
         <p className="text-[11.5px] leading-[1.55] font-body text-foreground/70">
-          {isLoading || isFetching
+          {working
             ? "We're putting together the one thing that will help your hair most on your next wash day."
             : "We couldn't finish your tip just now."}
         </p>
-        {!isLoading && !isFetching && (
+        {working ? (
+          <AiProgressBar
+            expectedMs={18000}
+            stages={[
+              "Reading your hair profile",
+              "Checking your recent wash days",
+              "Looking this up in the manuscript",
+              "Writing your wash day tip",
+            ]}
+          />
+        ) : (
           <button
             type="button"
             onClick={() => refetch()}
@@ -669,6 +680,7 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
       </GuidanceCard>
     );
   }
+
 
   return (
     <GuidanceCard
