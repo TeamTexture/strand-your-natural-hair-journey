@@ -198,13 +198,18 @@ async function buildAiContextUncached(): Promise<AiContext> {
   try {
     if (userId) {
       const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows] = await Promise.all([
+        // Only LOGGED panels count. A scheduled panel is an appointment with no
+        // results in it, and it used to be able to fill all three slots here —
+        // starving the AI of the member's actual blood work.
         supabase
           .from("blood_panels" as never)
           .select("id, panel_date, label")
           .eq("user_id", userId)
+          .eq("status", "logged")
           .order("panel_date", { ascending: false })
           .order("created_at", { ascending: false })
           .limit(3),
+
         supabase
           .from("ingredient_lists")
           .select("ingredient, list_kind, reason, product_count")
