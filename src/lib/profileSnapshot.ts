@@ -61,8 +61,19 @@ export function currentProfileHash(ctx: SnapshotInput | null | undefined): strin
   const hp = (c.hairProfile ?? {}) as Record<string, unknown>;
   const goals = Array.isArray(c.goals) ? c.goals : [];
   const blood = Array.isArray(c.bloodResults) ? c.bloodResults : [];
+  // Only the DURABLE style signals. `current_hairstyle`, `days_in_style`,
+  // `style_set_on` and `planned_change_date` are deliberately excluded:
+  // days_in_style increments daily, which changed this hash every single day
+  // and invalidated every cached analysis. Style still reaches the AI in the
+  // live context — it just no longer defines the cache key.
+  const cs = (c.currentStyle ?? null) as Record<string, unknown> | null;
   const snap = {
-    currentStyle: c.currentStyle ?? null,
+    currentStyle: cs
+      ? {
+          default_style: cs.default_style ?? null,
+          planned_next_style: cs.planned_next_style ?? null,
+        }
+      : null,
     hairProfile: {
       // Only the dimensions that affect formulation advice.
       curlPattern: hp.surface_texture ?? hp.texture ?? null,
