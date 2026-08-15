@@ -1,4 +1,3 @@
-import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
@@ -28,7 +27,6 @@ import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
-import { challengeSummary } from "@/lib/goalChallenges";
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
@@ -36,7 +34,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
-import { Ruler, Sparkles, Lightbulb } from "lucide-react";
+import { Sparkles, Lightbulb } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import {
@@ -46,6 +44,10 @@ import {
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
 import HomeTour from "@/components/HomeTour";
+import GoalEditorSheet from "@/components/GoalEditorSheet";
+import ChallengesEditorSheet from "@/components/journal/ChallengesEditorSheet";
+import GoalsChallengesPrompt from "@/components/GoalsChallengesPrompt";
+import { useChallenges } from "@/hooks/useChallenges";
 import AppointmentFollowUpDialog from "@/components/AppointmentFollowUpDialog";
 import HelloKleanDialog from "@/components/HelloKleanDialog";
 import { consumeHelloKleanPrompt } from "@/lib/discounts";
@@ -99,11 +101,14 @@ const Home = () => {
   const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
   const { products: shelfProducts, loading: shelfLoading, sponsoredById: shelfSponsoredById } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
-  const { lengthGoal } = useGoals();
+  const { primaryGoal } = useGoals();
+  const { challenges } = useChallenges();
+  const [goalEditorOpen, setGoalEditorOpen] = useState(false);
+  const [challengesOpen, setChallengesOpen] = useState(false);
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   // Home shows EXACTLY ONE tip — the STRAND tip. The fuller
   // multi-tip "How you'll get there" playbook lives on the Style Journal.
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(lengthGoal, { single: true });
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(primaryGoal, { single: true });
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
@@ -362,29 +367,18 @@ const Home = () => {
   const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
 
   const goalName = (() => {
-    if (!lengthGoal) return "No goal set yet";
-    const title = lengthGoal.title?.trim();
+    if (!primaryGoal) return "No goal set yet";
+    const title = primaryGoal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
       return title.length > 20 ? `${title.slice(0, 20)}…` : title;
     }
     return "Your goal";
   })();
 
-  // Short goal word for the STRAND tip chip ("Length", "Moisture").
+  // Short chip for the STRAND tip — the member's OWN words, never a category.
   const goalChipLabel = (() => {
-    if (!lengthGoal) return null;
-    const kindMap: Record<string, string> = {
-      length_retention: "Length",
-      moisture: "Moisture",
-      scalp_health: "Scalp",
-      breakage: "Breakage",
-      definition: "Definition",
-      protective_styling: "Protective styling",
-      growth: "Growth",
-      thickness: "Thickness",
-    };
-    if (lengthGoal.kind && kindMap[lengthGoal.kind]) return kindMap[lengthGoal.kind];
-    const title = lengthGoal.title?.trim();
+    if (!primaryGoal) return null;
+    const title = primaryGoal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
       const words = title.split(/\s+/).slice(0, 2).join(" ");
       return words.length > 18 ? `${words.slice(0, 18)}…` : words;
@@ -462,7 +456,7 @@ const Home = () => {
           icon={ICONS.goal}
           value={goalName}
           label="Goal focus"
-          tone={lengthGoal ? "good" : "muted"}
+          tone={primaryGoal ? "good" : "muted"}
           to="/journal"
         />
         <StatTile
@@ -684,235 +678,222 @@ const Home = () => {
 
 
 
-        {/* primary goal — the label adapts to whatever the user actually
-            committed to (length retention, moisture, scalp health, a custom
-            challenge, etc.) so the home screen never mislabels their goal. */}
-        <SurfaceCard data-tour="length-goal">
+        {/* GOALS — the member's own words. No categories, no length default,
+            no measurement UI unless she has actually entered numbers. */}
+        <SurfaceCard data-tour="goals">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
+              Your hair care goals
+            </p>
+            {primaryGoal && (
+              <button
+                onClick={() => setGoalEditorOpen(true)}
+                className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
+              >
+                Update
+              </button>
+            )}
+          </div>
 
-          {(() => {
-            const goalLabel = (() => {
-              if (!lengthGoal) return "Your goal";
-              const kindMap: Record<string, string> = {
-                length_retention: "Length goal",
-                moisture: "Moisture goal",
-                scalp_health: "Scalp goal",
-                breakage: "Breakage goal",
-                definition: "Definition goal",
-                protective_styling: "Protective styling goal",
-                growth: "Growth goal",
-                thickness: "Thickness goal",
-                challenge: "Your goal",
-              };
-              if (lengthGoal.kind && kindMap[lengthGoal.kind]) return kindMap[lengthGoal.kind];
-              const title = lengthGoal.title?.trim();
-              if (title && title.toLowerCase() !== "hair goal") {
-                const words = title.split(/\s+/).slice(0, 4).join(" ");
-                return words.length > 32 ? words.slice(0, 32) + "…" : words;
-              }
-              return "Your goal";
-            })();
-            return (
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
-                  {goalLabel}
-                </p>
-                <button
-                  onClick={() => navigate("/journal")}
-                  className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
-                >
-                  {lengthGoal ? "Edit" : "Set"}
-                </button>
-              </div>
-            );
-          })()}
-          {lengthGoal ? (
+          {primaryGoal ? (
             (() => {
-              const unit = lengthGoal.unit || "inches";
-              const current = lengthGoal.current_value ?? 0;
-              const target = lengthGoal.target_value;
-              const start = lengthGoal.start_value ?? 0;
-              const pct = target && target > start
-                ? Math.min(100, Math.max(0, ((current - start) / (target - start)) * 100))
+              const title = primaryGoal.title?.trim();
+              const heading =
+                title && title.toLowerCase() !== "hair goal" ? title : "Your goal";
+              const targetDate = primaryGoal.target_date
+                ? new Date(primaryGoal.target_date).toLocaleDateString("en-GB", {
+                    month: "short",
+                    year: "numeric",
+                  })
                 : null;
-              const targetDate = lengthGoal.target_date
-                ? new Date(lengthGoal.target_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+              const secondary =
+                [primaryGoal.target_text?.trim() || null, targetDate ? `By ${targetDate}` : null]
+                  .filter(Boolean)
+                  .join(" · ") || null;
+              // Numeric progress ONLY when she has entered every number
+              // herself and named her own unit. Never a default unit.
+              const unit = (primaryGoal.unit ?? "").trim();
+              const start = primaryGoal.start_value;
+              const current = primaryGoal.current_value;
+              const target = primaryGoal.target_value;
+              const hasNumbers =
+                !!unit &&
+                start != null &&
+                current != null &&
+                target != null &&
+                target > start;
+              const pct = hasNumbers
+                ? Math.min(100, Math.max(0, ((current! - start!) / (target! - start!)) * 100))
                 : null;
-              // The user's own words come first — challenge is the free-text
-              // they wrote in the editor, target_text is what success looks
-              // like to them. Fall back to a numeric summary only if neither
-              // exists.
-              const userText =
-                challengeSummary(lengthGoal) ||
-                lengthGoal.target_text?.trim() ||
-                lengthGoal.title?.trim() ||
-                null;
-              // Plain-English progress line for hand-holding mode — no maths
-              // for the user to do, just where they are and what's left.
-              const remaining = target != null ? Math.max(0, target - current) : null;
-              const beginnerProgress =
-                pct != null && remaining != null
-                  ? `You're ${Math.round(pct)}% of the way there. About ${Number(remaining.toFixed(1))} ${unit} to go.`
-                  : "Log your progress whenever you measure — there's no wrong pace.";
               return (
-                <div className="w-full">
-                  <button
-                    onClick={() => navigate("/journal")}
-                    className="w-full text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-[10px] bg-primary/15 flex items-center justify-center shrink-0">
-                        <Ruler className="size-5 text-primary" />
+                <button
+                  onClick={() => setGoalEditorOpen(true)}
+                  className="w-full text-left"
+                >
+                  <p className="font-display text-base font-semibold leading-snug break-words">
+                    {heading}
+                  </p>
+                  {secondary && (
+                    <p className="text-xs text-muted-foreground mt-1 break-words">
+                      {secondary}
+                    </p>
+                  )}
+                  {pct != null && (
+                    <>
+                      <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-display text-base font-semibold leading-snug">
-                          {userText ?? `${current} ${unit}`}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {target != null
-                            ? `${current} / ${target} ${unit}${targetDate && tipsLevel >= 2 ? ` · by ${targetDate}` : ""}`
-                            : targetDate
-                              ? `Target: ${targetDate}`
-                              : "Tap to update progress"}
-                        </p>
-                      </div>
-                    </div>
-                    {pct != null && (
-                      <>
-                        <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        {showBeginnerHelp && (
-                          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-                            {beginnerProgress}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </button>
-
-                  {/* STRAND TIP — exactly one tip, STATIC. Eyebrow +
-                      goal chip, one bold action headline, one supporting line
-                      through her hair characteristics, and at most one key
-                      fact chip. Nothing else: no lists, no education blocks.
-                      It regenerates only when the current style, the planned next
-                      style or the goal changes. */}
-                  <ProvisionalProfileBanner className="mt-3" />
-
-                  <GuidanceCard
-                    className="mt-3"
-                    tone="gold"
-                    compact
-                    eyebrow="Strand tip"
-                    icon={Lightbulb}
-                    headerRight={
-                      goalChipLabel ? (
-                        <span className="shrink-0 inline-flex items-center rounded-pill border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold font-body text-primary">
-                          {goalChipLabel}
-                        </span>
-                      ) : undefined
-                    }
-                    headline={goalTip ? renderRichText(goalTip.headline) : undefined}
-                  >
-                    {goalTip ? (
-                      <>
-                        {/* THE ACTION FLOOR — the instruction is rendered
-                            distinctly from the reason, the same pattern as the
-                            wash day tip card. A headline plus a reason is not a
-                            tip; the action always shows. */}
-                        {(goalTip.action ?? "").trim() ? (
-                          <div className="flex gap-2 rounded-[10px] border border-primary/20 bg-primary/[0.06] px-2.5 py-2">
-                            <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15">
-                              <Sparkles className="size-2.5 text-primary" aria-hidden />
-                            </span>
-                            <div className="flex-1 min-w-0 space-y-1">
-                              <p className="text-[11.5px] leading-[1.55] font-body text-foreground break-words">
-                                <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
-                                  Do this
-                                </span>
-                                {goalTip.action!.trim()}
-                              </p>
-                              {(goalTip.reason ?? "").trim() && (
-                                <p className="text-[11px] leading-[1.55] font-body text-foreground/75 break-words">
-                                  <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-foreground/50 mr-1.5">
-                                    Why
-                                  </span>
-                                  {goalTip.reason!.trim()}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          /* Legacy cached tips only carried prose. */
-                          <AiProse text={goalTip.reason || goalTip.body} />
-                        )}
-                        {goalTip.key_fact && (
-                          <KeyFactChips
-                            className="mt-2"
-                            facts={[{ label: goalTip.key_fact }]}
-                          />
-                        )}
-                      </>
-                    ) : tipLoading ? (
-
-                      <AiProgressBar
-                        compact
-                        expectedMs={16000}
-                        stages={[
-                          "Reading your hair profile",
-                          "Checking your goal and challenges",
-                          "Looking this up in the manuscript",
-                          "Writing your Strand tip",
-                        ]}
-                      />
-
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        {tipsLevel === 1
-                          ? "No tip yet."
-                          : "Your Strand tip will appear once you've set a goal or told us your current style."}
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">
+                        {current} / {target} {unit}
                       </p>
-                    )}
-                  </GuidanceCard>
-                </div>
+                    </>
+                  )}
+                </button>
               );
             })()
-          ) : showBeginnerHelp ? (
+          ) : (
             <div>
-              <p className="text-sm text-muted-foreground mb-2">
-                No length goal set. Here is exactly how to add one.
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                What are you working towards? In your own words — there's no list to
+                pick from.
               </p>
-              <BeginnerSteps
-                steps={[
-                  { text: "Tap here to open your journal.", detail: "That's where goals live." },
-                  { text: "Measure your hair today and write the number down.", detail: "This is your starting point — nothing to judge." },
-                  { text: "Choose what you'd like to see change.", detail: "Length, moisture, less breakage — whatever matters to you." },
-                  { text: "Pick a date to check back in.", detail: "Three to six months is a kind timeframe." },
-                ]}
-              />
               <button
-                onClick={() => navigate("/journal")}
+                onClick={() => setGoalEditorOpen(true)}
                 className="mt-3 w-full rounded-pill bg-primary text-primary-foreground text-sm font-medium py-2.5"
               >
-                Set my goal
+                Add your goals
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => navigate("/journal")}
-              className="text-left w-full"
-            >
-              <p className="text-sm text-muted-foreground">
-                {tipsLevel === 1
-                  ? "No goal set. Tap to add one."
-                  : "No length goal set. Tap to add your starting length and target."}
-              </p>
-            </button>
           )}
-
         </SurfaceCard>
+
+        {/* CHALLENGES — separate records, shown verbatim as chips. */}
+        <SurfaceCard data-tour="challenges">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
+              Your hair care challenges
+            </p>
+            {challenges.length > 0 && (
+              <button
+                onClick={() => setChallengesOpen(true)}
+                className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
+              >
+                Update
+              </button>
+            )}
+          </div>
+
+          {challenges.length > 0 ? (
+            <button
+              onClick={() => setChallengesOpen(true)}
+              className="w-full text-left flex flex-wrap gap-1.5"
+            >
+              {challenges.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center rounded-pill border border-primary/30 bg-primary/10 px-3 py-1 text-[11.5px] font-body text-foreground break-words"
+                >
+                  {label}
+                </span>
+              ))}
+            </button>
+          ) : (
+            <div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                What's getting in the way right now?
+              </p>
+              <button
+                onClick={() => setChallengesOpen(true)}
+                className="mt-3 w-full rounded-pill bg-primary text-primary-foreground text-sm font-medium py-2.5"
+              >
+                Add your challenges
+              </button>
+            </div>
+          )}
+        </SurfaceCard>
+
+        {/* STRAND TIP — its own card now, exactly one tip, STATIC. It
+            regenerates only when the current style, the planned next style or
+            the goal changes. */}
+        <div>
+          <ProvisionalProfileBanner className="mb-3" />
+
+          <GuidanceCard
+            tone="gold"
+            compact
+            eyebrow="Strand tip"
+            icon={Lightbulb}
+            headerRight={
+              goalChipLabel ? (
+                <span className="shrink-0 inline-flex items-center rounded-pill border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold font-body text-primary">
+                  {goalChipLabel}
+                </span>
+              ) : undefined
+            }
+            headline={goalTip ? renderRichText(goalTip.headline) : undefined}
+          >
+            {goalTip ? (
+              <>
+                {/* THE ACTION FLOOR — the instruction is rendered
+                    distinctly from the reason, the same pattern as the
+                    wash day tip card. A headline plus a reason is not a
+                    tip; the action always shows. */}
+                {(goalTip.action ?? "").trim() ? (
+                  <div className="flex gap-2 rounded-[10px] border border-primary/20 bg-primary/[0.06] px-2.5 py-2">
+                    <span className="mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                      <Sparkles className="size-2.5 text-primary" aria-hidden />
+                    </span>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-[11.5px] leading-[1.55] font-body text-foreground break-words">
+                        <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
+                          Do this
+                        </span>
+                        {goalTip.action!.trim()}
+                      </p>
+                      {(goalTip.reason ?? "").trim() && (
+                        <p className="text-[11px] leading-[1.55] font-body text-foreground/75 break-words">
+                          <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-foreground/50 mr-1.5">
+                            Why
+                          </span>
+                          {goalTip.reason!.trim()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Legacy cached tips only carried prose. */
+                  <AiProse text={goalTip.reason || goalTip.body} />
+                )}
+                {goalTip.key_fact && (
+                  <KeyFactChips className="mt-2" facts={[{ label: goalTip.key_fact }]} />
+                )}
+              </>
+            ) : tipLoading ? (
+
+              <AiProgressBar
+                compact
+                expectedMs={16000}
+                stages={[
+                  "Reading your hair profile",
+                  "Checking your goal and challenges",
+                  "Looking this up in the manuscript",
+                  "Writing your Strand tip",
+                ]}
+              />
+
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                {tipsLevel === 1
+                  ? "No tip yet."
+                  : "Your Strand tip will appear once you've told us your goal or your current style."}
+              </p>
+            )}
+          </GuidanceCard>
+        </div>
+
 
         {/* My Blood Work */}
         <div {...anchorProps("home-blood-work")}>
@@ -1160,6 +1141,16 @@ const Home = () => {
         )}
       </div>
 
+      <GoalEditorSheet
+        open={goalEditorOpen}
+        onOpenChange={setGoalEditorOpen}
+        goal={primaryGoal}
+      />
+      <ChallengesEditorSheet open={challengesOpen} onOpenChange={setChallengesOpen} />
+      <GoalsChallengesPrompt
+        onAddGoal={() => setGoalEditorOpen(true)}
+        onAddChallenges={() => setChallengesOpen(true)}
+      />
       <HomeTour />
       <AppointmentFollowUpDialog />
       <HelloKleanDialog open={helloKleanOpen} onOpenChange={setHelloKleanOpen} userId={user?.id} />
