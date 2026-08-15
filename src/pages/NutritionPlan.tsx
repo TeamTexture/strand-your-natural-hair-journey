@@ -515,10 +515,16 @@ const NutritionPlan = () => {
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
   const { level } = useNutritionLevel();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
+  /** Real profile-completeness signals, so a request failure is never
+   *  misreported to the member as "your profile is incomplete". */
+  const [hasBloodPanel, setHasBloodPanel] = useState<boolean | null>(null);
+  const [hasHealthProfile, setHasHealthProfile] = useState<boolean | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [profile, setProfile] = useState<Profile>({
     diet: "unknown",
     dietOther: "",
