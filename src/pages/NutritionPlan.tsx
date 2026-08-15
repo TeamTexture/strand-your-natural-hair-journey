@@ -13,7 +13,9 @@ import LoadingDot from "@/components/LoadingDot";
 import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { capitaliseSentences } from "@/lib/paragraphs";
 
-import { evaluate } from "@/data/bloodRanges";
+import { readBloodData } from "@/lib/bloodRead";
+import { useAuth } from "@/hooks/useAuth";
+
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { Stethoscope } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
