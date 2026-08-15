@@ -128,9 +128,8 @@ export const useGoals = () => {
   const deleteGoal = useCallback((id: string) => deleteMutation.mutateAsync(id), [deleteMutation]);
   const refresh = useCallback(() => qc.invalidateQueries({ queryKey }), [qc, queryKey]);
 
-  // Prefer an explicit length-retention goal, but fall back to the most
-  // recent goal so anything the user saves in the Style Journal editor
-  // (which currently writes kind="challenge") still surfaces on Home.
+  // The member's current goal, whatever it is. There is NO preferred goal
+  // kind — goals are free text and length is never the default.
   const activeGoals = goals.filter(
     (g) => (g.status ?? "in_progress") === "in_progress" && !g.ended_at,
   );
@@ -138,10 +137,8 @@ export const useGoals = () => {
     .filter((g) => g.status === "past" || !!g.ended_at)
     .sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""));
 
-  const lengthGoal =
-    activeGoals.find((g) => g.kind === "length_retention") ??
+  const primaryGoal =
     activeGoals[0] ??
-    goals.find((g) => g.kind === "length_retention") ??
     goals.find((g) => !g.ended_at) ??
     null;
 
@@ -180,7 +177,7 @@ export const useGoals = () => {
     goals,
     activeGoals,
     pastGoals,
-    lengthGoal,
+    primaryGoal,
     loading,
     upsertGoal,
     deleteGoal,

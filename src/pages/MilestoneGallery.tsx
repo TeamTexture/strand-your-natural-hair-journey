@@ -51,7 +51,7 @@ const MilestoneGallery = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { upload, sign, uploading } = usePhotoUploader("milestone-photos");
-  const { lengthGoal } = useGoals();
+  const { primaryGoal: goal } = useGoals();
   const { level } = useTipsLevel();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const {

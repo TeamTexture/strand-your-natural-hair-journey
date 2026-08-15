@@ -63,7 +63,7 @@ const Journal = () => {
     goals,
     activeGoals,
     pastGoals,
-    lengthGoal,
+    primaryGoal: goal,
     loading: goalsLoading,
     endGoal,
   } = useGoals();
@@ -93,8 +93,8 @@ const Journal = () => {
     () => goals.filter((g) => g.status === "future" && !g.ended_at),
     [goals],
   );
-  const primaryGoal = lengthGoal && (lengthGoal.status ?? "in_progress") === "in_progress"
-    ? lengthGoal
+  const primaryGoal = goal && (goal.status ?? "in_progress") === "in_progress"
+    ? goal
     : inProgressGoals[0] ?? null;
   const otherInProgress = useMemo(
     () => inProgressGoals.filter((g) => g.id !== primaryGoal?.id),
