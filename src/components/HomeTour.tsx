@@ -197,10 +197,11 @@ const HomeTour = () => {
       localStorage.removeItem(PENDING_KEY);
     } catch {}
     setActive(false);
-    if (!skipped) {
-      setTimeout(() => setGoalOpen(true), 250);
-    }
+    // Even a skipped tour ends on the goal + challenge ask — it's the one thing
+    // STRAND cannot personalise without.
+    setTimeout(() => setGoalOpen(true), 250);
   };
+
 
   const next = () => {
     if (step >= STEPS.length - 1) finish(false);
