@@ -236,13 +236,13 @@ const GoalEditorSheet = ({
             <div className="space-y-2">
               <p className="text-sm font-medium">Your goal</p>
               <p className="text-xs text-muted-foreground">
-                One goal only — put your single biggest goal here (e.g. "Retain
-                4 inches of length"). What's getting in the way goes in your
-                Challenges card instead.
+                One goal only — put your single biggest goal here, in your own
+                words. There's no list to pick from. What's getting in the way
+                goes in your Challenges card instead.
               </p>
               <VoiceNoteField
                 label=""
-                placeholder="e.g. Retain length without trimming back"
+                placeholder="In your own words…"
                 value={goalText}
                 onChange={setGoalText}
                 audioPath={goalVoice}
