@@ -340,11 +340,13 @@ const HomeTour = () => {
         <DialogContent className="max-w-[340px] rounded-[20px]">
           <DialogHeader>
             <DialogTitle className="font-display text-[22px] leading-tight">
-              Set your first goal
+              Add your goal and your challenge
             </DialogTitle>
             <DialogDescription className="font-body text-sm leading-relaxed">
-              STRAND tailors every wash tip, product rating and nutrition suggestion to what
-              you're working toward. Takes about 60 seconds.
+              Your goal is what you're working toward. Your challenge is what's getting in the
+              way right now — breakage, dryness, an itchy scalp, thinning edges. STRAND needs
+              both to tailor every wash tip, product rating and nutrition suggestion. Takes
+              about 60 seconds.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
@@ -357,8 +359,9 @@ const HomeTour = () => {
                 navigate("/journal");
               }}
             >
-              Set my goal →
+              Add goal &amp; challenge →
             </Button>
+
             <Button
               variant="goldGhost"
               size="pill"
