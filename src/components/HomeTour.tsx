@@ -36,10 +36,16 @@ const STEPS: Step[] = [
     body: "The style you're wearing right now, plus what's planned next. Tap it any time to open your full Strand Summary — the clinical fingerprint we build every recommendation from.",
   },
   {
-    target: "length-goal",
+    target: "goals",
     eyebrow: "Panel 2",
-    title: "Your Goal",
-    body: "Whatever you're working toward — length, moisture, scalp health, breakage — sits here. STRAND reads this on every screen, so tips, wash advice and nutrition all pull toward it.",
+    title: "Your hair care goals",
+    body: "Whatever you're working towards, in your own words — there's no list to pick from. STRAND reads this on every screen, so tips, wash advice and nutrition all pull toward it.",
+  },
+  {
+    target: "challenges",
+    eyebrow: "Panel 3",
+    title: "Your hair care challenges",
+    body: "What's getting in the way right now — shedding, dryness by week two, no time on wash day. Kept separate from your goals, and just as important to the guidance you get.",
   },
   {
     target: "blood-work",
