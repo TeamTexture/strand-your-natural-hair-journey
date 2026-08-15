@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,6 +121,8 @@ const HomeTour = () => {
   const [active, setActive] = useState(false);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [cardH, setCardH] = useState(240);
   const [goalOpen, setGoalOpen] = useState(false);
 
   // Auto-start ONLY when onboarding just flagged the tour as pending.
@@ -171,7 +173,18 @@ const HomeTour = () => {
         setRect(null);
         return;
       }
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      // Scroll so the highlighted panel AND the tour card can both be seen.
+      // Centring hides the copy behind the card whenever the panel is tall, so
+      // we park the panel just under the header and keep the space below free.
+      const vh = window.innerHeight;
+      const box = el.getBoundingClientRect();
+      const needsRoom = box.height + cardH + 120 > vh;
+      if (needsRoom) {
+        const y = window.scrollY + box.top - 84;
+        window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      } else {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
       requestAnimationFrame(() => setRect(el.getBoundingClientRect()));
     };
     measure();
@@ -212,12 +225,15 @@ const HomeTour = () => {
   const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
   const tooltipTop = (() => {
     if (!rect) return null;
-    const spaceBelow = viewportH - rect.bottom;
-    const spaceAbove = rect.top;
-    if (spaceBelow > 200 || spaceBelow >= spaceAbove) {
-      return Math.min(rect.bottom + 14, viewportH - 260);
-    }
-    return Math.max(12, rect.top - 240);
+    const gapBelow = viewportH - rect.bottom - 14;
+    const gapAbove = rect.top - 14;
+    // Prefer whichever side actually fits the card, so the panel copy the tour
+    // is talking about is never covered.
+    if (gapBelow >= cardH + 8) return rect.bottom + 14;
+    if (gapAbove >= cardH + 8) return Math.max(12, rect.top - 14 - cardH);
+    return gapBelow >= gapAbove
+      ? Math.max(12, viewportH - cardH - 12)
+      : 12;
   })();
 
   return (
@@ -281,6 +297,13 @@ const HomeTour = () => {
           </div>
 
           <div
+            ref={(node) => {
+              cardRef.current = node;
+              if (node) {
+                const h = node.getBoundingClientRect().height;
+                if (h && Math.abs(h - cardH) > 4) setCardH(h);
+              }
+            }}
             className="absolute left-1/2 -translate-x-1/2 w-[88%] max-w-[340px] rounded-[20px] bg-background border border-primary/30 shadow-2xl p-5"
             style={
               tooltipTop != null
