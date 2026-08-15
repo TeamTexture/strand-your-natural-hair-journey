@@ -696,34 +696,50 @@ const NutritionPlan = () => {
   }, []);
 
 
+  /**
+   * ROOT-CAUSE FIX (2026-08-15). This effect used to run once on mount and read
+   * the member via `supabase.auth.getUser()`. On a cold load the session is
+   * still hydrating, so `user` came back null: the blood query was skipped
+   * (empty `flagged`, no "anchored to your markers" block) AND the plan request
+   * went out unauthenticated (401 → `plan` stays null → generic fallback
+   * supplements and an empty diet/avoid tab). One failure, three symptoms.
+   *
+   * It now waits for the authenticated user from `useAuth` and re-runs if the
+   * session arrives late. Blood data comes from the single canonical reader so
+   * this screen, Home and `buildAiContext` cannot disagree, and a marker counts
+   * as flagged when it is LOW **or** HIGH.
+   */
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
     (async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const flagged = new Set<string>();
-        if (userData?.user) {
-          const { data } = await supabase
-            .from("blood_results")
-            .select("marker, value")
-            .eq("user_id", userData.user.id);
-          (data ?? []).forEach((row) => {
-            const status = evaluate(row.marker, row.value as number | null);
-            if (status === "low") flagged.add(row.marker);
-          });
-        }
+        const blood = await readBloodData(user.id);
+        const flagged = new Set<string>(blood.flagged);
         const clinical = await loadClinicalContext();
         const diet = canonDiet(clinical.health?.diet);
         const dietOther = clinical.health?.dietOther ?? "";
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
+        if (cancelled) return;
+        setHasBloodPanel(blood.results.length > 0);
+        setHasHealthProfile(!!clinical.health);
         const next = { diet, dietOther, alcohol, flagged };
         setProfile(next);
         void fetchPlan(false, next);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id, authLoading]);
+
 
   if (loading) {
     return (
