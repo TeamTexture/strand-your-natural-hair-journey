@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
+import { purgeStrandUserScopedKeys, STRAND_OWNER_KEY } from "@/lib/strandLocalStorage";
 import { logUserSession } from "@/lib/sessionTracker";
 import { useViewAs } from "@/hooks/useViewAs";
 import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
