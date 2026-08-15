@@ -560,23 +560,23 @@ const NutritionPlan = () => {
             .filter(Boolean),
         ),
       );
-      const { data, error } = await supabase.functions.invoke("meal-ideas", {
-        body: {
-          context,
-          diet: currentProfile.diet,
-          dietOther: currentProfile.dietOther,
-          alcohol: currentProfile.alcohol,
-          flaggedMarkers: Array.from(currentProfile.flagged),
-          exclude,
-        },
+      const { data, error } = await aiInvoke<{ meals?: AiMeal[] }>("meal-ideas", {
+        context,
+        diet: currentProfile.diet,
+        dietOther: currentProfile.dietOther,
+        alcohol: currentProfile.alcohol,
+        flaggedMarkers: Array.from(currentProfile.flagged),
+        exclude,
       });
       if (error) {
-        const msg = error.message ?? "Couldn't generate meals";
+        const msg = (error as { message?: string }).message ?? "Couldn't generate meals";
         if (msg.includes("429")) toast.error("Try again in a moment.");
         else if (msg.includes("402")) toast.error("AI credits needed.");
+        else if (isAuthInvokeError(error)) toast.error("Your session timed out — pull down to refresh and try again.");
         else toast.error(msg);
         return;
       }
+
       if (Array.isArray(data?.meals) && data.meals.length > 0) {
         setMeals(data.meals as AiMeal[]);
       } else {
