@@ -31,11 +31,11 @@ const EmptyState = ({ icon, message, hint, action, tone = "gold", className }: P
       : condenseProse(hint, level)
     : "";
   return (
-    <SurfaceCard tone={tone} className={cn("text-center space-y-2 py-6", className)}>
+    <SurfaceCard tone={tone} className={cn("text-center space-y-2 py-6 [overflow-wrap:anywhere]", className)}>
       {icon && <div className="text-4xl leading-none mb-1">{icon}</div>}
       <p className="font-display text-[16px] leading-snug text-foreground">{message}</p>
       {visibleHint && (
-        <p key={level} className="font-body text-[14px] text-muted-foreground leading-snug animate-in fade-in-0 duration-300">{visibleHint}</p>
+        <p key={level} className="font-body text-[14px] text-muted-foreground leading-[1.6] animate-in fade-in-0 duration-300">{visibleHint}</p>
       )}
       {action && <div className="pt-2">{action}</div>}
     </SurfaceCard>

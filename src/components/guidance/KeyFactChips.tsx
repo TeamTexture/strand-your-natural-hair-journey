@@ -30,7 +30,7 @@ const KeyFactChips = ({
   const items = facts ?? extractKeyFacts(text, max);
   if (items.length < (facts ? 1 : min)) return null;
   return (
-    <ul className={cn("flex flex-wrap gap-1.5", className)}>
+    <ul className={cn("flex flex-wrap items-start gap-1.5 py-0.5", className)}>
       {items.map((f, i) => {
         const Icon = f.icon;
         const t = TONE_CLASSES[("tone" in f && f.tone) || tone];
@@ -38,13 +38,13 @@ const KeyFactChips = ({
           <li
             key={`${f.label}-${i}`}
             className={cn(
-              "inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-[10.5px] font-semibold font-body",
+              "inline-flex max-w-full items-start gap-1 rounded-pill border px-2.5 py-1 text-[10.5px] font-semibold font-body leading-snug text-left whitespace-normal [overflow-wrap:anywhere]",
               t.chip,
               t.label,
             )}
           >
-            {Icon && <Icon className="size-3" />}
-            {f.label}
+            {Icon && <Icon className="size-3 shrink-0 mt-[1px]" />}
+            <span className="min-w-0">{f.label}</span>
           </li>
         );
       })}

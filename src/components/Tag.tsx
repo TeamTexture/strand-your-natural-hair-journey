@@ -15,7 +15,7 @@ const Tag = ({ selected, tone = "default", className, children, ...rest }: Props
     type="button"
     aria-pressed={selected}
     className={cn(
-      "px-3.5 py-2 rounded-full text-xs font-body border transition-colors leading-none",
+      "px-3.5 py-2 rounded-full text-xs font-body border transition-colors leading-snug text-left max-w-full whitespace-normal [overflow-wrap:anywhere]",
       selected
         ? "bg-primary text-primary-foreground border-primary"
         : "bg-card text-foreground border-border hover:border-primary/50",

@@ -23,7 +23,7 @@ const SurfaceCard = forwardRef<HTMLDivElement, Props>(
       <div
         ref={ref}
         className={cn(
-          "rounded-[14px] border",
+          "rounded-[14px] border min-w-0 [overflow-wrap:anywhere]",
           toneClass,
           padded && "p-4",
           className,
