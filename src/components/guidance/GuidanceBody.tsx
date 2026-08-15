@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { splitParagraphs } from "@/lib/paragraphs";
+import { capitaliseSentences, sentenceGroups, splitParagraphs } from "@/lib/paragraphs";
 import { useSmartInline } from "@/lib/smartInline";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import {
@@ -68,7 +68,7 @@ const GuidanceBlock = ({
 
   const lead = deduped.lead;
   const leadSteps = looksSequential(lead) ? splitNumberedSteps(lead) : [];
-  const leadBlocks = splitToBlocks(lead);
+  const leadBlocks = splitToBlocks(lead).map((b) => capitaliseSentences(b));
   // ICON DISCIPLINE: one picker per rendered body — no icon is ever repeated,
   // and a line with no confident match gets a neutral dot instead of a wrong
   // icon.
@@ -81,17 +81,17 @@ const GuidanceBlock = ({
         {leadBlocks.map((block, i) => (
           <p
             key={i}
-            className="text-[11.5px] leading-[1.55] text-foreground/85 font-body break-words"
+            className="text-[11.5px] leading-[1.6] text-foreground/85 font-body break-words [overflow-wrap:anywhere]"
           >
             {render(block, `${keyPrefix}-lead${i}`)}
           </p>
         ))}
         {deduped.segments.map((s, i) => (
-          <p key={i} className="text-[11px] leading-[1.55] text-foreground/80 font-body break-words">
+          <p key={i} className="text-[11px] leading-[1.6] text-foreground/80 font-body break-words [overflow-wrap:anywhere]">
             <span className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary mr-1.5">
               {s.label}
             </span>
-            {render(s.body, `${keyPrefix}-s${i}`)}
+            {render(capitaliseSentences(s.body), `${keyPrefix}-s${i}`)}
           </p>
         ))}
       </div>
@@ -125,7 +125,7 @@ const GuidanceBlock = ({
                   <span className="mt-[3px] inline-flex items-center justify-center size-4 shrink-0 rounded-full bg-primary/12">
                     <LineIcon className="size-2.5 text-primary" aria-hidden />
                   </span>
-                  <p className="flex-1 min-w-0 text-[11.5px] leading-[1.55] font-body break-words">
+                  <p className="flex-1 min-w-0 text-[11.5px] leading-[1.6] font-body break-words [overflow-wrap:anywhere]">
                     <span className="text-foreground font-semibold">
                       {render(phrase, `${keyPrefix}-l${i}`)}
                     </span>
@@ -179,7 +179,9 @@ const GuidanceBody = ({
     const seen = new Set<string>();
     return limited
       .map((block) => dedupeSentences(condenseProse(block, level), seen).trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      // DISPLAY ONLY — long blocks become short paragraphs, same words.
+      .flatMap((block) => sentenceGroups(block, 2));
   }, [text, level]);
 
   if (paragraphs.length === 0) return null;
@@ -187,7 +189,7 @@ const GuidanceBody = ({
     return <GuidanceBlock text={paragraphs[0]} className={className} keyPrefix={keyPrefix} />;
   }
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-3.5", className)}>
       {paragraphs.map((block, i) => (
         <GuidanceBlock key={i} text={block} keyPrefix={`${keyPrefix}-p${i}`} />
       ))}

@@ -4,6 +4,7 @@ import { useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { emphasisSplit, splitToBlocks } from "@/lib/tipsRender";
+import { capitaliseSentences } from "@/lib/paragraphs";
 import {
   TONE_CLASSES,
   looksSequential,
@@ -42,7 +43,7 @@ const SegmentBlock = ({
     () => (looksSequential(body) ? splitNumberedSteps(body) : []),
     [body],
   );
-  const blocks = useMemo(() => splitToBlocks(body), [body]);
+  const blocks = useMemo(() => splitToBlocks(body).map((b) => capitaliseSentences(b)), [body]);
 
   return (
     <div className={cn("rounded-[12px] border p-3", t.box, className)}>
@@ -63,13 +64,13 @@ const SegmentBlock = ({
       {steps.length > 0 ? (
         <StepSequence className="mt-2.5" steps={steps.map((text) => ({ text }))} />
       ) : (
-        <div className="mt-2 space-y-1.5">
+        <div className="mt-2 space-y-2">
           {blocks.map((block, i) => {
             // Only the short lead-in phrase is emphasised — never the whole
             // paragraph.
             const { phrase, rest } = emphasisSplit(block);
             return (
-              <p key={i} className="text-[11.5px] leading-[1.55] font-body break-words">
+              <p key={i} className="text-[11.5px] leading-[1.6] font-body break-words [overflow-wrap:anywhere]">
                 <span className={i === 0 ? "text-foreground font-semibold" : "text-foreground/85"}>
                   {render(phrase, `${keyPrefix}-b${i}`)}
                 </span>
