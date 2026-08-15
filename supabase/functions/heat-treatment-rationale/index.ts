@@ -18,6 +18,7 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
@@ -93,9 +94,9 @@ OUTPUT RULES
 
 1. Lead with the VERDICT — one short headline (max 9 words). Then 2-3 reason bullets (max ~16 words each). Each bullet links one specific user signal to a mechanism, using a connective.
 
-2. Ground every bullet in the user's actual data: porosity, density, scalp condition, diagnosed conditions, current style, goals, recent wash signals, or low blood markers when mechanism-relevant. Never invent data — if a field is missing, don't reference it.
+2. Ground every bullet in the user's actual data: porosity, density, scalp condition, diagnosed conditions, goals, challenges, recent wash signals, or low blood markers when mechanism-relevant. The style may be named as recorded fact, but never as the mechanism itself. Never invent data — if a field is missing, don't reference it.
 
-3. Reference the user's CURRENT style/goals/challenges only when the mechanism connects (e.g. heat helps moisture retention for a protective style they're prepping for).
+3. Reference the user's goals and challenges only when the mechanism connects. The style may be stated as a fact of where she is ("before it goes up for several weeks") — never as a technique or a verdict, and never as the reason on its own.
 
 4. If a "consistently flagged" ingredient appeared in their recent products, you may reference it ONLY if it's mechanism-relevant. Use the phrase "consistently flagged in your history" — never "avoid list" or "your avoids."
 
@@ -105,7 +106,12 @@ OUTPUT RULES
 
 7. NO chapter citations. NO "Read more — How To Love Your Afro" links.
 
-8. Plain English, no jargon. Treat the user as a capable adult who knows their hair.`;
+8. Plain English, no jargon. Treat the user as a capable adult who knows their hair.
+
+STYLE — RECORDED FACT ONLY (carve-out for this task):
+You MAY name the style the member has on her head, or the one she recorded doing, as a plain statement of fact — what she did, what is there now. That is the ONLY thing the style earns. The teaching itself stays general: no style-specific technique, no style-specific verdict, no cadence attached to a style. Everything below applies to the guidance you generate.
+
+${STYLE_WEIGHTING_RULES}`;
 }
 
 async function runClaude(args: {
@@ -175,11 +181,16 @@ TASK
 The user is logging a wash day and just said they did NOT use heat while conditioning. Explain — grounded ONLY in the data provided — why applying heat with a TT Heat Hat over a deep conditioner could help THEM specifically. The ONLY heat tool you may name is the TT Heat Hat — never a plastic cap, shower cap, warm towel, generic heated cap, steamer, or hooded dryer. Never paste or mention a raw website URL in the copy.
 
 Rules:
-- Be concrete. Reference their actual hair type/porosity/density, current style, goals, challenges, recent wash notes, or low blood markers when relevant.
+- Be concrete. Reference their actual hair type/porosity/density, goals, challenges, recent wash notes, or low blood markers when relevant. The style may be named as recorded fact only, never as the mechanism.
 - Never invent data. If a field is missing, don't mention it.
 - 1 short headline (max 9 words) and 2-3 bullets (max ~16 words each).
 - Never name any source manuscript, author, chapter or page. Speak the guidance directly in your own voice.
-- Output ONLY JSON: { "headline": string, "reasons": string[] }`;
+- Output ONLY JSON: { "headline": string, "reasons": string[] }
+
+STYLE — RECORDED FACT ONLY (carve-out for this task):
+You MAY name the style the member has on her head, or the one she recorded doing, as a plain statement of fact — what she did, what is there now. That is the ONLY thing the style earns. The teaching itself stays general: no style-specific technique, no style-specific verdict, no cadence attached to a style. Everything below applies to the guidance you generate.
+
+${STYLE_WEIGHTING_RULES}`;
 
   const groundingCtx = (args.context ?? null) as Record<string, unknown> | null;
   const grounding = await buildGroundingBlock({
