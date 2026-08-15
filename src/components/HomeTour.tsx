@@ -110,9 +110,10 @@ const STEPS: Step[] = [
   {
     target: null,
     eyebrow: "You're set",
-    title: "One last thing",
-    body: "You can replay this tour anytime from the ‘Take the tour’ button pinned at the top of your home screen. Now let's set your first goal so every tip starts working for you from day one.",
+    title: "Two things to do first",
+    body: "You can replay this tour anytime from the ‘Take the tour’ button pinned at the top of your home screen. Now add your goal and the challenge you're facing — those two answers are what STRAND builds every tip around.",
   },
+
 ];
 
 const HomeTour = () => {
@@ -125,6 +126,10 @@ const HomeTour = () => {
   // Auto-start ONLY when onboarding just flagged the tour as pending.
   // We never auto-run for returning users on every login — they trigger it
   // manually via the pinned "Take the tour" button which dispatches an event.
+  // Auto-start the first time a paid member reaches Home. Onboarding flags the
+  // tour as pending, but members who paid outside that flow (or resumed on a
+  // new device) must still get it — the "seen" flag is the only guard, so it
+  // never replays for someone who has already been through it.
   useEffect(() => {
     const startFromScratch = () => {
       setStep(0);
@@ -132,13 +137,13 @@ const HomeTour = () => {
     };
     try {
       const seen = localStorage.getItem(TOUR_KEY);
-      const pending = localStorage.getItem(PENDING_KEY);
-      if (pending && !seen) {
+      if (!seen) {
         const t = setTimeout(startFromScratch, 400);
         return () => clearTimeout(t);
       }
     } catch {}
   }, []);
+
 
   // Allow the pinned Home button (or any caller) to replay the tour on demand.
   useEffect(() => {
