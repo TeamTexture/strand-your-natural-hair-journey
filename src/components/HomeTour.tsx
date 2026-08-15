@@ -49,13 +49,13 @@ const STEPS: Step[] = [
   },
   {
     target: "blood-work",
-    eyebrow: "Panel 3",
+    eyebrow: "Panel 4",
     title: "My Blood Work",
     body: "Your labs are the clinical spine of the app. Every marker is compared to healthy ranges for your heritage and life stage — flagged results power the alerts and nutrition plan.",
   },
   {
     target: "alerts",
-    eyebrow: "Panel 4",
+    eyebrow: "Panel 5",
     title: "Alerts",
     body: "STRAND watches your data quietly and only nudges when it matters — a wash overdue, a style worn too long, a marker trending the wrong way. Tap any alert to act on it.",
   },
@@ -115,7 +115,7 @@ const STEPS: Step[] = [
   },
   {
     target: "my-shelf",
-    eyebrow: "Panel 5",
+    eyebrow: "Panel 6",
     title: "My Shelf",
     body: "Everything you own, rated by STRAND against your hair profile and goals. Tap a product to see how well it fits you and how to get the most out of it.",
   },
