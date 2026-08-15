@@ -212,20 +212,34 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
               </div>
             )}
           </div>
-          <p className="min-w-0 text-[11.5px] leading-[1.55] font-body text-foreground break-words">
-            <span
-              className="text-[9.5px] uppercase tracking-[0.18em] font-bold mr-1.5"
-              style={{ color: colours.accent }}
-            >
-              Try this
-            </span>
-            {loading && !guidance ? (
-              <span className="text-foreground/60">Working out how this fits your wash day…</span>
-
-            ) : (
-              guidance?.wash_day_tip || guidance?.fit_line || product.description || ""
+          <div className="min-w-0 flex-1">
+            <p className="min-w-0 text-[11.5px] leading-[1.55] font-body text-foreground break-words">
+              <span
+                className="text-[9.5px] uppercase tracking-[0.18em] font-bold mr-1.5"
+                style={{ color: colours.accent }}
+              >
+                Try this
+              </span>
+              {loading && !guidance ? (
+                <span className="text-foreground/60">Working out how this fits your wash day…</span>
+              ) : (
+                guidance?.wash_day_tip || guidance?.fit_line || product.description || ""
+              )}
+            </p>
+            {loading && !guidance && (
+              <AiProgressBar
+                compact
+                className="mt-2"
+                expectedMs={12000}
+                stages={[
+                  "Reading your hair profile",
+                  "Checking this product's ingredients",
+                  "Writing your tip",
+                ]}
+              />
             )}
-          </p>
+          </div>
+
         </div>
       </div>
     </section>
