@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { usableImageUrl } from "@/lib/imageQuality";
+import { isJunkImageUrl, normaliseImageUrl, usableImageUrl } from "@/lib/imageQuality";
 import { cn } from "@/lib/utils";
 
 
