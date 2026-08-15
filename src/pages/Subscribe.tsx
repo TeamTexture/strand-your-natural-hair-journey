@@ -119,7 +119,7 @@ const Subscribe = () => {
   const {
     subscription, stripeActive, complimentary, isAdminOrPro, hasAccess, isLoading, refetch,
   } = useConsumerSubscription();
-  const { canUpgrade, loading: roleLoading, homePath } = useUpgradeEligibility();
+  const { accountType, loading: roleLoading, homePath } = useUpgradeEligibility();
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
   const [tier, setTier] = useState<"standard" | "plus">("standard");
 
@@ -305,9 +305,13 @@ const Subscribe = () => {
   };
 
   // Consumer plan surface only — professional, brand and admin accounts are
-  // never shown the consumer paywall or plan upgrade options.
+  // never shown the consumer paywall or plan upgrade options. Do not use
+  // `canUpgrade` here: that flag intentionally requires an existing active
+  // membership and is only for STRAND+ upsells. Using it on the base paywall
+  // bounced an unpaid consumer to /home, whose PaidGate immediately bounced
+  // them back here, producing a visible redirect loop.
   if (roleLoading) return <LoadingDot />;
-  if (!canUpgrade) return <Navigate to={homePath} replace />;
+  if (accountType !== "consumer") return <Navigate to={homePath} replace />;
 
   // Paid but not yet confirmed — recovery screen, never the paywall.
   if (activationStuck) {
