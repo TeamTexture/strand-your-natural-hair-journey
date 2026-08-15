@@ -890,14 +890,44 @@ const NutritionPlan = () => {
           </TabsList>
 
           <TabsContent value="supplements" className="space-y-3 mt-4">
-            {aiLoading && (!plan?.supplements || plan.supplements.length === 0) ? (
+            {aiLoading && usingFallbackSupplements ? (
               renderLoading("Personalising your supplements…")
             ) : (
-              supplements.map((s, i) => <SupplementCard key={`${s.name}-${i}`} s={s} />)
+              <>
+                {usingFallbackSupplements && planFailed && (
+                  <SurfaceCard tone="gold">
+                    <p className="text-xs font-body leading-[1.65]">
+                      We couldn't finish your personalised plan just now, so these are general
+                      starting points rather than guidance built from your profile.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void fetchPlan(false, profile)}
+                      className="mt-3 px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                    >
+                      Try again
+                    </button>
+                  </SurfaceCard>
+                )}
+                {supplements.map((s, i) => (
+                  <SupplementCard
+                    key={`${s.name}-${i}`}
+                    s={s}
+                    isFallback={usingFallbackSupplements}
+                  />
+                ))}
+              </>
             )}
             <SourceNote>
-              Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+              {usingFallbackSupplements
+                ? "General guidance from How To Love Your Afro by Paige Lewin — not yet personalised to your profile."
+                : (
+                  <>
+                    Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+                  </>
+                )}
             </SourceNote>
+
           </TabsContent>
 
           <TabsContent value="diet" className="space-y-3 mt-4">
