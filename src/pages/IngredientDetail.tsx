@@ -71,6 +71,7 @@ import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
 import { starsFromScore, formatStars, normaliseMatchScore, matchScoreOf, verdictForStars, isScoreStale, scoreTone } from "@/lib/matchStars";
+import AiProgressBar from "@/components/AiProgressBar";
 
 interface Ingredient {
   tone: "good" | "warn" | "bad";
@@ -991,10 +992,22 @@ const IngredientDetail = () => {
 
 
         {loading && (
-          <SurfaceCard>
-            <LoadingDot label="Analysing ingredients for your profile…" />
+          <SurfaceCard className="space-y-2">
+            <p className="font-body text-[12px] text-foreground/80">
+              Analysing these ingredients for your profile
+            </p>
+            <AiProgressBar
+              expectedMs={20000}
+              stages={[
+                "Reading the ingredient list",
+                "Matching against your hair profile",
+                "Looking these up in the manuscript",
+                "Writing your analysis",
+              ]}
+            />
           </SurfaceCard>
         )}
+
 
         {error && !loading && (
           <SurfaceCard tone="orange" className="space-y-2">
@@ -1416,10 +1429,22 @@ const IngredientDetail = () => {
                 </DialogHeader>
                 <div className="space-y-4 pt-1 max-h-[70vh] overflow-y-auto pr-1">
                   {profileLoading && !profile && (
-                    <p className="text-sm leading-relaxed text-muted-foreground italic">
-                      Pulling the science together for your hair…
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm leading-relaxed text-muted-foreground italic">
+                        Pulling the science together for your hair…
+                      </p>
+                      <AiProgressBar
+                        compact
+                        expectedMs={14000}
+                        stages={[
+                          "Looking this ingredient up",
+                          "Checking the manuscript",
+                          "Tailoring it to your hair",
+                        ]}
+                      />
+                    </div>
                   )}
+
 
                   {(() => {
                     const role = classifySurfactant(ing.name);

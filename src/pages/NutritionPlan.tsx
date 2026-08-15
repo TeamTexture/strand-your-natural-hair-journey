@@ -26,6 +26,7 @@ import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tip
 import type { TipsLevel } from "@/lib/tipsLevel";
 import { smartBack } from "@/lib/smartBack";
 import { canonDiet, suppressesAnimalFoods, type DietaryPattern } from "@/lib/dietaryPattern";
+import AiProgressBar from "@/components/AiProgressBar";
 
 
 type Diet = DietaryPattern;
@@ -661,9 +662,23 @@ const NutritionPlan = () => {
     return (
       <ScreenLayout bottomNav>
         <TitleBar title="Nutrition Plan" tips />
-        <LoadingDot label="Loading your plan…" />
+        <div className="px-5 pt-10 space-y-3">
+          <p className="font-body text-[13px] text-foreground/80">
+            Building your nutrition plan
+          </p>
+          <AiProgressBar
+            expectedMs={22000}
+            stages={[
+              "Reading your health profile",
+              "Checking your blood results",
+              "Honouring your dietary pattern",
+              "Writing your meals and food list",
+            ]}
+          />
+        </div>
       </ScreenLayout>
     );
+
   }
 
   // Supplements — prefer AI (personalised, layman's terms); fall back to

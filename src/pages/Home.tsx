@@ -58,6 +58,7 @@ import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { type GuidanceTip } from "@/lib/tipsRender";
+import AiProgressBar from "@/components/AiProgressBar";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component
@@ -856,12 +857,17 @@ const Home = () => {
                       </>
                     ) : tipLoading ? (
 
-                      <div className="flex items-center gap-2">
-                        <span className="block size-2 rounded-full bg-primary animate-pulse" aria-hidden="true" />
-                        <p className="text-xs text-muted-foreground italic">
-                          Loading your Strand tip…
-                        </p>
-                      </div>
+                      <AiProgressBar
+                        compact
+                        expectedMs={16000}
+                        stages={[
+                          "Reading your hair profile",
+                          "Checking your goal and challenges",
+                          "Looking this up in the manuscript",
+                          "Writing your Strand tip",
+                        ]}
+                      />
+
                     ) : (
                       <p className="text-xs text-muted-foreground italic">
                         {tipsLevel === 1
