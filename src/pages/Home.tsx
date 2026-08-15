@@ -454,11 +454,7 @@ const Home = () => {
         <StatTile
           icon={ICONS.goal}
           value={goalName}
-          valueClassName={
-            goalName === "No goal set yet" || goalName === "Your goal"
-              ? "text-[15px] leading-snug"
-              : "text-[15px] leading-snug"
-          }
+          valueClassName="text-[15px] leading-snug"
           label="Goal focus"
           tone={goal ? "good" : "muted"}
           to="/journal"
