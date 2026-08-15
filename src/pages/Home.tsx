@@ -290,7 +290,9 @@ const Home = () => {
         const p = prevByMarker.get(r.marker);
         if (!p) continue;
         const wasFlagged = p.status === "low" || p.status === "high";
-        const nowNormal = r.status === "normal" || r.status === "ok" || r.status === null;
+        // `resolveStatus` always returns a concrete status, so "in range" is
+        // simply anything that is not low or high.
+        const nowNormal = r.status !== "low" && r.status !== "high";
         if (wasFlagged && nowNormal) {
           insights.push(`${prettyMarker(r.marker)} back in range vs last test`);
         }
@@ -300,8 +302,9 @@ const Home = () => {
       const flaggedRows = current.filter((r) => r.status === "low" || r.status === "high");
       const worsened = flaggedRows.filter((r) => {
         const p = prevByMarker.get(r.marker);
-        return !p || p.status === "normal" || p.status === "ok" || p.status == null;
+        return !p || (p.status !== "low" && p.status !== "high");
       });
+
       const orderedFlagged = [...worsened, ...flaggedRows.filter((r) => !worsened.includes(r))];
       for (const r of orderedFlagged) {
         const dir = r.status === "low" ? "Low" : "High";
