@@ -110,9 +110,10 @@ const STEPS: Step[] = [
   {
     target: null,
     eyebrow: "You're set",
-    title: "One last thing",
-    body: "You can replay this tour anytime from the ‘Take the tour’ button pinned at the top of your home screen. Now let's set your first goal so every tip starts working for you from day one.",
+    title: "Two things to do first",
+    body: "You can replay this tour anytime from the ‘Take the tour’ button pinned at the top of your home screen. Now add your goal and the challenge you're facing — those two answers are what STRAND builds every tip around.",
   },
+
 ];
 
 const HomeTour = () => {
@@ -125,6 +126,10 @@ const HomeTour = () => {
   // Auto-start ONLY when onboarding just flagged the tour as pending.
   // We never auto-run for returning users on every login — they trigger it
   // manually via the pinned "Take the tour" button which dispatches an event.
+  // Auto-start the first time a paid member reaches Home. Onboarding flags the
+  // tour as pending, but members who paid outside that flow (or resumed on a
+  // new device) must still get it — the "seen" flag is the only guard, so it
+  // never replays for someone who has already been through it.
   useEffect(() => {
     const startFromScratch = () => {
       setStep(0);
@@ -132,13 +137,13 @@ const HomeTour = () => {
     };
     try {
       const seen = localStorage.getItem(TOUR_KEY);
-      const pending = localStorage.getItem(PENDING_KEY);
-      if (pending && !seen) {
+      if (!seen) {
         const t = setTimeout(startFromScratch, 400);
         return () => clearTimeout(t);
       }
     } catch {}
   }, []);
+
 
   // Allow the pinned Home button (or any caller) to replay the tour on demand.
   useEffect(() => {
@@ -192,10 +197,11 @@ const HomeTour = () => {
       localStorage.removeItem(PENDING_KEY);
     } catch {}
     setActive(false);
-    if (!skipped) {
-      setTimeout(() => setGoalOpen(true), 250);
-    }
+    // Even a skipped tour ends on the goal + challenge ask — it's the one thing
+    // STRAND cannot personalise without.
+    setTimeout(() => setGoalOpen(true), 250);
   };
+
 
   const next = () => {
     if (step >= STEPS.length - 1) finish(false);
@@ -335,11 +341,13 @@ const HomeTour = () => {
         <DialogContent className="max-w-[340px] rounded-[20px]">
           <DialogHeader>
             <DialogTitle className="font-display text-[22px] leading-tight">
-              Set your first goal
+              Add your goal and your challenge
             </DialogTitle>
             <DialogDescription className="font-body text-sm leading-relaxed">
-              STRAND tailors every wash tip, product rating and nutrition suggestion to what
-              you're working toward. Takes about 60 seconds.
+              Your goal is what you're working toward. Your challenge is what's getting in the
+              way right now — breakage, dryness, an itchy scalp, thinning edges. STRAND needs
+              both to tailor every wash tip, product rating and nutrition suggestion. Takes
+              about 60 seconds.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
@@ -352,8 +360,9 @@ const HomeTour = () => {
                 navigate("/journal");
               }}
             >
-              Set my goal →
+              Add goal &amp; challenge →
             </Button>
+
             <Button
               variant="goldGhost"
               size="pill"
