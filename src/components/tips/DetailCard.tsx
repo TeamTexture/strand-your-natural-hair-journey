@@ -5,6 +5,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { condenseProse } from "@/lib/tipsRender";
 import { plainLanguage, pickTipIcon } from "@/components/beginner/BeginnerGuide";
 import { cn } from "@/lib/utils";
+import { capitaliseSentences } from "@/lib/paragraphs";
 
 /**
  * Level-aware detail card — the shared shape for ingredient cards, blood
@@ -44,7 +45,8 @@ const DetailCard = ({
   const { level } = useTipsLevel();
   const beginner = level >= 3;
   const Icon = pickTipIcon(action ?? relevance ?? title);
-  const say = (t?: string | null) => (beginner ? plainLanguage(condenseProse(t, level)) : condenseProse(t, level));
+  const say = (t?: string | null) =>
+    capitaliseSentences(beginner ? plainLanguage(condenseProse(t, level)) : condenseProse(t, level));
 
   return (
     <SurfaceCard
@@ -54,20 +56,20 @@ const DetailCard = ({
       key={level}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className={cn("font-display text-foreground leading-tight", beginner ? "text-[17px]" : "text-[15px]")}>
+        <p className={cn("font-display text-foreground leading-tight min-w-0 [overflow-wrap:anywhere]", beginner ? "text-[17px]" : "text-[15px]")}>
           {title}
         </p>
         {chip}
       </div>
 
       {relevance && (
-        <p className={cn("mt-1.5 leading-snug text-foreground/85", beginner ? "text-[13.5px]" : "text-[12.5px]")}>
+        <p className={cn("mt-1.5 leading-[1.6] text-foreground/85 [overflow-wrap:anywhere]", beginner ? "text-[13.5px]" : "text-[12.5px]")}>
           {say(relevance)}
         </p>
       )}
 
       {what && level >= 2 && (
-        <p className={cn("mt-1.5 leading-snug text-muted-foreground", beginner ? "text-[13px]" : "text-[11.5px]")}>
+        <p className={cn("mt-1.5 leading-[1.6] text-muted-foreground [overflow-wrap:anywhere]", beginner ? "text-[13px]" : "text-[11.5px]")}>
           {say(what)}
         </p>
       )}
@@ -90,7 +92,7 @@ const DetailCard = ({
                 What to do
               </p>
             )}
-            <p className={cn("leading-snug text-foreground/90", beginner ? "text-[13.5px]" : "text-[12px]")}>
+            <p className={cn("leading-[1.6] text-foreground/90 [overflow-wrap:anywhere]", beginner ? "text-[13.5px]" : "text-[12px]")}>
               {say(action)}
             </p>
           </div>

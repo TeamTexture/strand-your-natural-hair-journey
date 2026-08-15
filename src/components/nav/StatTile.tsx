@@ -16,6 +16,8 @@ export interface StatTileProps {
   icon: LucideIcon;
   /** The number (with unit if short, e.g. "13" or "72%"). */
   value: ReactNode;
+  /** Optional override for the value type scale (e.g. a wrapping text label). */
+  valueClassName?: string;
   /** Small caps eyebrow above the stat. */
   label: string;
   /** One short line under the stat. Never a paragraph. */
@@ -29,6 +31,7 @@ export interface StatTileProps {
 const StatTile = ({
   icon: Icon,
   value,
+  valueClassName,
   label,
   sub,
   tone = "gold",
@@ -48,7 +51,7 @@ const StatTile = ({
         </span>
         {interactive && <ChevronRight className="size-3.5 text-muted-foreground/70" aria-hidden />}
       </div>
-      <p className="mt-2 font-body text-[28px] font-semibold leading-none tracking-tight text-foreground break-words">
+      <p className={cn("mt-2 font-body text-[28px] font-semibold leading-none tracking-tight text-foreground break-words [overflow-wrap:anywhere]", valueClassName)}>
         {value}
       </p>
       <p className="mt-1.5 text-[9.5px] uppercase tracking-[0.16em] font-bold font-body text-muted-foreground break-words">

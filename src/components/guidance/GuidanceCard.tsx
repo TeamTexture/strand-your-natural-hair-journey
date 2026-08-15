@@ -60,8 +60,8 @@ const GuidanceCard = ({
           {headline}
         </h3>
       )}
-      {children && <div className={compact ? "mt-2 space-y-2" : "mt-3 space-y-3"}>{children}</div>}
-      {footer && <div className="mt-3">{footer}</div>}
+      {children && <div className={cn("min-w-0", compact ? "mt-2 space-y-2" : "mt-3 space-y-3")}>{children}</div>}
+      {footer && <div className="mt-3 min-w-0">{footer}</div>}
     </section>
   );
 };

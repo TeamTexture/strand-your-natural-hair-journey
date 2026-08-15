@@ -59,7 +59,7 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
 
       </div>
       {title && (
-        <h1 className="text-center font-display text-2xl font-semibold text-foreground px-2 leading-tight">
+        <h1 className="text-center font-display text-2xl font-semibold text-foreground px-2 leading-tight break-words [overflow-wrap:anywhere]">
           {title}
         </h1>
       )}

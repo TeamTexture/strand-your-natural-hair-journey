@@ -57,12 +57,12 @@ const StepSequence = ({
             <div className="flex-1 min-w-0 pt-0.5">
               <div className="flex items-start gap-1.5">
                 <Icon className="size-3.5 text-primary shrink-0 mt-[3px]" aria-hidden />
-                <p className="flex-1 text-[12px] leading-[1.55] text-foreground break-words">
+                <p className="flex-1 min-w-0 text-[12px] leading-[1.6] text-foreground break-words [overflow-wrap:anywhere]">
                   {render(cleanBody, `step-${i}`)}
                 </p>
               </div>
               {detail && (
-                <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground break-words pl-5">
+                <p className="mt-1 text-[12px] leading-[1.6] text-muted-foreground break-words [overflow-wrap:anywhere] pl-5">
                   {render(detail, `step-detail-${i}`)}
                 </p>
               )}

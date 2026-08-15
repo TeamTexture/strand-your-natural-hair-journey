@@ -369,9 +369,8 @@ const Home = () => {
   const goalName = (() => {
     if (!goal) return "No goal set yet";
     const title = goal.title?.trim();
-    if (title && title.toLowerCase() !== "hair goal") {
-      return title.length > 20 ? `${title.slice(0, 20)}…` : title;
-    }
+    // Wrap the member's own words over two lines rather than clipping them.
+    if (title && title.toLowerCase() !== "hair goal") return title;
     return "Your goal";
   })();
 
@@ -455,6 +454,7 @@ const Home = () => {
         <StatTile
           icon={ICONS.goal}
           value={goalName}
+          valueClassName="text-[15px] leading-snug"
           label="Goal focus"
           tone={goal ? "good" : "muted"}
           to="/journal"

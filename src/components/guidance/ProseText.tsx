@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useSmartInline } from "@/lib/smartInline";
-import { splitParagraphs } from "@/lib/paragraphs";
+import { capitaliseSentences, sentenceGroups, splitParagraphs } from "@/lib/paragraphs";
 
 /**
  * ProseText — the light-weight paragraph renderer for AI copy that sits inside
@@ -24,12 +24,16 @@ export default function ProseText({
   keyPrefix?: string;
 }) {
   const render = useSmartInline();
-  const paragraphs = splitParagraphs(text);
+  // DISPLAY ONLY: blank-line blocks first, then any long block is broken at
+  // sentence boundaries so it reads as two or three short paragraphs.
+  const paragraphs = splitParagraphs(text)
+    .flatMap((block) => sentenceGroups(block, 2))
+    .map((block) => capitaliseSentences(block));
   if (paragraphs.length === 0) return null;
   return (
-    <div className={cn(paragraphs.length > 1 && "space-y-2", className)}>
+    <div className={cn(paragraphs.length > 1 && "space-y-2.5", className)}>
       {paragraphs.map((block, i) => (
-        <p key={i} className={cn("break-words", paragraphClassName)}>
+        <p key={i} className={cn("break-words [overflow-wrap:anywhere] leading-[1.6]", paragraphClassName)}>
           {render(block, `${keyPrefix}-${i}`)}
         </p>
       ))}

@@ -44,7 +44,7 @@ const StatusCallout = ({
           </p>
         )}
         {children && (
-          <div className={cn("text-[13px] leading-relaxed text-foreground/90 font-body break-words", label && "mt-1")}>
+          <div className={cn("text-[13px] leading-[1.6] text-foreground/90 font-body break-words [overflow-wrap:anywhere]", label && "mt-1")}>
             {children}
           </div>
         )}
