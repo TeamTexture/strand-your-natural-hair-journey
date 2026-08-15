@@ -99,7 +99,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // Where a part-way user should be dropped back in, so returning mid-flow
   // never restarts the whole journey from step 1.
   let resumePath = "/onboarding/profile-step-1";
-  if (basicComplete) resumePath = "/onboarding/profile-step-2";
+  if (basicOk) resumePath = "/onboarding/profile-step-2";
   // The consultation choice/details steps do not persist their own database
   // marker, so a returning member must resume at that fork rather than being
   // jumped straight to the screen labelled 5 of 9.
@@ -115,7 +115,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     completed: dataComplete,
     markedComplete,
     dataComplete,
-    basicComplete,
+    basicComplete: basicOk,
     healthComplete,
     hairComplete,
     styleComplete,
