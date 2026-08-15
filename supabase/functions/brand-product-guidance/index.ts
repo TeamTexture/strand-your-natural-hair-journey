@@ -700,7 +700,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           // Output cap — output tokens drive latency on these interactive surfaces.
-          max_tokens: 1600,
+          max_tokens: 2400,
           messages,
           response_format: { type: "json_object" },
         }),
@@ -743,12 +743,26 @@ Deno.serve(async (req) => {
 
       const j = await r.json();
       const raw = j?.choices?.[0]?.message?.content ?? "{}";
+      // LENIENT PARSE. The model occasionally wraps the object in a code fence
+      // or adds a stray leading line; a hard JSON.parse turned that into a 502
+      // and a blank screen. Strip fences, then fall back to the outermost
+      // {...} slice before giving up.
       let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        parsed = null;
+      const candidates: string[] = [];
+      const text = String(raw).trim();
+      candidates.push(text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim());
+      const first = text.indexOf("{");
+      const last = text.lastIndexOf("}");
+      if (first !== -1 && last > first) candidates.push(text.slice(first, last + 1));
+      for (const c of candidates) {
+        try {
+          parsed = JSON.parse(c);
+          break;
+        } catch {
+          parsed = null;
+        }
       }
+
 
       const result = validate(parsed, promptContext ?? null, surface, declared);
       // Soft signals are logged for author review and folded into the ONE
@@ -807,9 +821,12 @@ Deno.serve(async (req) => {
     }
 
     if (!clean) {
+      // Personalised guidance is OPTIONAL copy. A validation miss must never
+      // surface as an invocation error / blank screen — the caller renders the
+      // approved advert without it.
       return new Response(
-        JSON.stringify({ error: "Guidance failed validation", problems: lastProblems }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ guidance: null, unavailable: "validation", problems: lastProblems }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
