@@ -21,7 +21,7 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
 import AiProse from "@/components/tips/AiProse";
-import ProvisionalProfileBanner from "@/components/ProvisionalProfileBanner";
+
 import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tipsRender";
 import type { TipsLevel } from "@/lib/tipsLevel";
 import { smartBack } from "@/lib/smartBack";

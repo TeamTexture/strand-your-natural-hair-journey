@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Loader2 } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
 import SurfaceCard from "@/components/SurfaceCard";
-import ProvisionalProfileBanner from "@/components/ProvisionalProfileBanner";
+
 import ActionList from "@/components/guidance/ActionList";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
