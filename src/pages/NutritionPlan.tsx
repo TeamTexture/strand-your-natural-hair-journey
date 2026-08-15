@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+
 import SurfaceCard from "@/components/SurfaceCard";
 import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
