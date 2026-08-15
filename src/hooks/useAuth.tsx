@@ -43,16 +43,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { viewAsUserId, isViewingAs, stopViewAs } = useViewAs();
 
   useEffect(() => {
-    if (previousSessionRef.current && !session) {
-      purgeStrandUserScopedKeys("session-null-effect");
-      // Sign-out must also end any active view-as; the target user's data
-      // must never bleed into whoever signs in on this browser next.
-      if (isViewingAs) stopViewAs();
-    }
+    // Losing a session is NOT proof of a sign-out. Expired/failed refreshes and
+    // background tab churn both land here, and purging on those wiped members'
+    // in-progress onboarding state. Only end view-as; never delete data.
+    if (previousSessionRef.current && !session && isViewingAs) stopViewAs();
     previousSessionRef.current = session;
   }, [session, isViewingAs, stopViewAs]);
 
   useEffect(() => {
+    /** Purge only when a genuinely different member signs in on this device. */
+    const guardDeviceOwner = (userId: string) => {
+      try {
+        const previous = localStorage.getItem(STRAND_OWNER_KEY);
+        if (previous && previous !== userId) {
+          purgeStrandUserScopedKeys("device-owner-change");
+        }
+        localStorage.setItem(STRAND_OWNER_KEY, userId);
+      } catch {
+        /* private mode / quota — nothing to guard */
+      }
+    };
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       // A recovery link signs the user in before they've proven a password.
@@ -61,9 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         beginRecoveryLock(window.location.pathname.startsWith("/pro") ? "pro" : "member");
       }
       if (event === "SIGNED_OUT") {
+        // Supabase also emits SIGNED_OUT for a failed token refresh, so this
+        // must stay non-destructive. The explicit signOut() handler below is
+        // the only place a member-initiated purge happens.
         clearRecoveryLock();
-        purgeStrandUserScopedKeys("SIGNED_OUT-event");
       }
+      if (s?.user?.id) guardDeviceOwner(s.user.id);
       if (event === "SIGNED_IN" && s?.user?.id) {
         logUserSession(s.user.id, "auth-change");
       }
@@ -72,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .then(({ data }) => {
         setSession(data.session);
         if (data.session?.user?.id) {
+          guardDeviceOwner(data.session.user.id);
           logUserSession(data.session.user.id, "app-open");
         }
       })
