@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
+
 import SurfaceCard from "@/components/SurfaceCard";
 import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
-import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2 } from "lucide-react";
+import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { capitaliseSentences } from "@/lib/paragraphs";
 
 import { evaluate } from "@/data/bloodRanges";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
@@ -105,62 +106,119 @@ const SeverityChip = ({ level }: { level?: string }) => {
   );
 };
 
-// Split every actionable card section into dedicated Strand tip boxes so the
-// UI enforces this even for cached or newly generated AI text.
-const STRAND_TIP_LABELS = [
+// Every labelled part of a card body ("Why it matters", "How to use it",
+// "Best paired with", "Watch out for") is rendered as its own quiet section
+// header with the body directly beneath it. Never inline, never a step.
+const CARD_LABELS = [
   "How to use it", "How to use", "How to take", "How to eat", "How to prepare",
   "Best paired with", "Pair with", "Best with", "Try this", "Do this",
   "Watch out for", "Watch out", "Watch for",
-];
-
-const NON_TIP_LABELS = [
   "Why it matters", "Why this matters", "Why it helps", "Your signal", "Your focus",
   "Best sources", "Easier swap", "The action", "The rationale", "Note", "Strand tip",
 ];
 
-const ALL_CARD_LABELS = [...STRAND_TIP_LABELS, ...NON_TIP_LABELS];
+interface CardSection { label: string; body: string }
 
-const splitStrandTips = (raw: string): { rest: string; tips: string[] } => {
+const normaliseLabel = (label: string) =>
+  /^watch\s*(out|for)?$/i.test(label.trim()) ? "Watch out for" : label.trim();
+
+const splitCardSections = (raw: string): { lead: string; sections: CardSection[] } => {
   const text = String(raw ?? "")
     .replace(/\\n/g, "\n")
     .replace(/\/n\/n/g, "\n\n")
     .replace(/\/n/g, "\n");
-  const labelRe = new RegExp(`\\*{0,2}\\b(${ALL_CARD_LABELS.join("|")})\\b\\s*(?::\\s*\\*{0,2}|\\*{0,2}\\s*:)\\*{0,2}\\s*`, "gi");
+  const labelRe = new RegExp(`\\*{0,2}\\b(${CARD_LABELS.join("|")})\\b\\s*(?::\\s*\\*{0,2}|\\*{0,2}\\s*:)\\*{0,2}\\s*`, "gi");
   const matches = Array.from(text.matchAll(labelRe));
-  if (matches.length === 0) return { rest: text.trim(), tips: [] };
+  if (matches.length === 0) return { lead: text.trim(), sections: [] };
 
-  const restParts: string[] = [];
-  const tips: string[] = [];
+  const leadParts: string[] = [];
+  const sections: CardSection[] = [];
   let cursor = 0;
 
   matches.forEach((match, idx) => {
     const start = match.index ?? 0;
-    if (start > cursor) restParts.push(text.slice(cursor, start));
-
-    const label = String(match[1] ?? "").trim();
+    if (start > cursor) leadParts.push(text.slice(cursor, start));
+    const label = normaliseLabel(String(match[1] ?? ""));
     const bodyStart = start + match[0].length;
     const bodyEnd = idx + 1 < matches.length ? matches[idx + 1].index ?? text.length : text.length;
     const body = text.slice(bodyStart, bodyEnd).trim();
-    const isTip = STRAND_TIP_LABELS.some((l) => l.toLowerCase() === label.toLowerCase());
-
-    if (body) {
-      if (isTip) {
-        const normalisedLabel = /^watch (out|for)/i.test(label) ? "Watch out for" : label;
-        tips.push(`**${normalisedLabel}:** ${body}`);
-      } else {
-        restParts.push(`\n\n${label}: ${body}`);
-      }
-    }
+    if (body) sections.push({ label, body });
     cursor = bodyEnd;
   });
 
-  if (cursor < text.length) restParts.push(text.slice(cursor));
+  if (cursor < text.length) leadParts.push(text.slice(cursor));
 
   return {
-    rest: restParts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(),
-    tips,
+    lead: leadParts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim(),
+    sections,
   };
 };
+
+/** Renders **bold** inline without ever dropping the surrounding text. */
+const inlineBold = (text: string, keyBase: string) =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    /^\*\*[^*]+\*\*$/.test(part) ? (
+      <strong key={`${keyBase}-${i}`} className="font-semibold text-foreground">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      <span key={`${keyBase}-${i}`}>{part}</span>
+    ),
+  );
+
+const SECTION_BODY_CLS =
+  "text-[11.5px] leading-[1.65] text-foreground/85 font-body break-words [overflow-wrap:anywhere]";
+
+const CardSections = ({
+  sections,
+  keyBase,
+}: {
+  sections: CardSection[];
+  keyBase: string;
+}) => {
+  if (sections.length === 0) return null;
+  let plainSeen = 0;
+  return (
+    <div className="mt-3 space-y-3">
+      {sections.map((s, i) => {
+        const isWarn = /^watch out for$/i.test(s.label);
+        const body = capitaliseSentences(s.body);
+        if (isWarn) {
+          return (
+            <div
+              key={`${keyBase}-sec${i}`}
+              className="rounded-[12px] border border-warn/30 bg-warn/10 px-3 py-2.5"
+            >
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="size-3 text-warn shrink-0" aria-hidden />
+                <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-warn">
+                  {s.label}
+                </p>
+              </div>
+              <p className={`mt-1.5 ${SECTION_BODY_CLS}`}>{inlineBold(body, `${keyBase}-w${i}`)}</p>
+            </div>
+          );
+        }
+        const divider = plainSeen > 0 ? "pt-3 border-t border-border/60" : "";
+        plainSeen += 1;
+        return (
+          <div key={`${keyBase}-sec${i}`} className={divider}>
+            <p className="text-[9.5px] uppercase tracking-[0.18em] font-bold text-primary/80">
+              {s.label}
+            </p>
+            <p className={`mt-1 ${SECTION_BODY_CLS}`}>{inlineBold(body, `${keyBase}-p${i}`)}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const FallbackNote = () => (
+  <p className="mt-3 text-[10.5px] leading-relaxed italic text-muted-foreground font-body border-t border-border/60 pt-2">
+    General guidance — not yet personalised to you. Your own plan will replace this once it finishes generating.
+  </p>
+);
 
 /**
  * Nutrition/diet guidance is intentionally EXEMPT from the guidance-level
@@ -173,95 +231,75 @@ const useNutritionLevel = () => {
   return { level: 3 as TipsLevel, showBeginnerHelp };
 };
 
-const StrandTipBox = ({ text }: { text: string }) => {
-  const { level, showBeginnerHelp } = useNutritionLevel();
-  if (level === 1) return null;
-  // Support **bold** inline within the tip text.
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  if (showBeginnerHelp) {
-    return (
-      <div className="mt-3">
-        <BeginnerSteps steps={[{ text: text.replace(/\*\*/g, "") }]} />
-      </div>
-    );
-  }
-  return (
-    <div className="mt-3 rounded-lg border-2 border-primary/70 bg-primary/[0.06] px-3 py-2.5">
-      <div className="flex items-center gap-1.5">
-        <Sparkles className="size-3 text-primary" aria-hidden />
-        <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-primary">
-          Strand tip
-        </p>
-      </div>
-      <p className="mt-1 text-xs text-foreground/90 font-body leading-relaxed">
-        {parts.map((p, i) =>
-          /^\*\*[^*]+\*\*$/.test(p)
-            ? <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
-            : <span key={i}>{condenseProse(p, level)}</span>
-        )}
-      </p>
-    </div>
-  );
-};
-
-const SupplementCard = ({ s }: { s: AiSupplement }) => {
-  const { rest, tips } = splitStrandTips(s.body);
-  const { level } = useNutritionLevel();
+const SupplementCard = ({ s, isFallback }: { s: AiSupplement; isFallback?: boolean }) => {
+  const { lead, sections } = splitCardSections(s.body);
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex items-start gap-2.5">
         <IconBubble emoji={s.emoji || "💊"} tone="gold" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-display text-[17px] leading-tight text-foreground break-words">{s.name}</p>
-            <PriorityChip level={s.priority} />
+            <p className="font-display text-[17px] leading-tight text-foreground break-words [overflow-wrap:anywhere] min-w-0">
+              {s.name}
+            </p>
+            <div className="shrink-0">
+              <PriorityChip level={s.priority} />
+            </div>
           </div>
-          {s.dose && level >= 2 && (
-            <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1">
-              <Pill className="size-3 text-primary" />
-              <p className="text-[11px] font-body font-medium text-primary tracking-wide">{s.dose}</p>
+          {s.dose && (
+            <div className="mt-1.5 inline-flex items-start gap-1.5 rounded-md bg-primary/10 px-2 py-1 max-w-full">
+              <Pill className="size-3 text-primary shrink-0 mt-[2px]" />
+              <p className="text-[11px] font-body font-medium text-primary tracking-wide break-words [overflow-wrap:anywhere] min-w-0">
+                {s.dose}
+              </p>
             </div>
           )}
         </div>
       </div>
-      {rest && <RichBody text={rest} className="mt-2.5" strandTipLast={tips.length === 0} />}
-      {tips.map((tip, i) => <StrandTipBox key={`${s.name}-tip-${i}`} text={tip} />)}
+      {lead && <RichBody text={lead} className="mt-2.5" />}
+      <CardSections sections={sections} keyBase={`supp-${s.name}`} />
+      {isFallback && <FallbackNote />}
     </SurfaceCard>
   );
 };
 
 const DietCard = ({ c }: { c: AiCard }) => {
-  const { rest, tips } = splitStrandTips(c.body);
-  const { level } = useNutritionLevel();
+  const { lead, sections } = splitCardSections(c.body);
   return (
     <SurfaceCard className="border-l-4 border-l-good">
       <div className="flex items-center gap-2.5">
         <IconBubble emoji={c.emoji || "🥗"} tone="good" />
-        <p className="flex-1 min-w-0 font-display text-[17px] leading-tight text-foreground break-words">{c.name}</p>
+        <p className="flex-1 min-w-0 font-display text-[17px] leading-tight text-foreground break-words [overflow-wrap:anywhere]">
+          {c.name}
+        </p>
       </div>
-      {level >= 2 && rest && <RichBody text={rest} className="mt-2.5" strandTipLast={tips.length === 0} />}
-      {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
+      {lead && <RichBody text={lead} className="mt-2.5" />}
+      <CardSections sections={sections} keyBase={`diet-${c.name}`} />
     </SurfaceCard>
   );
 };
 
 const AvoidCard = ({ c }: { c: AiCard }) => {
-  const { rest, tips } = splitStrandTips(c.body);
-  const { level } = useNutritionLevel();
+  const { lead, sections } = splitCardSections(c.body);
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
       <div className="flex items-start gap-2.5">
         <IconBubble emoji={c.emoji || "⚠️"} tone={c.severity === "high" ? "destructive" : "warn"} />
         <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
-          <p className="font-display text-[17px] leading-tight text-foreground break-words">{c.name}</p>
-          <SeverityChip level={c.severity} />
+          <p className="font-display text-[17px] leading-tight text-foreground break-words [overflow-wrap:anywhere] min-w-0">
+            {c.name}
+          </p>
+          <div className="shrink-0">
+            <SeverityChip level={c.severity} />
+          </div>
         </div>
       </div>
-      {level >= 2 && rest && <RichBody text={rest} className="mt-2.5" strandTipLast={tips.length === 0} />}
-      {tips.map((tip, i) => <StrandTipBox key={`${c.name}-tip-${i}`} text={tip} />)}
+      {lead && <RichBody text={lead} className="mt-2.5" />}
+      <CardSections sections={sections} keyBase={`avoid-${c.name}`} />
     </SurfaceCard>
   );
 };
+
 
 // ── Meal cards ───────────────────────────────────────────────────────────
 
@@ -486,6 +524,7 @@ const NutritionPlan = () => {
     flagged: new Set(),
   });
   const [plan, setPlan] = useState<AiPlan | null>(null);
+  const [planFailed, setPlanFailed] = useState(false);
   const [meals, setMeals] = useState<AiMeal[] | null>(null);
   const [mealsLoading, setMealsLoading] = useState(false);
   const [mealsView, setMealsView] = useState<"ideas" | "saved">("ideas");
@@ -591,9 +630,22 @@ const NutritionPlan = () => {
     setAiProgress(final);
   };
 
-  const fetchPlan = async (force = false, currentProfile = profile) => {
+  /**
+   * RELIABILITY (2026-08-15). A cold generation takes ~100s server side. If the
+   * client's request drops, times out or transiently errors, the plan is
+   * nonetheless generated and cached server side — so instead of falling
+   * silently back to generic copy, we retry (force=false, which returns the
+   * cached plan in <1s once it exists) before giving up.
+   */
+  const fetchPlan = async (force = false, currentProfile = profile, attempt = 0) => {
     setAiLoading(true);
     startProgress();
+    const retry = async () => {
+      if (attempt >= 2) return false;
+      await new Promise((r) => setTimeout(r, 12000));
+      await fetchPlan(false, currentProfile, attempt + 1);
+      return true;
+    };
     try {
       const context = await buildAiContext();
       const { data, error } = await aiInvoke<Record<string, unknown>>("nutrition-plan", {
@@ -606,23 +658,36 @@ const NutritionPlan = () => {
       });
       if (error) {
         const msg = (error instanceof Error ? error.message : String(error)) || "Couldn't generate plan";
+        if (await retry()) return;
         if (msg.includes("429")) toast.error("Try again in a moment.");
         else if (msg.includes("402")) toast.error("AI credits needed.");
         else toast.error(msg);
+        setPlanFailed(true);
         stopProgress(0);
         return;
       }
-      if (data?.plan) setPlan(data.plan as AiPlan);
+      const nextPlan = data?.plan as AiPlan | undefined;
+      const hasSupplements = Array.isArray(nextPlan?.supplements) && nextPlan.supplements.length > 0;
+      if (nextPlan) setPlan(nextPlan);
+      if (!hasSupplements) {
+        if (await retry()) return;
+        setPlanFailed(true);
+      } else {
+        setPlanFailed(false);
+      }
       stopProgress(100);
       await new Promise((r) => setTimeout(r, 400));
     } catch (e) {
       console.error("nutrition-plan invoke failed", e);
+      if (await retry()) return;
       toast.error("Couldn't generate your plan.");
+      setPlanFailed(true);
       stopProgress(0);
     } finally {
       setAiLoading(false);
     }
   };
+
 
   useEffect(() => () => {
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -682,13 +747,15 @@ const NutritionPlan = () => {
   }
 
   // Supplements — prefer AI (personalised, layman's terms); fall back to
-  // deterministic list only if AI didn't return them.
+  // deterministic list only if AI didn't return them. When the fallback is
+  // used, every card says so — generic guidance is never presented as if it
+  // were personalised.
+  const usingFallbackSupplements = !(plan?.supplements && plan.supplements.length > 0);
   const supplements: AiSupplement[] = filterSupplementsByLevel(
-    plan?.supplements && plan.supplements.length > 0
-      ? plan.supplements
-      : buildFallbackSupplements(profile),
+    usingFallbackSupplements ? buildFallbackSupplements(profile) : plan!.supplements!,
     level,
   );
+
 
   const renderLoading = (label: string) => {
     const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
@@ -823,14 +890,44 @@ const NutritionPlan = () => {
           </TabsList>
 
           <TabsContent value="supplements" className="space-y-3 mt-4">
-            {aiLoading && (!plan?.supplements || plan.supplements.length === 0) ? (
+            {aiLoading && usingFallbackSupplements ? (
               renderLoading("Personalising your supplements…")
             ) : (
-              supplements.map((s, i) => <SupplementCard key={`${s.name}-${i}`} s={s} />)
+              <>
+                {usingFallbackSupplements && planFailed && (
+                  <SurfaceCard tone="gold">
+                    <p className="text-xs font-body leading-[1.65]">
+                      We couldn't finish your personalised plan just now, so these are general
+                      starting points rather than guidance built from your profile.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void fetchPlan(false, profile)}
+                      className="mt-3 px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                    >
+                      Try again
+                    </button>
+                  </SurfaceCard>
+                )}
+                {supplements.map((s, i) => (
+                  <SupplementCard
+                    key={`${s.name}-${i}`}
+                    s={s}
+                    isFallback={usingFallbackSupplements}
+                  />
+                ))}
+              </>
             )}
             <SourceNote>
-              Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+              {usingFallbackSupplements
+                ? "General guidance from How To Love Your Afro by Paige Lewin — not yet personalised to your profile."
+                : (
+                  <>
+                    Personalised by STRAND AI from your bloods, heritage and health profile, grounded in <em>How To Love Your Afro</em> by Paige Lewin.
+                  </>
+                )}
             </SourceNote>
+
           </TabsContent>
 
           <TabsContent value="diet" className="space-y-3 mt-4">
