@@ -46,11 +46,11 @@ export const ActionRow = ({
         <Icon className="size-4 text-primary" aria-hidden />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[13.5px] font-semibold leading-snug text-foreground break-words font-body">
+        <p className="text-[13.5px] font-semibold leading-snug text-foreground break-words [overflow-wrap:anywhere] font-body">
           {render(body, `${keyPrefix}-a`)}
         </p>
         {showWhy && reason && (
-          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground break-words font-body">
+          <p className="mt-1 text-[12px] leading-[1.6] text-muted-foreground break-words [overflow-wrap:anywhere] font-body">
             {render(reason, `${keyPrefix}-w`)}
           </p>
         )}
