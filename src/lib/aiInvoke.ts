@@ -27,6 +27,29 @@ const keyFor = (fn: string, body: Body) => {
   return `${fn}::${payload}`;
 };
 
+/** True when an edge function rejected the call for auth reasons. */
+export function isAuthInvokeError(err: unknown): boolean {
+  const msg = (err as { message?: string } | null)?.message ?? "";
+  return /401|unauthorized|missing auth|non-2xx/i.test(msg);
+}
+
+/**
+ * Make sure the access token in localStorage is still usable before we spend a
+ * round trip on an AI call. A token that is expired (or about to be) makes the
+ * edge function's `getUser()` fail with 401, which used to surface as
+ * "Edge Function returned a non-2xx status code" and then bounce the member to
+ * the sign-in screen mid-session.
+ */
+async function ensureFreshSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  const session = data.session;
+  if (!session) return false;
+  const expiresAt = (session.expires_at ?? 0) * 1000;
+  if (expiresAt && expiresAt - Date.now() > 120_000) return true;
+  const { data: refreshed } = await supabase.auth.refreshSession();
+  return !!refreshed.session;
+}
+
 /** Invoke an AI edge function, sharing any identical call already in flight. */
 export async function aiInvoke<T = unknown>(
   fn: string,
@@ -37,12 +60,22 @@ export async function aiInvoke<T = unknown>(
   if (existing) {
     return existing as Promise<{ data: T | null; error: unknown }>;
   }
-  const run = supabase.functions
-    .invoke(fn, { body })
-    .then((res) => ({ data: (res.data ?? null) as T | null, error: res.error }))
-    .finally(() => {
-      inflight.delete(key);
-    });
+  const run = (async () => {
+    await ensureFreshSession();
+    let res = await supabase.functions.invoke(fn, { body });
+    if (res.error && isAuthInvokeError(res.error)) {
+      // One refresh-and-retry. A genuinely dead session returns the error so
+      // the caller can say so plainly; we never sign the member out here.
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      if (refreshed.session) {
+        res = await supabase.functions.invoke(fn, { body });
+      }
+    }
+    return { data: (res.data ?? null) as T | null, error: res.error };
+  })().finally(() => {
+    inflight.delete(key);
+  });
   inflight.set(key, run);
   return run as Promise<{ data: T | null; error: unknown }>;
 }
+
