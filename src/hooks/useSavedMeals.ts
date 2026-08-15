@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface SavedMeal {
   id: string;
@@ -28,14 +29,20 @@ export interface MealDraft {
 const asStringArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 
+export const savedMealsKey = (userId?: string) => ["saved-meals", userId ?? "anon"] as const;
+
 export const useSavedMeals = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const query = useQuery({
-    queryKey: ["saved-meals"],
+    // Scoped to the signed-in member. An unscoped key would let one account's
+    // saved meals be served from cache to the next account in the same tab.
+    queryKey: savedMealsKey(user?.id),
+    enabled: !!user?.id,
     queryFn: async (): Promise<SavedMeal[]> => {
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return [];
+      if (!userData.user || userData.user.id !== user?.id) return [];
       const { data, error } = await supabase
         .from("user_saved_meals")
         .select("*")
@@ -74,18 +81,21 @@ export const useSavedMeals = () => {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-meals"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: savedMealsKey(user?.id) }),
   });
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Not signed in");
       const { error } = await supabase
         .from("user_saved_meals")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", userData.user.id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-meals"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: savedMealsKey(user?.id) }),
   });
 
   return { ...query, save, remove };
