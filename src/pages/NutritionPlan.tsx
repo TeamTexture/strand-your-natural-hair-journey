@@ -524,6 +524,7 @@ const NutritionPlan = () => {
     flagged: new Set(),
   });
   const [plan, setPlan] = useState<AiPlan | null>(null);
+  const [planFailed, setPlanFailed] = useState(false);
   const [meals, setMeals] = useState<AiMeal[] | null>(null);
   const [mealsLoading, setMealsLoading] = useState(false);
   const [mealsView, setMealsView] = useState<"ideas" | "saved">("ideas");
