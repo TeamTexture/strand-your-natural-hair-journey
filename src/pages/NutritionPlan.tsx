@@ -19,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { Stethoscope } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
-import { aiInvoke } from "@/lib/aiInvoke";
+import { aiInvoke, isAuthInvokeError } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
