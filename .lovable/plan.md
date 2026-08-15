@@ -1,89 +1,67 @@
-# Treatment plan page — visual and navigation redesign
+# Style weighting + the daily cache-buster fix
 
-Member-facing only: `src/pages/treatment/TreatmentPlanDetail.tsx` and the components it renders. No professional or admin views touched. No migrations, no RLS, no consent or STRAND+ logic changes, no stored adherence. Nothing is removed — everything is rehomed.
+The manuscript teaches general hair care, not styles. So the current style may only ever supply a quantity (how long hair has been up, how reachable the scalp is, how much of the hair is covered) — never a technique, a verdict, or a teaching point. Durable characteristics (porosity, density, texture, diameter, elasticity, scalp, length, diagnosed conditions) plus goals and challenges carry the advice.
 
-## The five zones
+Alongside that, one bug is quietly making every product analysis regenerate every day. Fixing it is the priority.
 
-```text
-HEADER            title · Week N of M · goal · progress bar · "Log week N check-in"
-HOW THIS WORKS    3 lines, dismissible per plan
-THIS WEEK         steps for week N · 7 day circles per step · missed-day link · photo badge · this week's appointment
-THE PLAN          one collapsed accordion: quiet goal/challenges line, week list (4 tiers), products at the foot
-PLAN SETTINGS     collapsed drawer: reminder · Sharing · Progress and photos · Brands · Pause/resume
-```
+## A. New shared rule block
 
-## Where each current section ends up
+Create `supabase/functions/_shared/style-weighting.ts`, exporting `STYLE_WEIGHTING_RULES`, written in the same structure and tone as `_shared/non-prescriptive.ts` (header comment explaining scope, one exported template string, banned list, then a safety carve-out and a length note so it cannot be read as licence to write more).
 
-| Today | Goes to |
-| --- | --- |
-| Header title/dates + pencil button | Header; pencil button deleted (editing happens inside an expanded week) |
-| `PlanOverviewCard` gold card | Goal + challenges become one quiet line at the top of THE PLAN. Its "treatment, in short" step list is dropped as duplication — the canonical listing is the week it applies to |
-| `ReminderPicker` (always expanded) | Plan settings, one row showing `reminderSummary(...)`, opening the existing picker |
-| `PlanTimeline` | Becomes THE PLAN's week list (rewritten in place with the four tiers) |
-| `AdherenceRing` card | Header progress bar + one line; the numbers/skipped copy live on `/treatment/:id/progress` (unchanged page) |
-| `TreatmentReadOnlyNotice` | Header, same condition (`!hasPlus`) |
-| Week check-in button | Header primary pill + per-week buttons on tiers A/B |
-| "See progress" button | "Progress and photos" row in Plan settings |
-| Pause/Resume | Plan settings |
-| "Edit the plan week by week" button | Deleted — THE PLAN accordion is the entry point |
-| `MediaConsentToggle` + `WhatTheyCanSee` + `PlanSharesSection` | New merged `PlanSharingSection` in Plan settings |
-| `PlanAppointmentsSection` | Appointments render on their week inside THE PLAN (already do). The section component stays on disk (unused here) rather than deleted, since it is the only place clinic name/reason/`MapPin` detail renders — its "Add an appointment" affordance already exists per week |
-| `CatchUpDays` | Same component, opened from a "Log a day you missed" link in THIS WEEK inside a Dialog |
-| Bottom "Week by week" list (`#treatment-weeks`) | Merged into THE PLAN's single week list |
-| `PlanProductsSection` | Foot of THE PLAN, props unchanged (keeps shelf/brand/link pickers) |
-| `BrandTagControl` | Plan settings, "Brands credited" |
+Contents:
+- The strip-the-style test, with the three worked examples supplied (one valid, two invalid).
+- The manuscript has no style-specific teaching; never invent style technique in STRAND's voice.
+- Style may appear at most once in an output, and never opens `ai_summary`.
+- Express it as duration / scalp access / coverage, not as a style name where a quantity will do.
+- Banned: preference-based style advice ("great while you're wearing X", "perfect for your twists"), style-derived verdicts, per-style application technique.
+- Safety carve-out mirroring `non-prescriptive.ts`: genuine safety issues (tension/traction concerns on a tension treatment, scalp infection, allergen, blood-panel flags) stay direct.
 
-## Files
+Appended at the **same stable tail position** as `SCORE_REASONS_RULES`, `PURPOSE_INSIGHT_RULES` and `NON_PRESCRIPTIVE_RULES` — immediately after `NON_PRESCRIPTIVE_RULES` at the end of each prompt. Nothing is inserted mid-prompt, so the cached prompt prefix is untouched.
 
-Create
-- `src/components/treatment/PlanHowItWorks.tsx` — the dismissible strip.
-- `src/components/treatment/ThisWeekCard.tsx` — zone 3, including the missed-day dialog wrapper.
-- `src/components/treatment/WeekDayTicks.tsx` — the seven day circles for one step in one week.
-- `src/components/treatment/PlanSharingSection.tsx` — merged consent toggle + what-they-can-see + shares list + invite.
-- `src/components/treatment/PlanSettings.tsx` — the collapsed drawer with its rows.
+## B. The daily cache-buster (highest priority)
 
-Change
-- `src/pages/treatment/TreatmentPlanDetail.tsx` — rebuilt as the five zones; header, and composition only.
-- `src/components/treatment/PlanTimeline.tsx` — becomes the single week list with tiers, wrapped in the collapsed "The plan" accordion, plus the quiet goal/challenges line and `PlanProductsSection` at its foot. Keeps `openWeek` defaulting to the current week, `StepEditorSheet`, appointments per week, "Add step & product", "Appointment", "Use these products for every week".
-- `src/lib/alertKeys.ts` — add `TREATMENT_HOW_IT_WORKS: "treatment_how_it_works"`.
+`supabase/functions/_shared/profile-snapshot.ts` hashes `currentStyle` wholesale. Confirmed in `src/lib/aiContext.ts` (lines 448-455) that `currentStyle` carries `days_in_style: daysSince(style_set_at)`, which increases every day. Confirmed the hash is compared in three functions: `product-analyse` (line 544), `product-analyse-url` (859), `tool-analyse-url` (724) — each falls through to a full fresh generation when `hashOk` is false. So anyone in a style gets a full regeneration daily, including the Claude call with web search, and the match score can drift on every re-scan.
 
-Delete
-- `src/components/treatment/PlanOverviewCard.tsx` (its two surviving fields move inline).
-- Nothing else. `MediaConsentToggle` and `WhatTheyCanSee` stay — `TreatmentInvitation` still uses both.
+Fix: replace `currentStyle: c.currentStyle ?? null` with a narrowed slice containing **only** `default_style` and `planned_next_style`. Dropped from the hash: `current_hairstyle`, `days_in_style`, `style_set_on`, `planned_change_date`. Nothing is removed from the AI context — the functions still receive the live `days_in_style`.
 
-## The four week card tiers
+**Sync confirmation:** both files have been read. `src/lib/profileSnapshot.ts` is the client mirror and computes the identical `snap` object with the same `canonicalStringify` + `djb2Hex` + `:tl{level}` suffix. The same narrowed slice will be written into both, with identical key names and identical key order in the literal (order is irrelevant to the output because `canonicalStringify` sorts keys, but they will be kept byte-identical anyway). Both therefore produce identical hashes.
 
-All four are `SurfaceCard` with a full four-sided border, no side accent bars, existing tokens only.
+## C. `product-analyse`
 
-- **A — current week.** `bg-primary border-primary text-primary-foreground`; "Week N" in `font-display` at 22px against 17px elsewhere; full-width inverted pill (`bg-background text-primary`) "Check in for week N"; summary line in `text-primary-foreground/80`; photo badge top-right on `bg-background/20`.
-- **B — past, not checked in.** `bg-card border-primary border-[1.5px]`; week number in `font-display`; `variant="outline"` pill "Check in for week N". No destructive/red anywhere; supporting line keeps the "which is completely fine" register.
-- **C — past, check-in saved.** `bg-card border-border`; small filled tick on `bg-good/15 text-good`; "Check-in saved · N of 7 days" from `weekBreakdown().line`. Expandable and tappable through to the saved check-in.
-- **D — future.** `bg-secondary/60 border-border/60`, all text `text-muted-foreground` (no `opacity-*`), no button, still expandable.
+Both prompt builders — `buildTaskInstructions()` (Claude) and `buildLovableSystem()` (Gemini):
+1. Drop `current_hairstyle` from the `ai_summary` preferred-opener signals (Claude line 181, Gemini line 368).
+2. Drop "current_hairstyle suitability" from the `match_score` factors (Claude 180, Gemini 362).
+3. Drop `current_hairstyle` from the `use_cases` anchorable traits (Claude 183, Gemini 369).
+4. Append `STYLE_WEIGHTING_RULES` after `NON_PRESCRIPTIVE_RULES` in both (lines 246 and 399).
 
-State comes from the existing `weekBreakdown` `state` field plus the `doneWeeks` set built from `useTreatmentCheckins` — both already computed on the page today.
+Also in this file:
+- Gemini rule 6 contains the anti-pattern verbatim ("Good fit while you're 4 weeks into your knotless braids…"). Replaced with a characteristic-anchored example.
+- Line 169 ("Reference … current hairstyle …"), line 202 (`pair_with` "current style"), line 203 (`routine_suggestion` "reference current_style") and line 357 (personalise to `currentStyle (current_hairstyle, days_in_style, planned_next_style)`) are softened to the quantity framing rather than the style name; `routine_suggestion` keeps a duration/access reference since that is a genuine quantity.
+- `match_score` becomes current-style-blind: it may read `default_style`; `current_hairstyle` and `days_in_style` must never move it. Line 236 ("Leave-in / styler → … current style stage") changes to durable traits.
+- Noted, not changed: the prompt's own PERSONALISATION PRIORITY block already lists only challenges, goals and hair traits, so this removes a self-contradiction.
 
-## Per-day ticks (no schema change)
+## D. Findings in the other three functions (audited individually, they do not match)
 
-For each step applying to the current week, render seven circles for `weekRange(startDate, currentWeek)`:
-- Not due that day (`isDueOn` false), before `start_date`, or in the future → inert muted dot, not tappable.
-- Due and no entry → outlined circle with the day initial.
-- Due and `status === "completed"` → filled `bg-primary text-primary-foreground` tick.
-- Due and `status === "skipped"` → muted ring with the initial, no failure styling.
+**`product-analyse-url`** — the heaviest. Claude block: line 152 `match_score` "current_hairstyle suitability"; 153 `ai_summary` opener signal; 155 `use_cases` anchorable trait; 161 `pair_with` "current style"; 162 `routine_suggestion` "reference their current_style"; 180 hair-type list includes "current style". Gemini block: 344-345 personalise-to `currentStyle (current_hairstyle, days_in_style, planned_next_style)`; 359 match-score factor; 363 `ai_summary` opener; 371 `use_cases` trait. Same four edits as C, plus append `STYLE_WEIGHTING_RULES` at the existing tail (after `NON_PRESCRIPTIVE_RULES`, line 297).
 
-Tapping an untapped day calls the existing `useLogTreatmentStep().log` with `{ planId, scheduleId, slot, status: "completed", date: dayKey }`; tapping a saved day calls `undo` with the entry id (skipped when the id is optimistic, matching `CatchUpDays`). Both already upsert/delete `treatment_plan_entries` on `(schedule_id, entry_date, time_of_day)` and are optimistic. A `both` step gets two rows, morning and evening — same as everywhere else. Nothing is written to any adherence column; every count still comes from `treatmentSchedule.ts` at read time. All circles carry `disabled={!hasPlus || paused}`.
+**`tool-analyse-url`** — four references, all in one prompt: 131 `ai_summary` opener includes "current style"; 132 `key_features` relevance ties to "current style"; 137 `match_score` explicitly scores fit against "current style"; 143 `pair_with` "why" may cite current style. Remove style from the opener, from `key_features` relevance and from `match_score`; keep the tension/safety reference where the tool is a tension-related tool (carve-out). Append the block after `NON_PRESCRIPTIVE_RULES` (line 159).
 
-## "How this works" dismissal
+**`ingredient-analysis`** — three prompt references: 279 `body` may justify against "current style"; 328 allowed levers include "how to work it through their current style safely"; 334/337 the tip MUST reference one of a list that includes "the user's current hairstyle (and time in it if relevant)". 337 is the strongest offender — it can force a style-anchored tip. Change to durable traits/goals/challenges/wash-day signals only, drop style from 279 and 334, and reframe 328's lever as scalp access / coverage rather than the style name. Append the block after `NON_PRESCRIPTIVE_RULES` (line 354). `currentStyle` stays in the context payload (lines 603/615) — unchanged.
 
-Reuses `alert_dismissals` via the existing `useAlertDismissals()` hook — no new table or column. `alert_key = "treatment_how_it_works"`, `trigger_signature = planId`, so the dismissal is per user per plan and survives reload and device change. Renders only once `loaded` is true, to avoid a flash.
+## E. `wash-day-observation` and `heat-treatment-rationale`
 
-## Things this restructure breaks, and the fix
+May name the style as **recorded fact** only. No style-specific teaching, since the book's wash-day teaching is general. Neither function receives `STYLE_WEIGHTING_RULES` — no prompt change beyond one clarifying clause each (`wash-day-observation` line 178 context list; `heat-treatment-rationale` lines 96 and 178, "current style" → recorded fact, not a teaching source). Their prompt tails are unchanged.
 
-- `scrollToTimeline()` and the ids `#plan-timeline` / `#treatment-weeks` disappear. Nothing outside this page references them (checked) — the two callers are both inside the file being rewritten.
-- `PlanAppointmentsSection` becomes unused on this page; kept on disk as described.
-- `useChallenges()` moves from `PlanOverviewCard` into the quiet line inside `PlanTimeline`.
-- Every relocated control keeps `disabled={!hasPlus || paused}`; the Plan settings drawer itself stays readable when lapsed so nothing becomes unreachable.
+## F. Latency and tokens
 
-## Two things I'd flag before building
+- B should measurably **speed things up**: cache hits are restored for anyone in a style, so the common path stops doing a full Claude + web-search generation.
+- A and C/D are substitutions in already-appended tail blocks. `STYLE_WEIGHTING_RULES` is a genuine addition of roughly 200-250 tokens per prompt, placed at the very end alongside the other shared blocks so the cached prefix boundary does not move and `cache_read_input_tokens` is preserved. Net token change is close to flat because style clauses are removed from four field rules.
+- Nothing here adds a model call, a retry, or a second pass.
 
-1. **THIS WEEK and tier A show the current week twice.** Zones 3 and 4 both surface week N, which is exactly the kind of doubling this brief is removing. Recommendation: tier A stays as the loud marker and pill but does **not** repeat the step list or day circles — it collapses to week number, summary line, badge and button, with the steps only in its expanded body. I will build it this way unless you say otherwise.
-2. **`PlanOverviewCard`'s step list is the only place the whole treatment reads as one sequence.** Removing it is right for the duplication, but a 12-week plan then has no single "everything in this plan" view. The products summary at the foot of THE PLAN partly covers it; if you want the full step list back, it belongs on `/progress`, not here.
+## Risks
+
+- **Cached `ai_summaries` / `user_products` rows go stale on the hash change.** Every stored `analysis_profile_snapshot_hash` was computed under the old definition, so the first read after deploy misses and regenerates once per product. That is a one-off warm-up cost, then hit rates improve permanently. No rows are orphaned — the hash column is overwritten on the next save; there is no cleanup job depending on the old value.
+- Old rows never re-validate if a product is never opened again; they simply sit there, harmless.
+- **Drift risk if the two snapshot files diverge.** Both are edited in the same change with identical literals; the header comments in both already state the sync requirement.
+- Style-anchored copy already stored in older analyses stays until that product is re-analysed. Optional (not proposed here): bump the analysis revision constant to force a sweep — that would cost a full regeneration for every product at once, which contradicts F.
+- Removing style from `match_score` will shift some scores on the next regeneration. That is the intended correction, but members may notice a score move.
