@@ -7,56 +7,13 @@ import { applyFontScale, getFontScale } from "./lib/fontScale";
 // of the default size on first paint.
 applyFontScale(getFontScale());
 
-declare global {
-  interface Window {
-    __strandAuthPurgeInstalled?: boolean;
-  }
-}
+// NOTE: this file used to monkey-patch Storage.prototype.removeItem and listen
+// for cross-tab `storage` events so that ANY removal of a Supabase auth-token
+// key wiped every `strand_*` key. That fired on transient events too — a failed
+// token refresh, a refresh in a second tab, a PWA resume — so members lost their
+// in-progress onboarding state and the app appeared to "glitch"/reset.
+// Purging is now owned by AuthProvider and only happens on a confirmed sign-out
+// or when a DIFFERENT user signs in on this device.
 
-const STRAND_AUTH_TOKEN_PREFIX = "sb-";
-const STRAND_AUTH_TOKEN_SUFFIX = "-auth-token";
-const STRAND_BOOT_PRESERVED_KEYS = new Set([
-  "strand_walkthrough_complete",
-  "strand_migration_v1_done",
-  "strand_migration_v1_user_id",
-]);
-
-const isAuthTokenKey = (key: unknown): key is string =>
-  typeof key === "string" &&
-  key.startsWith(STRAND_AUTH_TOKEN_PREFIX) &&
-  key.endsWith(STRAND_AUTH_TOKEN_SUFFIX);
-
-const purgeStrandKeysAtBoot = (source: string) => {
-  if (typeof window === "undefined") return;
-
-  Object.keys(localStorage).forEach((key) => {
-    if (!key.startsWith("strand_")) return;
-    if (STRAND_BOOT_PRESERVED_KEYS.has(key)) return;
-    localStorage.removeItem(key);
-  });
-
-  console.log(`[strand] purged via ${source}`);
-};
-
-if (typeof window !== "undefined" && !window.__strandAuthPurgeInstalled) {
-  window.__strandAuthPurgeInstalled = true;
-
-  window.addEventListener("storage", (event) => {
-    if (isAuthTokenKey(event.key) && !event.newValue) {
-      purgeStrandKeysAtBoot("storage event");
-    }
-  });
-
-  const originalRemoveItem = Storage.prototype.removeItem;
-  Storage.prototype.removeItem = function removeItemWithStrandPurge(key: string) {
-    const result = originalRemoveItem.call(this, key);
-
-    if (this === localStorage && isAuthTokenKey(key)) {
-      purgeStrandKeysAtBoot("localStorage.removeItem");
-    }
-
-    return result;
-  };
-}
 
 createRoot(document.getElementById("root")!).render(<App />);

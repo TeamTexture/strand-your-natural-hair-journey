@@ -15,6 +15,8 @@
 //
 export const STRAND_PREFIX = "strand_";
 
+export const STRAND_OWNER_KEY = "strand_device_owner_uid";
+
 export const STRAND_PRESERVED_KEYS: ReadonlySet<string> = new Set([
   "strand_walkthrough_complete",
   "strand_migration_v1_done",
