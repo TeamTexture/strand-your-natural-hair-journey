@@ -254,32 +254,29 @@ const Home = () => {
 
 
   // Latest blood panel summary for the "My Blood Work" home section.
+  // Reads through the single canonical blood reader (`readBloodData`) so Home,
+  // the Nutrition Plan and `buildAiContext` can never disagree about the same
+  // member's results.
   useEffect(() => {
     if (!user) { setBloodSummary(null); return; }
     let cancelled = false;
     (async () => {
-      const { data: panels } = await supabase
-        .from("blood_panels")
-        .select("id, panel_date, label")
-        .eq("user_id", user.id)
-        .eq("status", "logged")
-        .order("panel_date", { ascending: false })
-        .limit(2);
-      const panelRows = (panels ?? []) as Array<{ id: string; panel_date: string | null; label: string | null }>;
+      const blood = await readBloodData(user.id, { panelLimit: 2 });
+      const panelRows = blood.panels;
       const panel = panelRows[0];
       const prevPanel = panelRows[1];
       if (!panel?.id) {
         if (!cancelled) setBloodSummary(null);
         return;
       }
-      const panelIds = panelRows.map((p) => p.id);
-      const { data: results } = await supabase
-        .from("blood_results")
-        .select("marker, value, status, panel_id")
-        .eq("user_id", user.id)
-        .in("panel_id", panelIds);
-      const rows = (results ?? []) as Array<{ marker: string; value: number | null; status: string | null; panel_id: string }>;
+      const rows = blood.results.map((r) => ({
+        marker: r.marker,
+        value: r.value,
+        status: resolveStatus(r),
+        panel_id: r.panel_id ?? "",
+      }));
       const current = rows.filter((r) => r.panel_id === panel.id);
+
       const previous = prevPanel ? rows.filter((r) => r.panel_id === prevPanel.id) : [];
       const prevByMarker = new Map(previous.map((r) => [r.marker, r]));
 
