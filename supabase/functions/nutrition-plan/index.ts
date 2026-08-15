@@ -109,20 +109,20 @@ const RETURN_PLAN_SCHEMA = {
     },
     supplements: {
       type: "array",
-      minItems: 3,
+      minItems: 4,
       maxItems: 8,
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["emoji", "name", "body"],
+        required: ["emoji", "name", "dose", "body", "priority"],
         properties: {
           emoji: { type: "string" },
           name: { type: "string", description: "Plain-English supplement name (e.g. 'Iron', 'Vitamin D3')." },
-          dose: { type: "string", description: "Plain-English dose guidance (e.g. '1000 IU daily with breakfast')." },
+          dose: { type: "string", description: "Required. Plain-English dose guidance with timing (e.g. '1000 IU daily with breakfast')." },
           body: {
             type: "string",
             description:
-              "2-3 sentences in LAYMAN'S English. Explain in everyday words why THIS user needs it (their blood marker, age, heritage, medication, condition). No textbook jargon — translate any clinical term the first time it appears (e.g. 'ferritin (your body's stored iron)').",
+              "THREE or FOUR paragraphs separated by \\n\\n, each opening with a bold lead phrase: '**Why it matters:**' (required), '**How to use it:**' (required), '**Best paired with:**', '**Watch out for:**' (required). Layman's English — translate any clinical term the first time it appears (e.g. 'ferritin (your body's stored iron)') and tie it to THIS user's blood marker, age, heritage, medication or condition.",
           },
           priority: { type: "string", enum: ["high", "medium", "low"] },
         },
@@ -142,7 +142,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences in LAYMAN'S English. Lead with the mechanism in everyday words, then connect ('which is why', 'so', 'this means') to THIS user's data: heritage, life stage, blood marker, goal, medication.",
+              "THREE or FOUR paragraphs separated by \\n\\n, each opening with a bold lead phrase: '**Why it matters:**' (required — the mechanism in everyday words), '**How to use it:**' (required — how often, how to prepare or serve it), '**Best paired with:**' (required — the food that unlocks the nutrient), '**Watch out for:**'. Connect to THIS user's data: life stage, blood marker, goal, medication.",
           },
         },
       },
@@ -154,19 +154,20 @@ const RETURN_PLAN_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["emoji", "name", "body"],
+        required: ["emoji", "name", "body", "severity"],
         properties: {
           emoji: { type: "string" },
           name: { type: "string" },
           body: {
             type: "string",
             description:
-              "2-3 sentences in LAYMAN'S English. Mechanism first in plain words, then why it matters for THIS user (medication, condition, alcohol level).",
+              "THREE paragraphs separated by \\n\\n, each opening with a bold lead phrase: '**Why it matters:**' (required), '**Easier swap:**' (required — a pairing or timing change, never eating less), '**Watch out for:**'. Layman's English, tied to this user's medication, condition or alcohol level.",
           },
           severity: { type: "string", enum: ["high", "medium", "low"] },
         },
       },
     },
+
   },
 } as const;
 
