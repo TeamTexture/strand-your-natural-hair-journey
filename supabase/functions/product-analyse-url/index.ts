@@ -67,6 +67,7 @@ import {
   sanitisePurposeInsight,
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
+import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -149,17 +150,17 @@ Field rules — strict:
 - category: pick the single best fit from the enum.
 - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the fetched page's list is partial or hidden behind tabs; otherwise transcribe what's visible.
 - key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
-- match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, current_hairstyle suitability, blood-marker deficiencies (only when relevant to the product), and goal alignment.
-- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, current_hairstyle, a goal, scalp condition, a flagged ingredient pattern) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
+- match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score.
+- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, density, a goal, scalp condition, a challenge, a flagged ingredient pattern — never the style they're in) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
 - usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
-- use_cases: MAXIMUM ${cap} items (this user's support level caps it here). Each item: ONE action sentence up to 30 words that NAMES the hair trait it is written for — curl type, porosity, density, width, scalp condition, current_hairstyle, goal or listed challenge — plus ONE "why" sentence up to 15 words on what that trait means for how they use it. Pick the ${cap} tips that most improve results on THIS user's hair type; a tip that would read identically for any hair type is INVALID. Do NOT repeat manufacturer directions.
+- use_cases: MAXIMUM ${cap} items (this user's support level caps it here). Each item: ONE action sentence up to 30 words that NAMES the hair trait it is written for — curl type, porosity, density, width, scalp condition, length, goal or listed challenge — plus ONE "why" sentence up to 15 words on what that trait means for how they use it. Pick the ${cap} tips that most improve results on THIS user's hair type; a tip that would read identically for any hair type is INVALID. Do NOT repeat manufacturer directions.
 - tips: MAXIMUM ${cap} items, same word budget. Pick the ${cap} most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product.
 
 PERSONALISED APPLICATION DEPTH — LEVELS 3-4 ONLY: at this support level, at least one use_cases item (and routine_suggestion, when populated) must give real application detail grounded in the retrieved manuscript passages: how much to use for this user's density/length, sectioning, exactly where this product sits in THIS user's wash-day sequence (Chapter 13 two-cleanse-then-condition baseline) and their 7-day wash rhythm, and what on their shelf to pair with or avoid pairing with. At levels 1-2, give only the single highest-priority instruction, still concrete never generic.
 
 MATCH SCORE — RE-REASON EVERY TIME, NEVER ANCHOR: match_score must be re-derived from scratch on every generation using ONLY this user's current profile — goals, porosity, hair characteristics, and any flagged blood markers relevant to this product — weighed against the product's actual ingredients. NEVER anchor the score to the product's marketing claims, brand reputation, or a generic "good product" judgement.
-- pair_with: OPTIONAL. Up to 3 items from the user's shelf (context.shelf), high_rated_products, or existing tools/favourites that would layer well with THIS product for THIS user. Reference each by real name and brand. Each entry: { item, why } where "why" is one sentence tying the pairing to a user hair goal, challenge, current style, or wash-day step. Return [] if nothing on the shelf pairs meaningfully. NEVER invent products or tools.
-- routine_suggestion: OPTIONAL. 1–2 short sentences slotting THIS product into the user's routine — reference their current_style, most recent wash-day steps, or cadence when relevant. Empty string if nothing meaningful.
+- pair_with: OPTIONAL. Up to 3 items from the user's shelf (context.shelf), high_rated_products, or existing tools/favourites that would layer well with THIS product for THIS user. Reference each by real name and brand. Each entry: { item, why } where "why" is one sentence tying the pairing to a user hair goal, challenge, hair characteristic, or wash-day step. Return [] if nothing on the shelf pairs meaningfully. NEVER invent products or tools.
+- routine_suggestion: OPTIONAL. 1–2 short sentences slotting THIS product into the user's routine — reference their most recent wash-day steps, cadence, or how long the hair has been worn up (a duration, never a style name) when relevant. Empty string if nothing meaningful.
 
 Grounding rule: when your guidance is rooted in the retrieved manuscript passages, reason from them and blend the underlying idea into your prose in STRAND's voice — do NOT name the book, its author, chapters, or page numbers, and do NOT emit any "Read more — …" line. When facts come from the fetched page or web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose. Never claim something "comes from the book" unless the specific point is supported by a retrieved passage.
 
@@ -177,7 +178,7 @@ PRODUCT ANALYSIS SCOPE — HARD RULE:
 When personalising a product analysis, focus ONLY on signals that intersect with what's INSIDE the product: ingredients, mechanism of action, formulation, application method.
 
 Signals that ARE relevant for product analysis:
-- Hair type (curl pattern, density, porosity, length, current style)
+- Hair type (curl pattern, density, porosity, length, elasticity, scalp condition)
 - Hair goals (length retention, definition, moisture retention, strength)
 - Hair challenges directly affected by formulation (dryness, breakage, build-up, scalp condition, heat damage history)
 
@@ -198,7 +199,9 @@ ${SCORE_REASONS_RULES}
 
 ${PURPOSE_INSIGHT_RULES}
 
-${NON_PRESCRIPTIVE_RULES}`;
+${NON_PRESCRIPTIVE_RULES}
+
+${STYLE_WEIGHTING_RULES}`;
 
 }
 
@@ -341,8 +344,8 @@ ABSOLUTE RULES
    comma-separated source split into array). If only some are visible, return
    what you see — do not pad.
 3. Personalise everything to the user's profile passed in context: hairProfile
-   (porosity, texture, density, scalp), currentStyle (current_hairstyle,
-   days_in_style, planned_next_style), goals (each with a "challenge" the user
+   (porosity, texture, density, scalp), currentStyle (background context only —
+   see the style weighting rules), goals (each with a "challenge" the user
    wrote and an optional "target_text"), bloodResults,
    healthProfile (medications, conditions), history.avoid_ingredients,
    history.favourite_ingredients, history.low_rated_products and
@@ -356,11 +359,12 @@ ABSOLUTE RULES
      porosity/texture/scalp OR directly supports a stated goal/challenge.
    - "warn" for neutral-but-noteworthy.
 5. match_score (0–100): lower sharply for "avoid" flags; raise for "good";
-   consider category fit, current hairstyle suitability, blood-result
-   deficiencies, and goal alignment.
+   consider category fit, the durable style pattern they usually wear
+   (default_style), blood-result deficiencies, and goal alignment.
+   current_hairstyle and days_in_style must never move the score.
 6. ai_summary: 2 short sentences MAX, second-person, in Paige's voice. The FIRST sentence cites
-   a specific reason from THIS user's context — prefer their goal, challenge,
-   or current_hairstyle when relevant. 7. usage_instructions: VERBATIM manufacturer directions. If the page contains
+   a specific reason from THIS user's context — prefer their goal, challenge
+   or a durable hair characteristic, never the style they're in. 7. usage_instructions: VERBATIM manufacturer directions. If the page contains
    a "Directions", "How to use", "Apply" or "Usage" block, transcribe it
    word-for-word into this field. If no manufacturer directions are visible
    on the page, set this to an empty string ("") — do NOT invent or
@@ -368,7 +372,7 @@ ABSOLUTE RULES
  8. use_cases: MAXIMUM ${cap} concrete tips for how THIS user gets the MOST out of the
     product on their hair type specifically (their support level caps it at ${cap}).
     Each item is ONE action sentence up to 30 words that NAMES the trait it is written
-    for — curl type, porosity, density, width, scalp condition, current_hairstyle, a
+    for — curl type, porosity, density, width, scalp condition, length, a
     goal or a listed challenge — plus ONE "why" sentence up to 15 words. A tip that
     would read identically for any hair type is INVALID.
     Do NOT repeat the manufacturer's directions verbatim here; build on them
@@ -411,7 +415,9 @@ ${SCORE_REASONS_RULES}
 
 ${PURPOSE_INSIGHT_RULES}
 
-${NON_PRESCRIPTIVE_RULES}`;
+${NON_PRESCRIPTIVE_RULES}
+
+${STYLE_WEIGHTING_RULES}`;
 
 }
 

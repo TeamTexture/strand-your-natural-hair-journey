@@ -44,6 +44,7 @@ import {
   type PurposeInsight,
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
+import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
 import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
 import {
@@ -276,7 +277,7 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
           type: "object",
           properties: {
             title: { type: "string", description: "Short imperative label about applying/using THIS product, max 6 words. Must be an action performed on THIS product itself. GOOD examples: 'Emulsify before it touches ends', 'Focus on the scalp only', 'Rinse with cooler water', 'Double-cleanse dense sections', 'Work through soaking-wet hair'. FORBIDDEN examples (never write these or anything similar): 'Pair with deep conditioning', 'Layer under your leave-in', 'Follow with a mask', 'Use with an oil'." },
-            body: { type: "string", description: `${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words — a proper detailed explanation, NEVER a single sentence. Cover, in order: (1) exactly what to do with THIS product (amount, where on the head, sectioning, hair state — dry/damp/soaking-wet, water temperature, dwell time, rinse, frequency), (2) why that suits at least one named trait of this user's (porosity, density, hair type, length, current style, a stated challenge or a signal from last_3_wash_days), quoting the mechanism of this product's key ingredient where it helps, (3) what it should look or feel like when done right, and (4) the specific mistake to avoid. Split into short paragraphs with a blank line between them where it aids readability. Do NOT reference any other product, product type, brand, accessory, or wash-day step.` },
+            body: { type: "string", description: `${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words — a proper detailed explanation, NEVER a single sentence. Cover, in order: (1) exactly what to do with THIS product (amount, where on the head, sectioning, hair state — dry/damp/soaking-wet, water temperature, dwell time, rinse, frequency), (2) why that suits at least one named trait of this user's (porosity, density, hair type, length, a stated challenge or a signal from last_3_wash_days), quoting the mechanism of this product's key ingredient where it helps, (3) what it should look or feel like when done right, and (4) the specific mistake to avoid. Split into short paragraphs with a blank line between them where it aids readability. Do NOT reference any other product, product type, brand, accessory, or wash-day step.` },
           },
           required: ["title", "body"],
         },
@@ -292,7 +293,7 @@ function buildTaskInstructions(productBrand: string, productName: string, ingred
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. In every body field, lead with the molecule's mechanism in plain English (translate the cosmetic-chemistry term on first use), then bridge with a connective ("which means", "so", "this is why") into what it means for THIS user. Talk to "you", not "your hair". Warm but not saccharine; no hedging stacks.
 
-USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, currentStyle, bloodResults, medications, context.avoid_ingredients (auto-derived from this user's own low-rated products).
+USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, bloodResults, medications, context.avoid_ingredients (auto-derived from this user's own low-rated products).
 
 PHILOSOPHY — READ THIS BEFORE FLAGGING ANYTHING:
 We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol, parabens at legal limits, sodium benzoate, potassium sorbate, methylisothiazolinone, etc.), fragrance/parfum, colourants, and standard pH adjusters are used in legally-permitted small quantities and are NOT inherently harmful for the general user. Do NOT mark them "bad" purely because they exist in the formula. Real-world cosmetic safety is regulated; our job is personalised fit, not fear.
@@ -325,16 +326,16 @@ RULES — STRICT:
    - Do NOT recommend, name, pair with, "follow with", "layer with", "use alongside", "then apply", or otherwise suggest ANY other product, product type, or step (no "deep conditioner", "leave-in", "oil", "mask", "clarifying wash", "protein treatment", "styler", etc.). Even generic categories are banned.
    - Do NOT suggest a routine, regimen, wash-day structure, or multi-step process. The tip is ONLY about how to apply/use THIS product itself to get maximum benefit.
     - Exception for shampoo/cleanser category only: you may identify whether THIS product belongs as the scalp-focused first cleanse or the hair-focused second cleanse. Keep the tip about THIS product's role and technique; do not recommend a named second product.
-   - Allowed levers ONLY: application technique on THIS product (dry vs damp vs soaking-wet hair, sectioning, emulsifying in palms, scalp-only vs lengths, contact/dwell time, water temperature, rinse pressure, frequency of use of THIS product, amount used, whether to double-cleanse with it, whether to dilute it, how to distribute it for this user's density/porosity, how to work it through their current style safely).
+   - Allowed levers ONLY: application technique on THIS product (dry vs damp vs soaking-wet hair, sectioning, emulsifying in palms, scalp-only vs lengths, contact/dwell time, water temperature, rinse pressure, frequency of use of THIS product, amount used, whether to double-cleanse with it, whether to dilute it, how to distribute it for this user's density/porosity).
 
    How to choose the tip — weigh in this order:
    (a) the manufacturer's intended use (shampoo, conditioner, leave-in, mask, oil, pre-poo, styler, etc.),
    (b) the STRAND manuscript guidance for THAT specific product category applied to THIS user's traits (e.g. for shampoos: surfactant strength vs porosity, scalp-first application, frequency for textured hair, avoiding lengths agitation for length retention),
    (c) the mechanism of this product's most important key/active ingredient,
-   (d) the user's most relevant hair data point (porosity, density, type, current style, key goal or challenge),
+   (d) the user's most relevant hair data point (porosity, density, type, length, key goal or challenge),
    (e) SIGNALS FROM last_3_wash_days in context: recent scalp_feel (itchy/dry/oily/tight), breakage level, hair_feel_note, and how frequently they wash — use these to sharpen the tip (e.g. if breakage is high and this is a shampoo, guide gentler emulsification; if scalp_feel is oily and this is a shampoo, guide focused scalp-only application; if wash frequency is low, adjust dwell/technique accordingly).
 
-   The tip MUST explicitly reference at least ONE of: a named goal/challenge from the user's data, the user's current hairstyle (and time in it if relevant), a measurable hair trait, OR a specific signal from their last_3_wash_days. Never generic.
+   The tip MUST explicitly reference at least ONE of: a named goal/challenge from the user's data, a measurable hair trait, OR a specific signal from their last_3_wash_days. Never generic.
 
    Never name the source, author, book, chapter or page. Write in your own voice.
 
@@ -352,6 +353,8 @@ ${SCORE_REASONS_RULES}
 ${PURPOSE_INSIGHT_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
+
+${STYLE_WEIGHTING_RULES}
 
 NOTE FOR THIS FUNCTION: the one-sentence overall call lives in the "summary" field (not ai_summary) — the SCORE REASONS rules apply to "summary" in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }
