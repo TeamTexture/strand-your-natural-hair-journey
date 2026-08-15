@@ -1429,10 +1429,22 @@ const IngredientDetail = () => {
                 </DialogHeader>
                 <div className="space-y-4 pt-1 max-h-[70vh] overflow-y-auto pr-1">
                   {profileLoading && !profile && (
-                    <p className="text-sm leading-relaxed text-muted-foreground italic">
-                      Pulling the science together for your hair…
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm leading-relaxed text-muted-foreground italic">
+                        Pulling the science together for your hair…
+                      </p>
+                      <AiProgressBar
+                        compact
+                        expectedMs={14000}
+                        stages={[
+                          "Looking this ingredient up",
+                          "Checking the manuscript",
+                          "Tailoring it to your hair",
+                        ]}
+                      />
+                    </div>
                   )}
+
 
                   {(() => {
                     const role = classifySurfactant(ing.name);
