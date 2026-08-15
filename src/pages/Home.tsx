@@ -1040,6 +1040,7 @@ const Home = () => {
           <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">{apptSub}</p>
         </button>
         <button
+          data-tour="qa-brands"
           onClick={() => navigate("/brands")}
           className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -1048,6 +1049,7 @@ const Home = () => {
           <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Explore STRAND brands</p>
         </button>
         <button
+          data-tour="qa-pros"
           onClick={() => navigate("/directory")}
           className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -1056,6 +1058,7 @@ const Home = () => {
           <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Find a trusted specialist</p>
         </button>
         <button
+          data-tour="qa-moodboards"
           onClick={() => navigate("/journal/moodboards")}
           className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
@@ -1064,6 +1067,7 @@ const Home = () => {
           <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Save style inspiration</p>
         </button>
         <button
+          data-tour="qa-discounts"
           onClick={() => navigate("/profile/discounts")}
           className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
         >
