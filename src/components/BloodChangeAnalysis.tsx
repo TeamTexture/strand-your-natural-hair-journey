@@ -148,7 +148,7 @@ export default function BloodChangeAnalysis({
         )}
       </div>
 
-      <ProvisionalProfileBanner className="mb-2" />
+      
 
       <SurfaceCard padded={false}>
         {isLoading || isFetching ? (

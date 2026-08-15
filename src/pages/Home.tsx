@@ -819,7 +819,7 @@ const Home = () => {
             regenerates only when the current style, the planned next style or
             the goal changes. */}
         <div>
-          <ProvisionalProfileBanner className="mb-3" />
+          
 
           <GuidanceCard
             tone="gold"

@@ -775,7 +775,7 @@ const NutritionPlan = () => {
         </div>
 
 
-        {plan?.summary && <ProvisionalProfileBanner className="mb-3" />}
+        
 
         {plan?.summary && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
