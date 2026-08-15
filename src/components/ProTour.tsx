@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, Minus } from "lucide-react";
@@ -113,6 +113,8 @@ const ProTour = () => {
   const [active, setActive] = useState(false);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [cardH, setCardH] = useState(240);
 
   // Auto-start when checkout flagged the tour as pending, and resume it
   // across the profile → dashboard navigation.
@@ -177,7 +179,14 @@ const ProTour = () => {
         else setRect(null);
         return;
       }
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      // Keep the highlighted panel's copy visible alongside the tour card.
+      const vh = window.innerHeight;
+      const box = el.getBoundingClientRect();
+      if (box.height + cardH + 120 > vh) {
+        window.scrollTo({ top: Math.max(0, window.scrollY + box.top - 84), behavior: "smooth" });
+      } else {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
       setTimeout(() => {
         if (!cancelled) setRect(el.getBoundingClientRect());
       }, 320);
@@ -220,12 +229,11 @@ const ProTour = () => {
   const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
   const tooltipTop = (() => {
     if (!rect) return null;
-    const spaceBelow = viewportH - rect.bottom;
-    const spaceAbove = rect.top;
-    if (spaceBelow > 200 || spaceBelow >= spaceAbove) {
-      return Math.min(rect.bottom + 14, viewportH - 260);
-    }
-    return Math.max(12, rect.top - 240);
+    const gapBelow = viewportH - rect.bottom - 14;
+    const gapAbove = rect.top - 14;
+    if (gapBelow >= cardH + 8) return rect.bottom + 14;
+    if (gapAbove >= cardH + 8) return Math.max(12, rect.top - 14 - cardH);
+    return gapBelow >= gapAbove ? Math.max(12, viewportH - cardH - 12) : 12;
   })();
 
   return (
@@ -287,6 +295,13 @@ const ProTour = () => {
       </div>
 
       <div
+        ref={(node) => {
+          cardRef.current = node;
+          if (node) {
+            const h = node.getBoundingClientRect().height;
+            if (h && Math.abs(h - cardH) > 4) setCardH(h);
+          }
+        }}
         className="absolute left-1/2 -translate-x-1/2 w-[88%] max-w-[340px] rounded-[20px] bg-background border border-primary/30 shadow-2xl p-5"
         style={
           tooltipTop != null
