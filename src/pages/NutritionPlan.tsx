@@ -747,13 +747,15 @@ const NutritionPlan = () => {
   }
 
   // Supplements — prefer AI (personalised, layman's terms); fall back to
-  // deterministic list only if AI didn't return them.
+  // deterministic list only if AI didn't return them. When the fallback is
+  // used, every card says so — generic guidance is never presented as if it
+  // were personalised.
+  const usingFallbackSupplements = !(plan?.supplements && plan.supplements.length > 0);
   const supplements: AiSupplement[] = filterSupplementsByLevel(
-    plan?.supplements && plan.supplements.length > 0
-      ? plan.supplements
-      : buildFallbackSupplements(profile),
+    usingFallbackSupplements ? buildFallbackSupplements(profile) : plan!.supplements!,
     level,
   );
+
 
   const renderLoading = (label: string) => {
     const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
