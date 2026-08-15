@@ -221,6 +221,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
             </span>
             {loading && !guidance ? (
               <span className="text-foreground/60">Working out how this fits your wash day…</span>
+
             ) : (
               guidance?.wash_day_tip || guidance?.fit_line || product.description || ""
             )}
