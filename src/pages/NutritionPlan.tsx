@@ -13,7 +13,9 @@ import LoadingDot from "@/components/LoadingDot";
 import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { capitaliseSentences } from "@/lib/paragraphs";
 
-import { evaluate } from "@/data/bloodRanges";
+import { readBloodData } from "@/lib/bloodRead";
+import { useAuth } from "@/hooks/useAuth";
+
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { Stethoscope } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
@@ -513,10 +515,16 @@ const NutritionPlan = () => {
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
   const { level } = useNutritionLevel();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
+  /** Real profile-completeness signals, so a request failure is never
+   *  misreported to the member as "your profile is incomplete". */
+  const [hasBloodPanel, setHasBloodPanel] = useState<boolean | null>(null);
+  const [hasHealthProfile, setHasHealthProfile] = useState<boolean | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [profile, setProfile] = useState<Profile>({
     diet: "unknown",
     dietOther: "",
@@ -694,34 +702,50 @@ const NutritionPlan = () => {
   }, []);
 
 
+  /**
+   * ROOT-CAUSE FIX (2026-08-15). This effect used to run once on mount and read
+   * the member via `supabase.auth.getUser()`. On a cold load the session is
+   * still hydrating, so `user` came back null: the blood query was skipped
+   * (empty `flagged`, no "anchored to your markers" block) AND the plan request
+   * went out unauthenticated (401 → `plan` stays null → generic fallback
+   * supplements and an empty diet/avoid tab). One failure, three symptoms.
+   *
+   * It now waits for the authenticated user from `useAuth` and re-runs if the
+   * session arrives late. Blood data comes from the single canonical reader so
+   * this screen, Home and `buildAiContext` cannot disagree, and a marker counts
+   * as flagged when it is LOW **or** HIGH.
+   */
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
     (async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const flagged = new Set<string>();
-        if (userData?.user) {
-          const { data } = await supabase
-            .from("blood_results")
-            .select("marker, value")
-            .eq("user_id", userData.user.id);
-          (data ?? []).forEach((row) => {
-            const status = evaluate(row.marker, row.value as number | null);
-            if (status === "low") flagged.add(row.marker);
-          });
-        }
+        const blood = await readBloodData(user.id);
+        const flagged = new Set<string>(blood.flagged);
         const clinical = await loadClinicalContext();
         const diet = canonDiet(clinical.health?.diet);
         const dietOther = clinical.health?.dietOther ?? "";
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
+        if (cancelled) return;
+        setHasBloodPanel(blood.results.length > 0);
+        setHasHealthProfile(!!clinical.health);
         const next = { diet, dietOther, alcohol, flagged };
         setProfile(next);
         void fetchPlan(false, next);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id, authLoading]);
+
 
   if (loading) {
     return (
@@ -802,13 +826,50 @@ const NutritionPlan = () => {
           </SurfaceCard>
         );
       }
+      // THREE DISTINCT STATES. A failed request must never be reported to the
+      // member as her data being incomplete.
+      const missing: Array<{ label: string; to: string }> = [];
+      if (hasHealthProfile === false) missing.push({ label: "your health and diet answers", to: "/onboarding/profile-step-2" });
+      if (hasBloodPanel === false) missing.push({ label: "a logged blood test", to: "/blood-upload" });
+
+      if (missing.length > 0) {
+        return (
+          <SurfaceCard tone="gold">
+            <p className="text-xs font-body leading-[1.6]">
+              To build this section STRAND still needs {missing.map((m) => m.label).join(" and ")}.
+            </p>
+            <div className="mt-3 flex flex-col gap-2">
+              {missing.map((m) => (
+                <button
+                  key={m.to}
+                  type="button"
+                  onClick={() => navigate(m.to)}
+                  className="w-full px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                >
+                  Add {m.label}
+                </button>
+              ))}
+            </div>
+          </SurfaceCard>
+        );
+      }
+
       return (
         <SurfaceCard tone="gold">
-          <p className="text-xs font-body leading-relaxed">
-            Your personalised guidance will appear here once your profile is complete.
+          <p className="text-xs font-body leading-[1.6]">
+            We couldn't generate this part of your plan just now. Your profile and
+            blood work are fine — this was a problem on our side.
           </p>
+          <button
+            type="button"
+            onClick={() => void fetchPlan(true, profile)}
+            className="mt-3 w-full px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+          >
+            Try again
+          </button>
         </SurfaceCard>
       );
+
     }
     return shown.map((c, i) =>
       kind === "diet" ? (

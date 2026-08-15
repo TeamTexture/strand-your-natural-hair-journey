@@ -27,6 +27,8 @@ import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
+import { readBloodData, resolveStatus } from "@/lib/bloodRead";
+
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
@@ -254,32 +256,29 @@ const Home = () => {
 
 
   // Latest blood panel summary for the "My Blood Work" home section.
+  // Reads through the single canonical blood reader (`readBloodData`) so Home,
+  // the Nutrition Plan and `buildAiContext` can never disagree about the same
+  // member's results.
   useEffect(() => {
     if (!user) { setBloodSummary(null); return; }
     let cancelled = false;
     (async () => {
-      const { data: panels } = await supabase
-        .from("blood_panels")
-        .select("id, panel_date, label")
-        .eq("user_id", user.id)
-        .eq("status", "logged")
-        .order("panel_date", { ascending: false })
-        .limit(2);
-      const panelRows = (panels ?? []) as Array<{ id: string; panel_date: string | null; label: string | null }>;
+      const blood = await readBloodData(user.id, { panelLimit: 2 });
+      const panelRows = blood.panels;
       const panel = panelRows[0];
       const prevPanel = panelRows[1];
       if (!panel?.id) {
         if (!cancelled) setBloodSummary(null);
         return;
       }
-      const panelIds = panelRows.map((p) => p.id);
-      const { data: results } = await supabase
-        .from("blood_results")
-        .select("marker, value, status, panel_id")
-        .eq("user_id", user.id)
-        .in("panel_id", panelIds);
-      const rows = (results ?? []) as Array<{ marker: string; value: number | null; status: string | null; panel_id: string }>;
+      const rows = blood.results.map((r) => ({
+        marker: r.marker,
+        value: r.value,
+        status: resolveStatus(r),
+        panel_id: r.panel_id ?? "",
+      }));
       const current = rows.filter((r) => r.panel_id === panel.id);
+
       const previous = prevPanel ? rows.filter((r) => r.panel_id === prevPanel.id) : [];
       const prevByMarker = new Map(previous.map((r) => [r.marker, r]));
 
@@ -291,7 +290,9 @@ const Home = () => {
         const p = prevByMarker.get(r.marker);
         if (!p) continue;
         const wasFlagged = p.status === "low" || p.status === "high";
-        const nowNormal = r.status === "normal" || r.status === "ok" || r.status === null;
+        // `resolveStatus` always returns a concrete status, so "in range" is
+        // simply anything that is not low or high.
+        const nowNormal = r.status !== "low" && r.status !== "high";
         if (wasFlagged && nowNormal) {
           insights.push(`${prettyMarker(r.marker)} back in range vs last test`);
         }
@@ -301,8 +302,9 @@ const Home = () => {
       const flaggedRows = current.filter((r) => r.status === "low" || r.status === "high");
       const worsened = flaggedRows.filter((r) => {
         const p = prevByMarker.get(r.marker);
-        return !p || p.status === "normal" || p.status === "ok" || p.status == null;
+        return !p || (p.status !== "low" && p.status !== "high");
       });
+
       const orderedFlagged = [...worsened, ...flaggedRows.filter((r) => !worsened.includes(r))];
       for (const r of orderedFlagged) {
         const dir = r.status === "low" ? "Low" : "High";
