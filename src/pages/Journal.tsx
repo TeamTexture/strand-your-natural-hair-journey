@@ -94,7 +94,7 @@ const Journal = () => {
     [goals],
   );
   const primaryGoal = rawGoal && (rawGoal.status ?? "in_progress") === "in_progress"
-    ? goal
+    ? rawGoal
     : inProgressGoals[0] ?? null;
   const otherInProgress = useMemo(
     () => inProgressGoals.filter((g) => g.id !== primaryGoal?.id),
