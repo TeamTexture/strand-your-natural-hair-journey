@@ -10,7 +10,7 @@ import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
-import ProvisionalProfileBanner from "@/components/ProvisionalProfileBanner";
+
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
 import ListRow from "@/components/nav/ListRow";
@@ -819,7 +819,7 @@ const Home = () => {
             regenerates only when the current style, the planned next style or
             the goal changes. */}
         <div>
-          <ProvisionalProfileBanner className="mb-3" />
+          
 
           <GuidanceCard
             tone="gold"
