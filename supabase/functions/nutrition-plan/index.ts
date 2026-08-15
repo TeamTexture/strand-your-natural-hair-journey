@@ -88,9 +88,10 @@ FORMAT
 Return JSON only via the provided tool. Each card has:
 - emoji (single emoji, culturally appropriate where possible)
 - name (short, specific — name the actual food, not "leafy greens")
-- body (2–3 sentences max: the science + WHY this food matters for THIS user, referencing their data explicitly e.g. "given your low ferritin and African heritage" or "with your metformin use")
+- body (THREE or FOUR bold-led paragraphs — see FORMATTING — never a single short paragraph; nutrition is always given at full detail)
 
 OUTPUT REQUIREMENTS:
+- supplements: 4–8 cards, each with a dose and timing, each tied to something specific about THIS user.
 - diet: 6–10 cards covering protein, iron-support, fat-soluble vitamins, omega-3, antioxidants, B-vitamins. Heavily weighted toward addressing flagged deficiencies first.
 - avoid: 4–6 cards, each genuinely personalised, and each about PAIRING, TIMING or a medication/supplement interaction rather than eating less (e.g. "have tea between meals rather than alongside them, because tannins bind the iron in that meal"). No calorie, gram or portion figures. No restriction language.
 - summary: TWO ultra-short paragraphs (see SUMMARY FORMATTING). One sentence each, max 22 words. Translate the blood work into plain English — no preamble, no "this plan will…".
