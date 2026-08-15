@@ -200,16 +200,17 @@ Every card body must read like a knowledgeable friend explaining it, not a scien
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their alcohol intake). "You", never "your hair".
 
-FORMATTING — SCANNABLE, NOT WALL-OF-TEXT.
-Every "body" field MUST be structured as TWO short paragraphs separated by a blank line ("\\n\\n"). Each paragraph is ONE or TWO short sentences max. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what your follicles draw on for new growth."
+FORMATTING — SCANNABLE, AND FULLY DETAILED.
+Nutrition is the one place in STRAND that is always given at FULL detail. Never abbreviate a card.
+Every "body" field MUST be structured as THREE or FOUR short paragraphs separated by blank lines ("\\n\\n"). Each paragraph is ONE or TWO short sentences. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what your follicles draw on for new growth."
 
-Use ONLY these bold lead phrases (pick whichever fit the card — never invent long headers):
-- For DIET & SUPPLEMENTS: "**Why it matters:**", "**How to use it:**", "**Best paired with:**", "**Watch out for:**"
-- For AVOID: "**Why it matters:**", "**Easier swap:**", "**Watch out for:**"
+Use ONLY these bold lead phrases, in this order, skipping none that apply:
+- For SUPPLEMENTS: "**Why it matters:**" (required), "**How to use it:**" (required — when in the day and what to take it with), "**Best paired with:**" (name the foods that help it absorb), "**Watch out for:**" (required — the interaction, medication or timing clash)
+- For DIET: "**Why it matters:**" (required), "**How to use it:**" (required — how often and how to prepare or serve it), "**Best paired with:**" (required — the food that unlocks the nutrient), "**Watch out for:**"
+- For AVOID: "**Why it matters:**" (required), "**Easier swap:**" (required), "**Watch out for:**"
 
-Hard formatting rule: if a card includes "How to use it", "Best paired with", or "Watch out for", put that wording at the start of its own paragraph exactly as a bold lead phrase so the app can render it inside a STRAND Tip box. Do not use "Your signal" or "Your focus" anywhere.
+Never write a wall of prose. Never omit the bold lead. Never return fewer than three paragraphs per body, and never more than four.
 
-Never write a wall of prose. Never omit the bold lead. Never use more than two paragraphs per body.
 
 SUMMARY FORMATTING — SHORT, EDUCATIONAL, SCANNABLE.
 The top-level "summary" field is the "Why this plan" block at the top of the page. It must be BRIEF and read like a friend translating the blood work into plain English — not a preamble to the cards below.
