@@ -700,7 +700,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           // Output cap — output tokens drive latency on these interactive surfaces.
-          max_tokens: 1600,
+          max_tokens: 2400,
           messages,
           response_format: { type: "json_object" },
         }),
@@ -821,9 +821,12 @@ Deno.serve(async (req) => {
     }
 
     if (!clean) {
+      // Personalised guidance is OPTIONAL copy. A validation miss must never
+      // surface as an invocation error / blank screen — the caller renders the
+      // approved advert without it.
       return new Response(
-        JSON.stringify({ error: "Guidance failed validation", problems: lastProblems }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ guidance: null, unavailable: "validation", problems: lastProblems }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
