@@ -10,7 +10,8 @@ import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
-import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2 } from "lucide-react";
+import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { capitaliseSentences } from "@/lib/paragraphs";
 
 import { evaluate } from "@/data/bloodRanges";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
