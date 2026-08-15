@@ -22,11 +22,11 @@ const GoalsChallengesPrompt = ({
   onAddGoal: () => void;
   onAddChallenges: () => void;
 }) => {
-  const { primaryGoal, loading: goalsLoading } = useGoals();
+  const { goal, loading: goalsLoading } = useGoals();
   const { challenges, loading: challengesLoading } = useChallenges();
   const [ready, setReady] = useState(false);
 
-  const empty = !primaryGoal && challenges.length === 0;
+  const empty = !goal && challenges.length === 0;
 
   useEffect(() => {
     if (goalsLoading || challengesLoading || !empty) {
