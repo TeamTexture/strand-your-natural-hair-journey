@@ -88,9 +88,10 @@ FORMAT
 Return JSON only via the provided tool. Each card has:
 - emoji (single emoji, culturally appropriate where possible)
 - name (short, specific — name the actual food, not "leafy greens")
-- body (2–3 sentences max: the science + WHY this food matters for THIS user, referencing their data explicitly e.g. "given your low ferritin and African heritage" or "with your metformin use")
+- body (THREE or FOUR bold-led paragraphs — see FORMATTING — never a single short paragraph; nutrition is always given at full detail)
 
 OUTPUT REQUIREMENTS:
+- supplements: 4–8 cards, each with a dose and timing, each tied to something specific about THIS user.
 - diet: 6–10 cards covering protein, iron-support, fat-soluble vitamins, omega-3, antioxidants, B-vitamins. Heavily weighted toward addressing flagged deficiencies first.
 - avoid: 4–6 cards, each genuinely personalised, and each about PAIRING, TIMING or a medication/supplement interaction rather than eating less (e.g. "have tea between meals rather than alongside them, because tannins bind the iron in that meal"). No calorie, gram or portion figures. No restriction language.
 - summary: TWO ultra-short paragraphs (see SUMMARY FORMATTING). One sentence each, max 22 words. Translate the blood work into plain English — no preamble, no "this plan will…".
@@ -109,20 +110,20 @@ const RETURN_PLAN_SCHEMA = {
     },
     supplements: {
       type: "array",
-      minItems: 3,
+      minItems: 4,
       maxItems: 8,
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["emoji", "name", "body"],
+        required: ["emoji", "name", "dose", "body", "priority"],
         properties: {
           emoji: { type: "string" },
           name: { type: "string", description: "Plain-English supplement name (e.g. 'Iron', 'Vitamin D3')." },
-          dose: { type: "string", description: "Plain-English dose guidance (e.g. '1000 IU daily with breakfast')." },
+          dose: { type: "string", description: "Required. Plain-English dose guidance with timing (e.g. '1000 IU daily with breakfast')." },
           body: {
             type: "string",
             description:
-              "2-3 sentences in LAYMAN'S English. Explain in everyday words why THIS user needs it (their blood marker, age, heritage, medication, condition). No textbook jargon — translate any clinical term the first time it appears (e.g. 'ferritin (your body's stored iron)').",
+              "THREE or FOUR paragraphs separated by \\n\\n, each opening with a bold lead phrase: '**Why it matters:**' (required), '**How to use it:**' (required), '**Best paired with:**', '**Watch out for:**' (required). Layman's English — translate any clinical term the first time it appears (e.g. 'ferritin (your body's stored iron)') and tie it to THIS user's blood marker, age, heritage, medication or condition.",
           },
           priority: { type: "string", enum: ["high", "medium", "low"] },
         },
@@ -142,7 +143,7 @@ const RETURN_PLAN_SCHEMA = {
           body: {
             type: "string",
             description:
-              "2-3 sentences in LAYMAN'S English. Lead with the mechanism in everyday words, then connect ('which is why', 'so', 'this means') to THIS user's data: heritage, life stage, blood marker, goal, medication.",
+              "THREE or FOUR paragraphs separated by \\n\\n, each opening with a bold lead phrase: '**Why it matters:**' (required — the mechanism in everyday words), '**How to use it:**' (required — how often, how to prepare or serve it), '**Best paired with:**' (required — the food that unlocks the nutrient), '**Watch out for:**'. Connect to THIS user's data: life stage, blood marker, goal, medication.",
           },
         },
       },
@@ -154,19 +155,20 @@ const RETURN_PLAN_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["emoji", "name", "body"],
+        required: ["emoji", "name", "body", "severity"],
         properties: {
           emoji: { type: "string" },
           name: { type: "string" },
           body: {
             type: "string",
             description:
-              "2-3 sentences in LAYMAN'S English. Mechanism first in plain words, then why it matters for THIS user (medication, condition, alcohol level).",
+              "THREE paragraphs separated by \\n\\n, each opening with a bold lead phrase: '**Why it matters:**' (required), '**Easier swap:**' (required — a pairing or timing change, never eating less), '**Watch out for:**'. Layman's English, tied to this user's medication, condition or alcohol level.",
           },
           severity: { type: "string", enum: ["high", "medium", "low"] },
         },
       },
     },
+
   },
 } as const;
 
@@ -193,23 +195,24 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (3-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 pairing, timing or interaction notes — never "eat less of this"), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
+  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (4-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 pairing, timing or interaction notes — never "eat less of this"), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
 
 CRITICAL LANGUAGE RULE — PLAIN ENGLISH FOR AMATEURS.
 Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No jargon dumps.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their alcohol intake). "You", never "your hair".
 
-FORMATTING — SCANNABLE, NOT WALL-OF-TEXT.
-Every "body" field MUST be structured as TWO short paragraphs separated by a blank line ("\\n\\n"). Each paragraph is ONE or TWO short sentences max. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what your follicles draw on for new growth."
+FORMATTING — SCANNABLE, AND FULLY DETAILED.
+Nutrition is the one place in STRAND that is always given at FULL detail. Never abbreviate a card.
+Every "body" field MUST be structured as THREE or FOUR short paragraphs separated by blank lines ("\\n\\n"). Each paragraph is ONE or TWO short sentences. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what your follicles draw on for new growth."
 
-Use ONLY these bold lead phrases (pick whichever fit the card — never invent long headers):
-- For DIET & SUPPLEMENTS: "**Why it matters:**", "**How to use it:**", "**Best paired with:**", "**Watch out for:**"
-- For AVOID: "**Why it matters:**", "**Easier swap:**", "**Watch out for:**"
+Use ONLY these bold lead phrases, in this order, skipping none that apply:
+- For SUPPLEMENTS: "**Why it matters:**" (required), "**How to use it:**" (required — when in the day and what to take it with), "**Best paired with:**" (name the foods that help it absorb), "**Watch out for:**" (required — the interaction, medication or timing clash)
+- For DIET: "**Why it matters:**" (required), "**How to use it:**" (required — how often and how to prepare or serve it), "**Best paired with:**" (required — the food that unlocks the nutrient), "**Watch out for:**"
+- For AVOID: "**Why it matters:**" (required), "**Easier swap:**" (required), "**Watch out for:**"
 
-Hard formatting rule: if a card includes "How to use it", "Best paired with", or "Watch out for", put that wording at the start of its own paragraph exactly as a bold lead phrase so the app can render it inside a STRAND Tip box. Do not use "Your signal" or "Your focus" anywhere.
+Never write a wall of prose. Never omit the bold lead. Never return fewer than three paragraphs per body, and never more than four.
 
-Never write a wall of prose. Never omit the bold lead. Never use more than two paragraphs per body.
 
 SUMMARY FORMATTING — SHORT, EDUCATIONAL, SCANNABLE.
 The top-level "summary" field is the "Why this plan" block at the top of the page. It must be BRIEF and read like a friend translating the blood work into plain English — not a preamble to the cards below.
@@ -555,7 +558,7 @@ Deno.serve(async (req: Request) => {
     // Build a signature from the inputs that should invalidate cache.
     // Provider is included so flipping the flag forces a regen.
     const sigSource = JSON.stringify({
-      schema_version: "v6-manuscript-2026-08-09",
+      schema_version: "v7-full-detail-2026-08-15",
       model_version: MODEL_VERSION,
       provider,
       diet: diet ?? null,
