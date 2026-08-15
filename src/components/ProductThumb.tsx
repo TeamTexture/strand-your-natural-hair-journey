@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { usableImageUrl } from "@/lib/imageQuality";
+import { isJunkImageUrl, normaliseImageUrl, usableImageUrl } from "@/lib/imageQuality";
 import { cn } from "@/lib/utils";
 
 
@@ -107,6 +107,17 @@ export default function ProductThumb({
   const initials = initialsFor(brand, name);
   const showImage = resolved && !imgFailed;
 
+  // A CDN can refuse the upsized variant we asked for. Retry the original
+  // size once before giving up and showing initials.
+  const handleError = () => {
+    const original = normaliseImageUrl(imageUrl);
+    if (original && original !== resolved && !isJunkImageUrl(original)) {
+      setResolved(original);
+      return;
+    }
+    setImgFailed(true);
+  };
+
   return (
     <div className={wrapper}>
       {showImage ? (
@@ -114,7 +125,7 @@ export default function ProductThumb({
           src={resolved}
           alt={alt}
           loading="lazy"
-          onError={() => setImgFailed(true)}
+          onError={handleError}
           className={cn(
             "size-full",
             cover ? "object-cover" : "object-contain mix-blend-multiply",

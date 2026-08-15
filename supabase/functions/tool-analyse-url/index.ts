@@ -324,20 +324,28 @@ interface ScrapeResult {
 
 /** Page chrome — flags, payment badges, logos, social icons, support widgets —
  * is never the hero product shot. Mirrors product-analyse-url so tools get the
- * same quality of image extraction as hair care products. */
+ * same quality of image extraction as hair care products.
+ *
+ * Tested against the FILENAME only: retailer CDN directory names routinely
+ * contain words like logo, icon, badge, secure, search, menu, cart, support
+ * and help, and matching the whole URL discarded real product shots. */
 const CHROME_RE =
-  /(flag|union[-_]?jack|\bicon\b|icons?\/|logo|sprite|badge|payment|visa|mastercard|amex|paypal|klarna|applepay|gpay|trustpilot|\bstar\b|rating|placeholder|avatar|profile[-_]?pic|spinner|loader|pixel|1x1|blank|transparent|social|instagram|facebook|tiktok|twitter|youtube|pinterest|cart|search|menu|arrow|chevron|close|burger|currency|country|locale|lang|shipping|delivery|van|truck|newsletter|cookie|banner|footer|header|nav|support|24[-_]?7|help|chat|contact|guarantee|warranty|award|secure|ssl)/i;
+  /(union[-_]?jack|\bicon\b|^icons?[-_.]|[-_]icon[-_.]|logo|sprite|payment|visa|mastercard|amex|paypal|klarna|applepay|gpay|trustpilot|placeholder|spinner|loader|1x1|blank|transparent|burger|chevron)/i;
+
+function imageFilename(u: string): string {
+  const withoutQuery = u.split("?")[0].split("#")[0];
+  const parts = withoutQuery.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? "";
+}
 
 function isLikelyProductImage(u: string | null | undefined): boolean {
   if (!u) return false;
   if (/^data:/i.test(u)) return false;
-  const clean = u.split("?")[0];
-  if (/\.(svg|gif)$/i.test(clean)) return false;
-  if (CHROME_RE.test(u)) return false;
-  const dim = u.match(/(?:^|[^\d])(\d{1,3})\s*[x×]\s*(\d{1,3})(?:[^\d]|$)/);
-  if (dim && Number(dim[1]) < 200 && Number(dim[2]) < 200) return false;
-  const w = u.match(/[?&](?:w|width)=(\d+)/i);
-  if (w && Number(w[1]) < 200) return false;
+  const file = imageFilename(u);
+  if (/\.(svg|gif)$/i.test(file)) return false;
+  if (CHROME_RE.test(file)) return false;
+  // A small declared size means a list-size variant, not junk — the client
+  // requests a larger variant, so keep it.
   return true;
 }
 
