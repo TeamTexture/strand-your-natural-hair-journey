@@ -992,10 +992,22 @@ const IngredientDetail = () => {
 
 
         {loading && (
-          <SurfaceCard>
-            <LoadingDot label="Analysing ingredients for your profile…" />
+          <SurfaceCard className="space-y-2">
+            <p className="font-body text-[12px] text-foreground/80">
+              Analysing these ingredients for your profile
+            </p>
+            <AiProgressBar
+              expectedMs={20000}
+              stages={[
+                "Reading the ingredient list",
+                "Matching against your hair profile",
+                "Looking these up in the manuscript",
+                "Writing your analysis",
+              ]}
+            />
           </SurfaceCard>
         )}
+
 
         {error && !loading && (
           <SurfaceCard tone="orange" className="space-y-2">
