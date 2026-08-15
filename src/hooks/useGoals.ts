@@ -137,7 +137,7 @@ export const useGoals = () => {
     .filter((g) => g.status === "past" || !!g.ended_at)
     .sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""));
 
-  const primaryGoal =
+  const goal =
     activeGoals[0] ??
     goals.find((g) => !g.ended_at) ??
     null;
@@ -177,7 +177,7 @@ export const useGoals = () => {
     goals,
     activeGoals,
     pastGoals,
-    primaryGoal,
+    goal,
     loading,
     upsertGoal,
     deleteGoal,

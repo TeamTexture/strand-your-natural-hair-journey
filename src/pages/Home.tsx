@@ -101,14 +101,14 @@ const Home = () => {
   const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
   const { products: shelfProducts, loading: shelfLoading, sponsoredById: shelfSponsoredById } = useUserProducts("shelf", { static: true });
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
-  const { primaryGoal } = useGoals();
+  const { goal } = useGoals();
   const { challenges } = useChallenges();
   const [goalEditorOpen, setGoalEditorOpen] = useState(false);
   const [challengesOpen, setChallengesOpen] = useState(false);
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   // Home shows EXACTLY ONE tip — the STRAND tip. The fuller
   // multi-tip "How you'll get there" playbook lives on the Style Journal.
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(primaryGoal, { single: true });
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(goal, { single: true });
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
@@ -367,8 +367,8 @@ const Home = () => {
   const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
 
   const goalName = (() => {
-    if (!primaryGoal) return "No goal set yet";
-    const title = primaryGoal.title?.trim();
+    if (!goal) return "No goal set yet";
+    const title = goal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
       return title.length > 20 ? `${title.slice(0, 20)}…` : title;
     }
@@ -377,8 +377,8 @@ const Home = () => {
 
   // Short chip for the STRAND tip — the member's OWN words, never a category.
   const goalChipLabel = (() => {
-    if (!primaryGoal) return null;
-    const title = primaryGoal.title?.trim();
+    if (!goal) return null;
+    const title = goal.title?.trim();
     if (title && title.toLowerCase() !== "hair goal") {
       const words = title.split(/\s+/).slice(0, 2).join(" ");
       return words.length > 18 ? `${words.slice(0, 18)}…` : words;
@@ -456,7 +456,7 @@ const Home = () => {
           icon={ICONS.goal}
           value={goalName}
           label="Goal focus"
-          tone={primaryGoal ? "good" : "muted"}
+          tone={goal ? "good" : "muted"}
           to="/journal"
         />
         <StatTile
@@ -685,7 +685,7 @@ const Home = () => {
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
               Your hair care goals
             </p>
-            {primaryGoal && (
+            {goal && (
               <button
                 onClick={() => setGoalEditorOpen(true)}
                 className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
@@ -695,27 +695,27 @@ const Home = () => {
             )}
           </div>
 
-          {primaryGoal ? (
+          {goal ? (
             (() => {
-              const title = primaryGoal.title?.trim();
+              const title = goal.title?.trim();
               const heading =
                 title && title.toLowerCase() !== "hair goal" ? title : "Your goal";
-              const targetDate = primaryGoal.target_date
-                ? new Date(primaryGoal.target_date).toLocaleDateString("en-GB", {
+              const targetDate = goal.target_date
+                ? new Date(goal.target_date).toLocaleDateString("en-GB", {
                     month: "short",
                     year: "numeric",
                   })
                 : null;
               const secondary =
-                [primaryGoal.target_text?.trim() || null, targetDate ? `By ${targetDate}` : null]
+                [goal.target_text?.trim() || null, targetDate ? `By ${targetDate}` : null]
                   .filter(Boolean)
                   .join(" · ") || null;
               // Numeric progress ONLY when she has entered every number
               // herself and named her own unit. Never a default unit.
-              const unit = (primaryGoal.unit ?? "").trim();
-              const start = primaryGoal.start_value;
-              const current = primaryGoal.current_value;
-              const target = primaryGoal.target_value;
+              const unit = (goal.unit ?? "").trim();
+              const start = goal.start_value;
+              const current = goal.current_value;
+              const target = goal.target_value;
               const hasNumbers =
                 !!unit &&
                 start != null &&
@@ -1144,7 +1144,7 @@ const Home = () => {
       <GoalEditorSheet
         open={goalEditorOpen}
         onOpenChange={setGoalEditorOpen}
-        goal={primaryGoal}
+        goal={goal}
       />
       <ChallengesEditorSheet open={challengesOpen} onOpenChange={setChallengesOpen} />
       <GoalsChallengesPrompt
