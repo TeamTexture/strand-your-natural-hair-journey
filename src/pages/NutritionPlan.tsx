@@ -26,6 +26,7 @@ import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tip
 import type { TipsLevel } from "@/lib/tipsLevel";
 import { smartBack } from "@/lib/smartBack";
 import { canonDiet, suppressesAnimalFoods, type DietaryPattern } from "@/lib/dietaryPattern";
+import AiProgressBar from "@/components/AiProgressBar";
 
 
 type Diet = DietaryPattern;

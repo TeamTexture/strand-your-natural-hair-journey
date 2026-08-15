@@ -35,6 +35,7 @@ import { useWashDaySchedules } from "@/hooks/useWashDaySchedules";
 import NextWashDayBox, { washDayCalendarEvent } from "@/components/wash/NextWashDayBox";
 import { googleCalendarUrl } from "@/lib/addToCalendar";
 import StyleProfilePrompt from "@/components/style/StyleProfilePrompt";
+import AiProgressBar from "@/components/AiProgressBar";
 
 
 

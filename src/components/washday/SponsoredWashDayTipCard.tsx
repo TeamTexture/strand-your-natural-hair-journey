@@ -8,6 +8,7 @@ import {
 import { usePersonalisedOffersConsent } from "@/hooks/useAdTargeting";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { resolveBrandColours, tint } from "@/lib/brandColour";
+import AiProgressBar from "@/components/AiProgressBar";
 
 /**
  * SponsoredWashDayTipCard — the sponsored tip on the Wash Day screen.

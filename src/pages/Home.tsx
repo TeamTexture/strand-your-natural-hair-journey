@@ -58,6 +58,7 @@ import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
 import { type GuidanceTip } from "@/lib/tipsRender";
+import AiProgressBar from "@/components/AiProgressBar";
 
 
 // Rich text rendering is delegated to useSmartInline() inside the component
