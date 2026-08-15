@@ -19,6 +19,7 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
@@ -159,7 +160,12 @@ FIELD: why  (this is the BODY that explains the header)
 - Tie the reasoning to a concrete pattern the user can verify in their own data: name a recent wash ("last wash", "your wash on 12 July"), a repeated signal (scalp feel, breakage, hair-feel note), a product outcome they've logged, or their active goal by title. Do NOT invent history.
 - Ground the reasoning in a How To Love Your Afro teaching, referenced by mechanism not by name. Draw from: the two-cleanse baseline (scalp-focused cleansing shampoo first, moisturising/conditioning shampoo through the hair second, then conditioner); the 3-4 wash-cycle consistency rule; moisture-first response for high porosity / humidity / dry hair; low-manipulation and ends-tucking for length retention; scalp-first (clean, calm, well-circulated) for growth; no scheduled protein — moisture leads. If recommending a deep conditioning mask, frame it as a moisture response, never as a routine change.
 - Do NOT name the manuscript, chapters, or page numbers. Do NOT say "the book says".
-- No medical advice.`;
+- No medical advice.
+
+STYLE — RECORDED FACT ONLY (carve-out for this task):
+You MAY name the style the member has on her head, or the one she recorded doing, as a plain statement of fact — what she did, what is there now. That is the ONLY thing the style earns. The teaching itself stays general: no style-specific technique, no style-specific verdict, no cadence attached to a style. Everything below applies to the guidance you generate.
+
+${STYLE_WEIGHTING_RULES}`;
 }
 
 
@@ -294,7 +300,12 @@ Given a single wash day log + the user's profile, return TWO fields via the tool
    - If suggesting heat, ONLY write [TT Heat Hat](https://www.teamtexture.co.uk) — never generic "heat hat", "heat cap", plastic caps, shower caps, warm towels, steamers, or the raw website as visible text.
    - ABSOLUTE: NEVER suggest a protein/keratin/bond-repair/"strengthening" treatment on any cadence. ABSOLUTE: NEVER suggest scheduled pre-poo.
 - Direct, professional, no hedging. Plain English. No medical advice.
-- Return JSON only via the provided tool.`;
+- Return JSON only via the provided tool.
+
+STYLE — RECORDED FACT ONLY (carve-out for this task):
+You MAY name the style the member has on her head, or the one she recorded doing, as a plain statement of fact — what she did, what is there now. That is the ONLY thing the style earns. The teaching itself stays general: no style-specific technique, no style-specific verdict, no cadence attached to a style. Everything below applies to the guidance you generate.
+
+${STYLE_WEIGHTING_RULES}`;
 
   const aiResp = await fetch(
     "https://ai.gateway.lovable.dev/v1/chat/completions",
