@@ -27,6 +27,8 @@ import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
+import { readBloodData, resolveStatus } from "@/lib/bloodRead";
+
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
