@@ -195,7 +195,7 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (3-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 pairing, timing or interaction notes — never "eat less of this"), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
+  return `You're writing a deeply personalised hair-nutrition plan for THIS user. Three parts: "supplements" (4-8 supplements they should consider), "diet" (6-10 foods to eat), "avoid" (4-6 pairing, timing or interaction notes — never "eat less of this"), plus a short "summary". Return JSON only via the return_nutrition_plan tool.
 
 CRITICAL LANGUAGE RULE — PLAIN ENGLISH FOR AMATEURS.
 Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No jargon dumps.
@@ -558,7 +558,7 @@ Deno.serve(async (req: Request) => {
     // Build a signature from the inputs that should invalidate cache.
     // Provider is included so flipping the flag forces a regen.
     const sigSource = JSON.stringify({
-      schema_version: "v6-manuscript-2026-08-09",
+      schema_version: "v7-full-detail-2026-08-15",
       model_version: MODEL_VERSION,
       provider,
       diet: diet ?? null,
