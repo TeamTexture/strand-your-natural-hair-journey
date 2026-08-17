@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const key = await loadMasterKey(sodium);
 
     // RLS scopes each query to the caller's own rows.
-    const [hairRes, healthRes, proRes, medsRes, bloodRes] = await Promise.all([
+    const [hairRes, healthRes, proRes, medsRes, bloodRes, sensRes] = await Promise.all([
       supabase
         .from("user_hair_profile")
         .select("scalp_condition_enc, diagnosed_conditions_enc")
@@ -145,6 +145,10 @@ Deno.serve(async (req) => {
       supabase
         .from("blood_results")
         .select("id, value_enc, unit_enc")
+        .eq("user_id", userId),
+      supabase
+        .from("user_sensitivities")
+        .select("applies_to, entries_enc")
         .eq("user_id", userId),
     ]);
 
@@ -207,12 +211,32 @@ Deno.serve(async (req) => {
       unit: decryptToString(sodium, key, row.unit_enc),
     }));
 
+    // Sensitivities: one row per scope, each holding a JSON array of
+    // { code, label, severity, custom }. Never matched in SQL — decrypted here
+    // and compared in memory by the caller.
+    const sensitivities: {
+      topical: unknown[];
+      dietary: unknown[];
+    } = { topical: [], dietary: [] };
+    for (const row of sensRes.data ?? []) {
+      const scope = row.applies_to === "dietary" ? "dietary" : "topical";
+      const text = decryptToString(sodium, key, row.entries_enc);
+      if (!text) continue;
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) sensitivities[scope] = parsed;
+      } catch {
+        throw new Error("sensitivity payload was not valid JSON");
+      }
+    }
+
     return json(200, {
       hair,
       health,
       professional,
       medications,
       bloodResults,
+      sensitivities,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "decrypt failed";

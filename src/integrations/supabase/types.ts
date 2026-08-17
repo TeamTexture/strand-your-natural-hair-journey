@@ -4182,6 +4182,7 @@ export type Database = {
           country: string
           created_at: string
           deletion_requested_at: string | null
+          dietary_sensitivities_confirmed_at: string | null
           display_name: string | null
           goals_prompt_seen_at: string | null
           hair_length_prompt_seen_at: string | null
@@ -4199,6 +4200,7 @@ export type Database = {
           terms_version: string | null
           tips_level: number
           tips_level_prompted_at: string | null
+          topical_sensitivities_confirmed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -4213,6 +4215,7 @@ export type Database = {
           country?: string
           created_at?: string
           deletion_requested_at?: string | null
+          dietary_sensitivities_confirmed_at?: string | null
           display_name?: string | null
           goals_prompt_seen_at?: string | null
           hair_length_prompt_seen_at?: string | null
@@ -4230,6 +4233,7 @@ export type Database = {
           terms_version?: string | null
           tips_level?: number
           tips_level_prompted_at?: string | null
+          topical_sensitivities_confirmed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -4244,6 +4248,7 @@ export type Database = {
           country?: string
           created_at?: string
           deletion_requested_at?: string | null
+          dietary_sensitivities_confirmed_at?: string | null
           display_name?: string | null
           goals_prompt_seen_at?: string | null
           hair_length_prompt_seen_at?: string | null
@@ -4261,6 +4266,7 @@ export type Database = {
           terms_version?: string | null
           tips_level?: number
           tips_level_prompted_at?: string | null
+          topical_sensitivities_confirmed_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -5953,6 +5959,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sensitivities: {
+        Row: {
+          applies_to: Database["public"]["Enums"]["sensitivity_scope"]
+          created_at: string
+          entries_enc: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applies_to: Database["public"]["Enums"]["sensitivity_scope"]
+          created_at?: string
+          entries_enc?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applies_to?: Database["public"]["Enums"]["sensitivity_scope"]
+          created_at?: string
+          entries_enc?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           id: string
@@ -7129,6 +7162,7 @@ export type Database = {
         | "clarifying"
         | "density_growth"
         | "scalp_health"
+      sensitivity_scope: "topical" | "dietary"
       treatment_assigner_type: "professional" | "admin"
       treatment_assignment_status:
         | "pending"
@@ -7314,6 +7348,7 @@ export const Constants = {
         "density_growth",
         "scalp_health",
       ],
+      sensitivity_scope: ["topical", "dietary"],
       treatment_assigner_type: ["professional", "admin"],
       treatment_assignment_status: [
         "pending",

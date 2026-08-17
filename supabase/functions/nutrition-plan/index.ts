@@ -64,6 +64,11 @@ const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
 import { dietConstraintBlock } from "../_shared/diet.ts";
 import {
+  loadSensitivities,
+  sensitivityConstraintBlock,
+  validateAgainstAvoid,
+} from "../_shared/sensitivities.ts";
+import {
   buildGroundingBlock,
   ragQueryFromAiContext,
   selectorFromAiContext,
@@ -258,8 +263,10 @@ OUTPUT RULES
 async function runClaude(args: {
   body: RequestBody;
   recentWashSignals: unknown[];
+  sensitivityBlock?: string;
+  retryNote?: string;
 }): Promise<NutritionPlanPayload> {
-  const userText = `${dietConstraintBlock(args.body.diet, args.body.dietOther)}
+  const userText = `${dietConstraintBlock(args.body.diet, args.body.dietOther)}${args.sensitivityBlock ?? ""}${args.retryNote ?? ""}
 
 User-supplied profile:
 ${JSON.stringify({
@@ -381,7 +388,11 @@ Return JSON only via the return_nutrition_plan tool.`;
 }
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
-async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
+async function runLovable(
+  body: RequestBody,
+  sensitivityBlock = "",
+  retryNote = "",
+): Promise<NutritionPlanPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -420,7 +431,7 @@ async function runLovable(body: RequestBody): Promise<NutritionPlanPayload> {
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list (no dosing figures), the full list of meal ideas, the full list of pairing and timing notes, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
+            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}${retryNote}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list (no dosing figures), the full list of meal ideas, the full list of pairing and timing notes, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [
@@ -546,6 +557,11 @@ Deno.serve(async (req: Request) => {
     const body = (await req.json().catch(() => ({}))) as RequestBody;
     const { force, context, diet, dietOther, alcohol, flaggedMarkers } = body;
 
+    // Allergies and intolerances are a hard pre-generation filter. Decrypted
+    // in memory here — never matched in SQL.
+    const sens = await loadSensitivities(supabase, user.id, "dietary");
+    const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
+
     const provider = readAiProvider("STRAND_AI_PROVIDER_NUTRITION");
     console.log("[nutrition-debug] start", {
       user_id: user.id,
@@ -565,6 +581,10 @@ Deno.serve(async (req: Request) => {
       dietOther: dietOther ?? null,
       alcohol: alcohol ?? null,
       flaggedMarkers: (flaggedMarkers ?? []).slice().sort(),
+      sensitivities: sens.all
+        .map((e) => `${e.label}:${e.severity}`)
+        .slice()
+        .sort(),
       blood: ((context as { bloodResults?: unknown[] })?.bloodResults ?? []),
       hair: (context as { hairProfile?: unknown })?.hairProfile ?? null,
       health: (context as { healthProfile?: unknown })?.healthProfile ?? null,
@@ -621,11 +641,45 @@ Deno.serve(async (req: Request) => {
         })
         .slice(0, 5);
 
-      payload = await runClaude({ body, recentWashSignals: recentSignals });
+      payload = await runClaude({ body, recentWashSignals: recentSignals, sensitivityBlock });
       providerStamp = "claude";
     } else {
-      payload = await runLovable(body);
+      payload = await runLovable(body, sensitivityBlock);
       providerStamp = "lovable";
+    }
+
+    // Deterministic post-generation check. The prompt is a filter, not a
+    // guarantee — so every string is scanned against the member's hard
+    // exclusions and their aliases. One retry, then drop the offending items.
+    const collect = (p: NutritionPlanPayload): string[] => [
+      p.summary,
+      ...p.supplements.flatMap((x) => Object.values(x ?? {}).map(String)),
+      ...p.diet.flatMap((x) => Object.values(x ?? {}).map(String)),
+      ...p.avoid.flatMap((x) => Object.values(x ?? {}).map(String)),
+    ];
+    let hits = validateAgainstAvoid(collect(payload), sens, "dietary");
+    if (hits.length > 0) {
+      const retryNote = `\n\nRETRY — your previous answer broke a hard exclusion. It referenced: ${
+        hits.map((h) => `${h.label} (as "${h.term}")`).join("; ")
+      }. Rebuild the plan without these in any form, keeping the same number of items by substituting permitted foods that do the same job.`;
+      console.log("[nutrition-debug] sensitivity retry", { hits: hits.length });
+      payload = provider === "claude"
+        ? await runClaude({ body, recentWashSignals: [], sensitivityBlock, retryNote })
+        : await runLovable(body, sensitivityBlock, retryNote);
+      hits = validateAgainstAvoid(collect(payload), sens, "dietary");
+      if (hits.length > 0) {
+        const bad = (x: unknown) =>
+          validateAgainstAvoid(Object.values(x ?? {}).map(String), sens, "dietary").length > 0;
+        payload = {
+          summary: validateAgainstAvoid([payload.summary], sens, "dietary").length > 0
+            ? ""
+            : payload.summary,
+          supplements: payload.supplements.filter((x) => !bad(x)),
+          diet: payload.diet.filter((x) => !bad(x)),
+          avoid: payload.avoid.filter((x) => !bad(x)),
+        };
+        console.log("[nutrition-debug] sensitivity items dropped");
+      }
     }
 
     // Defence in depth: never write an empty plan to the cache. runClaude

@@ -39,6 +39,7 @@ import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
+import SensitivityWarning from "@/components/sensitivity/SensitivityWarning";
 import { IngredientProductScope, GlossaryLabel } from "@/components/ingredients/IngredientToken";
 import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
@@ -366,6 +367,7 @@ const ProductProfile = () => {
     <ScreenLayout bottomNav={false}>
       <TitleBar title={titleCategory || "Product"} back tips />
       <div className="px-5 pb-8 space-y-4">
+        <SensitivityWarning ingredients={product.ingredients} />
         <ProductThumb
           imageUrl={product.image_url}
           storagePath={product.storage_path}

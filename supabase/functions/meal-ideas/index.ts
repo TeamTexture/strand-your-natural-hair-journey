@@ -29,6 +29,11 @@ interface RequestBody {
 
 import { dietConstraintBlock } from "../_shared/diet.ts";
 import {
+  loadSensitivities,
+  sensitivityConstraintBlock,
+  validateAgainstAvoid,
+} from "../_shared/sensitivities.ts";
+import {
   buildGroundingBlock,
   ragQueryFromAiContext,
   selectorFromAiContext,
@@ -90,7 +95,12 @@ Deno.serve(async (req) => {
 
     const body: RequestBody = await req.json().catch(() => ({}));
 
-    const userPayload = `${dietConstraintBlock(body.diet, body.dietOther)}
+    // Allergies and intolerances: hard pre-generation filter, decrypted in
+    // memory. Post-generation every meal is scanned again below.
+    const sens = await loadSensitivities(auth.supabase, auth.user.id, "dietary");
+    const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
+
+    const userPayload = `${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}
 
 USER CONTEXT (full profile — bloods, hair, health, goals, style, professional, location, history):
 ${JSON.stringify(body.context ?? {}, null, 2)}
@@ -249,6 +259,29 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
         m.summary = targets.length
           ? `Chosen for ${targets.join(", ").toLowerCase()}.`
           : "Built around everyday ingredients that suit your recorded profile.";
+      }
+    }
+
+    // Deterministic post-generation enforcement. Any meal that mentions a hard
+    // exclusion — under any alias — is dropped rather than shown. The prompt is
+    // a filter, not a guarantee.
+    if (sens.avoid.length > 0 && Array.isArray(sanitised?.meals)) {
+      const before = sanitised.meals.length;
+      sanitised.meals = (sanitised.meals as Record<string, unknown>[]).filter((m) => {
+        const strings = [
+          String(m.name ?? ""),
+          String(m.summary ?? ""),
+          ...(Array.isArray(m.ingredients) ? m.ingredients.map(String) : []),
+          ...(Array.isArray(m.steps) ? m.steps.map(String) : []),
+          ...(Array.isArray(m.targets) ? m.targets.map(String) : []),
+        ];
+        return validateAgainstAvoid(strings, sens, "dietary").length === 0;
+      });
+      if (sanitised.meals.length !== before) {
+        console.log("[meal-ideas] dropped meals on sensitivity scan", {
+          before,
+          after: sanitised.meals.length,
+        });
       }
     }
 

@@ -43,11 +43,17 @@ import BrandLink from "@/components/BrandLink";
 import BrandBanner from "@/components/BrandBanner";
 import LevelGate from "@/components/tips/LevelGate";
 import SectionHeader from "@/components/nav/SectionHeader";
+import SensitivityCaptureCard from "@/components/sensitivity/SensitivityCaptureCard";
+import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
+import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
+import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
 
 
 const Products = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [sensitivitySheet, setSensitivitySheet] = useState(false);
+  const { open: sensitivityAsk, close: dismissSensitivityAsk } = useSensitivityCapture("topical");
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
@@ -144,7 +150,27 @@ const Products = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="My Products" back={false} tips />
 
-      <div className="px-5 pb-2"><BrandBanner slot="products" /></div>
+      <div className="px-5 pb-2 space-y-2">
+        {sensitivityAsk && (
+          <SensitivityCaptureCard
+            scope="topical"
+            onOpen={() => {
+              dismissSensitivityAsk();
+              setSensitivitySheet(true);
+            }}
+            onLater={() => dismissSensitivityAsk()}
+          />
+        )}
+        <AvoidingSummary scope="topical" onEdit={() => setSensitivitySheet(true)} />
+        <BrandBanner slot="products" />
+      </div>
+      <SensitivitySheet
+        scope="topical"
+        open={sensitivitySheet}
+        onOpenChange={setSensitivitySheet}
+      />
+
+
 
 
       <div className="px-5 flex items-center justify-between gap-2 pb-2">
