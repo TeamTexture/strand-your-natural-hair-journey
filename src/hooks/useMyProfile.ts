@@ -21,10 +21,12 @@ export interface MyProfileRow {
   goals_prompt_seen_at: string | null;
   hair_length_prompt_seen_at: string | null;
   pro_tour_seen_at: string | null;
+  topical_sensitivities_confirmed_at: string | null;
+  dietary_sensitivities_confirmed_at: string | null;
 }
 
 const COLUMNS =
-  "id, user_id, display_name, avatar_url, postcode, tips_level, tips_level_prompted_at, access_restricted, complimentary_access, onboarding_completed_at, profile_confirmed_at, deletion_requested_at, payment_required_at, home_tour_seen_at, goals_prompt_seen_at, hair_length_prompt_seen_at, pro_tour_seen_at";
+  "id, user_id, display_name, avatar_url, postcode, tips_level, tips_level_prompted_at, access_restricted, complimentary_access, onboarding_completed_at, profile_confirmed_at, deletion_requested_at, payment_required_at, home_tour_seen_at, goals_prompt_seen_at, hair_length_prompt_seen_at, pro_tour_seen_at, topical_sensitivities_confirmed_at, dietary_sensitivities_confirmed_at";
 
 export const myProfileKey = (userId?: string) => ["my-profile", userId] as const;
 
