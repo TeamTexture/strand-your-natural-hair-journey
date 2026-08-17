@@ -902,8 +902,24 @@ const NutritionPlan = () => {
           </div>
         </div>
 
-
-        
+        <div className="mb-4 space-y-2">
+          {sensitivityAsk && (
+            <SensitivityCaptureCard
+              scope="dietary"
+              onOpen={() => {
+                dismissSensitivityAsk();
+                setSensitivitySheet(true);
+              }}
+              onLater={() => dismissSensitivityAsk()}
+            />
+          )}
+          <AvoidingSummary scope="dietary" onEdit={() => setSensitivitySheet(true)} />
+        </div>
+        <SensitivitySheet
+          scope="dietary"
+          open={sensitivitySheet}
+          onOpenChange={setSensitivitySheet}
+        />
 
         {plan?.summary && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
