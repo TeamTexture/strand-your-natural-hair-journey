@@ -43,11 +43,17 @@ import BrandLink from "@/components/BrandLink";
 import BrandBanner from "@/components/BrandBanner";
 import LevelGate from "@/components/tips/LevelGate";
 import SectionHeader from "@/components/nav/SectionHeader";
+import SensitivityCaptureCard from "@/components/sensitivity/SensitivityCaptureCard";
+import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
+import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
+import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
 
 
 const Products = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [sensitivitySheet, setSensitivitySheet] = useState(false);
+  const { open: sensitivityAsk, close: dismissSensitivityAsk } = useSensitivityCapture("topical");
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
   const [scanSheetOpen, setScanSheetOpen] = useState(false);
