@@ -30,6 +30,10 @@ import type { TipsLevel } from "@/lib/tipsLevel";
 import { smartBack } from "@/lib/smartBack";
 import { canonDiet, suppressesAnimalFoods, type DietaryPattern } from "@/lib/dietaryPattern";
 import AiProgressBar from "@/components/AiProgressBar";
+import SensitivityCaptureCard from "@/components/sensitivity/SensitivityCaptureCard";
+import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
+import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
+import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
 
 
 type Diet = DietaryPattern;
@@ -517,6 +521,8 @@ const NutritionPlan = () => {
   const { level } = useNutritionLevel();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [sensitivitySheet, setSensitivitySheet] = useState(false);
+  const { open: sensitivityAsk, close: dismissSensitivityAsk } = useSensitivityCapture("dietary");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
   /** Real profile-completeness signals, so a request failure is never
