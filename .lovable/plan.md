@@ -1,72 +1,103 @@
-# Style weighting and the daily cache-miss bug — verification and remaining work
+# Allergy & sensitivity capture (topical + dietary)
 
-I read every file named in the brief before writing this. Sections A, B, C, D and E are already implemented in the codebase and the six affected functions are deployed. Below is what is on disk today, section by section, followed by the only work I would still do and the risks.
+One record per member, two surfaces (Products, Nutrition), encrypted at rest, enforced deterministically before display.
 
-## A. Shared module — DONE
+## 1. Data model
 
-`supabase/functions/_shared/style-weighting.ts` exists and exports `STYLE_WEIGHTING_RULES`. It encodes:
-
-- the manuscript-supplies-teaching / style-supplies-quantity principle
-- the strip-the-style test with the exact VALID and both INVALID examples from the brief
-- style referenced at most once per output, never as the opener of `ai_summary`
-- express style as duration / scalp access / coverage rather than a style name
-- preference-based style advice banned ("perfect for your twists" etc.)
-- per-style application technique banned; no cadence attached to a style
-- `default_style` and `planned_next_style` allowed as durable planning signals; `current_hairstyle` and `days_in_style` may never move a score or verdict
-- a safety carve-out mirroring `non-prescriptive.ts` (tension/traction, scalp infection signs, known allergens, blood-panel flags stay direct)
-- a length note so the rule does not inflate output
-
-It is appended in the stable tail position alongside the other shared rule blocks in every consuming function (verified: it is the last interpolation in each prompt template it appears in).
-
-## B. Daily cache-miss bug — DONE, and both files are in sync
-
-Both `supabase/functions/_shared/profile-snapshot.ts` and `src/lib/profileSnapshot.ts` now hash only the durable style slice:
+One row per member per surface — `applies_to` distinguishes them, so a soya entry can be created once and mirrored to both by writing two rows (the UI offers "applies to food too / products too" on entries that exist in both vocabularies).
 
 ```text
-currentStyle: { default_style, planned_next_style }   // or null
+public.user_sensitivities
+  id                uuid pk default gen_random_uuid()
+  user_id           uuid not null            -- no FK to auth.users
+  applies_to        sensitivity_scope        -- enum: topical | dietary
+  entries_enc       bytea                    -- encrypted JSON array (see below)
+  created_at        timestamptz default now()
+  updated_at        timestamptz default now()
+  unique (user_id, applies_to)
 ```
 
-`current_hairstyle`, `days_in_style`, `style_set_on` and `planned_change_date` are all excluded, with an explanatory comment in both files.
+`entries_enc` decrypts to:
+```json
+[{ "code": "milk", "label": "Milk / dairy", "severity": "avoid", "custom": false }]
+```
+`severity` is exactly `avoid` | `limit` | `dislike`. Only `avoid` is a hard exclusion. `custom: true` rows carry free text with `code: null`.
 
-Sync confirmation: I diffed the two `currentProfileHash` bodies. They are identical in field selection, field order, null handling, the inlined `goalChallenges` fallback, `canonicalStringify`, `djb2Hex` and the `:tl{n}` suffix. The only differences are comments and the client-only `SnapshotInput` interface, neither of which affects the hashed string — so both produce byte-identical hashes for the same context.
+Confirmation timestamps live on `profiles` (same place as the other per-member state):
+```text
+profiles.topical_sensitivities_confirmed_at  timestamptz null
+profiles.dietary_sensitivities_confirmed_at  timestamptz null
+```
+Null = never asked (the only state that triggers a prompt). Set + zero entries = explicitly "I have none". No backfill — existing members are deliberately left null so they get asked once.
 
-Nothing was removed from the AI context: `days_in_style` still reaches every function live in `context`.
+Grants + RLS (migration order: create table → grants → enable RLS → policies):
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_sensitivities TO authenticated;
+GRANT ALL ON public.user_sensitivities TO service_role;
+-- no anon grant
+```
+Policies, all `to authenticated`, all four verbs, `using (auth.uid() = user_id)` / `with check (auth.uid() = user_id)`. No professional, brand, or admin read path — this is not passport data and is not shared. `updated_at` maintained by the existing trigger helper.
 
-## C. product-analyse prompts — DONE
+## 2. Alias matching against encrypted values — the answer you asked for
 
-Both paths carry the change:
+Encrypted columns cannot be matched in SQL, and I will not weaken that by storing allergen codes in plaintext.
 
-- Claude `buildTaskInstructions()` — `ai_summary` opener signals no longer list `current_hairstyle`; `match_score` reads category fit, `default_style`, relevant blood markers and goal alignment with the explicit line "current_hairstyle and days_in_style must never move the score"; `use_cases` anchors on durable traits; `STYLE_WEIGHTING_RULES` appended at the tail.
-- Gemini `buildLovableSystem()` — same four changes. The "4 weeks into your knotless braids" worked anti-pattern is gone; no occurrence of `knotless`, `4 weeks` or `passion twist` remains in any of the four analysis functions.
+- **All matching happens server-side inside edge functions, after decryption in memory.** `nutrition-plan`, `meal-ideas`, `ingredient-analysis`, `ingredient-profile`, `ingredient-explainer`, `product-analyse`, `product-analyse-url` already run authenticated with access to `STRAND_CLINICAL_MASTER_KEY`. They fetch the member's row, decrypt with the same libsodium `nonce||ciphertext` helper used by `data-decrypt-context`, then run the alias map over plaintext in memory. Nothing is written back in the clear and nothing is logged.
+- **Alias map is code, not data**: a new `supabase/functions/_shared/allergen-aliases.ts` (whey/casein/ghee → milk, tahini → sesame, semolina/durum/spelt → gluten, edamame/tofu/tempeh → soya, marzipan → tree nuts, and so on) plus a topical alias set that reuses the INCI vocabulary. Because the map is code, it can be extended without touching stored data or re-encrypting anything.
+- **Client-side display** (the "avoiding" summary chips) gets plaintext by extending the existing `data-decrypt-context` function with a `sensitivities` slice — the same route `aiContext` already uses. No new decrypt surface.
+- **Consequence accepted**: we can never query "all members allergic to soya" in SQL. That query is not a product requirement; if analytics ever needs it, it runs through a service-role function, not a plaintext column.
+- Write path uses the existing `data-encrypt-batch` function and its `pg_hex` return value (never a raw `Uint8Array` — that corrupted rows before).
 
-The old self-contradiction (PERSONALISATION PRIORITY excluding style while field rules promoted it) is resolved.
+## 3. Vocabularies
 
-## D. What I found in the other three functions
+- **Dietary**: the 14 UK regulated allergens (cereals containing gluten, crustaceans, eggs, fish, peanuts, soya, milk, tree nuts, celery, mustard, sesame, sulphites, lupin, molluscs) + free text.
+- **Topical**: reused from the existing avoid logic rather than invented — `supabase/functions/_shared/ingredient-copy.ts` and the `ingredient-analysis` / `ingredient-explainer` flag rules already name the irritant set (sulphates/SLS, drying alcohols, fragrance/parfum, methylisothiazolinone and related preservatives, parabens, colourants, silicones, protein, essential oils, lanolin, coconut). I will lift that list verbatim into a shared `src/lib/sensitivityVocab.ts` + its function-side twin, so the chips and the analysis speak the same language. No new terms.
 
-- `product-analyse-url` — two prompt paths (Claude task instructions and the Gemini system). Both had style in the `match_score` factors and the opener signals; both now name `default_style` only and carry the explicit never-move line plus `STYLE_WEIGHTING_RULES`.
-- `tool-analyse-url` — two prompt blocks, both carry `STYLE_WEIGHTING_RULES`; style removed from openers and fit reasoning.
-- `ingredient-analysis` — one prompt block carrying `STYLE_WEIGHTING_RULES`. It never scored on style; `currentStyle` here is only a context field passed through, which is correct and stays.
+## 4. Trigger placement — cannot double-fire, cannot block
 
-The only remaining `current_hairstyle` / `days_in_style` strings anywhere in the four functions are the four prohibition lines themselves.
+New hook `src/hooks/useSensitivityCapture.ts` (deliberately NOT `useFirstRunNudge` — health/safety input, exempt from the 14-day suppression rule):
 
-## E. Narrowed carve-out — DONE
+- Fires only when: session ready, onboarding complete, consumer access granted, and the relevant `*_confirmed_at` is null.
+- Reads the profile flag from a single React Query key (`["sensitivity-confirm", userId]`) so both surfaces share one cached read.
+- Renders as a **non-modal inline card** at the top of the page (Products, Nutrition) plus a sheet for the full chip picker — the page renders and is usable underneath; nothing is behind a blocking gate.
+- Anti-double-fire: an in-module `Set` of `${userId}:${surface}` marks a surface as asked for the session, the timestamp is written **on first display**, and the query key is invalidated on write. Products and Nutrition are separate routes so they cannot render simultaneously.
+- Dismissing without answering leaves the timestamp set (asked once, never nagged) but leaves entries empty — the persistent "avoiding" summary then shows a "not set" state, tappable at any time. "I have none" is an explicit button that writes the timestamp with zero entries.
 
-`wash-day-observation` and `heat-treatment-rationale` each carry a "STYLE — RECORDED FACT ONLY (carve-out for this task)" block in both of their prompt paths: the style may be named as what she did or what is on her head, never as the mechanism and never as style-specific teaching. Both still import `STYLE_WEIGHTING_RULES` so the general ban on invented style teaching holds.
+## 5. Enforcement
 
-## Remaining work I would do
+**Nutrition (`nutrition-plan`, `meal-ideas`)**
+1. Pre-generation: hard-`avoid` codes are injected as explicit exclusions in the prompt, alongside the existing diet-pattern mapping (substitute, never subtract).
+2. Post-generation, before display: deterministic scan of every returned ingredient/meal/supplement string against codes + aliases. On a hit, regenerate once with the violating items named; a second hit drops the offending items and surfaces an honest partial state. Never rendered then corrected.
+3. `limit` and `dislike` are prompt-level preferences only — never hard filters.
 
-1. Nothing in A–E. Re-shipping identical text would only churn the prompt cache.
-2. One optional hygiene step: a read-only audit of `ai_summaries` payloads to count rows whose `_profile_snapshot_hash` is 8-hex + `:tl{n}` but predates the narrowing, so we can see how many will regenerate lazily. Read-only — no backfill, no deletes.
+**Products / ingredients**
+- A topical `avoid` match raises a visible warning chip/banner on the product card, the scan result and the ingredient detail — an explicit named warning, not a silent score deduction. The existing "bad" flag rules already accept "documented allergy/sensitivity" as a valid trigger, so this feeds that branch instead of a parallel one.
+- Wishlist items use the same match so a warning shows before purchase.
 
-## Risks
+## 6. Safety copy and nutrient gaps
 
-- Stale or orphaned cached rows: rows written before the narrowing hold the old hash, so their first read after the change is one cache miss and one regeneration, then they settle on the new hash. No row is orphaned — the hash is a payload field compared on read, never a foreign key, and a mismatch simply triggers a fresh analysis. `user_products.analysis_profile_snapshot_hash` behaves the same way on the client path.
-- Match-score drift: scores that previously leaned on the current style will move once for each product on its next regeneration. This is the intended correction, but a member may notice a number changing.
-- Perceived under-personalisation: guidance no longer opens with the current style, so it can read as less tailored even though it is better grounded. The durable-characteristic opener is what mitigates this.
+- A one-line visible caution at the point of generation (nutrition plan header and meal ideas), and on topical warnings — "check packaging and cross-contamination", not buried in Legal. Placement only; wording will come from you.
+- Nutrient-gap copy slot: a dedicated block in the Nutrition page's existing `CardSections` renderer, directly under the "avoiding" summary, keyed by excluded group (fish → omega-3, dairy → calcium, etc.). I will build the slot and the trigger logic and leave the educational copy as a supplied-content map — **no nutritional or hair guidance copy written by me**.
 
-## Performance
+## 7. Files touched
 
-- B restores cache hits and is the material speed-up; the daily invalidation is gone.
-- A and C are substitutions, so input tokens are roughly flat; shared blocks sit in the stable tail position, preserving `cache_read_input_tokens` hit rates.
-- Output is slightly shorter (fewer style-anchored sentences).
-- One expected one-off cost: the first read of every previously cached analysis regenerates. After that, steady-state latency and token use are lower than before.
+New
+- `supabase/migrations/<ts>_user_sensitivities.sql`
+- `supabase/functions/_shared/allergen-aliases.ts`
+- `src/lib/sensitivityVocab.ts`
+- `src/hooks/useSensitivities.ts` (read/write via encrypt/decrypt functions)
+- `src/hooks/useSensitivityCapture.ts` (trigger gate)
+- `src/components/sensitivity/SensitivityCaptureCard.tsx` + `SensitivitySheet.tsx` (chips, severity, free text, "I have none") — styled on `TipsLevelPrompt` / `GoalsChallengesPrompt`
+- `src/components/sensitivity/AvoidingSummary.tsx` (persistent, tappable)
+
+Modified
+- `src/pages/Products.tsx` — capture card + `AvoidingSummary` (topical)
+- `src/pages/NutritionPlan.tsx` — capture card + `AvoidingSummary` (dietary), gap slot, safety line
+- `src/pages/Profile.tsx` — both editors reachable
+- `src/lib/aiContext.ts` — carry both sets in context
+- `supabase/functions/data-decrypt-context/index.ts` — add `sensitivities` slice
+- `supabase/functions/nutrition-plan/index.ts`, `meal-ideas/index.ts` — pre-filter + post-validate + regenerate-once
+- `supabase/functions/ingredient-analysis/index.ts`, `ingredient-explainer/index.ts`, `ingredient-profile/index.ts`, `product-analyse/index.ts`, `product-analyse-url/index.ts` — topical match feeds the existing flag branch
+- `src/components/ProductThumb.tsx` / `product/ShelfProductCard.tsx` / ingredient detail — warning surface
+
+All touched edge functions deployed and boot-verified in the same task, with a per-function deploy status list in the report.
