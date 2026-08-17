@@ -155,10 +155,10 @@ const Products = () => {
           <SensitivityCaptureCard
             scope="topical"
             onOpen={() => {
-              setSensitivityAsk(false);
+              dismissSensitivityAsk();
               setSensitivitySheet(true);
             }}
-            onLater={() => setSensitivityAsk(false)}
+            onLater={() => dismissSensitivityAsk()}
           />
         )}
         <AvoidingSummary scope="topical" onEdit={() => setSensitivitySheet(true)} />
