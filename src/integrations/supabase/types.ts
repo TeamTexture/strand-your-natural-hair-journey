@@ -4183,13 +4183,17 @@ export type Database = {
           created_at: string
           deletion_requested_at: string | null
           display_name: string | null
+          goals_prompt_seen_at: string | null
+          hair_length_prompt_seen_at: string | null
           heritage: string[]
+          home_tour_seen_at: string | null
           id: string
           onboarding_completed_at: string | null
           payment_required_at: string | null
           personalised_offers_consent: boolean
           phone_number: string | null
           postcode: string | null
+          pro_tour_seen_at: string | null
           profile_confirmed_at: string | null
           terms_accepted_at: string | null
           terms_version: string | null
@@ -4210,13 +4214,17 @@ export type Database = {
           created_at?: string
           deletion_requested_at?: string | null
           display_name?: string | null
+          goals_prompt_seen_at?: string | null
+          hair_length_prompt_seen_at?: string | null
           heritage?: string[]
+          home_tour_seen_at?: string | null
           id?: string
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
+          pro_tour_seen_at?: string | null
           profile_confirmed_at?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
@@ -4237,13 +4245,17 @@ export type Database = {
           created_at?: string
           deletion_requested_at?: string | null
           display_name?: string | null
+          goals_prompt_seen_at?: string | null
+          hair_length_prompt_seen_at?: string | null
           heritage?: string[]
+          home_tour_seen_at?: string | null
           id?: string
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
           phone_number?: string | null
           postcode?: string | null
+          pro_tour_seen_at?: string | null
           profile_confirmed_at?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
