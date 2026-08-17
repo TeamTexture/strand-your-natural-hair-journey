@@ -144,7 +144,27 @@ const Products = () => {
     <ScreenLayout bottomNav>
       <TitleBar title="My Products" back={false} tips />
 
-      <div className="px-5 pb-2"><BrandBanner slot="products" /></div>
+      <div className="px-5 pb-2 space-y-2">
+        {sensitivityAsk && (
+          <SensitivityCaptureCard
+            scope="topical"
+            onOpen={() => {
+              setSensitivityAsk(false);
+              setSensitivitySheet(true);
+            }}
+            onLater={() => setSensitivityAsk(false)}
+          />
+        )}
+        <AvoidingSummary scope="topical" onEdit={() => setSensitivitySheet(true)} />
+        <BrandBanner slot="products" />
+      </div>
+      <SensitivitySheet
+        scope="topical"
+        open={sensitivitySheet}
+        onOpenChange={setSensitivitySheet}
+      />
+
+
 
 
       <div className="px-5 flex items-center justify-between gap-2 pb-2">
