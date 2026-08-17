@@ -34,6 +34,7 @@ import SensitivityCaptureCard from "@/components/sensitivity/SensitivityCaptureC
 import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
 import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
 import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
+import NutrientGapNote from "@/components/sensitivity/NutrientGapNote";
 
 
 type Diet = DietaryPattern;
@@ -920,6 +921,7 @@ const NutritionPlan = () => {
             />
           )}
           <AvoidingSummary scope="dietary" onEdit={() => setSensitivitySheet(true)} />
+          <NutrientGapNote />
         </div>
         <SensitivitySheet
           scope="dietary"
