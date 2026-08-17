@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles, Minus } from "lucide-react";
+import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 
 const TOUR_KEY = "strand_pro_tour_seen_v1";
 const PENDING_KEY = "strand_pro_tour_pending";
@@ -118,20 +119,29 @@ const ProTour = () => {
 
   // Auto-start when checkout flagged the tour as pending, and resume it
   // across the profile → dashboard navigation.
+  const { eligible: tourEligible, markSeen: markTourSeen } = useFirstRunNudge("pro_tour_seen_at");
+
   useEffect(() => {
+    if (!tourEligible) return;
+    let pending = false;
+    let saved = 0;
     try {
-      const seen = localStorage.getItem(TOUR_KEY);
-      const pending = localStorage.getItem(PENDING_KEY);
-      if (pending && !seen) {
-        const saved = parseInt(sessionStorage.getItem(STEP_KEY) ?? "0", 10);
-        setStep(Number.isFinite(saved) ? saved : 0);
-        const t = setTimeout(() => setActive(true), 400);
-        return () => clearTimeout(t);
-      }
+      pending = !!localStorage.getItem(PENDING_KEY);
+      saved = parseInt(sessionStorage.getItem(STEP_KEY) ?? "0", 10);
     } catch {
       // Ignore storage failures.
     }
-  }, []);
+    if (!pending) return;
+    setStep(Number.isFinite(saved) ? saved : 0);
+    const t = setTimeout(() => {
+      setActive(true);
+      markTourSeen();
+      try {
+        localStorage.setItem(TOUR_KEY, "1");
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [tourEligible, markTourSeen]);
 
   // Manual replay from anywhere on the pro side.
   useEffect(() => {

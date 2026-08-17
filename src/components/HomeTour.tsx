@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { X, Sparkles, Minus } from "lucide-react";
+import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 
 // Bumped key — tour is refreshed once for every user when new steps are added.
 const TOUR_KEY = "strand_home_tour_seen_v3";
@@ -162,19 +163,20 @@ const HomeTour = () => {
   // tour as pending, but members who paid outside that flow (or resumed on a
   // new device) must still get it — the "seen" flag is the only guard, so it
   // never replays for someone who has already been through it.
+  const { eligible: tourEligible, markSeen: markTourSeen } = useFirstRunNudge("home_tour_seen_at");
+
   useEffect(() => {
-    const startFromScratch = () => {
+    if (!tourEligible) return;
+    const t = setTimeout(() => {
       setStep(0);
       setActive(true);
-    };
-    try {
-      const seen = localStorage.getItem(TOUR_KEY);
-      if (!seen) {
-        const t = setTimeout(startFromScratch, 400);
-        return () => clearTimeout(t);
-      }
-    } catch {}
-  }, []);
+      markTourSeen();
+      try {
+        localStorage.setItem(TOUR_KEY, "1");
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [tourEligible, markTourSeen]);
 
 
   // Allow the pinned Home button (or any caller) to replay the tour on demand.

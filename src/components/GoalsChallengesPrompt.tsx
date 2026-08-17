@@ -3,6 +3,7 @@ import { Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGoals } from "@/hooks/useGoals";
 import { useChallenges } from "@/hooks/useChallenges";
+import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 
 /**
  * First-login nudge to set goals and challenges — in the member's own words.
@@ -12,8 +13,6 @@ import { useChallenges } from "@/hooks/useChallenges";
  * both are still empty, and never shows again once either is filled.
  */
 const TOUR_KEY = "strand_home_tour_seen_v3";
-const SNOOZE_KEY = "strand_goals_prompt_snoozed_at";
-const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
 
 const GoalsChallengesPrompt = ({
   onAddGoal,
@@ -24,36 +23,32 @@ const GoalsChallengesPrompt = ({
 }) => {
   const { goal, loading: goalsLoading } = useGoals();
   const { challenges, loading: challengesLoading } = useChallenges();
+  const { eligible, markSeen } = useFirstRunNudge("goals_prompt_seen_at");
   const [ready, setReady] = useState(false);
 
   const empty = !goal && challenges.length === 0;
 
   useEffect(() => {
-    if (goalsLoading || challengesLoading || !empty) {
+    if (goalsLoading || challengesLoading || !empty || !eligible) {
       setReady(false);
       return;
     }
     let tourSeen = false;
-    let snoozedAt = 0;
     try {
       tourSeen = !!localStorage.getItem(TOUR_KEY);
-      snoozedAt = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
     } catch {}
     if (!tourSeen) return;
-    if (snoozedAt && Date.now() - snoozedAt < SNOOZE_MS) return;
     // Let the tour's own closing dialog clear first.
-    const t = setTimeout(() => setReady(true), 1200);
+    const t = setTimeout(() => {
+      setReady(true);
+      markSeen();
+    }, 1200);
     return () => clearTimeout(t);
-  }, [goalsLoading, challengesLoading, empty]);
+  }, [goalsLoading, challengesLoading, empty, eligible, markSeen]);
 
   if (!ready || !empty) return null;
 
-  const dismiss = () => {
-    try {
-      localStorage.setItem(SNOOZE_KEY, String(Date.now()));
-    } catch {}
-    setReady(false);
-  };
+  const dismiss = () => setReady(false);
 
   return (
     <div className="fixed inset-x-0 bottom-[76px] z-[70] px-4">
