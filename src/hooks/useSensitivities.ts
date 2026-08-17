@@ -52,7 +52,7 @@ export function useSensitivities() {
     },
   });
 
-  const row = (profile ?? null) as (MyProfileRow & Record<string, string | null>) | null;
+  const row = profile ?? null;
 
   const confirmedAt = useCallback(
     (scope: SensitivityScope): string | null => row?.[CONFIRM_COLUMN[scope]] ?? null,
