@@ -95,7 +95,7 @@ export function useSensitivities() {
         .eq("user_id", user.id);
 
       qc.setQueryData<MyProfileRow | null>(myProfileKey(user.id), (old) =>
-        old ? ({ ...(old as Record<string, unknown>), [column]: now } as MyProfileRow) : old,
+        old ? ({ ...(old as unknown as Record<string, unknown>), [column]: now } as unknown as MyProfileRow) : old,
       );
       qc.setQueryData<SensitivitySlices>(sensitivitiesKey(user.id), (old) => ({
         topical: scope === "topical" ? entries : old?.topical ?? [],
