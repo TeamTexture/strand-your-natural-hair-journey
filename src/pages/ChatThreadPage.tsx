@@ -54,6 +54,8 @@ import {
 import ChatImageBubble from "@/components/chat/ChatImageBubble";
 import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
 import { formatVoiceDuration, useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import ChatUpgradeNotice from "@/components/chat/ChatUpgradeNotice";
+import { isChatLockError, useCanSendChatMessage } from "@/hooks/useCanSendChatMessage";
 
 const dateLabel = (d: Date) => {
   if (isToday(d)) return "Today";
@@ -301,6 +303,10 @@ const ChatThreadPage = () => {
   const bookingUrl = proBooking?.url ? normalizeBookingUrl(proBooking.url) : "";
   const myProName = proBooking?.proName || "Your professional";
   const sendBookingRequest = useSendBookingRequest(threadId);
+  // STRAND+ chat lock: mirrors the RLS rule so the composer greys out instantly.
+  const chatLock = useCanSendChatMessage(t);
+  const [lockedByRls, setLockedByRls] = useState(false);
+  const chatLocked = chatLock.locked || (chatLock.lockRelevant && lockedByRls);
   // Next booked appointment shared by these two people — pinned above the
   // composer so either side can jump to their own dashboard for the detail.
   const { data: threadAppointment } = useThreadAppointment(
@@ -399,7 +405,8 @@ const ChatThreadPage = () => {
     try {
       await send.mutateAsync(body);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send");
+      if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
+      else toast.error(err instanceof Error ? err.message : "Could not send");
       setDraft(body);
     }
   };
@@ -410,9 +417,10 @@ const ChatThreadPage = () => {
     sendVoice
       .mutateAsync(rec)
       .then(() => toast.success("Voice note sent"))
-      .catch((err) =>
-        toast.error(err instanceof Error ? err.message : "Could not send that voice note"),
-      );
+      .catch((err) => {
+        if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
+        else toast.error(err instanceof Error ? err.message : "Could not send that voice note");
+      });
   });
 
   useEffect(() => {
@@ -434,7 +442,8 @@ const ChatThreadPage = () => {
       await sendImage.mutateAsync({ file, caption: draft.trim() || undefined });
       setDraft("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send that photo");
+      if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
+      else toast.error(err instanceof Error ? err.message : "Could not send that photo");
     }
   };
 
@@ -708,6 +717,12 @@ const ChatThreadPage = () => {
         </div>
       )}
 
+      {chatLocked && (
+        <div className="px-3 pt-2">
+          <ChatUpgradeNotice />
+        </div>
+      )}
+
       <div className="px-3 pb-3 pt-2 border-t border-border/60 bg-background flex items-end gap-2">
         <input
           ref={fileInputRef}
@@ -719,7 +734,7 @@ const ChatThreadPage = () => {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isViewingAs || sendImage.isPending || voice.recording}
+          disabled={isViewingAs || chatLocked || sendImage.isPending || voice.recording}
           aria-label="Attach a photo"
           className="shrink-0 size-10 rounded-full border border-border bg-card flex items-center justify-center text-foreground/70 disabled:opacity-50"
         >
@@ -733,7 +748,14 @@ const ChatThreadPage = () => {
           <MentionTextarea
             value={draft}
             onChange={setDraft}
-            placeholder={voice.recording ? "Recording a voice note…" : "Type a message · @ to tag"}
+            disabled={chatLocked}
+            placeholder={
+              chatLocked
+                ? "Upgrade to STRAND+ to keep chatting with your pro"
+                : voice.recording
+                  ? "Recording a voice note…"
+                  : "Type a message · @ to tag"
+            }
             rows={1}
             className="max-h-[120px] text-sm p-2.5 rounded-[14px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60"
           />
@@ -741,7 +763,7 @@ const ChatThreadPage = () => {
         {draft.trim() ? (
           <button
             onClick={submit}
-            disabled={send.isPending || isViewingAs}
+            disabled={send.isPending || isViewingAs || chatLocked}
             aria-label="Send"
             className="shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
           >
@@ -751,7 +773,7 @@ const ChatThreadPage = () => {
           <button
             type="button"
             onClick={voice.recording ? voice.stop : () => void voice.start()}
-            disabled={isViewingAs || sendVoice.isPending}
+            disabled={isViewingAs || chatLocked || sendVoice.isPending}
             aria-label={voice.recording ? "Stop and send voice note" : "Record a voice note"}
             className={`shrink-0 size-10 rounded-full flex items-center justify-center disabled:opacity-50 ${
               voice.recording
