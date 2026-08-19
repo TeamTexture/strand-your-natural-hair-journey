@@ -73,10 +73,10 @@ const AdminBrandOffers = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_profiles!brand_offers_brand_user_id_fkey(brand_name), brand_offer_placements(*), brand_products(id)")
+        .select("*, brand_profiles!brand_offers_brand_user_id_fkey(brand_name), brand_offer_placements(*), brand_offer_products(product_id)")
         .order("submitted_at", { ascending: false, nullsFirst: false });
       if (error) {
-        const alt = await supabase.from("brand_offers").select("*, brand_offer_placements(*), brand_products(id)").order("created_at", { ascending: false });
+        const alt = await supabase.from("brand_offers").select("*, brand_offer_placements(*), brand_offer_products(product_id)").order("created_at", { ascending: false });
         return alt.data ?? [];
       }
       return data;
@@ -370,7 +370,7 @@ const AdminBrandOffers = () => {
           state={o._derived === "approved_unpaid" ? "approved_unpaid" : "upcoming"}
           submitter={submitterOf(o)}
           pricePence={o.total_price_pence}
-          productCount={(o.brand_products ?? []).length}
+          productCount={(o.brand_offer_products ?? []).length}
           hasPendingRevision={pendingRevSet.has(o.id)}
           revisionCount={revisionCounts[o.id]}
           actionLabel="Review"
@@ -500,7 +500,7 @@ const AdminBrandOffers = () => {
                         {(o.brand_offer_placements ?? []).length} days
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-body">
-                        {(o.brand_products ?? []).length} product{(o.brand_products ?? []).length === 1 ? "" : "s"}
+                        {(o.brand_offer_products ?? []).length} product{(o.brand_offer_products ?? []).length === 1 ? "" : "s"}
                       </span>
                     </div>
                     <div className="flex gap-2">
