@@ -1,11 +1,13 @@
 import { smartBack } from "@/lib/smartBack";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import LevelGate from "@/components/tips/LevelGate";
 import ReviewField from "@/components/ReviewField";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { markSectionConfirmed } from "@/lib/profileConfirmation";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +41,8 @@ const HairReview = () => {
   const qc = useQueryClient();
   const [params] = useSearchParams();
   const editKey = params.get("edit");
+  const confirming = params.get("confirm") === "1";
+  const [finishing, setFinishing] = useState(false);
 
   const { data: hair } = useQuery({
     queryKey: ["profile-review", "hair", user?.id ?? "anon"],
@@ -64,9 +68,20 @@ const HairReview = () => {
       .upsert({ user_id: user.id, ...patch }, { onConflict: "user_id" });
     if (error) throw error;
     invalidate();
-    // Saving here counts as the member confirming this section in her own words.
-    void markSectionConfirmed(user.id, "hair");
     toast.success("Saved");
+  };
+
+  const confirmAndContinue = async () => {
+    if (!user) return;
+    setFinishing(true);
+    try {
+      await markSectionConfirmed(user.id, "hair");
+      navigate("/profile/health?confirm=1");
+    } catch {
+      toast.error("Could not save your confirmation. Please try again.");
+    } finally {
+      setFinishing(false);
+    }
   };
 
   const saveEncryptedList = async (
@@ -177,6 +192,11 @@ const HairReview = () => {
             });
           }}
         />
+        {confirming && (
+          <Button variant="gold" size="pill" className="w-full" onClick={confirmAndContinue} disabled={finishing}>
+            {finishing ? "Saving…" : "Confirm hair & continue"}
+          </Button>
+        )}
       </div>
     </ScreenLayout>
   );

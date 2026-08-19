@@ -67,11 +67,12 @@ export async function markSectionConfirmed(
   }
   const allConfirmed = CONFIRM_SECTIONS.every((s) => next.includes(s));
   if (allConfirmed) {
-    await supabase
+    const { error } = await supabase
       .from("profiles")
       .update({ profile_confirmed_at: new Date().toISOString() })
       .eq("user_id", userId)
       .is("profile_confirmed_at", null);
+    if (error) throw error;
     invalidateAiContextCache();
   }
   return { allConfirmed };
