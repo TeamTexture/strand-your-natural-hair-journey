@@ -3064,6 +3064,44 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_cook_logs: {
+        Row: {
+          cooked_at: string
+          created_at: string
+          id: string
+          meal_id: string
+          photo_path: string | null
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          cooked_at?: string
+          created_at?: string
+          id?: string
+          meal_id: string
+          photo_path?: string | null
+          rating: number
+          user_id: string
+        }
+        Update: {
+          cooked_at?: string
+          created_at?: string
+          id?: string
+          meal_id?: string
+          photo_path?: string | null
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_cook_logs_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "user_saved_meals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moodboard_images: {
         Row: {
           board_id: string
@@ -6078,6 +6116,39 @@ export type Database = {
           planned_style_tension?: string | null
           style_set_at?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_supplements: {
+        Row: {
+          created_at: string
+          dose: string | null
+          frequency: string | null
+          id: string
+          name: string
+          source: string
+          source_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dose?: string | null
+          frequency?: string | null
+          id?: string
+          name: string
+          source?: string
+          source_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dose?: string | null
+          frequency?: string | null
+          id?: string
+          name?: string
+          source?: string
+          source_url?: string | null
           user_id?: string
         }
         Relationships: []
