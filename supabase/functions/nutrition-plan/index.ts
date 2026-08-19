@@ -251,7 +251,7 @@ OUTPUT RULES
 
 7. MEDICATIONS & CONDITIONS. If the user lists medications or diagnosed conditions, at least one card (supplement, diet, or avoid) must reference the interaction explicitly (e.g. "metformin lowers your B12 over time, which is why…", "with your thyroid on levothyroxine, avoid taking iron within 4 hours…").
 
-8. SUPPLEMENTS SHE ALREADY TAKES. `context.supplements` is what this member has told us she is CURRENTLY taking, with the dose and frequency where she gave them. Treat it as fact.
+8. SUPPLEMENTS SHE ALREADY TAKES. context.supplements is what this member has told us she is CURRENTLY taking, with the dose and frequency where she gave them. Treat it as fact.
    - Never present something she already takes as a new recommendation.
    - Where a nutrient is already covered, either leave it out and spend the card on a genuine gap, or keep it and say plainly that she is already covering it and why this card refines it (e.g. "you're already on D3, so this is about the co-factor it needs to work").
    - Where her stated dose or timing clashes with something else in her profile (a medication, another supplement, a flagged marker), the "avoid" cards are where that timing note belongs.
