@@ -51,6 +51,7 @@ const Legal = lazyRetry(() => import("./pages/Legal"));
 // Onboarding
 const ProfileStep1 = lazyRetry(() => import("./pages/onboarding/ProfileStep1"));
 const ProfileStep2 = lazyRetry(() => import("./pages/onboarding/ProfileStep2"));
+const ProfileSupplements = lazyRetry(() => import("./pages/onboarding/ProfileSupplements"));
 const ProGate = lazyRetry(() => import("./pages/onboarding/ProGate"));
 const ProBook = lazyRetry(() => import("./pages/onboarding/ProBook"));
 const ProDetails = lazyRetry(() => import("./pages/onboarding/ProDetails"));
@@ -322,6 +323,7 @@ const App = () => (
               {/* Onboarding (auth required so data persists) */}
               <Route path="/onboarding/profile-step-1" element={<Onboard><ProfileStep1 /></Onboard>} />
               <Route path="/onboarding/profile-step-2" element={<Onboard><ProfileStep2 /></Onboard>} />
+              <Route path="/onboarding/profile-supplements" element={<Onboard><ProfileSupplements /></Onboard>} />
               <Route path="/onboarding/pro-gate" element={<Onboard><ProGate /></Onboard>} />
               <Route path="/onboarding/pro-book" element={<Onboard><ProBook /></Onboard>} />
               <Route path="/onboarding/pro-details" element={<Onboard><ProDetails /></Onboard>} />

@@ -251,13 +251,20 @@ OUTPUT RULES
 
 7. MEDICATIONS & CONDITIONS. If the user lists medications or diagnosed conditions, at least one card (supplement, diet, or avoid) must reference the interaction explicitly (e.g. "metformin lowers your B12 over time, which is why…", "with your thyroid on levothyroxine, avoid taking iron within 4 hours…").
 
-8. AGE / LIFE STAGE. Reference perimenopause, menopause, postpartum, breastfeeding, or younger training-heavy life stages where relevant — nutrient needs shift materially at each.
+8. SUPPLEMENTS SHE ALREADY TAKES. context.supplements is what this member has told us she is CURRENTLY taking, with the dose and frequency where she gave them. Treat it as fact.
+   - Never present something she already takes as a new recommendation.
+   - Where a nutrient is already covered, either leave it out and spend the card on a genuine gap, or keep it and say plainly that she is already covering it and why this card refines it (e.g. "you're already on D3, so this is about the co-factor it needs to work").
+   - Where her stated dose or timing clashes with something else in her profile (a medication, another supplement, a flagged marker), the "avoid" cards are where that timing note belongs.
+   - Never invent a supplement, dose or frequency she did not give, and never comment on brands.
 
-9. AVOID CARDS. Each one must be personalised — name the medication, marker or timing it ties to — and each must be additive: what to pair with what, and when. Never tell the member to cut back, limit, reduce or give up a food, and never give a calorie, macro, gram or portion figure. Plain English.
 
-10. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
+9. AGE / LIFE STAGE. Reference perimenopause, menopause, postpartum, breastfeeding, or younger training-heavy life stages where relevant — nutrient needs shift materially at each.
 
-11. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
+10. AVOID CARDS. Each one must be personalised — name the medication, marker or timing it ties to — and each must be additive: what to pair with what, and when. Never tell the member to cut back, limit, reduce or give up a food, and never give a calorie, macro, gram or portion figure. Plain English.
+
+11. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
+
+12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
 }
 
 async function runClaude(args: {

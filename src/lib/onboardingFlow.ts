@@ -12,7 +12,8 @@ import type { NavigateFunction } from "react-router-dom";
  */
 export const ONBOARDING_PREV: Record<string, string> = {
   "/onboarding/profile-step-2": "/onboarding/profile-step-1",
-  "/onboarding/pro-gate": "/onboarding/profile-step-2",
+  "/onboarding/profile-supplements": "/onboarding/profile-step-2",
+  "/onboarding/pro-gate": "/onboarding/profile-supplements",
   "/onboarding/pro-book": "/onboarding/pro-gate",
   "/onboarding/pro-details": "/onboarding/pro-gate",
   "/onboarding/profile-step-3-hair": "/onboarding/pro-details",

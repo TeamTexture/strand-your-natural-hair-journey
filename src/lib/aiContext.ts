@@ -33,6 +33,9 @@ export interface AiContext {
     default_style: string | null;
   } | null;
   healthProfile: Record<string, unknown> | null;
+  /** Supplements the member says she is ALREADY taking. Guidance must build on
+   *  these rather than repeat them back. */
+  supplements: Array<{ name: string; dose: string | null; frequency: string | null }>;
   bloodResults: Array<Record<string, unknown>>;
   /** History of previous blood-test panels (latest first, up to 3), each with
    *  its date, its own results, and a per-marker delta vs the panel BEFORE it.
@@ -194,10 +197,11 @@ async function buildAiContextUncached(): Promise<AiContext> {
   let standaloneChallenges: string[] = [];
   let tools: Array<Record<string, unknown>> = [];
   let wishlist: Array<Record<string, unknown>> = [];
+  let supplements: AiContext["supplements"] = [];
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows, suppRows] = await Promise.all([
         // Only LOGGED panels count. A scheduled panel is an appointment with no
         // results in it, and it used to be able to fill all three slots here —
         // starving the AI of the member's actual blood work.
@@ -247,7 +251,20 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .select("label")
           .eq("user_id", userId)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("user_supplements")
+          .select("name, dose, frequency")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true }),
       ]);
+
+      supplements = ((suppRows as { data?: Array<{ name: string; dose: string | null; frequency: string | null }> }).data ?? [])
+        .map((r) => ({
+          name: r.name,
+          dose: r.dose ?? null,
+          frequency: r.frequency ?? null,
+        }));
+
 
 
       // Load rows for the returned panels; also fetch legacy rows with NULL panel_id
@@ -483,6 +500,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
     hairProfile,
     currentStyle,
     healthProfile,
+    supplements,
     bloodResults,
     bloodPanels,
     professional,
