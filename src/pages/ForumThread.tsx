@@ -220,18 +220,51 @@ const ForumThread = () => {
   );
 };
 
-const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null }) => (
-  <Link to={`/member/${uid}`} className="flex items-start gap-2.5 group">
-    <ForumAvatar path={avatar} fallback={name[0]} className="size-9 text-[13px]" />
-    <div className="min-w-0 flex-1">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[12.5px] font-body font-semibold text-foreground/85 group-hover:text-primary leading-tight">{name}</span>
-        <span className="text-[10.5px] font-body text-foreground/50">· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
-      </div>
-      {meta && <p className="text-[10.5px] font-body text-foreground/60 leading-tight truncate mt-0.5">{meta}</p>}
+const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null }) => {
+  const nav = useNavigate();
+  const { user } = useAuth();
+  const [opening, setOpening] = useState(false);
+  const isMe = user?.id === uid;
+
+  const message = async () => {
+    setOpening(true);
+    try {
+      const { data, error } = await supabase.rpc("start_member_dm", { _other_user: uid });
+      if (error) throw error;
+      nav(`/messages/${data}`);
+    } catch (e) {
+      toast.error((e as Error).message ?? "Could not open chat");
+      setOpening(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-2.5">
+      <Link to={`/member/${uid}`} className="flex items-start gap-2.5 min-w-0 flex-1 group">
+        <ForumAvatar path={avatar} fallback={name[0]} className="size-9 text-[13px]" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[12.5px] font-body font-semibold text-foreground/85 group-hover:text-primary leading-tight">{name}</span>
+            <span className="text-[10.5px] font-body text-foreground/50">· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+          </div>
+          {meta && <p className="text-[10.5px] font-body text-foreground/60 leading-tight truncate mt-0.5">{meta}</p>}
+        </div>
+      </Link>
+      {!isMe && (
+        <button
+          type="button"
+          onClick={message}
+          disabled={opening}
+          aria-label={`Message ${name}`}
+          className="shrink-0 size-8 rounded-full border border-border bg-card flex items-center justify-center text-foreground/60 hover:text-primary hover:bg-primary/10 disabled:opacity-50"
+        >
+          {opening ? <Loader2 className="size-3.5 animate-spin" /> : <MessageSquare className="size-3.5" />}
+        </button>
+      )}
     </div>
-  </Link>
-);
+  );
+};
+
 
 export default ForumThread;
 
