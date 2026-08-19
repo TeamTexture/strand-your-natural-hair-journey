@@ -258,13 +258,13 @@ OUTPUT RULES
    - Never invent a supplement, dose or frequency she did not give, and never comment on brands.
 
 
-8. AGE / LIFE STAGE. Reference perimenopause, menopause, postpartum, breastfeeding, or younger training-heavy life stages where relevant — nutrient needs shift materially at each.
+9. AGE / LIFE STAGE. Reference perimenopause, menopause, postpartum, breastfeeding, or younger training-heavy life stages where relevant — nutrient needs shift materially at each.
 
-9. AVOID CARDS. Each one must be personalised — name the medication, marker or timing it ties to — and each must be additive: what to pair with what, and when. Never tell the member to cut back, limit, reduce or give up a food, and never give a calorie, macro, gram or portion figure. Plain English.
+10. AVOID CARDS. Each one must be personalised — name the medication, marker or timing it ties to — and each must be additive: what to pair with what, and when. Never tell the member to cut back, limit, reduce or give up a food, and never give a calorie, macro, gram or portion figure. Plain English.
 
-10. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
+11. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
 
-11. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
+12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
 }
 
 async function runClaude(args: {
