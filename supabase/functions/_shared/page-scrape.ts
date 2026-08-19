@@ -121,7 +121,12 @@ async function plainFetch(url: string): Promise<ScrapedPage | null> {
     if (!resp.ok) return null;
     const html = await resp.text();
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    return { title: titleMatch ? titleMatch[1].trim() : "", text: htmlToText(html), source: "fetch" };
+    return {
+      title: titleMatch ? titleMatch[1].trim() : "",
+      text: htmlToText(html),
+      imageUrl: extractPageImage(html),
+      source: "fetch",
+    };
   } catch (e) {
     console.error("[page-scrape] plain fetch failed", e);
     return null;
@@ -141,8 +146,18 @@ async function firecrawl(url: string, apiKey: string): Promise<ScrapedPage | nul
     const data = (j?.data ?? j) as Record<string, unknown> | undefined;
     const markdown = data?.markdown as string | undefined;
     if (!markdown) return null;
-    const metadata = data?.metadata as { title?: string } | undefined;
-    return { title: metadata?.title ?? "", text: markdown, source: "firecrawl" };
+    const metadata = data?.metadata as
+      | { title?: string; ogImage?: string; "og:image"?: string; image?: string }
+      | undefined;
+    const meta = [metadata?.ogImage, metadata?.["og:image"], metadata?.image].find((c) =>
+      isLikelyProductImage(c),
+    );
+    return {
+      title: metadata?.title ?? "",
+      text: markdown,
+      imageUrl: toHttps(meta ?? null) ?? firstMarkdownImage(markdown),
+      source: "firecrawl",
+    };
   } catch (e) {
     console.error("[page-scrape] firecrawl failed", e);
     return null;
@@ -162,8 +177,11 @@ export async function scrapePage(url: string): Promise<ScrapedPage> {
     const key = Deno.env.get("FIRECRAWL_API_KEY");
     if (key) {
       const scraped = await firecrawl(url, key);
-      if (scraped && scraped.text.length > (result?.text.length ?? 0)) result = scraped;
+      if (scraped && scraped.text.length > (result?.text.length ?? 0)) {
+        result = { ...scraped, imageUrl: scraped.imageUrl ?? result?.imageUrl ?? null };
+      }
     }
   }
-  return result ?? { title: "", text: "", source: "none" };
+  return result ?? { title: "", text: "", imageUrl: null, source: "none" };
 }
+
