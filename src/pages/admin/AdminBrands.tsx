@@ -462,25 +462,26 @@ const AdminBrands = () => {
                   </Button>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-border flex gap-2">
+                <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 h-9 rounded-pill text-[12px]"
+                    className="w-full min-w-0 h-9 px-2 rounded-pill text-[11.5px]"
                     onClick={() => nav(`/admin/brands/${r.user_id}/edit`)}
                   >
-                    <Pencil className="size-3.5 mr-1.5" /> Edit profile
+                    <Pencil className="size-3.5 mr-1.5 shrink-0" /> <span className="truncate">Edit profile</span>
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 h-9 rounded-pill text-[12px]" onClick={() => message(r.user_id)}>
-                    <MessageSquarePlus className="size-3.5 mr-1.5" /> Message
+                  <Button variant="outline" size="sm" className="w-full min-w-0 h-9 px-2 rounded-pill text-[11.5px]" onClick={() => message(r.user_id)}>
+                    <MessageSquarePlus className="size-3.5 mr-1.5 shrink-0" /> <span className="truncate">Message</span>
                   </Button>
 
                   {r.website && (
-                    <Button variant="ghost" size="sm" className="flex-1 h-9 rounded-pill text-[12px]" asChild>
-                      <a href={r.website} target="_blank" rel="noopener noreferrer">Website</a>
+                    <Button variant="ghost" size="sm" className="col-span-2 w-full min-w-0 h-9 px-2 rounded-pill text-[11.5px]" asChild>
+                      <a href={r.website} target="_blank" rel="noopener noreferrer" className="truncate">Website</a>
                     </Button>
                   )}
                 </div>
+
               </SurfaceCard>
             ))}
           </div>
