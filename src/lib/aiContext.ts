@@ -500,6 +500,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
     hairProfile,
     currentStyle,
     healthProfile,
+    supplements,
     bloodResults,
     bloodPanels,
     professional,
