@@ -6723,6 +6723,10 @@ export type Database = {
         Args: { _salon_id: string; _user_id?: string }
         Returns: boolean
       }
+      can_send_chat_message: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
       chat_book_appointment: {
         Args: {
           _appointment_date: string
