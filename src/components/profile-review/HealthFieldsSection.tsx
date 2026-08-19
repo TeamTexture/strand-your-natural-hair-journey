@@ -6,8 +6,10 @@ import { Plus, X } from "lucide-react";
 import ReviewField from "@/components/ReviewField";
 import { Button } from "@/components/ui/button";
 import MedicationPicker from "@/components/MedicationPicker";
+import SupplementPicker, { type SelectedSupplement } from "@/components/SupplementPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSupplements } from "@/hooks/useSupplements";
 import {
   encryptForStorage,
   loadClinicalContext,
@@ -66,6 +68,10 @@ export default function HealthFieldsSection() {
   const [medsOpen, setMedsOpen] = useState(false);
   const [savingMeds, setSavingMeds] = useState(false);
   const [medsDraft, setMedsDraft] = useState<{ name: string; category: string }[]>([]);
+  const [suppsOpen, setSuppsOpen] = useState(false);
+  const [savingSupps, setSavingSupps] = useState(false);
+  const [suppsDraft, setSuppsDraft] = useState<SelectedSupplement[]>([]);
+  const { supplements, add: addSupplement, remove: removeSupplement } = useSupplements();
 
   const { data } = useQuery({
     queryKey: ["profile-review", "health", user?.id ?? "anon"],
@@ -145,6 +151,33 @@ export default function HealthFieldsSection() {
       toast.error("Could not save medications");
     } finally {
       setSavingMeds(false);
+    }
+  };
+
+  /**
+   * Diff-save supplements so we only add/remove the changed rows — existing
+   * entries (dose, frequency, photo added on the Nutrition tab) are preserved.
+   */
+  const saveSupplements = async () => {
+    setSavingSupps(true);
+    try {
+      const existingByName = new Map(supplements.map((s) => [s.name.toLowerCase(), s]));
+      const draftNames = new Set(suppsDraft.map((s) => s.name.toLowerCase()));
+      const toAdd = suppsDraft.filter((s) => !existingByName.has(s.name.toLowerCase()));
+      const toRemove = supplements.filter((s) => !draftNames.has(s.name.toLowerCase()));
+      for (const s of toAdd) {
+        await addSupplement.mutateAsync({ name: s.name, source: "manual" });
+      }
+      for (const s of toRemove) {
+        await removeSupplement.mutateAsync(s.id);
+      }
+      setSuppsOpen(false);
+      toast.success("Supplements saved");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save supplements");
+    } finally {
+      setSavingSupps(false);
     }
   };
 
@@ -236,7 +269,7 @@ export default function HealthFieldsSection() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-              Medications & supplements
+              Medications
             </div>
             {!medsOpen && (
               <>
@@ -294,6 +327,77 @@ export default function HealthFieldsSection() {
                 className="!min-h-[38px] !text-[12px] !px-4"
                 onClick={() => setMedsOpen(false)}
                 disabled={savingMeds}
+              >
+                <X className="size-3.5" /> Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Supplements — dedicated editor */}
+      <div className="rounded-[14px] border border-border bg-card p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+              Supplements
+            </div>
+            {!suppsOpen && (
+              <>
+                {supplements.length === 0 ? (
+                  <p className="mt-1.5 text-[15px] italic text-muted-foreground">
+                    None added
+                  </p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {supplements.map((s) => (
+                      <span
+                        key={s.id}
+                        className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[13px] font-medium"
+                      >
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {!suppsOpen && (
+            <button
+              type="button"
+              onClick={() => {
+                setSuppsDraft(supplements.map((s) => ({ name: s.name })));
+                setSuppsOpen(true);
+              }}
+              aria-label="Edit supplements"
+              className="shrink-0 size-8 rounded-full border border-border hover:border-primary hover:bg-primary/10 text-primary flex items-center justify-center"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          )}
+        </div>
+        {suppsOpen && (
+          <div className="mt-3 space-y-3">
+            <SupplementPicker value={suppsDraft} onChange={setSuppsDraft} />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="gold"
+                size="pill"
+                className="!min-h-[38px] !text-[12px] !px-4"
+                onClick={saveSupplements}
+                disabled={savingSupps}
+              >
+                {savingSupps ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                type="button"
+                variant="goldOutline"
+                size="pill"
+                className="!min-h-[38px] !text-[12px] !px-4"
+                onClick={() => setSuppsOpen(false)}
+                disabled={savingSupps}
               >
                 <X className="size-3.5" /> Cancel
               </Button>
