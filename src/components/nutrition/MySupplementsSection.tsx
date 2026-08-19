@@ -42,6 +42,7 @@ const MySupplementsSection = () => {
   const [nameOpen, setNameOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [draft, setDraft] = useState<SelectedSupplement[]>([]);
+  const [open, setOpen] = useState(false);
 
   /** Store the bottle photo privately so it can be the supplement thumbnail. */
   const uploadPhoto = async (file: File): Promise<string | null> => {
