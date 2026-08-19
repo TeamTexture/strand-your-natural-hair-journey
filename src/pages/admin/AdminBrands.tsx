@@ -415,39 +415,40 @@ const AdminBrands = () => {
                       ? "Hidden — members cannot see this brand anywhere in the app."
                       : "Visible to members in the brands directory."}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 h-9 rounded-pill text-[12px]"
+                      className="w-full min-w-0 h-9 px-2 rounded-pill text-[11.5px]"
                       disabled={setHidden.isPending}
                       onClick={() => setHidden.mutate({ brandUserId: r.user_id, hidden: !r.hidden })}
                     >
-                      {r.hidden ? <Eye className="size-3.5 mr-1.5" /> : <EyeOff className="size-3.5 mr-1.5" />}
-                      {r.hidden ? "Show to members" : "Hide from members"}
+                      {r.hidden ? <Eye className="size-3.5 mr-1.5 shrink-0" /> : <EyeOff className="size-3.5 mr-1.5 shrink-0" />}
+                      <span className="truncate">{r.hidden ? "Show to members" : "Hide from members"}</span>
                     </Button>
                     {r.access_restricted ? (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 h-9 rounded-pill text-[12px]"
+                        className="w-full min-w-0 h-9 px-2 rounded-pill text-[11.5px]"
                         disabled={unrestrict.isPending}
                         onClick={() => unrestrict.mutate(r.user_id)}
                       >
-                        <Undo2 className="size-3.5 mr-1.5" /> Unrestrict
+                        <Undo2 className="size-3.5 mr-1.5 shrink-0" /> <span className="truncate">Unrestrict</span>
                       </Button>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 h-9 rounded-pill text-[12px] text-destructive border-destructive/40 hover:bg-destructive/10"
+                        className="w-full min-w-0 h-9 px-2 rounded-pill text-[11.5px] text-destructive border-destructive/40 hover:bg-destructive/10"
                         disabled={restrict.isPending}
                         onClick={() => setRestrictTarget(r)}
                       >
-                        <Ban className="size-3.5 mr-1.5" /> Restrict access
+                        <Ban className="size-3.5 mr-1.5 shrink-0" /> <span className="truncate">Restrict access</span>
                       </Button>
                     )}
                   </div>
+
                   <Button
                     variant="ghost"
                     size="sm"
