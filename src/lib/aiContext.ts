@@ -33,6 +33,9 @@ export interface AiContext {
     default_style: string | null;
   } | null;
   healthProfile: Record<string, unknown> | null;
+  /** Supplements the member says she is ALREADY taking. Guidance must build on
+   *  these rather than repeat them back. */
+  supplements: Array<{ name: string; dose: string | null; frequency: string | null }>;
   bloodResults: Array<Record<string, unknown>>;
   /** History of previous blood-test panels (latest first, up to 3), each with
    *  its date, its own results, and a per-marker delta vs the panel BEFORE it.
