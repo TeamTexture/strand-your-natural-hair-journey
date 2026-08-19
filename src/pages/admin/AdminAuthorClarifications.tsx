@@ -135,7 +135,7 @@ const AdminAuthorClarifications = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Author clarifications" onBack={() => smartBack(nav, "/admin")} />
+      <TitleBar title="Author clarifications" onBack={smartBack(nav, "/admin")} />
 
       <SurfaceCard className="space-y-2">
         <p className="font-body text-[13px] leading-relaxed text-foreground/75">

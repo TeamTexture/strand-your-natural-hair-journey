@@ -234,7 +234,7 @@ const AdminShelfReview = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Brand shelf review" onBack={() => smartBack(nav, "/admin")} />
+      <TitleBar title="Brand shelf review" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-4 pb-8 space-y-3">
         <SurfaceCard className="p-3.5">

@@ -216,7 +216,7 @@ const AdminReferrals = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Referrals" onBack={() => smartBack(navigate, "/admin")} />
+      <TitleBar title="Referrals" onBack={smartBack(navigate, "/admin")} />
 
       <div className="px-5 pb-10 space-y-4">
         <SurfaceCard tone="gold">
