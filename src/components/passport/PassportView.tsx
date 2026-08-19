@@ -2017,8 +2017,10 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
     if (!active || accessEnded) return;
     // Notes are the pro's own content, not client data — never log a view.
     if (section === "notes") return;
+    // A member previewing their own passport is not a professional view.
+    if (selfPreview) return;
     logView(userId, section);
-  }, [userId, section, active, accessEnded]);
+  }, [userId, section, active, accessEnded, selfPreview]);
 
 
 
