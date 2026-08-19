@@ -7,7 +7,6 @@ import ReviewField from "@/components/ReviewField";
 import { Button } from "@/components/ui/button";
 import MedicationPicker from "@/components/MedicationPicker";
 import { supabase } from "@/integrations/supabase/client";
-import { markSectionConfirmed } from "@/lib/profileConfirmation";
 import { useAuth } from "@/hooks/useAuth";
 import {
   encryptForStorage,
