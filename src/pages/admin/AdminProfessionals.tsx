@@ -326,7 +326,6 @@ const AdminProfessionals = () => {
 
   const counts = useMemo(() => ({
     live: rows.filter((r) => r.is_published).length,
-    subscribed: rows.filter((r) => r.sub_status === "active" || r.sub_status === "trialing").length,
     suspended: rows.filter((r) => r.suspended_at || r.access_restricted).length,
   }), [rows]);
 
@@ -335,14 +334,10 @@ const AdminProfessionals = () => {
       <TitleBar title="Professionals" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-3">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <SurfaceCard className="py-2.5">
             <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground font-body font-medium">Live</p>
             <p className="font-display text-[20px] leading-none mt-1">{counts.live}</p>
-          </SurfaceCard>
-          <SurfaceCard className="py-2.5">
-            <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground font-body font-medium">Subscribed</p>
-            <p className="font-display text-[20px] leading-none mt-1">{counts.subscribed}</p>
           </SurfaceCard>
           <SurfaceCard className="py-2.5">
             <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground font-body font-medium">Suspended</p>
@@ -350,6 +345,7 @@ const AdminProfessionals = () => {
           </SurfaceCard>
         </div>
       </div>
+
 
       <div className="px-5 pb-3">
         <div className="relative">
