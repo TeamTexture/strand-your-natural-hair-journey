@@ -27,7 +27,7 @@ const ProfileReconfirmPrompt = () => {
 
   return (
     <Dialog open={shouldPrompt} onOpenChange={(o) => { if (!o) snooze(); }}>
-      <DialogContent className="max-w-[320px] rounded-[20px]">
+      <DialogContent className="w-[calc(100%-32px)] max-w-[320px] max-h-[calc(100dvh-32px)] overflow-y-auto overflow-x-hidden rounded-[20px] p-5">
         <DialogHeader className="text-left">
           <DialogTitle className="font-display text-[20px] leading-tight">
             Confirm your hair profile
@@ -39,15 +39,15 @@ const ProfileReconfirmPrompt = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <ul className="divide-y divide-border/60 rounded-[14px] border border-border/60 bg-muted/20">
+        <ul className="min-w-0 overflow-hidden divide-y divide-border/60 rounded-[14px] border border-border/60 bg-muted/20">
           {sections.map((s) => (
             <li
               key={s.section}
-              className="flex items-center justify-between gap-2 px-3 py-2.5"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5"
             >
-              <span className="font-body text-[13px] text-foreground">{s.label}</span>
-              <span className="flex items-center gap-1.5 shrink-0">
-                <span className="font-body text-[11px] text-muted-foreground">
+              <span className="min-w-0 font-body text-[13px] leading-tight text-foreground">{s.label}</span>
+              <span className="flex shrink-0 items-center gap-1.5 text-right">
+                <span className="whitespace-nowrap font-body text-[11px] text-muted-foreground">
                   {s.questions} questions
                 </span>
                 {s.confirmed && <Check className="size-3.5 text-primary" />}
@@ -57,7 +57,12 @@ const ProfileReconfirmPrompt = () => {
         </ul>
 
         <div className="flex flex-col gap-2 pt-1">
-          <Button variant="gold" size="pill" onClick={start}>
+          <Button
+            variant="gold"
+            size="pill"
+            className="h-auto min-h-[48px] px-4 py-3 text-center leading-snug whitespace-normal"
+            onClick={start}
+          >
             {next.confirmed ? "Review my profile" : `Continue with ${next.label.toLowerCase()}`}
           </Button>
           <button
