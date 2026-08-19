@@ -18,6 +18,7 @@ interface Props {
   rows?: number;
   maxLength?: number;
   className?: string;
+  disabled?: boolean;
 }
 
 const KIND_LABEL: Record<Suggestion["kind"], string> = {
@@ -35,7 +36,7 @@ const KIND_TONE: Record<Suggestion["kind"], string> = {
 };
 
 /** Textarea with universal @-tagging (members, pros, brands, @everyone) and orange selection highlight. */
-const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, className }: Props) => {
+const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, className, disabled = false }: Props) => {
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -123,6 +124,7 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, cl
         placeholder={placeholder}
         rows={rows}
         maxLength={maxLength}
+        disabled={disabled}
         className={className}
       />
       {flashLabel && (
