@@ -17,7 +17,7 @@ const PassportPreview = () => {
   if (loading || !user) {
     return (
       <ScreenLayout>
-        <TitleBar title="Passport preview" onBack={() => nav("/profile/passport-visibility")} />
+        <TitleBar title="Passport preview" onBack={() => nav("/home")} />
         <LoadingDot label="Loading preview…" fullScreen={false} />
       </ScreenLayout>
     );
@@ -28,9 +28,9 @@ const PassportPreview = () => {
       userId={user.id}
       mode="pro"
       selfPreview
-      backTo="/profile/passport-visibility"
+      backTo="/home"
       active
-      accessEndedAction={() => nav("/profile/passport-visibility")}
+      accessEndedAction={() => nav("/home")}
     />
   );
 };
