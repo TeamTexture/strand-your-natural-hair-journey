@@ -6,8 +6,10 @@ import { Plus, X } from "lucide-react";
 import ReviewField from "@/components/ReviewField";
 import { Button } from "@/components/ui/button";
 import MedicationPicker from "@/components/MedicationPicker";
+import SupplementPicker, { type SelectedSupplement } from "@/components/SupplementPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSupplements } from "@/hooks/useSupplements";
 import {
   encryptForStorage,
   loadClinicalContext,
