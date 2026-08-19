@@ -460,6 +460,66 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
         ))}
       </div>
 
+      {/* Allergies & sensitivities — grouped by what they apply to */}
+      <SubLabel>Allergies &amp; sensitivities</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.sensitivities.topical.length === 0 && d.sensitivities.dietary.length === 0 ? (
+          <EmptyLine msg="No allergies or sensitivities recorded." />
+        ) : ([
+          ["On skin & scalp", d.sensitivities.topical] as const,
+          ["Food & drink", d.sensitivities.dietary] as const,
+        ]).map(([label, list]) => list.length === 0 ? null : (
+          <SurfaceCard key={label}>
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <Pill className="size-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground">{label}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {list.map((s, i) => (
+                    <span
+                      key={`${s.label}-${i}`}
+                      className="px-2 py-1 rounded-full bg-secondary text-[11.5px] font-body text-foreground/85"
+                    >
+                      {s.label}
+                      <span className="text-muted-foreground"> · {humaniseValue(s.severity) ?? "Avoid"}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </SurfaceCard>
+        ))}
+      </div>
+
+      {/* Supplements */}
+      <SubLabel>Supplements</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.supplements.length === 0 ? (
+          <EmptyLine msg="No supplements recorded." />
+        ) : d.supplements.map(s => (
+          <SurfaceCard key={s.id}>
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <Pill className="size-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground">{humaniseValue(s.name) ?? "Supplement"}</p>
+                {(s.dose || s.frequency) && (
+                  <p className="text-[11.5px] text-muted-foreground font-body mt-0.5">
+                    {[s.dose, s.frequency].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                  Added {formatDate(s.created_at)}
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        ))}
+      </div>
+
       {/* Hair characteristics */}
       <SubLabel>Hair characteristics</SubLabel>
       <div className="px-5">
