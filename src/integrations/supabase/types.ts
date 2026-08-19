@@ -6150,9 +6150,11 @@ export type Database = {
           dose: string | null
           frequency: string | null
           id: string
+          image_url: string | null
           name: string
           source: string
           source_url: string | null
+          storage_path: string | null
           user_id: string
         }
         Insert: {
@@ -6160,9 +6162,11 @@ export type Database = {
           dose?: string | null
           frequency?: string | null
           id?: string
+          image_url?: string | null
           name: string
           source?: string
           source_url?: string | null
+          storage_path?: string | null
           user_id: string
         }
         Update: {
@@ -6170,9 +6174,11 @@ export type Database = {
           dose?: string | null
           frequency?: string | null
           id?: string
+          image_url?: string | null
           name?: string
           source?: string
           source_url?: string | null
+          storage_path?: string | null
           user_id?: string
         }
         Relationships: []

@@ -5,16 +5,19 @@ import SurfaceCard from "@/components/SurfaceCard";
 import FilePickerButton from "@/components/FilePickerButton";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import ProductThumb from "@/components/ProductThumb";
 import SupplementPicker, { type SelectedSupplement } from "@/components/SupplementPicker";
 import { useSupplements } from "@/hooks/useSupplements";
 import { aiInvoke, isAuthInvokeError } from "@/lib/aiInvoke";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Extracted {
   name?: string;
   dose?: string | null;
   frequency?: string | null;
   source_url?: string | null;
+  image_url?: string | null;
   error?: string;
 }
 
@@ -39,9 +42,31 @@ const MySupplementsSection = () => {
   const [url, setUrl] = useState("");
   const [draft, setDraft] = useState<SelectedSupplement[]>([]);
 
+  /** Store the bottle photo privately so it can be the supplement thumbnail. */
+  const uploadPhoto = async (file: File): Promise<string | null> => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return null;
+      const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase().slice(0, 5);
+      const path = `${userData.user.id}/supplements/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("product-photos")
+        .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
+      if (error) {
+        console.warn("supplement photo upload failed", error.message);
+        return null;
+      }
+      return path;
+    } catch (e) {
+      console.warn("supplement photo upload failed", e);
+      return null;
+    }
+  };
+
   const ingest = async (
     body: { image_data_url?: string; url?: string },
     source: "photo" | "link",
+    storagePath?: string | null,
   ) => {
     setBusy(source);
     try {
@@ -63,6 +88,8 @@ const MySupplementsSection = () => {
         frequency: data.frequency ?? null,
         source,
         source_url: data.source_url ?? (body.url ?? null),
+        image_url: data.image_url ?? null,
+        storage_path: storagePath ?? null,
       });
       toast.success(`Added ${data.name}`);
       setLinkOpen(false);
@@ -79,7 +106,8 @@ const MySupplementsSection = () => {
     try {
       const prepared = await convertHeicToJpeg(file).catch(() => file);
       const dataUrl = await fileToDataUrl(prepared);
-      await ingest({ image_data_url: dataUrl }, "photo");
+      const path = await uploadPhoto(prepared);
+      await ingest({ image_data_url: dataUrl }, "photo", path);
     } catch (e) {
       console.error("supplement photo failed", e);
       toast.error("Couldn't read that photo.");
@@ -189,8 +217,16 @@ const MySupplementsSection = () => {
               {supplements.map((s) => {
                 const detail = [s.dose, s.frequency].filter(Boolean).join(" · ");
                 return (
-                  <li key={s.id} className="py-2 flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                  <li key={s.id} className="py-2 flex items-center justify-between gap-2.5">
+                    <ProductThumb
+                      imageUrl={s.image_url}
+                      storagePath={s.storage_path}
+                      alt={s.name}
+                      name={s.name}
+                      cover={!!s.storage_path}
+                      wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-transparent shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-body text-foreground break-words [overflow-wrap:anywhere]">
                         {s.name}
                       </p>
