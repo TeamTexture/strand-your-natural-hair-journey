@@ -173,7 +173,7 @@ const StatCard = ({
     <SurfaceCard
       className={cn(
         "relative h-full",
-        compact ? "py-2 px-2.5" : "py-3",
+        compact ? "py-2 px-2 min-w-0 overflow-hidden" : "py-3",
         tone === "urgent" && "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40",
       )}
     >
