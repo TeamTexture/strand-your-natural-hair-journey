@@ -295,7 +295,7 @@ const AdminBrands = () => {
                   </div>
                   <span
                     className={cn(
-                      "text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium shrink-0",
+                      "text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-2 py-0.5 rounded-full font-body font-medium shrink-0",
                       r.complimentary
                         ? "bg-primary/15 text-primary"
                         : r.sub_active
@@ -309,12 +309,12 @@ const AdminBrands = () => {
 
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {r.hidden && (
-                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium bg-muted text-muted-foreground">
+                    <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-2 py-0.5 rounded-full font-body font-medium bg-muted text-muted-foreground">
                       Hidden from members
                     </span>
                   )}
                   {r.access_restricted && (
-                    <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium bg-destructive/15 text-destructive">
+                    <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-2 py-0.5 rounded-full font-body font-medium bg-destructive/15 text-destructive">
                       Restricted
                     </span>
                   )}

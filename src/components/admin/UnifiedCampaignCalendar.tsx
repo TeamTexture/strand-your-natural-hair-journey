@@ -329,7 +329,7 @@ const UnifiedCampaignCalendar = ({
                         <CampaignTypeBadge ownerType={owner} />
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full font-body font-medium",
+                            "inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-1.5 py-0.5 rounded-full font-body font-medium",
                             status === "live" && "bg-good/15 text-good",
                             status === "scheduled" && "bg-warn/20 text-warn",
                             status === "expired" && "bg-muted text-muted-foreground",

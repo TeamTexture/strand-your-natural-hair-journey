@@ -555,7 +555,7 @@ const AdminBrandOfferReview = () => {
               ) : null}
               <div className="p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-[9px] uppercase tracking-[0.18em] text-primary font-body font-medium inline-flex items-center gap-1.5">{deriveBrandOfferStatus(offer) === "live" && (<span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" /><span className="relative inline-flex size-1.5 rounded-full bg-good" /></span>)}{STATUS_LABEL[deriveBrandOfferStatus(offer)]}</p>
+                  <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-primary font-body font-medium inline-flex items-center gap-1.5">{deriveBrandOfferStatus(offer) === "live" && (<span className="relative flex size-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" /><span className="relative inline-flex size-1.5 rounded-full bg-good" /></span>)}{STATUS_LABEL[deriveBrandOfferStatus(offer)]}</p>
                   {["live", "upcoming"].includes(deriveBrandOfferStatus(offer)) && (
                     <CountdownClock offer={offer} />
                   )}

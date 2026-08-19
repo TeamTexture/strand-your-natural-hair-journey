@@ -229,7 +229,7 @@ const AdminReferrals = () => {
             ].map((s) => (
               <div key={s.label}>
                 <p className="font-display text-lg leading-none">{s.value}</p>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground mt-1">
+                <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground mt-1">
                   {s.label}
                 </p>
               </div>
@@ -262,7 +262,7 @@ const AdminReferrals = () => {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-display text-sm leading-none">{money(owed)}</p>
-                    <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground mt-1">
+                    <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground mt-1">
                       Owed
                     </p>
                   </div>
