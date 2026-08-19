@@ -31,10 +31,12 @@ Return strict JSON only:
 
 Rules:
 - name: the supplement itself, as a person would say it (e.g. "Vitamin D3", "Magnesium Glycinate", "Omega-3 Fish Oil"). Include the brand only when the name is meaningless without it. Max 60 characters.
-- dose: the strength per serving as printed (e.g. "1000 IU", "400 mg"). null if not stated.
-- frequency: how often the label says to take it (e.g. "Once daily", "Twice daily with food"). null if not stated.
-- Never guess, never infer a dose that is not printed, never add advice or commentary.
+- dose: the strength per serving as printed anywhere you can see it — the front of the pack ("375mg", "1000 IU"), the supplement facts / nutrition panel ("Magnesium 375mg NRV 100%"), or the page's product details. Read small print carefully. null only if no strength is printed at all.
+- frequency: how often to take it, from the directions/"how to take" text or the front of the pack ("2 capsules per day", "Once daily with food"). If only a serving size is printed (e.g. "2 capsules"), express it as "2 capsules per day" when the label states it is a daily serving. null if nothing about how often is stated.
+- For a photo: read EVERY part of the label that is legible — front, panel and directions — before deciding a field is null.
+- Never guess, never invent a dose that is not printed, never add advice or commentary.
 - If the input is not a supplement at all, return {"name": "", "dose": null, "frequency": null}.`;
+
 
 interface Body {
   url?: string;
@@ -114,9 +116,16 @@ Return the JSON described in your instructions.`;
       return json(400, { error: "That photo couldn't be read." });
     }
     userContent = [
-      { type: "text", text: "Read this supplement label and return the JSON described in your instructions." },
+      {
+        type: "text",
+        text:
+          "Read this supplement label photo. Zoom into every legible area — the front of the pack, " +
+          "the supplement facts / nutrition panel and the directions — and report the strength per " +
+          "serving and how often to take it exactly as printed. Return the JSON described in your instructions.",
+      },
       { type: "image_url", image_url: { url: body.image_data_url } },
     ];
+
   } else {
     return json(400, { error: "Send either a link or a photo." });
   }
