@@ -92,6 +92,7 @@ Deno.serve(async (req: Request) => {
     sourceUrl = url;
     const page = await scrapePage(url);
     imageUrl = page.imageUrl;
+    console.log("[supplement-extract] scrape", { source: page.source, text_len: page.text.length, image_url: imageUrl });
     if (!page.text || page.text.length < 80) {
       return json(
         502,
