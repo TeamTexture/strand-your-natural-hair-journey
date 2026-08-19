@@ -198,7 +198,7 @@ const AdminProfessionals = () => {
   const [searchParams] = useSearchParams();
   const initialFilter = ((): Filter => {
     const f = searchParams.get("filter");
-    const valid: Filter[] = ["all", "active", "published", "unpublished", "subscribed", "suspended"];
+    const valid: Filter[] = ["all", "active", "published", "unpublished", "suspended"];
     return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
   })();
   const [q, setQ] = useState("");
@@ -296,7 +296,6 @@ const AdminProfessionals = () => {
     const list = rows.filter((r) => {
       if (filter === "published" && !r.is_published) return false;
       if (filter === "unpublished" && r.is_published) return false;
-      if (filter === "subscribed" && !(r.sub_status === "active" || r.sub_status === "trialing")) return false;
       if (filter === "suspended" && !r.suspended_at && !r.access_restricted) return false;
       if (filter === "active") {
         const subActive = r.sub_status === "active" || r.sub_status === "trialing";
