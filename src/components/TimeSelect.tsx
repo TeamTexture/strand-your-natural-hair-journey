@@ -34,7 +34,7 @@ export const formatTimeLabel = (h24: number, min: number) => {
 const TimeSelect = ({
   value,
   onChange,
-  minuteStep = 5,
+  minuteStep = 0,
   className = "",
   disabled,
   placeholder = "Choose a time",
