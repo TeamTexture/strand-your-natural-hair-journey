@@ -179,12 +179,15 @@ const StatCard = ({
     >
       <p
         className={cn(
-          "uppercase tracking-[0.14em] text-muted-foreground font-body font-medium",
-          compact ? "text-[8.5px] leading-tight" : "text-[10px] pr-4 tracking-[0.18em]",
+          "uppercase text-muted-foreground font-body font-medium",
+          compact
+            ? "text-[8.5px] leading-tight tracking-[0.06em] whitespace-nowrap overflow-hidden text-ellipsis"
+            : "text-[10px] pr-4 tracking-[0.18em]",
         )}
       >
         {label}
       </p>
+
       <p
         className={cn(
           "font-display leading-none",
