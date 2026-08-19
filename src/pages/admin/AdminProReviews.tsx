@@ -173,7 +173,7 @@ const ReviewCard = ({ p }: { p: ProProfileRow }) => {
               ` · submitted ${formatDistanceToNow(new Date(p.submitted_at), { addSuffix: true })}`}
           </p>
         </div>
-        <span className="text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded bg-warn/20 text-warn font-body shrink-0">
+        <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-1.5 py-0.5 rounded bg-warn/20 text-warn font-body shrink-0">
           Pending
         </span>
       </div>

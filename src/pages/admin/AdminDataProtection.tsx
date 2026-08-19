@@ -109,11 +109,11 @@ const AdminDataProtection = () => {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-display text-[15px] leading-tight flex-1">{c.subject}</p>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-body font-medium">
+                      <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-body font-medium">
                         {COMPLAINT_STATUS_LABEL[c.status]}
                       </span>
                       {overdue && (
-                        <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-body font-medium">
+                        <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-body font-medium">
                           <AlertTriangle className="size-3" /> Overdue
                         </span>
                       )}

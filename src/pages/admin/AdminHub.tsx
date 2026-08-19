@@ -73,7 +73,7 @@ const useAdminStats = () =>
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const today = londonToday();
 
-      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, allOffersQ] = await Promise.all([
+      const [pending, live, proSubs, profiles, comps, views, liveBrandsQ, allOffersQ, rolesQ] = await Promise.all([
         supabase
           .from("pro_applications")
           .select("id", { count: "exact", head: true })
@@ -84,7 +84,7 @@ const useAdminStats = () =>
           .from("pro_subscriptions")
           .select("pro_user_id", { count: "exact", head: true })
           .in("status", ["active", "trialing"]),
-        supabase.from("profiles").select("user_id", { count: "exact", head: true }),
+        supabase.from("profiles").select("user_id").limit(5000),
         supabase
           .from("profiles")
           .select("user_id", { count: "exact", head: true })
@@ -100,7 +100,17 @@ const useAdminStats = () =>
           .from("brand_offers")
           .select("id, owner_type, status, starts_on, ends_on")
           .in("status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]),
+        supabase.from("user_roles").select("user_id, role"),
       ]);
+      // Members = consumer accounts only. Professional / brand / admin logins
+      // live in their own admin panels and must never inflate the member count.
+      const privileged = new Set(
+        ((rolesQ.data ?? []) as Array<{ user_id: string; role: string }>)
+          .filter((r) => r.role !== "consumer")
+          .map((r) => r.user_id),
+      );
+      const memberCount = ((profiles.data ?? []) as Array<{ user_id: string }>)
+        .filter((p) => !privileged.has(p.user_id)).length;
       const offers = (allOffersQ.data ?? []) as {
         owner_type: string | null;
         status: string;
@@ -138,7 +148,7 @@ const useAdminStats = () =>
         pendingApplications: pending.count ?? 0,
         livePros: live.count ?? 0,
         activeProSubs: proSubs.count ?? 0,
-        membersTotal: profiles.count ?? 0,
+        membersTotal: memberCount,
         activePaidMembers: activePaid.count ?? 0,
         plusMembers: plusCountQ.count ?? 0,
         complimentaryMembers: comps.count ?? 0,

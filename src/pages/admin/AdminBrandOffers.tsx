@@ -45,7 +45,7 @@ const StatusPill = ({ status }: { status: DerivedStatus }) => {
     status === "rejected" || status === "cancelled" ? "bg-destructive/10 text-destructive" :
     "bg-muted text-muted-foreground";
   return (
-    <span className={`inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
+    <span className={`inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-2 py-0.5 rounded-full font-body font-medium ${tone}`}>
       {status === "live" && (
         <span className="relative flex size-1.5">
           <span className="absolute inline-flex h-full w-full rounded-full bg-good opacity-70 animate-ping" />
@@ -302,11 +302,11 @@ const AdminBrandOffers = () => {
                 <CountdownClock offer={o} />
               )}
               {pendingRevSet.has(o.id) ? (
-                <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
+                <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-body font-medium">
                   Revision pending
                 </span>
               ) : revisionCounts[o.id] ? (
-                <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
+                <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-1.5 py-0.5 rounded-full bg-muted text-foreground/70 font-body font-medium">
                   Revised · {revisionCounts[o.id]}
                 </span>
               ) : null}
@@ -659,7 +659,7 @@ const PendingRevisionsSection = ({
     <div className="space-y-2">
       <div className="flex items-center gap-2 pt-1">
         <SectionLabel className="!px-0 !text-destructive">Urgent — pending revisions ({filtered.length})</SectionLabel>
-        <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
+        <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex h-full w-full rounded-full bg-destructive-foreground opacity-70 animate-ping" />
             <span className="relative inline-flex size-1.5 rounded-full bg-destructive-foreground" />
@@ -685,7 +685,7 @@ const PendingRevisionsSection = ({
                   {info?.submitter ? `${info.submitter} · ` : ""}Revision on live ad · submitted {format(new Date(r.submitted_at), "d MMM · HH:mm")}
                 </p>
               </div>
-              <span className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
+              <span className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground font-body font-semibold">
                 Urgent
               </span>
               <ChevronRight className="size-4 text-destructive" />

@@ -76,7 +76,7 @@ function activityLevel(sessions30d: number): "high" | "active" | null {
   return null;
 }
 
-type Filter = "all" | "active" | "published" | "unpublished" | "subscribed" | "suspended";
+type Filter = "all" | "active" | "published" | "unpublished" | "suspended";
 type SortKey = "most_active" | "most_clients" | "recent" | "sub_status";
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -84,7 +84,6 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "active", label: "Active" },
   { key: "published", label: "Live" },
   { key: "unpublished", label: "Draft" },
-  { key: "subscribed", label: "Subscribed" },
   { key: "suspended", label: "Suspended" },
 ];
 
@@ -199,7 +198,7 @@ const AdminProfessionals = () => {
   const [searchParams] = useSearchParams();
   const initialFilter = ((): Filter => {
     const f = searchParams.get("filter");
-    const valid: Filter[] = ["all", "active", "published", "unpublished", "subscribed", "suspended"];
+    const valid: Filter[] = ["all", "active", "published", "unpublished", "suspended"];
     return (valid as string[]).includes(f ?? "") ? (f as Filter) : "all";
   })();
   const [q, setQ] = useState("");
@@ -297,7 +296,6 @@ const AdminProfessionals = () => {
     const list = rows.filter((r) => {
       if (filter === "published" && !r.is_published) return false;
       if (filter === "unpublished" && r.is_published) return false;
-      if (filter === "subscribed" && !(r.sub_status === "active" || r.sub_status === "trialing")) return false;
       if (filter === "suspended" && !r.suspended_at && !r.access_restricted) return false;
       if (filter === "active") {
         const subActive = r.sub_status === "active" || r.sub_status === "trialing";
@@ -339,15 +337,15 @@ const AdminProfessionals = () => {
       <div className="px-5 pb-3">
         <div className="grid grid-cols-3 gap-2">
           <SurfaceCard className="py-2.5">
-            <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground font-body font-medium">Live</p>
+            <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground font-body font-medium">Live</p>
             <p className="font-display text-[20px] leading-none mt-1">{counts.live}</p>
           </SurfaceCard>
           <SurfaceCard className="py-2.5">
-            <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground font-body font-medium">Subscribed</p>
+            <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground font-body font-medium">Subscribed</p>
             <p className="font-display text-[20px] leading-none mt-1">{counts.subscribed}</p>
           </SurfaceCard>
           <SurfaceCard className="py-2.5">
-            <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground font-body font-medium">Suspended</p>
+            <p className="text-[9px] uppercase tracking-[0.06em] whitespace-nowrap text-muted-foreground font-body font-medium">Suspended</p>
             <p className={cn("font-display text-[20px] leading-none mt-1", counts.suspended > 0 && "text-warn")}>{counts.suspended}</p>
           </SurfaceCard>
         </div>

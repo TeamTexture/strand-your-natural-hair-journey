@@ -67,9 +67,6 @@ function statusBadge(row: MemberRow) {
 
 type Filter =
   | "all"
-  | "consumers"
-  | "professionals"
-  | "brands"
   | "active"
   | "plus"
   | "complimentary"
@@ -94,9 +91,6 @@ const AdminMembers = () => {
     const f = searchParams.get("filter");
     const valid: Filter[] = [
       "all",
-      "consumers",
-      "professionals",
-      "brands",
       "active",
       "plus",
       "complimentary",
@@ -173,7 +167,10 @@ const AdminMembers = () => {
           },
         ]),
       );
-      return (profilesRes.data ?? []).map((p) => {
+      const memberProfiles = (profilesRes.data ?? []).filter(
+        (p) => deriveAccountType(rolesByUser.get(p.user_id) ?? []) === "consumer",
+      );
+      return memberProfiles.map((p) => {
         const act = activityMap.get(p.user_id);
         return {
           user_id: p.user_id,
@@ -276,9 +273,6 @@ const AdminMembers = () => {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     const list = rows.filter((r) => {
-      if (filter === "consumers" && r.account_type !== "consumer") return false;
-      if (filter === "professionals" && r.account_type !== "professional") return false;
-      if (filter === "brands" && r.account_type !== "brand") return false;
       if (filter === "restricted" && !r.access_restricted) return false;
 
       if (filter === "complimentary" && !r.complimentary_access) return false;
@@ -328,22 +322,6 @@ const AdminMembers = () => {
 
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All", count: rows.length },
-    {
-      key: "consumers",
-      label: "Consumers",
-      count: rows.filter((r) => r.account_type === "consumer").length,
-    },
-    {
-      key: "professionals",
-      label: "Professionals",
-      count: rows.filter((r) => r.account_type === "professional").length,
-    },
-    {
-      key: "brands",
-      label: "Brands",
-      count: rows.filter((r) => r.account_type === "brand").length,
-    },
-
     {
       key: "active",
       label: "Active",
