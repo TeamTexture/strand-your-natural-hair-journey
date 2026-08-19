@@ -3712,6 +3712,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_passport_visibility: {
+        Row: {
+          id: string
+          section: string
+          updated_at: string
+          user_id: string
+          visible: boolean
+        }
+        Insert: {
+          id?: string
+          section: string
+          updated_at?: string
+          user_id: string
+          visible?: boolean
+        }
+        Update: {
+          id?: string
+          section?: string
+          updated_at?: string
+          user_id?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       pro_profiles: {
         Row: {
           address_line1: string | null

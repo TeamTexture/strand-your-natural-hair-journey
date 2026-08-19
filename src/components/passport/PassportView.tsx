@@ -23,6 +23,7 @@ import { washStepLabel } from "@/lib/washSteps";
 import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
 import { formatTime12h } from "@/lib/formatTime";
 import { matchScoreOf } from "@/lib/matchStars";
+import { usePassportVisibilityFor } from "@/hooks/usePassportVisibility";
 
 
 // ================================================================
@@ -453,6 +454,66 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
                 )}
                 <p className="text-[11px] text-muted-foreground font-body mt-0.5">
                   Added {formatDate(m.created_at)}
+                </p>
+              </div>
+            </div>
+          </SurfaceCard>
+        ))}
+      </div>
+
+      {/* Allergies & sensitivities — grouped by what they apply to */}
+      <SubLabel>Allergies &amp; sensitivities</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.sensitivities.topical.length === 0 && d.sensitivities.dietary.length === 0 ? (
+          <EmptyLine msg="No allergies or sensitivities recorded." />
+        ) : ([
+          ["On skin & scalp", d.sensitivities.topical] as const,
+          ["Food & drink", d.sensitivities.dietary] as const,
+        ]).map(([label, list]) => list.length === 0 ? null : (
+          <SurfaceCard key={label}>
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <Pill className="size-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground">{label}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {list.map((s, i) => (
+                    <span
+                      key={`${s.label}-${i}`}
+                      className="px-2 py-1 rounded-full bg-secondary text-[11.5px] font-body text-foreground/85"
+                    >
+                      {s.label}
+                      <span className="text-muted-foreground"> · {humaniseValue(s.severity) ?? "Avoid"}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </SurfaceCard>
+        ))}
+      </div>
+
+      {/* Supplements */}
+      <SubLabel>Supplements</SubLabel>
+      <div className="px-5 space-y-2">
+        {d.supplements.length === 0 ? (
+          <EmptyLine msg="No supplements recorded." />
+        ) : d.supplements.map(s => (
+          <SurfaceCard key={s.id}>
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+                <Pill className="size-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-body font-semibold text-foreground">{humaniseValue(s.name) ?? "Supplement"}</p>
+                {(s.dose || s.frequency) && (
+                  <p className="text-[11.5px] text-muted-foreground font-body mt-0.5">
+                    {[s.dose, s.frequency].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                <p className="text-[11px] text-muted-foreground font-body mt-0.5">
+                  Added {formatDate(s.created_at)}
                 </p>
               </div>
             </div>
@@ -1735,6 +1796,8 @@ export interface PassportViewProps {
   subLoading?: boolean;
   showAccessEnded?: boolean; // when pro sub inactive
   accessEndedAction: () => void;
+  /** Member previewing their own passport — no pro-only working notes tab. */
+  selfPreview?: boolean;
 }
 
 const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void }) => (
@@ -1922,17 +1985,29 @@ const PassportProductDetail = ({ product, data, onBack, mode }: {
 };
 
 
-const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
+const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction, selfPreview }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
   const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
 
   // Notes tab exists only in pro mode — admins are excluded by design from
   // a professional's private working notes.
-  const SECTIONS = useMemo<SectionSpec[]>(
-    () => (mode === "pro" ? [...BASE_SECTIONS, NOTES_SECTION] : BASE_SECTIONS),
-    [mode],
-  );
+  // Member-controlled per-section visibility. Pros only — admins keep full
+  // access. Missing row = visible. App-layer filtering, not RLS.
+  const { data: visibility } = usePassportVisibilityFor(userId, active && mode === "pro");
+
+  const SECTIONS = useMemo<SectionSpec[]>(() => {
+    if (mode !== "pro") return BASE_SECTIONS;
+    const visible = BASE_SECTIONS.filter((s) => (visibility ?? {})[s.key] !== false);
+    return selfPreview ? visible : [...visible, NOTES_SECTION];
+  }, [mode, visibility, selfPreview]);
+
+  // Deep-linked into a hidden section — fall back to the first visible one.
+  useEffect(() => {
+    if (SECTIONS.some((s) => s.key === section)) return;
+    const first = SECTIONS[0];
+    if (first) setSection(first.key);
+  }, [SECTIONS, section]);
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded, refetch, refreshing, fetchedAt } = usePassportData(userId, active);
@@ -1942,8 +2017,10 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
     if (!active || accessEnded) return;
     // Notes are the pro's own content, not client data — never log a view.
     if (section === "notes") return;
+    // A member previewing their own passport is not a professional view.
+    if (selfPreview) return;
     logView(userId, section);
-  }, [userId, section, active, accessEnded]);
+  }, [userId, section, active, accessEnded, selfPreview]);
 
 
 
@@ -2004,8 +2081,17 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
     <ImagePreviewContext.Provider value={setImagePreview}>
       <OpenProductContext.Provider value={setActiveProduct}>
       <ScreenLayout>
-        <TitleBar title={mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
+        <TitleBar title={selfPreview ? "Passport preview" : mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
 
+        {selfPreview && (
+          <div className="px-5 pt-2 pb-1">
+            <SurfaceCard tone="gold">
+              <p className="text-[12.5px] font-body leading-relaxed text-foreground/85">
+                This is what your professionals can see. Hidden sections don't appear here.
+              </p>
+            </SurfaceCard>
+          </div>
+        )}
 
         {/* Sticky tab strip — gold-edged passport pages */}
         <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">

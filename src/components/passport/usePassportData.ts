@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface PassportSensitivity {
+  code: string | null;
+  label: string;
+  severity: string;
+  custom?: boolean;
+}
+
 // Full passport dataset — every stored row for a member.
 export interface PassportDataset {
   clientName: string;
@@ -43,6 +50,8 @@ export interface PassportDataset {
   savedMeals: Array<Record<string, unknown> & { id: string; name: string | null }>;
   moodboards: Array<Record<string, unknown> & { id: string; name: string | null; emoji: string | null; is_favourites: boolean | null; cover_storage_path: string | null }>;
   moodboardImages: Array<Record<string, unknown> & { id: string; board_id: string; storage_path: string; caption: string | null; is_favourite: boolean | null }>;
+  supplements: Array<{ id: string; name: string; dose: string | null; frequency: string | null; created_at: string }>;
+  sensitivities: { topical: PassportSensitivity[]; dietary: PassportSensitivity[] };
   ingredientLists: Array<Record<string, unknown> & { id: string; list_kind: string | null; ingredient: string | null; reason: string | null; product_count: number | null; updated_at: string }>;
 }
 
@@ -54,6 +63,7 @@ const emptyDataset = (): PassportDataset => ({
   washDays: [], journal: [], shelf: [], productPhotos: [], productRatings: [], productVoicenotes: [],
   appointments: [], appointmentPhotos: [], medications: [], tools: [], milestonePhotos: [], beforePhotos: [],
   savedMeals: [], moodboards: [], moodboardImages: [], ingredientLists: [],
+  supplements: [], sensitivities: { topical: [], dietary: [] },
 });
 
 export const usePassportData = (userId: string | undefined, active: boolean) => {
@@ -82,7 +92,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         bloodPanels, bloodResults, bloodSummaries, nutritionSummaries, strandSummaries,
         washDays, journal, shelf, productPhotos, productRatings, productVoicenotes,
         appointments, appointmentPhotos, medications, tools, milestonePhotos, beforePhotos,
-        savedMeals, moodboards, moodboardImages, ingredientLists,
+        savedMeals, moodboards, moodboardImages, ingredientLists, supplements,
         decryptRes, emailRes,
       ] = await Promise.all([
         sb.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
@@ -113,6 +123,7 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         sb.from("moodboards").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("moodboard_images").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
         sb.from("ingredient_lists").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
+        sb.from("user_supplements").select("id, name, dose, frequency, created_at").eq("user_id", userId).order("created_at", { ascending: true }),
         sb.functions.invoke("passport-decrypt", { body: { target_user_id: userId } }).catch(() => ({ data: null })),
         // Admins can read auth emails; pros cannot. Ignore errors.
         sb.rpc("admin_list_member_emails" as never).then(
@@ -153,7 +164,20 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         health?: { life_stage: string | null; contraception: string[]; medical_conditions: string[] } | null;
         professional?: { gmc_number: string | null; iot_number: string | null; notes: string | null } | null;
         medications?: Array<{ id: string; name: string | null; category: string | null }>;
+        sensitivities?: { topical?: PassportSensitivity[]; dietary?: PassportSensitivity[] } | null;
       } | null })?.data ?? null;
+
+      const cleanSens = (list: unknown): PassportSensitivity[] =>
+        Array.isArray(list)
+          ? list
+              .filter((e): e is PassportSensitivity => !!e && typeof (e as PassportSensitivity).label === "string")
+              .map((e) => ({
+                code: typeof e.code === "string" ? e.code : null,
+                label: e.label,
+                severity: typeof e.severity === "string" ? e.severity : "avoid",
+                custom: !!e.custom,
+              }))
+          : [];
 
       const hairMerged = hair.data
         ? { ...(hair.data as Record<string, unknown>), ...(dec?.hair ?? {}) }
@@ -223,6 +247,11 @@ export const usePassportData = (userId: string | undefined, active: boolean) => 
         moodboards: asArray(moodboards),
         moodboardImages: asArray(moodboardImages),
         ingredientLists: asArray(ingredientLists),
+        supplements: asArray(supplements),
+        sensitivities: {
+          topical: cleanSens(dec?.sensitivities?.topical),
+          dietary: cleanSens(dec?.sensitivities?.dietary),
+        },
       });
       setLoading(false);
       setRefreshing(false);
