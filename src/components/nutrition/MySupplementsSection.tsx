@@ -155,103 +155,129 @@ const MySupplementsSection = () => {
   return (
     <div className="space-y-3">
       <SurfaceCard>
-        <div className="flex items-start gap-2.5">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="w-full flex items-center gap-2.5 text-left"
+        >
           <div className="size-8 rounded-full bg-primary/12 flex items-center justify-center shrink-0">
             <Pill className="size-4 text-primary" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-display text-[17px] leading-tight text-foreground">
               Your supplements
+              {supplements.length > 0 && (
+                <span className="ml-1.5 text-[12px] font-body text-muted-foreground">
+                  ({supplements.length})
+                </span>
+              )}
             </p>
-            <p className="text-[11px] font-body text-muted-foreground leading-relaxed mt-0.5">
+            {!open && (
+              <p className="text-[11px] font-body text-muted-foreground leading-relaxed mt-0.5">
+                Tap to add or review what you're taking
+              </p>
+            )}
+          </div>
+          <ChevronDown
+            className={cn(
+              "size-4 text-muted-foreground shrink-0 transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
+
+        {open && (
+          <>
+            <p className="text-[11px] font-body text-muted-foreground leading-relaxed mt-2.5 ml-[42px]">
               What you're already taking. We use this so your plan fills the gaps.
             </p>
-          </div>
-        </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <FilePickerButton
-            onPick={onPhoto}
-            preferCamera
-            variant="outline"
-            className="h-auto py-2.5 rounded-[12px]"
-            disabled={busy !== null}
-          >
-            {busy === "photo" ? (
-              <Loader2 className="size-4 mb-1 animate-spin" />
-            ) : (
-              <Camera className="size-4 mb-1" />
-            )}
-            <span className="text-[11px] font-semibold">Photo</span>
-          </FilePickerButton>
-          <Button
-            variant="outline"
-            className="h-auto py-2.5 rounded-[12px] flex-col"
-            disabled={busy !== null}
-            onClick={() => setLinkOpen(true)}
-          >
-            <Link2 className="size-4 mb-1" />
-            <span className="text-[11px] font-semibold">Paste link</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-2.5 rounded-[12px] flex-col"
-            disabled={busy !== null}
-            onClick={() => {
-              setDraft([]);
-              setNameOpen(true);
-            }}
-          >
-            <Type className="size-4 mb-1" />
-            <span className="text-[11px] font-semibold">By name</span>
-          </Button>
-        </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <FilePickerButton
+                onPick={onPhoto}
+                preferCamera
+                variant="outline"
+                className="h-auto py-2.5 rounded-[12px]"
+                disabled={busy !== null}
+              >
+                {busy === "photo" ? (
+                  <Loader2 className="size-4 mb-1 animate-spin" />
+                ) : (
+                  <Camera className="size-4 mb-1" />
+                )}
+                <span className="text-[11px] font-semibold">Photo</span>
+              </FilePickerButton>
+              <Button
+                variant="outline"
+                className="h-auto py-2.5 rounded-[12px] flex-col"
+                disabled={busy !== null}
+                onClick={() => setLinkOpen(true)}
+              >
+                <Link2 className="size-4 mb-1" />
+                <span className="text-[11px] font-semibold">Paste link</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-2.5 rounded-[12px] flex-col"
+                disabled={busy !== null}
+                onClick={() => {
+                  setDraft([]);
+                  setNameOpen(true);
+                }}
+              >
+                <Type className="size-4 mb-1" />
+                <span className="text-[11px] font-semibold">By name</span>
+              </Button>
+            </div>
 
-        <div className="mt-3">
-          {isLoading ? (
-            <p className="text-[11px] font-body text-muted-foreground">Loading…</p>
-          ) : supplements.length === 0 ? (
-            <p className="text-[11px] font-body text-muted-foreground leading-relaxed">
-              Nothing added yet. Snap a bottle, paste a link, or add one by name.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border/70">
-              {supplements.map((s) => {
-                const detail = [s.dose, s.frequency].filter(Boolean).join(" · ");
-                return (
-                  <li key={s.id} className="py-2 flex items-center justify-between gap-2.5">
-                    <ProductThumb
-                      imageUrl={s.image_url}
-                      storagePath={s.storage_path}
-                      alt={s.name}
-                      name={s.name}
-                      cover={!!s.storage_path}
-                      wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-transparent shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-body text-foreground break-words [overflow-wrap:anywhere]">
-                        {s.name}
-                      </p>
-                      {detail && (
-                        <p className="text-[11px] font-body text-muted-foreground break-words">
-                          {detail}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void remove.mutateAsync(s.id)}
-                      aria-label={`Remove ${s.name}`}
-                      className="size-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition shrink-0"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+            <div className="mt-3">
+              {isLoading ? (
+                <p className="text-[11px] font-body text-muted-foreground">Loading…</p>
+              ) : supplements.length === 0 ? (
+                <p className="text-[11px] font-body text-muted-foreground leading-relaxed">
+                  Nothing added yet. Snap a bottle, paste a link, or add one by name.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border/70">
+                  {supplements.map((s) => {
+                    const detail = [s.dose, s.frequency].filter(Boolean).join(" · ");
+                    return (
+                      <li key={s.id} className="py-2 flex items-center justify-between gap-2.5">
+                        <ProductThumb
+                          imageUrl={s.image_url}
+                          storagePath={s.storage_path}
+                          alt={s.name}
+                          name={s.name}
+                          cover={!!s.storage_path}
+                          wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-transparent shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-body text-foreground break-words [overflow-wrap:anywhere]">
+                            {s.name}
+                          </p>
+                          {detail && (
+                            <p className="text-[11px] font-body text-muted-foreground break-words">
+                              {detail}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void remove.mutateAsync(s.id)}
+                          aria-label={`Remove ${s.name}`}
+                          className="size-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition shrink-0"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
       </SurfaceCard>
 
       <Sheet open={linkOpen} onOpenChange={(v) => (busy ? null : setLinkOpen(v))}>
