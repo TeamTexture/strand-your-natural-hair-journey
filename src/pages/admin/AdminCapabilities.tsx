@@ -247,7 +247,7 @@ const AdminCapabilities = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Capability verification" onBack={() => smartBack(nav, "/admin")} />
+      <TitleBar title="Capability verification" onBack={smartBack(nav, "/admin")} />
       <div className="px-5 pb-10 space-y-4">
         <p className="text-[11px] font-body text-muted-foreground leading-snug">
           Each capability is approved on its own. Badges appear in the directory only

@@ -43,7 +43,7 @@ const PassportVisibility = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="What professionals see" onBack={() => smartBack(nav, "/profile")} />
+      <TitleBar title="What professionals see" onBack={smartBack(nav, "/profile")} />
 
       <div className="px-5 pt-1 pb-4">
         <SurfaceCard>
