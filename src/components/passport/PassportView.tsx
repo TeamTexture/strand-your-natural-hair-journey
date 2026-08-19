@@ -23,6 +23,7 @@ import { washStepLabel } from "@/lib/washSteps";
 import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
 import { formatTime12h } from "@/lib/formatTime";
 import { matchScoreOf } from "@/lib/matchStars";
+import { usePassportVisibilityFor } from "@/hooks/usePassportVisibility";
 
 
 // ================================================================
@@ -1989,10 +1990,22 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
 
   // Notes tab exists only in pro mode — admins are excluded by design from
   // a professional's private working notes.
-  const SECTIONS = useMemo<SectionSpec[]>(
-    () => (mode === "pro" ? [...BASE_SECTIONS, NOTES_SECTION] : BASE_SECTIONS),
-    [mode],
-  );
+  // Member-controlled per-section visibility. Pros only — admins keep full
+  // access. Missing row = visible. App-layer filtering, not RLS.
+  const { data: visibility } = usePassportVisibilityFor(userId, active && mode === "pro");
+
+  const SECTIONS = useMemo<SectionSpec[]>(() => {
+    if (mode !== "pro") return BASE_SECTIONS;
+    const visible = BASE_SECTIONS.filter((s) => (visibility ?? {})[s.key] !== false);
+    return [...visible, NOTES_SECTION];
+  }, [mode, visibility]);
+
+  // Deep-linked into a hidden section — fall back to the first visible one.
+  useEffect(() => {
+    if (SECTIONS.some((s) => s.key === section)) return;
+    const first = SECTIONS[0];
+    if (first) setSection(first.key);
+  }, [SECTIONS, section]);
 
   const [imagePreview, setImagePreview] = useState<ImagePreviewState | null>(null);
   const { data, loading, accessEnded, refetch, refreshing, fetchedAt } = usePassportData(userId, active);
