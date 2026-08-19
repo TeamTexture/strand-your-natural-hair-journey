@@ -9,6 +9,8 @@ export interface Supplement {
   frequency: string | null;
   source: string;
   source_url: string | null;
+  image_url: string | null;
+  storage_path: string | null;
   created_at: string;
 }
 
@@ -18,6 +20,8 @@ export interface SupplementDraft {
   frequency?: string | null;
   source?: "photo" | "link" | "manual";
   source_url?: string | null;
+  image_url?: string | null;
+  storage_path?: string | null;
 }
 
 export const supplementsKey = (userId?: string) => ["user-supplements", userId ?? "anon"] as const;
@@ -45,6 +49,8 @@ export const useSupplements = () => {
         frequency: (row.frequency as string | null) ?? null,
         source: (row.source as string | null) ?? "manual",
         source_url: (row.source_url as string | null) ?? null,
+        image_url: (row.image_url as string | null) ?? null,
+        storage_path: (row.storage_path as string | null) ?? null,
         created_at: row.created_at as string,
       }));
     },
@@ -61,6 +67,8 @@ export const useSupplements = () => {
         frequency: draft.frequency ?? null,
         source: draft.source ?? "manual",
         source_url: draft.source_url ?? null,
+        image_url: draft.image_url ?? null,
+        storage_path: draft.storage_path ?? null,
       });
       if (error) throw error;
     },
