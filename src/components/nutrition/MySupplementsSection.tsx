@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Link2, Type, X, Loader2, Pill } from "lucide-react";
+import { Camera, ChevronDown, Link2, Type, X, Loader2, Pill } from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import FilePickerButton from "@/components/FilePickerButton";
@@ -10,6 +10,7 @@ import SupplementPicker, { type SelectedSupplement } from "@/components/Suppleme
 import { useSupplements } from "@/hooks/useSupplements";
 import { aiInvoke, isAuthInvokeError } from "@/lib/aiInvoke";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Extracted {
