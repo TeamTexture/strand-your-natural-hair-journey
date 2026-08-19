@@ -688,6 +688,7 @@ const Profile = () => {
         <ListRow icon={MessageCircle} name="Messages" to="/messages" />
         <ListRow icon={Mail} name="My enquiries" to="/profile/enquiries" />
         <ListRow icon={KeyRound} name="Data access" to="/profile/data-access" />
+        <ListRow icon={Eye} name="What professionals see" secondary="Choose which passport sections to share." to="/profile/passport-visibility" />
         <ListRow icon={Mail} name="Email preferences" to="/email-preferences" />
         <ListRow icon={Megaphone} name="Personalised offers" to="/profile/personalised-offers" />
       </div>
