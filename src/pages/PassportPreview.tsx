@@ -28,9 +28,9 @@ const PassportPreview = () => {
       userId={user.id}
       mode="pro"
       selfPreview
-      backTo="/profile/passport-visibility"
+      backTo="/home"
       active
-      accessEndedAction={() => nav("/profile/passport-visibility")}
+      accessEndedAction={() => nav("/home")}
     />
   );
 };
