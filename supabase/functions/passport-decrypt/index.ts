@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     const key = await loadMasterKey(sodium);
 
     // RLS gates every read — admin OR pro-with-active-consent policies apply.
-    const [hairRes, healthRes, proRes, medsRes] = await Promise.all([
+    const [hairRes, healthRes, proRes, medsRes, sensRes] = await Promise.all([
       supabase.from("user_hair_profile")
         .select("scalp_condition_enc, diagnosed_conditions_enc")
         .eq("user_id", targetUserId).maybeSingle(),
@@ -104,11 +104,20 @@ Deno.serve(async (req) => {
       supabase.from("user_medications")
         .select("id, name_enc, category_enc")
         .eq("user_id", targetUserId),
+      supabase.from("user_sensitivities")
+        .select("applies_to, entries_enc")
+        .eq("user_id", targetUserId),
     ]);
 
     // If every clinical read returned nothing, the caller lacks access.
-    if (!hairRes.data && !healthRes.data && !proRes.data && (medsRes.data ?? []).length === 0) {
-      return json(200, { hair: null, health: null, professional: null, medications: [] });
+    if (
+      !hairRes.data && !healthRes.data && !proRes.data
+      && (medsRes.data ?? []).length === 0 && (sensRes.data ?? []).length === 0
+    ) {
+      return json(200, {
+        hair: null, health: null, professional: null, medications: [],
+        sensitivities: { topical: [], dietary: [] },
+      });
     }
 
     const hair = hairRes.data ? {
@@ -134,7 +143,20 @@ Deno.serve(async (req) => {
       category: decryptToString(sodium, key, row.category_enc),
     }));
 
-    return json(200, { hair, health, professional, medications });
+    // Sensitivities are stored as one encrypted JSON array per scope.
+    const sensitivities: { topical: unknown[]; dietary: unknown[] } = { topical: [], dietary: [] };
+    for (const row of sensRes.data ?? []) {
+      const scope = String((row as { applies_to?: string }).applies_to ?? "");
+      if (scope !== "topical" && scope !== "dietary") continue;
+      const text = decryptToString(sodium, key, (row as { entries_enc?: unknown }).entries_enc);
+      if (!text) continue;
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) sensitivities[scope] = parsed;
+      } catch { /* ignore malformed payload */ }
+    }
+
+    return json(200, { hair, health, professional, medications, sensitivities });
   } catch (e) {
     console.error("passport-decrypt failed:", e instanceof Error ? e.message : "unknown");
     return json(500, { error: "decrypt failed" });
