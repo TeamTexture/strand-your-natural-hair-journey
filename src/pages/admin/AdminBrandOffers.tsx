@@ -71,15 +71,30 @@ const AdminBrandOffers = () => {
   const { data: offers = [], isLoading } = useQuery({
     queryKey: ["admin", "brand-offers"],
     queryFn: async () => {
-      // No FK links brand_offers.brand_user_id to brand_profiles, so never embed
-      // it here — brand names are resolved separately below. The product join
-      // column is brand_offer_products.brand_product_id.
+      // Fetch the campaign rows first, then attach placements/products. Keeping
+      // these as separate reads prevents one stale/missing relationship hint
+      // from blanking the entire admin campaign screen.
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_offer_placements(*), brand_offer_products(brand_product_id)")
+        .select("*")
         .order("submitted_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return data;
+      const rows = data ?? [];
+      const offerIds = rows.map((offer) => offer.id);
+      if (offerIds.length === 0) return [];
+
+      const [placementsResult, productsResult] = await Promise.all([
+        supabase.from("brand_offer_placements").select("*").in("offer_id", offerIds),
+        supabase.from("brand_offer_products").select("offer_id, brand_product_id").in("offer_id", offerIds),
+      ]);
+      if (placementsResult.error) throw placementsResult.error;
+      if (productsResult.error) throw productsResult.error;
+
+      return rows.map((offer) => ({
+        ...offer,
+        brand_offer_placements: (placementsResult.data ?? []).filter((placement) => placement.offer_id === offer.id),
+        brand_offer_products: (productsResult.data ?? []).filter((product) => product.offer_id === offer.id),
+      }));
     },
   });
 
