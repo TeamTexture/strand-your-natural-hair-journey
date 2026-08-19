@@ -194,10 +194,11 @@ async function buildAiContextUncached(): Promise<AiContext> {
   let standaloneChallenges: string[] = [];
   let tools: Array<Record<string, unknown>> = [];
   let wishlist: Array<Record<string, unknown>> = [];
+  let supplements: AiContext["supplements"] = [];
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows, suppRows] = await Promise.all([
         // Only LOGGED panels count. A scheduled panel is an appointment with no
         // results in it, and it used to be able to fill all three slots here —
         // starving the AI of the member's actual blood work.
