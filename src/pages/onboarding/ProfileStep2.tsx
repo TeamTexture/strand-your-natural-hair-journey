@@ -290,7 +290,7 @@ const ProfileStep2 = () => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/pro-gate");
     const { data: currentUser } = await supabase.auth.getUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
-    navigate("/onboarding/pro-gate");
+    navigate("/onboarding/profile-supplements");
   };
 
   return (
