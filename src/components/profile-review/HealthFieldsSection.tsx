@@ -154,6 +154,33 @@ export default function HealthFieldsSection() {
     }
   };
 
+  /**
+   * Diff-save supplements so we only add/remove the changed rows — existing
+   * entries (dose, frequency, photo added on the Nutrition tab) are preserved.
+   */
+  const saveSupplements = async () => {
+    setSavingSupps(true);
+    try {
+      const existingByName = new Map(supplements.map((s) => [s.name.toLowerCase(), s]));
+      const draftNames = new Set(suppsDraft.map((s) => s.name.toLowerCase()));
+      const toAdd = suppsDraft.filter((s) => !existingByName.has(s.name.toLowerCase()));
+      const toRemove = supplements.filter((s) => !draftNames.has(s.name.toLowerCase()));
+      for (const s of toAdd) {
+        await addSupplement.mutateAsync({ name: s.name, source: "manual" });
+      }
+      for (const s of toRemove) {
+        await removeSupplement.mutateAsync(s.id);
+      }
+      setSuppsOpen(false);
+      toast.success("Supplements saved");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save supplements");
+    } finally {
+      setSavingSupps(false);
+    }
+  };
+
   const h = data?.health;
   const medsList = data?.meds ?? [];
 
