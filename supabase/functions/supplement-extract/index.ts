@@ -22,7 +22,11 @@ declare const Deno: {
 };
 
 const MODEL = "google/gemini-2.5-flash";
+// Photos need stronger vision than the page-text path: small print on a
+// supplement facts panel is where the dose and frequency live.
+const VISION_MODEL = "google/gemini-3.7-flash";
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 
 const SYSTEM = `You read supplement labels and supplement product pages and report EXACTLY what they say.
 
