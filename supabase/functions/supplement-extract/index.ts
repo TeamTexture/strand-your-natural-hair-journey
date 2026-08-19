@@ -83,6 +83,7 @@ Deno.serve(async (req: Request) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let userContent: unknown;
   let sourceUrl: string | null = null;
+  let imageUrl: string | null = null;
 
   if (body.url) {
     const safe = await assertPublicHttpUrl(body.url);
@@ -90,6 +91,7 @@ Deno.serve(async (req: Request) => {
     const url = safe.url.toString();
     sourceUrl = url;
     const page = await scrapePage(url);
+    imageUrl = page.imageUrl;
     if (!page.text || page.text.length < 80) {
       return json(
         502,
@@ -160,5 +162,7 @@ Return the JSON described in your instructions.`;
     dose: str(parsed?.dose, 40),
     frequency: str(parsed?.frequency, 60),
     source_url: sourceUrl,
+    // Hero pack shot from the product page, used as the supplement thumbnail.
+    image_url: imageUrl,
   });
 });
