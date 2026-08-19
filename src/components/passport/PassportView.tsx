@@ -1796,6 +1796,8 @@ export interface PassportViewProps {
   subLoading?: boolean;
   showAccessEnded?: boolean; // when pro sub inactive
   accessEndedAction: () => void;
+  /** Member previewing their own passport — no pro-only working notes tab. */
+  selfPreview?: boolean;
 }
 
 const AccessEnded = ({ label, onAction }: { label: string; onAction: () => void }) => (
@@ -1983,7 +1985,7 @@ const PassportProductDetail = ({ product, data, onBack, mode }: {
 };
 
 
-const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction }: PassportViewProps) => {
+const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, accessEndedAction, selfPreview }: PassportViewProps) => {
   const [section, setSection] = useState<Section>("profile");
   const navigate = useNavigate();
   const [activeProduct, setActiveProduct] = useState<PassportProduct | null>(null);
@@ -1997,8 +1999,8 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
   const SECTIONS = useMemo<SectionSpec[]>(() => {
     if (mode !== "pro") return BASE_SECTIONS;
     const visible = BASE_SECTIONS.filter((s) => (visibility ?? {})[s.key] !== false);
-    return [...visible, NOTES_SECTION];
-  }, [mode, visibility]);
+    return selfPreview ? visible : [...visible, NOTES_SECTION];
+  }, [mode, visibility, selfPreview]);
 
   // Deep-linked into a hidden section — fall back to the first visible one.
   useEffect(() => {
@@ -2077,8 +2079,17 @@ const PassportView = ({ userId, mode, active, subLoading, showAccessEnded, acces
     <ImagePreviewContext.Provider value={setImagePreview}>
       <OpenProductContext.Provider value={setActiveProduct}>
       <ScreenLayout>
-        <TitleBar title={mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
+        <TitleBar title={selfPreview ? "Passport preview" : mode === "admin" ? "Member passport" : "Client passport"} onBack={accessEndedAction} />
 
+        {selfPreview && (
+          <div className="px-5 pt-2 pb-1">
+            <SurfaceCard tone="gold">
+              <p className="text-[12.5px] font-body leading-relaxed text-foreground/85">
+                This is what your professionals can see. Hidden sections don't appear here.
+              </p>
+            </SurfaceCard>
+          </div>
+        )}
 
         {/* Sticky tab strip — gold-edged passport pages */}
         <div ref={tabsRef} className="sticky top-0 z-10 bg-background/95 backdrop-blur-md pt-2.5 pb-3 px-5 border-b border-primary/15">
