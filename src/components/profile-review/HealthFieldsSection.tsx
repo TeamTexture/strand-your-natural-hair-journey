@@ -68,6 +68,10 @@ export default function HealthFieldsSection() {
   const [medsOpen, setMedsOpen] = useState(false);
   const [savingMeds, setSavingMeds] = useState(false);
   const [medsDraft, setMedsDraft] = useState<{ name: string; category: string }[]>([]);
+  const [suppsOpen, setSuppsOpen] = useState(false);
+  const [savingSupps, setSavingSupps] = useState(false);
+  const [suppsDraft, setSuppsDraft] = useState<SelectedSupplement[]>([]);
+  const { supplements, add: addSupplement, remove: removeSupplement } = useSupplements();
 
   const { data } = useQuery({
     queryKey: ["profile-review", "health", user?.id ?? "anon"],
