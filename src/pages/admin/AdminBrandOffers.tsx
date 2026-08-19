@@ -71,14 +71,14 @@ const AdminBrandOffers = () => {
   const { data: offers = [], isLoading } = useQuery({
     queryKey: ["admin", "brand-offers"],
     queryFn: async () => {
+      // No FK links brand_offers.brand_user_id to brand_profiles, so never embed
+      // it here — brand names are resolved separately below. The product join
+      // column is brand_offer_products.brand_product_id.
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("*, brand_profiles!brand_offers_brand_user_id_fkey(brand_name), brand_offer_placements(*), brand_offer_products(product_id)")
+        .select("*, brand_offer_placements(*), brand_offer_products(brand_product_id)")
         .order("submitted_at", { ascending: false, nullsFirst: false });
-      if (error) {
-        const alt = await supabase.from("brand_offers").select("*, brand_offer_placements(*), brand_offer_products(product_id)").order("created_at", { ascending: false });
-        return alt.data ?? [];
-      }
+      if (error) throw error;
       return data;
     },
   });
