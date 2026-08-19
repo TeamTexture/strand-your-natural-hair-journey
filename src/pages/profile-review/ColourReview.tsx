@@ -58,6 +58,8 @@ const ColourReview = () => {
   const qc = useQueryClient();
   const [params] = useSearchParams();
   const editKey = params.get("edit");
+  const confirming = params.get("confirm") === "1";
+  const [finishingConfirmation, setFinishingConfirmation] = useState(false);
 
   const { data: style } = useQuery({
     queryKey: ["profile-review", "style", user?.id ?? "anon"],
@@ -84,9 +86,27 @@ const ColourReview = () => {
       .upsert({ user_id: user.id, ...patch }, { onConflict: "user_id" });
     if (error) throw error;
     invalidate();
-    // Saving here counts as the member confirming this section in her own words.
-    void markSectionConfirmed(user.id, "colour");
     toast.success("Saved");
+  };
+
+  const finishConfirmation = async () => {
+    if (!user) return;
+    setFinishingConfirmation(true);
+    try {
+      const { allConfirmed } = await markSectionConfirmed(user.id, "colour");
+      if (!allConfirmed) {
+        toast.error("Please finish the earlier profile sections first.");
+        navigate("/profile/hair?confirm=1");
+        return;
+      }
+      await qc.invalidateQueries({ queryKey: ["my-profile", user.id] });
+      toast.success("Your profile is confirmed");
+      navigate("/home", { replace: true });
+    } catch {
+      toast.error("Could not confirm your profile. Please try again.");
+    } finally {
+      setFinishingConfirmation(false);
+    }
   };
 
   // ── Custom editor for style + duration (a single "how long in this style") ──
@@ -394,6 +414,17 @@ const ColourReview = () => {
               />
             )}
           </>
+        )}
+        {confirming && (
+          <Button
+            variant="gold"
+            size="pill"
+            className="w-full"
+            onClick={finishConfirmation}
+            disabled={finishingConfirmation}
+          >
+            {finishingConfirmation ? "Saving…" : "Confirm profile"}
+          </Button>
         )}
       </div>
     </ScreenLayout>

@@ -18,11 +18,11 @@ import { useProfileConfirmation } from "@/hooks/useProfileConfirmation";
 const ProfileReconfirmPrompt = () => {
   const navigate = useNavigate();
   const { shouldPrompt, sections, snooze } = useProfileConfirmation();
+  const next = sections.find((s) => !s.confirmed) ?? sections[0];
 
   const start = () => {
-    const next = sections.find((s) => !s.confirmed) ?? sections[0];
     snooze();
-    navigate(next.route);
+    navigate(`${next.route}?confirm=1`);
   };
 
   return (
@@ -58,7 +58,7 @@ const ProfileReconfirmPrompt = () => {
 
         <div className="flex flex-col gap-2 pt-1">
           <Button variant="gold" size="pill" onClick={start}>
-            Start with my hair
+            {next.confirmed ? "Review my profile" : `Continue with ${next.label.toLowerCase()}`}
           </Button>
           <button
             type="button"
