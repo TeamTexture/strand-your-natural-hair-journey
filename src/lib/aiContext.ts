@@ -248,7 +248,20 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .select("label")
           .eq("user_id", userId)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("user_supplements")
+          .select("name, dose, frequency")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true }),
       ]);
+
+      supplements = ((suppRows as { data?: Array<{ name: string; dose: string | null; frequency: string | null }> }).data ?? [])
+        .map((r) => ({
+          name: r.name,
+          dose: r.dose ?? null,
+          frequency: r.frequency ?? null,
+        }));
+
 
 
       // Load rows for the returned panels; also fetch legacy rows with NULL panel_id
