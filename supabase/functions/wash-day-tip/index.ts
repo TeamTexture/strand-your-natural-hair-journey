@@ -384,7 +384,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         // Output cap — output tokens drive latency on these interactive surfaces.
-        max_tokens: 1400,
+        max_tokens: 2400,
         messages: [
           { role: "system", content: systemPrompt },
 
@@ -513,7 +513,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           // Output cap — output tokens drive latency on these interactive surfaces.
-          max_tokens: 1400,
+          max_tokens: 2400,
           messages: [
             { role: "system", content: systemPrompt },
             {
@@ -552,10 +552,54 @@ Do not substitute other cleansing or sealing methods for these two.`
     }
   }
 
+  // ── SALVAGE PASS ─────────────────────────────────────────────────────
+  // The model sometimes answers with meta-commentary about the JSON rules
+  // instead of the object itself (or gets cut off mid-string). Ask once more
+  // with a bare, rule-free prompt whose only job is to emit the object.
+  if (!isUsable(parsed)) {
+    try {
+      const salvage = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
+        body: JSON.stringify({
+          model: "google/gemini-3.6-flash",
+          max_tokens: 900,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You output one JSON object and nothing else. Shape: " +
+                '{"headline":string,"action":string,"reason":string}. ' +
+                "headline: max 8 words. action: one concrete instruction, max 30 words. " +
+                "reason: the physical mechanism, max 25 words. No product names. No commentary.",
+            },
+            {
+              role: "user",
+              content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}`,
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (salvage.ok) {
+        const sj = await salvage.json();
+        const sRaw = sj?.choices?.[0]?.message?.content ?? "";
+        const salvaged = parseTip(sRaw);
+        if (isUsable(salvaged)) {
+          parsed = salvaged;
+          raw = sRaw;
+        }
+      }
+    } catch (err) {
+      console.error("[wash-day-tip] salvage pass failed:", err);
+    }
+  }
+
   if (!isUsable(parsed)) {
     console.error("[wash-day-tip] unusable model output:", raw.slice(0, 500));
     return json(502, { error: "invalid model output" });
   }
+
   // ── GRACEFUL DEGRADATION ─────────────────────────────────────────────
   // Order of degradation (see _shared/tip-level-caps.ts): next_time, then the
   // extended why, then technique. `action` and `reason` NEVER degrade.
@@ -654,7 +698,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           // Output cap — output tokens drive latency on these interactive surfaces.
-          max_tokens: 1400,
+          max_tokens: 2400,
           messages: [
             { role: "system", content: systemPrompt },
             {
