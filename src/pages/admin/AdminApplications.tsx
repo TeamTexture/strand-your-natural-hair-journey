@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNowStrict, formatDistanceToNow } from "date-fns";
-import { MapPin, Search, Mail, ShieldOff, CheckCircle2 } from "lucide-react";
+import { MapPin, Search, Mail, ShieldOff, CheckCircle2, Trash2 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -555,6 +555,7 @@ const PROGRESS_CLS: Record<IncompleteProRow["progress"], string> = {
 };
 
 const IncompleteCard = ({ row }: { row: IncompleteProRow }) => {
+  const qc = useQueryClient();
   const { app, email, last_session, session_count, progress, filled_sections } = row;
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -607,6 +608,27 @@ const IncompleteCard = ({ row }: { row: IncompleteProRow }) => {
     setBusy(false);
     if (error) toast.error(error.message ?? "Could not restrict");
     else toast.success("Access restricted.");
+  };
+
+  const remove = async () => {
+    if (!app.user_id) return;
+    if (
+      !confirm(
+        `Permanently delete ${app.full_name || "this applicant"}? Their account, draft application and all their data are removed and any subscription is cancelled. This cannot be undone.`,
+      )
+    )
+      return;
+    setBusy(true);
+    const { error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { user_id: app.user_id },
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message ?? "Could not delete profile");
+      return;
+    }
+    toast.success("Profile deleted.");
+    qc.invalidateQueries({ queryKey: ["admin"] });
   };
 
   return (
@@ -734,6 +756,19 @@ const IncompleteCard = ({ row }: { row: IncompleteProRow }) => {
             </Button>
           )}
         </div>
+        {app.user_id && (
+          <div className="pt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              disabled={busy}
+              onClick={remove}
+            >
+              <Trash2 className="size-3.5 mr-1.5" /> Delete profile
+            </Button>
+          </div>
+        )}
       </div>
     </SurfaceCard>
   );
