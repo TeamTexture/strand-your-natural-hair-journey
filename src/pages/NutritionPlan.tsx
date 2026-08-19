@@ -35,6 +35,8 @@ import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
 import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
 import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
 import NutrientGapNote from "@/components/sensitivity/NutrientGapNote";
+import MySupplementsSection from "@/components/nutrition/MySupplementsSection";
+import MealLogZone from "@/components/nutrition/MealLogZone";
 
 
 type Diet = DietaryPattern;
@@ -51,6 +53,12 @@ interface Profile {
 interface AiCard { emoji: string; name: string; body: string; severity?: string }
 interface AiSupplement { emoji: string; name: string; dose?: string; body: string; priority?: "high" | "medium" | "low" }
 interface AiPlan { summary?: string; supplements?: AiSupplement[]; diet?: AiCard[]; avoid?: AiCard[] }
+
+const SectionHeading = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
+    {children}
+  </p>
+);
 
 const SourceNote = ({ children }: { children?: React.ReactNode }) => (
   <p className="text-[11px] italic text-muted-foreground font-body mt-2 px-1 leading-relaxed">
@@ -326,11 +334,14 @@ const MealCard = ({
   saved,
   onToggleSave,
   onDelete,
+  footer,
 }: {
   meal: AiMeal;
   saved: boolean;
   onToggleSave?: () => void;
   onDelete?: () => void;
+  /** Owner-only extras rendered under the recipe toggle (e.g. cook logs). */
+  footer?: React.ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
   return (
@@ -449,6 +460,7 @@ const MealCard = ({
               )}
             </div>
           )}
+          {footer}
       </div>
     </SurfaceCard>
   );
@@ -975,6 +987,11 @@ const NutritionPlan = () => {
           </TabsList>
 
           <TabsContent value="supplements" className="space-y-3 mt-4">
+            <MySupplementsSection />
+
+            <div className="pt-1 border-t border-border/70" />
+            <SectionHeading>STRAND recommends</SectionHeading>
+
             {aiLoading && usingFallbackSupplements ? (
               renderLoading("Personalising your supplements…")
             ) : (
@@ -1125,6 +1142,7 @@ const NutritionPlan = () => {
                       }}
                       saved
                       onDelete={() => void handleDeleteSaved(m)}
+                      footer={<MealLogZone mealId={m.id} mealName={m.name} />}
                     />
                   ))
                 )}
