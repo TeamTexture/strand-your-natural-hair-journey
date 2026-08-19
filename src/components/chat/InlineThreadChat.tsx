@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
+import ChatUpgradeNotice from "@/components/chat/ChatUpgradeNotice";
+import { isChatLockError, useCanSendChatMessage } from "@/hooks/useCanSendChatMessage";
 import {
   messageIsMine,
   useChatThread,
@@ -31,6 +33,10 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
   const send = useSendChatMessage(thread.id);
   const markRead = useMarkThreadRead(thread.id);
   const [draft, setDraft] = useState("");
+  // STRAND+ chat lock — mirrors the RLS rule for instant feedback.
+  const chatLock = useCanSendChatMessage(thread);
+  const [lockedByRls, setLockedByRls] = useState(false);
+  const chatLocked = chatLock.locked || (chatLock.lockRelevant && lockedByRls);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const unreadHere = (messages.data ?? []).some(
@@ -48,11 +54,13 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
 
   const submit = async () => {
     const text = draft.trim();
-    if (!text || send.isPending) return;
+    if (!text || send.isPending || chatLocked) return;
     setDraft("");
     try {
       await send.mutateAsync(text);
     } catch (err) {
+      if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
+      setDraft(text);
       console.error("inline reply failed", err);
     }
   };
@@ -122,6 +130,12 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
         <div ref={endRef} />
       </div>
 
+      {chatLocked && (
+        <div className="mt-2.5">
+          <ChatUpgradeNotice compact />
+        </div>
+      )}
+
       <div className="mt-2.5 flex items-center gap-2">
         <input
           value={draft}
@@ -132,13 +146,18 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
               submit();
             }
           }}
-          placeholder={`Reply to ${otherName}…`}
-          className="flex-1 min-w-0 h-9 rounded-pill bg-muted/60 border border-border/60 px-3 text-[12px] font-body outline-none focus:border-primary/60"
+          disabled={chatLocked}
+          placeholder={
+            chatLocked
+              ? "Upgrade to STRAND+ to keep chatting with your pro"
+              : `Reply to ${otherName}…`
+          }
+          className="flex-1 min-w-0 h-9 rounded-pill bg-muted/60 border border-border/60 px-3 text-[12px] font-body outline-none focus:border-primary/60 disabled:opacity-50"
         />
         <button
           type="button"
           onClick={submit}
-          disabled={!draft.trim() || send.isPending}
+          disabled={!draft.trim() || send.isPending || chatLocked}
           aria-label="Send reply"
           className="size-9 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40"
         >
