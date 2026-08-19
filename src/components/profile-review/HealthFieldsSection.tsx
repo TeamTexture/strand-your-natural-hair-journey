@@ -269,7 +269,7 @@ export default function HealthFieldsSection() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-              Medications & supplements
+              Medications
             </div>
             {!medsOpen && (
               <>
@@ -327,6 +327,77 @@ export default function HealthFieldsSection() {
                 className="!min-h-[38px] !text-[12px] !px-4"
                 onClick={() => setMedsOpen(false)}
                 disabled={savingMeds}
+              >
+                <X className="size-3.5" /> Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Supplements — dedicated editor */}
+      <div className="rounded-[14px] border border-border bg-card p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+              Supplements
+            </div>
+            {!suppsOpen && (
+              <>
+                {supplements.length === 0 ? (
+                  <p className="mt-1.5 text-[15px] italic text-muted-foreground">
+                    None added
+                  </p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {supplements.map((s) => (
+                      <span
+                        key={s.id}
+                        className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[13px] font-medium"
+                      >
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {!suppsOpen && (
+            <button
+              type="button"
+              onClick={() => {
+                setSuppsDraft(supplements.map((s) => ({ name: s.name })));
+                setSuppsOpen(true);
+              }}
+              aria-label="Edit supplements"
+              className="shrink-0 size-8 rounded-full border border-border hover:border-primary hover:bg-primary/10 text-primary flex items-center justify-center"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          )}
+        </div>
+        {suppsOpen && (
+          <div className="mt-3 space-y-3">
+            <SupplementPicker value={suppsDraft} onChange={setSuppsDraft} />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="gold"
+                size="pill"
+                className="!min-h-[38px] !text-[12px] !px-4"
+                onClick={saveSupplements}
+                disabled={savingSupps}
+              >
+                {savingSupps ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                type="button"
+                variant="goldOutline"
+                size="pill"
+                className="!min-h-[38px] !text-[12px] !px-4"
+                onClick={() => setSuppsOpen(false)}
+                disabled={savingSupps}
               >
                 <X className="size-3.5" /> Cancel
               </Button>
