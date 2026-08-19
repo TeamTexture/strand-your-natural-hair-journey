@@ -22,7 +22,11 @@ declare const Deno: {
 };
 
 const MODEL = "google/gemini-2.5-flash";
+// Photos need stronger vision than the page-text path: small print on a
+// supplement facts panel is where the dose and frequency live.
+const VISION_MODEL = "google/gemini-3.7-flash";
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 
 const SYSTEM = `You read supplement labels and supplement product pages and report EXACTLY what they say.
 
@@ -130,37 +134,86 @@ Return the JSON described in your instructions.`;
     return json(400, { error: "Send either a link or a photo." });
   }
 
-  let resp: Response;
-  try {
-    resp = await fetch(GATEWAY, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: userContent },
+  const isPhoto = !body.url;
+
+  /** One gateway call. Returns the message content, or a Response on failure. */
+  const call = async (
+    model: string,
+    messages: unknown[],
+  ): Promise<string | Response> => {
+    let resp: Response;
+    try {
+      resp = await fetch(GATEWAY, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages }),
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (e) {
+      console.error("[supplement-extract] gateway call failed", e);
+      return json(502, { error: "Couldn't read that just now. Please try again." });
+    }
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.error("[supplement-extract] gateway error", resp.status, text.slice(0, 400));
+      if (resp.status === 429) return json(429, { error: "Too many requests just now — try again in a moment." });
+      if (resp.status === 402) return json(402, { error: "AI credits are needed to read labels." });
+      return json(502, { error: "Couldn't read that just now. Please try again." });
+    }
+    const payload = await resp.json();
+    const raw = payload?.choices?.[0]?.message?.content;
+    return typeof raw === "string" ? raw : "";
+  };
+
+  const first = await call(isPhoto ? VISION_MODEL : MODEL, [
+    { role: "system", content: SYSTEM },
+    { role: "user", content: userContent },
+  ]);
+  if (first instanceof Response) return first;
+
+  const parsed = parseJsonLoose(first);
+  let name = str(parsed?.name, 60);
+  let dose = str(parsed?.dose, 40);
+  let frequency = str(parsed?.frequency, 60);
+
+  // PARITY PASS — a photo must fill in dose and frequency the same way a link
+  // does. When the single-shot read misses either field, transcribe every word
+  // on the pack first, then extract from that transcript. Reading is easier
+  // than reading-and-deciding in one step, so this recovers the small print.
+  if (isPhoto && (!dose || !frequency || !name)) {
+    const ocr = await call(VISION_MODEL, [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text:
+              "Transcribe EVERY word and number printed on this supplement pack, verbatim, " +
+              "including the brand, product name, the supplement facts / nutrition panel rows " +
+              "with their amounts and NRV percentages, the serving size, and the directions or " +
+              "'how to take' text. Output plain text only, no commentary.",
+          },
+          { type: "image_url", image_url: { url: body.image_data_url } },
         ],
-      }),
-      signal: AbortSignal.timeout(60_000),
-    });
-  } catch (e) {
-    console.error("[supplement-extract] gateway call failed", e);
-    return json(502, { error: "Couldn't read that just now. Please try again." });
+      },
+    ]);
+    if (!(ocr instanceof Response) && ocr.trim().length > 20) {
+      const second = await call(VISION_MODEL, [
+        { role: "system", content: SYSTEM },
+        {
+          role: "user",
+          content: `Supplement pack label, transcribed:\n"""\n${ocr.slice(0, 7000)}\n"""\n\nReturn the JSON described in your instructions.`,
+        },
+      ]);
+      if (!(second instanceof Response)) {
+        const p2 = parseJsonLoose(second);
+        name = name ?? str(p2?.name, 60);
+        dose = dose ?? str(p2?.dose, 40);
+        frequency = frequency ?? str(p2?.frequency, 60);
+      }
+    }
   }
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    console.error("[supplement-extract] gateway error", resp.status, text.slice(0, 400));
-    if (resp.status === 429) return json(429, { error: "Too many requests just now — try again in a moment." });
-    if (resp.status === 402) return json(402, { error: "AI credits are needed to read labels." });
-    return json(502, { error: "Couldn't read that just now. Please try again." });
-  }
-
-  const payload = await resp.json();
-  const raw = payload?.choices?.[0]?.message?.content;
-  const parsed = typeof raw === "string" ? parseJsonLoose(raw) : null;
-  const name = str(parsed?.name, 60);
   if (!name) {
     return json(422, {
       error: "We couldn't tell which supplement that is. Try a clearer photo of the front label, or add it by name.",
@@ -169,10 +222,11 @@ Return the JSON described in your instructions.`;
 
   return json(200, {
     name,
-    dose: str(parsed?.dose, 40),
-    frequency: str(parsed?.frequency, 60),
+    dose,
+    frequency,
     source_url: sourceUrl,
     // Hero pack shot from the product page, used as the supplement thumbnail.
     image_url: imageUrl,
   });
+
 });
