@@ -81,6 +81,9 @@ export interface ClaudeCallInput {
   tools?: Array<Tool | ServerTool>;
   toolChoice?: { type: "tool"; name: string };
   max_tokens?: number;
+  /** Cost-meter attribution (Phase 2). Observation only — never affects the
+   *  request sent to Anthropic. Populated by buildClaudeRequest. */
+  meta?: AiCallMeta;
 }
 
 export interface ClaudeUsage {
