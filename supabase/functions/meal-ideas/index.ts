@@ -38,6 +38,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "meal-ideas", stage: 2 } as const;
+
 
 const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
 
@@ -127,8 +132,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
       ragK: 4,
     });
 
-    const aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         headers: {

@@ -23,6 +23,11 @@ import {
   recordAdvice,
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "journal-encouragement", stage: 2 } as const;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -119,8 +124,7 @@ Deno.serve(async (req) => {
 
     const systemWithRag = `${systemPrompt}${ragBlock}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}`;
 
-    const aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         headers: {

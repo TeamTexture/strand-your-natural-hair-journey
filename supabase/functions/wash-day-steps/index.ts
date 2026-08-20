@@ -22,6 +22,11 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { STEP_BUDGET, normaliseSteps, type WashStep } from "./normalise.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "wash-day-steps", stage: 2 } as const;
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -262,7 +267,7 @@ Deno.serve(async (req) => {
 
   let aiResp: Response;
   try {
-    aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

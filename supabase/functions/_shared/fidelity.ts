@@ -34,6 +34,11 @@
 // attempt still fails, the surface returns nothing rather than unverified hair
 // care advice.
 
+import { gatewayFetch } from "./ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "fidelity-audit", stage: 1 } as const;
+
 declare const Deno: { env: { get(key: string): string | undefined } };
 
 export interface FidelityViolation {
@@ -268,7 +273,7 @@ export async function checkTraceability(
   if (!key || !sourceText.trim() || !output.trim()) return [];
 
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({

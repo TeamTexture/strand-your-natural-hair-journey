@@ -1,6 +1,11 @@
 // Transcribes a short audio clip via the Lovable AI Gateway speech-to-text API.
 // POST { audioBase64: string, mimeType: string } -> { text: string }
 import { requireAuthedUser } from "../_shared/auth.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "transcribe-audio", stage: 2 } as const;
+
 
 
 const corsHeaders = {
@@ -76,8 +81,7 @@ Deno.serve(async (req) => {
       `recording.${extFor(mt)}`,
     );
 
-    const aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/audio/transcriptions",
+    const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/audio/transcriptions",
       {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}` },

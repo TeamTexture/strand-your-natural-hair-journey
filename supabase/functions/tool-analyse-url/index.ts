@@ -258,6 +258,11 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "tool-analyse-url", stage: 2 } as const;
+
 
 const LOVABLE_SYSTEM = `${STRAND_PERSONA}
 
@@ -647,7 +652,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     ragK: 4,
   });
 
-  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${aiApiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({

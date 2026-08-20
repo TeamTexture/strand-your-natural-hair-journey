@@ -4,6 +4,11 @@
 // Request: { file: { data: base64, mime: string, name?: string } }
 // Response: { panel_date: string | null, results: Array<{ marker, value, unit, raw_marker, raw_value }> }
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "blood-extract", stage: 2 } as const;
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -138,7 +143,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const gwRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const gwRes = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

@@ -15,6 +15,11 @@ import { json, preflight } from "../_shared/cors.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { assertPublicHttpUrl } from "../_shared/ssrf.ts";
 import { scrapePage } from "../_shared/page-scrape.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "supplement-extract", stage: 2 } as const;
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -143,7 +148,7 @@ Return the JSON described in your instructions.`;
   ): Promise<string | Response> => {
     let resp: Response;
     try {
-      resp = await fetch(GATEWAY, {
+      resp = await gatewayFetch(AI_METER_META, GATEWAY, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model, messages }),

@@ -263,6 +263,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "blood-ai-summary", stage: 2 } as const;
+
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
 async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
@@ -332,7 +337,7 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
 - If a previously-flagged marker has normalised, say so plainly. If a marker has worsened, say so plainly. No hair implication either way.
 - Never invent a trend — only comment on markers that appear in both the current and prior panel.`;
 
-  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,

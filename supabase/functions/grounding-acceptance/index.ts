@@ -17,6 +17,11 @@ import {
 } from "../_shared/evidence.ts";
 import { loadLexicon, terminologyBlock, explainTerminology } from "../_shared/terminology.ts";
 import type { SurfaceKey } from "../_shared/chapter-context.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "grounding-acceptance", stage: 1 } as const;
+
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
@@ -59,7 +64,7 @@ const DEFAULT_TESTS: Array<{ name: string; surface: SurfaceKey; memberContext: s
 async function write(evidenceBlock: string, memberContext: string, question: string) {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) return { tip: "", tokens: 0 };
-  const res = await fetch(GATEWAY, {
+  const res = await gatewayFetch(AI_METER_META, GATEWAY, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
