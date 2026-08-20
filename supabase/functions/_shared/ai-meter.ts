@@ -1,0 +1,226 @@
+// AI COST METER — Phase 2 instrumentation. Observation only: this module
+// never changes a prompt, a model, a guardrail or a byte of user-facing copy.
+//
+// One row in `public.ai_call_log` per AI call, whichever provider served it:
+//   provider = 'anthropic'        → direct Anthropic API (Claude)
+//   provider = 'lovable_gateway'  → Lovable AI Gateway (Gemini)
+//
+// `model` is recorded verbatim as used. Cost is NOT computed here — the
+// `ai_call_costs` view joins `ai_model_rates`, and leaves cost null where no
+// authoritative price is on file (honest gaps, never invented numbers).
+//
+// `stage` separates the two-stage pipeline:
+//   1 = evidence gathering / verification / fidelity helper calls
+//   2 = the writer call whose output the member would see
+//
+// `model_called` distinguishes a paid call from a guardrail row logged on a
+// cached read path (sanitiseAndLog firing without any model call). Phase 4's
+// rejection rate must be computed over `model_called = true` rows only.
+//
+// Stage-2 rows are BUFFERED until the guardrails have run, so a single row can
+// carry both the token cost and the outcome (completed / rejected + rule).
+// sanitiseAndLog flushes the buffer. If a buffered call is never flushed (an
+// error path, or a function that doesn't sanitise), the next call flushes it
+// with outcome 'unflushed' so no call is silently lost.
+
+declare const Deno: { env: { get(key: string): string | undefined } };
+
+export type AiProviderName = "anthropic" | "lovable_gateway";
+
+export interface AiCallRow {
+  function_name: string;
+  surface?: string | null;
+  stage?: 1 | 2;
+  provider: AiProviderName;
+  model: string;
+  model_called?: boolean;
+  outcome?: "completed" | "rejected" | "error" | "unflushed";
+  rejection_rule?: string | null;
+  user_id?: string | null;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  cache_read_tokens?: number | null;
+  cache_write_tokens?: number | null;
+  duration_ms?: number | null;
+  http_status?: number | null;
+  error_text?: string | null;
+}
+
+async function insertRows(rows: AiCallRow[]): Promise<void> {
+  if (rows.length === 0) return;
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SERVICE_ROLE) return;
+    // @ts-ignore — esm.sh URL import is Deno-native.
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.95.0");
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await admin.from("ai_call_log").insert(
+      rows.map((r) => ({
+        function_name: r.function_name,
+        surface: r.surface ?? null,
+        stage: r.stage ?? 2,
+        provider: r.provider,
+        model: r.model,
+        model_called: r.model_called ?? true,
+        outcome: r.outcome ?? "completed",
+        rejection_rule: r.rejection_rule ?? null,
+        user_id: r.user_id ?? null,
+        input_tokens: r.input_tokens ?? null,
+        output_tokens: r.output_tokens ?? null,
+        cache_read_tokens: r.cache_read_tokens ?? null,
+        cache_write_tokens: r.cache_write_tokens ?? null,
+        duration_ms: r.duration_ms ?? null,
+        http_status: r.http_status ?? null,
+        error_text: r.error_text ? String(r.error_text).slice(0, 500) : null,
+      })),
+    );
+  } catch (e) {
+    // Best-effort: metering must never break a member's request.
+    console.warn("[ai-meter] log write failed:", e);
+  }
+}
+
+/** Buffered stage-2 writer calls awaiting their guardrail outcome, keyed by
+ *  function name so two surfaces in the same isolate don't collide. */
+const pending = new Map<string, AiCallRow>();
+
+function flush(row: AiCallRow): void {
+  void insertRows([row]);
+}
+
+/** Record an AI call. Stage 1 rows are written immediately; stage-2 rows wait
+ *  for `recordAiOutcome` so outcome + rejection rule land on the same row. */
+export function logAiCall(row: AiCallRow): void {
+  const stage = row.stage ?? 2;
+  if (stage === 1 || row.outcome === "error") {
+    flush({ ...row, stage });
+    return;
+  }
+  const stale = pending.get(row.function_name);
+  if (stale) flush({ ...stale, outcome: "unflushed" });
+  pending.set(row.function_name, { ...row, stage: 2 });
+}
+
+/** Called by sanitiseAndLog once the guardrails have run. Attaches the outcome
+ *  to the buffered writer row, or — when no model call happened on this path
+ *  (a cached read) — logs a `model_called = false` row so the inflated
+ *  rejection rate the audit found can be separated out. */
+export function recordAiOutcome(args: {
+  function_name: string;
+  surface?: string | null;
+  user_id?: string | null;
+  outcome: "completed" | "rejected";
+  rejection_rule?: string | null;
+}): void {
+  const buffered = pending.get(args.function_name);
+  if (buffered) {
+    pending.delete(args.function_name);
+    flush({
+      ...buffered,
+      surface: buffered.surface ?? args.surface ?? null,
+      user_id: buffered.user_id ?? args.user_id ?? null,
+      outcome: args.outcome,
+      rejection_rule: args.rejection_rule ?? null,
+    });
+    return;
+  }
+  flush({
+    function_name: args.function_name,
+    surface: args.surface ?? null,
+    stage: 2,
+    provider: "anthropic",
+    model: "none",
+    model_called: false,
+    outcome: args.outcome,
+    rejection_rule: args.rejection_rule ?? null,
+    user_id: args.user_id ?? null,
+  });
+}
+
+/** Metadata a call site passes so a row can be attributed. */
+export interface AiCallMeta {
+  function_name: string;
+  stage?: 1 | 2;
+  surface?: string | null;
+  user_id?: string | null;
+}
+
+interface GatewayUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+}
+
+/**
+ * Drop-in wrapper for a Lovable AI Gateway chat-completions POST. Same
+ * behaviour and same Response as a direct `fetch` — it only reads a clone of
+ * the body to harvest `usage` and the model string, then logs a row.
+ */
+export async function gatewayFetch(
+  meta: AiCallMeta,
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const t0 = Date.now();
+  let requestedModel = "unknown";
+  try {
+    const body = typeof init.body === "string" ? JSON.parse(init.body) : null;
+    if (body && typeof body.model === "string") requestedModel = body.model;
+  } catch { /* body not JSON — keep 'unknown' */ }
+
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (e) {
+    logAiCall({
+      ...meta,
+      provider: "lovable_gateway",
+      model: requestedModel,
+      outcome: "error",
+      duration_ms: Date.now() - t0,
+      error_text: e instanceof Error ? e.message : String(e),
+    });
+    throw e;
+  }
+
+  const duration_ms = Date.now() - t0;
+  if (!res.ok) {
+    logAiCall({
+      ...meta,
+      provider: "lovable_gateway",
+      model: requestedModel,
+      outcome: "error",
+      http_status: res.status,
+      duration_ms,
+    });
+    return res;
+  }
+
+  try {
+    const peek = await res.clone().json();
+    const usage = (peek?.usage ?? {}) as GatewayUsage;
+    logAiCall({
+      ...meta,
+      provider: "lovable_gateway",
+      model: typeof peek?.model === "string" && peek.model ? peek.model : requestedModel,
+      http_status: res.status,
+      duration_ms,
+      input_tokens: usage.prompt_tokens ?? null,
+      output_tokens: usage.completion_tokens ?? null,
+      cache_read_tokens: usage.prompt_tokens_details?.cached_tokens ?? null,
+    });
+  } catch {
+    logAiCall({
+      ...meta,
+      provider: "lovable_gateway",
+      model: requestedModel,
+      http_status: res.status,
+      duration_ms,
+    });
+  }
+  return res;
+}
