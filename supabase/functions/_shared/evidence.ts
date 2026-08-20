@@ -211,7 +211,7 @@ export async function gatherEvidence(input: {
   let principle = "";
 
   try {
-    const res = await fetch(GATEWAY, {
+    const res = await gatewayFetch(AI_METER_META, GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
@@ -618,7 +618,7 @@ export async function mapClaimsToEvidence(
     ].filter(Boolean).join("\n\n");
 
   try {
-    const res = await fetch(GATEWAY, {
+    const res = await gatewayFetch(AI_METER_META, GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
@@ -845,6 +845,10 @@ import {
   loadClarifications,
   type Clarification,
 } from "./clarifications.ts";
+import { gatewayFetch } from "./ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "evidence-gather", stage: 1 } as const;
 
 /**
  * AUTHOR CLARIFICATIONS — merged into the evidence set as first-class evidence,
