@@ -6,6 +6,8 @@
 // the schema is smaller — see _shared/tool-schema.ts.
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -696,6 +698,10 @@ function jsonResp(status: number, body: unknown): Response {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   try {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
@@ -745,6 +751,10 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "tool-analyse-url", 40);
+    if (capped) return capped;
 
     const t0 = Date.now();
     console.log(JSON.stringify({ tag: "tool-debug", phase: "start", url, provider, profileHash }));

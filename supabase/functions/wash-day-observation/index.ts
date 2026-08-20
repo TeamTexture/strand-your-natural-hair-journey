@@ -8,6 +8,8 @@
 // save → no caching.
 
 import { json, preflight } from "../_shared/cors.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
@@ -385,11 +387,19 @@ ${STYLE_WEIGHTING_RULES}`;
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   const t0 = Date.now();
   try {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
     const { user, supabase } = auth;
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "wash-day-observation", 40);
+    if (capped) return capped;
 
     const body = (await req.json()) as RequestBody;
     console.log("[wash-debug] start", { user_id: user.id });

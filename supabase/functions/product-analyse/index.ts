@@ -26,6 +26,8 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { json, preflight } from "../_shared/cors.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
@@ -494,6 +496,10 @@ Return strict JSON matching the schema in your system prompt.`;
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   try {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
@@ -556,6 +562,10 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "product-analyse", 25);
+    if (capped) return capped;
 
     const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
 

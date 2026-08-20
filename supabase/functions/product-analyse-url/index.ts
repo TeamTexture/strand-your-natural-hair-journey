@@ -34,6 +34,8 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -820,6 +822,10 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   try {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
@@ -881,6 +887,10 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "product-analyse-url", 25);
+    if (capped) return capped;
 
     const ctx = ctxEarly;
     const profileHash = profileHashEarly;
