@@ -30,6 +30,11 @@
 // view, but is NOT passed into stage 2 — the 2026-04-27 citation ban stands and
 // the writer must never have a chapter number or page to quote.
 
+import { gatewayFetch } from "./ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "evidence-gather", stage: 1 } as const;
+
 import {
   chaptersForSurface,
   loadChapterRows,
@@ -845,10 +850,6 @@ import {
   loadClarifications,
   type Clarification,
 } from "./clarifications.ts";
-import { gatewayFetch } from "./ai-meter.ts";
-
-// Cost meter attribution (Phase 2) — observation only.
-const AI_METER_META = { function_name: "evidence-gather", stage: 1 } as const;
 
 /**
  * AUTHOR CLARIFICATIONS — merged into the evidence set as first-class evidence,
