@@ -26,6 +26,11 @@ import {
 } from "../_shared/grounding.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "ingredient-profile", stage: 2 } as const;
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -222,7 +227,7 @@ Deno.serve(async (req) => {
   try {
 
 
-    aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

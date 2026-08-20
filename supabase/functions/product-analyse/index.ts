@@ -345,6 +345,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "product-analyse", stage: 2 } as const;
+
 
 function buildLovableSystem(tipsLevel: TipsLevel): string {
   const cap = levelCap(tipsLevel);
@@ -442,8 +447,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}
 
 Return strict JSON matching the schema in your system prompt.`;
 
-  const aiResp = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
+  const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
     {
       method: "POST",
       headers: {

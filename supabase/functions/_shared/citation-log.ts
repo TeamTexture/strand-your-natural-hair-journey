@@ -11,6 +11,7 @@
 // user must never see raw citations because logging broke.
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
+import { recordAiOutcome } from "./ai-meter.ts";
 import { collectText, enforceFidelity, stripDeep } from "./fidelity.ts";
 import { lastSourceText } from "./chapter-context.ts";
 import {
@@ -217,6 +218,17 @@ export async function sanitiseAndLog<T>(
   const clarRejections = [...clarCheck.strip, ...clarCheck.log];
 
   if (!onEvidencePath) {
+    // COST METER (Phase 2) — observation only. Attaches the guardrail outcome
+    // to the buffered writer row, or logs a `model_called = false` row when
+    // this path ran without any model call (a cached read).
+    recordAiOutcome({
+      function_name: functionName,
+      surface: opts?.surface ?? null,
+      user_id: opts?.userId ?? null,
+      outcome: clarRejections.length > 0 || stripped.length > 0 ? "rejected" : "completed",
+      rejection_rule:
+        clarRejections[0]?.rule ?? (stripped.length > 0 ? "citation_strip" : null),
+    });
     if (clarRejections.length > 0) {
       await logGenerationRejections(
         functionName,
@@ -324,6 +336,15 @@ async function verifyStage3<T>(
 
   const stripped = new Set(violations.map((v) => v.claim));
   external = external.filter((e) => !stripped.has(e.claim));
+
+  // COST METER (Phase 2) — observation only; does not alter the payload.
+  recordAiOutcome({
+    function_name: functionName,
+    surface: opts?.surface ?? null,
+    user_id: opts?.userId ?? null,
+    outcome: violations.length > 0 || clar.rejections.length > 0 ? "rejected" : "completed",
+    rejection_rule: violations[0]?.rule ?? clar.rejections[0]?.rule ?? null,
+  });
 
   if (violations.length > 0) {
     console.warn(

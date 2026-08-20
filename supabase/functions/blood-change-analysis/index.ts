@@ -63,6 +63,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "blood-change-analysis", stage: 2 } as const;
+
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
@@ -132,8 +137,7 @@ Deno.serve(async (req) => {
       ragK: 4,
     });
 
-    const aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         headers: {

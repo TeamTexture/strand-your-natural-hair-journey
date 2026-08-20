@@ -376,5 +376,7 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     tools: tools.length > 0 ? tools : undefined,
     toolChoice: input.toolChoice,
     max_tokens: input.max_tokens,
+    // Cost meter attribution (Phase 2) — the writer call is stage 2.
+    meta: { function_name: input.function_kind, stage: 2 },
   };
 }

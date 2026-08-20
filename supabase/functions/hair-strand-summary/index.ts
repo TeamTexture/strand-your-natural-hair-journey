@@ -63,6 +63,11 @@ import {
   recordAdvice,
 } from "../_shared/advice-ledger.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "hair-strand-summary", stage: 2 } as const;
+
 
 const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
 
@@ -211,7 +216,7 @@ Deno.serve(async (req: Request) => {
       styleBlock ? `\n\n${styleBlock}` : ""
     }`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

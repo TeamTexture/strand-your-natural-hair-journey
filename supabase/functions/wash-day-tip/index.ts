@@ -42,6 +42,11 @@ import {
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "wash-day-tip", stage: 2 } as const;
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -375,7 +380,7 @@ Do not substitute other cleansing or sealing methods for these two.`
 
   let aiResp: Response;
   try {
-    aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -507,7 +512,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     // One regeneration pass with the corrective directive. Grounding block is
     // resent unchanged — the retry never relaxes it.
     try {
-      const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const retryResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
@@ -558,7 +563,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   // with a bare, rule-free prompt whose only job is to emit the object.
   if (!isUsable(parsed)) {
     try {
-      const salvage = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const salvage = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
@@ -692,7 +697,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       String(capped.reason ?? "").slice(0, 1000),
     );
     try {
-      const repairResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const repairResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({

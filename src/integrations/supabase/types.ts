@@ -347,6 +347,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_call_log: {
+        Row: {
+          cache_read_tokens: number | null
+          cache_write_tokens: number | null
+          created_at: string
+          duration_ms: number | null
+          error_text: string | null
+          function_name: string
+          http_status: number | null
+          id: string
+          input_tokens: number | null
+          model: string
+          model_called: boolean
+          outcome: string
+          output_tokens: number | null
+          provider: string
+          rejection_rule: string | null
+          stage: number
+          surface: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_text?: string | null
+          function_name: string
+          http_status?: number | null
+          id?: string
+          input_tokens?: number | null
+          model: string
+          model_called?: boolean
+          outcome?: string
+          output_tokens?: number | null
+          provider: string
+          rejection_rule?: string | null
+          stage?: number
+          surface?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_text?: string | null
+          function_name?: string
+          http_status?: number | null
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          model_called?: boolean
+          outcome?: string
+          output_tokens?: number | null
+          provider?: string
+          rejection_rule?: string | null
+          stage?: number
+          surface?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_citation_violations: {
         Row: {
           cleaned_length: number | null
@@ -413,6 +476,39 @@ export type Database = {
           regenerated?: boolean
           rule_id?: string | null
           surface?: string | null
+        }
+        Relationships: []
+      }
+      ai_model_rates: {
+        Row: {
+          cache_read_usd_per_mtok: number | null
+          cache_write_usd_per_mtok: number | null
+          input_usd_per_mtok: number | null
+          model: string
+          output_usd_per_mtok: number | null
+          provider: string
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          cache_read_usd_per_mtok?: number | null
+          cache_write_usd_per_mtok?: number | null
+          input_usd_per_mtok?: number | null
+          model: string
+          output_usd_per_mtok?: number | null
+          provider: string
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cache_read_usd_per_mtok?: number | null
+          cache_write_usd_per_mtok?: number | null
+          input_usd_per_mtok?: number | null
+          model?: string
+          output_usd_per_mtok?: number | null
+          provider?: string
+          source?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -6422,6 +6518,30 @@ export type Database = {
           slot: string | null
           stat_date: string | null
           wishlist_adds: number | null
+        }
+        Relationships: []
+      }
+      ai_call_costs: {
+        Row: {
+          cache_read_tokens: number | null
+          cache_write_tokens: number | null
+          cost_usd: number | null
+          created_at: string | null
+          duration_ms: number | null
+          error_text: string | null
+          function_name: string | null
+          http_status: number | null
+          id: string | null
+          input_tokens: number | null
+          model: string | null
+          model_called: boolean | null
+          outcome: string | null
+          output_tokens: number | null
+          provider: string | null
+          rejection_rule: string | null
+          stage: number | null
+          surface: string | null
+          user_id: string | null
         }
         Relationships: []
       }

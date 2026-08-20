@@ -73,6 +73,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "nutrition-plan", stage: 2 } as const;
+
 
 const TASK_PROMPT_LOVABLE = `TASK
 Generate a deeply personalised hair-nutrition plan with two parts: foods to eat ("diet") and what to pair, time or watch for ("avoid"). The "avoid" cards are NOT about eating less — they cover pairing, timing and medication interactions only. Speak in STRAND's professional advisory voice.
@@ -426,8 +431,7 @@ async function runLovable(
   const timeoutId = setTimeout(() => controller.abort(), 55_000);
   let aiResp: Response;
   try {
-    aiResp = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         signal: controller.signal,

@@ -241,6 +241,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "wash-day-observation", stage: 2 } as const;
+
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
 async function runLovable(args: {
@@ -307,8 +312,7 @@ You MAY name the style the member has on her head, or the one she recorded doing
 
 ${STYLE_WEIGHTING_RULES}`;
 
-  const aiResp = await fetch(
-    "https://ai.gateway.lovable.dev/v1/chat/completions",
+  const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
     {
       method: "POST",
       headers: {

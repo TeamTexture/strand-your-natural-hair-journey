@@ -33,6 +33,11 @@ import {
   memberAttributeTokens,
   hasInstructingVerb,
 } from "../_shared/tip-action.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "brand-product-guidance", stage: 2 } as const;
+
 
 /**
  * SOFT SIGNALS (2026-08-09, author's correction). Three simultaneous hard
@@ -691,7 +696,7 @@ Deno.serve(async (req) => {
     // three hard rules and log the rest.
     const MAX_ATTEMPTS = 2;
     for (let attempt = 0; attempt < MAX_ATTEMPTS && !clean; attempt++) {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

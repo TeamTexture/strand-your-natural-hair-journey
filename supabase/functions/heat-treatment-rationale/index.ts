@@ -62,6 +62,11 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "heat-treatment-rationale", stage: 2 } as const;
+
 
 function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
   const hp = (ctx.hairProfile as Record<string, unknown>) ?? {};
@@ -203,7 +208,7 @@ ${STYLE_WEIGHTING_RULES}`;
     ragK: 4,
   });
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

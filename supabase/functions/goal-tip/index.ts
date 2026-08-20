@@ -53,6 +53,11 @@ import {
   recordAdvice,
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "goal-tip", stage: 2 } as const;
+
 
 /**
  * Select up to 4 manuscript topics relevant to this goal + user context.
@@ -608,8 +613,7 @@ Deno.serve(async (req) => {
       : `${baseSystemPrompt}${ragBlock}${styleSuffix}`;
     const finalSystemPrompt = `${systemPrompt}${singleSuffix}${cornrowSuffix}`;
 
-    const callModel = (extraDirective = "") => fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    const callModel = (extraDirective = "") => gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         headers: {

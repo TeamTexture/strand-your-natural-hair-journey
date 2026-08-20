@@ -30,6 +30,11 @@
 // view, but is NOT passed into stage 2 — the 2026-04-27 citation ban stands and
 // the writer must never have a chapter number or page to quote.
 
+import { gatewayFetch } from "./ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "evidence-gather", stage: 1 } as const;
+
 import {
   chaptersForSurface,
   loadChapterRows,
@@ -211,7 +216,7 @@ export async function gatherEvidence(input: {
   let principle = "";
 
   try {
-    const res = await fetch(GATEWAY, {
+    const res = await gatewayFetch(AI_METER_META, GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
@@ -618,7 +623,7 @@ export async function mapClaimsToEvidence(
     ].filter(Boolean).join("\n\n");
 
   try {
-    const res = await fetch(GATEWAY, {
+    const res = await gatewayFetch(AI_METER_META, GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({

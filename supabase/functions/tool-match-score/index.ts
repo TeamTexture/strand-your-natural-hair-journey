@@ -15,6 +15,11 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
 import { evidencePromptBlock } from "../_shared/evidence.ts";
+import { gatewayFetch } from "../_shared/ai-meter.ts";
+
+// Cost meter attribution (Phase 2) — observation only.
+const AI_METER_META = { function_name: "tool-match-score", stage: 2 } as const;
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -136,7 +141,7 @@ Deno.serve(async (req) => {
   const systemPrompt = evid.grounded ? `${SYSTEM}\n\n${evid.block}` : SYSTEM;
 
   try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
