@@ -57,7 +57,22 @@ type SalonRow = {
   is_published: boolean;
 };
 
+/**
+ * Discount codes are commercial member benefits and are never readable by a
+ * visitor who is not signed in (enforced in the database with column-level
+ * privileges). Signed-out visitors therefore load the listing columns only.
+ */
+const PRO_LISTING_COLUMNS =
+  "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting";
+const PRO_DISCOUNT_COLUMNS = "discount_code,discount_description,discount_active";
+
 async function loadDirectory(): Promise<Professional[]> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const authed = !!sessionData.session;
+  const proColumns = authed
+    ? `${PRO_LISTING_COLUMNS},${PRO_DISCOUNT_COLUMNS}`
+    : PRO_LISTING_COLUMNS;
+
   const [{ data: curated, error: dbErr }, { data: proProfiles, error: ppErr }] =
     await Promise.all([
       supabase
@@ -68,12 +83,12 @@ async function loadDirectory(): Promise<Professional[]> {
         .eq("is_active", true),
       supabase
         .from("pro_profiles")
-        .select(
-          "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting,discount_code,discount_description,discount_active",
-        )
+        // Cast keeps the generated row typing while the column list stays dynamic.
+        .select(proColumns as "*")
         .eq("is_published", true)
         .is("suspended_at", null),
     ]);
+
 
   // NEITHER layer may take the other down. A grant/policy gap on the curated
   // table once threw here, which collapsed the whole query to the static seed
