@@ -17,6 +17,8 @@
 //   - Logging: usage tokens only, never the analysis body.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -539,6 +541,10 @@ const STRAND_PERSONA_INLINE = STRAND_PERSONA_WITH_RULES;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   try {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
@@ -585,6 +591,10 @@ Deno.serve(async (req) => {
         }
       }
     }
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "ingredient-analysis", 60);
+    if (capped) return capped;
 
     // ── Pull personalisation server-side ─────────────────────────────
     const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([

@@ -13,6 +13,8 @@
 // Same response shape: { deficiencies[], overall_summary, priority_actions[] }
 // so the existing BloodAiSummary.tsx renderer is unchanged.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
@@ -419,6 +421,10 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   const t0 = Date.now();
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -481,6 +487,10 @@ Deno.serve(async (req: Request) => {
         });
       }
     }
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "blood-ai-summary", 10);
+    if (capped) return capped;
 
     // Pull recent wash signals (shedding/breakage notes) for Claude context.
     const recentWashSignals = await (async () => {

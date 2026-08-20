@@ -11,6 +11,8 @@
 // - Two lines, tight word counts, modern voice.
 
 import { requireAuthedUser } from "../_shared/auth.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { retrievePassages, renderPassageBlock } from "../_shared/rag.ts";
 import { GROUNDING_INSTRUCTION } from "../_shared/grounding.ts";
@@ -76,6 +78,10 @@ Voice rules:
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
+
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -84,6 +90,10 @@ Deno.serve(async (req) => {
   if (auth instanceof Response) return auth;
 
   try {
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(auth.user.id, "journal-encouragement", 50);
+    if (capped) return capped;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 

@@ -7,6 +7,8 @@
 // Same response shape: { summary, diet[], avoid[] } so the existing
 // NutritionPlan.tsx renderer is unchanged.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import { json, preflight } from "../_shared/cors.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -549,6 +551,10 @@ async function runLovable(
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   const t0 = Date.now();
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -632,6 +638,10 @@ Deno.serve(async (req: Request) => {
         });
       }
     }
+
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(user.id, "nutrition-plan", 8);
+    if (capped) return capped;
 
     let payload: NutritionPlanPayload;
     let providerStamp: "claude" | "lovable";

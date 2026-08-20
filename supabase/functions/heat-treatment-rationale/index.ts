@@ -12,6 +12,8 @@
 //      → now surfaces a real error via aiErrorResponse
 
 import { json, preflight } from "../_shared/cors.ts";
+import { checkKillSwitch } from "../_shared/kill-switch.ts";
+import { checkDailyCap } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -251,12 +253,20 @@ ${STYLE_WEIGHTING_RULES}`;
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
+  const kill = checkKillSwitch();
+  if (kill) return kill;
+
+
   // Paid AI generation — signed-in members only.
   const auth = await requireAuthedUser(req);
   if (auth instanceof Response) return auth;
 
   const t0 = Date.now();
   try {
+    // Spend protection: per-user daily cap (model-spend paths only).
+    const capped = await checkDailyCap(auth.user.id, "heat-treatment-rationale", 40);
+    if (capped) return capped;
+
     const body = (await req.json().catch(() => ({}))) as Body;
     const context = (body.context ?? {}) as Record<string, unknown>;
 
