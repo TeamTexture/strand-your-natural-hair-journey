@@ -14,6 +14,8 @@
 // Throws ClaudeError on upstream failure; callers should pass through
 // aiErrorResponse() in errors.ts.
 
+import { logAiCall, type AiCallMeta } from "./ai-meter.ts";
+
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 
@@ -195,16 +197,48 @@ export async function callClaude<T = unknown>(
     body.tool_choice = input.toolChoice;
   }
 
+  const meterT0 = Date.now();
   let resp: ClaudeApiResponse;
   try {
-    resp = await postOnce(apiKey, body);
-  } catch (err) {
-    if (err instanceof ClaudeError && err.status === 529) {
-      await sleep(750);
+    try {
       resp = await postOnce(apiKey, body);
-    } else {
-      throw err;
+    } catch (err) {
+      if (err instanceof ClaudeError && err.status === 529) {
+        await sleep(750);
+        resp = await postOnce(apiKey, body);
+      } else {
+        throw err;
+      }
     }
+  } catch (err) {
+    // Cost meter (Phase 2): record the failed attempt, then rethrow unchanged.
+    if (input.meta) {
+      logAiCall({
+        ...input.meta,
+        provider: "anthropic",
+        model: input.model,
+        outcome: "error",
+        duration_ms: Date.now() - meterT0,
+        http_status: err instanceof ClaudeError ? err.status : null,
+        error_text: err instanceof Error ? err.message : String(err),
+      });
+    }
+    throw err;
+  }
+
+  // Cost meter (Phase 2). Stage-2 rows buffer until the guardrails report an
+  // outcome; stage-1 rows are written straight away.
+  if (input.meta) {
+    logAiCall({
+      ...input.meta,
+      provider: "anthropic",
+      model: input.model,
+      duration_ms: Date.now() - meterT0,
+      input_tokens: resp.usage?.input_tokens ?? null,
+      output_tokens: resp.usage?.output_tokens ?? null,
+      cache_read_tokens: resp.usage?.cache_read_input_tokens ?? null,
+      cache_write_tokens: resp.usage?.cache_creation_input_tokens ?? null,
+    });
   }
 
   // Count Anthropic-managed server-tool invocations (e.g. native web_search).
