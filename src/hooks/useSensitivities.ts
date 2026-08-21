@@ -47,11 +47,15 @@ export function useSensitivities() {
   const query = useQuery<SensitivitySlices>({
     queryKey: sensitivitiesKey(user?.id),
     enabled: !!user?.id,
-    staleTime: 60_000,
+    // Shelf-heavy pages mount this hook once per card. React Query dedupes on
+    // the key, and the underlying decrypt read is itself shared with
+    // loadClinicalContext (30s in-module cache), so a page load costs at most
+    // one data-decrypt-context invocation no matter how many cards render.
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("data-decrypt-context", { body: {} });
-      if (error) throw error;
-      const slice = (data as DecryptedSensitivities | null)?.sensitivities ?? null;
+      const data = (await loadDecryptedContext()) as DecryptedSensitivities | null;
+      const slice = data?.sensitivities ?? null;
       return { topical: clean(slice?.topical), dietary: clean(slice?.dietary) };
     },
   });
