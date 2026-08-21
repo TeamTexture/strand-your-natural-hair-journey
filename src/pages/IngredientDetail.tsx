@@ -1000,8 +1000,13 @@ const IngredientDetail = () => {
               return (
                 <div className="flex items-center justify-between gap-3">
                   <MatchStars score={displayScore} size="lg" showValue={false} />
-                  <p className="text-[11px] text-muted-foreground text-right max-w-[160px] leading-tight">
-                    {verdictForStars(displayStars)}
+                  <p
+                    className={cn(
+                      "text-[11px] text-right max-w-[160px] leading-tight",
+                      hasSensitivity ? "font-semibold text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {displayVerdict}
                   </p>
                 </div>
               );
