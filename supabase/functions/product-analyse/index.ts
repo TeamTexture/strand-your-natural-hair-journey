@@ -512,11 +512,6 @@ Deno.serve(async (req: Request) => {
     if (auth instanceof Response) return auth;
     const { user, supabase } = auth;
 
-    // Declared topical (skin/scalp) sensitivities — warning system, not a
-    // content filter: the ingredient list is never edited.
-    const sens: LoadedSensitivities = await loadSensitivities(supabase, user.id, "topical");
-    const sensitivityBlock = topicalSensitivityBlock(sens);
-
     const body = (await req.json()) as RequestBody;
     {
       const ac = (body.context ?? {}) as Record<string, unknown>;
@@ -555,38 +550,54 @@ Deno.serve(async (req: Request) => {
     // so a support-level change or a goals change both force a fresh analysis.
     const profileHash = currentProfileHash(ctx as Record<string, unknown>);
 
+    // ── Prep round-trips, concurrently ────────────────────────────────
+    // PERFORMANCE: these four are independent of each other and all sit on
+    // the critical path before the model call — sensitivity decrypt, the
+    // cache read, the spend cap count and the advice ledger. Running them
+    // sequentially added their full latency to every scan for no reason.
+    // Nothing here changes WHAT the model receives, only when we wait.
+    const [sens, cachedRow, capped, ledgerRows] = await Promise.all([
+      loadSensitivities(supabase, user.id, "topical") as Promise<LoadedSensitivities>,
+      cacheKind && !body.force
+        ? supabase
+          .from("ai_summaries")
+          .select("payload")
+          .eq("user_id", user.id)
+          .eq("kind", cacheKind)
+          .maybeSingle()
+          .then((r: { data: { payload?: unknown } | null }) => r.data)
+        : Promise.resolve(null),
+      // Spend protection: per-user daily cap (model-spend paths only). A
+      // cache hit returns before this result is used, exactly as before.
+      checkDailyCap(user.id, "product-analyse", 25),
+      fetchAdviceLedger(user.id),
+    ]);
+
+    const sensitivityBlock = topicalSensitivityBlock(sens);
+
     // ── Cache check (only when caller passed a productKey) ────────────
-    if (cacheKind && !body.force) {
-      const { data: existing } = await supabase
-        .from("ai_summaries")
-        .select("payload")
-        .eq("user_id", user.id)
-        .eq("kind", cacheKind)
-        .maybeSingle();
-      if (existing?.payload) {
-        const cached = existing.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
-        const versionOk = provider === "claude"
-          ? cached._model_version === MODEL_VERSION
-          : cached._model_version === LOVABLE_MODEL_VERSION;
-        const hashOk = cached._profile_snapshot_hash === profileHash;
-        if (versionOk && hashOk) {
-          return json(200, await sanitiseAndLog(
-            annotateProductSensitivities(
-              cached as unknown as Record<string, unknown>,
-              sens,
-              "product-analyse",
-            ) as unknown as ProductAnalysisPayload,
+    if (cachedRow?.payload) {
+      const cached = cachedRow.payload as ProductAnalysisPayload & { _profile_snapshot_hash?: string };
+      const versionOk = provider === "claude"
+        ? cached._model_version === MODEL_VERSION
+        : cached._model_version === LOVABLE_MODEL_VERSION;
+      const hashOk = cached._profile_snapshot_hash === profileHash;
+      if (versionOk && hashOk) {
+        return json(200, await sanitiseAndLog(
+          annotateProductSensitivities(
+            cached as unknown as Record<string, unknown>,
+            sens,
             "product-analyse",
-          ));
-        }
+          ) as unknown as ProductAnalysisPayload,
+          "product-analyse",
+        ));
       }
     }
 
-    // Spend protection: per-user daily cap (model-spend paths only).
-    const capped = await checkDailyCap(user.id, "product-analyse", 25);
     if (capped) return capped;
 
-    const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
+    const ledgerBlock = buildAdviceLedgerBlock(ledgerRows);
+
 
     let analysis: ProductAnalysisPayload;
 

@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { takePendingAiContext } from "@/hooks/useProductScan";
 import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
@@ -118,19 +119,19 @@ const ProductScanning = () => {
           return signed.signedUrl;
         };
 
-        const front = await resolveSlot(
-          state.front_image_data_url,
-          state.front_storage_path,
-          "front",
-        );
-        const back = await resolveSlot(
-          state.back_image_data_url,
-          state.back_storage_path,
-          "back",
-        );
+        // PERFORMANCE: both photo URLs and the member context resolve
+        // concurrently, and the context is usually already built (started
+        // at capture time in useProductScan) so this is normally instant.
+        const pending = takePendingAiContext();
+        const [front, back, resolvedContext] = await Promise.all([
+          resolveSlot(state.front_image_data_url, state.front_storage_path, "front"),
+          resolveSlot(state.back_image_data_url, state.back_storage_path, "back"),
+          (pending ?? buildAiContext()).then((c) => c ?? buildAiContext()),
+        ]);
 
-        const context = await buildAiContext();
+        const context = resolvedContext as Awaited<ReturnType<typeof buildAiContext>>;
         const currentHash = currentProfileHash(context);
+
         // Photo scans always mint a new product_key, so there's no existing
         // row to dedupe against — log the decision so future tooling
         // (signals, replays) sees a consistent shape across both flows.
@@ -207,10 +208,10 @@ const ProductScanning = () => {
         }
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
         // Snap the ring to a full circle on real success so the user sees
-        // it complete before we navigate away. Hold for ~450ms so the
+        // it complete before we navigate away. Short hold so the
         // CSS transition has time to draw the final arc.
         setProgressPct(100);
-        await new Promise((r) => setTimeout(r, 450));
+        await new Promise((r) => setTimeout(r, 180));
 
         const name = encodeURIComponent(saveFields.name);
         const brand = encodeURIComponent(saveFields.brand ?? "");
