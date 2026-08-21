@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { prepareImageForAi } from "@/lib/imagePrep";
+import { buildAiContext } from "@/lib/aiContext";
 
 /**
  * Phase 2 Step 3b — guided dual-photo product scan.
@@ -16,10 +17,23 @@ import { prepareImageForAi } from "@/lib/imagePrep";
  * to /products/scanning, which invokes the function with the dual-photo
  * body shape.
  *
- * The intent ("shelf" or "wishlist") determines where the user lands after
- * analysis. All images are re-encoded to JPEG client-side so iPhone HEIC
- * photos work with vision models.
+ * PERFORMANCE (2026-08-21): the analysis only needs the base64 JPEGs, so
+ * neither the two storage uploads nor the member's AI-context build sit in
+ * front of the model call any more. Both start here and finish in the
+ * background while the analysis runs. Identical inputs to the model — the
+ * only change is what we wait for.
  */
+
+/** In-flight AI context for the scan about to start (see useProductScan). */
+let pendingContext: Promise<Record<string, unknown> | null> | null = null;
+
+/** Consumed once by the scanning screen; falls back to a fresh build. */
+export function takePendingAiContext(): Promise<Record<string, unknown> | null> | null {
+  const p = pendingContext;
+  pendingContext = null;
+  return p;
+}
+
 export function useProductScan() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -45,8 +59,15 @@ export function useProductScan() {
 
     setBusy(true);
     try {
-      // Re-encode + upload BOTH photos. Each gets its own storage path so
-      // the user's product detail screen can show either as the cover image.
+      // Start the member-context build immediately — it runs while the
+      // photos are being re-encoded and, if needed, while the model call
+      // is already in flight.
+      const contextPromise = (buildAiContext() as Promise<Record<string, unknown>>).catch((e) => {
+        console.error("buildAiContext failed", e);
+        return null;
+      });
+      pendingContext = contextPromise;
+
       const [preparedFront, preparedBack] = await Promise.all([
         prepareImageForAi(front),
         prepareImageForAi(back),
@@ -55,33 +76,32 @@ export function useProductScan() {
       const frontPath = `${user.id}/scans/${uuid()}.jpg`;
       const backPath = `${user.id}/scans/${uuid()}.jpg`;
 
-      const [{ error: upFrontErr }, { error: upBackErr }] = await Promise.all([
+      // Fire-and-forget upload: the product row stores these paths and the
+      // objects land long before the member leaves the analysis.
+      void Promise.all([
         supabase.storage.from("product-photos").upload(frontPath, preparedFront.uploadFile, {
           contentType: "image/jpeg", upsert: false,
         }),
         supabase.storage.from("product-photos").upload(backPath, preparedBack.uploadFile, {
           contentType: "image/jpeg", upsert: false,
         }),
-      ]);
-      if (upFrontErr) throw upFrontErr;
-      if (upBackErr) throw upBackErr;
-
-      // Signed URLs for on-screen preview only — the AI receives the data URL.
-      const [{ data: signedFront }, { data: signedBack }] = await Promise.all([
-        supabase.storage.from("product-photos").createSignedUrl(frontPath, 3600),
-        supabase.storage.from("product-photos").createSignedUrl(backPath, 3600),
-      ]);
+      ]).then(([f, b]) => {
+        if (f.error || b.error) {
+          console.error("Scan photo upload failed", f.error ?? b.error);
+          toast.error("Your analysis is running, but we couldn't save the photos.");
+        }
+      });
 
       navigate("/products/scanning", {
         state: {
           // Cover image for the detail screen — the front is the natural choice.
           storage_path: frontPath,
-          preview_url: signedFront?.signedUrl ?? preparedFront.dataUrl,
+          preview_url: preparedFront.dataUrl,
           // Dual-photo payload for the edge function.
           front_storage_path: frontPath,
           back_storage_path: backPath,
-          front_preview_url: signedFront?.signedUrl ?? preparedFront.dataUrl,
-          back_preview_url: signedBack?.signedUrl ?? preparedBack.dataUrl,
+          front_preview_url: preparedFront.dataUrl,
+          back_preview_url: preparedBack.dataUrl,
           front_image_data_url: preparedFront.dataUrl,
           back_image_data_url: preparedBack.dataUrl,
           intent,
