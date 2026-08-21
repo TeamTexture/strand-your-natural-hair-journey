@@ -15,6 +15,7 @@ import {
   type LoadedSensitivities,
 } from "./sensitivities.ts";
 import type { ScoreReason } from "./score-reasons.ts";
+import { applySensitivityCeiling } from "./sensitivity-ceiling.ts";
 
 /** Prompt block: name the exclusions, but as a warning contract. */
 export function topicalSensitivityBlock(s: LoadedSensitivities): string {
@@ -81,8 +82,13 @@ export function matchIngredient(
 const SENSITIVITY_SENTENCE = (labels: string[]) =>
   `Contains ${labels.join(" and ")}, which you've flagged as a sensitivity — read the pack before you use it.`;
 
-/** Score cap once a declared hard sensitivity is present in the formula. */
-export const SENSITIVITY_SCORE_CAP = 35;
+/**
+ * Score ceiling once declared hard sensitivities are present in the formula.
+ * GRADUATED by matched count (1 → 18, 2 → 8, 3+ → 3) via the shared curve in
+ * ./sensitivity-ceiling.ts, mirrored client-side in src/lib/sensitivityCeiling.ts.
+ * More matched allergens = a worse product for this member = a lower number.
+ */
+export { applySensitivityCeiling, sensitivityCeiling } from "./sensitivity-ceiling.ts";
 
 export function sensitivityScoreReason(label: string, term: string): ScoreReason {
   return {
@@ -160,9 +166,9 @@ export function annotateProductSensitivities<T extends Record<string, unknown>>(
   }
   (payload as Record<string, unknown>).score_reasons = reasons.slice(0, 4);
   if (typeof payload.match_score === "number") {
-    (payload as Record<string, unknown>).match_score = Math.min(
+    (payload as Record<string, unknown>).match_score = applySensitivityCeiling(
       payload.match_score as number,
-      SENSITIVITY_SCORE_CAP,
+      labels.length,
     );
   }
 

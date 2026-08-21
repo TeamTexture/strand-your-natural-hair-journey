@@ -82,7 +82,7 @@ const ProductsByIngredient = () => {
                 secondary={
                   <span className="inline-flex items-center gap-2">
                     {p.brand && <BrandLink brand={p.brand} />}
-                    <MatchStars item={p} />
+                    <MatchStars item={p} ingredients={p.ingredients} />
                   </span>
                 }
                 fact={s.label}

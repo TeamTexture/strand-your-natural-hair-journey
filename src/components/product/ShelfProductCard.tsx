@@ -9,7 +9,9 @@
 
 import type { ReactNode } from "react";
 import ProductThumb from "@/components/ProductThumb";
-import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
+import SensitivityShelfAlert, {
+  useSensitivityAdjustedScore,
+} from "@/components/sensitivity/SensitivityShelfAlert";
 import { cn } from "@/lib/utils";
 
 export interface ShelfProductCardProps {
@@ -69,6 +71,9 @@ const ShelfProductCard = ({
   ingredients,
 }: ShelfProductCardProps) => {
   const openable = !!onOpen;
+  // A declared sensitivity present in the formula caps the displayed score
+  // instantly — no red warning may ever sit beside a comfortable percentage.
+  const shownScore = useSensitivityAdjustedScore(matchScore, ingredients);
   return (
     <div
       {...anchor}
@@ -122,11 +127,11 @@ const ShelfProductCard = ({
           {meta && <div className="mt-1 flex items-center gap-2 flex-wrap">{meta}</div>}
           {chips && <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">{chips}</div>}
         </div>
-        {(matchScore != null || headerActions) && (
+        {(shownScore != null || headerActions) && (
           <div className="shrink-0 flex flex-col items-end gap-1">
-            {matchScore != null && (
+            {shownScore != null && (
               <span className="inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.07] px-2.5 py-1 text-[10.5px] font-semibold font-body text-primary">
-                {matchScore}% match
+                {shownScore}% match
               </span>
             )}
             {headerActions}

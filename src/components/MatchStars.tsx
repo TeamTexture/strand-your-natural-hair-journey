@@ -4,7 +4,8 @@
 // never disagree. Items with no score render nothing at all — no empty grey
 // stars — which is the app's signal that analysis hasn't run yet.
 import { cn } from "@/lib/utils";
-import { formatStars, starsForItem, type MatchScored } from "@/lib/matchStars";
+import { formatStars, matchScoreOf, starsFromScore, type MatchScored } from "@/lib/matchStars";
+import { useSensitivityAdjustedScore } from "@/components/sensitivity/SensitivityShelfAlert";
 
 const SIZES = {
   sm: { star: "text-[13px]", value: "text-[11px]" },
@@ -15,18 +16,22 @@ const SIZES = {
 export default function MatchStars({
   item,
   score,
+  ingredients,
   size = "sm",
   showValue = true,
   className,
 }: {
   item?: MatchScored | null;
   score?: number | null;
+  /** Stored INCI list — caps the rating when it matches a declared sensitivity. */
+  ingredients?: string[] | null;
   size?: keyof typeof SIZES;
   showValue?: boolean;
   className?: string;
 }) {
-  const stars =
-    item !== undefined ? starsForItem(item) : starsForItem({ match_score: score ?? null });
+  const rawScore = item !== undefined ? matchScoreOf(item) : (score ?? null);
+  const adjusted = useSensitivityAdjustedScore(rawScore, ingredients);
+  const stars = starsFromScore(adjusted);
   if (stars == null) return null;
 
   const s = SIZES[size];

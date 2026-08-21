@@ -120,7 +120,7 @@ const ProductRepository = () => {
                   <p className="text-sm font-medium font-body leading-tight truncate">{p.name}</p>
                   <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <MatchStars item={p} />
+                    <MatchStars item={p} ingredients={p.ingredients} />
                     {lastUsed && (
                       <span className="text-[10px] text-muted-foreground">· last used {lastUsed}</span>
                     )}

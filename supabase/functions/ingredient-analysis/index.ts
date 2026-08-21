@@ -31,7 +31,7 @@ import {
   matchIngredient,
   scanTopical,
   sensitivityScoreReason,
-  SENSITIVITY_SCORE_CAP,
+  applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
@@ -805,7 +805,10 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
         }
         analysis.score_reasons = reasons.slice(0, 4);
         if (typeof analysis.match_score === "number") {
-          analysis.match_score = Math.min(analysis.match_score, SENSITIVITY_SCORE_CAP);
+          analysis.match_score = applySensitivityCeiling(
+            analysis.match_score,
+            flagged.length,
+          ) ?? analysis.match_score;
         }
         if (!/flagged as a sensitivity/i.test(analysis.summary ?? "")) {
           analysis.summary = `${(analysis.summary ?? "").trim()} Contains ${

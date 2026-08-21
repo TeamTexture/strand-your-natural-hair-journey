@@ -266,7 +266,7 @@ const Products = () => {
                     }
                     meta={
                       <>
-                        <MatchStars item={p} />
+                        <MatchStars item={p} ingredients={p.ingredients} />
                         {noteCount > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
                             <Mic className="size-3" /> {noteCount}
