@@ -134,6 +134,10 @@ interface DecryptedContext {
   } | null;
   medications: Array<{ id: string; name: string; category: string | null }>;
   bloodResults: Array<{ id: string; value: number | null; unit: string | null }>;
+  sensitivities?: {
+    topical?: unknown[] | null;
+    dietary?: unknown[] | null;
+  } | null;
 }
 
 // ─────────────────────────── Helpers ───────────────────────────
