@@ -110,7 +110,12 @@ const Home = () => {
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   // Home shows EXACTLY ONE tip — the STRAND tip. The fuller
   // multi-tip "How you'll get there" playbook lives on the Style Journal.
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(goal, { single: true });
+  // While SHOW_STRAND_TIP is off the card isn't rendered, so we don't request a
+  // tip either — the engine is untouched, it just isn't called from Home.
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(
+    SHOW_STRAND_TIP ? goal : null,
+    { single: true },
+  );
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
