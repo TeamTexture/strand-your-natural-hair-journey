@@ -179,6 +179,13 @@ export function invalidateClinicalContextCache(): void {
 const CONTEXT_TTL_MS = 30_000;
 const contextCache = new Map<string, { at: number; promise: Promise<ClinicalContext> }>();
 
+/** Shared, 30s-deduped read of the whole decrypted payload. Every consumer
+ *  (clinical context, sensitivities) goes through this so a page load costs at
+ *  most ONE `data-decrypt-context` invocation, not one per hook. */
+export async function loadDecryptedContext(): Promise<DecryptedContext | null> {
+  return fetchDecryptedContext();
+}
+
 async function fetchDecryptedContext(): Promise<DecryptedContext | null> {
   const now = Date.now();
   if (decryptCache && now - decryptCache.at < DECRYPT_TTL_MS) {
