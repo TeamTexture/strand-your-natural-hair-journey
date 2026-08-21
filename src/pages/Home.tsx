@@ -901,6 +901,7 @@ const Home = () => {
             )}
           </GuidanceCard>
         </div>
+        )}
 
 
         {/* My Blood Work */}
