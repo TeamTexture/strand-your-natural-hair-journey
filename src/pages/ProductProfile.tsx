@@ -42,6 +42,7 @@ import IngredientFlagRow from "@/components/product/IngredientFlagRow";
 import SensitivityWarning from "@/components/sensitivity/SensitivityWarning";
 import { useSensitivities } from "@/hooks/useSensitivities";
 import { scanSensitivities } from "@/lib/sensitivityMatch";
+import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
 import { IngredientProductScope, GlossaryLabel } from "@/components/ingredients/IngredientToken";
 import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
@@ -326,7 +327,16 @@ const ProductProfile = () => {
   const ingredients = product.ingredients ?? [];
   // Single source of truth: the persisted column (or the freshly analysed score
   // that was just written back to it) resolved through the shared accessor.
-  const displayScore = matchScoreOf({ match_score: aiMatchScore ?? product.match_score });
+  // A declared sensitivity present in this formula caps the score with the same
+  // graduated curve the shelf card and the server-side annotation use, so the
+  // card and this page can never disagree — even on a pre-sensitivity cache row.
+  const localSensitivityHits = scanSensitivities(ingredients, topicalEntries, "topical", {
+    severities: ["avoid"],
+  }).length;
+  const displayScore = applySensitivityCeiling(
+    matchScoreOf({ match_score: aiMatchScore ?? product.match_score }),
+    localSensitivityHits,
+  );
   const score = displayScore ?? 0;
 
   const updateRating = async (n: number) => {

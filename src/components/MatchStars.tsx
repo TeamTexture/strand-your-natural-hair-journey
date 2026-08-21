@@ -4,7 +4,7 @@
 // never disagree. Items with no score render nothing at all — no empty grey
 // stars — which is the app's signal that analysis hasn't run yet.
 import { cn } from "@/lib/utils";
-import { formatStars, matchScoreOf, starsForItem, starsFromScore, type MatchScored } from "@/lib/matchStars";
+import { formatStars, matchScoreOf, starsFromScore, type MatchScored } from "@/lib/matchStars";
 import { useSensitivityAdjustedScore } from "@/components/sensitivity/SensitivityShelfAlert";
 
 const SIZES = {
