@@ -23,7 +23,6 @@ const safeNext = (raw: string | null, fallback: string) => {
 const SplashScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [firstName, setFirstName] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -116,11 +115,6 @@ const SplashScreen = () => {
                 "How To Love Your Afro"
               </span>
             </p>
-            {firstName && (
-              <p className="font-body text-foreground text-base">
-                Welcome back {firstName}
-              </p>
-            )}
           </div>
         </div>
 
