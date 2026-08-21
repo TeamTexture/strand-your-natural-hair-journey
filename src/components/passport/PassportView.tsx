@@ -288,6 +288,23 @@ const computeFlags = (d: PassportDataset): CriticalFlags => {
   };
 };
 
+/** Passport-style 3-letter country code — never a truncated country name. */
+const COUNTRY_CODES: Record<string, string> = {
+  "united kingdom": "GBR", uk: "GBR", gb: "GBR", "great britain": "GBR",
+  england: "GBR", scotland: "GBR", wales: "GBR", "northern ireland": "GBR",
+  ireland: "IRL", "united states": "USA", us: "USA", usa: "USA",
+  canada: "CAN", france: "FRA", germany: "DEU", netherlands: "NLD",
+  nigeria: "NGA", ghana: "GHA", jamaica: "JAM", "south africa": "ZAF",
+};
+const countryCode = (raw: unknown): string => {
+  const name = (humaniseValue(raw) ?? "").trim();
+  if (!name) return "GBR";
+  const hit = COUNTRY_CODES[name.toLowerCase()];
+  if (hit) return hit;
+  if (/^[A-Za-z]{3}$/.test(name)) return name.toUpperCase();
+  return "GBR";
+};
+
 // ================================================================
 // Section: Profile — comprehensive personal, health, hair, blood dossier
 // ================================================================
