@@ -1,3 +1,4 @@
+import { SHOW_STRAND_TIP } from "@/lib/featureFlags";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
