@@ -1,3 +1,4 @@
+import { SHOW_STRAND_TIP } from "@/lib/featureFlags";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
@@ -110,7 +111,12 @@ const Home = () => {
   const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
   // Home shows EXACTLY ONE tip — the STRAND tip. The fuller
   // multi-tip "How you'll get there" playbook lives on the Style Journal.
-  const { data: goalTip, isLoading: tipLoading } = useGoalTip(goal, { single: true });
+  // While SHOW_STRAND_TIP is off the card isn't rendered, so we don't request a
+  // tip either — the engine is untouched, it just isn't called from Home.
+  const { data: goalTip, isLoading: tipLoading } = useGoalTip(
+    SHOW_STRAND_TIP ? goal : null,
+    { single: true },
+  );
   const queryClient = useQueryClient();
   const [nextAppt, setNextAppt] = useState<{ date: string; pro: string } | null>(null);
   const [beforePhotoUrl, setBeforePhotoUrl] = useState<string | null>(null);
@@ -819,7 +825,13 @@ const Home = () => {
 
         {/* STRAND TIP — its own card now, exactly one tip, STATIC. It
             regenerates only when the current style, the planned next style or
-            the goal changes. */}
+            the goal changes.
+
+            HIDDEN FOR NOW (Aug 2026): the tip engine, the goal-tip edge
+            function and useGoalTip are all untouched and still working — only
+            the rendering is switched off. Flip SHOW_STRAND_TIP back to true in
+            src/lib/featureFlags.ts to restore it. */}
+        {SHOW_STRAND_TIP && (
         <div>
           
 
@@ -895,6 +907,7 @@ const Home = () => {
             )}
           </GuidanceCard>
         </div>
+        )}
 
 
         {/* My Blood Work */}

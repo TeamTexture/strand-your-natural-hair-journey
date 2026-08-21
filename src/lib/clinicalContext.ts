@@ -134,6 +134,10 @@ interface DecryptedContext {
   } | null;
   medications: Array<{ id: string; name: string; category: string | null }>;
   bloodResults: Array<{ id: string; value: number | null; unit: string | null }>;
+  sensitivities?: {
+    topical?: unknown[] | null;
+    dietary?: unknown[] | null;
+  } | null;
 }
 
 // ─────────────────────────── Helpers ───────────────────────────
@@ -174,6 +178,13 @@ export function invalidateClinicalContextCache(): void {
 // briefly, keyed by the fallback flag, and share in-flight loads.
 const CONTEXT_TTL_MS = 30_000;
 const contextCache = new Map<string, { at: number; promise: Promise<ClinicalContext> }>();
+
+/** Shared, 30s-deduped read of the whole decrypted payload. Every consumer
+ *  (clinical context, sensitivities) goes through this so a page load costs at
+ *  most ONE `data-decrypt-context` invocation, not one per hook. */
+export async function loadDecryptedContext(): Promise<DecryptedContext | null> {
+  return fetchDecryptedContext();
+}
 
 async function fetchDecryptedContext(): Promise<DecryptedContext | null> {
   const now = Date.now();
