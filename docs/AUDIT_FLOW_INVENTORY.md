@@ -185,6 +185,13 @@ Tiers: **Pro** (subscribed), **Pro unpaid**, **Admin** (full pro privileges, no 
 | 8.13 | Pro campaigns | `/pro/campaigns*` (reuses `BrandDashboard`/`BrandCreateOffer`), `hooks/useOwnerMode`, `lib/adPricing.ts` | Placement calendar + Stripe checkout complete; live campaign shows in admin |
 | 8.14 | Pro reviews | `/pro/reviews`, `pages/ProReviews.tsx` | Member reviews visible with correct star maths |
 
+**Fixture limitation (not a defect):** on `strand-audit-pro` the enquiry counts read
+0 pending / 0 accepted / 0 declined while `/pro/clients` shows 2 clients. The synthetic
+fixtures granted `pro_client_access` directly without first creating the `pro_enquiries`
+rows the real flow always creates. Verified against the one real pro account holding an
+active grant: 1 access / 1 enquiry / 1 accepted — consistent. Do not re-flag in 8.3/8.8.
+
+
 ---
 
 ## 9. Admin
