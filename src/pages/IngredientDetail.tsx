@@ -1048,14 +1048,33 @@ const IngredientDetail = () => {
             {/* AI Summary — the single verdict callout, bold lead-in only */}
             {(() => {
               const { phrase, rest } = emphasisSplit(analysis.summary);
-              const vTone: "good" | "gold" | "warning" = scoreTone(displayScore ?? 0);
+              // A declared sensitivity overrides the tone outright: the callout
+              // can never read green above a warning that contradicts it.
+              const vTone: "good" | "gold" | "warning" = hasSensitivity
+                ? "warning"
+                : scoreTone(displayScore ?? 0);
               return (
                 <StatusCallout tone={vTone} label="Verdict">
                   {displayScore != null && displayScore > 0 && (
                     <AnchorStat value={displayScore} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
                   )}
+                  {hasSensitivity && (
+                    <p className="mb-2 font-semibold text-destructive">
+                      Contains {sensitivityLabels} — an ingredient you've told us to avoid
+                      completely. Always check the pack before you use it.
+                    </p>
+                  )}
                   <p>
-                    {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
+                    {phrase && (
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          hasSensitivity ? "text-foreground/75" : "text-foreground",
+                        )}
+                      >
+                        {phrase}{" "}
+                      </span>
+                    )}
                     <span className="text-foreground/75">{rest}</span>
                   </p>
                   <ScoreReasons reasons={parseScoreReasons(analysis.score_reasons)} />
