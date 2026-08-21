@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { prepareImageForAi } from "@/lib/imagePrep";
-import { buildAiContext } from "@/lib/aiContext";
+import { buildAiContext, type AiContext } from "@/lib/aiContext";
 
 /**
  * Phase 2 Step 3b — guided dual-photo product scan.
@@ -25,10 +25,10 @@ import { buildAiContext } from "@/lib/aiContext";
  */
 
 /** In-flight AI context for the scan about to start (see useProductScan). */
-let pendingContext: Promise<Record<string, unknown> | null> | null = null;
+let pendingContext: Promise<AiContext | null> | null = null;
 
 /** Consumed once by the scanning screen; falls back to a fresh build. */
-export function takePendingAiContext(): Promise<Record<string, unknown> | null> | null {
+export function takePendingAiContext(): Promise<AiContext | null> | null {
   const p = pendingContext;
   pendingContext = null;
   return p;
@@ -62,7 +62,7 @@ export function useProductScan() {
       // Start the member-context build immediately — it runs while the
       // photos are being re-encoded and, if needed, while the model call
       // is already in flight.
-      const contextPromise = (buildAiContext() as Promise<Record<string, unknown>>).catch((e) => {
+      const contextPromise = buildAiContext().catch((e) => {
         console.error("buildAiContext failed", e);
         return null;
       });
