@@ -5,6 +5,7 @@ import TitleBar from "@/components/TitleBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
+import { takePendingAiContext } from "@/hooks/useProductScan";
 import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
@@ -207,10 +208,10 @@ const ProductScanning = () => {
         }
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
         // Snap the ring to a full circle on real success so the user sees
-        // it complete before we navigate away. Hold for ~450ms so the
+        // it complete before we navigate away. Short hold so the
         // CSS transition has time to draw the final arc.
         setProgressPct(100);
-        await new Promise((r) => setTimeout(r, 450));
+        await new Promise((r) => setTimeout(r, 180));
 
         const name = encodeURIComponent(saveFields.name);
         const brand = encodeURIComponent(saveFields.brand ?? "");
