@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePassportData, type PassportDataset } from "./usePassportData";
 import SignedImage from "./SignedImage";
 import { lookupHardWater } from "@/lib/hardWater";
-import { humaniseKey, humaniseValue, valueTone, shouldHideField, cleanTitle, titleCase } from "@/lib/humanise";
+import { humaniseKey, humaniseValue, humaniseFieldValue, valueTone, shouldHideField, cleanTitle, titleCase } from "@/lib/humanise";
 import { washStepLabel } from "@/lib/washSteps";
 import { formatDate, formatDateTime, formatMonth, formatRelative } from "@/lib/formatPassportDate";
 import { formatTime12h } from "@/lib/formatTime";
@@ -288,6 +288,23 @@ const computeFlags = (d: PassportDataset): CriticalFlags => {
   };
 };
 
+/** Passport-style 3-letter country code — never a truncated country name. */
+const COUNTRY_CODES: Record<string, string> = {
+  "united kingdom": "GBR", uk: "GBR", gb: "GBR", "great britain": "GBR",
+  england: "GBR", scotland: "GBR", wales: "GBR", "northern ireland": "GBR",
+  ireland: "IRL", "united states": "USA", us: "USA", usa: "USA",
+  canada: "CAN", france: "FRA", germany: "DEU", netherlands: "NLD",
+  nigeria: "NGA", ghana: "GHA", jamaica: "JAM", "south africa": "ZAF",
+};
+const countryCode = (raw: unknown): string => {
+  const name = (humaniseValue(raw) ?? "").trim();
+  if (!name) return "GBR";
+  const hit = COUNTRY_CODES[name.toLowerCase()];
+  if (hit) return hit;
+  if (/^[A-Za-z]{3}$/.test(name)) return name.toUpperCase();
+  return "GBR";
+};
+
 // ================================================================
 // Section: Profile — comprehensive personal, health, hair, blood dossier
 // ================================================================
@@ -319,19 +336,21 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
           <div className="relative px-5 pt-5 pb-4">
             {/* Lockup */}
             <div className="flex items-center justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" className="text-primary">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" className="shrink-0 text-primary">
                   <path d="M12 2 L14.5 8 L21 8.5 L16 12.8 L17.6 19.4 L12 15.8 L6.4 19.4 L8 12.8 L3 8.5 L9.5 8 Z"
                     fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
-                <p className="font-display font-bold text-[12px] uppercase tracking-[0.32em] text-primary leading-none">
+                <p className="min-w-0 font-display font-bold text-[9.5px] uppercase tracking-[0.18em] text-primary leading-[1.35] break-words">
                   Strand · Client Passport
                 </p>
               </div>
-              <span className="text-[10px] font-body font-semibold uppercase tracking-[0.22em] text-primary/80">
-                UK · {p?.country ? (humaniseValue(p.country) ?? "").slice(0, 3).toUpperCase() : "GBR"}
+              <span className="shrink-0 text-[9.5px] font-body font-semibold uppercase tracking-[0.16em] text-primary/80">
+                UK · {countryCode(p?.country)}
               </span>
+
             </div>
+
 
             {/* Avatar + engraved name */}
             <div className="flex flex-col items-center gap-3">
@@ -529,7 +548,7 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
             const hair = d.hair ?? {};
             const rows: Array<{ label: string; value: React.ReactNode; tone?: "warn" }> = [];
             const push = (label: string, key: string, tone?: "warn") => {
-              const v = humaniseValue(hair[key]);
+              const v = humaniseFieldValue(key, hair[key]);
               if (v) rows.push({ label, value: v, tone });
             };
             push("Texture", "curl_pattern");
@@ -539,7 +558,7 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
             push("Elasticity", "elasticity");
             push("Length", "current_length");
             push("Scalp condition", "scalp_condition");
-            const diagnosed = humaniseValue(hair.diagnosed_conditions);
+            const diagnosed = humaniseFieldValue("diagnosed_conditions", hair.diagnosed_conditions);
             if (diagnosed) rows.push({ label: "Diagnoses", value: diagnosed, tone: "warn" });
             push("Areas of concern", "areas_of_concern");
             push("Wash frequency", "wash_frequency");
@@ -691,7 +710,7 @@ const HairSection = ({ d }: { d: PassportDataset }) => {
   const hair = d.hair ?? {};
   const rows: Array<{ label: string; value: React.ReactNode; icon?: React.ComponentType<{ className?: string }>; tone?: "warn" }> = [];
   const push = (label: string, key: string, tone?: "warn") => {
-    const v = humaniseValue(hair[key]);
+    const v = humaniseFieldValue(key, hair[key]);
     if (v) rows.push({ label, value: v, tone });
   };
   push("Texture", "curl_pattern");
@@ -701,7 +720,7 @@ const HairSection = ({ d }: { d: PassportDataset }) => {
   push("Elasticity", "elasticity");
   push("Length", "current_length");
   push("Scalp condition", "scalp_condition");
-  const diagnosed = humaniseValue(hair.diagnosed_conditions);
+  const diagnosed = humaniseFieldValue("diagnosed_conditions", hair.diagnosed_conditions);
   if (diagnosed) rows.push({ label: "Diagnoses", value: diagnosed, tone: "warn" });
   push("Areas of concern", "areas_of_concern");
   push("Wash frequency", "wash_frequency");

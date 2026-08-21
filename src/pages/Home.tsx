@@ -21,6 +21,8 @@ import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
+import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
+
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
@@ -1098,10 +1100,17 @@ const Home = () => {
                 navigate(`/products/profile/${s.id}`);
               };
               return (
-                <ListRow
+                // SAFETY: the Home shelf strip renders the same passive allergen
+                // alert as every other product surface.
+                <div
                   key={s.id}
-                  onClick={goToOffer}
-                  leading={
+                  className="overflow-hidden rounded-[14px] border border-border bg-card"
+                >
+                  <SensitivityShelfAlert ingredients={s.ingredients as string[] | null} />
+                  <ListRow
+                    onClick={goToOffer}
+                    className="rounded-none border-0"
+                    leading={
                     <span className="relative shrink-0">
                       <ProductThumb
                         imageUrl={s.image_url}
@@ -1139,9 +1148,11 @@ const Home = () => {
                       <BrandLink brand={s.brand} />
                     )
                   }
-                  trailing={<MatchStars item={s} />}
-                />
+                    trailing={<MatchStars item={s} />}
+                  />
+                </div>
               );
+
             })}
             {shelfProducts.length > 4 && (
               <button
