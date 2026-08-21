@@ -40,6 +40,8 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
 import SensitivityWarning from "@/components/sensitivity/SensitivityWarning";
+import { useSensitivities } from "@/hooks/useSensitivities";
+import { scanSensitivities } from "@/lib/sensitivityMatch";
 import { IngredientProductScope, GlossaryLabel } from "@/components/ingredients/IngredientToken";
 import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
@@ -49,6 +51,8 @@ interface IngredientFlag {
   name: string;
   tone: "good" | "warn" | "bad";
   body: string;
+  /** Server-set when the ingredient matches a declared topical sensitivity. */
+  sensitivity?: boolean;
 }
 
 const formatDate = (iso: string) => {
@@ -89,6 +93,10 @@ const ProductProfile = () => {
   // Per-ingredient AI flags (good/warn/bad + body) for THIS product, scored
   // against the user's full profile (hair, health, goals, current style).
   const [aiFlags, setAiFlags] = useState<IngredientFlag[]>([]);
+  // Live topical sensitivity list — matched in the browser so even a cached
+  // analysis row shows the "sensitivity" tag straight away.
+  const { entriesFor } = useSensitivities();
+  const topicalEntries = entriesFor("topical");
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiMatchScore, setAiMatchScore] = useState<number | null>(null);
   const [aiScoreReasons, setAiScoreReasons] = useState<ScoreReason[]>([]);
@@ -577,6 +585,12 @@ const ProductProfile = () => {
                             name={name}
                             reason={aiFlag.body ? condenseProse(aiFlag.body, tipsLevel) : undefined}
                             flag={aiFlag.tone}
+                            sensitivity={
+                              aiFlag.sensitivity === true ||
+                              scanSensitivities(name, topicalEntries, "topical", {
+                                severities: ["avoid"],
+                              }).length > 0
+                            }
                             className="border-none !p-0 bg-transparent"
                           />
                         ) : (
