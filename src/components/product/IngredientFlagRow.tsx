@@ -37,6 +37,7 @@ const IngredientFlagRow = ({
   trailing,
   className,
   explainable = true,
+  sensitivity = false,
 }: {
   name: string;
   reason?: string | null;
@@ -47,6 +48,9 @@ const IngredientFlagRow = ({
   className?: string;
   /** Set false where the whole row already navigates somewhere else. */
   explainable?: boolean;
+  /** True when this row is flagged because the member declared it as a
+   *  topical sensitivity — reads distinctly from a general mismatch. */
+  sensitivity?: boolean;
 }) => {
   const tone = TONE_MAP[flag];
   const t = TONE_CLASSES[tone];
@@ -71,6 +75,12 @@ const IngredientFlagRow = ({
           {explainable && as !== "button"
             ? <GlossaryLabel label={name} className="font-semibold" forceToken />
             : name}
+          {sensitivity && (
+            <span className="ml-1.5 inline-flex items-center gap-1 rounded-pill border border-destructive/40 bg-destructive/10 px-1.5 py-[1px] align-middle text-[9.5px] font-semibold uppercase tracking-[0.08em] text-destructive whitespace-nowrap">
+              <AlertTriangle className="size-2.5" aria-hidden />
+              Sensitivity
+            </span>
+          )}
         </p>
 
         {reason && (

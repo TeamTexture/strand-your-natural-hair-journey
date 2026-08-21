@@ -66,6 +66,11 @@ import {
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
+import { loadSensitivities, type LoadedSensitivities } from "../_shared/sensitivities.ts";
+import {
+  topicalSensitivityBlock,
+  annotateProductSensitivities,
+} from "../_shared/topical-sensitivity.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
@@ -259,6 +264,7 @@ async function runClaude(args: {
   context: Record<string, unknown>;
   selectorContext: SelectorContext;
   ledgerBlock: string;
+  sensitivityBlock?: string;
 }): Promise<{ payload: ProductAnalysisPayload; web_search_invocations: number }> {
   const userText = `Two photos of the same product follow. Photo 1 is the FRONT of the product (brand + product name + marketing claims). Photo 2 is the BACK of the product (ingredient panel + usage instructions + regulatory text). Read both. Use web_search if anything is missing or unclear.
 
@@ -285,8 +291,8 @@ Return JSON only via the return_product_analysis tool.`;
   const req = await buildClaudeRequest({
     function_kind: "product-analyse",
     task_instructions: `${buildTaskInstructions(tipsLevel)}${
-      args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""
-    }`,
+      args.sensitivityBlock ?? ""
+    }${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}`,
     user_payload: {}, // unused — user_content overrides
     user_content: userContent,
     user_context: args.context,
@@ -416,6 +422,7 @@ async function runLovable(args: {
   image_url: string;
   context: Record<string, unknown>;
   ledgerBlock?: string;
+  sensitivityBlock?: string;
 }): Promise<ProductAnalysisPayload> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -459,7 +466,7 @@ Return strict JSON matching the schema in your system prompt.`;
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${buildLovableSystem(tipsLevel)}\n\n${tipsBlock}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
+          { role: "system", content: `${buildLovableSystem(tipsLevel)}\n\n${tipsBlock}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.sensitivityBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
           {
             role: "user",
             content: [
@@ -504,6 +511,11 @@ Deno.serve(async (req: Request) => {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
     const { user, supabase } = auth;
+
+    // Declared topical (skin/scalp) sensitivities — warning system, not a
+    // content filter: the ingredient list is never edited.
+    const sens: LoadedSensitivities = await loadSensitivities(supabase, user.id, "topical");
+    const sensitivityBlock = topicalSensitivityBlock(sens);
 
     const body = (await req.json()) as RequestBody;
     {
@@ -558,7 +570,14 @@ Deno.serve(async (req: Request) => {
           : cached._model_version === LOVABLE_MODEL_VERSION;
         const hashOk = cached._profile_snapshot_hash === profileHash;
         if (versionOk && hashOk) {
-          return json(200, await sanitiseAndLog(cached, "product-analyse"));
+          return json(200, await sanitiseAndLog(
+            annotateProductSensitivities(
+              cached as unknown as Record<string, unknown>,
+              sens,
+              "product-analyse",
+            ) as unknown as ProductAnalysisPayload,
+            "product-analyse",
+          ));
         }
       }
     }
@@ -578,6 +597,7 @@ Deno.serve(async (req: Request) => {
         context: ctx,
         selectorContext: buildSelectorContext(body),
         ledgerBlock,
+        sensitivityBlock,
       });
       analysis = {
         ...payload,
@@ -588,7 +608,7 @@ Deno.serve(async (req: Request) => {
         _web_search_count: web_search_invocations,
       };
     } else {
-      const lovable = await runLovable({ image_url: body.image_url!, context: ctx, ledgerBlock });
+      const lovable = await runLovable({ image_url: body.image_url!, context: ctx, ledgerBlock, sensitivityBlock });
       analysis = {
         ...lovable,
         _provider: "lovable",
@@ -619,6 +639,15 @@ Deno.serve(async (req: Request) => {
         if (one) a.ai_summary = one;
       }
     }
+
+    // ── Topical sensitivity warnings (deterministic, post-generation).
+    // Runs AFTER score-reason normalisation so the named warning and its
+    // score reason survive into the payload the member sees.
+    analysis = annotateProductSensitivities(
+      analysis as unknown as Record<string, unknown>,
+      sens,
+      "product-analyse",
+    ) as unknown as ProductAnalysisPayload;
 
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 

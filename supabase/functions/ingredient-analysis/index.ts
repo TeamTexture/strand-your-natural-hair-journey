@@ -25,6 +25,14 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
 import { shouldTriggerRag, matchTriggerIngredient } from "../_shared/rag-triggers.ts";
+import { loadSensitivities, type LoadedSensitivities } from "../_shared/sensitivities.ts";
+import {
+  topicalSensitivityBlock,
+  matchIngredient,
+  scanTopical,
+  sensitivityScoreReason,
+  SENSITIVITY_SCORE_CAP,
+} from "../_shared/topical-sensitivity.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
@@ -74,6 +82,9 @@ interface IngredientCard {
    */
   category: string;
   body: string;
+  /** Set server-side when this ingredient matches a declared topical
+   *  sensitivity — drives the distinct "sensitivity" tag in the UI. */
+  sensitivity?: boolean;
 }
 interface GuidanceTip {
   title: string;
@@ -311,7 +322,7 @@ RULES — STRICT:
 2. tone — apply this exact decision tree:
    - "bad" ONLY if AT LEAST ONE of the following is true:
      a) the ingredient (or its INCI alias) appears in context.avoid_ingredients (the user's own data has flagged it across multiple low-rated products), OR
-     b) the user has a documented allergy / sensitivity / diagnosis in healthProfile that this molecule directly aggravates (e.g. SLS sulphate when scalp_condition flags seborrheic dermatitis or eczema; isopropyl/SD alcohol on a documented "high porosity + breakage" combo; a named allergen the user listed), OR
+     b) the ingredient appears in the member's DECLARED topical sensitivities (see the ALLERGY AND SENSITIVITY CONSTRAINTS block — these are recorded, structured data and take priority over everything else here: a declared hard exclusion is ALWAYS "bad", and its body must name the sensitivity explicitly), OR the user has a documented allergy / sensitivity / diagnosis in healthProfile that this molecule directly aggravates (e.g. SLS sulphate when scalp_condition flags seborrheic dermatitis or eczema; isopropyl/SD alcohol on a documented "high porosity + breakage" combo; a named allergen the user listed), OR
      c) the molecule directly conflicts with a measurable hair trait the user holds (e.g. heavy mineral oil sealing low-porosity hair the user is trying to moisturise — and even then, only if the formula puts it high in the list).
      NEVER mark a standard preservative, fragrance, colourant, or pH adjuster "bad" without (a), (b) or (c). Existence ≠ harm.
    - "good" = the ingredient has a documented mechanism that benefits THIS user's measurable traits (humectant for low-porosity in humid climate, emollient for high-porosity ends, anti-fungal for diagnosed scalp condition, etc.).
@@ -414,6 +425,7 @@ async function runClaude(args: {
   selectorContext: SelectorContext;
   avoidList: string[];
   level: TipsLevel;
+  sensitivityBlock?: string;
 }): Promise<AnalysisPayload> {
   const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList, level } = args;
   const ingredientCount = ingredients.length;
@@ -423,7 +435,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: buildTaskInstructions(productBrand, productName, ingredientCount, level),
+    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level)}${args.sensitivityBlock ?? ""}`,
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -550,6 +562,11 @@ Deno.serve(async (req) => {
     if (auth instanceof Response) return auth;
     const { user, supabase } = auth;
 
+    // Declared topical (skin/scalp) sensitivities — structured, encrypted
+    // data that outranks free-text healthProfile mentions.
+    const sens: LoadedSensitivities = await loadSensitivities(supabase, user.id, "topical");
+    const sensitivityBlock = topicalSensitivityBlock(sens);
+
     const body: RequestBody = await req.json();
     const {
       productKey, productName, productBrand,
@@ -653,6 +670,7 @@ Deno.serve(async (req) => {
         selectorContext: buildSelectorContext(body),
         avoidList,
         level: tipsLevel,
+        sensitivityBlock,
       });
       // Guard: if the tip references another product/step, or fails the shared
       // action/reason floors, retry once with the failures echoed back.
@@ -685,7 +703,9 @@ Deno.serve(async (req) => {
           selectorContext: buildSelectorContext(body),
           avoidList,
           level: tipsLevel,
+          sensitivityBlock,
         });
+
       }
       // Last line of defence: scrub any lingering forbidden phrases from
       // the tip so a stubborn model can't leak them into the UI.
@@ -702,7 +722,7 @@ Deno.serve(async (req) => {
       const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}${sensitivityBlock}`;
       analysis = await runLovable({
         systemPrompt,
         userPayload,
@@ -752,6 +772,54 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}`
       }
     }
 
+
+    // ── Declared topical sensitivities: deterministic enforcement.
+    // Warning system, not a filter — the ingredient list is left intact, but
+    // any declared hard exclusion present in the formula is forced to "bad"
+    // and named in its body, with the score reduced accordingly.
+    if (sens.avoid.length > 0 && Array.isArray(analysis.ingredients)) {
+      const flagged: string[] = [];
+      for (const card of analysis.ingredients) {
+        const hit = matchIngredient(String(card?.name ?? ""), sens);
+        if (!hit) continue;
+        card.tone = "bad";
+        card.sensitivity = true;
+        if (!/sensitivit/i.test(card.body ?? "")) {
+          card.body = `You've flagged ${hit.label} as a sensitivity. ${card.body ?? ""}`.trim();
+        }
+        if (!flagged.includes(hit.label)) flagged.push(hit.label);
+      }
+      // Ingredients the member declared that appear anywhere in the list even
+      // when the model didn't card them individually.
+      const scanned = scanTopical(
+        (analysis.ingredients ?? []).map((c) => `${c?.name ?? ""} ${c?.body ?? ""}`),
+        sens,
+      );
+      for (const label of scanned.labels) if (!flagged.includes(label)) flagged.push(label);
+
+      if (flagged.length > 0) {
+        const reasons = Array.isArray(analysis.score_reasons) ? analysis.score_reasons : [];
+        for (const label of flagged) {
+          if (reasons.some((r) => r.reason?.includes(label))) continue;
+          reasons.unshift(sensitivityScoreReason(label, scanned.terms[label] ?? label));
+        }
+        analysis.score_reasons = reasons.slice(0, 4);
+        if (typeof analysis.match_score === "number") {
+          analysis.match_score = Math.min(analysis.match_score, SENSITIVITY_SCORE_CAP);
+        }
+        if (!/flagged as a sensitivity/i.test(analysis.summary ?? "")) {
+          analysis.summary = `${(analysis.summary ?? "").trim()} Contains ${
+            flagged.join(" and ")
+          }, which you've flagged as a sensitivity — read the pack before you use it.`.trim();
+        }
+        (analysis as unknown as Record<string, unknown>)._sensitivity_flagged = flagged;
+        console.log(JSON.stringify({
+          event: "topical_sensitivity_warning",
+          fn: "ingredient-analysis",
+          hits: flagged.length,
+        }));
+      }
+    }
 
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
