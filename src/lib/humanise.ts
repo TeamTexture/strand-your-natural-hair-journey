@@ -183,15 +183,26 @@ const FIELD_VALUE_MAP: Record<string, Record<string, string>> = {
  * vocabulary ("normal", "none") reads correctly per field.
  */
 export const humaniseFieldValue = (key: string, v: unknown): string | null => {
-  if (typeof v === "string") {
-    const overrides = FIELD_VALUE_MAP[key];
-    if (overrides) {
-      const decoded = v.trim().replace(/^"+|"+$/g, "").trim().toLowerCase();
-      if (overrides[decoded]) return overrides[decoded];
+  const overrides = FIELD_VALUE_MAP[key];
+  if (overrides) {
+    // The value may arrive as a plain string, a JSON-encoded string, or a
+    // one-item array (`["none"]`) depending on how it was stored/encrypted.
+    let value: unknown = v;
+    if (typeof value === "string") value = unwrapJsonScalar(value.trim());
+    if (Array.isArray(value)) {
+      const mapped = value
+        .map((item) => humaniseFieldValue(key, item))
+        .filter(Boolean) as string[];
+      if (mapped.length) return mapped.join(", ");
+    }
+    if (typeof value === "string") {
+      const hit = overrides[value.trim().toLowerCase()];
+      if (hit) return hit;
     }
   }
   return humaniseValue(v);
 };
+
 
 
 /** Fallback tone for a scalar value — used to colour porosity/status chips. */
