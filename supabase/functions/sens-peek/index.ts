@@ -11,11 +11,12 @@ Deno.serve(async (req) => {
   }
   const uid = new URL(req.url).searchParams.get("u")!;
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const entries = await loadSensitivities(sb, uid, "topical");
+  const loaded = await loadSensitivities(sb, uid, "topical");
+  const entries = loaded.all;
   const { data: products } = await sb.from("user_products")
     .select("id,name,brand,ingredients,on_shelf,on_wishlist")
     .eq("user_id", uid);
-  const avoid = entries.filter((e) => e.severity === "avoid");
+  const avoid = loaded.avoid;
   const flagged = (products ?? []).map((p) => {
     const hits = scanText((p.ingredients ?? []).join(" , "), avoid, "topical");
     return hits.length ? { name: p.name, brand: p.brand, on_shelf: p.on_shelf, hits } : null;
