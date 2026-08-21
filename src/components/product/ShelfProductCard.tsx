@@ -9,6 +9,7 @@
 
 import type { ReactNode } from "react";
 import ProductThumb from "@/components/ProductThumb";
+import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
 import { cn } from "@/lib/utils";
 
 export interface ShelfProductCardProps {
@@ -40,6 +41,11 @@ export interface ShelfProductCardProps {
   className?: string;
   /** Extra props for scroll restoration (`anchorProps(id)`). */
   anchor?: Record<string, unknown>;
+  /**
+   * Stored INCI list. When present, the card renders a red sensitivity strip
+   * automatically (deterministic alias match, no AI, no network call).
+   */
+  ingredients?: string[] | null;
 }
 
 const ShelfProductCard = ({
@@ -60,6 +66,7 @@ const ShelfProductCard = ({
   onOpen,
   className,
   anchor,
+  ingredients,
 }: ShelfProductCardProps) => {
   const openable = !!onOpen;
   return (
@@ -71,6 +78,7 @@ const ShelfProductCard = ({
         className,
       )}
     >
+      <SensitivityShelfAlert ingredients={ingredients} />
       <div
         role={openable ? "button" : undefined}
         tabIndex={openable ? 0 : undefined}
