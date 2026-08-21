@@ -969,6 +969,10 @@ const IngredientDetail = () => {
           )}
         </div>
 
+        {/* SAFETY: same red strip as the shelf card, above anything that could
+            read as a positive verdict. Renders nothing when there's no match. */}
+        <SensitivityShelfAlert ingredients={inciNames} className="rounded-xl" />
+
         {/* ── Last used / use count / rating row ───────────────────────── */}
         <SurfaceCard className="space-y-3">
           {productRow && (
