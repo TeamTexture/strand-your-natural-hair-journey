@@ -71,6 +71,8 @@ import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
 import { starsFromScore, formatStars, normaliseMatchScore, matchScoreOf, verdictForStars, isScoreStale, scoreTone } from "@/lib/matchStars";
+import SensitivityShelfAlert, { useTopicalAlert } from "@/components/sensitivity/SensitivityShelfAlert";
+import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
 import AiProgressBar from "@/components/AiProgressBar";
 
 interface Ingredient {
@@ -240,11 +242,29 @@ const IngredientDetail = () => {
   // the passport or any AI context. The analysis payload is only used for a
   // product that has no saved row yet (a fresh scan awaiting save) — once it is
   // saved, runAnalysis persists the score and this resolves to the column.
-  const displayScore = useMemo(
+  const storedScore = useMemo(
     () => matchScoreOf(productRow) ?? normaliseMatchScore(analysis?.match_score),
     [productRow, analysis?.match_score],
   );
+  // SAFETY: the same deterministic, zero-cost topical match the shelf card runs.
+  // A stored score computed BEFORE the member declared a sensitivity must never
+  // be shown as-is here — the card and this page read one ceiling, one matcher.
+  const inciNames = useMemo(
+    () => (analysis?.ingredients ?? []).map((i) => i.name).filter(Boolean),
+    [analysis?.ingredients],
+  );
+  const sensitivityHits = useTopicalAlert(inciNames);
+  const hasSensitivity = sensitivityHits.length > 0;
+  const sensitivityLabels = sensitivityHits.map((h) => h.entry.label).join(", ");
+  const displayScore = applySensitivityCeiling(storedScore, sensitivityHits.length);
   const displayStars = starsFromScore(displayScore);
+  // Positive framing must never appear above a contradicting warning.
+  const displayVerdict =
+    displayStars == null
+      ? null
+      : hasSensitivity
+      ? `Best avoided — contains ${sensitivityLabels}, which you avoid`
+      : verdictForStars(displayStars);
   const [savingToShelf, setSavingToShelf] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -949,6 +969,10 @@ const IngredientDetail = () => {
           )}
         </div>
 
+        {/* SAFETY: same red strip as the shelf card, above anything that could
+            read as a positive verdict. Renders nothing when there's no match. */}
+        <SensitivityShelfAlert ingredients={inciNames} className="rounded-xl" />
+
         {/* ── Last used / use count / rating row ───────────────────────── */}
         <SurfaceCard className="space-y-3">
           {productRow && (
@@ -980,8 +1004,13 @@ const IngredientDetail = () => {
               return (
                 <div className="flex items-center justify-between gap-3">
                   <MatchStars score={displayScore} size="lg" showValue={false} />
-                  <p className="text-[11px] text-muted-foreground text-right max-w-[160px] leading-tight">
-                    {verdictForStars(displayStars)}
+                  <p
+                    className={cn(
+                      "text-[11px] text-right max-w-[160px] leading-tight",
+                      hasSensitivity ? "font-semibold text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {displayVerdict}
                   </p>
                 </div>
               );
@@ -1023,14 +1052,33 @@ const IngredientDetail = () => {
             {/* AI Summary — the single verdict callout, bold lead-in only */}
             {(() => {
               const { phrase, rest } = emphasisSplit(analysis.summary);
-              const vTone: "good" | "gold" | "warning" = scoreTone(displayScore ?? 0);
+              // A declared sensitivity overrides the tone outright: the callout
+              // can never read green above a warning that contradicts it.
+              const vTone: "good" | "gold" | "warning" = hasSensitivity
+                ? "warning"
+                : scoreTone(displayScore ?? 0);
               return (
                 <StatusCallout tone={vTone} label="Verdict">
                   {displayScore != null && displayScore > 0 && (
                     <AnchorStat value={displayScore} context="hair-profile match" tone={vTone} className="mt-0 mb-2" />
                   )}
+                  {hasSensitivity && (
+                    <p className="mb-2 font-semibold text-destructive">
+                      Contains {sensitivityLabels} — an ingredient you've told us to avoid
+                      completely. Always check the pack before you use it.
+                    </p>
+                  )}
                   <p>
-                    {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
+                    {phrase && (
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          hasSensitivity ? "text-foreground/75" : "text-foreground",
+                        )}
+                      >
+                        {phrase}{" "}
+                      </span>
+                    )}
                     <span className="text-foreground/75">{rest}</span>
                   </p>
                   <ScoreReasons reasons={parseScoreReasons(analysis.score_reasons)} />
