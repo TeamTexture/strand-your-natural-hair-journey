@@ -819,7 +819,13 @@ const Home = () => {
 
         {/* STRAND TIP — its own card now, exactly one tip, STATIC. It
             regenerates only when the current style, the planned next style or
-            the goal changes. */}
+            the goal changes.
+
+            HIDDEN FOR NOW (Aug 2026): the tip engine, the goal-tip edge
+            function and useGoalTip are all untouched and still working — only
+            the rendering is switched off. Flip SHOW_STRAND_TIP back to true in
+            src/lib/featureFlags.ts to restore it. */}
+        {SHOW_STRAND_TIP && (
         <div>
           
 
