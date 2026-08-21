@@ -97,10 +97,14 @@ describe("hotfix: signOut purges strand_* localStorage keys", () => {
     localStorage.setItem("strand_blood_results", JSON.stringify([{ marker: "Ferritin", value: 12 }]));
     localStorage.setItem("strand_last_wash_date", "2026-04-20");
     localStorage.setItem("strand_wash_history", JSON.stringify([{ date: "2026-04-20" }]));
+    // Dotted namespace (`strand.*`) — same class of user-scoped state.
+    localStorage.setItem("strand.stylePrompt.pending", JSON.stringify({ washDayId: "w1" }));
+    localStorage.setItem("strand.pendingStepProducts", JSON.stringify(["Cantu"]));
+    sessionStorage.setItem("strand_view_as_display_name", "Alice");
+    sessionStorage.setItem("strand.lastRoleView", "consumer");
     // Device-level keys that MUST survive the purge.
-    localStorage.setItem("strand_walkthrough_complete", "true");
-    localStorage.setItem("strand_migration_v1_done", "2026-04-26T10:00:00Z");
-    
+    for (const key of STRAND_PRESERVED_KEYS) localStorage.setItem(key, "seeded");
+
     localStorage.setItem("strand_migration_v1_user_id", "user-A");
     // Unrelated key from another app — must not be touched.
     localStorage.setItem("not_strand_thing", "keep me");
@@ -115,6 +119,10 @@ describe("hotfix: signOut purges strand_* localStorage keys", () => {
     expect(localStorage.getItem("strand_last_wash_date")).toBeNull();
     expect(localStorage.getItem("strand_wash_history")).toBeNull();
     expect(localStorage.getItem("strand_migration_v1_user_id")).toBeNull();
+    expect(localStorage.getItem("strand.stylePrompt.pending")).toBeNull();
+    expect(localStorage.getItem("strand.pendingStepProducts")).toBeNull();
+    expect(sessionStorage.getItem("strand_view_as_display_name")).toBeNull();
+    expect(sessionStorage.getItem("strand.lastRoleView")).toBeNull();
 
     // Preserved keys survived.
     for (const key of STRAND_PRESERVED_KEYS) {
@@ -122,6 +130,7 @@ describe("hotfix: signOut purges strand_* localStorage keys", () => {
     }
     // Non-strand_ keys untouched.
     expect(localStorage.getItem("not_strand_thing")).toBe("keep me");
+
   });
 });
 
