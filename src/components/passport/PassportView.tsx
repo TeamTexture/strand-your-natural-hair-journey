@@ -329,8 +329,9 @@ const ProfileSection = ({ d }: { d: PassportDataset }) => {
                 </p>
               </div>
               <span className="shrink-0 text-[9.5px] font-body font-semibold uppercase tracking-[0.16em] text-primary/80">
-                UK · {p?.country ? (humaniseValue(p.country) ?? "").slice(0, 3).toUpperCase() : "GBR"}
+                UK · {countryCode(p?.country)}
               </span>
+
             </div>
 
 
