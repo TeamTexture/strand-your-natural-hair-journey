@@ -118,19 +118,19 @@ const ProductScanning = () => {
           return signed.signedUrl;
         };
 
-        const front = await resolveSlot(
-          state.front_image_data_url,
-          state.front_storage_path,
-          "front",
-        );
-        const back = await resolveSlot(
-          state.back_image_data_url,
-          state.back_storage_path,
-          "back",
-        );
+        // PERFORMANCE: both photo URLs and the member context resolve
+        // concurrently, and the context is usually already built (started
+        // at capture time in useProductScan) so this is normally instant.
+        const pending = takePendingAiContext();
+        const [front, back, resolvedContext] = await Promise.all([
+          resolveSlot(state.front_image_data_url, state.front_storage_path, "front"),
+          resolveSlot(state.back_image_data_url, state.back_storage_path, "back"),
+          (pending ?? buildAiContext()).then((c) => c ?? buildAiContext()),
+        ]);
 
-        const context = await buildAiContext();
+        const context = resolvedContext as Awaited<ReturnType<typeof buildAiContext>>;
         const currentHash = currentProfileHash(context);
+
         // Photo scans always mint a new product_key, so there's no existing
         // row to dedupe against — log the decision so future tooling
         // (signals, replays) sees a consistent shape across both flows.
