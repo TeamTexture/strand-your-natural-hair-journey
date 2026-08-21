@@ -703,7 +703,9 @@ Deno.serve(async (req) => {
           selectorContext: buildSelectorContext(body),
           avoidList,
           level: tipsLevel,
+          sensitivityBlock,
         });
+
       }
       // Last line of defence: scrub any lingering forbidden phrases from
       // the tip so a stubborn model can't leak them into the UI.
