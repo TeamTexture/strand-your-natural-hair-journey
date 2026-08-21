@@ -102,13 +102,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    const displayName = session?.user?.user_metadata?.display_name as string | undefined;
-    if (displayName) {
-      const firstName = displayName.trim().split(/\s+/)[0];
-      if (firstName) {
-        try { localStorage.setItem("strand_last_display_name", firstName); } catch { /* noop */ }
-      }
-    }
+    // Deliberately no "last display name" cache: a signed-out device must
+    // never reference a specific identity (shared/borrowed device privacy).
     purgeStrandUserScopedKeys("signOut-handler");
     clearRecoveryLock();
     if (isViewingAs) stopViewAs();
