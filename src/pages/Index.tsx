@@ -23,14 +23,6 @@ const Index = () => {
   const [checking, setChecking] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("strand_last_display_name");
-      if (stored) setFirstName(stored);
-    } catch {
-      // Ignore private browsing/storage failures.
-    }
-  }, []);
 
   useEffect(() => {
     if (loading || !user) return;
