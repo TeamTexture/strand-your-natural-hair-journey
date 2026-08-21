@@ -4,7 +4,7 @@ import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
 import { starsFromScore, formatStars, verdictForStars, scoreTone } from "@/lib/matchStars";
 
 const inci = ["water (aqua/eau)","sodium c14-16 olefin sulfonate","glycerin","fragrance (parfum)","limonene","coumarin","linalool"];
-const entries = [{ id: "1", label: "Fragrance/parfum", severity: "avoid", scope: "topical" } as any];
+const entries = [{ code: "fragrance", label: "Fragrance / parfum", severity: "avoid" } as any];
 
 describe("CANTU Ultra Moisture Nourishing on Paige's account", () => {
   it("collapses the detail-page score, stars and verdict", () => {
