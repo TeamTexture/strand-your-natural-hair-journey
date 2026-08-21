@@ -8,7 +8,11 @@ import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { encryptForStorage, invalidateClinicalContextCache } from "@/lib/clinicalContext";
+import {
+  encryptForStorage,
+  invalidateClinicalContextCache,
+  loadDecryptedContext,
+} from "@/lib/clinicalContext";
 import { CONFIRM_COLUMN, type SensitivityEntry, type SensitivityScope } from "@/lib/sensitivityVocab";
 import { myProfileKey, useMyProfile, type MyProfileRow } from "@/hooks/useMyProfile";
 
