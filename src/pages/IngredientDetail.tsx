@@ -71,6 +71,8 @@ import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
 import { starsFromScore, formatStars, normaliseMatchScore, matchScoreOf, verdictForStars, isScoreStale, scoreTone } from "@/lib/matchStars";
+import SensitivityShelfAlert, { useTopicalAlert } from "@/components/sensitivity/SensitivityShelfAlert";
+import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
 import AiProgressBar from "@/components/AiProgressBar";
 
 interface Ingredient {
