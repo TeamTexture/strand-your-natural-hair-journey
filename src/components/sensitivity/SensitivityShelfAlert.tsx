@@ -11,6 +11,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useSensitivities } from "@/hooks/useSensitivities";
 import { scanSensitivities } from "@/lib/sensitivityMatch";
+import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
 import { cn } from "@/lib/utils";
 
 export function useTopicalAlert(ingredients: string[] | null | undefined) {
@@ -19,6 +20,20 @@ export function useTopicalAlert(ingredients: string[] | null | undefined) {
     severities: ["avoid"],
   });
   return hits;
+}
+
+/**
+ * Display-layer score override. The stored match_score was computed before the
+ * member declared this sensitivity, so it is capped here — graduated by the
+ * number of matched sensitivities — at exactly the same instant, and with the
+ * same zero-cost client-side matching, as the red badge itself.
+ */
+export function useSensitivityAdjustedScore(
+  score: number | null | undefined,
+  ingredients: string[] | null | undefined,
+): number | null {
+  const hits = useTopicalAlert(ingredients);
+  return applySensitivityCeiling(score ?? null, hits.length);
 }
 
 interface Props {
