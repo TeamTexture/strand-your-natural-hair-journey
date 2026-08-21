@@ -23,14 +23,6 @@ const Index = () => {
   const [checking, setChecking] = useState(false);
   const [firstName, setFirstName] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("strand_last_display_name");
-      if (stored) setFirstName(stored);
-    } catch {
-      // Ignore private browsing/storage failures.
-    }
-  }, []);
 
   useEffect(() => {
     if (loading || !user) return;
@@ -135,14 +127,10 @@ const Index = () => {
       if (dests.length === 0) dests.push({ path: consumerPath, label: "Enter STRAND", sub: "Your personal hair journal" });
 
       setDestinations(dests);
+      // Personalisation is derived from the live session only — never cached
+      // to localStorage, so a signed-out visitor sees no name at all.
       if (profile?.display_name) {
-        const first = profile.display_name.split(" ")[0];
-        setFirstName(first);
-        try {
-          localStorage.setItem("strand_last_display_name", first);
-        } catch {
-          // Ignore private browsing/storage failures.
-        }
+        setFirstName(profile.display_name.split(" ")[0]);
       }
       } catch (error: unknown) {
         // Email confirmations and old bookmarks often arrive during a brief

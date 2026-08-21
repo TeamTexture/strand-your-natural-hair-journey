@@ -100,7 +100,7 @@ describe("hotfix: signOut purges strand_* localStorage keys", () => {
     // Device-level keys that MUST survive the purge.
     localStorage.setItem("strand_walkthrough_complete", "true");
     localStorage.setItem("strand_migration_v1_done", "2026-04-26T10:00:00Z");
-    localStorage.setItem("strand_last_display_name", "Paige");
+    
     localStorage.setItem("strand_migration_v1_user_id", "user-A");
     // Unrelated key from another app — must not be touched.
     localStorage.setItem("not_strand_thing", "keep me");
