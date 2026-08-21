@@ -73,6 +73,8 @@ import MatchStars from "@/components/MatchStars";
 import { starsFromScore, formatStars, normaliseMatchScore, matchScoreOf, verdictForStars, isScoreStale, scoreTone } from "@/lib/matchStars";
 import SensitivityShelfAlert, { useTopicalAlert } from "@/components/sensitivity/SensitivityShelfAlert";
 import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
+import { safeProductSummary } from "@/lib/sensitivitySummary";
+
 import AiProgressBar from "@/components/AiProgressBar";
 
 interface Ingredient {
@@ -1051,7 +1053,11 @@ const IngredientDetail = () => {
           <>
             {/* AI Summary — the single verdict callout, bold lead-in only */}
             {(() => {
-              const { phrase, rest } = emphasisSplit(analysis.summary);
+              // SAFETY: when a declared sensitivity matches, the AI paragraph was
+              // written against the pre-sensitivity score — any endorsement in it
+              // is stripped so no positive claim can sit beside the avoid warning.
+              const safeSummary = safeProductSummary(analysis.summary, hasSensitivity);
+              const { phrase, rest } = emphasisSplit(safeSummary);
               // A declared sensitivity overrides the tone outright: the callout
               // can never read green above a warning that contradicts it.
               const vTone: "good" | "gold" | "warning" = hasSensitivity
@@ -1068,19 +1074,22 @@ const IngredientDetail = () => {
                       completely. Always check the pack before you use it.
                     </p>
                   )}
-                  <p>
-                    {phrase && (
-                      <span
-                        className={cn(
-                          "font-semibold",
-                          hasSensitivity ? "text-foreground/75" : "text-foreground",
-                        )}
-                      >
-                        {phrase}{" "}
-                      </span>
-                    )}
-                    <span className="text-foreground/75">{rest}</span>
-                  </p>
+                  {(phrase || rest) && (
+                    <p className={hasSensitivity ? "text-foreground/75" : undefined}>
+                      {phrase && (
+                        <span
+                          className={cn(
+                            "font-semibold",
+                            hasSensitivity ? "text-foreground/75" : "text-foreground",
+                          )}
+                        >
+                          {phrase}{" "}
+                        </span>
+                      )}
+                      <span className="text-foreground/75">{rest}</span>
+                    </p>
+                  )}
+
                   <ScoreReasons reasons={parseScoreReasons(analysis.score_reasons)} />
                 </StatusCallout>
               );

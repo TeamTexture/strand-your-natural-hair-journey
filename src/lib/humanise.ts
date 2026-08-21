@@ -110,6 +110,25 @@ const looksLikeIso = (v: string) =>
   /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}|$)/.test(v);
 
 /**
+ * Decode a value that is still JSON-encoded text — `"Dry / flaky"`,
+ * `["Braids","Twists"]`, `true`, `12` — into the underlying value. Anything
+ * that is not JSON is returned untouched. Never leaks quotes into the UI.
+ */
+const unwrapJsonScalar = (s: string): unknown => {
+  if (!/^["[{]|^(?:true|false|null)$/.test(s)) return s;
+  try {
+    const parsed = JSON.parse(s);
+    if (parsed == null) return null;
+    if (typeof parsed === "string") return parsed.trim();
+    return parsed;
+  } catch {
+    // Not valid JSON — still strip stray wrapping double quotes.
+    return s.replace(/^"+|"+$/g, "").trim();
+  }
+};
+
+
+/**
  * Turn a single stored value into readable text.
  * Returns null when the value is genuinely empty (so callers can hide the row).
  */
@@ -122,10 +141,17 @@ export const humaniseValue = (v: unknown): string | null => {
   }
   if (typeof v === "number") return String(v);
   if (typeof v === "object") return null; // let caller render structured objects itself
-  const s = String(v).trim();
+  const s0 = String(v).trim();
+  if (!s0) return null;
+  // Values that came back from encrypted columns are often still JSON-encoded
+  // ("Dry / flaky", ["Braids","Twists"], "No — regular cycles"). Never render
+  // the quotes/brackets — decode once, then humanise the decoded value.
+  const s = unwrapJsonScalar(s0);
   if (!s) return null;
+  if (typeof s !== "string") return humaniseValue(s);
   const key = s.toLowerCase();
   if (VALUE_MAP[key]) return VALUE_MAP[key];
+
   // Bare hair-type codes like "3c" or "4a"
   if (/^[1-4][a-c]$/i.test(s)) return `Type ${s.toUpperCase()}`;
   // ISO strings should not be humanised here — callers should route them through formatPassportDate
@@ -136,6 +162,37 @@ export const humaniseValue = (v: unknown): string | null => {
   }
   return s;
 };
+
+// Field-specific wording. The generic map is shared with blood panels, where
+// "normal"/"none" read as "In range" — correct for a marker, wrong for
+// elasticity or a diagnosis. These overrides win for the named field.
+const FIELD_VALUE_MAP: Record<string, Record<string, string>> = {
+  elasticity: {
+    normal: "Normal", good: "Good", in_range: "Normal",
+    low: "Low", poor: "Low", high: "High", none: "Not assessed",
+  },
+  diagnosed_conditions: {
+    none: "None recorded", no: "None recorded", normal: "None recorded",
+    in_range: "None recorded", unknown: "Not known",
+  },
+  scalp_condition: { none: "No concerns", normal: "Healthy" },
+};
+
+/**
+ * Humanise a stored value in the context of the field it came from, so shared
+ * vocabulary ("normal", "none") reads correctly per field.
+ */
+export const humaniseFieldValue = (key: string, v: unknown): string | null => {
+  if (typeof v === "string") {
+    const overrides = FIELD_VALUE_MAP[key];
+    if (overrides) {
+      const decoded = v.trim().replace(/^"+|"+$/g, "").trim().toLowerCase();
+      if (overrides[decoded]) return overrides[decoded];
+    }
+  }
+  return humaniseValue(v);
+};
+
 
 /** Fallback tone for a scalar value — used to colour porosity/status chips. */
 export const valueTone = (v: unknown): "good" | "warn" | "alert" | "neutral" => {
