@@ -8,6 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ProductThumb from "@/components/ProductThumb";
+import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
 import ProductsHeader, {
   applyProductFilters,
   useProductsFilterState,
@@ -130,6 +131,7 @@ const Favourites = () => {
                   batch.selectMode && isSelected && "ring-2 ring-primary",
                 )}
               >
+                <SensitivityShelfAlert ingredients={p.ingredients} />
                 <div className="p-3.5 flex items-center gap-3">
                   {batch.selectMode && (
                     <button

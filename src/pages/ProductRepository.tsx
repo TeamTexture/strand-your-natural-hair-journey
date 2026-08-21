@@ -10,6 +10,7 @@ import MatchStars from "@/components/MatchStars";
 import { useUserProducts, UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import BrandLink from "@/components/BrandLink";
+import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
 
 type Tab = "shelf" | "wishlist" | "off-shelf";
 
@@ -99,11 +100,15 @@ const ProductRepository = () => {
           filtered.map(p => {
             const lastUsed = formatDate(lastUsedByProductId.get(p.id) ?? p.last_used_at);
             return (
-              <button
+              <div
                 key={p.id}
-                onClick={() => navigate(`/products/profile/${p.id}`)}
-                className="w-full bg-card border border-border rounded-[14px] p-3.5 flex items-center gap-3 text-left hover:border-primary/40 transition-colors"
+                className="w-full bg-card border border-border rounded-[14px] overflow-hidden hover:border-primary/40 transition-colors"
               >
+                <SensitivityShelfAlert ingredients={p.ingredients} />
+                <button
+                  onClick={() => navigate(`/products/profile/${p.id}`)}
+                  className="w-full p-3.5 flex items-center gap-3 text-left"
+                >
                 <ProductThumb
                   imageUrl={p.image_url}
                   storagePath={p.storage_path}
@@ -121,7 +126,8 @@ const ProductRepository = () => {
                     )}
                   </div>
                 </div>
-              </button>
+                </button>
+              </div>
             );
           })
         )}

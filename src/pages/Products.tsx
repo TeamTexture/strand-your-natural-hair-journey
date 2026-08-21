@@ -234,6 +234,7 @@ const Products = () => {
                     brand={<BrandLink brand={p.brand} />}
                     imageUrl={p.image_url}
                     storagePath={p.storage_path}
+                    ingredients={p.ingredients}
                     matchScore={matchScoreOf(p)}
                     thumbBadge={
                       sponsoredById[p.id] ? (
