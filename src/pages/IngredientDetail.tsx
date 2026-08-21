@@ -240,11 +240,29 @@ const IngredientDetail = () => {
   // the passport or any AI context. The analysis payload is only used for a
   // product that has no saved row yet (a fresh scan awaiting save) — once it is
   // saved, runAnalysis persists the score and this resolves to the column.
-  const displayScore = useMemo(
+  const storedScore = useMemo(
     () => matchScoreOf(productRow) ?? normaliseMatchScore(analysis?.match_score),
     [productRow, analysis?.match_score],
   );
+  // SAFETY: the same deterministic, zero-cost topical match the shelf card runs.
+  // A stored score computed BEFORE the member declared a sensitivity must never
+  // be shown as-is here — the card and this page read one ceiling, one matcher.
+  const inciNames = useMemo(
+    () => (analysis?.ingredients ?? []).map((i) => i.name).filter(Boolean),
+    [analysis?.ingredients],
+  );
+  const sensitivityHits = useTopicalAlert(inciNames);
+  const hasSensitivity = sensitivityHits.length > 0;
+  const sensitivityLabels = sensitivityHits.map((h) => h.entry.label).join(", ");
+  const displayScore = applySensitivityCeiling(storedScore, sensitivityHits.length);
   const displayStars = starsFromScore(displayScore);
+  // Positive framing must never appear above a contradicting warning.
+  const displayVerdict =
+    displayStars == null
+      ? null
+      : hasSensitivity
+      ? `Best avoided — contains ${sensitivityLabels}, which you avoid`
+      : verdictForStars(displayStars);
   const [savingToShelf, setSavingToShelf] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
