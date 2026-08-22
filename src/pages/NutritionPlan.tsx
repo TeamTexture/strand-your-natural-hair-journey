@@ -367,23 +367,24 @@ const MealCard = ({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {onToggleSave && (
                 <button
                   type="button"
                   onClick={saved ? undefined : onToggleSave}
                   disabled={saved}
                   aria-label={saved ? "Saved to your meals" : "Save meal"}
-                  className={`inline-flex items-center gap-1 h-8 px-2.5 rounded-pill text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                  className={`inline-flex shrink-0 items-center gap-1 h-8 px-2.5 rounded-pill text-[10px] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition ${
                     saved
                       ? "bg-primary/10 text-primary cursor-default"
                       : "text-muted-foreground hover:bg-primary/10"
                   }`}
                 >
-                  <Heart className={`size-3.5 ${saved ? "fill-primary text-primary" : ""}`} />
-                  {saved ? "Saved" : "Save"}
+                  <Heart className={`size-3.5 shrink-0 ${saved ? "fill-primary text-primary" : ""}`} />
+                  <span className="whitespace-nowrap">{saved ? "Saved" : "Save"}</span>
                 </button>
               )}
+
               {onDelete && (
                 <button
                   type="button"
