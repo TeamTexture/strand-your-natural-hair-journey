@@ -1398,6 +1398,10 @@ const IngredientDetail = () => {
             </Button>
           </div>
         )}
+
+        {/* Start the next analysis without leaving this page. */}
+        <AnalyseAnotherCard returnTo={returnTo} />
+
       </div>
 
       {productRow && (
