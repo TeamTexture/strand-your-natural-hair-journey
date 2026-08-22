@@ -24,7 +24,7 @@ const ProGate = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your Hair Analysis" onBack={onboardingBack(navigate, "/onboarding/pro-gate")} right={<span>3 of 9</span>} />
+      <TitleBar title="Your Hair Analysis" onBack={onboardingBack(navigate, "/onboarding/pro-gate")} right={<span>4 of 9</span>} />
       <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-4">

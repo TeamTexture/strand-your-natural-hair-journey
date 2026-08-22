@@ -119,7 +119,7 @@ const ProDetails = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your Professional" onBack={onboardingBack(navigate, "/onboarding/pro-details")} right={<span>4 of 9</span>} />
+      <TitleBar title="Your Professional" onBack={onboardingBack(navigate, "/onboarding/pro-details")} right={<span>5 of 9</span>} />
       <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>Search our directory or add your professional manually.</ItalicSub>
 

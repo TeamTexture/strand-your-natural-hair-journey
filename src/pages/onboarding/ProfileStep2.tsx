@@ -26,6 +26,7 @@ import {
   EXERCISE_OPTIONS,
   SLEEP_OPTIONS,
   toggleCondition,
+  healthOptionLabel,
 } from "@/lib/healthOptions";
 
 /* ── shared field shell ───────────────────────────────────────────────── */
@@ -78,7 +79,7 @@ const ChipField = ({ options, value, onToggle, ...rest }: ChipFieldProps) => (
     <div className="flex flex-wrap gap-2">
       {options.map((o) => (
         <Tag key={o} selected={value.includes(o)} onClick={() => onToggle(o)} className="min-h-[38px]">
-          {o}
+          {healthOptionLabel(o)}
         </Tag>
       ))}
     </div>

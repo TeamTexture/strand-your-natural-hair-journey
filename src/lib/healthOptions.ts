@@ -103,3 +103,14 @@ export function toggleCondition(current: string[], option: string): string[] {
     ? withoutNone.filter((v) => v !== option)
     : [...withoutNone, option];
 }
+
+/** Display-only labels. Stored values are never changed (existing member rows
+ *  hold the raw strings) — this only fixes how they read on screen. */
+const HEALTH_OPTION_LABELS: Record<string, string> = {
+  "None non-hormonal": "None / non-hormonal",
+  "IUD hormonal": "Hormonal IUD",
+};
+
+export function healthOptionLabel(value: string): string {
+  return HEALTH_OPTION_LABELS[value] ?? value;
+}
