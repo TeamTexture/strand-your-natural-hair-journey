@@ -34,6 +34,7 @@ import ProductPhotoTile from "@/components/ProductPhotoTile";
 import ProductThumb from "@/components/ProductThumb";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import AnalyseAnotherCard from "@/components/product/AnalyseAnotherCard";
+import ProductPrimerCard from "@/components/products/ProductPrimerCard";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import {
