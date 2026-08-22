@@ -226,8 +226,6 @@ export default function IngredientExplainerSheet({
               </div>
             )}
           </div>
-        )}
-
           )}
       </SheetContent>
     </Sheet>
