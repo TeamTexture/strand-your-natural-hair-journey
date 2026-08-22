@@ -6,7 +6,9 @@
 // the user payload matches "hydrolyzed protein" in this list.
 //
 // RAG also triggers (independently of this list) when any ingredient in the
-// product appears in the user's personal avoid_ingredients list. See
+// product appears in the user's frequently-owned ingredient list (a neutral
+// frequency count — see _shared/flagged-ingredients.ts). That is a retrieval
+// trigger only and never a negative signal. See
 // shouldTriggerRag() below for the combined predicate.
 
 export const RAG_TRIGGER_INGREDIENTS: string[] = [

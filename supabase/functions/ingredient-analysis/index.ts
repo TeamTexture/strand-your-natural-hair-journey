@@ -55,6 +55,7 @@ import {
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
+import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import { perParagraph } from "../_shared/paragraph-rules.ts";
 import { coerceTipsLevel, DEFAULT_TIPS_LEVEL, type TipsLevel } from "../_shared/tips-level.ts";
 import {
@@ -227,7 +228,7 @@ interface RequestBody {
   challenges?: string[];
   force?: boolean;
   context?: Record<string, unknown> & {
-    avoid_ingredients?: string[];
+    flagged_ingredients?: string[];
   };
 }
 
@@ -306,7 +307,7 @@ function buildTaskInstructions(productBrand: string, productName: string, ingred
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. In every body field, lead with the molecule's mechanism in plain English (translate the cosmetic-chemistry term on first use), then bridge with a connective ("which means", "so", "this is why") into what it means for THIS user. Talk to "you", not "your hair". Warm but not saccharine; no hedging stacks.
 
-USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, bloodResults, medications, context.avoid_ingredients (auto-derived from this user's own low-rated products).
+USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, bloodResults, medications, context.flagged_ingredients (a NEUTRAL frequency count of ingredients appearing in 3+ of her saved products — what she already owns and uses; it carries no safety, quality or suitability meaning and must never lower the match score).
 
 PHILOSOPHY — READ THIS BEFORE FLAGGING ANYTHING:
 We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol, parabens at legal limits, sodium benzoate, potassium sorbate, methylisothiazolinone, etc.), fragrance/parfum, colourants, and standard pH adjusters are used in legally-permitted small quantities and are NOT inherently harmful for the general user. Do NOT mark them "bad" purely because they exist in the formula. Real-world cosmetic safety is regulated; our job is personalised fit, not fear.
@@ -321,7 +322,7 @@ RULES — STRICT:
 1. Flag EVERY ingredient supplied — do NOT skip any (including water, fragrance, colourants, preservatives). The tool schema enforces the count (${ingredientCount > 0 ? ingredientCount : "as supplied"}); preserve the input order.
 2. tone — apply this exact decision tree:
    - "bad" ONLY if AT LEAST ONE of the following is true:
-     a) the ingredient (or its INCI alias) appears in context.avoid_ingredients (the user's own data has flagged it across multiple low-rated products), OR
+     a) the ingredient (or its INCI alias) appears in the member's DECLARED topical sensitivities or a documented allergy (NEVER because it appears in context.flagged_ingredients — that list is only a count of what she already owns), OR
      b) the ingredient appears in the member's DECLARED topical sensitivities (see the ALLERGY AND SENSITIVITY CONSTRAINTS block — these are recorded, structured data and take priority over everything else here: a declared hard exclusion is ALWAYS "bad", and its body must name the sensitivity explicitly), OR the user has a documented allergy / sensitivity / diagnosis in healthProfile that this molecule directly aggravates (e.g. SLS sulphate when scalp_condition flags seborrheic dermatitis or eczema; isopropyl/SD alcohol on a documented "high porosity + breakage" combo; a named allergen the user listed), OR
      c) the molecule directly conflicts with a measurable hair trait the user holds (e.g. heavy mineral oil sealing low-porosity hair the user is trying to moisturise — and even then, only if the formula puts it high in the list).
      NEVER mark a standard preservative, fragrance, colourant, or pH adjuster "bad" without (a), (b) or (c). Existence ≠ harm.
@@ -332,7 +333,7 @@ RULES — STRICT:
    GOOD example (warn): "Broad-spectrum preservative used at <1% — safe at this level; flag only if your scalp has reacted to it before."
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
-4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to.
+4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to, and NEVER dock score because the formula contains ingredients she already owns frequently (context.flagged_ingredients) — ownership frequency is not a fit signal in either direction.
 5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. Each tip body must be a DETAILED, multi-sentence explanation (${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words) — never a single sentence. Within each tip, give the action in full (amount, placement, sectioning, hair state, temperature, dwell time, rinse, frequency), the reason it fits one NAMED trait of this user, what it should look or feel like when done right, and the mistake to avoid. ${level >= 3 ? "This user is at support level 3 (hand-holding): the fullest, most explanatory version — plain words, reading age 9-10, timings scaled to their hair, everything spelled out." : level === 2 ? "This user is at support level 2 (essential): the action, one sentence of why, and the concrete how. No extended explanatory passage." : "This user is at support level 1 (minimal): the action plus one short sentence of why, and nothing more."}
 
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
@@ -368,6 +369,8 @@ ${PURPOSE_INSIGHT_RULES}
 ${NON_PRESCRIPTIVE_RULES}
 
 ${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}
 
 NOTE FOR THIS FUNCTION: the one-sentence overall call lives in the "summary" field (not ai_summary) — the SCORE REASONS rules apply to "summary" in exactly the same way. A score reason may NOT restate a personalised_guidance tip or an ingredient body verbatim.`;
 }
@@ -655,8 +658,10 @@ Deno.serve(async (req) => {
 
 
     const ingredientCount = (ingredients ?? []).length;
-    const avoidList = Array.isArray(body.context?.avoid_ingredients)
-      ? body.context!.avoid_ingredients as string[]
+    // Frequency list only — used purely as a RAG retrieval trigger, never as
+    // a negative signal. See _shared/flagged-ingredients.ts.
+    const avoidList = Array.isArray(body.context?.flagged_ingredients)
+      ? body.context!.flagged_ingredients as string[]
       : [];
 
     let analysis: AnalysisPayload;

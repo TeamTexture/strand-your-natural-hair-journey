@@ -160,7 +160,9 @@ ${TOOL_SCORE_REASONS_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
 
-${STYLE_WEIGHTING_RULES}`;
+${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -259,6 +261,7 @@ import {
 } from "../_shared/grounding.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
+import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
 import { gatewayFetch } from "../_shared/ai-meter.ts";
 
@@ -306,7 +309,9 @@ ${TOOL_SCORE_REASONS_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
 
-${STYLE_WEIGHTING_RULES}`;
+${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}`;
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
