@@ -1070,8 +1070,8 @@ const IngredientDetail = () => {
         {analysis && !loading && (
           <>
             {/* Orientation first: what this is, what it does, how to use it. */}
+            <ProductPrimerCard
               title={(analysis as { product_name?: string }).product_name}
-              title={analysis.product_name}
               purpose={purpose}
               note={purposeNote}
               usage={analysis.usage_instructions}
