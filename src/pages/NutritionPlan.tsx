@@ -21,7 +21,7 @@ import { Stethoscope } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke, isAuthInvokeError } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
-import { useSavedMeals, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
+import { useSavedMeals, mealKey, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
 import AiProse from "@/components/tips/AiProse";
 
@@ -371,15 +371,17 @@ const MealCard = ({
               {onToggleSave && (
                 <button
                   type="button"
-                  onClick={onToggleSave}
-                  aria-label={saved ? "Remove from saved meals" : "Save meal"}
-                  className="size-8 rounded-full flex items-center justify-center hover:bg-primary/10 transition"
+                  onClick={saved ? undefined : onToggleSave}
+                  disabled={saved}
+                  aria-label={saved ? "Saved to your meals" : "Save meal"}
+                  className={`inline-flex items-center gap-1 h-8 px-2.5 rounded-pill text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                    saved
+                      ? "bg-primary/10 text-primary cursor-default"
+                      : "text-muted-foreground hover:bg-primary/10"
+                  }`}
                 >
-                  <Heart
-                    className={`size-4 transition ${
-                      saved ? "fill-primary text-primary" : "text-muted-foreground"
-                    }`}
-                  />
+                  <Heart className={`size-3.5 ${saved ? "fill-primary text-primary" : ""}`} />
+                  {saved ? "Saved" : "Save"}
                 </button>
               )}
               {onDelete && (
@@ -559,7 +561,7 @@ const NutritionPlan = () => {
 
   const savedByKey = useMemo(() => {
     const set = new Set<string>();
-    (savedMealsQ.data ?? []).forEach((m) => set.add(m.name.trim().toLowerCase()));
+    (savedMealsQ.data ?? []).forEach((m) => set.add(mealKey(m.name)));
     return set;
   }, [savedMealsQ.data]);
 
@@ -567,13 +569,17 @@ const NutritionPlan = () => {
     setMealsLoading(true);
     try {
       const context = await buildAiContext();
+      // Saved meals are permanently off the menu until she deletes them.
+      const savedNames = (savedMealsQ.data ?? [])
+        .map((m) => (m.name ?? "").trim())
+        .filter(Boolean);
       // Send what she has already seen or saved so "Generate new ideas"
       // returns a genuinely different batch instead of the same six meals.
       const exclude = Array.from(
         new Set(
           [
             ...(meals ?? []).map((m) => m.name),
-            ...(savedMealsQ.data ?? []).map((m) => m.name),
+            ...savedNames,
           ]
             .map((n) => (n ?? "").trim())
             .filter(Boolean),
@@ -581,6 +587,7 @@ const NutritionPlan = () => {
       );
       const { data, error } = await aiInvoke<{ meals?: AiMeal[] }>("meal-ideas", {
         context,
+        savedMeals: savedNames,
         diet: currentProfile.diet,
         dietOther: currentProfile.dietOther,
         alcohol: currentProfile.alcohol,
@@ -597,7 +604,12 @@ const NutritionPlan = () => {
       }
 
       if (Array.isArray(data?.meals) && data.meals.length > 0) {
-        setMeals(data.meals as AiMeal[]);
+        // Belt and braces: never render something she has already saved, even
+        // if the model slips and returns it anyway.
+        const savedKeys = new Set(savedNames.map(mealKey));
+        const fresh = (data.meals as AiMeal[]).filter((m) => !savedKeys.has(mealKey(m.name)));
+        if (fresh.length > 0) setMeals(fresh);
+        else toast.error("No new meal ideas came back — try again.");
       } else {
         toast.error("No new meal ideas came back — try again.");
       }
@@ -610,15 +622,8 @@ const NutritionPlan = () => {
   };
 
   const handleSaveMeal = async (meal: AiMeal) => {
-    const key = meal.name.trim().toLowerCase();
-    const existing = (savedMealsQ.data ?? []).find(
-      (m) => m.name.trim().toLowerCase() === key,
-    );
-    if (existing) {
-      await savedMealsQ.remove.mutateAsync(existing.id);
-      toast.success("Removed from saved meals");
-      return;
-    }
+    // Already saved? Nothing to do — the card shows its saved state instead.
+    if (savedByKey.has(mealKey(meal.name))) return;
     const draft: MealDraft = {
       name: meal.name,
       emoji: meal.emoji ?? null,
