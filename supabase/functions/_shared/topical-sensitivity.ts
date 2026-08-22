@@ -183,3 +183,115 @@ export function annotateProductSensitivities<T extends Record<string, unknown>>(
 
   return payload;
 }
+
+/**
+ * Enforce declared topical sensitivities on an ingredient-analysis payload
+ * (the card-list shape used by `ingredient-analysis`) against the RAW stored
+ * INCI list — never only the list the model chose to echo back.
+ *
+ * SAFETY: the model can reword, shorten or entirely omit an ingredient from
+ * its own `ingredients[]` cards. Matching only against those cards let a
+ * declared sulphate/fragrance sensitivity go unflagged on the product detail
+ * page while the shelf card (which reads `user_products.ingredients`) flagged
+ * it correctly. The raw list is the single source of truth for the match; a
+ * raw hit the model failed to card gets a card synthesised for it so the
+ * checklist can never stay silent about it.
+ *
+ * Warning system, not a filter: nothing is removed and nothing regenerated.
+ * Returns the same object, annotated.
+ */
+export function enforceIngredientCardSensitivities<
+  T extends { match_score?: number; summary?: string; score_reasons?: ScoreReason[]; ingredients?: unknown },
+>(
+  analysis: T,
+  s: LoadedSensitivities,
+  rawIngredients: string[],
+  fnName: string,
+): T {
+  if (!analysis || s.avoid.length === 0) return analysis;
+
+  const cards = Array.isArray(analysis.ingredients)
+    ? (analysis.ingredients as Array<Record<string, unknown>>)
+    : [];
+  const raw = (rawIngredients ?? []).filter(
+    (x): x is string => typeof x === "string" && x.trim().length > 0,
+  );
+
+  const flagged: string[] = [];
+  const terms: Record<string, string> = {};
+
+  // 1. Cards the model DID return that match a declared exclusion.
+  for (const card of cards) {
+    const hit = matchIngredient(String(card?.name ?? ""), s);
+    if (!hit) continue;
+    card.tone = "bad";
+    card.sensitivity = true;
+    const body = typeof card.body === "string" ? card.body : "";
+    if (!/sensitivit/i.test(body)) {
+      card.body = `You've flagged ${hit.label} as a sensitivity. ${body}`.trim();
+    }
+    if (!flagged.includes(hit.label)) flagged.push(hit.label);
+    if (!terms[hit.label]) terms[hit.label] = hit.term;
+  }
+
+  // 2. THE RAW LIST — the authoritative source. Anything matched here that the
+  //    model never carded gets its own card so the checklist names it.
+  for (const name of raw) {
+    const hit = matchIngredient(name, s);
+    if (!hit) continue;
+    if (!terms[hit.label]) terms[hit.label] = hit.term;
+    if (!flagged.includes(hit.label)) flagged.push(hit.label);
+    const alreadyCarded = cards.some(
+      (c) => String(c?.name ?? "").trim().toLowerCase() === name.trim().toLowerCase(),
+    );
+    if (alreadyCarded) continue;
+    cards.unshift({
+      name: name.trim().slice(0, 80),
+      tone: "bad",
+      sensitivity: true,
+      category: "Declared sensitivity",
+      body: `You've flagged ${hit.label} as a sensitivity and this ingredient is on this product's label.`,
+    });
+  }
+  if (cards.length > 0) (analysis as Record<string, unknown>).ingredients = cards;
+
+  // 3. Anything named in the prose the model wrote.
+  const scanned = scanTopical(
+    cards.map((c) => `${c?.name ?? ""} ${c?.body ?? ""}`),
+    s,
+  );
+  for (const label of scanned.labels) {
+    if (!flagged.includes(label)) flagged.push(label);
+    if (!terms[label]) terms[label] = scanned.terms[label] ?? label;
+  }
+
+  if (flagged.length === 0) return analysis;
+
+  const reasons = Array.isArray(analysis.score_reasons) ? analysis.score_reasons : [];
+  for (const label of flagged) {
+    if (reasons.some((r) => r.reason?.includes(label))) continue;
+    reasons.unshift(sensitivityScoreReason(label, terms[label] ?? label));
+  }
+  (analysis as Record<string, unknown>).score_reasons = reasons.slice(0, 4);
+
+  if (typeof analysis.match_score === "number") {
+    (analysis as Record<string, unknown>).match_score =
+      applySensitivityCeiling(analysis.match_score, flagged.length) ?? analysis.match_score;
+  }
+  const summary = typeof analysis.summary === "string" ? analysis.summary : "";
+  if (!/flagged as a sensitivity/i.test(summary)) {
+    (analysis as Record<string, unknown>).summary = [summary.trim(), SENSITIVITY_SENTENCE(flagged)]
+      .filter(Boolean)
+      .join(" ");
+  }
+  (analysis as Record<string, unknown>)._sensitivity_flagged = flagged;
+
+  // Counts only — never the labels, never the payload.
+  console.log(JSON.stringify({
+    event: "topical_sensitivity_warning",
+    fn: fnName,
+    hits: flagged.length,
+  }));
+
+  return analysis;
+}
