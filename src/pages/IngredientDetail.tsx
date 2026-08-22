@@ -253,10 +253,24 @@ const IngredientDetail = () => {
   // SAFETY: the same deterministic, zero-cost topical match the shelf card runs.
   // A stored score computed BEFORE the member declared a sensitivity must never
   // be shown as-is here — the card and this page read one ceiling, one matcher.
-  const inciNames = useMemo(
-    () => (analysis?.ingredients ?? []).map((i) => i.name).filter(Boolean),
-    [analysis?.ingredients],
-  );
+  // SOURCE OF TRUTH: the stored `user_products.ingredients` column — exactly what
+  // the shelf card's alert reads. Never the AI-regenerated `analysis.ingredients`
+  // list: the model can reword, shorten or drop an INCI name, which silently hid
+  // a declared sulphate match here while the shelf card flagged it correctly.
+  // The analysis names are only a fallback for a fresh scan with no saved row.
+  const inciNames = useMemo(() => {
+    const stored = (productRow as { ingredients?: unknown } | null)?.ingredients;
+    const rawStored = Array.isArray(stored)
+      ? stored.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      : [];
+    const fresh = Array.isArray(freshAnalysis?.ingredients)
+      ? (freshAnalysis!.ingredients as unknown[]).filter(
+          (x): x is string => typeof x === "string" && x.trim().length > 0,
+        )
+      : [];
+    const fromAnalysis = (analysis?.ingredients ?? []).map((i) => i.name).filter(Boolean);
+    return Array.from(new Set([...rawStored, ...fresh, ...fromAnalysis]));
+  }, [productRow, freshAnalysis, analysis?.ingredients]);
   const sensitivityHits = useTopicalAlert(inciNames);
   const hasSensitivity = sensitivityHits.length > 0;
   const sensitivityLabels = sensitivityHits.map((h) => h.entry.label).join(", ");
@@ -550,7 +564,13 @@ const IngredientDetail = () => {
             productBrand,
             // Catalogue ingredients for a product the member hasn't saved yet
             // (opened from a brand's shelf) — otherwise the model has to infer.
-            ingredients: freshAnalysis?.ingredients ?? undefined,
+            // Prefer the stored INCI list so the model never has to infer a
+            // formulation it can then get wrong (and so its sensitivity pass
+            // runs on the same list every other surface reads).
+            ingredients:
+              (Array.isArray((row as { ingredients?: unknown } | null)?.ingredients)
+                ? ((row as { ingredients?: unknown }).ingredients as string[])
+                : undefined) ?? freshAnalysis?.ingredients ?? undefined,
             hairProfile,
             healthProfile,
             heritage,
