@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { loadDecryptedContext } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import {
   loadResponsiveSignals,
