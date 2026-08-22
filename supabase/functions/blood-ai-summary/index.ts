@@ -39,9 +39,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v4-manuscript-2026-08-09";
+const MODEL_VERSION = "claude-opus-4-7@v5-manuscript-2026-08-22";
 // Bump whenever cache-affecting prompt/logic changes (incl. tips-level wiring).
-const CACHE_VERSION = "v4-manuscript-2026-08-09";
+const CACHE_VERSION = "v5-manuscript-2026-08-22";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
