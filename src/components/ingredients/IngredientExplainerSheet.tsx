@@ -228,11 +228,7 @@ export default function IngredientExplainerSheet({
           </div>
         )}
 
-        {glossaryId && (
-          <div className="mt-3 space-y-2">
-            <BrandTagControl taggableType="glossary_term" taggableId={glossaryId} />
-          </div>
-        )}
+          )}
       </SheetContent>
     </Sheet>
   );
