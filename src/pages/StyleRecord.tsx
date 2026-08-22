@@ -197,15 +197,16 @@ const StartStyleRecord = () => {
             )}
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <Label className="text-[13px]">Date</Label>
             <Input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value || todayIso())}
-              className="h-10 text-sm"
+              className="h-10 text-sm block w-full min-w-0 max-w-full appearance-none [&::-webkit-date-and-time-value]:text-left [&::-webkit-calendar-picker-indicator]:ml-auto"
             />
           </div>
+
         </div>
 
         <Button

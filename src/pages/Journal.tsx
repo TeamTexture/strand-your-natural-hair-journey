@@ -389,6 +389,20 @@ const Journal = () => {
           <p className="text-[11px] font-body text-muted-foreground">{lastEntryLabel}</p>
         )}
 
+        {/* Starting a style sits at the top, above the logged records. */}
+        <button
+          type="button"
+          onClick={() => navigate("/journal/entry/new")}
+          className="w-full h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
+        >
+          <Plus className="size-7" />
+          <span className="text-[11px] uppercase tracking-[0.2em] font-medium">
+            {savedEntries.length === 0 ? "Start your first style" : "Start a style"}
+          </span>
+        </button>
+
+
+
         {savedEntries.map((s) => {
           const match = s.title?.match(/^\[([^\]]+)\]\s*(.*)$/);
           const displayTitle =
@@ -509,21 +523,8 @@ const Journal = () => {
             </div>
           );
         })}
-
-        {/* Always-visible "new entry" tile so users can keep adding entries
-            once they have some saved (previously this only rendered when
-            the photo journal was empty, leaving no entry point). */}
-        <button
-          type="button"
-          onClick={() => navigate("/journal/entry/new")}
-          className="w-full h-36 rounded-[14px] border-2 border-dashed border-primary/60 bg-card flex flex-col items-center justify-center gap-2 text-primary"
-        >
-          <Plus className="size-7" />
-          <span className="text-[11px] uppercase tracking-[0.2em] font-medium">
-            {savedEntries.length === 0 ? "Start your first style" : "Start a style"}
-          </span>
-        </button>
       </div>
+
 
       {(boardsLoading || populatedBoards.length > 0) && (
         <>
