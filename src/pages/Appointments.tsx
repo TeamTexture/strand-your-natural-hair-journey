@@ -8,6 +8,7 @@ import SectionLabel from "@/components/SectionLabel";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import AppointmentCard from "@/components/AppointmentCard";
+import AppointmentReviewPrompt from "@/components/AppointmentReviewPrompt";
 import type { AppointmentCardData } from "@/components/AppointmentCard";
 import EnquiriesListInline from "@/components/EnquiriesListInline";
 import { Button } from "@/components/ui/button";
@@ -393,6 +394,11 @@ const Appointments = () => {
                         onDelete={() => setDeleteTarget(a)}
                       >
                         <ApptPhotos appointmentId={a.id} />
+                        <AppointmentReviewPrompt
+                          appointmentId={a.id}
+                          status={a.status}
+                          linkedProUserId={a.linked_pro_user_id}
+                        />
                       </AppointmentCard>
                     </div>
                   );
