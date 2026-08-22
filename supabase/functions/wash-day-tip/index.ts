@@ -793,7 +793,21 @@ Do not substitute other cleansing or sealing methods for these two.`
     // returning it rendered an empty gold card. Fail explicitly so the client
     // falls back to the last tip that did pass the guardrails.
     failOutcome("hollow_after_guardrail");
-    return json(422, { error: "tip_hollow_after_guardrail" });
+    return json(422, {
+      error: "tip_hollow_after_guardrail",
+      ...(isDiagnostic
+        ? {
+            debug: {
+              parsed_action: String(parsed.action ?? ""),
+              capped_action: String(capped.action ?? ""),
+              after_wall: String((plain as TipPayload).action ?? ""),
+              redacted: stillNamed,
+              final_action: String(finalPayload.action ?? ""),
+              final_reason: String(finalPayload.reason ?? ""),
+            },
+          }
+        : {}),
+    });
   }
 
   if (cacheable && !isDiagnostic) {
