@@ -164,7 +164,9 @@ OUTPUT RULES
 
 7. Plain English. Translate a clinical term on first use with a neutral definition only — never with what it does for hair.
 
-8. Never name a book, chapter or page.`;
+8. Never name a book, chapter or page.
+
+9. FOOD-FIRST GUIDANCE (the manuscript's varied-diet argument, used only here to guide her). When a flagged marker has a known food source, a priority_action may steer her toward building that nutrient into a varied everyday diet — food first, grounded in Chapter 8's nutrition science. Frame it as a general dietary habit, never as a treatment for a specific blood value, and never claim a hair outcome from any value. Always offer plant-based options so her diet is honoured. Anything beyond food — supplements, dosing, injections, infusions — is a GP conversation, not STRAND's. Never name the book, author, chapter or page.`;
 }
 
 async function runClaude(args: {
