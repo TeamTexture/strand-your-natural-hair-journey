@@ -31,6 +31,7 @@ import {
   matchIngredient,
   scanTopical,
   sensitivityScoreReason,
+  enforceIngredientCardSensitivities,
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
@@ -581,6 +582,31 @@ Deno.serve(async (req) => {
       return json(400, { error: "Missing product info" });
     }
 
+    // THE ingredient list. `user_products.ingredients` is the stored source of
+    // truth every other surface reads (shelf card, passport, aiContext), so it
+    // is what the model is given AND what the deterministic sensitivity scan
+    // runs against. Without this the caller sent nothing for a saved product
+    // and the model inferred a plausible formulation instead — which is how a
+    // declared sulphate sensitivity stayed invisible on the detail page while
+    // the shelf card flagged it correctly from the same stored row.
+    let rawIngredients: string[] = Array.isArray(ingredients)
+      ? ingredients.filter((x) => typeof x === "string" && x.trim().length > 0)
+      : [];
+    if (rawIngredients.length === 0) {
+      const { data: storedRow } = await supabase
+        .from("user_products")
+        .select("ingredients")
+        .eq("user_id", user.id)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      const stored = storedRow?.ingredients;
+      if (Array.isArray(stored)) {
+        rawIngredients = stored.filter(
+          (x: unknown): x is string => typeof x === "string" && x.trim().length > 0,
+        );
+      }
+    }
+
     const tipsLevel = coerceTipsLevel(
       (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
     );
@@ -607,7 +633,17 @@ Deno.serve(async (req) => {
           ? cached._model_version === MODEL_VERSION
           : true;
         if (versionOk && hasGuidance && depthOk) {
-          return json(200, { cached: true, analysis: await sanitiseAndLog(cached, "ingredient-analysis") });
+          // SAFETY: a payload cached before the member declared a sensitivity
+          // (or before this enforcement existed) must never be served raw.
+          // Re-run the deterministic pass against the stored INCI list on every
+          // cache hit — it is text matching, so it costs nothing.
+          const guarded = enforceIngredientCardSensitivities(
+            cached as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+            sens,
+            rawIngredients,
+            "ingredient-analysis",
+          ) as unknown as AnalysisPayload;
+          return json(200, { cached: true, analysis: await sanitiseAndLog(guarded, "ingredient-analysis") });
         }
       }
     }
@@ -630,7 +666,7 @@ Deno.serve(async (req) => {
 
     const userPayload: Record<string, unknown> = {
       product: { key: productKey, name: productName, brand: productBrand },
-      ingredients: ingredients ?? [],
+      ingredients: rawIngredients,
       hairProfile: hairProfile ?? {},
       healthProfile: healthProfile ?? {},
       heritage: heritage ?? [],
@@ -657,7 +693,7 @@ Deno.serve(async (req) => {
 
 
 
-    const ingredientCount = (ingredients ?? []).length;
+    const ingredientCount = rawIngredients.length;
     // Frequency list only — used purely as a RAG retrieval trigger, never as
     // a negative signal. See _shared/flagged-ingredients.ts.
     const avoidList = Array.isArray(body.context?.flagged_ingredients)
@@ -669,7 +705,7 @@ Deno.serve(async (req) => {
       analysis = await runClaude({
         productName,
         productBrand,
-        ingredients: ingredients ?? [],
+        ingredients: rawIngredients,
         hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
         userPayload,
         selectorContext: buildSelectorContext(body),
@@ -702,7 +738,7 @@ Deno.serve(async (req) => {
         analysis = await runClaude({
           productName,
           productBrand,
-          ingredients: ingredients ?? [],
+          ingredients: rawIngredients,
           hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
           userPayload: retryPayload,
           selectorContext: buildSelectorContext(body),
@@ -780,54 +816,15 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
 
     // ── Declared topical sensitivities: deterministic enforcement.
     // Warning system, not a filter — the ingredient list is left intact, but
-    // any declared hard exclusion present in the formula is forced to "bad"
-    // and named in its body, with the score reduced accordingly.
-    if (sens.avoid.length > 0 && Array.isArray(analysis.ingredients)) {
-      const flagged: string[] = [];
-      for (const card of analysis.ingredients) {
-        const hit = matchIngredient(String(card?.name ?? ""), sens);
-        if (!hit) continue;
-        card.tone = "bad";
-        card.sensitivity = true;
-        if (!/sensitivit/i.test(card.body ?? "")) {
-          card.body = `You've flagged ${hit.label} as a sensitivity. ${card.body ?? ""}`.trim();
-        }
-        if (!flagged.includes(hit.label)) flagged.push(hit.label);
-      }
-      // Ingredients the member declared that appear anywhere in the list even
-      // when the model didn't card them individually.
-      const scanned = scanTopical(
-        (analysis.ingredients ?? []).map((c) => `${c?.name ?? ""} ${c?.body ?? ""}`),
-        sens,
-      );
-      for (const label of scanned.labels) if (!flagged.includes(label)) flagged.push(label);
-
-      if (flagged.length > 0) {
-        const reasons = Array.isArray(analysis.score_reasons) ? analysis.score_reasons : [];
-        for (const label of flagged) {
-          if (reasons.some((r) => r.reason?.includes(label))) continue;
-          reasons.unshift(sensitivityScoreReason(label, scanned.terms[label] ?? label));
-        }
-        analysis.score_reasons = reasons.slice(0, 4);
-        if (typeof analysis.match_score === "number") {
-          analysis.match_score = applySensitivityCeiling(
-            analysis.match_score,
-            flagged.length,
-          ) ?? analysis.match_score;
-        }
-        if (!/flagged as a sensitivity/i.test(analysis.summary ?? "")) {
-          analysis.summary = `${(analysis.summary ?? "").trim()} Contains ${
-            flagged.join(" and ")
-          }, which you've flagged as a sensitivity — read the pack before you use it.`.trim();
-        }
-        (analysis as unknown as Record<string, unknown>)._sensitivity_flagged = flagged;
-        console.log(JSON.stringify({
-          event: "topical_sensitivity_warning",
-          fn: "ingredient-analysis",
-          hits: flagged.length,
-        }));
-      }
-    }
+    // any declared hard exclusion present in the STORED INCI list is forced to
+    // "bad" and named in its body, with the score reduced accordingly. The raw
+    // list is authoritative: the model's own cards can omit or reword it.
+    enforceIngredientCardSensitivities(
+      analysis as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+      sens,
+      rawIngredients,
+      "ingredient-analysis",
+    );
 
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
