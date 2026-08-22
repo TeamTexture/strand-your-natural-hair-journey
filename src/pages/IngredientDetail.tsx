@@ -1413,6 +1413,10 @@ const IngredientDetail = () => {
           </div>
         )}
 
+        {/* Start the next analysis — last block, under every other action. */}
+        <AnalyseAnotherCard returnTo={returnTo} />
+
+
       </div>
 
       {productRow && (
