@@ -180,8 +180,16 @@ export function useDynamicWashTip() {
         loadResponsiveSignals(user.id),
         loadWashHistory(user.id),
       ]);
-      const h = ctx.hair as { hair_type?: string; porosity?: string; density?: string; scalp_condition?: string } | null;
-      const he = ctx.health as { overall_health?: string } | null;
+      const h = ctx.hair as
+        | (Record<string, unknown> & {
+            porosity?: string;
+            density?: string;
+            scalp_condition?: string;
+            surface_texture?: string;
+            length_bucket?: string;
+          })
+        | null;
+      const he = ctx.health as (Record<string, unknown> & { overall_health?: string }) | null;
       const s = ctx.style as {
         current_hairstyle?: string;
         days_in_style?: number | null;
@@ -191,12 +199,14 @@ export function useDynamicWashTip() {
       } | null;
       const fingerprint = hashString(
         [
-          "wash-tip-v4-reason",
-          h?.hair_type ?? "",
-          h?.porosity ?? "",
-          h?.density ?? "",
-          h?.scalp_condition ?? "",
-          he?.overall_health ?? "",
+          "wash-tip-v5-context",
+          String(h?.surface_texture ?? ""),
+          String(h?.porosity ?? ""),
+          String(h?.density ?? ""),
+          String(h?.length_bucket ?? ""),
+          String(h?.scalp_condition ?? ""),
+          String(he?.overall_health ?? he?.life_stage ?? ""),
+
           ...styleSignatureParts(ctx.style as Record<string, unknown> | null),
           ctx.hasWashHistory ? "wash" : "no-wash",
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
