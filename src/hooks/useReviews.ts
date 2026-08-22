@@ -54,6 +54,34 @@ export function useProReviews() {
   });
 }
 
+/**
+ * The signed-in member's own reviews, keyed by appointment id. Used to decide
+ * whether a past appointment still needs a "Leave a review" prompt — RLS scopes
+ * this to the member's own rows, so a professional's decision status is only
+ * ever visible for reviews they wrote themselves.
+ */
+export function useMyReviewsByAppointment() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["my-reviews", user?.id],
+    enabled: !!user,
+    staleTime: 30_000,
+    queryFn: async (): Promise<Map<string, { id: string; rating: number; status: ReviewStatus }>> => {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("id,appointment_id,rating,status")
+        .eq("client_user_id", user!.id);
+      if (error) throw error;
+      const map = new Map<string, { id: string; rating: number; status: ReviewStatus }>();
+      for (const r of (data ?? []) as any[]) {
+        map.set(r.appointment_id, { id: r.id, rating: r.rating, status: r.status });
+      }
+      return map;
+    },
+  });
+}
+
+
 /** Approve or deny a review. Decisions are final. */
 export function useDecideReview() {
   const qc = useQueryClient();
