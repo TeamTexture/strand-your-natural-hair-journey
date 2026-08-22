@@ -135,7 +135,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
   "Vitamin B12": {
     what: "A vitamin your body uses to make red blood cells and maintain healthy nerves.",
     whyItMatters:
-      "It sits in the book's varied-diet argument: B12 supports the red blood cells that carry oxygen to the scalp, and hair is sensitive to that supply.",
+      "B12 supports the red blood cells that carry oxygen to the scalp, and hair is sensitive to that supply.",
     plantFoods: [
       "fortified plant milks and yoghurts",
       "fortified breakfast cereals",
@@ -151,7 +151,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
   Folate: {
     what: "The natural form of folic acid — your cells use it to divide and renew.",
     whyItMatters:
-      "Hair cells are among the fastest-renewing in the body, so the book puts folate-rich foods in the everyday-diet camp.",
+      "Hair cells are among the fastest-renewing in the body, and folate is used in that cell division.",
     plantFoods: [
       "dark leafy greens — spinach, kale, spring greens",
       "beans, lentils and chickpeas",
@@ -167,7 +167,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
   "Vitamin A": {
     what: "A vitamin involved in skin, scalp and cell renewal.",
     whyItMatters:
-      "Balance is the point here — the scalp is sensitive to both too little and too much, which is why the book favours food over pills.",
+      "Balance is the point here — the scalp is sensitive to both too little and too much.",
     plantFoods: [
       "sweet potato, carrots, butternut squash",
       "dark leafy greens",
@@ -189,13 +189,13 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
       "spinach and broccoli",
       "wheatgerm",
     ],
-    ifLow: "Uncommon on a varied diet. The nut, seed and oil sources above are the everyday route in.",
+    ifLow: "Low readings are uncommon. The nut, seed and oil sources above are the everyday route in.",
     ifHigh: "Rarely seen from food alone. Your GP can comment if it's flagged.",
   },
   Biotin: {
     what: "A B-vitamin your body uses when building keratin, the protein hair is made from.",
     whyItMatters:
-      "The book is deliberately unromantic about biotin: there is no single miracle nutrient, and most varied diets already supply it.",
+      "Biotin is used in keratin formation. There is no single miracle nutrient, and everyday food sources usually supply it.",
     plantFoods: ["nuts and seeds", "sweet potato", "oats", "legumes", "avocado"],
     vegetarianFoods: ["eggs", "dairy"],
     fishFoods: ["salmon"],
@@ -207,7 +207,7 @@ export const MARKER_EXPLANATIONS: Record<string, MarkerExplanation> = {
   Zinc: {
     what: "An essential mineral used in immune function, repair and follicle turnover.",
     whyItMatters:
-      "Zinc sits in the book's varied-diet argument as one of the minerals hair formation draws on.",
+      "Zinc is one of the minerals hair formation draws on.",
     plantFoods: [
       "pumpkin, hemp and sesame seeds",
       "chickpeas, lentils and beans",
