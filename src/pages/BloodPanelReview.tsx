@@ -58,7 +58,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import AiProse from "@/components/tips/AiProse";
-import { shortForm, wantsDetail, wantsWhy, type GuidanceTip } from "@/lib/tipsRender";
+import { shortForm, type GuidanceTip } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import ActionList from "@/components/guidance/ActionList";
 import MarkerBadgeRow, { type MarkerSeverity } from "@/components/blood/MarkerBadgeRow";
