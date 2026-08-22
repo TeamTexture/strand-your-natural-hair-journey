@@ -60,12 +60,6 @@ export interface AiContext {
     /** Single unified list of ingredients that appear in 3+ of the user's
      *  saved products. Educational — no good/bad framing. */
     flagged_ingredients: string[];
-    /** @deprecated kept for backwards-compat with edge-function prompts that
-     *  still reference these names. Mirrors flagged_ingredients. */
-    avoid_ingredients: string[];
-    /** @deprecated kept for backwards-compat with edge-function prompts that
-     *  still reference these names. Mirrors flagged_ingredients. */
-    favourite_ingredients: string[];
     low_rated_products: Array<Record<string, unknown>>;
     high_rated_products: Array<Record<string, unknown>>;
   };
@@ -510,10 +504,6 @@ async function buildAiContextUncached(): Promise<AiContext> {
     history: {
       last_3_wash_days: last3,
       flagged_ingredients: flaggedIngredients,
-      // Mirror to deprecated keys so existing edge-function prompts keep
-      // resolving — they treat both the same neutral way.
-      avoid_ingredients: flaggedIngredients,
-      favourite_ingredients: flaggedIngredients,
       low_rated_products: lowRated,
       high_rated_products: highRated,
     },
