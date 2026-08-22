@@ -759,12 +759,14 @@ const ProfileStep1 = () => {
           </p>
         </label>
 
+        {/* Never disabled: a silent disabled button is a dead-end on the very
+            first screen every new member sees. Tapping it surfaces exactly
+            which field is missing (handleContinue → toast + inline errors). */}
         <Button
           type="submit"
           variant="gold"
           size="pill"
           className="mt-4"
-          disabled={!canContinue}
         >
           Continue →
         </Button>

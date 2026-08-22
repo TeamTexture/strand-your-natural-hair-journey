@@ -27,7 +27,10 @@ export type AiProviderFlagName = typeof AI_PROVIDER_FLAG_NAMES[number];
  *  `parallel` value is reserved for `_BLOOD` during the A/B verification
  *  window in §5 Step 7 — every other flag uses `claude` | `lovable` only. */
 export function readAiProvider(flag: AiProviderFlagName): AiProvider {
-  const v = Deno.env.get(flag);
+  // Case- and whitespace-insensitive on purpose: a secret set to "Claude"
+  // or " CLAUDE " must NOT silently fall back to Gemini (same failure class
+  // as the ANTHROPIC_API_KEY naming mismatch).
+  const v = (Deno.env.get(flag) ?? "").trim().toLowerCase();
   if (v === "claude" || v === "parallel") return v;
   return "lovable";
 }

@@ -184,16 +184,10 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
 
       // ---------------------------------------------------------------
       // Clinical context — DB first, localStorage fallback during rollout.
+      // Kicked off here but awaited inside the batch below so it runs in
+      // parallel with the 13 backend queries (Home is the first screen).
       // ---------------------------------------------------------------
-      const clinical = await loadClinicalContext();
-
-      const currentStyles: string[] = clinical.style?.current_hairstyle
-        ? [clinical.style.current_hairstyle]
-        : clinical.style?.style ?? [];
-      const styleStartDate = clinical.style?.style_set_at ?? null;
-      const plannedNext = clinical.style?.planned_next_style ?? null;
-      const plannedChangeDate = clinical.style?.planned_change_date ?? null;
-      const inTakedownStyle = currentStyles.some(isTakedownStyle);
+      const clinicalPromise = loadClinicalContext();
 
       // (Water-hardness alert removed.)
 
@@ -210,6 +204,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
       // Backend queries — batch for speed
       // ---------------------------------------------------------------
       const [
+        clinical,
         bloodRes,
         bloodPanelsRes,
         apptRes,
@@ -224,6 +219,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         journalRes,
         milestoneRes,
       ] = await Promise.all([
+        clinicalPromise,
         supabase
           .from("blood_results")
           .select("marker, status, updated_at")
@@ -302,6 +298,15 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           .order("taken_on", { ascending: false })
           .limit(1),
       ]);
+
+      const currentStyles: string[] = clinical.style?.current_hairstyle
+        ? [clinical.style.current_hairstyle]
+        : clinical.style?.style ?? [];
+      const styleStartDate = clinical.style?.style_set_at ?? null;
+      const plannedNext = clinical.style?.planned_next_style ?? null;
+      const plannedChangeDate = clinical.style?.planned_change_date ?? null;
+      const inTakedownStyle = currentStyles.some(isTakedownStyle);
+
 
       // ---------------------------------------------------------------
       // Wash day source-of-truth: prefer the most recent backend record.

@@ -109,7 +109,7 @@ const ProBook = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Book a Professional" onBack={onboardingBack(navigate, "/onboarding/pro-book")} right={<span>3 of 9</span>} />
+      <TitleBar title="Book a Professional" onBack={onboardingBack(navigate, "/onboarding/pro-book")} right={<span>4 of 9</span>} />
       <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-4">

@@ -78,12 +78,12 @@ Voice rules:
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-
-  const kill = checkKillSwitch();
-  if (kill) return kill;
-
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Global spend kill switch — must guard the real call, not just preflight.
+  const kill = checkKillSwitch();
+  if (kill) return kill;
 
   // Paid AI generation — signed-in members only.
   const auth = await requireAuthedUser(req);

@@ -58,6 +58,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     const allowed = new Set(["/onboarding/profile-step-1"]);
     if (status?.basicComplete) allowed.add("/onboarding/profile-step-2");
     if (status?.healthComplete) {
+      // Supplements sit between the health profile and the pro gate. Leaving
+      // this path out of the allow-list bounced every new member straight past
+      // the step, so supplements were never captured during onboarding.
+      allowed.add("/onboarding/profile-supplements");
       allowed.add("/onboarding/pro-gate");
       allowed.add("/onboarding/pro-book");
       allowed.add("/onboarding/pro-details");
@@ -109,6 +113,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const capturePaths = new Set([
     "/onboarding/profile-step-1",
     "/onboarding/profile-step-2",
+    "/onboarding/profile-supplements",
     "/onboarding/pro-gate",
     "/onboarding/pro-book",
     "/onboarding/pro-details",
