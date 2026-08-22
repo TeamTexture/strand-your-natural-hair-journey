@@ -25,8 +25,6 @@ export const STYLE_GROUPS: StyleGroup[] = [
       "Finger comb coils",
       "Bantu knots",
       "Bantu knot-out",
-      "Afro puff",
-      "Afro Mohawk",
     ],
   },
   {
@@ -50,6 +48,7 @@ export const STYLE_GROUPS: StyleGroup[] = [
       "Knotless braids",
       "Cornrows",
       "Straight back cornrows",
+      "Afro Mohawk",
     ],
   },
   {
@@ -80,7 +79,6 @@ export const TENSION_STYLES: string[] = [
   "High natural ponytail",
   "Low bun",
   "High bun",
-  "Afro puff",
   "Afro Mohawk",
   "Box braids",
   "Knotless braids",
@@ -110,7 +108,6 @@ export const EXTENSION_STYLES: string[] = [
   "High natural ponytail",
   "Low bun",
   "High bun",
-  "Afro puff",
   "Afro Mohawk",
   "Box braids",
   "Knotless braids",
