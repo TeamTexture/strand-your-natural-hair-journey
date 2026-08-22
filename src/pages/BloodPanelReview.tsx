@@ -615,10 +615,7 @@ export default function BloodPanelReview() {
                                         </div>
                                       );
                                     })()}
-                                    <div className="space-y-1.5 pt-1 border-t border-border/40">
-                                      <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                        {FOOD_FIRST_NOTE}
-                                      </p>
+                                    <div className="pt-1 border-t border-border/40">
                                       <p className="text-[11px] italic text-muted-foreground/90">
                                         {NUTRITION_BOOK_REF}
                                       </p>
