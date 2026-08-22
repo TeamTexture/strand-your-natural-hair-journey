@@ -511,7 +511,8 @@ export default function BloodPanelReview() {
                         return (
                           <li key={r.marker}>
                             <button
-                              onClick={() => level > 1 && toggle(r.marker)}
+                              onClick={() => toggle(r.marker)}
+                              aria-expanded={isOpen}
                               className="w-full flex items-center gap-2 px-4 py-1.5 text-left"
                             >
                               {status === "untested" ? (
@@ -531,37 +532,35 @@ export default function BloodPanelReview() {
                                   impact={rowImpact}
                                 />
                               )}
-                              {level > 1 && (
-                                <span className="shrink-0 ml-1">
-                                  {isOpen ? (
-                                    <ChevronUp className="size-4 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronDown className="size-4 text-muted-foreground" />
-                                  )}
-                                </span>
-                              )}
+                              <span className="shrink-0 ml-1">
+                                {isOpen ? (
+                                  <ChevronUp className="size-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="size-4 text-muted-foreground" />
+                                )}
+                              </span>
                             </button>
 
                             {isOpen && (
                               <div className="px-4 pt-4 pb-5 text-xs font-body text-foreground/80 space-y-3 bg-secondary/40 border-t border-border/40">
                                 {info ? (
                                   <>
-                                    {wantsDetail(level) && (
-                                      <div className="space-y-1.5">
-                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
-                                          What it is
-                                        </p>
-                                        <AiProse text={info.what} />
-                                      </div>
-                                    )}
-                                    {wantsWhy(level) && (
-                                      <div className="space-y-1.5">
-                                        <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
-                                          Why it matters
-                                        </p>
-                                        <AiProse text={info.whyItMatters} />
-                                      </div>
-                                    )}
+                                    {/* Nutrition/diet education is exempt from the tips-level
+                                        density scale — a marker's meaning and what it means for
+                                        hair care always render in full at every level. */}
+                                    <div className="space-y-1.5">
+                                      <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                        What it is
+                                      </p>
+                                      <AiProse text={info.what} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <p className="text-[11px] uppercase tracking-wide font-semibold text-primary/80">
+                                        Why it matters
+                                      </p>
+                                      <AiProse text={info.whyItMatters} />
+                                    </div>
+
                                     {isFlag && target && (
                                       <div className="space-y-1.5 rounded-xl bg-warn/10 px-3 py-2.5">
                                         <p className="text-[11px] uppercase tracking-wide font-semibold text-warn">
