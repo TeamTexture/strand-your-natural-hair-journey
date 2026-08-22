@@ -989,6 +989,9 @@ const IngredientDetail = () => {
             read as a positive verdict. Renders nothing when there's no match. */}
         <SensitivityShelfAlert ingredients={inciNames} className="rounded-xl" />
 
+        {/* Start the next analysis without leaving this page. */}
+        <AnalyseAnotherCard returnTo={returnTo} />
+
         {/* ── Last used / use count / rating row ───────────────────────── */}
         <SurfaceCard className="space-y-3">
           {productRow && (
@@ -1399,9 +1402,6 @@ const IngredientDetail = () => {
             </Button>
           </div>
         )}
-
-        {/* Start the next analysis without leaving this page. */}
-        <AnalyseAnotherCard returnTo={returnTo} />
 
       </div>
 
