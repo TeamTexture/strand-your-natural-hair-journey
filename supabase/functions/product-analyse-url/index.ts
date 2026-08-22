@@ -70,6 +70,7 @@ import {
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
+import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -99,7 +100,7 @@ interface RequestBody {
     hairProfile?: Record<string, unknown>;
     healthProfile?: Record<string, unknown>;
     bloodResults?: unknown[];
-    avoid_ingredients?: string[];
+    flagged_ingredients?: string[];
   };
   force?: boolean;
 }
@@ -151,9 +152,9 @@ Field rules — strict:
 - product_name / brand: extracted from the page title, h1, or breadcrumbs. NEVER invent. If you can't determine confidently after fetch + search, return the closest readable text and start ai_summary with "Couldn't fully read the page —".
 - category: pick the single best fit from the enum.
 - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the fetched page's list is partial or hidden behind tabs; otherwise transcribe what's visible.
-- key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
-- match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score.
-- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, density, a goal, scalp condition, a challenge, a flagged ingredient pattern — never the style they're in) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
+- key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a NEUTRAL frequency count of ingredients she already owns (3+ saved products) and is NEVER a reason to flag "avoid".
+- match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients she already owns frequently — ownership frequency is not a fit signal in either direction.
+- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, density, a goal, scalp condition, a challenge — never the style they're in, and never the fact that ingredients recur across her shelf) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
 - usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
 - use_cases: MAXIMUM ${cap} items (this user's support level caps it here). Each item: ONE action sentence up to 30 words that NAMES the hair trait it is written for — curl type, porosity, density, width, scalp condition, length, goal or listed challenge — plus ONE "why" sentence up to 15 words on what that trait means for how they use it. Pick the ${cap} tips that most improve results on THIS user's hair type; a tip that would read identically for any hair type is INVALID. Do NOT repeat manufacturer directions.
 - tips: MAXIMUM ${cap} items, same word budget. Pick the ${cap} most relevant personal signals for THIS product. Not every signal in the user's profile is relevant to every product.
@@ -203,7 +204,9 @@ ${PURPOSE_INSIGHT_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
 
-${STYLE_WEIGHTING_RULES}`;
+${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}`;
 
 }
 
@@ -354,20 +357,23 @@ ABSOLUTE RULES
    (porosity, texture, density, scalp), currentStyle (background context only —
    see the style weighting rules), goals (each with a "challenge" the user
    wrote and an optional "target_text"), bloodResults,
-   healthProfile (medications, conditions), history.avoid_ingredients,
-   history.favourite_ingredients, history.low_rated_products and
-   history.high_rated_products.
+   healthProfile (medications, conditions), history.flagged_ingredients (a
+   NEUTRAL frequency count of ingredients appearing in 3+ of her saved
+   products — no safety or suitability meaning), history.low_rated_products
+   and history.high_rated_products.
 4. RED/GREEN FLAG LOGIC for key_ingredients[].flag:
-   - "avoid" if in history.avoid_ingredients OR appears in any
-     history.low_rated_products[].ingredients OR is contraindicated by their
-     hair/health profile OR works against a stated goal/challenge.
-   - "good" if in history.favourite_ingredients OR in
+   - "avoid" if in the member's declared topical sensitivities / documented
+     allergies OR appears in any history.low_rated_products[].ingredients OR is
+     contraindicated by their hair/health profile OR works against a stated
+     goal/challenge. NEVER because of history.flagged_ingredients.
+   - "good" if in
      history.high_rated_products[].ingredients OR well-matched to their
      porosity/texture/scalp OR directly supports a stated goal/challenge.
    - "warn" for neutral-but-noteworthy.
 5. match_score (0–100): lower sharply for "avoid" flags; raise for "good";
    consider category fit, the durable style pattern they usually wear
-   (default_style), blood-result deficiencies, and goal alignment.
+   (default_style), blood-result deficiencies, and goal alignment. Ownership
+   frequency (history.flagged_ingredients) must NEVER reduce the score.
    current_hairstyle and days_in_style must never move the score.
 6. ai_summary: 2 short sentences MAX, second-person, in Paige's voice. The FIRST sentence cites
    a specific reason from THIS user's context — prefer their goal, challenge
@@ -424,7 +430,9 @@ ${PURPOSE_INSIGHT_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
 
-${STYLE_WEIGHTING_RULES}`;
+${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}`;
 
 }
 

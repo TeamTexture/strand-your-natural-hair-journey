@@ -11,6 +11,12 @@
 // caches stay stable until someone decides they should not be.
 //
 // History
+//   fi2026-08-22-flagged-frequency-neutral
+//                            Frequently-owned ingredients (list_kind 'flag')
+//                            are a neutral frequency count, not a warning.
+//                            Prompts no longer treat them as avoid signals or
+//                            let them lower a match score, so every cached
+//                            verdict written under the old framing is retired.
 //   mr2026-08-09-manuscript  Clean re-ingest of the author's manuscript from
 //                            source PDF: all 18 chapter titles corrected to the
 //                            authoritative map, whole-chapter retrieval with
@@ -24,7 +30,7 @@
 //                            protective-style washing, leave-in barrier and
 //                            LOC/LCO positions enforced. Every cached generation
 //                            predates them.
-export const AI_COPY_REVISION = "ps2026-08-09-sponsored-washday-no-style";
+export const AI_COPY_REVISION = "fi2026-08-22-flagged-frequency-neutral";
 
 /** Cache-key fragment. Use in every AI cache key and generation signature. */
 export const aiRevisionPart = `rev:${AI_COPY_REVISION}`;

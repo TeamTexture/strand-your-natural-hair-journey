@@ -27,6 +27,7 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
+import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import {
   ANTI_SCAREMONGER_PHILOSOPHY,
   INGREDIENT_CATEGORIES,
@@ -510,8 +511,10 @@ ${ANTI_SCAREMONGER_PHILOSOPHY}
 
 ${NON_PRESCRIPTIVE_RULES}
 
+${FLAGGED_INGREDIENTS_RULES}
+
 TONE — apply this exact decision tree:
-- "bad" ONLY if AT LEAST ONE is true: (a) the ingredient or an alias appears in context.avoid_ingredients, (b) the user has a documented allergy / sensitivity / diagnosis this molecule directly aggravates, or (c) the molecule directly conflicts with a measurable hair trait they hold.
+- "bad" ONLY if AT LEAST ONE is true: (a) the ingredient or an alias appears in context.avoid_ingredients (derived server-side from products SHE RATED POORLY — never from ingredient frequency counts), (b) the user has a documented allergy / sensitivity / diagnosis this molecule directly aggravates, or (c) the molecule directly conflicts with a measurable hair trait they hold.
 - "good" = a documented mechanism that benefits THIS user's measurable traits.
 - "warn" = neutral / context-dependent / "fine for most people, watch how your scalp responds".
 

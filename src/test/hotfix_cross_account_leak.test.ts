@@ -207,8 +207,7 @@ describe("hotfix: buildAiContext refuses to leak user A's data to user B", () =>
     expect(ctx.history.last_3_wash_days).toEqual([]);
 
     // Sanity: empty-state shape, not partial bleed.
-    expect(ctx.history.avoid_ingredients).toEqual([]);
-    expect(ctx.history.favourite_ingredients).toEqual([]);
+    expect(ctx.history.flagged_ingredients).toEqual([]);
     expect(ctx.shelf).toEqual([]);
   });
 

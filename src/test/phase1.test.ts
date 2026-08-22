@@ -233,8 +233,6 @@ describe("buildAiContext", () => {
       history: {
         last_3_wash_days: expect.any(Array),
         flagged_ingredients: expect.any(Array),
-        avoid_ingredients: expect.any(Array),
-        favourite_ingredients: expect.any(Array),
         low_rated_products: expect.any(Array),
         high_rated_products: expect.any(Array),
       },
