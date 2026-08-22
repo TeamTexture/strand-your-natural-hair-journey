@@ -883,16 +883,17 @@ const IngredientDetail = () => {
   const handleBack = () => {
     if (shouldGuard) {
       pendingNavRef.current = () => {
-        safeBack(navigate, "/products");
+        goBackToOrigin();
       };
       setDiscardOpen(true);
       return;
     }
-    // If we got here via a redirect (replace: true) or a page reload, the
-    // history stack may not have a sensible previous entry — fall back to
-    // the products list so the back button always does something visible.
-    safeBack(navigate, "/products");
+    // Back always returns to the page the member came from — the style-record
+    // step, wash-day step, shelf or brand page. Only when there's no origin at
+    // all (deep link / reload) do we fall back to the products list.
+    goBackToOrigin();
   };
+
 
   // Explicit not-found state. We never silently bounce — that was the
   // original bug. If the product isn't on the shelf and we don't have a
