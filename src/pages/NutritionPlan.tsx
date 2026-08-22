@@ -1092,7 +1092,7 @@ const NutritionPlan = () => {
                       <MealCard
                         key={`${m.name}-${i}`}
                         meal={m}
-                        saved={savedByKey.has(m.name.trim().toLowerCase())}
+                        saved={savedByKey.has(mealKey(m.name))}
                         onToggleSave={() => void handleSaveMeal(m)}
                       />
                     ))}

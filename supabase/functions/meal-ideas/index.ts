@@ -25,6 +25,8 @@ interface RequestBody {
   flaggedMarkers?: string[];
   /** Meal names already shown or saved — the model must not repeat them. */
   exclude?: string[];
+  /** Meals already saved to her list — permanently excluded until deleted. */
+  savedMeals?: string[];
 }
 
 import { dietConstraintBlock } from "../_shared/diet.ts";
@@ -114,9 +116,17 @@ Diet pattern: ${body.diet ?? "unknown"}
 Foods this member avoids, in their own words: ${body.dietOther ?? "not recorded"}
 Alcohol pattern: ${body.alcohol ?? "unknown"}
 Flagged blood markers to prioritise: ${JSON.stringify(body.flaggedMarkers ?? [])}
-Already seen or saved meals — DO NOT return any of these, and do not return a
-near-variant of them (same headline protein or same dish with a different name).
-Give six genuinely different dishes: ${JSON.stringify((body.exclude ?? []).slice(0, 60))}
+ALREADY SAVED TO HER MEAL LIST — these are permanently off the menu. Never
+return any of them, and never return a near-identical variant of the same dish
+(same dish reworded, translated, or with one ingredient swapped):
+${JSON.stringify((body.savedMeals ?? []).slice(0, 120))}
+Also already seen in a previous batch — do not repeat these either:
+${JSON.stringify((body.exclude ?? []).slice(0, 60))}
+Matching is case- and spacing-insensitive: treat "Nigerian liver pepper stew"
+and "Nigerian Liver Pepper Stew" as the same meal. If the exclusions rule out
+your first choices, invent genuinely different dishes — different core
+ingredient, different cooking method, different cuisine. Never pad the list by
+rewording an excluded dish.
 Variation token (ignore its meaning, use it only to make this batch different from the last): ${crypto.randomUUID()}
 
 Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
