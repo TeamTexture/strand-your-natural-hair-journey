@@ -789,7 +789,13 @@ Do not substitute other cleansing or sealing methods for these two.`
       ["not_cached_empty_action_or_reason"],
       JSON.stringify(finalPayload).slice(0, 2000),
     );
+    // AND IT IS NEVER SERVED EITHER. A headline with no action is not a tip:
+    // returning it rendered an empty gold card. Fail explicitly so the client
+    // falls back to the last tip that did pass the guardrails.
+    failOutcome("hollow_after_guardrail");
+    return json(422, { error: "tip_hollow_after_guardrail" });
   }
+
   if (cacheable && !isDiagnostic) {
     await admin
       .from("ai_summaries")
