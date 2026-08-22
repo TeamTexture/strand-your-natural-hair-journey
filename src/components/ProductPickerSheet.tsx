@@ -299,11 +299,14 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
       preferCamera={scanPreferCamera}
       busy={scanBusy}
       onSubmit={async (front, back) => {
+        // Stay open (in its busy state) while the photos are prepared and
+        // uploaded — closing first left a blank pause that read as a glitch.
+        await startScan(front, back, "shelf", navState);
         setScanSheetOpen(false);
         onOpenChange(false);
-        await startScan(front, back, "shelf", navState);
       }}
     />
+
     </>
   );
 };

@@ -693,6 +693,9 @@ const IngredientDetail = () => {
           ? `${saved.name} added to your shelf`
           : `${saved.name} added to your wishlist`,
       );
+      // Came here from somewhere specific (a style-record step, a wash-day
+      // step…) — return to that exact page, not the products list.
+      if (returnTo) returnAfterAutoSave(saved.id);
     }
   };
 
@@ -711,6 +714,10 @@ const IngredientDetail = () => {
       await setShelf(productRow.id, true);
       ctaChosenRef.current = true;
       toast.success(`${productRow.name} added to your shelf`);
+      if (returnTo) {
+        returnAfterAutoSave(productRow.id);
+        return;
+      }
       navigate("/products", { state: { defaultTab: "shelf" } });
     } finally {
       setShelfBusy(false);
@@ -724,6 +731,10 @@ const IngredientDetail = () => {
       await setWishlist(productRow.id, true);
       ctaChosenRef.current = true;
       toast.success(`${productRow.name} added to your wishlist`);
+      if (returnTo) {
+        returnAfterAutoSave(productRow.id);
+        return;
+      }
       // Wishlist has its own route — send the user there directly so the
       // mental loop "I just put this on my wishlist → here it is" closes.
       navigate("/products/wishlist");
@@ -731,6 +742,7 @@ const IngredientDetail = () => {
       setShelfBusy(false);
     }
   };
+
 
   const handleToggleFavourite = async () => {
     if (!productRow) return;
@@ -871,16 +883,17 @@ const IngredientDetail = () => {
   const handleBack = () => {
     if (shouldGuard) {
       pendingNavRef.current = () => {
-        safeBack(navigate, "/products");
+        goBackToOrigin();
       };
       setDiscardOpen(true);
       return;
     }
-    // If we got here via a redirect (replace: true) or a page reload, the
-    // history stack may not have a sensible previous entry — fall back to
-    // the products list so the back button always does something visible.
-    safeBack(navigate, "/products");
+    // Back always returns to the page the member came from — the style-record
+    // step, wash-day step, shelf or brand page. Only when there's no origin at
+    // all (deep link / reload) do we fall back to the products list.
+    goBackToOrigin();
   };
+
 
   // Explicit not-found state. We never silently bounce — that was the
   // original bug. If the product isn't on the shelf and we don't have a
