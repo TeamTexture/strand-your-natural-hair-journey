@@ -581,6 +581,31 @@ Deno.serve(async (req) => {
       return json(400, { error: "Missing product info" });
     }
 
+    // THE ingredient list. `user_products.ingredients` is the stored source of
+    // truth every other surface reads (shelf card, passport, aiContext), so it
+    // is what the model is given AND what the deterministic sensitivity scan
+    // runs against. Without this the caller sent nothing for a saved product
+    // and the model inferred a plausible formulation instead — which is how a
+    // declared sulphate sensitivity stayed invisible on the detail page while
+    // the shelf card flagged it correctly from the same stored row.
+    let rawIngredients: string[] = Array.isArray(ingredients)
+      ? ingredients.filter((x) => typeof x === "string" && x.trim().length > 0)
+      : [];
+    if (rawIngredients.length === 0) {
+      const { data: storedRow } = await supabase
+        .from("user_products")
+        .select("ingredients")
+        .eq("user_id", user.id)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      const stored = storedRow?.ingredients;
+      if (Array.isArray(stored)) {
+        rawIngredients = stored.filter(
+          (x: unknown): x is string => typeof x === "string" && x.trim().length > 0,
+        );
+      }
+    }
+
     const tipsLevel = coerceTipsLevel(
       (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
     );
