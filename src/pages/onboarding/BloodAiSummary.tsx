@@ -61,7 +61,7 @@ const BloodAiSummary = () => {
       }))
       .sort((a, b) => a.marker.localeCompare(b.marker));
     // Bump promptVersion when the server-side prompt changes to bust the cache.
-    const promptVersion = "v4-manuscript-2026-08-09";
+    const promptVersion = "v5-manuscript-2026-08-22";
     return {
       payload: { bloodResults, hairProfile, healthProfile, heritage },
       fingerprint: JSON.stringify({ bloodResults, hairProfile, healthProfile, heritage, promptVersion, tipsLevel: level }),

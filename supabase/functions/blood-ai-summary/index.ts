@@ -39,9 +39,9 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v4-manuscript-2026-08-09";
+const MODEL_VERSION = "claude-opus-4-7@v5-manuscript-2026-08-22";
 // Bump whenever cache-affecting prompt/logic changes (incl. tips-level wiring).
-const CACHE_VERSION = "v4-manuscript-2026-08-09";
+const CACHE_VERSION = "v5-manuscript-2026-08-22";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -164,7 +164,9 @@ OUTPUT RULES
 
 7. Plain English. Translate a clinical term on first use with a neutral definition only — never with what it does for hair.
 
-8. Never name a book, chapter or page.`;
+8. Never name a book, chapter or page.
+
+9. FOOD-FIRST GUIDANCE (the manuscript's varied-diet argument, used only here to guide her). When a flagged marker has a known food source, a priority_action may steer her toward building that nutrient into a varied everyday diet — food first, grounded in Chapter 8's nutrition science. Frame it as a general dietary habit, never as a treatment for a specific blood value, and never claim a hair outcome from any value. Always offer plant-based options so her diet is honoured. Anything beyond food — supplements, dosing, injections, infusions — is a GP conversation, not STRAND's. Never name the book, author, chapter or page.`;
 }
 
 async function runClaude(args: {
@@ -337,7 +339,9 @@ TREND ANALYSIS (when context.bloodPanels contains more than one panel):
 - context.bloodPanels is ordered newest-first. The first entry is the CURRENT test. Any subsequent entries are previous tests, each with a "deltas" array listing per-marker change vs the panel BEFORE it.
 - When a previous panel exists, the "overall_summary" may state the direction (rising / falling) and the numbers. It may NOT state what that trajectory means for hair.
 - If a previously-flagged marker has normalised, say so plainly. If a marker has worsened, say so plainly. No hair implication either way.
-- Never invent a trend — only comment on markers that appear in both the current and prior panel.`;
+- Never invent a trend — only comment on markers that appear in both the current and prior panel.
+
+FOOD-FIRST GUIDANCE (the manuscript's varied-diet argument, used only here to guide her): When a flagged marker has a known food source, a priority_action may steer her toward building that nutrient into a varied everyday diet — food first, grounded in Chapter 8's nutrition science. Frame it as a general dietary habit, never as a treatment for a specific blood value, and never claim a hair outcome from any value. Always offer plant-based options so her diet is honoured. Anything beyond food — supplements, dosing, injections, infusions — is a GP conversation, not STRAND's. Never name the book, author, chapter or page.`;
 
   const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
