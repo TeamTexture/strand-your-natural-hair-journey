@@ -193,12 +193,45 @@ const Products = () => {
         )}
       </div>
 
+      {!batch.selectMode && (
+        <div className="px-5 pb-4 space-y-3">
+          <Button
+            variant="gold"
+            size="pill"
+            disabled={busy || urlBusy}
+            onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
+            className="w-full"
+          >
+            {busy ? "Preparing photos…" : "+ Scan a New Product"}
+          </Button>
+          <Button
+            variant="goldOutline"
+            size="pill"
+            disabled={busy || urlBusy}
+            onClick={() => setLinkSheetOpen(true)}
+            className="w-full"
+          >
+            <LinkIcon className="size-4 mr-1.5" />
+            {urlBusy ? "Reading link…" : "Paste Web Link"}
+          </Button>
+          <LevelGate min={2}>
+            <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
+              Tip: snap the bottle, upload a screenshot, or paste a product page
+              link — the AI reads the label and matches ingredients to your hair
+              profile.
+            </p>
+          </LevelGate>
+        </div>
+      )}
+
       <ProductsHeader
         active="shelf"
         products={products}
         filteredCount={filteredProducts.length}
         state={filterState}
       />
+
+
 
 
       <div className={cn("px-5 space-y-3 pb-4", batch.selectMode && "pb-40")}>
@@ -371,40 +404,7 @@ const Products = () => {
         )}
       </div>
 
-      {!batch.selectMode && (
-        <>
-          <div className="px-5 pb-6 space-y-3">
-            <Button
-              variant="gold"
-              size="pill"
-              disabled={busy || urlBusy}
-              onClick={() => { setScanPreferCamera(true); setScanSheetOpen(true); }}
-              className="w-full"
-            >
-              {busy ? "Preparing photos…" : "+ Scan a New Product"}
-            </Button>
-            <Button
-              variant="goldOutline"
-              size="pill"
-              disabled={busy || urlBusy}
-              onClick={() => setLinkSheetOpen(true)}
-              className="w-full"
-            >
-              <LinkIcon className="size-4 mr-1.5" />
-              {urlBusy ? "Reading link…" : "Paste Web Link"}
-            </Button>
-            <LevelGate min={2}>
-              <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
-                Tip: snap the bottle, upload a screenshot, or paste a product page
-                link — the AI reads the label and matches ingredients to your hair
-                profile.
-              </p>
-            </LevelGate>
-          </div>
-
-          <MyToolsSection />
-        </>
-      )}
+      {!batch.selectMode && <MyToolsSection />}
 
       {batch.selectMode && (
         <BatchActionBar
