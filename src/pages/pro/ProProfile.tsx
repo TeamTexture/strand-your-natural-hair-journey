@@ -26,6 +26,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import ProTour from "@/components/ProTour";
+import StarRating from "@/components/StarRating";
+import { useReviewSummaries } from "@/hooks/useReviews";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl, externalLinkProps } from "@/lib/socialLinks";
 import { isValidBookingUrl, normalizeBookingUrl } from "@/lib/bookingUrl";
@@ -451,6 +453,34 @@ const ProProfile = () => {
           </div>
         </SurfaceCard>
 
+
+        {ratingSummary && (
+          <SurfaceCard>
+            <p className="text-[10px] font-body font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Your rating
+            </p>
+            <div className="mt-1.5 flex items-center gap-2">
+              <StarRating value={ratingSummary.avg_rating} size="size-4" />
+              <span className="font-body text-[13px] font-semibold">
+                {ratingSummary.avg_rating.toFixed(1)}
+              </span>
+              <span className="font-body text-[11px] text-muted-foreground">
+                ({ratingSummary.review_count}{" "}
+                {ratingSummary.review_count === 1 ? "review" : "reviews"})
+              </span>
+            </div>
+            <p className="mt-1.5 text-[11px] font-body text-muted-foreground leading-snug">
+              Only reviews you've approved count towards this and show on your listing.
+            </p>
+            <button
+              type="button"
+              onClick={() => nav("/pro/reviews")}
+              className="mt-2 text-[11px] font-body text-primary min-h-[36px]"
+            >
+              Manage reviews →
+            </button>
+          </SurfaceCard>
+        )}
 
         <SectionLabel>Public listing</SectionLabel>
 
