@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -23,7 +23,12 @@ interface Props {
 const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", tips = false }: Props) => {
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { register, unregister } = useBackButtonContext();
+  // Pages opened from a specific place (a style-record step, a wash-day step)
+  // carry that place in nav state. Back must return there, whatever route
+  // redirects happened on the way in.
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? null;
 
   // Tell the global menu that this page already has a back button so it
   // doesn't render a duplicate.
@@ -35,8 +40,10 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
 
   const handleBack = () => {
     if (onBack) onBack();
+    else if (returnTo) navigate(returnTo, { replace: true });
     else safeBack(navigate, backFallback);
   };
+
 
   return (
     <div className="relative px-4 pt-2 pb-1 shrink-0">
