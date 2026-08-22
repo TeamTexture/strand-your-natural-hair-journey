@@ -66,6 +66,7 @@ import {
 } from "../_shared/purpose-insight.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
+import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import { loadSensitivities, type LoadedSensitivities } from "../_shared/sensitivities.ts";
 import {
   topicalSensitivityBlock,
@@ -109,7 +110,7 @@ interface RequestBody {
     hairProfile?: Record<string, unknown>;
     healthProfile?: Record<string, unknown>;
     bloodResults?: unknown[];
-    avoid_ingredients?: string[];
+    flagged_ingredients?: string[];
   };
   force?: boolean;
 }
@@ -184,9 +185,9 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
    - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
    - category: pick the single best fit from the enum.
    - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when photo 2's list is partial; otherwise transcribe what's visible.
-   - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" only when the ingredient is one the user has consistently flagged in their history (appears in 3+ of their saved-and-favourited products) OR has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when it's in their favourite_ingredients, in their high_rated_products, or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid".
-   - match_score: 0–100, weighted down by red-flag ingredients, up by good flags. Consider category fit, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score.
-   - ai_summary: 2 short sentences max, second-person, professional and direct. Open with the SPECIFIC reason from THIS user's context (their goal, challenge, scalp condition, or porosity — never the style they're in) and what that means for the formula in front of them — then land the verdict in the second sentence. Use a connective ("which is why", "so", "this means") to bridge the two.
+   - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a FREQUENCY COUNT of ingredients she already owns (3+ saved products) — it is NEVER a reason to flag "avoid".
+   - match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable hair/health traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients the member already owns frequently (history.flagged_ingredients) — frequency of ownership is not a fit signal in either direction, and must not appear as a negative score factor.
+   - ai_summary: 2 short sentences max, second-person, professional and direct. Open with the SPECIFIC reason from THIS user's context (their goal, challenge, scalp condition, or porosity — never the style they're in, and never the fact that ingredients recur across her shelf) and what that means for the formula in front of them — then land the verdict in the second sentence. Use a connective ("which is why", "so", "this means") to bridge the two. A frequently-owned ingredient may only be mentioned neutrally ("cetearyl alcohol appears in four products on your shelf") and never as a risk, concern or reason the product scores lower.
    - usage_instructions: VERBATIM directions from the manufacturer if visible on photo 2 OR resolved via web_search. If neither source provides directions, return "" — never invent.
    - use_cases: up to ${cap} concrete tips for how THIS user gets the MOST out of this product for their hair type specifically. EVERY item must name the actual trait it is written for — their curl type, porosity, density, width, scalp condition, length or a stated goal — in the sentence itself (e.g. "On low-porosity 4C hair, …"). A tip that would read the same for any hair type is INVALID; rewrite it or drop it. Do NOT repeat manufacturer directions.
    - tips: up to ${cap} personalised reasoning tips about fit/usage that go beyond use_cases. Anchor each in the user's data.
@@ -253,7 +254,9 @@ ${PURPOSE_INSIGHT_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
 
-${STYLE_WEIGHTING_RULES}`;
+${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}`;
 
 }
 
@@ -370,17 +373,17 @@ You are analysing a single product photo for THIS user.
 ABSOLUTE RULES
 1. READ the product directly from the image. The brand name and product title are usually the most prominent text on the front of the bottle/box. NEVER invent a name — if you can't read it confidently, set product_name and brand to the closest readable text and set "ai_summary" to start with "Couldn't fully read the label —".
 2. If you can see an ingredient list (small print, often labelled "Ingredients" or "INCI"), transcribe ALL of it into "ingredients" (lowercase, comma-separated source split into array). If only some ingredients are visible, return what you see — do not pad.
-3. Personalise everything to the user's profile passed in context: hairProfile (porosity, texture, density, scalp), currentStyle (background context only — see the style weighting rules), goals (length retention, breakage, scalp, etc.) and any "challenge" text the user wrote, bloodResults (only when this product directly intersects them), healthProfile (medications, conditions), history.flagged_ingredients (ingredients consistently flagged across 3+ of the user's saved-and-favourited products), history.favourite_ingredients, history.low_rated_products and history.high_rated_products.
+3. Personalise everything to the user's profile passed in context: hairProfile (porosity, texture, density, scalp), currentStyle (background context only — see the style weighting rules), goals (length retention, breakage, scalp, etc.) and any "challenge" text the user wrote, bloodResults (only when this product directly intersects them), healthProfile (medications, conditions), history.flagged_ingredients (a NEUTRAL frequency count — ingredients that appear in 3+ of the user's saved products, i.e. things she already owns and uses; no safety or suitability meaning whatsoever), history.low_rated_products and history.high_rated_products.
 4. RED/GREEN FLAG LOGIC for key_ingredients[].flag:
-   - "avoid" (red) if the ingredient is consistently flagged in the user's history (appears in 3+ of their saved-and-favourited products), OR appears in any history.low_rated_products[].ingredients, OR is contraindicated by the user's hair/health profile (e.g. drying alcohols on high-porosity hair or sulphates with dry scalp), OR works against a stated goal/challenge (e.g. heavy waxes when the user is trying to retain length in a wash-and-go).
-   - "good" (green) if the ingredient appears in history.favourite_ingredients OR in history.high_rated_products[].ingredients OR is well-matched to their porosity/texture/scalp OR directly supports a stated goal/challenge.
+   - "avoid" (red) if the ingredient is in the member's declared topical sensitivities or documented allergies, OR appears in any history.low_rated_products[].ingredients, OR is contraindicated by the user's hair/health profile (e.g. drying alcohols on high-porosity hair or sulphates with dry scalp), OR works against a stated goal/challenge (e.g. heavy waxes when the user is trying to retain length in a wash-and-go).
+   - "good" (green) if the ingredient appears in history.high_rated_products[].ingredients OR is well-matched to their porosity/texture/scalp OR directly supports a stated goal/challenge.
    - "warn" (amber) for neutral-but-noteworthy.
-5. match_score (0–100): lower it sharply for any red flags; raise it for "good" flags; consider category fit, the durable style pattern they usually wear (default_style), blood-result deficiencies (only when relevant to this product), and goal alignment. current_hairstyle and days_in_style must never move the score.
+5. match_score (0–100): lower it sharply for any red flags; raise it for "good" flags; consider category fit, the durable style pattern they usually wear (default_style), blood-result deficiencies (only when relevant to this product), and goal alignment. current_hairstyle and days_in_style must never move the score. Ingredients the member already owns frequently (history.flagged_ingredients) must NEVER reduce the score — ownership frequency is not a fit signal in either direction.
 
 PRODUCT ANALYSIS SCOPE — HARD RULE:
 Focus ONLY on signals that intersect with what's INSIDE this product (ingredients, mechanism, formulation, application). Tension / traction alopecia / styling weight are HANDLING concerns, not formulation concerns — do NOT cite them in any product output. Lab values, sleep, stress, and dermatologist context are ONLY relevant if THIS product directly intersects them.
 
-LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your avoids", or imply the user has any list of ingredients they want to avoid. The only ingredient-history signal in STRAND is "consistently flagged ingredients" (appears in 3+ of the user's saved-and-favourited products). Use phrasing like "consistently flagged in your history" in ai_summary, key_ingredients[].reason, use_cases, and tips.
+LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your avoids", or imply the user has any list of ingredients they want to avoid. The only ingredient-history signal in STRAND is ownership frequency (an ingredient appears in 3+ of her saved products). Describe it plainly — "cetearyl alcohol appears in four of the products on your shelf" — and never as flagged, risky or a concern, in ai_summary, key_ingredients[].reason, use_cases, or tips.
 6. ai_summary: 2 short sentences MAX, second-person, in Paige's voice. The FIRST sentence cites a specific reason from THIS user's context — prefer their goal, challenge or a durable hair characteristic, never the style they're in (e.g. "High-porosity strands lose water fast, which is why this heavier sealing cream suits your length-retention goal."). 7. usage_instructions: VERBATIM directions from the manufacturer. If the label/page text shows a "Directions", "How to use", "Apply" or "Usage" block, transcribe it word-for-word into this field. If no manufacturer directions are visible, set this to an empty string ("") — do NOT invent or paraphrase usage steps.
 8. use_cases: MAXIMUM ${cap} concrete tips for how THIS user gets the MOST out of the product on their hair type specifically (this user's support level caps it at ${cap}). Each item is ONE action sentence up to 30 words that NAMES the trait it is written for — curl type, porosity, density, width, scalp condition, length, goal or listed challenge — plus ONE "why" sentence up to 15 words. A tip that would read identically for any hair type is INVALID. Do NOT repeat the manufacturer's directions here; build on them with personal reasoning.
 8b. tips: MAXIMUM ${cap} items, same word budget as use_cases, each anchored in the user's own data.
@@ -414,7 +417,9 @@ ${PURPOSE_INSIGHT_RULES}
 
 ${NON_PRESCRIPTIVE_RULES}
 
-${STYLE_WEIGHTING_RULES}`;
+${STYLE_WEIGHTING_RULES}
+
+${FLAGGED_INGREDIENTS_RULES}`;
 
 }
 
