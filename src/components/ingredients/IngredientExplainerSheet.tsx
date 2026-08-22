@@ -73,7 +73,6 @@ export default function IngredientExplainerSheet({
       : kind === "class"
       ? "Ingredient family"
       : head.category ?? "";
-  const glossaryId = (explainer?.glossary as { id?: string } | undefined)?.id ?? cached?.id ?? null;
   const shelfLabel = kind === "class" ? "On your shelf" : "Also on your shelf";
 
   return (
