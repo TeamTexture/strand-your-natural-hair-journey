@@ -29,6 +29,15 @@ export interface MealDraft {
 const asStringArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 
+/**
+ * Normalised meal identity — the same rule as the database's generated
+ * `name_key` column (trimmed, case-insensitive, collapsed whitespace), so the
+ * client, the exclusion list and the unique index all agree on what counts as
+ * "the same meal".
+ */
+export const mealKey = (name: string | null | undefined): string =>
+  (name ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+
 export const savedMealsKey = (userId?: string) => ["saved-meals", userId ?? "anon"] as const;
 
 export const useSavedMeals = () => {
@@ -68,6 +77,15 @@ export const useSavedMeals = () => {
     mutationFn: async (draft: MealDraft) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
+      // Idempotent save: if she has already saved this meal, silently succeed
+      // rather than surfacing a unique-violation to her.
+      const key = mealKey(draft.name);
+      const { data: existing } = await supabase
+        .from("user_saved_meals")
+        .select("id, name")
+        .eq("user_id", userData.user.id);
+      if ((existing ?? []).some((row) => mealKey(row.name as string) === key)) return;
+
       const { error } = await supabase.from("user_saved_meals").insert({
         user_id: userData.user.id,
         name: draft.name,
@@ -79,7 +97,8 @@ export const useSavedMeals = () => {
         ingredients: draft.ingredients ?? [],
         steps: draft.steps ?? [],
       });
-      if (error) throw error;
+      // 23505 = the unique index caught a race (double tap). Treat as saved.
+      if (error && (error as { code?: string }).code !== "23505") throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: savedMealsKey(user?.id) }),
   });
