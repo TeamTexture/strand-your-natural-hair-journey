@@ -41,12 +41,16 @@ async function loadInputs(userId: string) {
   const [hairRes, styleRes, goalsRes, bloodsRes, shelfRes, toolsRes] = await Promise.all([
     supabase.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("user_style_profile").select("*").eq("user_id", userId).maybeSingle(),
+    // The app writes goal status `in_progress` (see useGoals); `active` is
+    // legacy only, so filtering on it alone sent an empty goals array.
     supabase
       .from("user_goals")
       .select("title, kind, status")
       .eq("user_id", userId)
-      .eq("status", "active")
+      .in("status", ["in_progress", "active"])
+      .is("ended_at", null)
       .limit(5),
+
     supabase.from("blood_results").select("marker, value, status").eq("user_id", userId),
     supabase
       .from("user_products")
