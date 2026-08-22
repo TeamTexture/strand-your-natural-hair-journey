@@ -6083,6 +6083,7 @@ export type Database = {
           id: string
           ingredients: Json
           name: string
+          name_key: string | null
           steps: Json
           summary: string | null
           targets: Json
@@ -6096,6 +6097,7 @@ export type Database = {
           id?: string
           ingredients?: Json
           name: string
+          name_key?: string | null
           steps?: Json
           summary?: string | null
           targets?: Json
@@ -6109,6 +6111,7 @@ export type Database = {
           id?: string
           ingredients?: Json
           name?: string
+          name_key?: string | null
           steps?: Json
           summary?: string | null
           targets?: Json
