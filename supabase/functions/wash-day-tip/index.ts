@@ -216,6 +216,25 @@ Deno.serve(async (req) => {
   const isStyle = body.surface === "style";
   const kind = isStyle ? "style_tip" : "wash_day_tip";
 
+  // FAILURE IS NEVER SILENT. Every path that returns without serving a tip
+  // flushes the buffered meter row with the reason, so a member-facing
+  // "we couldn't finish your tip" is diagnosable from `ai_call_log` instead of
+  // leaving an `unflushed` row with no rule.
+  const failOutcome = (rule: string) => {
+    try {
+      recordAiOutcome({
+        function_name: "wash-day-tip",
+        surface: isStyle ? "style" : "wash_day",
+        user_id: user.id,
+        outcome: "rejected",
+        rejection_rule: rule,
+      });
+    } catch (e) {
+      console.warn("[wash-day-tip] outcome flush failed", e);
+    }
+  };
+
+
   // DIAGNOSTIC RUNS NEVER TOUCH THE PRODUCTION CACHE. A harness fingerprint
   // (or an explicit `diagnostic: true`) generates and returns, but is never
   // read from cache and never written to it.
