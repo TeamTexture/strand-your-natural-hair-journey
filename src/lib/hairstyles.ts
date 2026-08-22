@@ -25,8 +25,6 @@ export const STYLE_GROUPS: StyleGroup[] = [
       "Finger comb coils",
       "Bantu knots",
       "Bantu knot-out",
-      "Afro puff",
-      "Afro Mohawk",
     ],
   },
   {
@@ -50,6 +48,7 @@ export const STYLE_GROUPS: StyleGroup[] = [
       "Knotless braids",
       "Cornrows",
       "Straight back cornrows",
+      "Afro Mohawk",
     ],
   },
   {
