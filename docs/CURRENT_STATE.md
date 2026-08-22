@@ -111,3 +111,26 @@ OPEN / not fixed:
 - Consent accept redirects to `/` (splash) instead of Step 1 — extra "ENTER STRAND" tap.
 - Steps 4–9 (pro gate → hair → colour → blood) not yet walked end-to-end; the scripted driver stops at the supplements step because Continue requires a supplement and the skip is a text link.
 - Not walked: camera/mic capture, live Stripe checkout.
+
+## Section 1 audit — walked end to end (steps 1–9)
+
+Real authenticated click-through on a fresh account, steps 2→9:
+health profile → supplements (skip link) → pro gate → pro details → hair
+characteristics → colour & style → blood timing → 4 manual blood panels →
+paywall. Every step saved and advanced; no 4xx/5xx and no page errors were
+captured on any screen.
+
+Findings (open, cosmetic/UX — no data loss):
+1. Step counters disagree on every step: the TitleBar counter is one ahead of
+   the in-page guide (`4 of 9` vs `STEP 3 OF 9` on pro-gate, `5 of 9` vs
+   `STEP 4 OF 9` on pro-details, `6/5`, `7/6`, `8/7`). The TitleBar numbering
+   includes the supplements step; `OnboardingGuide` does not.
+2. Supplements step: the only way past it without an entry is a small
+   underlined text link ("I don't take any — skip for now"). Continue is
+   disabled until something is added, so the skip reads as secondary to a
+   dead button.
+3. After the final blood panel ("ANALYSE MY RESULTS") an unpaid member is sent
+   straight to `/subscribe?next=/onboarding/blood-ai-summary` — the AI blood
+   summary is never seen pre-payment. First `/home` load likewise redirects to
+   `/subscribe`, so a fresh member's first Home render can only be audited on
+   an account with membership/complimentary access.
