@@ -34,6 +34,7 @@ import ProductPhotoTile from "@/components/ProductPhotoTile";
 import ProductThumb from "@/components/ProductThumb";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import AnalyseAnotherCard from "@/components/product/AnalyseAnotherCard";
+import ProductPrimerCard from "@/components/products/ProductPrimerCard";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import {
@@ -1068,7 +1069,16 @@ const IngredientDetail = () => {
 
         {analysis && !loading && (
           <>
+            {/* Orientation first: what this is, what it does, how to use it. */}
+            <ProductPrimerCard
+              title={(analysis as { product_name?: string }).product_name}
+              purpose={purpose}
+              note={purposeNote}
+              usage={analysis.usage_instructions}
+            />
+
             {/* AI Summary — the single verdict callout, bold lead-in only */}
+
             {(() => {
               // SAFETY: when a declared sensitivity matches, the AI paragraph was
               // written against the pre-sensitivity score — any endorsement in it
