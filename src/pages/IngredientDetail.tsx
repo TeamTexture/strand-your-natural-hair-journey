@@ -1068,7 +1068,16 @@ const IngredientDetail = () => {
 
         {analysis && !loading && (
           <>
+            {/* Orientation first: what this is, what it does, how to use it. */}
+            <ProductPrimerCard
+              title={analysis.product_name}
+              purpose={purpose}
+              note={purposeNote}
+              usage={analysis.usage_instructions}
+            />
+
             {/* AI Summary — the single verdict callout, bold lead-in only */}
+
             {(() => {
               // SAFETY: when a declared sensitivity matches, the AI paragraph was
               // written against the pre-sensitivity score — any endorsement in it
