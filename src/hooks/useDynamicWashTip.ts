@@ -253,8 +253,15 @@ export function useDynamicWashTip() {
 
       if (error) {
         console.warn("[useDynamicWashTip] invoke failed", error.message);
-        return null;
+        // NEVER A BLANK CARD ON A TRANSIENT FAILURE. Serve the last tip that
+        // passed the guardrails rather than the "we couldn't finish" state.
+        // Nothing new is invented — this is her own previously served tip.
+        return (
+          readLastGood<DynamicWashTip>("wash-day-tip", level, undefined, (t) =>
+            !!t?.action && !!(t?.reason ?? t?.why)) ?? null
+        );
       }
+
       const tip = (data as { tip?: DynamicWashTip } | null)?.tip ?? null;
       writeLastGood<DynamicWashTip>("wash-day-tip", tip, level, undefined, (t) =>
         !!t?.action && !!(t?.reason ?? t?.why));
