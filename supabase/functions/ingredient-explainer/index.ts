@@ -27,6 +27,7 @@ import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
+import { loadSensitivities, type LoadedSensitivities } from "../_shared/sensitivities.ts";
 import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import {
   ANTI_SCAREMONGER_PHILOSOPHY,
@@ -514,7 +515,7 @@ ${NON_PRESCRIPTIVE_RULES}
 ${FLAGGED_INGREDIENTS_RULES}
 
 TONE — apply this exact decision tree:
-- "bad" ONLY if AT LEAST ONE is true: (a) the ingredient or an alias appears in context.avoid_ingredients (derived server-side from products SHE RATED POORLY — never from ingredient frequency counts), (b) the user has a documented allergy / sensitivity / diagnosis this molecule directly aggravates, or (c) the molecule directly conflicts with a measurable hair trait they hold.
+- "bad" ONLY if AT LEAST ONE is true: (a) the ingredient or an alias matches one of the member's DECLARED TOPICAL SENSITIVITIES in context.topical_sensitivities (severity "avoid" or "limit") — never from ingredient frequency counts, (b) the user has a documented allergy / sensitivity / diagnosis this molecule directly aggravates, or (c) the molecule directly conflicts with a measurable hair trait they hold.
 - "good" = a documented mechanism that benefits THIS user's measurable traits.
 - "warn" = neutral / context-dependent / "fine for most people, watch how your scalp responds".
 
@@ -894,18 +895,19 @@ Deno.serve(async (req) => {
     }
 
     if (!fit) {
-      const [goalRes, avoidRes] = await Promise.all([
+      // Declared topical sensitivities — the ONLY ingredient list that may make
+      // an ingredient "bad" for her. Frequency of ownership never can.
+      const [goalRes, sens] = await Promise.all([
         supabase.from("user_goals")
           .select("kind, title, target_text, challenges, challenge, status")
           .eq("user_id", user.id).neq("status", "complete"),
-        supabase.from("user_products")
-          .select("name, brand, rating, ingredients")
-          .eq("user_id", user.id).lte("rating", 2).not("rating", "is", null),
+        loadSensitivities(supabase, user.id, "topical") as Promise<LoadedSensitivities>,
       ]);
-      const avoidIngredients = new Set<string>();
-      for (const p of avoidRes.data ?? []) {
-        for (const i of (p.ingredients as string[] | null) ?? []) avoidIngredients.add(i);
-      }
+
+      const topicalSensitivities = sens.all.map((e) => ({
+        name: e.name,
+        severity: e.severity,
+      }));
       fit = await generateFit({
         ingredient: entry,
         userPayload: {
@@ -919,7 +921,7 @@ Deno.serve(async (req) => {
           goals: goalRes.data ?? [],
           context: {
             ...(body.context ?? {}),
-            avoid_ingredients: [...avoidIngredients].slice(0, 40),
+            topical_sensitivities: topicalSensitivities.slice(0, 40),
           },
         },
       });
