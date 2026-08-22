@@ -816,54 +816,15 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
 
     // ── Declared topical sensitivities: deterministic enforcement.
     // Warning system, not a filter — the ingredient list is left intact, but
-    // any declared hard exclusion present in the formula is forced to "bad"
-    // and named in its body, with the score reduced accordingly.
-    if (sens.avoid.length > 0 && Array.isArray(analysis.ingredients)) {
-      const flagged: string[] = [];
-      for (const card of analysis.ingredients) {
-        const hit = matchIngredient(String(card?.name ?? ""), sens);
-        if (!hit) continue;
-        card.tone = "bad";
-        card.sensitivity = true;
-        if (!/sensitivit/i.test(card.body ?? "")) {
-          card.body = `You've flagged ${hit.label} as a sensitivity. ${card.body ?? ""}`.trim();
-        }
-        if (!flagged.includes(hit.label)) flagged.push(hit.label);
-      }
-      // Ingredients the member declared that appear anywhere in the list even
-      // when the model didn't card them individually.
-      const scanned = scanTopical(
-        (analysis.ingredients ?? []).map((c) => `${c?.name ?? ""} ${c?.body ?? ""}`),
-        sens,
-      );
-      for (const label of scanned.labels) if (!flagged.includes(label)) flagged.push(label);
-
-      if (flagged.length > 0) {
-        const reasons = Array.isArray(analysis.score_reasons) ? analysis.score_reasons : [];
-        for (const label of flagged) {
-          if (reasons.some((r) => r.reason?.includes(label))) continue;
-          reasons.unshift(sensitivityScoreReason(label, scanned.terms[label] ?? label));
-        }
-        analysis.score_reasons = reasons.slice(0, 4);
-        if (typeof analysis.match_score === "number") {
-          analysis.match_score = applySensitivityCeiling(
-            analysis.match_score,
-            flagged.length,
-          ) ?? analysis.match_score;
-        }
-        if (!/flagged as a sensitivity/i.test(analysis.summary ?? "")) {
-          analysis.summary = `${(analysis.summary ?? "").trim()} Contains ${
-            flagged.join(" and ")
-          }, which you've flagged as a sensitivity — read the pack before you use it.`.trim();
-        }
-        (analysis as unknown as Record<string, unknown>)._sensitivity_flagged = flagged;
-        console.log(JSON.stringify({
-          event: "topical_sensitivity_warning",
-          fn: "ingredient-analysis",
-          hits: flagged.length,
-        }));
-      }
-    }
+    // any declared hard exclusion present in the STORED INCI list is forced to
+    // "bad" and named in its body, with the score reduced accordingly. The raw
+    // list is authoritative: the model's own cards can omit or reword it.
+    enforceIngredientCardSensitivities(
+      analysis as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+      sens,
+      rawIngredients,
+      "ingredient-analysis",
+    );
 
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
