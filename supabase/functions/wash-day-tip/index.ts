@@ -403,15 +403,18 @@ Do not substitute other cleansing or sealing methods for these two.`
     });
   } catch (err) {
     console.error("[wash-day-tip] gateway fetch failed:", err);
+    failOutcome("gateway_unreachable");
     return json(502, { error: "ai gateway unreachable" });
   }
   if (!aiResp.ok) {
     const text = await aiResp.text().catch(() => "");
     console.error("[wash-day-tip] gateway error:", aiResp.status, text);
+    failOutcome(`gateway_${aiResp.status}`);
     if (aiResp.status === 429) return json(429, { error: "rate_limited" });
     if (aiResp.status === 402) return json(402, { error: "credits_exhausted" });
     return json(502, { error: "ai gateway error" });
   }
+
 
   const j = await aiResp.json();
   let raw = j?.choices?.[0]?.message?.content ?? "{}";
