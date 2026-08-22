@@ -624,6 +624,7 @@ Do not substitute other cleansing or sealing methods for these two.`
 
   if (!isUsable(parsed)) {
     console.error("[wash-day-tip] unusable model output:", raw.slice(0, 500));
+    failOutcome("unusable_model_output");
     return json(502, { error: "invalid model output" });
   }
 
@@ -639,6 +640,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     );
     const hasUsableAction = Boolean(String(parsed.action ?? "").trim()) && actionOnly.length === 0;
     if (!hasUsableAction) {
+      failOutcome(`action_floor:${verdict.reasons.slice(0, 3).join(",")}`);
       return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
     }
     await logTipRejection(
