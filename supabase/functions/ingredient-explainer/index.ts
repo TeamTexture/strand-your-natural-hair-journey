@@ -895,17 +895,15 @@ Deno.serve(async (req) => {
     }
 
     if (!fit) {
-      const [goalRes, avoidRes] = await Promise.all([
+      // Declared topical sensitivities — the ONLY ingredient list that may make
+      // an ingredient "bad" for her. Frequency of ownership never can.
+      const [goalRes, sens] = await Promise.all([
         supabase.from("user_goals")
           .select("kind, title, target_text, challenges, challenge, status")
           .eq("user_id", user.id).neq("status", "complete"),
-        supabase.from("user_products")
-          .select("name, brand, rating, ingredients")
-          .eq("user_id", user.id).lte("rating", 2).not("rating", "is", null),
+        loadSensitivities(supabase, user.id, "topical") as Promise<LoadedSensitivities>,
       ]);
-      // Declared topical sensitivities — the ONLY ingredient list that may make
-      // an ingredient "bad" for her. Frequency of ownership never can.
-      const sens: LoadedSensitivities = await loadSensitivities(supabase, user.id, "topical");
+
       const topicalSensitivities = sens.all.map((e) => ({
         name: e.name,
         severity: e.severity,
