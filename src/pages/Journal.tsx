@@ -511,7 +511,6 @@ const Journal = () => {
         })}
       </div>
 
-      </div>
 
       {(boardsLoading || populatedBoards.length > 0) && (
         <>
