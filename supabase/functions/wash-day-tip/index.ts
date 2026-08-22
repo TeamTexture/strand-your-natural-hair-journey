@@ -42,7 +42,7 @@ import {
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-tip", stage: 2 } as const;
