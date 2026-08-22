@@ -48,14 +48,14 @@ const AnalyseAnotherCard = ({ returnTo }: Props) => {
         >
           <Camera className="size-4 mr-1.5" /> Scan a new product
         </Button>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 min-w-0">
-            <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <div className="space-y-2">
+          <div className="relative">
+            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
             <Input
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="Paste product link"
-              className="pl-8 h-10 text-sm"
+              className="pl-9 h-12 text-sm"
               inputMode="url"
               autoCapitalize="none"
             />
@@ -63,11 +63,19 @@ const AnalyseAnotherCard = ({ returnTo }: Props) => {
           <Button
             size="pill"
             variant="gold"
-            className="shrink-0 whitespace-nowrap"
+            className="whitespace-nowrap"
             onClick={handleUrl}
             disabled={busy || !linkUrl.trim()}
           >
-            {urlBusy ? <Loader2 className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
+            {urlBusy ? (
+              <>
+                <Loader2 className="size-4 mr-1.5 animate-spin" /> Reading link…
+              </>
+            ) : (
+              <>
+                <ScanLine className="size-4 mr-1.5" /> Analyse link
+              </>
+            )}
           </Button>
         </div>
         <p className="text-[11px] font-body text-muted-foreground">
