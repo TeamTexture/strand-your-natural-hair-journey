@@ -146,6 +146,9 @@ const ProProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Live aggregate of APPROVED reviews only — pending/denied never counted.
+  const { data: reviewSummaries } = useReviewSummaries(user?.id ? [user.id] : []);
+  const ratingSummary = user?.id ? reviewSummaries?.get(user.id) : undefined;
 
 
   const { data: profile, isLoading } = useQuery({
