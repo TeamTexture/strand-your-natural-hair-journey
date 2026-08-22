@@ -31,6 +31,7 @@ import {
   matchIngredient,
   scanTopical,
   sensitivityScoreReason,
+  enforceIngredientCardSensitivities,
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
@@ -632,7 +633,17 @@ Deno.serve(async (req) => {
           ? cached._model_version === MODEL_VERSION
           : true;
         if (versionOk && hasGuidance && depthOk) {
-          return json(200, { cached: true, analysis: await sanitiseAndLog(cached, "ingredient-analysis") });
+          // SAFETY: a payload cached before the member declared a sensitivity
+          // (or before this enforcement existed) must never be served raw.
+          // Re-run the deterministic pass against the stored INCI list on every
+          // cache hit — it is text matching, so it costs nothing.
+          const guarded = enforceIngredientCardSensitivities(
+            cached as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+            sens,
+            rawIngredients,
+            "ingredient-analysis",
+          ) as unknown as AnalysisPayload;
+          return json(200, { cached: true, analysis: await sanitiseAndLog(guarded, "ingredient-analysis") });
         }
       }
     }
@@ -655,7 +666,7 @@ Deno.serve(async (req) => {
 
     const userPayload: Record<string, unknown> = {
       product: { key: productKey, name: productName, brand: productBrand },
-      ingredients: ingredients ?? [],
+      ingredients: rawIngredients,
       hairProfile: hairProfile ?? {},
       healthProfile: healthProfile ?? {},
       heritage: heritage ?? [],
@@ -682,7 +693,7 @@ Deno.serve(async (req) => {
 
 
 
-    const ingredientCount = (ingredients ?? []).length;
+    const ingredientCount = rawIngredients.length;
     // Frequency list only — used purely as a RAG retrieval trigger, never as
     // a negative signal. See _shared/flagged-ingredients.ts.
     const avoidList = Array.isArray(body.context?.flagged_ingredients)
@@ -694,7 +705,7 @@ Deno.serve(async (req) => {
       analysis = await runClaude({
         productName,
         productBrand,
-        ingredients: ingredients ?? [],
+        ingredients: rawIngredients,
         hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
         userPayload,
         selectorContext: buildSelectorContext(body),
@@ -727,7 +738,7 @@ Deno.serve(async (req) => {
         analysis = await runClaude({
           productName,
           productBrand,
-          ingredients: ingredients ?? [],
+          ingredients: rawIngredients,
           hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
           userPayload: retryPayload,
           selectorContext: buildSelectorContext(body),
