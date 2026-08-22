@@ -26,6 +26,7 @@ export const STYLE_GROUPS: StyleGroup[] = [
       "Bantu knots",
       "Bantu knot-out",
       "Afro puff",
+      "Afro Mohawk",
     ],
   },
   {
@@ -80,6 +81,7 @@ export const TENSION_STYLES: string[] = [
   "Low bun",
   "High bun",
   "Afro puff",
+  "Afro Mohawk",
   "Box braids",
   "Knotless braids",
   "Cornrows",
@@ -109,6 +111,7 @@ export const EXTENSION_STYLES: string[] = [
   "Low bun",
   "High bun",
   "Afro puff",
+  "Afro Mohawk",
   "Box braids",
   "Knotless braids",
   "Cornrows",
