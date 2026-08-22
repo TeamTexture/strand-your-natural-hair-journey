@@ -327,11 +327,17 @@ const ProductScanning = () => {
               );
             })()}
             <p className="font-display text-lg mt-4">{loadingMessage}</p>
+            <p className="mt-3 max-w-xs text-xs font-body text-foreground bg-card border border-primary/40 rounded-[12px] px-3 py-2">
+              Stay on this page while we work. Leaving or closing it before the
+              analysis finishes will interrupt it, and you'll need to start
+              again.
+            </p>
             <p className="text-xs text-muted-foreground mt-2 max-w-xs">
               Reading both sides of the label, matching ingredients to your
               hair profile, and flagging anything that already shows up in
               3 or more of your favourited shelf products.
             </p>
+
           </>
         ) : (
           <>
