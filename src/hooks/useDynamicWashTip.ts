@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { loadDecryptedContext } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import {
   loadResponsiveSignals,
@@ -52,6 +53,19 @@ export async function loadStyleTipContext(userId: string) {
   return loadContext(userId);
 }
 
+/** Encrypted columns must never travel to the model as ciphertext, and the raw
+ *  row carries `*_enc` blobs. Keep the plain clinical fields only. */
+const cleanRow = (row: Record<string, unknown> | null): Record<string, unknown> | null => {
+  if (!row) return null;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (k.endsWith("_enc") || k === "id" || k === "user_id" || k === "created_at" || k === "updated_at") continue;
+    if (v === null || v === undefined || (Array.isArray(v) && v.length === 0)) continue;
+    out[k] = v;
+  }
+  return out;
+};
+
 async function loadContext(userId: string) {
   const [
     hairRes,
@@ -60,25 +74,45 @@ async function loadContext(userId: string) {
     goalsRes,
     bloodsRes,
     washRes,
+    decrypted,
   ] = await Promise.all([
     supabase.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("user_health_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("user_style_profile").select("*").eq("user_id", userId).maybeSingle(),
+    // GOAL STATUS: the app writes `in_progress` (see useGoals); only legacy rows
+    // say `active`. Filtering on `active` alone sent an empty goals array to
+    // every tip prompt, so no member's goal was ever cited.
     supabase
       .from("user_goals")
-      .select("title, kind, status")
+      .select("title, kind, status, ended_at")
       .eq("user_id", userId)
-      .eq("status", "active")
+      .in("status", ["in_progress", "active"])
+      .is("ended_at", null)
       .limit(5),
     supabase
       .from("blood_results")
       .select("marker, value, unit, status, category")
       .eq("user_id", userId),
     supabase.from("wash_days").select("id").eq("user_id", userId).limit(1),
+    loadDecryptedContext(),
   ]);
 
-  const hair = hairRes.data as Record<string, unknown> | null;
-  const health = healthRes.data as Record<string, unknown> | null;
+  // The scalp condition and diagnosed conditions live encrypted — merge the
+  // decrypted values in so the prompt sees the real clinical picture.
+  const hair = cleanRow(hairRes.data as Record<string, unknown> | null) as Record<string, unknown> | null;
+  if (hair) {
+    if (decrypted?.hair?.scalp_condition) hair.scalp_condition = decrypted.hair.scalp_condition;
+    if (decrypted?.hair?.diagnosed_conditions?.length)
+      hair.diagnosed_conditions = decrypted.hair.diagnosed_conditions;
+  }
+  const health = cleanRow(healthRes.data as Record<string, unknown> | null) as Record<string, unknown> | null;
+  if (health && decrypted?.health) {
+    if (decrypted.health.life_stage) health.life_stage = decrypted.health.life_stage;
+    if (decrypted.health.medical_conditions?.length)
+      health.medical_conditions = decrypted.health.medical_conditions;
+    if (decrypted.health.contraception?.length)
+      health.contraception = decrypted.health.contraception;
+  }
   const style = styleRes.data as Record<string, unknown> | null;
   const goals = (goalsRes.data ?? []) as Array<{ title: string; kind: string | null; status: string | null }>;
   const bloodFlags = (bloodsRes.data ?? [])
@@ -88,6 +122,7 @@ async function loadContext(userId: string) {
 
   return { hair, health, style, goals, bloodFlags, hasWashHistory };
 }
+
 
 /**
  * ALL logged wash days plus the member's shelf. Patterns across the whole
@@ -146,8 +181,16 @@ export function useDynamicWashTip() {
         loadResponsiveSignals(user.id),
         loadWashHistory(user.id),
       ]);
-      const h = ctx.hair as { hair_type?: string; porosity?: string; density?: string; scalp_condition?: string } | null;
-      const he = ctx.health as { overall_health?: string } | null;
+      const h = ctx.hair as
+        | (Record<string, unknown> & {
+            porosity?: string;
+            density?: string;
+            scalp_condition?: string;
+            surface_texture?: string;
+            length_bucket?: string;
+          })
+        | null;
+      const he = ctx.health as (Record<string, unknown> & { overall_health?: string }) | null;
       const s = ctx.style as {
         current_hairstyle?: string;
         days_in_style?: number | null;
@@ -157,12 +200,14 @@ export function useDynamicWashTip() {
       } | null;
       const fingerprint = hashString(
         [
-          "wash-tip-v4-reason",
-          h?.hair_type ?? "",
-          h?.porosity ?? "",
-          h?.density ?? "",
-          h?.scalp_condition ?? "",
-          he?.overall_health ?? "",
+          "wash-tip-v5-context",
+          String(h?.surface_texture ?? ""),
+          String(h?.porosity ?? ""),
+          String(h?.density ?? ""),
+          String(h?.length_bucket ?? ""),
+          String(h?.scalp_condition ?? ""),
+          String(he?.overall_health ?? he?.life_stage ?? ""),
+
           ...styleSignatureParts(ctx.style as Record<string, unknown> | null),
           ctx.hasWashHistory ? "wash" : "no-wash",
           ctx.bloodFlags.map((b) => `${b.marker}:${b.status}`).sort().join("|"),
@@ -209,8 +254,15 @@ export function useDynamicWashTip() {
 
       if (error) {
         console.warn("[useDynamicWashTip] invoke failed", error.message);
-        return null;
+        // NEVER A BLANK CARD ON A TRANSIENT FAILURE. Serve the last tip that
+        // passed the guardrails rather than the "we couldn't finish" state.
+        // Nothing new is invented — this is her own previously served tip.
+        return (
+          readLastGood<DynamicWashTip>("wash-day-tip", level, undefined, (t) =>
+            !!t?.action && !!(t?.reason ?? t?.why)) ?? null
+        );
       }
+
       const tip = (data as { tip?: DynamicWashTip } | null)?.tip ?? null;
       writeLastGood<DynamicWashTip>("wash-day-tip", tip, level, undefined, (t) =>
         !!t?.action && !!(t?.reason ?? t?.why));

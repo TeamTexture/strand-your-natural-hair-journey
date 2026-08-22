@@ -42,7 +42,7 @@ import {
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-tip", stage: 2 } as const;
@@ -215,6 +215,25 @@ Deno.serve(async (req) => {
 
   const isStyle = body.surface === "style";
   const kind = isStyle ? "style_tip" : "wash_day_tip";
+
+  // FAILURE IS NEVER SILENT. Every path that returns without serving a tip
+  // flushes the buffered meter row with the reason, so a member-facing
+  // "we couldn't finish your tip" is diagnosable from `ai_call_log` instead of
+  // leaving an `unflushed` row with no rule.
+  const failOutcome = (rule: string) => {
+    try {
+      recordAiOutcome({
+        function_name: "wash-day-tip",
+        surface: isStyle ? "style" : "wash_day",
+        user_id: user.id,
+        outcome: "rejected",
+        rejection_rule: rule,
+      });
+    } catch (e) {
+      console.warn("[wash-day-tip] outcome flush failed", e);
+    }
+  };
+
 
   // DIAGNOSTIC RUNS NEVER TOUCH THE PRODUCTION CACHE. A harness fingerprint
   // (or an explicit `diagnostic: true`) generates and returns, but is never
@@ -403,15 +422,18 @@ Do not substitute other cleansing or sealing methods for these two.`
     });
   } catch (err) {
     console.error("[wash-day-tip] gateway fetch failed:", err);
+    failOutcome("gateway_unreachable");
     return json(502, { error: "ai gateway unreachable" });
   }
   if (!aiResp.ok) {
     const text = await aiResp.text().catch(() => "");
     console.error("[wash-day-tip] gateway error:", aiResp.status, text);
+    failOutcome(`gateway_${aiResp.status}`);
     if (aiResp.status === 429) return json(429, { error: "rate_limited" });
     if (aiResp.status === 402) return json(402, { error: "credits_exhausted" });
     return json(502, { error: "ai gateway error" });
   }
+
 
   const j = await aiResp.json();
   let raw = j?.choices?.[0]?.message?.content ?? "{}";
@@ -602,6 +624,7 @@ Do not substitute other cleansing or sealing methods for these two.`
 
   if (!isUsable(parsed)) {
     console.error("[wash-day-tip] unusable model output:", raw.slice(0, 500));
+    failOutcome("unusable_model_output");
     return json(502, { error: "invalid model output" });
   }
 
@@ -617,6 +640,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     );
     const hasUsableAction = Boolean(String(parsed.action ?? "").trim()) && actionOnly.length === 0;
     if (!hasUsableAction) {
+      failOutcome(`action_floor:${verdict.reasons.slice(0, 3).join(",")}`);
       return json(422, { error: "tip_failed_action_floor", reasons: verdict.reasons });
     }
     await logTipRejection(
@@ -765,7 +789,27 @@ Do not substitute other cleansing or sealing methods for these two.`
       ["not_cached_empty_action_or_reason"],
       JSON.stringify(finalPayload).slice(0, 2000),
     );
+    // AND IT IS NEVER SERVED EITHER. A headline with no action is not a tip:
+    // returning it rendered an empty gold card. Fail explicitly so the client
+    // falls back to the last tip that did pass the guardrails.
+    failOutcome("hollow_after_guardrail");
+    return json(422, {
+      error: "tip_hollow_after_guardrail",
+      ...(isDiagnostic
+        ? {
+            debug: {
+              parsed_action: String(parsed.action ?? ""),
+              capped_action: String(capped.action ?? ""),
+              after_wall: String((plain as TipPayload).action ?? ""),
+              redacted: stillNamed,
+              final_action: String(finalPayload.action ?? ""),
+              final_reason: String(finalPayload.reason ?? ""),
+            },
+          }
+        : {}),
+    });
   }
+
   if (cacheable && !isDiagnostic) {
     await admin
       .from("ai_summaries")
