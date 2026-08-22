@@ -98,3 +98,16 @@ share one fetch, and that fetch now shares the clinical-context decrypt cache to
 - Programmes feature (time-boxed named plans, ~2-3 week build). Phase 3.
 - Heat Hat prompt when AI suggests heat/steam — never a hooded dryer or non-TT alternative. Phase 2+.
 - Strand tip card is hidden behind `SHOW_STRAND_TIP` in `src/lib/featureFlags.ts`. Engine untouched; flip the flag to restore.
+
+## Section 1 walkthrough (new member) — findings
+
+FIXED this pass:
+- Onboarding Step 1: Continue no longer silently disabled (validation toast now reachable).
+- **Supplements step was unreachable.** `OnboardingGate` allow-list omitted `/onboarding/profile-supplements`, so every new member was bounced from Step 2 straight to the pro gate and supplements were never captured. Added to both the allow-list (unlocks with `healthComplete`) and `capturePaths`.
+- Step counters: supplements and the pro gate both read "3 of 9". Renumbered pro-gate/pro-book 4, pro-details 5, hair 6, colour 7, blood 8.
+- Health labels: "None non-hormonal" / "IUD hormonal" now display as "None / non-hormonal" / "Hormonal IUD" via `healthOptionLabel` (display only — stored values unchanged).
+
+OPEN / not fixed:
+- Consent accept redirects to `/` (splash) instead of Step 1 — extra "ENTER STRAND" tap.
+- Steps 4–9 (pro gate → hair → colour → blood) not yet walked end-to-end; the scripted driver stops at the supplements step because Continue requires a supplement and the skip is a text link.
+- Not walked: camera/mic capture, live Stripe checkout.
