@@ -48,7 +48,6 @@ import { useBloodPanelThumb } from "@/hooks/useBloodPanelThumbs";
 import {
   MARKER_EXPLANATIONS,
   CATEGORY_META,
-  FOOD_FIRST_NOTE,
   NUTRITION_BOOK_REF,
   foodsForDiet,
 } from "@/data/bloodMarkerExplanations";
