@@ -78,6 +78,13 @@ async function loadInputs(userId: string) {
   };
 }
 
+export interface WashDayStepsResult {
+  steps: WashDayStep[];
+  /** True when the server served her previous sequence because a fresh
+   *  generation failed — the UI says so and refreshes in the background. */
+  stale: boolean;
+}
+
 export function useWashDaySteps() {
   const { user } = useAuth();
   const { level } = useTipsLevel();
@@ -88,8 +95,9 @@ export function useWashDaySteps() {
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 1,
-    queryFn: async (): Promise<WashDayStep[]> => {
-      if (!user?.id) return [];
+    queryFn: async (): Promise<WashDayStepsResult> => {
+      if (!user?.id) return { steps: [], stale: false };
+
       const [ctx, signals] = await Promise.all([
         loadInputs(user.id),
         loadResponsiveSignals(user.id),
