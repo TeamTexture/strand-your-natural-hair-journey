@@ -167,6 +167,9 @@ const GlobalMenu = () => {
     !session ||
     isRestricted ||
     brandLocked ||
+    // Accounts blocked as outside the UK get the waiting-list splash and no
+    // chrome at all — no menu, so no route back into onboarding or the app.
+    internationalBlocked ||
     ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p)) ||
     location.pathname === "/" ||
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
