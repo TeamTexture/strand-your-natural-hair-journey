@@ -57,6 +57,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     styleRes.error,
     bloodResultsRes.error,
     bloodPanelsRes.error,
+    proRes.error,
   ].find(Boolean);
   // A failed read is not an incomplete profile. Treating a timeout/auth-lock as
   // empty data sent members back to step one and made saved answers appear lost.
