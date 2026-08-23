@@ -32,12 +32,14 @@ const ResumeOnboarding = () => {
 
   const hairOutstanding = !!status && (!status.hairComplete || !status.styleComplete);
   const bloodOutstanding = !!status && !status.bloodOnFile;
+  const consultationOutstanding = !!status && !status.consultationComplete;
 
   useEffect(() => {
     if (!status) return;
     // Nothing outstanding: this prompt must not appear at all.
-    if (!hairOutstanding && !bloodOutstanding) navigate("/home", { replace: true });
-  }, [status, hairOutstanding, bloodOutstanding, navigate]);
+    if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding)
+      navigate("/home", { replace: true });
+  }, [status, hairOutstanding, bloodOutstanding, consultationOutstanding, navigate]);
 
   if (isLoading && !status) return <LoadingDot />;
   if (!status) return <LoadingDot />;
