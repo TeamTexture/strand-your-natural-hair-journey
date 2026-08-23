@@ -33,6 +33,7 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { usePendingProProfileReviewCount } from "@/hooks/useProProfileReview";
 import { usePendingShelfCount } from "@/hooks/useAdminShelfReview";
@@ -84,7 +85,12 @@ const useAdminStats = () =>
           .from("pro_subscriptions")
           .select("pro_user_id", { count: "exact", head: true })
           .in("status", ["active", "trialing"]),
-        supabase.from("profiles").select("user_id").limit(5000),
+        // Paginated: the member count is derived by filtering these rows, so a
+        // truncated read would silently under-report members as signups grow.
+        fetchAllRows<{ user_id: string }>((from, to) =>
+          supabase.from("profiles").select("user_id").range(from, to),
+        ),
+
         supabase
           .from("profiles")
           .select("user_id", { count: "exact", head: true })
@@ -100,17 +106,18 @@ const useAdminStats = () =>
           .from("brand_offers")
           .select("id, owner_type, status, starts_on, ends_on")
           .in("status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]),
-        supabase.from("user_roles").select("user_id, role"),
+        fetchAllRows<{ user_id: string; role: string }>((from, to) =>
+          supabase.from("user_roles").select("user_id, role").range(from, to),
+        ),
+
       ]);
       // Members = consumer accounts only. Professional / brand / admin logins
       // live in their own admin panels and must never inflate the member count.
       const privileged = new Set(
-        ((rolesQ.data ?? []) as Array<{ user_id: string; role: string }>)
-          .filter((r) => r.role !== "consumer")
-          .map((r) => r.user_id),
+        rolesQ.filter((r) => r.role !== "consumer").map((r) => r.user_id),
       );
-      const memberCount = ((profiles.data ?? []) as Array<{ user_id: string }>)
-        .filter((p) => !privileged.has(p.user_id)).length;
+      const memberCount = profiles.filter((p) => !privileged.has(p.user_id)).length;
+
       const offers = (allOffersQ.data ?? []) as {
         owner_type: string | null;
         status: string;
