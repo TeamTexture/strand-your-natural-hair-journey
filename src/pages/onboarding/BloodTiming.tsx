@@ -144,13 +144,10 @@ const BloodTiming = () => {
               </a>
             </SurfaceCard>
 
-            <Button
-              variant="goldGhost"
-              size="pill"
-              onClick={() => navigate("/blood-upload?onboarding=1")}
-            >
-              Skip for now — upload what I have
-            </Button>
+            <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
+              Blood work can't be skipped — it's what every piece of STRAND guidance is
+              built on. Your profile stays saved until your results are ready.
+            </p>
           </>
         ) : choice === "yes" ? (
           <div className="space-y-3 mt-4">

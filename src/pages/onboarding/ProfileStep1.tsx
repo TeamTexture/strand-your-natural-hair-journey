@@ -2,7 +2,7 @@ import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
-import { Camera, Check, ChevronDown, ImagePlus, Loader2, Mail, Stethoscope, X } from "lucide-react";
+import { Camera, Check, ChevronDown, ImagePlus, Loader2, Stethoscope, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
@@ -80,8 +80,6 @@ const ProfileStep1 = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [submitted, setSubmitted] = useState(false);
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
-  const [waitlistEmail, setWaitlistEmail] = useState("");
 
   // Refs for keyboard "Next" key focus advance.
   const ageRef = useRef<HTMLSelectElement>(null);
@@ -281,12 +279,9 @@ const ProfileStep1 = () => {
     age: age === "" ? "Select your age" : "",
     postcode:
       postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
-    country:
-      country === ""
-        ? "Select your country of residence"
-        : !isUK
-          ? "STRAND is only available in the UK right now"
-          : "",
+    // A non-UK country no longer blocks the step: the details are saved and the
+    // member is routed to the international waiting-list splash afterwards.
+    country: country === "" ? "Select your country of residence" : "",
   };
   const canContinue = Object.values(errors).every((e) => e === "");
 
@@ -374,20 +369,25 @@ const ProfileStep1 = () => {
 
     }
 
+    // Registration details are now on file. A member outside the UK is flagged
+    // here and shown the waiting-list splash instead of the rest of onboarding.
+    if (!isUK) {
+      try {
+        await supabase.functions.invoke("international-check", {
+          body: { declared_country: country },
+        });
+      } catch (err) {
+        console.error("[geo] declared-country check failed", err);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["international-block", user?.id] });
+      navigate("/home", { replace: true });
+      return;
+    }
+
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
     navigate("/onboarding/profile-step-2");
   };
 
-  const handleWaitlistJoin = () => {
-    const email = waitlistEmail.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Enter a valid email address");
-      return;
-    }
-    toast.success("✓ You are on the waitlist — we will email you when we launch.");
-    setWaitlistOpen(false);
-    setWaitlistEmail("");
-  };
 
   // Tap outside any input to dismiss the keyboard on mobile.
   const dismissKeyboard = (e: React.MouseEvent<HTMLElement>) => {
@@ -671,55 +671,17 @@ const ProfileStep1 = () => {
           {submitted && errors.country && <FieldError>{errors.country}</FieldError>}
         </label>
 
-        {/* UK-only block */}
+        {/* Outside the UK — details are still saved, then the member is shown
+            the waiting-list splash instead of onboarding. */}
         {country !== "" && !isUK && (
-          <SurfaceCard tone="orange" className="space-y-3">
+          <SurfaceCard tone="orange">
             <p className="text-sm leading-snug">
-              <span className="font-semibold">STRAND is currently only available in the UK. </span>
-              We are working on expanding. Join the waitlist to be notified when we launch in your country.
+              <span className="font-semibold">STRAND isn't in {country} yet. </span>
+              Continue and we'll add you to the waiting list — we'll email you the moment we launch there.
             </p>
-            {!waitlistOpen ? (
-              <Button variant="gold" size="pill" onClick={() => setWaitlistOpen(true)} type="button">
-                Join Waitlist
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <FieldFrame filled={waitlistEmail.length > 0}>
-                  <Mail className="size-4 text-muted-foreground ml-3 shrink-0" />
-                  <input
-                    type="email"
-                    value={waitlistEmail}
-                    onChange={(e) => setWaitlistEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    inputMode="email"
-                    enterKeyHint="go"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleWaitlistJoin();
-                      }
-                    }}
-                    className="w-full bg-transparent px-2.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none min-h-[44px]"
-                  />
-                </FieldFrame>
-                <div className="flex gap-2">
-                  <Button variant="gold" size="pill" onClick={handleWaitlistJoin} type="button">
-                    Notify Me
-                  </Button>
-                  <Button
-                    variant="goldGhost"
-                    size="pill"
-                    onClick={() => setWaitlistOpen(false)}
-                    type="button"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
           </SurfaceCard>
         )}
+
 
         {/* Heritage */}
         <label className="block">
