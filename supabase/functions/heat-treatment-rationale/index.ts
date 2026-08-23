@@ -153,8 +153,15 @@ export function stripUnsupportedCharacteristics(
   payload: RationalePayload,
   ctx: Record<string, unknown>,
 ): RationalePayload {
+  // A blank headline renders as an empty line in the UI, so give it a claim
+  // that stands without any profile data. Cheap and unconditional.
+  const withHeadline: RationalePayload = payload.headline?.trim()
+    ? payload
+    : { ...payload, headline: "Heat could get more out of your conditioner" };
+
   const missing = missingCharacteristics(ctx);
-  if (missing.length === 0) return payload;
+  if (missing.length === 0) return withHeadline;
+  payload = withHeadline;
   const patterns = missing.map((k) => CHARACTERISTIC_TERMS[k]);
   const names = missing.join(",");
 
