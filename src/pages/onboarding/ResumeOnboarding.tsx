@@ -38,12 +38,14 @@ const ResumeOnboarding = () => {
   const hairOutstanding = requirements?.hairOutstanding ?? false;
   const bloodOutstanding = requirements?.bloodOutstanding ?? false;
   const consultationOutstanding = requirements?.consultationOutstanding ?? false;
+  // Only these two gate Subscribe/app access. The consultation is optional.
+  const coreComplete = !!requirements?.coreComplete;
 
   useEffect(() => {
     if (!status) return;
     // Nothing outstanding: this prompt must not appear at all. Continue the
     // original flow — payment, then the app.
-    if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding) {
+    if (coreComplete) {
       clearResumeLock();
       if (subLoading) return;
       // Reuse the SAME target the linear onboarding flow uses immediately after
@@ -55,7 +57,7 @@ const ResumeOnboarding = () => {
     // rest of the session (dataComplete is the only thing that releases it).
     if (!status.dataComplete) setResumeLock();
     else clearResumeLock();
-  }, [status, hairOutstanding, bloodOutstanding, consultationOutstanding, navigate, hasAccess, subLoading]);
+  }, [status, coreComplete, navigate, hasAccess, subLoading]);
 
   if (isLoading && !status) return <LoadingDot />;
 
@@ -135,6 +137,26 @@ const ResumeOnboarding = () => {
 
 
 
+
+        {coreComplete && (
+          <SurfaceCard tone="gold">
+            <p className="font-display text-base font-semibold">
+              That's everything STRAND needs.
+            </p>
+            <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
+              Your hair characteristics and blood work are both in. Choose your membership to
+              unlock STRAND.
+            </p>
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full mt-3 whitespace-normal break-words leading-tight"
+              onClick={() => navigate(getOnboardingNextPath(status, hasAccess))}
+            >
+              {hasAccess ? "Go to STRAND \u2192" : "Subscribe now \u2192"}
+            </Button>
+          </SurfaceCard>
+        )}
 
         {consultationOutstanding && (
           <SurfaceCard>
@@ -227,8 +249,9 @@ const ResumeOnboarding = () => {
         )}
 
         <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
-          All three are needed before STRAND unlocks, but there's no rush — nothing you've
-          entered expires.
+          {coreComplete
+            ? "Booking a consultation is optional and you can do it any time — it never holds up your membership."
+            : "Your hair characteristics and blood work are both needed before STRAND unlocks, but there's no rush — nothing you've entered expires."}
         </p>
       </div>
     </ScreenLayout>

@@ -98,8 +98,10 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // Consultation: logged professional with a consultation date on file.
   const consultationRow = (proRes.data ?? [])[0] as { consultation_date?: string | null } | undefined;
   const consultationComplete = markedComplete || !!consultationRow?.consultation_date;
+  // The consultation is optional and ongoing — it NEVER gates payment or app
+  // access. Only the hair characteristics (markers + style) and blood work do.
   const fieldsComplete =
-    basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile && consultationComplete;
+    basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {

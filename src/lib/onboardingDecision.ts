@@ -16,6 +16,8 @@ export interface OnboardingRequirements {
   hairComplete: boolean;
   bloodComplete: boolean;
   consultationComplete: boolean;
+  /** Hair + blood only — the two things that gate Subscribe/app access. */
+  coreComplete: boolean;
   dataComplete: boolean;
   hairOutstanding: boolean;
   bloodOutstanding: boolean;
@@ -26,8 +28,9 @@ export interface OnboardingRequirements {
  * The authoritative interpretation of onboarding completion.
  *
  * Hair characteristics are only complete once both the clinical markers and
- * colour/style step are saved. No screen should infer these requirements from
- * a draft, route, local lock, or one table in isolation.
+ * colour/style step are saved. The professional consultation is optional and
+ * ongoing — it is reported here but never counts towards coreComplete. No
+ * screen should infer these requirements from a draft, route or local lock.
  */
 export function getOnboardingRequirements(
   status: OnboardingCompletionStatus,
@@ -35,12 +38,14 @@ export function getOnboardingRequirements(
   const hairComplete = status.hairComplete && status.styleComplete;
   const bloodComplete = status.bloodOnFile;
   const consultationComplete = status.consultationComplete;
+  const coreComplete = hairComplete && bloodComplete;
 
   return {
     hairComplete,
     bloodComplete,
     consultationComplete,
-    dataComplete: status.dataComplete,
+    coreComplete,
+    dataComplete: status.dataComplete || coreComplete,
     hairOutstanding: !hairComplete,
     bloodOutstanding: !bloodComplete,
     consultationOutstanding: !consultationComplete,
@@ -52,7 +57,8 @@ export function getOnboardingNextPath(
   status: OnboardingCompletionStatus,
   hasAccess: boolean,
 ): string {
-  if (status.dataComplete) {
+  const { coreComplete } = getOnboardingRequirements(status);
+  if (status.dataComplete || coreComplete) {
     return hasAccess ? "/home" : getSubscribePath();
   }
   return status.healthComplete ? "/onboarding/resume" : status.entryPath;

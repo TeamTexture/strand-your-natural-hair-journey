@@ -15,7 +15,7 @@ const statusFor = (
   styleComplete: hair,
   bloodOnFile: blood,
   consultationComplete: consultation,
-  dataComplete: hair && blood && consultation,
+  dataComplete: hair && blood,
   entryPath: "/onboarding/resume",
 });
 
@@ -40,8 +40,9 @@ describe("onboarding completion matrix", () => {
       expect(requirements.hairOutstanding).toBe(!hair);
       expect(requirements.bloodOutstanding).toBe(!blood);
       expect(requirements.consultationOutstanding).toBe(!consultation);
+      expect(requirements.coreComplete).toBe(hair && blood);
       expect(getOnboardingNextPath(status, false)).toBe(
-        hair && blood && consultation
+        hair && blood
           ? "/subscribe?next=%2Fonboarding%2Fblood-ai-summary"
           : "/onboarding/resume",
       );
@@ -51,6 +52,14 @@ describe("onboarding completion matrix", () => {
   it("sends a fully complete paid member home", () => {
     expect(getOnboardingNextPath(statusFor(true, true, true), true)).toBe(
       "/home",
+    );
+  });
+
+  it("never lets an outstanding consultation gate subscribe", () => {
+    const status = statusFor(true, true, false);
+    expect(getOnboardingRequirements(status).coreComplete).toBe(true);
+    expect(getOnboardingNextPath(status, false)).toBe(
+      "/subscribe?next=%2Fonboarding%2Fblood-ai-summary",
     );
   });
 
