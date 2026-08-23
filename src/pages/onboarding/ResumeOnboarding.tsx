@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Scissors } from "lucide-react";
+import { Droplets, Scissors, Stethoscope } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ItalicSub from "@/components/ItalicSub";
