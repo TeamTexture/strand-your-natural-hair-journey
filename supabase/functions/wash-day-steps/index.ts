@@ -265,54 +265,110 @@ Deno.serve(async (req) => {
 
   const budgetBlock = `STEP COUNT — support level ${level}: return ${budget.min}-${budget.max} steps. ${budget.note} If the passages do not support enough material to reach ${budget.min} steps, return fewer rather than inventing any.`;
 
-  let aiResp: Response;
-  try {
-    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": LOVABLE_API_KEY,
+  /**
+   * LAST-GOOD FALLBACK — a member must never be dead-ended with a 502 when we
+   * already hold a real, guardrail-passed sequence for her. The cached payload
+   * may be keyed on an older fingerprint, so it is returned with `stale: true`
+   * and the client refreshes in the background. Nothing static is invented: if
+   * there is no good cached sequence we say so honestly with a 503.
+   */
+  const lastGoodOr503 = async (reason: string): Promise<Response> => {
+    console.error(`[wash-day-steps] generation failed (${reason})`);
+    if (
+      cachedPayload &&
+      cachedPayload._model_version === MODEL_VERSION &&
+      stepsHaveSubstance(cachedPayload.steps)
+    ) {
+      const safeStale = await sanitiseAndLog(cachedPayload, "wash-day-steps", { context: body });
+      if (stepsHaveSubstance(safeStale.steps)) {
+        return json(200, {
+          steps: safeStale.steps,
+          payload: safeStale,
+          cached: true,
+          stale: true,
+        });
+      }
+    }
+    return json(503, { error: "guidance_unavailable" });
+  };
+
+  const requestBody = JSON.stringify({
+    model: "google/gemini-3.6-flash",
+    // Output cap — output tokens drive latency on these interactive surfaces.
+    max_tokens: 2200,
+    messages: [
+      {
+        role: "system",
+        content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock(level)}\n\n${budgetBlock}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}`,
       },
-      body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
-        // Output cap — output tokens drive latency on these interactive surfaces.
-        max_tokens: 2200,
-        messages: [
-          {
-            role: "system",
-            content: `${SYSTEM}${grounding.block}\n\n${buildTipsLevelBlock(level)}\n\n${budgetBlock}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}`,
-          },
-          {
-            role: "user",
-            content: `${styleHeader}\n\nHer data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn her wash day steps JSON now.`,
-          },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-  } catch (err) {
-    console.error("[wash-day-steps] gateway fetch failed:", err);
-    return json(502, { error: "ai gateway unreachable" });
-  }
-  if (!aiResp.ok) {
-    const text = await aiResp.text().catch(() => "");
-    console.error("[wash-day-steps] gateway error:", aiResp.status, text);
-    if (aiResp.status === 429) return json(429, { error: "rate_limited" });
-    if (aiResp.status === 402) return json(402, { error: "credits_exhausted" });
-    return json(502, { error: "ai gateway error" });
-  }
+      {
+        role: "user",
+        content: `${styleHeader}\n\nHer data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn her wash day steps JSON now.`,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
 
-  const j = await aiResp.json();
-  const rawContent = j?.choices?.[0]?.message?.content ?? "{}";
-  let parsed: { steps?: unknown };
-  try {
-    parsed = JSON.parse(rawContent);
-  } catch {
-    return json(502, { error: "invalid model output" });
-  }
+  /** One writer attempt. Returns the steps, or a reason it produced none. */
+  const attempt = async (): Promise<
+    { steps: WashStep[] } | { fail: string } | { passthrough: Response }
+  > => {
+    let aiResp: Response;
+    try {
+      aiResp = await gatewayFetch(
+        AI_METER_META,
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Lovable-API-Key": LOVABLE_API_KEY,
+          },
+          body: requestBody,
+        },
+      );
+    } catch (err) {
+      return { fail: `gateway unreachable: ${err instanceof Error ? err.message : err}` };
+    }
+    if (!aiResp.ok) {
+      const text = await aiResp.text().catch(() => "");
+      console.error("[wash-day-steps] gateway error:", aiResp.status, text);
+      // Rate limit and credit exhaustion are answered verbatim so the client can
+      // back off rather than retry into the same wall.
+      if (aiResp.status === 429) return { passthrough: json(429, { error: "rate_limited" }) };
+      if (aiResp.status === 402) {
+        return { passthrough: json(402, { error: "credits_exhausted" }) };
+      }
+      return { fail: `gateway status ${aiResp.status}` };
+    }
+    const j = await aiResp.json().catch(() => null);
+    const rawContent = j?.choices?.[0]?.message?.content ?? "{}";
+    let parsed: { steps?: unknown };
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch {
+      return { fail: "unparsable model output" };
+    }
+    const attemptSteps = normaliseSteps(parsed.steps, level);
+    if (attemptSteps.length === 0) return { fail: "no valid steps after normalisation" };
+    return { steps: attemptSteps };
+  };
 
-  const steps = normaliseSteps(parsed.steps, level);
-  if (steps.length === 0) return json(502, { error: "invalid model output" });
+  // One silent retry: the failures seen in production are transient output-shape
+  // problems, not model outages, and a second attempt usually lands.
+  let steps: WashStep[] = [];
+  let lastFail = "unknown";
+  for (let i = 0; i < 2; i++) {
+    const res = await attempt();
+    if ("passthrough" in res) return res.passthrough;
+    if ("steps" in res) {
+      steps = res.steps;
+      break;
+    }
+    lastFail = res.fail;
+  }
+  if (steps.length === 0) return await lastGoodOr503(lastFail);
+
 
   const payload: StepsPayload = {
     steps,

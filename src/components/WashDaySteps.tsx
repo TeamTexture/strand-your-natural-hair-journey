@@ -2,6 +2,7 @@
 // manuscript-grounded pipeline — never static copy, so there is no fallback
 // text when generation fails.
 
+import { useEffect, useRef } from "react";
 import { Droplets, RefreshCw } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import StepSequence from "@/components/guidance/StepSequence";
@@ -11,7 +12,19 @@ import { Button } from "@/components/ui/button";
 import { useWashDaySteps } from "@/hooks/useWashDaySteps";
 
 const WashDaySteps = ({ className }: { className?: string }) => {
-  const { data: steps, isLoading, isError, refetch, isFetching } = useWashDaySteps();
+  const { data, isLoading, isError, refetch, isFetching } = useWashDaySteps();
+  const steps = data?.steps ?? [];
+  const isStale = data?.stale === true;
+
+  // Her previous sequence is on screen because a fresh generation failed. Try
+  // once more in the background so it catches up with her current profile.
+  const retried = useRef(false);
+  useEffect(() => {
+    if (isStale && !retried.current && !isFetching) {
+      retried.current = true;
+      void refetch();
+    }
+  }, [isStale, isFetching, refetch]);
 
   return (
     <div className={className}>
@@ -19,7 +32,7 @@ const WashDaySteps = ({ className }: { className?: string }) => {
         eyebrow="Your wash day, step by step"
         icon={Droplets}
         tone="gold"
-        footer={steps && steps.length > 0 ? <TipsLevelPrompt /> : undefined}
+        footer={steps.length > 0 ? <TipsLevelPrompt /> : undefined}
       >
         {isLoading ? (
           <div className="py-2">
@@ -44,18 +57,26 @@ const WashDaySteps = ({ className }: { className?: string }) => {
               Try again
             </Button>
           </div>
-        ) : steps && steps.length > 0 ? (
-          <StepSequence
-            steps={steps.map((s) => ({
-              text: s.headline,
-              detail: s.product_ref
-                ? `${s.body} Use your ${s.product_ref}.`.replace(/\s+/g, " ")
-                : s.body,
-              why: s.why,
-              iconHint: s.icon_hint,
-            }))}
-          />
+        ) : steps.length > 0 ? (
+          <>
+            {isStale && (
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Updating for your latest profile…
+              </p>
+            )}
+            <StepSequence
+              steps={steps.map((s) => ({
+                text: s.headline,
+                detail: s.product_ref
+                  ? `${s.body} Use your ${s.product_ref}.`.replace(/\s+/g, " ")
+                  : s.body,
+                why: s.why,
+                iconHint: s.icon_hint,
+              }))}
+            />
+          </>
         ) : null}
+
       </GuidanceCard>
     </div>
   );

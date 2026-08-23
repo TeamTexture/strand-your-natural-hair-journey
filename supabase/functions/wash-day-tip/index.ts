@@ -278,6 +278,26 @@ Deno.serve(async (req) => {
     return json(200, { tip: cachedPayload, cached: true });
   }
 
+  /**
+   * LAST-GOOD FALLBACK — when a fresh generation fails, serve the tip she
+   * already has (real, guardrail-passed output) marked `stale: true` rather than
+   * dead-ending her with a 502. Nothing static or invented is ever returned; if
+   * there is no good cached tip we answer honestly with a 503.
+   */
+  const lastGoodOr503 = (reason: string): Response => {
+    console.error(`[wash-day-tip] generation failed (${reason})`);
+    if (
+      cachedPayload &&
+      cachedPayload._model_version === MODEL_VERSION &&
+      hasSubstance(cachedPayload)
+    ) {
+      return json(200, { tip: cachedPayload, cached: true, stale: true });
+    }
+    return json(503, { error: "guidance_unavailable" });
+  };
+
+
+
 
 
   // Build a compact context blob for the model. Style first — the tip must
@@ -423,7 +443,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   } catch (err) {
     console.error("[wash-day-tip] gateway fetch failed:", err);
     failOutcome("gateway_unreachable");
-    return json(502, { error: "ai gateway unreachable" });
+    return lastGoodOr503("gateway unreachable");
   }
   if (!aiResp.ok) {
     const text = await aiResp.text().catch(() => "");
@@ -431,7 +451,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     failOutcome(`gateway_${aiResp.status}`);
     if (aiResp.status === 429) return json(429, { error: "rate_limited" });
     if (aiResp.status === 402) return json(402, { error: "credits_exhausted" });
-    return json(502, { error: "ai gateway error" });
+    return lastGoodOr503(`gateway status ${aiResp.status}`);
   }
 
 
@@ -625,7 +645,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   if (!isUsable(parsed)) {
     console.error("[wash-day-tip] unusable model output:", raw.slice(0, 500));
     failOutcome("unusable_model_output");
-    return json(502, { error: "invalid model output" });
+    return lastGoodOr503("unusable model output");
   }
 
   // ── GRACEFUL DEGRADATION ─────────────────────────────────────────────
@@ -793,6 +813,9 @@ Do not substitute other cleansing or sealing methods for these two.`
     // returning it rendered an empty gold card. Fail explicitly so the client
     // falls back to the last tip that did pass the guardrails.
     failOutcome("hollow_after_guardrail");
+    // Production runs get her last good tip instead of an error card; the
+    // diagnostic harness still gets the explicit 422 with its debug block.
+    if (!isDiagnostic) return lastGoodOr503("hollow_after_guardrail");
     return json(422, {
       error: "tip_hollow_after_guardrail",
       ...(isDiagnostic
