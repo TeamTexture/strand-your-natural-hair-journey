@@ -95,7 +95,11 @@ export async function getConsumerOnboardingStatus(userId: string) {
   const hairComplete = markedComplete || (healthComplete && hairFieldsComplete);
   const styleComplete = markedComplete || (hairComplete && styleFieldsComplete);
   const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
-  const fieldsComplete = basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
+  // Consultation: logged professional with a consultation date on file.
+  const consultationRow = (proRes.data ?? [])[0] as { consultation_date?: string | null } | undefined;
+  const consultationComplete = markedComplete || !!consultationRow?.consultation_date;
+  const fieldsComplete =
+    basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile && consultationComplete;
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {
