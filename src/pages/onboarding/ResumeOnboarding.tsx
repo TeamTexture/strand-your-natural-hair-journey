@@ -45,7 +45,7 @@ const ResumeOnboarding = () => {
     if (!status) return;
     // Nothing outstanding: this prompt must not appear at all. Continue the
     // original flow — payment, then the app.
-    if (coreComplete && !window.location.search.includes('stay=1')) {
+    if (coreComplete) {
       clearResumeLock();
       if (subLoading) return;
       // Reuse the SAME target the linear onboarding flow uses immediately after
