@@ -287,8 +287,12 @@ Return JSON only via the return_product_analysis tool.`;
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
-    max_uses: 4,
+    // SPEED: each server-side search round costs ~8-12s of wall clock. Two is
+    // enough to resolve a brand + INCI list (observed real scans use 1-2);
+    // four only ever paid for a long tail of repeat searches.
+    max_uses: 2,
   };
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({

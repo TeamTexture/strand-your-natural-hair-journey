@@ -159,6 +159,46 @@ interface Stage1Raw {
   relevance?: string;
 }
 
+/**
+ * Parse stage 1's JSON, salvaging a truncated response instead of throwing it
+ * away. A cut-off reply still contains several complete evidence objects, and
+ * losing the whole set costs the member a blank, ungrounded answer plus a
+ * retry generation. Whole-object regex extraction, so a half-written passage
+ * is simply dropped.
+ */
+function parseStage1(
+  content: string,
+  fn: string,
+): { coverage?: unknown; coverage_reason?: unknown; principle?: unknown; evidence: Stage1Raw[] } | null {
+  try {
+    const p = JSON.parse(content);
+    return { ...p, evidence: Array.isArray(p?.evidence) ? p.evidence : [] };
+  } catch {
+    const pick = (k: string) => {
+      const m = content.match(new RegExp(`"${k}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+      return m ? m[1] : "";
+    };
+    const evidence: Stage1Raw[] = [];
+    for (const m of content.matchAll(/\{[^{}]*\}/g)) {
+      try {
+        const obj = JSON.parse(m[0]) as Stage1Raw;
+        if (typeof obj?.passage === "string" && obj.passage.trim()) evidence.push(obj);
+      } catch { /* incomplete object — skip */ }
+    }
+    console.warn(
+      JSON.stringify({ event: "stage1_salvaged", fn, recovered: evidence.length }),
+    );
+    if (evidence.length === 0) return null;
+    return {
+      coverage: pick("coverage") || "explicit",
+      coverage_reason: pick("coverage_reason"),
+      principle: pick("principle"),
+      evidence,
+    };
+  }
+}
+
+
 
 /**
  * STAGE 1. Reads the authoritative chapters for the surface IN FULL (chapter 1
@@ -225,7 +265,13 @@ export async function gatherEvidence(input: {
         // Latency cap. Output tokens, not input tokens, drive stage 1's wall
         // clock (observed 8,700 out = 33s). A tight set of 6-10 short passages
         // fits comfortably inside this.
-        max_tokens: 2600,
+        // Latency vs truncation. Reasoning tokens count against this budget on
+        // the flash models, so a tight cap was cutting the JSON mid-string:
+        // stage 1 then returned EMPTY, grounding failed, and stage 2 had every
+        // claim rejected for traceability — a blank "what this means for your
+        // hair" AND a second full generation (the retry). Headroom + the
+        // salvage parser below removes both.
+        max_tokens: 6000,
         response_format: { type: "json_object" },
 
         messages: [
@@ -247,7 +293,8 @@ export async function gatherEvidence(input: {
     const json = await res.json();
     tokens = Number(json?.usage?.total_tokens ?? 0);
     const content = json?.choices?.[0]?.message?.content;
-    const parsed = typeof content === "string" ? JSON.parse(content) : null;
+    const parsed = typeof content === "string" ? parseStage1(content, input.fn) : null;
+
     raw = Array.isArray(parsed?.evidence) ? parsed.evidence : [];
     coverage = asCoverage(parsed?.coverage);
     coverageReason = String(parsed?.coverage_reason ?? "").trim().slice(0, 400);
