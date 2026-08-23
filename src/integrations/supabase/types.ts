@@ -3356,6 +3356,27 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_drafts: {
+        Row: {
+          draft_key: string
+          payload: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          draft_key: string
+          payload?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          draft_key?: string
+          payload?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_pricing_changes: {
         Row: {
           changed_by: string | null
