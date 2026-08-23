@@ -119,6 +119,17 @@ Deno.serve(async (req) => {
   if (auth instanceof Response) return auth;
   const { user } = auth;
 
+  // A country the member declared themselves on the personal-details step. A
+  // declared non-UK country is stronger evidence than any IP lookup, so it
+  // decides the block even when the IP check already ran.
+  let declared: string | null = null;
+  try {
+    const body = await req.json();
+    const v = (body as { declared_country?: unknown } | null)?.declared_country;
+    if (typeof v === "string" && v.trim()) declared = v.trim();
+  } catch (_e) { /* no body */ }
+  const declaredNonUk = !!declared && !UK_NAMES.has(declared.toLowerCase());
+
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -132,13 +143,16 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   // Already decided — never re-check (UK members travel).
-  if (profile?.geo_checked_at) {
+  if (profile?.geo_checked_at && !declaredNonUk) {
     return json(200, { blocked: !!profile.international_block, country: null, cached: true });
   }
 
-  const { country, country_name, source } = await detect(req);
+  const detected = declaredNonUk
+    ? { country: null, country_name: declared, source: "declared" }
+    : await detect(req);
+  const { country, country_name, source } = detected;
   // Fail OPEN: an inconclusive lookup never blocks a registration.
-  const blocked = !!country && !UK_CODES.has(country);
+  const blocked = declaredNonUk || (!!country && !UK_CODES.has(country));
 
   await admin
     .from("profiles")
