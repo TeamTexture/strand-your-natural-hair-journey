@@ -193,6 +193,40 @@ const GlobalMenu = () => {
 
   const activeView: "consumer" | "pro" | "admin" | "brand" = routeView ?? rememberedView;
 
+  // A member who has not finished the required onboarding (hair characteristics
+  // + blood work) or has no live membership gets NO app navigation — no
+  // hamburger, no view switcher, no shortcuts. Some screens are legitimately
+  // reachable mid-onboarding (the professional directory is part of the
+  // consultation step), so the bar itself stays for the back button and a single
+  // way onward: back into onboarding.
+  if (activeView === "consumer" && !memberAppUnlocked) {
+    return (
+      <div className="shrink-0 border-b border-border/40 bg-background">
+        <div
+          className="flex items-center justify-between px-3"
+          style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 6px)", paddingBottom: "6px" }}
+        >
+          <button
+            type="button"
+            aria-label="Back"
+            onClick={() => safeBack(navigate)}
+            className="size-9 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(resumePath)}
+            className="h-9 px-3 rounded-full border border-primary/40 bg-primary/10 text-primary text-[11px] font-body uppercase tracking-[0.12em]"
+          >
+            Continue onboarding
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
   // A consumer role alone is not enough: the user must have actually completed
   // (or started) a member profile. Otherwise professionals without an end-user
   // profile see a toggle to an empty/broken consumer view.
