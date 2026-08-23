@@ -134,3 +134,41 @@ Findings (open, cosmetic/UX — no data loss):
    summary is never seen pre-payment. First `/home` load likewise redirects to
    `/subscribe`, so a fresh member's first Home render can only be audited on
    an account with membership/complimentary access.
+
+## Admin panel audit — 2026-08-23
+
+Walked with a real authenticated admin session (synthetic account
+`strand-audit-admin@mystrand-test.co.uk`, roles: admin + consumer).
+
+### Fixed this pass
+
+1. **Admin-read RLS gaps (silent zeros).** Three tables that admin screens query
+   had no admin policy, so PostgREST returned `200` with zero rows — no error,
+   no visible sign of loss. Verified against a real admin JWT before/after:
+   - `pro_subscriptions` 0 → 5 of 5 (AdminHub "subscribed pros" tile read 0)
+   - `user_professionals` 0 → 16 of 16 (member passport pro section was blank)
+   - `user_challenges` 0 → 2 of 2 (passport challenges were blank)
+   Control re-checked: a member session still sees 0 of those 16 rows.
+
+2. **Silent row caps on member figures.** `AdminMembers` capped profiles at 500
+   and read `user_roles`/`consumer_subscriptions` unpaginated (PostgREST caps at
+   1000). `AdminHub` capped profiles at 5000 and `user_roles` unpaginated. All
+   member counts are derived by filtering these rows client-side, so past the cap
+   they would quietly shrink — and truncated `user_roles` would *mislabel* pros as
+   members. Now paginated via `src/lib/fetchAllRows.ts`. Use that helper (or
+   `{ count: "exact", head: true }`) for any admin figure.
+
+### Known gaps, not fixed
+
+- **Appointment reviews have no admin moderation.** `reviews` has an admin SELECT
+  policy but **no admin UPDATE and no DELETE policy for anyone** — an admin can
+  read a defamatory review but cannot hide or remove it. Only the professional
+  can approve/deny. Note `/admin/pro-reviews` is *pro profile listing* review, a
+  name collision — it does not touch the `reviews` table. Table is empty today,
+  so nothing is broken yet; this is the top follow-up.
+- `AdminApplications` hides applications with no `payment_confirmed_at` (2 such
+  pending rows from Aug 10 are invisible). Believed deliberate (abandoned
+  signups) — confirm with Paige that abandoned applications never need review.
+- Pre-existing linter findings, untouched: `manuscript_evidence_cache` has RLS on
+  with no policies (service-role-only cache, intended), and 140
+  `SECURITY DEFINER`-callable-by-signed-in-users warnings on existing RPCs.
