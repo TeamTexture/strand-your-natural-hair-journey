@@ -55,7 +55,7 @@ const Directory = () => {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
-  const { pros, loading } = useDirectoryProfessionals();
+  const { pros, loading, error: directoryError, refresh } = useDirectoryProfessionals();
   const { stateForListing } = useProContactStates();
   // Hard wall: in the Professional / Brand / Admin views the directory is
   // read-only. No member enquiry state, no member chat, no member bottom nav.
