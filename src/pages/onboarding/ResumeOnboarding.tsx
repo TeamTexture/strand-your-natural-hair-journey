@@ -193,15 +193,10 @@ const ResumeOnboarding = () => {
               size="pill"
               className="w-full mt-3 whitespace-normal break-words leading-tight"
               onClick={() => navigate(bloodPath)}
-              disabled={!status.styleComplete && !hairOutstanding}
             >
               {startedBlood ? "Continue my blood results →" : "Add my blood results →"}
             </Button>
-            {!status.styleComplete && (
-              <p className="text-[11px] font-body text-foreground/70 mt-2 leading-snug">
-                Your hair characteristics come first — your results are read against them.
-              </p>
-            )}
+
           </SurfaceCard>
         )}
 
