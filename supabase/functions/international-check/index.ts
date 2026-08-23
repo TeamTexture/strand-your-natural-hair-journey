@@ -142,7 +142,11 @@ Deno.serve(async (req) => {
 
   await admin
     .from("profiles")
-    .update({ geo_checked_at: new Date().toISOString(), international_block: blocked })
+    .update({
+      geo_checked_at: new Date().toISOString(),
+      international_block: blocked,
+      international_country: blocked ? (country_name || country) : null,
+    })
     .eq("user_id", user.id);
 
   if (!blocked) return json(200, { blocked: false, country, source });
