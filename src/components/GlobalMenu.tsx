@@ -63,6 +63,7 @@ import { useAccessRestricted } from "@/hooks/useAccessRestricted";
 import { useBrandLockout } from "@/hooks/useBrandLockout";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useMemberAppUnlocked } from "@/hooks/useMemberAppUnlocked";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
