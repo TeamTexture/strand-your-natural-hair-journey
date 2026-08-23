@@ -64,6 +64,7 @@ import { useBrandLockout } from "@/hooks/useBrandLockout";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useMemberAppUnlocked } from "@/hooks/useMemberAppUnlocked";
+import { useInternationalBlock } from "@/hooks/useInternationalBlock";
 import { usePendingApplicationsCount } from "@/hooks/usePendingApplicationsCount";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
@@ -135,6 +136,7 @@ const GlobalMenu = () => {
   const { hasPageBackButton } = useBackButtonContext();
   // Paywall / onboarding chrome lock — see useMemberAppUnlocked.
   const { unlocked: memberAppUnlocked, resumePath } = useMemberAppUnlocked();
+  const { blocked: internationalBlocked } = useInternationalBlock();
 
 
   const path = location.pathname;
@@ -167,6 +169,9 @@ const GlobalMenu = () => {
     !session ||
     isRestricted ||
     brandLocked ||
+    // Accounts blocked as outside the UK get the waiting-list splash and no
+    // chrome at all — no menu, so no route back into onboarding or the app.
+    internationalBlocked ||
     ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p)) ||
     location.pathname === "/" ||
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
