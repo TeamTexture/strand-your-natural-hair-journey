@@ -60,9 +60,14 @@ const ResumeOnboarding = () => {
 
   if (!status) return <LoadingDot />;
 
-  const hairPath = status.hairComplete
-    ? "/onboarding/profile-step-4-colour"
-    : "/onboarding/profile-step-3-hair";
+  // The clinical markers come FROM the consultation, so who she saw and when has
+  // to be logged before the markers form is ever reached. Jumping straight to the
+  // markers screen skipped the most important part of this flow.
+  const hairPath = !status.consultationComplete
+    ? "/onboarding/pro-details"
+    : status.hairComplete
+      ? "/onboarding/profile-step-4-colour"
+      : "/onboarding/profile-step-3-hair";
 
   const bloodPath = (() => {
     const allowed = new Set([
