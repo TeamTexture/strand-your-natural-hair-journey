@@ -165,11 +165,13 @@ export function annotateProductSensitivities<T extends Record<string, unknown>>(
     reasons.unshift(sensitivityScoreReason(label, terms[label] ?? label));
   }
   (payload as Record<string, unknown>).score_reasons = reasons.slice(0, 4);
+  // NEVER overwrite match_score with the ceiling: the score is persisted to
+  // user_products.ln and would stay capped forever after the member removes
+  // the sensitivity. The ceiling is a DISPLAY rule, applied live client-side
+  // (src/lib/sensitivityCeiling.ts) so it appears and disappears reactively.
   if (typeof payload.match_score === "number") {
-    (payload as Record<string, unknown>).match_score = applySensitivityCeiling(
-      payload.match_score as number,
-      labels.length,
-    );
+    (payload as Record<string, unknown>)._sensitivity_ceiling =
+      applySensitivityCeiling(payload.match_score as number, labels.length);
   }
 
   (payload as Record<string, unknown>)._sensitivity_flagged = labels;
@@ -274,8 +276,9 @@ export function enforceIngredientCardSensitivities<
   }
   (analysis as Record<string, unknown>).score_reasons = reasons.slice(0, 4);
 
+  // Display-only ceiling — see note above; the stored score stays raw.
   if (typeof analysis.match_score === "number") {
-    (analysis as Record<string, unknown>).match_score =
+    (analysis as Record<string, unknown>)._sensitivity_ceiling =
       applySensitivityCeiling(analysis.match_score, flagged.length) ?? analysis.match_score;
   }
   const summary = typeof analysis.summary === "string" ? analysis.summary : "";
