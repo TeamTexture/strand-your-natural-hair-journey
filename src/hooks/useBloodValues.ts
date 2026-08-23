@@ -134,6 +134,7 @@ export function getUnknownMarkers(): UnknownMarker[] {
 
 export function setUnknownMarkers(list: UnknownMarker[]) {
   localStorage.setItem(UNKNOWN_KEY, JSON.stringify(list));
+  syncBloodDraft();
   window.dispatchEvent(new Event("strand:blood-update"));
 }
 
@@ -169,6 +170,8 @@ function read(): BloodValues {
 
 function write(v: BloodValues) {
   localStorage.setItem(KEY, JSON.stringify(v));
+  // Auto-save: every typed marker persists on its own, no "save" tap needed.
+  syncBloodDraft();
 }
 
 export function useBloodValues() {
@@ -224,6 +227,8 @@ export function clearBloodDraft() {
   localStorage.removeItem(DRAFT_PANEL_LAB_NAME_KEY);
   localStorage.removeItem(DRAFT_PANEL_THUMB_KEY);
   localStorage.removeItem("strand_blood_summary_fp");
+  localStorage.removeItem(STEP_KEY);
+  void deleteRemoteDraft(BLOOD_DRAFT_KEY);
   window.dispatchEvent(new Event("strand:blood-update"));
 }
 
@@ -232,6 +237,7 @@ export function clearBloodDraft() {
  *  If not set, today's date is used. */
 export function setDraftPanelDate(isoDate: string) {
   localStorage.setItem(DRAFT_PANEL_DATE_KEY, isoDate);
+  syncBloodDraft();
 }
 
 /** Set the human-readable label for the current draft panel (extracted from
@@ -242,6 +248,7 @@ export function setDraftPanelLabel(label: string | null) {
   } else {
     localStorage.removeItem(DRAFT_PANEL_LABEL_KEY);
   }
+  syncBloodDraft();
 }
 
 /** Test type / category as printed on the report (e.g. "Thyroid function"). */
@@ -251,6 +258,7 @@ export function setDraftPanelTestType(testType: string | null) {
   } else {
     localStorage.removeItem(DRAFT_PANEL_TEST_TYPE_KEY);
   }
+  syncBloodDraft();
 }
 
 /** Lab/brand that ran the test (e.g. "Medichecks", "Thriva"). */
@@ -260,6 +268,7 @@ export function setDraftPanelLabName(labName: string | null) {
   } else {
     localStorage.removeItem(DRAFT_PANEL_LAB_NAME_KEY);
   }
+  syncBloodDraft();
 }
 
 /** Storage path (bucket "blood-panel-thumbs") for the panel's source-doc thumbnail. */
@@ -269,6 +278,7 @@ export function setDraftPanelThumbnail(path: string | null) {
   } else {
     localStorage.removeItem(DRAFT_PANEL_THUMB_KEY);
   }
+  syncBloodDraft();
 }
 
 async function ensureDraftPanel(userId: string): Promise<string | null> {
@@ -318,6 +328,7 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
   }
   const id = (data as { id: string }).id;
   localStorage.setItem(DRAFT_PANEL_KEY, id);
+  syncBloodDraft();
   return id;
 }
 
