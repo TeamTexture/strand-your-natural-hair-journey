@@ -86,7 +86,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     }
 
     if (!allowed.has(location.pathname)) {
-      return <Navigate to={status?.resumePath ?? "/onboarding/profile-step-1"} replace />;
+      return <Navigate to={status?.entryPath ?? "/onboarding/profile-step-1"} replace />;
     }
   }
   // The blood-work screens are one multi-step form. Saving the first panel makes
