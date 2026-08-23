@@ -18,6 +18,7 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import { toast } from "sonner";
+import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
 
 
 const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
@@ -321,6 +322,11 @@ const ProDetails = () => {
               } catch (err) {
                 console.error("[strand] user_professionals upsert failed", err);
                 toast.error("Could not save your professional. Check your connection.");
+                return;
+              }
+              void queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route"] });
+              if (isResumeLocked()) {
+                navigate(RESUME_PATH, { replace: true });
                 return;
               }
               navigate("/onboarding/profile-step-3-hair");
