@@ -40,6 +40,7 @@ const BloodHormones = () => {
   const { unknown, setUnknown } = useUnknownMarkers();
   const { hasAccess } = useConsumerSubscription();
   const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
+  const [showOther, setShowOther] = useState(false);
 
 
   const onContinue = async () => {
