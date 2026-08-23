@@ -56,7 +56,7 @@ const SplashScreen = () => {
       return getBrandEntryPath(userId, roles);
     }
     if (proApp) return "/pro/landing";
-    if (!onboardingStatus.completed) return onboardingStatus.resumePath;
+    if (!onboardingStatus.completed) return onboardingStatus.entryPath;
     const hasAccess = await getConsumerAccessForUser(userId, roles);
     if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);
     return next;

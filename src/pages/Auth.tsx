@@ -55,7 +55,7 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
   if (proApp) return "/pro/landing";
   if (!profile?.onboarding_completed_at) {
     const status = await getConsumerOnboardingStatus(userId);
-    if (!status.completed) return status.resumePath;
+    if (!status.completed) return status.entryPath;
   }
   return requestedNext ? safeNext(requestedNext, "/") : "/";
 };
