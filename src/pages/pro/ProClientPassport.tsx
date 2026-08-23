@@ -78,7 +78,7 @@ const ProClientPassport = () => {
       active={canView}
       subLoading={subLoading && !isAdmin}
       showAccessEnded={!isAdmin && !subLoading && !isActive}
-      accessEndedAction={() => nav("/pro/enquiries")}
+      accessEndedAction={smartBack(nav, "/pro/enquiries")}
     />
   );
 };

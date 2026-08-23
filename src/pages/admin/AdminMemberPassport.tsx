@@ -11,7 +11,7 @@ const AdminMemberPassport = () => {
       mode="admin"
       backTo="/admin/members"
       active
-      accessEndedAction={() => nav("/admin/members")}
+      accessEndedAction={smartBack(nav, "/admin/members")}
     />
   );
 };
