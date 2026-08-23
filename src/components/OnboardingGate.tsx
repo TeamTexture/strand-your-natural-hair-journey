@@ -7,7 +7,7 @@ import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useRoles } from "@/hooks/useRoles";
 import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
-import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
+import { getOnboardingNextPath } from "@/lib/onboardingDecision";
 import { clearResumeLock } from "@/lib/onboardingLock";
 
 interface Props {
@@ -54,7 +54,6 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     if (profileError) return <ProgressCheckFailed onRetry={() => void refetch()} />;
     return <LoadingDot />;
   }
-  const requirements = getOnboardingRequirements(status);
 
   // Professionals live entirely on the pro side — no consumer onboarding.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
