@@ -60,7 +60,7 @@ const AdminInternational = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="International" onBack={safeBack(navigate, "/admin")} />
+      <TitleBar title="International" onBack={() => safeBack(navigate, "/admin")} />
 
       <div className="px-5 pb-10 space-y-5">
         <SurfaceCard className="p-4">
