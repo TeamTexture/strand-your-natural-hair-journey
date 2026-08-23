@@ -4388,6 +4388,7 @@ export type Database = {
           home_tour_seen_at: string | null
           id: string
           international_block: boolean
+          international_country: string | null
           onboarding_completed_at: string | null
           payment_required_at: string | null
           personalised_offers_consent: boolean
@@ -4423,6 +4424,7 @@ export type Database = {
           home_tour_seen_at?: string | null
           id?: string
           international_block?: boolean
+          international_country?: string | null
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
@@ -4458,6 +4460,7 @@ export type Database = {
           home_tour_seen_at?: string | null
           id?: string
           international_block?: boolean
+          international_country?: string | null
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
