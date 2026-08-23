@@ -11,7 +11,7 @@ export const isSafeInternalPath = (path: string | null | undefined): path is str
   !!path && path.startsWith("/") && !path.startsWith("//");
 
 export async function getConsumerOnboardingStatus(userId: string) {
-  const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes] = await Promise.all([
+  const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes, proRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("onboarding_completed_at, avatar_url, display_name, phone_number, birth_year, postcode, country")
@@ -40,6 +40,14 @@ export async function getConsumerOnboardingStatus(userId: string) {
       .from("blood_panels")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
+    // The professional consultation is arranged off-app, so the only durable
+    // evidence it happened is the member's own logged professional + date.
+    supabase
+      .from("user_professionals")
+      .select("consultation_date")
+      .eq("user_id", userId)
+      .order("consultation_date", { ascending: false })
+      .limit(1),
   ]);
 
   const readError = [
@@ -49,6 +57,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     styleRes.error,
     bloodResultsRes.error,
     bloodPanelsRes.error,
+    proRes.error,
   ].find(Boolean);
   // A failed read is not an incomplete profile. Treating a timeout/auth-lock as
   // empty data sent members back to step one and made saved answers appear lost.
@@ -86,7 +95,11 @@ export async function getConsumerOnboardingStatus(userId: string) {
   const hairComplete = markedComplete || (healthComplete && hairFieldsComplete);
   const styleComplete = markedComplete || (hairComplete && styleFieldsComplete);
   const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
-  const fieldsComplete = basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
+  // Consultation: logged professional with a consultation date on file.
+  const consultationRow = (proRes.data ?? [])[0] as { consultation_date?: string | null } | undefined;
+  const consultationComplete = markedComplete || !!consultationRow?.consultation_date;
+  const fieldsComplete =
+    basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile && consultationComplete;
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {
@@ -107,6 +120,14 @@ export async function getConsumerOnboardingStatus(userId: string) {
   if (hairComplete) resumePath = "/onboarding/profile-step-4-colour";
   if (styleComplete) resumePath = "/onboarding/blood-timing";
 
+  // Where a RETURNING member should land. Once the health profile is in, the
+  // three remaining requirements (hair characteristics, consultation, blood
+  // work) are each done in their own time — two of them off-app — so she is
+  // offered all of the outstanding ones rather than dropped into one form.
+  const entryPath =
+    healthComplete && !dataComplete ? "/onboarding/resume" : resumePath;
+
+
   // Blood data on file is NOT a payment checkpoint on its own — members often
   // upload bloods before finishing their hair/style profile, and blocking them
   // there left them stranded mid-onboarding. Payment is only due once the whole
@@ -120,9 +141,11 @@ export async function getConsumerOnboardingStatus(userId: string) {
     hairComplete,
     styleComplete,
     bloodOnFile,
+    consultationComplete,
     paymentDue: dataComplete,
 
     resumePath,
+    entryPath,
     analysisPath: POST_PAYMENT_ANALYSIS_PATH,
   };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Scissors } from "lucide-react";
+import { Droplets, Scissors, Stethoscope } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ItalicSub from "@/components/ItalicSub";
@@ -32,12 +32,14 @@ const ResumeOnboarding = () => {
 
   const hairOutstanding = !!status && (!status.hairComplete || !status.styleComplete);
   const bloodOutstanding = !!status && !status.bloodOnFile;
+  const consultationOutstanding = !!status && !status.consultationComplete;
 
   useEffect(() => {
     if (!status) return;
     // Nothing outstanding: this prompt must not appear at all.
-    if (!hairOutstanding && !bloodOutstanding) navigate("/home", { replace: true });
-  }, [status, hairOutstanding, bloodOutstanding, navigate]);
+    if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding)
+      navigate("/home", { replace: true });
+  }, [status, hairOutstanding, bloodOutstanding, consultationOutstanding, navigate]);
 
   if (isLoading && !status) return <LoadingDot />;
   if (!status) return <LoadingDot />;
@@ -71,6 +73,41 @@ const ResumeOnboarding = () => {
           Everything you've answered so far is saved — on this device and any other you sign
           in from. Carry on whenever you're ready.
         </ItalicSub>
+
+        {consultationOutstanding && (
+          <SurfaceCard>
+            <div className="flex items-start gap-3">
+              <Stethoscope className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold">
+                  Ready to book a professional consultation?
+                </p>
+                <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
+                  Your hair characteristics come from a trichologist, dermatologist or curl
+                  specialist. Book with a vetted professional, then log who you saw and when.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/directory?consultation=1")}
+              >
+                Find a professional →
+              </Button>
+              <Button
+                variant="outline"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/onboarding/pro-details")}
+              >
+                I've already had one — add the details
+              </Button>
+            </div>
+          </SurfaceCard>
+        )}
 
         {hairOutstanding && (
           <SurfaceCard>
@@ -131,7 +168,7 @@ const ResumeOnboarding = () => {
         )}
 
         <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
-          Both sections are needed before STRAND unlocks, but there's no rush — nothing you've
+          All three are needed before STRAND unlocks, but there's no rush — nothing you've
           entered expires.
         </p>
       </div>

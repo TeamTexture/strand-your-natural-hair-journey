@@ -112,11 +112,7 @@ const Index = () => {
         ? hasAccess
           ? "/home"
           : getSubscribePath(onboardingStatus.analysisPath)
-        : onboardingStatus.healthComplete
-          ? // Hair characteristics / blood work outstanding: offer both, resuming
-            // exactly where she stopped rather than restarting the section.
-            "/onboarding/resume"
-          : onboardingStatus.resumePath;
+        : onboardingStatus.entryPath;
 
       const dests: Destination[] = [];
       if (hasConsumer)

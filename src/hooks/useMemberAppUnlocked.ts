@@ -26,11 +26,9 @@ export function useMemberAppUnlocked(): { unlocked: boolean; resumePath: string 
   const { data: myProfile } = useMyProfile();
 
   // Once the health profile is in, send her to the pick-up-where-you-left-off
-  // prompt rather than straight into a form, so hair and blood are both offered.
-  const resumePath =
-    status && status.healthComplete && !status.dataComplete
-      ? "/onboarding/resume"
-      : (status?.resumePath ?? "/onboarding/profile-step-1");
+  // prompt rather than straight into a form, so hair characteristics, the
+  // consultation and blood work are all offered.
+  const resumePath = status?.entryPath ?? "/onboarding/profile-step-1";
 
   // Staff / non-consumer accounts keep their navigation.
   if (isAdmin || isProfessional || isBrand) return { unlocked: true, resumePath };
