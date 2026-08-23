@@ -33,6 +33,7 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
 import { usePendingProProfileReviewCount } from "@/hooks/useProProfileReview";
 import { usePendingShelfCount } from "@/hooks/useAdminShelfReview";
