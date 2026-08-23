@@ -158,7 +158,8 @@ const AdminMembers = () => {
 
 
       const subMap = new Map(
-        (subsRes.data ?? []).map((s) => [
+        subRows.map((s) => [
+
           s.user_id,
           {
             subscription_status: s.status,
