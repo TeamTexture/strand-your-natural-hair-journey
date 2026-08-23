@@ -163,7 +163,9 @@ export function useWashDaySteps() {
         },
       });
       if (error) throw new Error(error.message);
-      return ((data as { steps?: WashDayStep[] } | null)?.steps ?? []) as WashDayStep[];
+      const res = data as { steps?: WashDayStep[]; stale?: boolean } | null;
+      return { steps: (res?.steps ?? []) as WashDayStep[], stale: res?.stale === true };
+
     },
   });
 }
