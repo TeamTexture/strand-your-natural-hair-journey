@@ -71,11 +71,12 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
       allowed.add("/onboarding/profile-step-3-hair");
     }
     if (status?.hairComplete) allowed.add("/onboarding/profile-step-4-colour");
-    // Blood work is the LAST stage of onboarding: it only unlocks once the
-    // hair and style profile are complete. Every blood screen (upload plus the
-    // manual entry steps) is gated together, so bloods can never be captured
-    // ahead of hair characteristics.
-    if (status?.styleComplete) {
+    // Blood work is NOT sequenced behind hair characteristics. Members routinely
+    // have their results before their consultation, and gating the blood screens
+    // on styleComplete froze the "Add my blood results" button on the resume
+    // screen — every tap bounced straight back here. Both requirements are
+    // independent; neither one alone unlocks the app.
+    if (status?.healthComplete) {
       allowed.add("/onboarding/blood-timing");
       allowed.add("/blood-upload");
       allowed.add("/onboarding/blood-iron-vitamins");
@@ -84,6 +85,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
       allowed.add("/onboarding/blood-hormones");
       allowed.add("/onboarding/blood-ai-summary");
     }
+
 
     if (!allowed.has(location.pathname)) {
       return <Navigate to={status?.entryPath ?? "/onboarding/profile-step-1"} replace />;
