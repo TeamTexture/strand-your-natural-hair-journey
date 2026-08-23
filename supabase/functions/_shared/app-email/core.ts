@@ -64,14 +64,34 @@ export function serviceClient(): SupabaseClient {
   );
 }
 
-async function globalSendingEnabled(admin: SupabaseClient): Promise<boolean> {
+/**
+ * Send clearance, read from `platform_settings` in one round trip.
+ *
+ * Two independent switches, because "all emails off" and "this email is live"
+ * are different decisions:
+ *   - `email_sending_enabled` (boolean) — the master switch. True = everything.
+ *   - `email_templates_enabled` (array of template keys) — the per-template
+ *     allowlist used while the platform is still switched off overall, so a
+ *     feature can go live without also releasing every hourly reminder and
+ *     digest that shares the master switch.
+ * `legacy` templates bypass both (see EmailTemplate.legacy).
+ */
+async function sendClearance(
+  admin: SupabaseClient,
+): Promise<{ globalOn: boolean; enabledKeys: Set<string> }> {
   const { data } = await admin
     .from("platform_settings")
-    .select("value")
-    .eq("key", "email_sending_enabled")
-    .maybeSingle();
-  return data?.value === true;
+    .select("key,value")
+    .in("key", ["email_sending_enabled", "email_templates_enabled"]);
+  const rows = (data ?? []) as { key: string; value: unknown }[];
+  const globalOn = rows.find((r) => r.key === "email_sending_enabled")?.value === true;
+  const list = rows.find((r) => r.key === "email_templates_enabled")?.value;
+  const enabledKeys = new Set<string>(
+    Array.isArray(list) ? list.filter((v): v is string => typeof v === "string") : [],
+  );
+  return { globalOn, enabledKeys };
 }
+
 
 async function transmit(
   payload: Record<string, unknown>,
@@ -179,10 +199,13 @@ export async function dispatchEmail(
     }
   }
 
-  // --- Global flag. Legacy (already-live) templates are exempt.
+  // --- Send clearance. Legacy (already-live) templates are exempt; otherwise
+  // the master switch OR the per-template allowlist has to clear it.
   if (!suppressedReason && !template.legacy) {
-    if (!(await globalSendingEnabled(admin))) suppressedReason = "global_flag_off";
+    const { globalOn, enabledKeys } = await sendClearance(admin);
+    if (!globalOn && !enabledKeys.has(template.key)) suppressedReason = "global_flag_off";
   }
+
 
   const unsubscribeUrl =
     template.category === "marketing" && prefs?.unsubscribe_token
