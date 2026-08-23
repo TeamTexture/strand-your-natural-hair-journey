@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { smartBack } from "@/lib/smartBack";
 import { ShieldCheck } from "lucide-react";
 import PassportView from "@/components/passport/PassportView";
 import ScreenLayout from "@/components/ScreenLayout";

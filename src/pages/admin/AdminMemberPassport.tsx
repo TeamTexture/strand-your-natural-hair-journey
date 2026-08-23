@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { smartBack } from "@/lib/smartBack";
 import PassportView from "@/components/passport/PassportView";
 
 const AdminMemberPassport = () => {
