@@ -14,6 +14,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
+import { dispatchEmail } from "../_shared/app-email/core.ts";
 
 const KLAVIYO_LIST_ID = "U69M2Q";
 
@@ -123,12 +124,31 @@ Deno.serve(async (req) => {
     })
     .eq("user_id", user.id);
 
-  if (!blocked) return json(200, { blocked: false, country: declared, source: "declared" });
+  const memberName = (declaredName || profile?.display_name ||
+    (user.user_metadata as { display_name?: string } | null)?.display_name || "").toString().trim();
+  const memberEmail = (user.email ?? "").toLowerCase();
 
-  const name = (declaredName || profile?.display_name ||
-    (user.user_metadata as { display_name?: string } | null)?.display_name || "").toString().trim() || "Member";
+  // UK member: tell her what is left to do before the app opens up.
+  if (!blocked) {
+    if (memberEmail) {
+      const mail = await dispatchEmail({
+        templateKey: "onboarding-next-steps",
+        to: memberEmail,
+        recipientUserId: user.id,
+        triggerEvent: "onboarding.personal_details_saved",
+        relatedTable: "profiles",
+        relatedId: user.id,
+        idempotencyKey: `onboarding-next-steps:${user.id}`,
+        data: { name: memberName || "there" },
+      }, admin);
+      if (!mail.ok) console.error("[gate] next-steps email failed", mail.error);
+    }
+    return json(200, { blocked: false, country: declared, source: "declared" });
+  }
+
+  const name = memberName || "Member";
   const phone = declaredPhone || (profile?.phone_number ? String(profile.phone_number) : null);
-  const email = (user.email ?? "").toLowerCase();
+  const email = memberEmail;
   const klaviyoError = email
     ? await pushToKlaviyo(name, email, phone, declared)
     : "no email on account";
@@ -144,6 +164,21 @@ Deno.serve(async (req) => {
     klaviyo_synced_at: klaviyoError ? null : new Date().toISOString(),
     klaviyo_error: klaviyoError,
   }, { onConflict: "user_id" });
+
+  // Blocked member: honest waiting-list note, not a cold rejection.
+  if (email) {
+    const mail = await dispatchEmail({
+      templateKey: "international-waitlist",
+      to: email,
+      recipientUserId: user.id,
+      triggerEvent: "onboarding.international_blocked",
+      relatedTable: "country_waitlist",
+      relatedId: user.id,
+      idempotencyKey: `international-waitlist:${user.id}`,
+      data: { name, country: declared },
+    }, admin);
+    if (!mail.ok) console.error("[gate] waitlist email failed", mail.error);
+  }
 
   return json(200, { blocked: true, country: declared, source: "declared", klaviyo_error: klaviyoError });
 });
