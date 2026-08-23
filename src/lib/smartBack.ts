@@ -13,6 +13,34 @@ type Entry = { path: string; idx: number };
 const routerIdx = (): number =>
   (window.history.state as { idx?: number } | null)?.idx ?? 0;
 
+/**
+ * The home surface for the view the member is actually in. A professional,
+ * admin or brand account must never be dropped onto the consumer home by a
+ * back button, so the "/home" fallback resolves against the same active-view
+ * value the global menu keeps (`strand.lastRoleView`).
+ */
+const viewHome = (): string => {
+  try {
+    switch (sessionStorage.getItem("strand.lastRoleView")) {
+      case "pro":
+        return "/pro";
+      case "admin":
+        return "/admin";
+      case "brand":
+        return "/brand";
+      default:
+        return HOME_PATH;
+    }
+  } catch {
+    return HOME_PATH;
+  }
+};
+
+/** Resolve a fallback route, redirecting a generic home to the active view. */
+const resolveFallback = (fallback: string): string =>
+  fallback === HOME_PATH ? viewHome() : fallback;
+
+
 const readStack = (): Entry[] => {
   try {
     const raw = sessionStorage.getItem(STACK_KEY);
