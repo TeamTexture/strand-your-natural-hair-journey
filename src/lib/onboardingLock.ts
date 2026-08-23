@@ -6,9 +6,11 @@
 // sub-flow reached from it — must land on the resume screen, never walk her
 // back through the original step 1-9 onboarding history.
 //
-// The lock is a session flag set by the resume screen itself (the only place
+// The lock is a stored flag set by the resume screen itself (the only place
 // that knows the outstanding requirements) and cleared the moment the data set
-// is complete.
+// is complete. It lives in localStorage so it survives a fresh tab, a reload or
+// a new sign-in on the same device — the lock must not quietly lift just
+// because the member opened the app again.
 
 const LOCK_KEY = "strand.resumeLock";
 
@@ -16,7 +18,7 @@ export const RESUME_PATH = "/onboarding/resume";
 
 export const setResumeLock = () => {
   try {
-    sessionStorage.setItem(LOCK_KEY, "1");
+    localStorage.setItem(LOCK_KEY, "1");
   } catch {
     /* ignore */
   }
@@ -24,6 +26,7 @@ export const setResumeLock = () => {
 
 export const clearResumeLock = () => {
   try {
+    localStorage.removeItem(LOCK_KEY);
     sessionStorage.removeItem(LOCK_KEY);
   } catch {
     /* ignore */
@@ -32,11 +35,12 @@ export const clearResumeLock = () => {
 
 export const isResumeLocked = (): boolean => {
   try {
-    return sessionStorage.getItem(LOCK_KEY) === "1";
+    return localStorage.getItem(LOCK_KEY) === "1" || sessionStorage.getItem(LOCK_KEY) === "1";
   } catch {
     return false;
   }
 };
+
 
 /**
  * The sub-flows reachable from the resume screen. Back inside a group still
