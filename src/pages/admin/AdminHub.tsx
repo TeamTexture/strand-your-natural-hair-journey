@@ -84,7 +84,12 @@ const useAdminStats = () =>
           .from("pro_subscriptions")
           .select("pro_user_id", { count: "exact", head: true })
           .in("status", ["active", "trialing"]),
-        supabase.from("profiles").select("user_id").limit(5000),
+        // Paginated: the member count is derived by filtering these rows, so a
+        // truncated read would silently under-report members as signups grow.
+        fetchAllRows<{ user_id: string }>((from, to) =>
+          supabase.from("profiles").select("user_id").range(from, to),
+        ),
+
         supabase
           .from("profiles")
           .select("user_id", { count: "exact", head: true })
