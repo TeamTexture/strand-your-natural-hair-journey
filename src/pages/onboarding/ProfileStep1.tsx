@@ -371,20 +371,25 @@ const ProfileStep1 = () => {
 
     }
 
+    // Registration details are now on file. A member outside the UK is flagged
+    // here and shown the waiting-list splash instead of the rest of onboarding.
+    if (!isUK) {
+      try {
+        await supabase.functions.invoke("international-check", {
+          body: { declared_country: country },
+        });
+      } catch (err) {
+        console.error("[geo] declared-country check failed", err);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["international-block", user?.id] });
+      navigate("/home", { replace: true });
+      return;
+    }
+
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
     navigate("/onboarding/profile-step-2");
   };
 
-  const handleWaitlistJoin = () => {
-    const email = waitlistEmail.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Enter a valid email address");
-      return;
-    }
-    toast.success("✓ You are on the waitlist — we will email you when we launch.");
-    setWaitlistOpen(false);
-    setWaitlistEmail("");
-  };
 
   // Tap outside any input to dismiss the keyboard on mobile.
   const dismissKeyboard = (e: React.MouseEvent<HTMLElement>) => {
