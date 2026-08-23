@@ -1968,6 +1968,33 @@ export type Database = {
           },
         ]
       }
+      country_waitlist: {
+        Row: {
+          country: string
+          created_at: string
+          email: string
+          id: string
+          ip_detected_country: string | null
+          name: string
+        }
+        Insert: {
+          country: string
+          created_at?: string
+          email: string
+          id?: string
+          ip_detected_country?: string | null
+          name: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          ip_detected_country?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       curated_content: {
         Row: {
           content_key: string
