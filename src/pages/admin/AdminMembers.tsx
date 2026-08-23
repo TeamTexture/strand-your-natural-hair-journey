@@ -190,9 +190,10 @@ const AdminMembers = () => {
           },
         ]),
       );
-      const memberProfiles = (profilesRes.data ?? []).filter(
+      const memberProfiles = profileRows.filter(
         (p) => deriveAccountType(rolesByUser.get(p.user_id) ?? []) === "consumer",
       );
+
       return memberProfiles.map((p) => {
         const act = activityMap.get(p.user_id);
         return {
