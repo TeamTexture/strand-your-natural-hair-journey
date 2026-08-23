@@ -117,7 +117,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
 
   // A forced-payment flag must never interrupt data capture. It becomes a hard
   // paywall only after the full profile and blood-work flow is complete.
-  if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess && !inBloodFlow) {
+  if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess && !inBloodFlow && !location.search.includes("stay=1")) {
     return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
   }
 
