@@ -328,13 +328,7 @@ const ProDetails = () => {
                 return;
               }
               void queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route"] });
-              const nextPath = await resolveNextPath();
-              navigate(
-                nextPath === "/onboarding/resume"
-                  ? "/onboarding/profile-step-3-hair"
-                  : nextPath,
-                { replace: true },
-              );
+              navigate(await resolveNextPath(), { replace: true });
             }}
           >
             Continue →
