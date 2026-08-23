@@ -153,7 +153,7 @@ const ResumeOnboarding = () => {
             <Button
               variant="gold"
               size="pill"
-              className="w-full mt-3"
+              className="w-full mt-3 whitespace-normal break-words leading-tight"
               onClick={() => navigate(bloodPath)}
               disabled={!status.styleComplete && !hairOutstanding}
             >
