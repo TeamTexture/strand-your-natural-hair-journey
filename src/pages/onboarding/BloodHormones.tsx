@@ -15,10 +15,7 @@ import { useState } from "react";
 import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
-import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
-import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
-import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 
 
 const MARKERS = [
@@ -38,8 +35,7 @@ const BloodHormones = () => {
   // Auto-saved draft: restore across sessions/devices and remember this screen.
   useBloodDraftResume("/onboarding/blood-hormones");
   const { unknown, setUnknown } = useUnknownMarkers();
-  const { hasAccess } = useConsumerSubscription();
-  const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
+  const { resolveNextPath } = useOnboardingCompletion();
   const [showOther, setShowOther] = useState(false);
 
 
@@ -49,20 +45,7 @@ const BloodHormones = () => {
       toast.error("Could not save. Check your connection.");
       return;
     }
-    // Payment must not wait for a six-table background progress refresh. On
-    // slower tablets that extra request kept the member on this screen even
-    // though her blood work had already saved successfully.
-    void invalidateOnboardingStatus();
-    // Finishing blood work does not unlock the app: if hair characteristics or
-    // the consultation are still outstanding, she goes back to the resume
-    // screen, which re-reads dataComplete and shows what is left.
-    if (isResumeLocked()) {
-      navigate(RESUME_PATH, { replace: true });
-      return;
-    }
-    // Members who already have access (or are editing their bloods later)
-    // must never be bounced back into the paywall.
-    navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());
+    navigate(await resolveNextPath(), { replace: true });
   };
 
   return (

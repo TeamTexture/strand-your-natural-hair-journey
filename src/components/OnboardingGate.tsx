@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
@@ -6,7 +6,9 @@ import ProgressCheckFailed from "@/components/ProgressCheckFailed";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useRoles } from "@/hooks/useRoles";
-import { BRAND_ACCESS_PATH, getSubscribePath } from "@/lib/consumerOnboarding";
+import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
+import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
+import { clearResumeLock } from "@/lib/onboardingLock";
 
 interface Props {
   children: ReactNode;
@@ -37,6 +39,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
 
   const { data: status, isLoading: profileLoading, isError: profileError, refetch } = useOnboardingStatus();
 
+  useEffect(() => {
+    if (status?.dataComplete) clearResumeLock();
+  }, [status?.dataComplete]);
+
   // Do not replace a usable onboarding screen with a full-page loader during
   // background revalidation. That flash was experienced as a blank/glitching
   // page on slower mobile connections.
@@ -48,6 +54,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     if (profileError) return <ProgressCheckFailed onRetry={() => void refetch()} />;
     return <LoadingDot />;
   }
+  const requirements = getOnboardingRequirements(status);
 
   // Professionals live entirely on the pro side — no consumer onboarding.
   if (isProfessional && !isAdmin) return <Navigate to="/pro" replace />;
@@ -94,12 +101,12 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
       "/onboarding/profile-step-3-hair",
       "/onboarding/profile-step-4-colour",
     ]);
-    if (!status?.consultationComplete && consultationFirst.has(location.pathname)) {
+    if (requirements.consultationOutstanding && consultationFirst.has(location.pathname)) {
       return <Navigate to="/onboarding/pro-details" replace />;
     }
 
     if (!allowed.has(location.pathname)) {
-      return <Navigate to={status?.entryPath ?? "/onboarding/profile-step-1"} replace />;
+      return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
     }
   }
   // The blood-work screens are one multi-step form. Saving the first panel makes
@@ -119,7 +126,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   // A forced-payment flag must never interrupt data capture. It becomes a hard
   // paywall only after the full profile and blood-work flow is complete.
   if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess && !inBloodFlow) {
-    return <Navigate to={getSubscribePath(status?.analysisPath)} replace />;
+    return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
   }
 
 

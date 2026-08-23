@@ -11,7 +11,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
-import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 /**
  * Pick-up-where-you-left-off screen.
@@ -34,9 +34,10 @@ const ResumeOnboarding = () => {
     void hydrateBloodDraft().then(() => setBloodResume(getBloodDraftStep()));
   }, []);
 
-  const hairOutstanding = !!status && (!status.hairComplete || !status.styleComplete);
-  const bloodOutstanding = !!status && !status.bloodOnFile;
-  const consultationOutstanding = !!status && !status.consultationComplete;
+  const requirements = status ? getOnboardingRequirements(status) : null;
+  const hairOutstanding = requirements?.hairOutstanding ?? false;
+  const bloodOutstanding = requirements?.bloodOutstanding ?? false;
+  const consultationOutstanding = requirements?.consultationOutstanding ?? false;
 
   useEffect(() => {
     if (!status) return;
@@ -47,7 +48,7 @@ const ResumeOnboarding = () => {
       if (subLoading) return;
       // Reuse the SAME target the linear onboarding flow uses immediately after
       // blood work is saved (see BloodHormones) — nothing bespoke here.
-      navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
+      navigate(getOnboardingNextPath(status, hasAccess), { replace: true });
       return;
     }
     // Something still outstanding — pin back navigation to this screen for the
