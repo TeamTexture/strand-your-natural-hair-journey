@@ -12,6 +12,7 @@ import HardWaterHint from "@/components/HardWaterHint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
+import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 
 import { toast } from "sonner";
@@ -269,6 +270,7 @@ const ProfileStep1 = () => {
     }
   };
 
+  const postalConfig = postalConfigFor(country);
   // Per-field validity (only surface errors after submit-attempt).
   const phoneDigits = phone.replace(/\D/g, "");
   const errors = {
@@ -277,8 +279,9 @@ const ProfileStep1 = () => {
     phone:
       phoneDigits.length < 7 ? "Enter your mobile number" : "",
     age: age === "" ? "Select your age" : "",
-    postcode:
-      postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
+    // Postcode rules follow the declared country: strict for the UK (it drives
+    // the hard-water lookup) and permissive for formats we haven't mapped.
+    postcode: postalCodeError(postcode, country),
     // A non-UK country no longer blocks the step: the details are saved and the
     // member is routed to the international waiting-list splash afterwards.
     country: country === "" ? "Select your country of residence" : "",
@@ -290,7 +293,7 @@ const ProfileStep1 = () => {
     name: "your full name",
     phone: "your mobile number",
     age: "your age",
-    postcode: "your postcode",
+    postcode: `your ${postalConfig.noun}`,
     country: "your country of residence",
   };
 
@@ -597,7 +600,9 @@ const ProfileStep1 = () => {
               value={age}
               onChange={(e) => {
                 setAge(e.target.value);
-                postcodeRef.current?.focus();
+                (e.currentTarget.form?.querySelector(
+                  'select[name="country"]',
+                ) as HTMLSelectElement | null)?.focus();
               }}
               autoComplete="off"
               className={cn(
@@ -617,40 +622,6 @@ const ProfileStep1 = () => {
           {submitted && errors.age && <FieldError>{errors.age}</FieldError>}
         </label>
 
-        {/* Postcode */}
-        <label className="block">
-          <FieldLabel>Postcode</FieldLabel>
-          <FieldFrame
-            filled={postcode.trim().length >= 3}
-            invalid={submitted && !!errors.postcode}
-          >
-            <input
-              ref={postcodeRef}
-              type="text"
-              value={postcode}
-              onChange={(e) => setPostcode(e.target.value.toUpperCase())}
-              placeholder="e.g. SW6 3BX"
-              maxLength={8}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              enterKeyHint="next"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  (e.currentTarget.form?.querySelector(
-                    'select[name="country"]',
-                  ) as HTMLSelectElement | null)?.focus();
-                }
-              }}
-              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] uppercase min-h-[44px]"
-            />
-          </FieldFrame>
-          {submitted && errors.postcode && <FieldError>{errors.postcode}</FieldError>}
-          <HardWaterHint postcode={postcode} />
-        </label>
-
-
         {/* Country */}
         <label className="block">
           <FieldLabel>Country of Residence</FieldLabel>
@@ -658,7 +629,10 @@ const ProfileStep1 = () => {
             <select
               name="country"
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {
+                setCountry(e.target.value);
+                postcodeRef.current?.focus();
+              }}
               autoComplete="country-name"
               className={cn(
                 "w-full appearance-none bg-transparent px-3.5 py-3 text-sm focus:outline-none rounded-[10px] pr-10 min-h-[44px]",
@@ -676,6 +650,35 @@ const ProfileStep1 = () => {
           </FieldFrame>
           {submitted && errors.country && <FieldError>{errors.country}</FieldError>}
         </label>
+
+        {/* Postal code — label, placeholder and validation follow the country. */}
+        <label className="block">
+          <FieldLabel>{postalConfig.label}</FieldLabel>
+          <FieldFrame
+            filled={postcode.trim().length >= postalConfig.minLength}
+            invalid={submitted && !!errors.postcode}
+          >
+            <input
+              ref={postcodeRef}
+              type="text"
+              value={postcode}
+              onChange={(e) => setPostcode(formatPostalInput(e.target.value, country))}
+              placeholder={postalConfig.placeholder}
+              maxLength={postalConfig.maxLength}
+              autoComplete="postal-code"
+              autoCapitalize={postalConfig.uppercase ? "characters" : "off"}
+              spellCheck={false}
+              enterKeyHint="next"
+              className={cn(
+                "w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]",
+                postalConfig.uppercase && "uppercase",
+              )}
+            />
+          </FieldFrame>
+          {submitted && errors.postcode && <FieldError>{errors.postcode}</FieldError>}
+          {isUK && <HardWaterHint postcode={postcode} />}
+        </label>
+
 
         {/* Outside the UK — details are still saved, then the member is shown
             the waiting-list splash instead of onboarding. */}
