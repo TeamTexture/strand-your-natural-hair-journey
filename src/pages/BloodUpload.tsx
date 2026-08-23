@@ -4,7 +4,7 @@ import { smartBack } from "@/lib/smartBack";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle, Camera } from "lucide-react";
+import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle, Camera, ChevronDown } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
