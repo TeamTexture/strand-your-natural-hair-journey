@@ -40,6 +40,14 @@ export async function getConsumerOnboardingStatus(userId: string) {
       .from("blood_panels")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
+    // The professional consultation is arranged off-app, so the only durable
+    // evidence it happened is the member's own logged professional + date.
+    supabase
+      .from("user_professionals")
+      .select("consultation_date")
+      .eq("user_id", userId)
+      .order("consultation_date", { ascending: false })
+      .limit(1),
   ]);
 
   const readError = [
