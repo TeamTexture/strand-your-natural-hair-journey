@@ -127,16 +127,27 @@ const ShelfProductCard = ({
           {meta && <div className="mt-1 flex items-center gap-2 flex-wrap">{meta}</div>}
           {chips && <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">{chips}</div>}
         </div>
-        {(shownScore != null || headerActions) && (
+        {(shownScore != null || openable || headerActions) && (
           <div className="shrink-0 flex flex-col items-end gap-1">
-            {shownScore != null && (
+            {shownScore != null ? (
               <span className="inline-flex items-center rounded-pill border border-primary/25 bg-primary/[0.07] px-2.5 py-1 text-[10.5px] font-semibold font-body text-primary">
                 {shownScore}% match
               </span>
+            ) : (
+              openable && (
+                // A score can legitimately be absent (never analysed, or the
+                // stored score was invalidated). It must never render as a bare
+                // gap — that reads as a broken card. Opening the product
+                // re-analyses and re-persists the real score.
+                <span className="inline-flex items-center rounded-pill border border-border bg-muted px-2.5 py-1 text-[10.5px] font-semibold font-body text-muted-foreground whitespace-nowrap">
+                  Tap to analyse
+                </span>
+              )
             )}
             {headerActions}
           </div>
         )}
+
       </div>
 
       {banner && (
