@@ -310,14 +310,20 @@ async function loadDirectory(): Promise<Professional[]> {
 
 export function useDirectoryProfessionals() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: PRO_DIRECTORY_KEY,
     queryFn: loadDirectory,
     // The directory must always reflect the pros' latest saved profiles.
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: "always",
-    placeholderData: () => PROFESSIONALS.filter((p) => isSeedAllowed(p.name)),
+    // A flaky connection must not be allowed to look like a two-entry
+    // directory: retry, then report.
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    // NO placeholder seed. Showing the static editorial seed while the live
+    // query is loading or failed made a broken fetch indistinguishable from a
+    // directory containing only Yvonne and Erica.
   });
 
   const refresh = useCallback(
@@ -327,8 +333,9 @@ export function useDirectoryProfessionals() {
 
   return {
     pros: data ?? [],
-    loading: isLoading,
+    loading: isLoading || (isFetching && !data),
     error: error ? "Could not load latest directory" : null,
     refresh,
   };
 }
+
