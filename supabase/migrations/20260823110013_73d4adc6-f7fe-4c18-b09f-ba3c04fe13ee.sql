@@ -1,0 +1,1 @@
+ALTER TABLE public.country_waitlist ADD COLUMN IF NOT EXISTS phone text;

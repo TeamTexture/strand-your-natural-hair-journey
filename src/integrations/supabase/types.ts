@@ -1979,6 +1979,7 @@ export type Database = {
           klaviyo_error: string | null
           klaviyo_synced_at: string | null
           name: string
+          phone: string | null
           user_id: string | null
         }
         Insert: {
@@ -1991,6 +1992,7 @@ export type Database = {
           klaviyo_error?: string | null
           klaviyo_synced_at?: string | null
           name: string
+          phone?: string | null
           user_id?: string | null
         }
         Update: {
@@ -2003,6 +2005,7 @@ export type Database = {
           klaviyo_error?: string | null
           klaviyo_synced_at?: string | null
           name?: string
+          phone?: string | null
           user_id?: string | null
         }
         Relationships: []
