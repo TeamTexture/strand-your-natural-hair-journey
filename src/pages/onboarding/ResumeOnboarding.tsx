@@ -83,7 +83,7 @@ const ResumeOnboarding = () => {
 
   // Something already done: shown greyed out so she can see it landed, with the
   // outstanding pieces still listed below.
-  const DoneCard = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
+  const DoneCard = ({ icon, title, note }: { icon: React.ReactNode; title: string; note?: string }) => (
     <SurfaceCard className="opacity-60">
       <div className="flex items-start gap-3">
         <span className="mt-1 shrink-0 text-muted-foreground" aria-hidden="true">{icon}</span>
@@ -92,6 +92,9 @@ const ResumeOnboarding = () => {
           <p className="text-xs text-muted-foreground font-body mt-1 leading-snug inline-flex items-center gap-1">
             <Check className="size-3" aria-hidden="true" /> Added — nothing more to do here.
           </p>
+          {note && (
+            <p className="text-xs text-muted-foreground font-body mt-1 leading-snug">{note}</p>
+          )}
         </div>
       </div>
     </SurfaceCard>
@@ -109,8 +112,21 @@ const ResumeOnboarding = () => {
         {!consultationOutstanding && (
           <DoneCard icon={<Stethoscope className="size-4" />} title="Professional consultation" />
         )}
-        {!bloodOutstanding && <DoneCard icon={<Droplets className="size-4" />} title="Blood work" />}
-        {!hairOutstanding && <DoneCard icon={<Scissors className="size-4" />} title="Hair characteristics" />}
+        {!bloodOutstanding && (
+          <DoneCard
+            icon={<Droplets className="size-4" />}
+            title="Blood work"
+            note={hairOutstanding ? "Your hair characteristics are still to add." : undefined}
+          />
+        )}
+        {!hairOutstanding && (
+          <DoneCard
+            icon={<Scissors className="size-4" />}
+            title="Hair characteristics"
+            note={bloodOutstanding ? "Your blood work is still to add." : undefined}
+          />
+        )}
+
 
 
 
