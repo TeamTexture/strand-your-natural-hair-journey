@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import { toast } from "sonner";
 import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
@@ -27,6 +28,7 @@ const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
 
 
 const ProDetails = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { pros } = useDirectoryProfessionals();
 
