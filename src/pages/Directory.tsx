@@ -55,7 +55,7 @@ const Directory = () => {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
-  const { pros, loading } = useDirectoryProfessionals();
+  const { pros, loading, error: directoryError, refresh } = useDirectoryProfessionals();
   const { stateForListing } = useProContactStates();
   // Hard wall: in the Professional / Brand / Admin views the directory is
   // read-only. No member enquiry state, no member chat, no member bottom nav.
@@ -797,6 +797,23 @@ const Directory = () => {
       <div className="px-5 space-y-4 pb-8">
         {loading && pros.length === 0 ? (
           <LoadingDot label="Loading directory…" fullScreen={false} />
+        ) : directoryError && pros.length === 0 ? (
+          <div className="rounded-[10px] border border-border bg-card p-4 text-center space-y-2">
+            <p className="font-body text-[13px] text-foreground">
+              We couldn't load the professionals list just now.
+            </p>
+            <p className="font-body text-[11px] text-muted-foreground">
+              This is a connection problem, not a change to who is listed.
+            </p>
+            <button
+              type="button"
+              onClick={() => refresh()}
+              className="mt-1 inline-flex items-center justify-center whitespace-nowrap px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[11px] font-semibold uppercase tracking-[0.15em] min-h-[44px]"
+            >
+              Try again
+            </button>
+          </div>
+
         ) : results.length === 0 ? (
           <EmptyState
             icon="🔍"

@@ -90,11 +90,17 @@ async function loadDirectory(): Promise<Professional[]> {
     ]);
 
 
-  // NEITHER layer may take the other down. A grant/policy gap on the curated
-  // table once threw here, which collapsed the whole query to the static seed
-  // and hid every real approved professional. Both loads now degrade silently.
+  // The CURATED layer may never take the live layer down: a grant/policy gap
+  // there once collapsed the whole query, so it degrades silently.
   if (dbErr) console.warn("professionals_directory load failed:", dbErr);
-  if (ppErr) console.warn("pro_profiles load failed:", ppErr);
+  // The LIVE layer is the directory. If it fails we must FAIL LOUDLY — a
+  // silent partial result previously left members looking at the two static
+  // seed cards (Yvonne + Erica) believing that was the whole directory.
+  if (ppErr) {
+    console.error("pro_profiles load failed:", ppErr);
+    throw new Error(ppErr.message || "Could not load professionals");
+  }
+
 
   // A listing is reachable if it has its own login OR belongs to a salon (in
   // which case the salon owner's login answers for it). Rows with neither are
@@ -304,14 +310,20 @@ async function loadDirectory(): Promise<Professional[]> {
 
 export function useDirectoryProfessionals() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: PRO_DIRECTORY_KEY,
     queryFn: loadDirectory,
     // The directory must always reflect the pros' latest saved profiles.
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: "always",
-    placeholderData: () => PROFESSIONALS.filter((p) => isSeedAllowed(p.name)),
+    // A flaky connection must not be allowed to look like a two-entry
+    // directory: retry, then report.
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    // NO placeholder seed. Showing the static editorial seed while the live
+    // query is loading or failed made a broken fetch indistinguishable from a
+    // directory containing only Yvonne and Erica.
   });
 
   const refresh = useCallback(
@@ -321,8 +333,9 @@ export function useDirectoryProfessionals() {
 
   return {
     pros: data ?? [],
-    loading: isLoading,
+    loading: isLoading || (isFetching && !data),
     error: error ? "Could not load latest directory" : null,
     refresh,
   };
 }
+
