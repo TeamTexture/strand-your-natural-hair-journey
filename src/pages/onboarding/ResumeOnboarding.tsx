@@ -45,7 +45,9 @@ const ResumeOnboarding = () => {
     if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding) {
       clearResumeLock();
       if (subLoading) return;
-      navigate(hasAccess ? "/home" : getSubscribePath(), { replace: true });
+      // Reuse the SAME target the linear onboarding flow uses immediately after
+      // blood work is saved (see BloodHormones) — nothing bespoke here.
+      navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
       return;
     }
     // Something still outstanding — pin back navigation to this screen for the
