@@ -3,14 +3,15 @@ import HairStrandIcon from "./HairStrandIcon";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
-  /** Detected country name or ISO code — may be null if detection was vague. */
+  /** The country the member declared on the personal-details page. */
   country: string | null;
 }
 
 /**
- * Blocking splash for accounts registered from outside the UK. No form —
- * registration already gave us her name and email, and she's been added to the
- * international waitlist. Honest, warm, and final for now.
+ * Blocking splash for accounts that declared a country outside the UK. No form
+ * — the personal-details page already gave us her name, mobile, email and
+ * country, and she's been added to the international waitlist. Final for now:
+ * the stored flag means she sees this on every future login too.
  */
 const InternationalBlockedSplash = ({ country }: Props) => {
   const { signOut } = useAuth();
@@ -46,7 +47,7 @@ const InternationalBlockedSplash = ({ country }: Props) => {
         </div>
 
         <p className="text-xs text-muted-foreground max-w-[270px] leading-relaxed">
-          Think we've got your location wrong? Email{" "}
+          Told us the wrong country by mistake? Email{" "}
           <a
             href="mailto:info@teamtexture.co.uk"
             className="underline underline-offset-4 text-foreground/80"

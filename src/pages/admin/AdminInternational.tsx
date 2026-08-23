@@ -17,6 +17,7 @@ interface Row {
   name: string;
   email: string;
   country: string;
+  phone: string | null;
   ip_detected_country: string | null;
   blocked_at: string | null;
   created_at: string;
@@ -38,7 +39,7 @@ const useInternationalAccounts = () =>
         supabase
           .from("country_waitlist")
           .select(
-            "id, user_id, name, email, country, ip_detected_country, blocked_at, created_at, klaviyo_synced_at, klaviyo_error",
+            "id, user_id, name, email, phone, country, ip_detected_country, blocked_at, created_at, klaviyo_synced_at, klaviyo_error",
           )
           .order("created_at", { ascending: false })
           .range(from, to),
@@ -121,6 +122,9 @@ const AdminInternational = () => {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground break-all">{r.email}</p>
+                    {r.phone ? (
+                      <p className="text-xs text-muted-foreground">{r.phone}</p>
+                    ) : null}
                     <p className="text-[11px] text-muted-foreground">
                       Blocked {friendlyDate(r.blocked_at ?? r.created_at)}
                       {r.klaviyo_synced_at
