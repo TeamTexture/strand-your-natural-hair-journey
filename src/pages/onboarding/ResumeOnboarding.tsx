@@ -168,7 +168,7 @@ const ResumeOnboarding = () => {
         )}
 
         <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
-          Both sections are needed before STRAND unlocks, but there's no rush — nothing you've
+          All three are needed before STRAND unlocks, but there's no rush — nothing you've
           entered expires.
         </p>
       </div>
