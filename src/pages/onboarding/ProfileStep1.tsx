@@ -281,12 +281,9 @@ const ProfileStep1 = () => {
     age: age === "" ? "Select your age" : "",
     postcode:
       postcode.trim().length < 3 ? "Enter a postcode (at least 3 characters)" : "",
-    country:
-      country === ""
-        ? "Select your country of residence"
-        : !isUK
-          ? "STRAND is only available in the UK right now"
-          : "",
+    // A non-UK country no longer blocks the step: the details are saved and the
+    // member is routed to the international waiting-list splash afterwards.
+    country: country === "" ? "Select your country of residence" : "",
   };
   const canContinue = Object.values(errors).every((e) => e === "");
 
