@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { smartBack } from "@/lib/smartBack";
+
 import PassportView from "@/components/passport/PassportView";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingDot from "@/components/LoadingDot";
