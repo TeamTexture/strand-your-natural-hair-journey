@@ -94,16 +94,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     }
 
 
-    // The clinical markers are read off the consultation, so who she saw and when
-    // must be logged first. Deep links, saved drafts and resume buttons all pass
-    // through here, so the ordering is enforced in one place.
-    const consultationFirst = new Set([
-      "/onboarding/profile-step-3-hair",
-      "/onboarding/profile-step-4-colour",
-    ]);
-    if (requirements.consultationOutstanding && consultationFirst.has(location.pathname)) {
-      return <Navigate to="/onboarding/pro-details" replace />;
-    }
+    // The consultation is optional and ongoing: the resume screen routes the hair
+    // journey through pro-details first, but an unlogged consultation must never
+    // block the markers form — that would stop her ever reaching Subscribe.
 
     if (!allowed.has(location.pathname)) {
       return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
