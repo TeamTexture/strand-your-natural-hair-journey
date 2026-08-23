@@ -19,6 +19,19 @@ import { useRoles } from "@/hooks/useRoles";
  * Professionals, brands and admins are unaffected — their views have their own
  * navigation and are not behind consumer onboarding.
  */
+/**
+ * The single dataComplete answer used by the chrome gate, the resume screen and
+ * every sub-flow that finishes one of the three required pieces. Completing one
+ * requirement must never unlock the app or advance past the others — only this
+ * being true does.
+ */
+export function useMemberDataComplete(): { dataComplete: boolean; known: boolean } {
+  const { data: status } = useOnboardingStatus();
+  const { data: myProfile } = useMyProfile();
+  if (status) return { dataComplete: status.dataComplete, known: true };
+  return { dataComplete: !!myProfile?.onboarding_completed_at, known: false };
+}
+
 export function useMemberAppUnlocked(): { unlocked: boolean; resumePath: string } {
   const { isAdmin, isProfessional, isBrand } = useRoles();
   const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
