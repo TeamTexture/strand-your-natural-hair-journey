@@ -1,14 +1,15 @@
-// Post-registration UK gate.
+// Post-registration UK gate — SELF-DECLARED country only.
 //
-// Called ONCE per account, immediately after registration and before onboarding.
-// Detects the caller's country by IP, and when it isn't the UK:
+// Called from the first page of the hair/blood section, where the member types
+// their own name, mobile, age, postcode, country and ethnicity. There is NO IP
+// geolocation anywhere in this flow (VPN/proxy made it unreliable).
+//
+// When the declared country isn't the UK:
 //   1. flags the account (profiles.international_block) so the block survives
-//      future logins without ever re-geo-checking anyone,
+//      every future login — later logins read the stored flag only,
 //   2. records the account in public.country_waitlist (admin-only reads),
-//   3. pushes name / email / country into the international Klaviyo list.
-//
-// Never re-checks an account that already has profiles.geo_checked_at set, so a
-// UK member travelling abroad is never affected.
+//   3. pushes name / mobile / email / country into the international Klaviyo
+//      list — and no other list or flow.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
@@ -16,73 +17,27 @@ import { requireAuthedUser } from "../_shared/auth.ts";
 
 const KLAVIYO_LIST_ID = "U69M2Q";
 
-const HEADER_CANDIDATES = [
-  "cf-ipcountry",
-  "x-vercel-ip-country",
-  "x-country-code",
-  "fly-client-ip-country",
-  "cloudfront-viewer-country",
-  "x-geo-country",
-  "x-appengine-country",
-];
-const IP_HEADERS = ["x-forwarded-for", "x-real-ip", "cf-connecting-ip", "fly-client-ip"];
-const UK_CODES = new Set(["GB", "UK", "GG", "JE", "IM"]);
 /** Country names (lower-cased) that count as the UK when the member declares one. */
 const UK_NAMES = new Set([
-  "united kingdom", "uk", "great britain", "england", "scotland", "wales",
-  "northern ireland", "guernsey", "jersey", "isle of man",
+  "united kingdom", "uk", "u.k.", "gb", "great britain", "england", "scotland",
+  "wales", "northern ireland", "guernsey", "jersey", "isle of man",
 ]);
 
-const clientIp = (req: Request): string | null => {
-  for (const h of IP_HEADERS) {
-    const raw = req.headers.get(h);
-    const first = raw?.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return null;
-};
-
-const isPrivate = (ip: string) =>
-  ip.startsWith("10.") || ip.startsWith("127.") || ip.startsWith("192.168.") ||
-  ip.startsWith("172.16.") || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd");
-
-async function detect(req: Request): Promise<{ country: string | null; country_name: string | null; source: string }> {
-  for (const h of HEADER_CANDIDATES) {
-    const v = req.headers.get(h)?.trim();
-    if (v && /^[A-Za-z]{2}$/.test(v)) {
-      return { country: v.toUpperCase(), country_name: null, source: `header:${h}` };
-    }
-  }
-  const ip = clientIp(req);
-  if (ip && !isPrivate(ip)) {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 3500);
-      const res = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`, {
-        signal: ctrl.signal,
-        headers: { "User-Agent": "strand-geo-gate/1.0" },
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        const body = await res.json();
-        const code = typeof body?.country_code === "string" ? body.country_code : null;
-        if (code && /^[A-Za-z]{2}$/.test(code)) {
-          return {
-            country: code.toUpperCase(),
-            country_name: typeof body?.country_name === "string" ? body.country_name : null,
-            source: "ipapi",
-          };
-        }
-      }
-    } catch (_e) { /* inconclusive */ }
-  }
-  return { country: null, country_name: null, source: "inconclusive" };
-}
-
 /** Add the blocked account to the international Klaviyo list only. */
-async function pushToKlaviyo(name: string, email: string, country: string): Promise<string | null> {
+async function pushToKlaviyo(
+  name: string,
+  email: string,
+  phone: string | null,
+  country: string,
+): Promise<string | null> {
   const key = Deno.env.get("KLAVIYO_API_KEY");
   if (!key) return "KLAVIYO_API_KEY missing";
+  const properties: Record<string, string> = {
+    first_name: name,
+    strand_country: country,
+    strand_status: "international_waitlist",
+  };
+  if (phone) properties.strand_mobile = phone;
   try {
     const res = await fetch("https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs", {
       method: "POST",
@@ -100,7 +55,7 @@ async function pushToKlaviyo(name: string, email: string, country: string): Prom
                 type: "profile",
                 attributes: {
                   email,
-                  properties: { first_name: name, strand_country: country, strand_status: "international_waitlist" },
+                  properties,
                   subscriptions: { email: { marketing: { consent: "SUBSCRIBED" } } },
                 },
               }],
@@ -124,16 +79,24 @@ Deno.serve(async (req) => {
   if (auth instanceof Response) return auth;
   const { user } = auth;
 
-  // A country the member declared themselves on the personal-details step. A
-  // declared non-UK country is stronger evidence than any IP lookup, so it
-  // decides the block even when the IP check already ran.
   let declared: string | null = null;
+  let declaredPhone: string | null = null;
+  let declaredName: string | null = null;
   try {
-    const body = await req.json();
-    const v = (body as { declared_country?: unknown } | null)?.declared_country;
-    if (typeof v === "string" && v.trim()) declared = v.trim();
+    const body = await req.json() as {
+      declared_country?: unknown;
+      phone?: unknown;
+      name?: unknown;
+    } | null;
+    if (typeof body?.declared_country === "string" && body.declared_country.trim()) {
+      declared = body.declared_country.trim();
+    }
+    if (typeof body?.phone === "string" && body.phone.trim()) declaredPhone = body.phone.trim();
+    if (typeof body?.name === "string" && body.name.trim()) declaredName = body.name.trim();
   } catch (_e) { /* no body */ }
-  const declaredNonUk = !!declared && !UK_NAMES.has(declared.toLowerCase());
+
+  // No declared country = nothing to decide. Fail OPEN: never block on silence.
+  if (!declared) return json(200, { blocked: false, country: null, source: "no-declaration" });
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -143,47 +106,44 @@ Deno.serve(async (req) => {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("display_name, international_block, geo_checked_at")
+    .select("display_name, phone_number, international_block")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  // Already decided — never re-check (UK members travel).
-  if (profile?.geo_checked_at && !declaredNonUk) {
-    return json(200, { blocked: !!profile.international_block, country: null, cached: true });
-  }
-
-  const detected = declaredNonUk
-    ? { country: null, country_name: declared, source: "declared" }
-    : await detect(req);
-  const { country, country_name, source } = detected;
-  // Fail OPEN: an inconclusive lookup never blocks a registration.
-  const blocked = declaredNonUk || (!!country && !UK_CODES.has(country));
+  // Once blocked, always blocked — the flag is never cleared by a later call.
+  const alreadyBlocked = !!profile?.international_block;
+  const blocked = alreadyBlocked || !UK_NAMES.has(declared.toLowerCase());
 
   await admin
     .from("profiles")
     .update({
       geo_checked_at: new Date().toISOString(),
       international_block: blocked,
-      international_country: blocked ? (country_name || country) : null,
+      international_country: blocked ? declared : null,
     })
     .eq("user_id", user.id);
 
-  if (!blocked) return json(200, { blocked: false, country, source });
+  if (!blocked) return json(200, { blocked: false, country: declared, source: "declared" });
 
-  const name = (profile?.display_name || user.user_metadata?.display_name || "").toString().trim() || "Member";
+  const name = (declaredName || profile?.display_name ||
+    (user.user_metadata as { display_name?: string } | null)?.display_name || "").toString().trim() || "Member";
+  const phone = declaredPhone || (profile?.phone_number ? String(profile.phone_number) : null);
   const email = (user.email ?? "").toLowerCase();
-  const klaviyoError = email ? await pushToKlaviyo(name, email, country_name || country!) : "no email on account";
+  const klaviyoError = email
+    ? await pushToKlaviyo(name, email, phone, declared)
+    : "no email on account";
 
   await admin.from("country_waitlist").upsert({
     user_id: user.id,
     name,
     email,
-    country: country_name || country!,
-    ip_detected_country: country,
+    phone,
+    country: declared,
+    ip_detected_country: null,
     blocked_at: new Date().toISOString(),
     klaviyo_synced_at: klaviyoError ? null : new Date().toISOString(),
     klaviyo_error: klaviyoError,
   }, { onConflict: "user_id" });
 
-  return json(200, { blocked: true, country, country_name, source });
+  return json(200, { blocked: true, country: declared, source: "declared", klaviyo_error: klaviyoError });
 });
