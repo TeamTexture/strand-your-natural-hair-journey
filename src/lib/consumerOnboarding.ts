@@ -145,6 +145,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     paymentDue: dataComplete,
 
     resumePath,
+    entryPath,
     analysisPath: POST_PAYMENT_ANALYSIS_PATH,
   };
 }
