@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import RequireAuth from "@/components/RequireAuth";
 import LoadingDot from "@/components/LoadingDot";
@@ -8,6 +8,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useRoles } from "@/hooks/useRoles";
 import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
 import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
+import { clearResumeLock } from "@/lib/onboardingLock";
 
 interface Props {
   children: ReactNode;
@@ -37,6 +38,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   const { isProfessional, isAdmin, loading: rolesLoading } = useRoles();
 
   const { data: status, isLoading: profileLoading, isError: profileError, refetch } = useOnboardingStatus();
+
+  useEffect(() => {
+    if (status?.dataComplete) clearResumeLock();
+  }, [status?.dataComplete]);
 
   // Do not replace a usable onboarding screen with a full-page loader during
   // background revalidation. That flash was experienced as a blank/glitching
