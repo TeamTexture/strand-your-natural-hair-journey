@@ -14,6 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
+      _audit_backup_blood: {
+        Row: {
+          category: string | null
+          id: string | null
+          marker: string | null
+          panel_id: string | null
+          status: string | null
+          unit: string | null
+          unit_enc: string | null
+          updated_at: string | null
+          user_id: string | null
+          value: number | null
+          value_enc: string | null
+        }
+        Insert: {
+          category?: string | null
+          id?: string | null
+          marker?: string | null
+          panel_id?: string | null
+          status?: string | null
+          unit?: string | null
+          unit_enc?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          value?: number | null
+          value_enc?: string | null
+        }
+        Update: {
+          category?: string | null
+          id?: string | null
+          marker?: string | null
+          panel_id?: string | null
+          status?: string | null
+          unit?: string | null
+          unit_enc?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          value?: number | null
+          value_enc?: string | null
+        }
+        Relationships: []
+      }
+      _audit_backup_hair: {
+        Row: {
+          areas_of_concern: string[] | null
+          created_at: string | null
+          density: string | null
+          diagnosed_conditions_enc: string | null
+          diameter: string | null
+          elasticity: string | null
+          id: string | null
+          length_bucket: string | null
+          length_inches: number | null
+          porosity: string | null
+          scalp_condition_enc: string | null
+          surface_texture: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          areas_of_concern?: string[] | null
+          created_at?: string | null
+          density?: string | null
+          diagnosed_conditions_enc?: string | null
+          diameter?: string | null
+          elasticity?: string | null
+          id?: string | null
+          length_bucket?: string | null
+          length_inches?: number | null
+          porosity?: string | null
+          scalp_condition_enc?: string | null
+          surface_texture?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          areas_of_concern?: string[] | null
+          created_at?: string | null
+          density?: string | null
+          diagnosed_conditions_enc?: string | null
+          diameter?: string | null
+          elasticity?: string | null
+          id?: string | null
+          length_bucket?: string | null
+          length_inches?: number | null
+          porosity?: string | null
+          scalp_condition_enc?: string | null
+          surface_texture?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      _audit_backup_panels: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          lab_name: string | null
+          label: string | null
+          notes: string | null
+          panel_date: string | null
+          scheduled_at: string | null
+          status: string | null
+          test_type: string | null
+          thumbnail_path: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          lab_name?: string | null
+          label?: string | null
+          notes?: string | null
+          panel_date?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          test_type?: string | null
+          thumbnail_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          lab_name?: string | null
+          label?: string | null
+          notes?: string | null
+          panel_date?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          test_type?: string | null
+          thumbnail_path?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       account_erasure_runs: {
         Row: {
           cap: number
