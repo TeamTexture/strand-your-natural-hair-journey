@@ -7,7 +7,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
-import { smartBack } from "@/lib/smartBack";
+import { safeBack } from "@/lib/smartBack";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 
