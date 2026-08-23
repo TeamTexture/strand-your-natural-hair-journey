@@ -3,6 +3,7 @@ import { Home, FlaskConical, Droplets, Apple, User } from "lucide-react";
 import { tap } from "@/lib/haptics";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
+import { useMemberAppUnlocked } from "@/hooks/useMemberAppUnlocked";
 
 const tabs = [
   { to: "/home", label: "Home", Icon: Home },
@@ -20,7 +21,14 @@ const BottomNav = () => {
   // Hard wall: the member tab bar is a consumer-view feature only. Pro, brand
   // and admin views never render it, even on shared routes (messages, chat).
   const view = useActiveRoleView();
+  // Second hard wall: the tab bar links straight into the paid app, so it stays
+  // hidden until the member has finished the required onboarding (hair
+  // characteristics + blood work) and has live membership access. Screens that
+  // are reachable mid-onboarding (e.g. the professional directory) therefore no
+  // longer expose the rest of the app. See useMemberAppUnlocked.
+  const { unlocked } = useMemberAppUnlocked();
   if (!allowsMemberFeatures(view)) return null;
+  if (!unlocked) return null;
 
   return (
   <nav
