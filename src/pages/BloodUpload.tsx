@@ -37,10 +37,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
-import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
-import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
-import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { titleCase } from "@/lib/humanise";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 
@@ -110,10 +107,9 @@ async function fileToBase64(file: File): Promise<string> {
 
 export default function BloodUpload() {
   const navigate = useNavigate();
-  const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
+  const { resolveNextPath } = useOnboardingCompletion();
 
   const { user } = useAuth();
-  const { hasAccess } = useConsumerSubscription();
   const { level } = useTipsLevel();
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -535,19 +531,7 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        // The panel has already saved successfully. Refresh the shared status,
-        // then use the entitlement itself for a deterministic handoff. Running
-        // a second six-table progress read here caused slow/tablet connections
-        // to bounce members back into onboarding instead of reaching payment.
-        void invalidateOnboardingStatus();
-        // Blood work alone never unlocks the app: while other required pieces
-        // are outstanding, go back to the resume screen, which decides whether
-        // to move on to payment.
-        if (isResumeLocked()) {
-          navigate(RESUME_PATH, { replace: true });
-          return;
-        }
-        navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
+        navigate(await resolveNextPath(), { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
@@ -606,16 +590,7 @@ export default function BloodUpload() {
                 variant="gold"
                 size="pill"
                 className="w-full"
-                onClick={() =>
-                  navigate(
-                    isResumeLocked()
-                      ? RESUME_PATH
-                      : hasAccess
-                        ? POST_PAYMENT_ANALYSIS_PATH
-                        : getSubscribePath(),
-                    { replace: true },
-                  )
-                }
+                onClick={async () => navigate(await resolveNextPath(), { replace: true })}
               >
                 Continue to Analysis →
               </Button>

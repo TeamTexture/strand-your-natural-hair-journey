@@ -18,7 +18,7 @@ import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import { toast } from "sonner";
-import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { useQueryClient } from "@tanstack/react-query";
 
 
@@ -29,6 +29,7 @@ const types = ["Trichologist", "Dermatologist", "Curl Specialist", "GP"];
 
 const ProDetails = () => {
   const queryClient = useQueryClient();
+  const { resolveNextPath } = useOnboardingCompletion();
   const navigate = useNavigate();
   const { pros } = useDirectoryProfessionals();
 
@@ -327,11 +328,13 @@ const ProDetails = () => {
                 return;
               }
               void queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route"] });
-              if (isResumeLocked()) {
-                navigate(RESUME_PATH, { replace: true });
-                return;
-              }
-              navigate("/onboarding/profile-step-3-hair");
+              const nextPath = await resolveNextPath();
+              navigate(
+                nextPath === "/onboarding/resume"
+                  ? "/onboarding/profile-step-3-hair"
+                  : nextPath,
+                { replace: true },
+              );
             }}
           >
             Continue →

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import LevelGate from "@/components/tips/LevelGate";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
@@ -75,6 +75,7 @@ const COLOUR_TIMEFRAMES = [
 const ProfileStep4Colour = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { resolveNextPath } = useOnboardingCompletion();
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
@@ -517,13 +518,7 @@ const ProfileStep4Colour = () => {
             window.dispatchEvent(new Event("strand:style-updated"));
             const { data: currentUser } = await supabase.auth.getUser();
             await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
-            // Locked members return to the resume screen — completing hair
-            // characteristics alone must not carry her into the app.
-            if (isResumeLocked()) {
-              navigate(RESUME_PATH, { replace: true });
-              return;
-            }
-            navigate("/onboarding/blood-timing");
+            navigate(await resolveNextPath(), { replace: true });
           }}
         >
           Continue to Blood Test →
