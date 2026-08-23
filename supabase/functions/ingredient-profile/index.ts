@@ -289,15 +289,16 @@ Deno.serve(async (req) => {
       throw new Error("invalid tool args shape");
     }
     const rawWhatItIs = String(args.what_it_is).trim();
+    const rawMeans =
+      typeof args?.what_it_means_for_you === "string"
+        ? String(args.what_it_means_for_you).trim()
+        : "";
     parsed = await sanitiseAndLog({
       what_it_is: rawWhatItIs,
       deep_dive: [],
       benefits: args.benefits.map((s: unknown) => String(s).trim()).filter(Boolean),
       personal_notes: [],
-      what_it_means_for_you:
-        typeof args?.what_it_means_for_you === "string"
-          ? String(args.what_it_means_for_you).trim()
-          : undefined,
+      what_it_means_for_you: rawMeans || undefined,
       _model_version: MODEL_VERSION,
       _generated_at: new Date().toISOString(),
     }, "ingredient-profile");
@@ -306,7 +307,14 @@ Deno.serve(async (req) => {
     if (parsed && !parsed.what_it_is?.trim()) {
       parsed = { ...parsed, what_it_is: rawWhatItIs };
     }
+    // Same for the personalised guidance: an empty string renders as an empty
+    // "What this means for your hair" panel, which is what members were seeing
+    // whenever the traceability audit stripped the sentence.
+    if (parsed && rawMeans && !parsed.what_it_means_for_you?.trim()) {
+      parsed = { ...parsed, what_it_means_for_you: rawMeans };
+    }
     if (!parsed?.what_it_is?.trim()) throw new Error("empty what_it_is");
+
   } catch (e) {
     console.error("ingredient-profile parse failed", e);
     return json(502, { error: "ai response could not be parsed" });

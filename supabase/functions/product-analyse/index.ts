@@ -171,7 +171,7 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
 
 1. Extract product_name and brand primarily from photo 1 (front). Extract the full INCI ingredients list and any directions primarily from photo 2 (back).
 
-2. If either photo is partial, blurry, in a foreign language, or missing critical info: USE web_search to find the canonical product. Search for queries like '[brand] [product name] ingredients' or '[brand] [product name] INCI'. Use web_search up to 4 times — judiciously, only when needed. Do NOT search if the two photos already provide a clear, complete brand + INCI combination.
+2. If either photo is partial, blurry, in a foreign language, or missing critical info: USE web_search to find the canonical product. Search for queries like '[brand] [product name] ingredients' or '[brand] [product name] INCI'. Use web_search up to 2 times — judiciously, only when needed. Do NOT search if the two photos already provide a clear, complete brand + INCI combination.
 
 3. ingredients[] in your output must be the COMPLETE INCI list. product_name and brand must match what the brand actually calls it (not just descriptor text from the label).
 
@@ -287,8 +287,12 @@ Return JSON only via the return_product_analysis tool.`;
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
-    max_uses: 4,
+    // SPEED: each server-side search round costs ~8-12s of wall clock. Two is
+    // enough to resolve a brand + INCI list (observed real scans use 1-2);
+    // four only ever paid for a long tail of repeat searches.
+    max_uses: 2,
   };
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
