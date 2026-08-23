@@ -79,6 +79,22 @@ const ResumeOnboarding = () => {
 
   const startedBlood = !!bloodResume;
 
+  // Something already done: shown greyed out so she can see it landed, with the
+  // outstanding pieces still listed below.
+  const DoneCard = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
+    <SurfaceCard className="opacity-60">
+      <div className="flex items-start gap-3">
+        <span className="mt-1 shrink-0 text-muted-foreground" aria-hidden="true">{icon}</span>
+        <div className="min-w-0">
+          <p className="font-display text-base font-semibold text-muted-foreground">{title}</p>
+          <p className="text-xs text-muted-foreground font-body mt-1 leading-snug inline-flex items-center gap-1">
+            <Check className="size-3" aria-hidden="true" /> Added — nothing more to do here.
+          </p>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+
   return (
     <ScreenLayout>
       <TitleBar title="Pick up where you left off" />
@@ -87,6 +103,14 @@ const ResumeOnboarding = () => {
           Everything you've answered so far is saved — on this device and any other you sign
           in from. Carry on whenever you're ready.
         </ItalicSub>
+
+        {!consultationOutstanding && (
+          <DoneCard icon={<Stethoscope className="size-4" />} title="Professional consultation" />
+        )}
+        {!bloodOutstanding && <DoneCard icon={<Droplets className="size-4" />} title="Blood work" />}
+        {!hairOutstanding && <DoneCard icon={<Scissors className="size-4" />} title="Hair characteristics" />}
+
+
 
         {consultationOutstanding && (
           <SurfaceCard>
