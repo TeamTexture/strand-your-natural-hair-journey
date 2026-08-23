@@ -27,7 +27,7 @@
 
 import { json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
-import { checkDailyCap } from "../_shared/usage-cap.ts";
+import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,
@@ -600,6 +600,11 @@ Deno.serve(async (req: Request) => {
     }
 
     if (capped) return capped;
+
+    // Workspace-wide automatic brake (see _shared/usage-cap.ts). Checked after
+    // the cache return above, so cache hits are never refused.
+    const ceiling = await checkGlobalCeiling("product-analyse");
+    if (ceiling) return ceiling;
 
     const ledgerBlock = buildAdviceLedgerBlock(ledgerRows);
 

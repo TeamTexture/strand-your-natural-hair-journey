@@ -13,7 +13,7 @@
 
 import { json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
-import { checkDailyCap } from "../_shared/usage-cap.ts";
+import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -103,6 +103,8 @@ OUTPUT RULES
 
 2. Ground every bullet in the user's actual data: porosity, density, scalp condition, diagnosed conditions, goals, challenges, recent wash signals, or low blood markers when mechanism-relevant. The style may be named as recorded fact, but never as the mechanism itself. Never invent data — if a field is missing, don't reference it.
 
+2a. NEVER ATTRIBUTE A CHARACTERISTIC THAT IS NOT IN THE DATA. If porosity, density, texture, elasticity or scalp condition is absent from hairProfile, do not name it at all — not even hedged, speculative or conditional ("especially if your hair tends toward lower porosity", "if you're low porosity", "hair like yours probably..."). A hedged guess still reads to the member as insight about her hair. Where you would have used a missing field, either leave it out entirely or say plainly "once you've added your porosity" / "once your hair characteristics are on file".
+
 3. Reference the user's goals and challenges only when the mechanism connects. The style may be stated as a fact of where she is ("before it goes up for several weeks") — never as a technique or a verdict, and never as the reason on its own.
 
 4. If a "consistently flagged" ingredient appeared in their recent products, you may reference it ONLY if it's mechanism-relevant. Use the phrase "consistently flagged in your history" — never "avoid list" or "your avoids."
@@ -119,6 +121,91 @@ STYLE — RECORDED FACT ONLY (carve-out for this task):
 You MAY name the style the member has on her head, or the one she recorded doing, as a plain statement of fact — what she did, what is there now. That is the ONLY thing the style earns. The teaching itself stays general: no style-specific technique, no style-specific verdict, no cadence attached to a style. Everything below applies to the guidance you generate.
 
 ${STYLE_WEIGHTING_RULES}`;
+}
+
+
+/**
+ * DETERMINISTIC BACKSTOP — never present an inference as insight.
+ *
+ * The model has been told not to name a hair characteristic that is absent
+ * from the profile, including hedged forms ("especially if your hair tends
+ * toward lower porosity"). Prompts are not guarantees, so any bullet that
+ * names a characteristic we do not actually hold is dropped here, and the
+ * hedged clause is stripped when the rest of the bullet still stands on its
+ * own. Nothing is rewritten beyond removing the unsupported clause.
+ */
+const CHARACTERISTIC_TERMS: Record<string, RegExp> = {
+  porosity: /porosity|porous/i,
+  density: /\bdensit(y|ies)\b/i,
+  elasticity: /\belasticity\b/i,
+  texture: /\b(hair )?texture\b/i,
+  scalp_condition: /\bscalp condition\b/i,
+};
+
+function missingCharacteristics(ctx: Record<string, unknown>): string[] {
+  const hp = (ctx.hairProfile as Record<string, unknown>) ?? {};
+  const present = (v: unknown) =>
+    Array.isArray(v) ? v.length > 0 : typeof v === "string" ? v.trim().length > 0 : v != null;
+  return Object.keys(CHARACTERISTIC_TERMS).filter((k) => !present(hp[k]));
+}
+
+export function stripUnsupportedCharacteristics(
+  payload: RationalePayload,
+  ctx: Record<string, unknown>,
+): RationalePayload {
+  // A blank headline renders as an empty line in the UI, so give it a claim
+  // that stands without any profile data. Cheap and unconditional.
+  const withHeadline: RationalePayload = payload.headline?.trim()
+    ? payload
+    : { ...payload, headline: "Heat could get more out of your conditioner" };
+
+  const missing = missingCharacteristics(ctx);
+  if (missing.length === 0) return withHeadline;
+  payload = withHeadline;
+  const patterns = missing.map((k) => CHARACTERISTIC_TERMS[k]);
+  const names = missing.join(",");
+
+  const cleanBullet = (text: string): string | null => {
+    if (!patterns.some((re) => re.test(text))) return text;
+    // Try dropping just the offending clause.
+    const parts = text.split(/\s*(?:—|–|,|;)\s*/).filter(Boolean);
+    const kept = parts.filter((part) => !patterns.some((re) => re.test(part)));
+    const rebuilt = kept.join(", ").trim().replace(/[\s,;]+$/, "");
+    // Only keep a repaired bullet if it still says something substantial.
+    if (kept.length > 0 && rebuilt.split(/\s+/).length >= 5) {
+      return rebuilt.endsWith(".") ? rebuilt : `${rebuilt}.`;
+    }
+    return null;
+  };
+
+  const reasons = payload.reasons
+    .map((r) => (typeof r === "string" ? cleanBullet(r) : null))
+    .filter((r): r is string => !!r && r.trim().length > 0);
+
+  let headline = payload.headline;
+  if (patterns.some((re) => re.test(headline ?? ""))) {
+    headline = "Heat could get more out of your conditioner";
+  }
+
+  if (reasons.length !== payload.reasons.length || headline !== payload.headline) {
+    console.log(JSON.stringify({
+      event: "unsupported_characteristic_stripped",
+      fn: "heat-treatment-rationale",
+      missing: names,
+      reasons_before: payload.reasons.length,
+      reasons_after: reasons.length,
+    }));
+  }
+
+  // Never return an empty rationale: fall back to a claim that needs no
+  // characteristic on file at all.
+  if (reasons.length === 0) {
+    reasons.push(
+      "Warmth helps the cuticle lift, so the conditioner reaches further into the strand.",
+      "Once you've added your hair characteristics, this gets specific to you.",
+    );
+  }
+  return { ...payload, headline, reasons: reasons.slice(0, 3) };
 }
 
 async function runClaude(args: {
@@ -189,7 +276,7 @@ The user is logging a wash day and just said they did NOT use heat while conditi
 
 Rules:
 - Be concrete. Reference their actual hair type/porosity/density, goals, challenges, recent wash notes, or low blood markers when relevant. The style may be named as recorded fact only, never as the mechanism.
-- Never invent data. If a field is missing, don't mention it.
+- Never invent data. If a field is missing, don't mention it — and never name a missing characteristic speculatively or conditionally ("especially if your hair tends toward lower porosity", "if you're low porosity"). A hedge is still an inference presented as insight. Say "once you've added your porosity" instead, or omit it.
 - 1 short headline (max 9 words) and 2-3 bullets (max ~16 words each).
 - Never name any source manuscript, author, chapter or page. Speak the guidance directly in your own voice.
 - Output ONLY JSON: { "headline": string, "reasons": string[] }
@@ -264,6 +351,10 @@ Deno.serve(async (req: Request) => {
   const t0 = Date.now();
   try {
     // Spend protection: per-user daily cap (model-spend paths only).
+    // Workspace-wide automatic brake (see _shared/usage-cap.ts).
+    const ceiling = await checkGlobalCeiling("heat-treatment-rationale");
+    if (ceiling) return ceiling;
+
     const capped = await checkDailyCap(auth.user.id, "heat-treatment-rationale", 40);
     if (capped) return capped;
 
@@ -286,6 +377,8 @@ Deno.serve(async (req: Request) => {
       payload = await runLovable({ context });
       providerStamp = "lovable";
     }
+
+    payload = stripUnsupportedCharacteristics(payload, context);
 
     const result = await sanitiseAndLog({
       ...payload,

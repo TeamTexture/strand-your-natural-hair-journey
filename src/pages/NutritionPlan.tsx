@@ -998,34 +998,50 @@ const NutritionPlan = () => {
             <div className="pt-1 border-t border-border/70" />
             <SectionHeading>STRAND recommends</SectionHeading>
 
-            {aiLoading && usingFallbackSupplements ? (
-              renderLoading("Personalising your supplements…")
-            ) : (
-              <>
-                {usingFallbackSupplements && planFailed && (
-                  <SurfaceCard tone="gold">
-                    <p className="text-xs font-body leading-[1.65]">
-                      We couldn't finish your personalised plan just now, so these are general
-                      starting points rather than guidance built from your profile.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => void fetchPlan(false, profile)}
-                      className="mt-3 px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
-                    >
-                      Try again
-                    </button>
-                  </SurfaceCard>
-                )}
-                {supplements.map((s, i) => (
-                  <SupplementCard
-                    key={`${s.name}-${i}`}
-                    s={s}
-                    isFallback={usingFallbackSupplements}
-                  />
-                ))}
-              </>
-            )}
+            {/* The deterministic food-first starting points render IMMEDIATELY,
+                even while the AI plan is still generating. A new member with no
+                bloods and no profile must never sit in front of a bare progress
+                bar for a minute as her first real content. The personalised
+                version replaces these cards in place when it arrives. */}
+            <>
+              {aiLoading && usingFallbackSupplements && (
+                <SurfaceCard tone="gold">
+                  <p className="text-xs font-body leading-[1.65]">
+                    General starting points below while STRAND builds your personalised
+                    plan — it will replace these as soon as it's ready.
+                  </p>
+                  <div className="mt-2.5 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-[width] duration-300 ease-out"
+                      style={{ width: `${Math.min(100, Math.max(0, Math.round(aiProgress)))}%` }}
+                    />
+                  </div>
+                </SurfaceCard>
+              )}
+              {usingFallbackSupplements && planFailed && (
+                <SurfaceCard tone="gold">
+                  <p className="text-xs font-body leading-[1.65]">
+                    We couldn't finish your personalised plan just now, so these are general
+                    starting points rather than guidance built from your profile.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void fetchPlan(false, profile)}
+                    className="mt-3 px-4 py-2 rounded-pill bg-primary text-primary-foreground text-[12px] font-semibold"
+                  >
+                    Try again
+                  </button>
+                </SurfaceCard>
+              )}
+              {supplements.map((s, i) => (
+                <SupplementCard
+                  key={`${s.name}-${i}`}
+                  s={s}
+                  isFallback={usingFallbackSupplements}
+                />
+              ))}
+            </>
+
             <SourceNote>
               {usingFallbackSupplements
                 ? "General guidance from How To Love Your Afro by Paige Lewin — not yet personalised to your profile."
