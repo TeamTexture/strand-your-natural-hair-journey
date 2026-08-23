@@ -92,7 +92,7 @@ const ResumeOnboarding = () => {
               <Button
                 variant="gold"
                 size="pill"
-                className="w-full"
+                className="w-full whitespace-normal break-words leading-tight"
                 onClick={() => navigate("/directory?consultation=1")}
               >
                 Find a professional →
@@ -100,10 +100,10 @@ const ResumeOnboarding = () => {
               <Button
                 variant="outline"
                 size="pill"
-                className="w-full"
+                className="w-full whitespace-normal break-words leading-tight"
                 onClick={() => navigate("/onboarding/pro-details")}
               >
-                I've already had one — add the details
+                I've already had one →
               </Button>
             </div>
           </SurfaceCard>
