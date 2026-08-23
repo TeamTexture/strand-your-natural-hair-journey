@@ -90,11 +90,17 @@ async function loadDirectory(): Promise<Professional[]> {
     ]);
 
 
-  // NEITHER layer may take the other down. A grant/policy gap on the curated
-  // table once threw here, which collapsed the whole query to the static seed
-  // and hid every real approved professional. Both loads now degrade silently.
+  // The CURATED layer may never take the live layer down: a grant/policy gap
+  // there once collapsed the whole query, so it degrades silently.
   if (dbErr) console.warn("professionals_directory load failed:", dbErr);
-  if (ppErr) console.warn("pro_profiles load failed:", ppErr);
+  // The LIVE layer is the directory. If it fails we must FAIL LOUDLY — a
+  // silent partial result previously left members looking at the two static
+  // seed cards (Yvonne + Erica) believing that was the whole directory.
+  if (ppErr) {
+    console.error("pro_profiles load failed:", ppErr);
+    throw new Error(ppErr.message || "Could not load professionals");
+  }
+
 
   // A listing is reachable if it has its own login OR belongs to a salon (in
   // which case the salon owner's login answers for it). Rows with neither are
