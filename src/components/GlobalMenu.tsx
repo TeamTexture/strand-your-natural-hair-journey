@@ -207,14 +207,18 @@ const GlobalMenu = () => {
           className="flex items-center justify-between px-3"
           style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 6px)", paddingBottom: "6px" }}
         >
-          <button
-            type="button"
-            aria-label="Back"
-            onClick={() => safeBack(navigate)}
-            className="size-9 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
+          {hasPageBackButton ? (
+            <span className="size-9 shrink-0" aria-hidden />
+          ) : (
+            <button
+              type="button"
+              aria-label="Back"
+              onClick={() => safeBack(navigate)}
+              className="size-9 shrink-0 rounded-full flex items-center justify-center text-foreground/80 hover:bg-muted/60 transition-colors"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => navigate(resumePath)}

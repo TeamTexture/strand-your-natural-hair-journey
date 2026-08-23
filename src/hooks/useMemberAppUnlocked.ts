@@ -21,7 +21,7 @@ import { useRoles } from "@/hooks/useRoles";
  */
 export function useMemberAppUnlocked(): { unlocked: boolean; resumePath: string } {
   const { isAdmin, isProfessional, isBrand } = useRoles();
-  const { hasAccess } = useConsumerSubscription();
+  const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
   const { data: status } = useOnboardingStatus();
   const { data: myProfile } = useMyProfile();
 
@@ -34,6 +34,12 @@ export function useMemberAppUnlocked(): { unlocked: boolean; resumePath: string 
   // stamp rather than assuming "unlocked" — an unfinished member must never see
   // the nav flash into view.
   const dataComplete = status ? status.dataComplete : !!myProfile?.onboarding_completed_at;
+
+  // Never blink the navigation away from an established member while the
+  // membership read is still in flight: if they have already finished
+  // onboarding, keep the chrome until we actually know access has lapsed (the
+  // route gates handle a lapsed member anyway).
+  if (subLoading && !!myProfile?.onboarding_completed_at) return { unlocked: true, resumePath };
 
   return { unlocked: dataComplete && hasAccess, resumePath };
 }
