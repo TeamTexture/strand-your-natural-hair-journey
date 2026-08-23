@@ -133,6 +133,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     hairComplete,
     styleComplete,
     bloodOnFile,
+    consultationComplete,
     paymentDue: dataComplete,
 
     resumePath,
