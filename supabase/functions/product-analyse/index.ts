@@ -27,7 +27,7 @@
 
 import { json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
-import { checkDailyCap } from "../_shared/usage-cap.ts";
+import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import {
   fetchAdviceLedger,
   buildAdviceLedgerBlock,

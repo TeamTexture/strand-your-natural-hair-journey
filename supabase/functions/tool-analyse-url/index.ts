@@ -7,7 +7,7 @@
 
 import { corsHeaders } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
-import { checkDailyCap } from "../_shared/usage-cap.ts";
+import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -758,6 +758,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // Spend protection: per-user daily cap (model-spend paths only).
+    // Workspace-wide automatic brake (see _shared/usage-cap.ts).
+    const ceiling = await checkGlobalCeiling("tool-analyse-url");
+    if (ceiling) return ceiling;
+
     const capped = await checkDailyCap(user.id, "tool-analyse-url", 40);
     if (capped) return capped;
 
