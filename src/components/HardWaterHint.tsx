@@ -1,4 +1,4 @@
-import { Droplets, Users, Sparkles } from "lucide-react";
+import { Droplets, Users } from "lucide-react";
 import { lookupHardWater } from "@/lib/hardWater";
 import { cn } from "@/lib/utils";
 
