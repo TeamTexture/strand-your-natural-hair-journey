@@ -17,6 +17,7 @@ import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
 
 
 const MARKERS = [
@@ -50,6 +51,13 @@ const BloodHormones = () => {
     // slower tablets that extra request kept the member on this screen even
     // though her blood work had already saved successfully.
     void invalidateOnboardingStatus();
+    // Finishing blood work does not unlock the app: if hair characteristics or
+    // the consultation are still outstanding, she goes back to the resume
+    // screen, which re-reads dataComplete and shows what is left.
+    if (isResumeLocked()) {
+      navigate(RESUME_PATH, { replace: true });
+      return;
+    }
     // Members who already have access (or are editing their bloods later)
     // must never be bounced back into the paywall.
     navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath());

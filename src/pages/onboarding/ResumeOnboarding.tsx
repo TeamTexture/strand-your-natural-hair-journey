@@ -9,6 +9,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
+import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
 
 /**
  * Pick-up-where-you-left-off screen.
@@ -37,8 +38,15 @@ const ResumeOnboarding = () => {
   useEffect(() => {
     if (!status) return;
     // Nothing outstanding: this prompt must not appear at all.
-    if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding)
+    if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding) {
+      clearResumeLock();
       navigate("/home", { replace: true });
+      return;
+    }
+    // Something still outstanding — pin back navigation to this screen for the
+    // rest of the session (dataComplete is the only thing that releases it).
+    if (!status.dataComplete) setResumeLock();
+    else clearResumeLock();
   }, [status, hairOutstanding, bloodOutstanding, consultationOutstanding, navigate]);
 
   if (isLoading && !status) return <LoadingDot />;

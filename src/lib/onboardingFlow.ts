@@ -1,4 +1,5 @@
 import type { NavigateFunction } from "react-router-dom";
+import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
 
 /**
  * Explicit back map for the onboarding flow.
@@ -35,5 +36,13 @@ export const onboardingPrevPath = (current: string): string =>
 /** `onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")}` */
 export const onboardingBack =
   (navigate: NavigateFunction, current: string) => () => {
-    navigate(onboardingPrevPath(current), { replace: true });
+    const prev = onboardingPrevPath(current);
+    // Locked into the resume screen: back may only ever land there.
+    const pinned = pinnedBackTarget(current, prev);
+    if (pinned === "") return;
+    if (pinned) {
+      navigate(RESUME_PATH, { replace: true });
+      return;
+    }
+    navigate(prev, { replace: true });
   };

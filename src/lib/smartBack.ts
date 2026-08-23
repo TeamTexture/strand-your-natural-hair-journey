@@ -4,6 +4,7 @@
 // sessionStorage. Back always returns to the previous DISTINCT page the user
 // actually saw — never /home by force, and never a loop between two pages.
 import type { NavigateFunction } from "react-router-dom";
+import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
 
 const STACK_KEY = "strand.navStack";
 const HOME_PATH = "/home";
@@ -97,6 +98,16 @@ const previousEntry = (): Entry | null => {
 
 const goBack = (navigate: NavigateFunction, fallback: string) => {
   const prev = previousEntry();
+  // Locked onboarding: back can only ever land on the resume screen.
+  const pinned = pinnedBackTarget(
+    window.location.pathname + window.location.search,
+    prev?.path ?? null,
+  );
+  if (pinned === "") return;
+  if (pinned) {
+    navigate(RESUME_PATH, { replace: true });
+    return;
+  }
   const idx = routerIdx();
 
   if (prev) {
