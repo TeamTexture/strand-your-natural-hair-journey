@@ -11,7 +11,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
-import { getSubscribePath } from "@/lib/consumerOnboarding";
+import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 
 /**
  * Pick-up-where-you-left-off screen.
