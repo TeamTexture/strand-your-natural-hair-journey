@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Scissors, Stethoscope } from "lucide-react";
+import { Check, Droplets, Scissors, Stethoscope } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ItalicSub from "@/components/ItalicSub";
@@ -8,21 +8,24 @@ import SurfaceCard from "@/components/SurfaceCard";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
+import { getSubscribePath } from "@/lib/consumerOnboarding";
 
 /**
  * Pick-up-where-you-left-off screen.
  *
- * Hair characteristics and blood work are both required, but neither has to be
- * finished in one sitting — blood work in particular means going away to
- * actually get tested. A returning member with either section outstanding lands
- * here and chooses which one to carry on with; both complete and this screen
- * never shows (the member goes straight to Home).
+ * All three required pieces (professional consultation, hair characteristics,
+ * blood work) are always shown. Anything already done is greyed out and marked
+ * as added, so a member who has just uploaded her bloods can see it landed and
+ * see exactly what is still owed. Nothing here unlocks the app: once all three
+ * are genuinely complete she goes on to payment (or Home if she already pays).
  */
 const ResumeOnboarding = () => {
   const navigate = useNavigate();
   const { data: status, isLoading } = useOnboardingStatus();
+  const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
   const [bloodResume, setBloodResume] = useState<string | null>(null);
 
   // Pull the saved blood draft down first, so the "continue" button points at
@@ -37,19 +40,22 @@ const ResumeOnboarding = () => {
 
   useEffect(() => {
     if (!status) return;
-    // Nothing outstanding: this prompt must not appear at all.
+    // Nothing outstanding: this prompt must not appear at all. Continue the
+    // original flow — payment, then the app.
     if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding) {
       clearResumeLock();
-      navigate("/home", { replace: true });
+      if (subLoading) return;
+      navigate(hasAccess ? "/home" : getSubscribePath(), { replace: true });
       return;
     }
     // Something still outstanding — pin back navigation to this screen for the
     // rest of the session (dataComplete is the only thing that releases it).
     if (!status.dataComplete) setResumeLock();
     else clearResumeLock();
-  }, [status, hairOutstanding, bloodOutstanding, consultationOutstanding, navigate]);
+  }, [status, hairOutstanding, bloodOutstanding, consultationOutstanding, navigate, hasAccess, subLoading]);
 
   if (isLoading && !status) return <LoadingDot />;
+
   if (!status) return <LoadingDot />;
 
   const hairPath = status.hairComplete
