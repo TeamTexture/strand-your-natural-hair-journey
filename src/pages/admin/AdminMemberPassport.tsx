@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { smartBack } from "@/lib/smartBack";
 import PassportView from "@/components/passport/PassportView";
 
 const AdminMemberPassport = () => {
@@ -11,7 +12,7 @@ const AdminMemberPassport = () => {
       mode="admin"
       backTo="/admin/members"
       active
-      accessEndedAction={() => nav("/admin/members")}
+      accessEndedAction={smartBack(nav, "/admin/members")}
     />
   );
 };

@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { smartBack } from "@/lib/smartBack";
+
 import PassportView from "@/components/passport/PassportView";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingDot from "@/components/LoadingDot";
@@ -17,7 +19,7 @@ const PassportPreview = () => {
   if (loading || !user) {
     return (
       <ScreenLayout>
-        <TitleBar title="Passport preview" onBack={() => nav("/home")} />
+        <TitleBar title="Passport preview" onBack={smartBack(nav, "/profile/passport-visibility")} />
         <LoadingDot label="Loading preview…" fullScreen={false} />
       </ScreenLayout>
     );
@@ -28,9 +30,10 @@ const PassportPreview = () => {
       userId={user.id}
       mode="pro"
       selfPreview
-      backTo="/home"
+      backTo="/profile/passport-visibility"
       active
-      accessEndedAction={() => nav("/home")}
+      accessEndedAction={smartBack(nav, "/profile/passport-visibility")}
+
     />
   );
 };

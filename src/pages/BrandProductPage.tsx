@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { smartBack } from "@/lib/smartBack";
 import { ExternalLink, Heart, Check, Loader2, Sparkles, Plus } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import BenefitRows from "@/components/guidance/BenefitRows";
@@ -234,7 +235,7 @@ const BrandProductPage = () => {
   if (!product) {
     return (
       <ScreenLayout>
-        <TitleBar title="Product" onBack={() => nav("/products")} />
+        <TitleBar title="Product" onBack={smartBack(nav, "/products")} />
         <div className="px-5 pt-4 space-y-3">
           <SurfaceCard>
             <p className="text-sm text-muted-foreground">

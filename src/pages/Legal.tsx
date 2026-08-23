@@ -1,4 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { safeBack } from "@/lib/smartBack";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -562,7 +564,7 @@ const Legal = () => {
   if (!entry) {
     return (
       <ScreenLayout>
-        <TitleBar title="Legal" onBack={() => navigate(-1)} />
+        <TitleBar title="Legal" onBack={() => safeBack(navigate)} />
         <div className="px-5 py-8 text-[13px] text-muted-foreground">Document not found.</div>
       </ScreenLayout>
     );
@@ -571,7 +573,7 @@ const Legal = () => {
   return (
     <ScreenLayout>
       <title>{`STRAND — ${entry.title}`}</title>
-      <TitleBar title={entry.title} onBack={() => navigate(-1)} />
+      <TitleBar title={entry.title} onBack={() => safeBack(navigate)} />
       <div className="px-5 pb-10 pt-2 space-y-4">
         <p className="text-[11px] uppercase tracking-[0.16em] font-body text-muted-foreground">
           Last updated {entry.lastUpdated}

@@ -8,10 +8,13 @@ import { useLocation } from "react-router-dom";
 
 export type ActiveRoleView = "consumer" | "pro" | "admin" | "brand";
 
-// Routes that exist inside every view (chat, notifications) — these must NOT
-// change the remembered view, so a pro opening messages stays "pro" and a
-// consumer opening messages stays "consumer".
-const SHARED_PREFIXES = ["/messages", "/chat", "/notifications"];
+// Routes that exist inside every view (chat, notifications, legal docs) —
+// these must NOT change the remembered view, so a pro opening messages stays
+// "pro" and a consumer opening messages stays "consumer". An admin reading the
+// legal pages must likewise stay in the admin view, so the back button returns
+// them to /admin rather than the consumer home.
+const SHARED_PREFIXES = ["/messages", "/chat", "/notifications", "/legal"];
+
 
 export function routeToView(path: string, search = ""): ActiveRoleView | null {
   if (path.startsWith("/admin")) return "admin";
