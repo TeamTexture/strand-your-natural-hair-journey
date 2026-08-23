@@ -671,55 +671,17 @@ const ProfileStep1 = () => {
           {submitted && errors.country && <FieldError>{errors.country}</FieldError>}
         </label>
 
-        {/* UK-only block */}
+        {/* Outside the UK — details are still saved, then the member is shown
+            the waiting-list splash instead of onboarding. */}
         {country !== "" && !isUK && (
-          <SurfaceCard tone="orange" className="space-y-3">
+          <SurfaceCard tone="orange">
             <p className="text-sm leading-snug">
-              <span className="font-semibold">STRAND is currently only available in the UK. </span>
-              We are working on expanding. Join the waitlist to be notified when we launch in your country.
+              <span className="font-semibold">STRAND isn't in {country} yet. </span>
+              Continue and we'll add you to the waiting list — we'll email you the moment we launch there.
             </p>
-            {!waitlistOpen ? (
-              <Button variant="gold" size="pill" onClick={() => setWaitlistOpen(true)} type="button">
-                Join Waitlist
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <FieldFrame filled={waitlistEmail.length > 0}>
-                  <Mail className="size-4 text-muted-foreground ml-3 shrink-0" />
-                  <input
-                    type="email"
-                    value={waitlistEmail}
-                    onChange={(e) => setWaitlistEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    inputMode="email"
-                    enterKeyHint="go"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleWaitlistJoin();
-                      }
-                    }}
-                    className="w-full bg-transparent px-2.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none min-h-[44px]"
-                  />
-                </FieldFrame>
-                <div className="flex gap-2">
-                  <Button variant="gold" size="pill" onClick={handleWaitlistJoin} type="button">
-                    Notify Me
-                  </Button>
-                  <Button
-                    variant="goldGhost"
-                    size="pill"
-                    onClick={() => setWaitlistOpen(false)}
-                    type="button"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
           </SurfaceCard>
         )}
+
 
         {/* Heritage */}
         <label className="block">
