@@ -114,8 +114,9 @@ const goBack = (navigate: NavigateFunction, fallback: string) => {
   }
 
   // No in-app history (deep link / fresh open) — backwards move, so replace.
-  navigate(fallback, { replace: true });
+  navigate(resolveFallback(fallback), { replace: true });
 };
+
 
 /** Curried variant for `onBack={smartBack(navigate, "/x")}`. */
 export const smartBack = (navigate: NavigateFunction, fallback: string) => () =>
