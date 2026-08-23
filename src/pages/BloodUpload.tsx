@@ -128,6 +128,7 @@ export default function BloodUpload() {
   const [panelLabel, setPanelLabel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [showOther, setShowOther] = useState(false);
   // Source image we'll derive the panel thumbnail from (rendered PDF page or first photo).
   const [thumbSource, setThumbSource] = useState<Blob | null>(null);
   const [thumbPreview, setThumbPreview] = useState<string | null>(null);
