@@ -125,6 +125,9 @@ const AdminMembers = () => {
           supabase
             .from("profiles")
             .select("user_id, display_name, complimentary_access, access_restricted, created_at")
+            // International / blocked accounts live in their own admin screen and
+            // must never appear in member lists, counts or search.
+            .eq("international_block", false)
             .order("created_at", { ascending: false })
             .range(from, to),
         ),

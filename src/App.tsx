@@ -35,7 +35,7 @@ import { IngredientSheetProvider } from "@/components/ingredients/IngredientToke
 
 // Eager: entry + 404 (tiny, always likely to hit)
 import Index from "./pages/Index.tsx";
-import GeoGate from "./components/GeoGate.tsx";
+import InternationalGate from "./components/InternationalGate.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 // Everything else is lazy — each page becomes its own async chunk so the
@@ -131,6 +131,7 @@ const AdminAuthorClarifications = lazyRetry(() => import("./pages/admin/AdminAut
 
 const AdminHub = lazyRetry(() => import("./pages/admin/AdminHub"));
 const AdminMembers = lazyRetry(() => import("./pages/admin/AdminMembers"));
+const AdminInternational = lazyRetry(() => import("./pages/admin/AdminInternational"));
 const AdminMemberPassport = lazyRetry(() => import("./pages/admin/AdminMemberPassport"));
 const AdminSettings = lazyRetry(() => import("./pages/admin/AdminSettings"));
 const AdminProfessionals = lazyRetry(() => import("./pages/admin/AdminProfessionals"));
@@ -310,14 +311,15 @@ const App = () => (
 
                 <AccessRestrictedGate>
                 <BrandPaywallGate>
+                <InternationalGate>
                 <ConsentGate>
                 <RouteCrashGuard>
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
-              <Route path="/" element={<GeoGate><Index /></GeoGate>} />
+              <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Onboard><SetupGuide /></Onboard>} />
-              <Route path="/auth" element={<GeoGate><Auth /></GeoGate>} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/legal/:doc" element={<Legal />} />
@@ -411,7 +413,7 @@ const App = () => (
               <Route path="/data-protection-complaint" element={<DataProtectionComplaint />} />
 
               {/* Professional portal (Phase A/B — application + admin vetting) */}
-              <Route path="/pro/auth" element={<GeoGate><ProAuth /></GeoGate>} />
+              <Route path="/pro/auth" element={<ProAuth />} />
               <Route path="/pro/forgot-password" element={<ProForgotPassword />} />
               <Route path="/pro/reset-password" element={<ProResetPassword />} />
               <Route path="/pro/landing" element={<Protected><ProLanding /></Protected>} />
@@ -607,6 +609,7 @@ const App = () => (
 
 
               <Route path="/subscribe" element={<Protected><Subscribe /></Protected>} />
+              <Route path="/admin/international" element={<RoleGate allow={["admin"]}><AdminInternational /></RoleGate>} />
               <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
               <Route path="/admin/settings" element={<RoleGate allow={["admin"]}><AdminSettings /></RoleGate>} />
@@ -634,7 +637,7 @@ const App = () => (
              <Route path="/brands/:brandUserId/catalogue/:brandProductId" element={<Paid><BrandProductPage /></Paid>} />
 
               {/* Brand routes */}
-              <Route path="/brand/auth" element={<GeoGate><BrandAuth /></GeoGate>} />
+              <Route path="/brand/auth" element={<BrandAuth />} />
               <Route path="/brand/forgot-password" element={<BrandForgotPassword />} />
               <Route path="/brand/reset-password" element={<BrandResetPassword />} />
               <Route path="/brand/subscribe" element={<RoleGate allow={["brand", "admin"]}><BrandSubscribe /></RoleGate>} />
@@ -699,6 +702,7 @@ const App = () => (
                 </Suspense>
                 </RouteCrashGuard>
                 </ConsentGate>
+                </InternationalGate>
                 </BrandPaywallGate>
                 </AccessRestrictedGate>
 
