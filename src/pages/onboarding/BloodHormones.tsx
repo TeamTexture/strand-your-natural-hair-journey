@@ -84,40 +84,51 @@ const BloodHormones = () => {
             <SectionLabel>Other markers from your report</SectionLabel>
             <SurfaceCard>
               <p className="text-[11px] text-foreground/60 font-body mb-2">
-                These aren't tracked with a reference range in STRAND, but they'll
-                be saved with your panel so nothing is lost.
+                {unknown.length} marker{unknown.length === 1 ? "" : "s"} not tracked in STRAND's
+                panel — saved with your panel for your records.
               </p>
-              <div className="space-y-2">
-                {unknown.map((u, i) => (
-                  <div key={`${u.marker}-${i}`} className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-body font-medium truncate">{u.marker}</p>
-                      {u.unit && (
-                        <p className="text-[11px] text-foreground/60 font-body">{u.unit}</p>
-                      )}
+              <button
+                type="button"
+                onClick={() => setShowOther((v) => !v)}
+                className="flex items-center justify-between w-full text-sm font-body font-medium text-foreground/80 py-1"
+                aria-expanded={showOther}
+              >
+                <span>{showOther ? "Hide" : `Show ${unknown.length}`} other marker{unknown.length === 1 ? "" : "s"}</span>
+                <ChevronDown className={`size-4 transition-transform ${showOther ? "rotate-180" : ""}`} />
+              </button>
+              {showOther && (
+                <div className="space-y-2 mt-2">
+                  {unknown.map((u, i) => (
+                    <div key={`${u.marker}-${i}`} className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-body font-medium truncate">{u.marker}</p>
+                        {u.unit && (
+                          <p className="text-[11px] text-foreground/60 font-body">{u.unit}</p>
+                        )}
+                      </div>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={u.value === null || u.value === undefined ? "" : String(u.value)}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const next = [...unknown];
+                          next[i] = { ...u, value: raw === "" ? null : Number(raw) };
+                          setUnknown(next);
+                        }}
+                        className="h-8 w-24 text-right text-sm"
+                      />
+                      <button
+                        onClick={() => setUnknown(unknown.filter((_, idx) => idx !== i))}
+                        className="size-7 rounded-full hover:bg-muted flex items-center justify-center shrink-0"
+                        aria-label="Remove marker"
+                      >
+                        <X className="size-4" />
+                      </button>
                     </div>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={u.value === null || u.value === undefined ? "" : String(u.value)}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const next = [...unknown];
-                        next[i] = { ...u, value: raw === "" ? null : Number(raw) };
-                        setUnknown(next);
-                      }}
-                      className="h-8 w-24 text-right text-sm"
-                    />
-                    <button
-                      onClick={() => setUnknown(unknown.filter((_, idx) => idx !== i))}
-                      className="size-7 rounded-full hover:bg-muted flex items-center justify-center shrink-0"
-                      aria-label="Remove marker"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </SurfaceCard>
           </>
         )}
