@@ -369,13 +369,13 @@ const ProfileStep1 = () => {
 
     }
 
-    // Registration details are now on file. A member outside the UK is flagged
-    // here and shown the waiting-list splash instead of the rest of onboarding.
+    // Registration details are now on file. The declared country decides the
+    // branch: a UK member gets the "two steps left" email, a member outside the
+    // UK is flagged, added to the waiting list and emailed instead.
+    const checkBody = { declared_country: country, name: name.trim(), phone: trimmedPhone };
     if (!isUK) {
       try {
-        await supabase.functions.invoke("international-check", {
-          body: { declared_country: country, name: name.trim(), phone: trimmedPhone },
-        });
+        await supabase.functions.invoke("international-check", { body: checkBody });
       } catch (err) {
         console.error("[gate] declared-country check failed", err);
       }
@@ -384,8 +384,14 @@ const ProfileStep1 = () => {
       return;
     }
 
+    // UK: don't hold the member on this screen for the email — fire and go.
+    void supabase.functions
+      .invoke("international-check", { body: checkBody })
+      .catch((err) => console.error("[gate] declared-country check failed", err));
+
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
     navigate("/onboarding/profile-step-2");
+
   };
 
 

@@ -106,7 +106,42 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     () => ({ label: "Open your dashboard", path: "/brand/home" }),
   ),
 
+  // ------- Post-registration branch (personal details submitted) ---------
+  // Sent from `international-check`, once the declared country resolves.
+  "onboarding-next-steps": t(
+    "onboarding-next-steps",
+    "transactional",
+    true,
+    () => "Two things left before STRAND opens up",
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      "Thank you — your details are saved and your STRAND account is registered.",
+      "There are two steps left, and neither can be skipped: your hair characteristics, and your blood results. They are the whole reason STRAND can be specific with you rather than general.",
+      "Your hair characteristics tell us what your hair actually is — its pattern, its condition, how you wear it now. Your blood results tell us what is happening underneath. Together they decide every piece of guidance you are shown.",
+      "Pick up exactly where you left off whenever you have your report to hand. Nothing you have already entered is lost.",
+    ],
+    () => ({ label: "Finish setting up", path: "/onboarding/profile-step-2" }),
+    undefined,
+    { eyebrow: "Getting started" },
+  ),
+  "international-waitlist": t(
+    "international-waitlist",
+    "transactional",
+    true,
+    () => "You're on the STRAND waiting list",
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `Thank you for registering. STRAND is open to members in the United Kingdom for now, so we cannot open the app to you in ${s(d.country, "your country")} yet — and we would rather tell you that plainly than let you set up an account that could not serve you properly.`,
+      "The guidance leans on the products on the shelves near you, the professionals you could actually sit with, and the water coming out of your tap. Until all three are right for a country, opening it would mean giving you advice we could not stand behind.",
+      "You have been added to the waiting list, and your place is held. We will email you the moment STRAND is available where you are — you do not need to do anything else.",
+    ],
+    undefined,
+    undefined,
+    { eyebrow: "Waiting list", footerNote: "We will only email you about STRAND opening in your country." },
+  ),
+
   // ---------------- Professional onboarding ----------------
+
   "pro-application-received": t(
     "pro-application-received",
     "transactional",
