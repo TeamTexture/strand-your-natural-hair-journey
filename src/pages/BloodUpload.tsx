@@ -37,6 +37,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
+import { isResumeLocked, RESUME_PATH } from "@/lib/onboardingLock";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
@@ -605,7 +606,14 @@ export default function BloodUpload() {
                 size="pill"
                 className="w-full"
                 onClick={() =>
-                  navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true })
+                  navigate(
+                    isResumeLocked()
+                      ? RESUME_PATH
+                      : hasAccess
+                        ? POST_PAYMENT_ANALYSIS_PATH
+                        : getSubscribePath(),
+                    { replace: true },
+                  )
                 }
               >
                 Continue to Analysis →
