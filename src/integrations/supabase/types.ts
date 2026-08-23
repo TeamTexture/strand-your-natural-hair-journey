@@ -1970,28 +1970,40 @@ export type Database = {
       }
       country_waitlist: {
         Row: {
+          blocked_at: string | null
           country: string
           created_at: string
           email: string
           id: string
           ip_detected_country: string | null
+          klaviyo_error: string | null
+          klaviyo_synced_at: string | null
           name: string
+          user_id: string | null
         }
         Insert: {
+          blocked_at?: string | null
           country: string
           created_at?: string
           email: string
           id?: string
           ip_detected_country?: string | null
+          klaviyo_error?: string | null
+          klaviyo_synced_at?: string | null
           name: string
+          user_id?: string | null
         }
         Update: {
+          blocked_at?: string | null
           country?: string
           created_at?: string
           email?: string
           id?: string
           ip_detected_country?: string | null
+          klaviyo_error?: string | null
+          klaviyo_synced_at?: string | null
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4369,11 +4381,13 @@ export type Database = {
           deletion_requested_at: string | null
           dietary_sensitivities_confirmed_at: string | null
           display_name: string | null
+          geo_checked_at: string | null
           goals_prompt_seen_at: string | null
           hair_length_prompt_seen_at: string | null
           heritage: string[]
           home_tour_seen_at: string | null
           id: string
+          international_block: boolean
           onboarding_completed_at: string | null
           payment_required_at: string | null
           personalised_offers_consent: boolean
@@ -4402,11 +4416,13 @@ export type Database = {
           deletion_requested_at?: string | null
           dietary_sensitivities_confirmed_at?: string | null
           display_name?: string | null
+          geo_checked_at?: string | null
           goals_prompt_seen_at?: string | null
           hair_length_prompt_seen_at?: string | null
           heritage?: string[]
           home_tour_seen_at?: string | null
           id?: string
+          international_block?: boolean
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
@@ -4435,11 +4451,13 @@ export type Database = {
           deletion_requested_at?: string | null
           dietary_sensitivities_confirmed_at?: string | null
           display_name?: string | null
+          geo_checked_at?: string | null
           goals_prompt_seen_at?: string | null
           hair_length_prompt_seen_at?: string | null
           heritage?: string[]
           home_tour_seen_at?: string | null
           id?: string
+          international_block?: boolean
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
