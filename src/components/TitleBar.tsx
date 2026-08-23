@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
+import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
 import NotificationsBell from "@/components/NotificationsBell";
 
 interface Props {
@@ -39,6 +40,13 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
   }, [back, register, unregister]);
 
   const handleBack = () => {
+    // While the member is locked to the resume screen, back is pinned to it.
+    const pinned = pinnedBackTarget(location.pathname + location.search, null);
+    if (pinned === "") return;
+    if (pinned) {
+      navigate(RESUME_PATH, { replace: true });
+      return;
+    }
     if (onBack) onBack();
     else if (returnTo) navigate(returnTo, { replace: true });
     else safeBack(navigate, backFallback);
