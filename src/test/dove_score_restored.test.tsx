@@ -26,8 +26,9 @@ const DOVE_INCI = [
 ];
 
 const SULPHATE_SENSITIVITY = [
-  { name: "Sulphates (SLS/SLES)", severity: "avoid", scope: "topical" },
-] as never[];
+  { code: "sulphates", label: "Sulphates (SLS/SLES)", severity: "avoid" } as never,
+];
+
 
 describe("Dove shampoo score restored (row 56f565c9…)", () => {
   it("shelf card shows the stored 88% when no sensitivity is declared", () => {
