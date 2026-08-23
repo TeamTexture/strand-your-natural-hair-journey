@@ -601,6 +601,11 @@ Deno.serve(async (req: Request) => {
 
     if (capped) return capped;
 
+    // Workspace-wide automatic brake (see _shared/usage-cap.ts). Checked after
+    // the cache return above, so cache hits are never refused.
+    const ceiling = await checkGlobalCeiling("product-analyse");
+    if (ceiling) return ceiling;
+
     const ledgerBlock = buildAdviceLedgerBlock(ledgerRows);
 
 
