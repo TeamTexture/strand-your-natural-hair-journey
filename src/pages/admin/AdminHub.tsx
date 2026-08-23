@@ -105,7 +105,10 @@ const useAdminStats = () =>
           .from("brand_offers")
           .select("id, owner_type, status, starts_on, ends_on")
           .in("status", ["under_review", "approved_unpaid", "paid_scheduled", "live", "ended"]),
-        supabase.from("user_roles").select("user_id, role"),
+        fetchAllRows<{ user_id: string; role: string }>((from, to) =>
+          supabase.from("user_roles").select("user_id, role").range(from, to),
+        ),
+
       ]);
       // Members = consumer accounts only. Professional / brand / admin logins
       // live in their own admin panels and must never inflate the member count.
