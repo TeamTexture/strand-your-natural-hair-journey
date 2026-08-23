@@ -1,6 +1,5 @@
 import {
   getSubscribePath,
-  POST_PAYMENT_ANALYSIS_PATH,
 } from "@/lib/consumerOnboarding";
 
 export interface OnboardingCompletionStatus {
@@ -54,7 +53,7 @@ export function getOnboardingNextPath(
   hasAccess: boolean,
 ): string {
   if (status.dataComplete) {
-    return hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath();
+    return hasAccess ? "/home" : getSubscribePath();
   }
   return status.healthComplete ? "/onboarding/resume" : status.entryPath;
 }

@@ -6,8 +6,8 @@ import ProgressCheckFailed from "@/components/ProgressCheckFailed";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useRoles } from "@/hooks/useRoles";
-import { BRAND_ACCESS_PATH, getSubscribePath } from "@/lib/consumerOnboarding";
-import { getOnboardingRequirements } from "@/lib/onboardingDecision";
+import { BRAND_ACCESS_PATH } from "@/lib/consumerOnboarding";
+import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 interface Props {
   children: ReactNode;
@@ -101,7 +101,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     }
 
     if (!allowed.has(location.pathname)) {
-      return <Navigate to={status?.entryPath ?? "/onboarding/profile-step-1"} replace />;
+      return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
     }
   }
   // The blood-work screens are one multi-step form. Saving the first panel makes
@@ -121,7 +121,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   // A forced-payment flag must never interrupt data capture. It becomes a hard
   // paywall only after the full profile and blood-work flow is complete.
   if (status?.dataComplete && (paymentRequired || status.paymentDue) && !hasAccess && !inBloodFlow) {
-    return <Navigate to={getSubscribePath(status?.analysisPath)} replace />;
+    return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
   }
 
 

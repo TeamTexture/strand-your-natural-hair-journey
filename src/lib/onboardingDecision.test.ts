@@ -48,9 +48,9 @@ describe("onboarding completion matrix", () => {
     },
   );
 
-  it("sends a fully complete paid member to analysis", () => {
+  it("sends a fully complete paid member home", () => {
     expect(getOnboardingNextPath(statusFor(true, true, true), true)).toBe(
-      "/onboarding/blood-ai-summary",
+      "/home",
     );
   });
 
