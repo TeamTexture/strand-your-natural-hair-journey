@@ -120,6 +120,14 @@ export async function getConsumerOnboardingStatus(userId: string) {
   if (hairComplete) resumePath = "/onboarding/profile-step-4-colour";
   if (styleComplete) resumePath = "/onboarding/blood-timing";
 
+  // Where a RETURNING member should land. Once the health profile is in, the
+  // three remaining requirements (hair characteristics, consultation, blood
+  // work) are each done in their own time — two of them off-app — so she is
+  // offered all of the outstanding ones rather than dropped into one form.
+  const entryPath =
+    healthComplete && !dataComplete ? "/onboarding/resume" : resumePath;
+
+
   // Blood data on file is NOT a payment checkpoint on its own — members often
   // upload bloods before finishing their hair/style profile, and blocking them
   // there left them stranded mid-onboarding. Payment is only due once the whole
