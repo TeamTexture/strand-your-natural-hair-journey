@@ -113,12 +113,10 @@ const useAdminStats = () =>
       // Members = consumer accounts only. Professional / brand / admin logins
       // live in their own admin panels and must never inflate the member count.
       const privileged = new Set(
-        ((rolesQ.data ?? []) as Array<{ user_id: string; role: string }>)
-          .filter((r) => r.role !== "consumer")
-          .map((r) => r.user_id),
+        rolesQ.filter((r) => r.role !== "consumer").map((r) => r.user_id),
       );
-      const memberCount = ((profiles.data ?? []) as Array<{ user_id: string }>)
-        .filter((p) => !privileged.has(p.user_id)).length;
+      const memberCount = profiles.filter((p) => !privileged.has(p.user_id)).length;
+
       const offers = (allOffersQ.data ?? []) as {
         owner_type: string | null;
         status: string;
