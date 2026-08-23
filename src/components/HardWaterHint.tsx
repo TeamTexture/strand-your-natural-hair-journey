@@ -1,4 +1,4 @@
-import { Droplets, Users, Sparkles } from "lucide-react";
+import { Droplets, Users } from "lucide-react";
 import { lookupHardWater } from "@/lib/hardWater";
 import { cn } from "@/lib/utils";
 
@@ -11,8 +11,7 @@ interface Props {
  * Inline card revealed under postcode inputs.
  *
  * Top-level explanation of what the reading means for the hair, followed by
- * a nudge to speak to a professional and a teaser for the Hello Klean
- * member discount. Deliberately non-alarmist.
+ * a nudge to speak to a professional. Deliberately non-alarmist.
  */
 const HardWaterHint = ({ postcode, className }: Props) => {
   const res = lookupHardWater(postcode);
@@ -73,21 +72,6 @@ const HardWaterHint = ({ postcode, className }: Props) => {
                 Ask them how they'd like you to work around the water hardness in your area —
                 they know your hair, your routine and your history, and can guide you on what
                 to remedy first.
-              </p>
-            </div>
-          </div>
-
-          {/* Member perk teaser */}
-          <div className="rounded-[12px] border border-primary/40 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 flex gap-2.5 items-start">
-            <Sparkles className="size-4 shrink-0 mt-0.5 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[12.5px] font-semibold text-foreground leading-snug">
-                Member perk — Hello Klean shower filter
-              </p>
-              <p className="text-[11.5px] leading-snug text-foreground/80 font-body mt-1">
-                When you become a STRAND member you'll unlock a discount with Hello Klean —
-                a shower filter designed to soften your water at the tap, so every wash starts
-                on a cleaner slate.
               </p>
             </div>
           </div>
