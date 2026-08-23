@@ -110,30 +110,52 @@ const AdminMembers = () => {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "members"],
     queryFn: async (): Promise<MemberRow[]> => {
-      const [profilesRes, subsRes, emailsRes, activityRes, rolesRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id, display_name, complimentary_access, access_restricted, created_at")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("consumer_subscriptions")
-          .select("user_id, status, current_period_end, cancel_at_period_end, tier"),
+      // Paginated: a single select would stop at PostgREST's 1000-row cap (and
+      // profiles was additionally capped at 500), silently shrinking every
+      // member count on this screen once signups pass the cap.
+      const [profileRows, subRows, emailsRes, activityRes, roleRows] = await Promise.all([
+        fetchAllRows<{
+          user_id: string;
+          display_name: string | null;
+          complimentary_access?: boolean | null;
+          access_restricted?: boolean | null;
+          created_at: string;
+        }>((from, to) =>
+          supabase
+            .from("profiles")
+            .select("user_id, display_name, complimentary_access, access_restricted, created_at")
+            .order("created_at", { ascending: false })
+            .range(from, to),
+        ),
+        fetchAllRows<{
+          user_id: string;
+          status: string | null;
+          tier?: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean | null;
+        }>((from, to) =>
+          supabase
+            .from("consumer_subscriptions")
+            .select("user_id, status, current_period_end, cancel_at_period_end, tier")
+            .range(from, to),
+        ),
         supabase.rpc("admin_list_member_emails"),
         supabase.rpc("admin_list_member_activity"),
-        supabase.from("user_roles").select("user_id, role"),
+        // Roles decide who counts as a member vs a pro/brand/admin, so a
+        // truncated read here would mislabel accounts, not just undercount.
+        fetchAllRows<{ user_id: string; role: string }>((from, to) =>
+          supabase.from("user_roles").select("user_id, role").range(from, to),
+        ),
       ]);
-      if (profilesRes.error) throw profilesRes.error;
-      if (subsRes.error) throw subsRes.error;
       if (emailsRes.error) throw emailsRes.error;
       if (activityRes.error) throw activityRes.error;
-      if (rolesRes.error) throw rolesRes.error;
       const rolesByUser = new Map<string, string[]>();
-      ((rolesRes.data ?? []) as Array<{ user_id: string; role: string }>).forEach((r) => {
+      roleRows.forEach((r) => {
         const list = rolesByUser.get(r.user_id) ?? [];
         list.push(r.role);
         rolesByUser.set(r.user_id, list);
       });
+
 
       const subMap = new Map(
         (subsRes.data ?? []).map((s) => [
