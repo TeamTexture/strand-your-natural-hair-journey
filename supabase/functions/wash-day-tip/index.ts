@@ -278,6 +278,26 @@ Deno.serve(async (req) => {
     return json(200, { tip: cachedPayload, cached: true });
   }
 
+  /**
+   * LAST-GOOD FALLBACK — when a fresh generation fails, serve the tip she
+   * already has (real, guardrail-passed output) marked `stale: true` rather than
+   * dead-ending her with a 502. Nothing static or invented is ever returned; if
+   * there is no good cached tip we answer honestly with a 503.
+   */
+  const lastGoodOr503 = (reason: string): Response => {
+    console.error(`[wash-day-tip] generation failed (${reason})`);
+    if (
+      cachedPayload &&
+      cachedPayload._model_version === MODEL_VERSION &&
+      hasSubstance(cachedPayload)
+    ) {
+      return json(200, { tip: cachedPayload, cached: true, stale: true });
+    }
+    return json(503, { error: "guidance_unavailable" });
+  };
+
+
+
 
 
   // Build a compact context blob for the model. Style first — the tip must
