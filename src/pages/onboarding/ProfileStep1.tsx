@@ -374,10 +374,10 @@ const ProfileStep1 = () => {
     if (!isUK) {
       try {
         await supabase.functions.invoke("international-check", {
-          body: { declared_country: country },
+          body: { declared_country: country, name: name.trim(), phone: trimmedPhone },
         });
       } catch (err) {
-        console.error("[geo] declared-country check failed", err);
+        console.error("[gate] declared-country check failed", err);
       }
       await queryClient.invalidateQueries({ queryKey: ["international-block", user?.id] });
       navigate("/home", { replace: true });
