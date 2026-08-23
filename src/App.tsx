@@ -59,6 +59,7 @@ const ProDetails = lazyRetry(() => import("./pages/onboarding/ProDetails"));
 const ProfileStep3Hair = lazyRetry(() => import("./pages/onboarding/ProfileStep3Hair"));
 const ProfileStep4Colour = lazyRetry(() => import("./pages/onboarding/ProfileStep4Colour"));
 const BloodTiming = lazyRetry(() => import("./pages/onboarding/BloodTiming"));
+const ResumeOnboarding = lazyRetry(() => import("./pages/onboarding/ResumeOnboarding"));
 const BloodIronVitamins = lazyRetry(() => import("./pages/onboarding/BloodIronVitamins"));
 const BloodMinerals = lazyRetry(() => import("./pages/onboarding/BloodMinerals"));
 const BloodThyroid = lazyRetry(() => import("./pages/onboarding/BloodThyroid"));
@@ -334,6 +335,7 @@ const App = () => (
               <Route path="/onboarding/pro-details" element={<Onboard><ProDetails /></Onboard>} />
               <Route path="/onboarding/profile-step-3-hair" element={<Onboard><ProfileStep3Hair /></Onboard>} />
               <Route path="/onboarding/profile-step-4-colour" element={<Onboard><ProfileStep4Colour /></Onboard>} />
+              <Route path="/onboarding/resume" element={<Onboard><ResumeOnboarding /></Onboard>} />
               <Route path="/onboarding/blood-timing" element={<Onboard><BloodTiming /></Onboard>} />
               <Route path="/onboarding/blood-iron-vitamins" element={<Onboard><BloodIronVitamins /></Onboard>} />
               <Route path="/onboarding/blood-minerals" element={<Onboard><BloodMinerals /></Onboard>} />

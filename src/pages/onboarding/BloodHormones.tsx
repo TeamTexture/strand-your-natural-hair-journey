@@ -13,6 +13,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
+import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
 import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
@@ -32,6 +33,8 @@ const MARKERS = [
 const BloodHormones = () => {
   const navigate = useNavigate();
   const { values, setValue } = useBloodValues();
+  // Auto-saved draft: restore across sessions/devices and remember this screen.
+  useBloodDraftResume("/onboarding/blood-hormones");
   const { unknown, setUnknown } = useUnknownMarkers();
   const { hasAccess } = useConsumerSubscription();
   const invalidateOnboardingStatus = useInvalidateOnboardingStatus();
