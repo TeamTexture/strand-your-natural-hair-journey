@@ -143,6 +143,15 @@
     font-family: 'Playfair Display', Georgia, serif;
   }
 
+  /* Native-app feel: hide all visible scrollbars without disabling scroll. */
+  * {
+    scrollbar-width: none;            /* Firefox */
+    -ms-overflow-style: none;          /* older Edge / IE */
+  }
+  *::-webkit-scrollbar {
+    display: none;                     /* Chrome / Safari / WebKit */
+  }
+
   /* UI chrome (labels, buttons, tags, nav) shouldn't be selectable.
    * Re-enable selection inside content surfaces with .selectable. */
   button, label, nav, [role="tab"], [role="button"] {
