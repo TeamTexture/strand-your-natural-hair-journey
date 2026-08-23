@@ -60,9 +60,14 @@ const ResumeOnboarding = () => {
 
   if (!status) return <LoadingDot />;
 
-  const hairPath = status.hairComplete
-    ? "/onboarding/profile-step-4-colour"
-    : "/onboarding/profile-step-3-hair";
+  // The clinical markers come FROM the consultation, so who she saw and when has
+  // to be logged before the markers form is ever reached. Jumping straight to the
+  // markers screen skipped the most important part of this flow.
+  const hairPath = !status.consultationComplete
+    ? "/onboarding/pro-details"
+    : status.hairComplete
+      ? "/onboarding/profile-step-4-colour"
+      : "/onboarding/profile-step-3-hair";
 
   const bloodPath = (() => {
     const allowed = new Set([
@@ -174,9 +179,11 @@ const ResumeOnboarding = () => {
                   Ready to add your hair characteristics?
                 </p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
-                  {status.hairComplete
-                    ? "Your clinical markers are saved. Colour and styling history is the last part."
-                    : "The clinical markers from your consultation — diameter, density, porosity, elasticity and your scalp."}
+                  {!status.consultationComplete
+                    ? "First, log who you saw and when — your clinical markers come from that consultation."
+                    : status.hairComplete
+                      ? "Your clinical markers are saved. Colour and styling history is the last part."
+                      : "The clinical markers from your consultation — diameter, density, porosity, elasticity and your scalp."}
                 </p>
               </div>
             </div>

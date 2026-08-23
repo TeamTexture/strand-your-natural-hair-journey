@@ -87,6 +87,17 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     }
 
 
+    // The clinical markers are read off the consultation, so who she saw and when
+    // must be logged first. Deep links, saved drafts and resume buttons all pass
+    // through here, so the ordering is enforced in one place.
+    const consultationFirst = new Set([
+      "/onboarding/profile-step-3-hair",
+      "/onboarding/profile-step-4-colour",
+    ]);
+    if (!status?.consultationComplete && consultationFirst.has(location.pathname)) {
+      return <Navigate to="/onboarding/pro-details" replace />;
+    }
+
     if (!allowed.has(location.pathname)) {
       return <Navigate to={status?.entryPath ?? "/onboarding/profile-step-1"} replace />;
     }
