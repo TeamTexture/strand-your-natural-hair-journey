@@ -63,7 +63,6 @@ const ResumeOnboarding = () => {
     : "/onboarding/profile-step-3-hair";
 
   const bloodPath = (() => {
-    if (!status.styleComplete) return "/onboarding/blood-timing";
     const allowed = new Set([
       "/blood-upload",
       "/onboarding/blood-iron-vitamins",
@@ -76,6 +75,7 @@ const ResumeOnboarding = () => {
     }
     return "/onboarding/blood-timing";
   })();
+
 
   const startedBlood = !!bloodResume;
 
