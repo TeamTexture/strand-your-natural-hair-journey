@@ -74,6 +74,41 @@ const ResumeOnboarding = () => {
           in from. Carry on whenever you're ready.
         </ItalicSub>
 
+        {consultationOutstanding && (
+          <SurfaceCard>
+            <div className="flex items-start gap-3">
+              <Stethoscope className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold">
+                  Ready to book a professional consultation?
+                </p>
+                <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
+                  Your hair characteristics come from a trichologist, dermatologist or curl
+                  specialist. Book with a vetted professional, then log who you saw and when.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/directory?consultation=1")}
+              >
+                Find a professional →
+              </Button>
+              <Button
+                variant="outline"
+                size="pill"
+                className="w-full"
+                onClick={() => navigate("/onboarding/pro-details")}
+              >
+                I've already had one — add the details
+              </Button>
+            </div>
+          </SurfaceCard>
+        )}
+
         {hairOutstanding && (
           <SurfaceCard>
             <div className="flex items-start gap-3">
