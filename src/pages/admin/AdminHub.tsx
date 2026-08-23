@@ -24,6 +24,7 @@ import {
   FlaskConical,
   PackageCheck,
   ClipboardList,
+  Globe,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -88,13 +89,14 @@ const useAdminStats = () =>
         // Paginated: the member count is derived by filtering these rows, so a
         // truncated read would silently under-report members as signups grow.
         fetchAllRows<{ user_id: string }>((from, to) =>
-          supabase.from("profiles").select("user_id").range(from, to),
+          supabase.from("profiles").select("user_id").eq("international_block", false).range(from, to),
         ),
 
         supabase
           .from("profiles")
           .select("user_id", { count: "exact", head: true })
-          .eq("complimentary_access", true),
+          .eq("complimentary_access", true)
+          .eq("international_block", false),
         supabase
           .from("pro_passport_views")
           .select("id", { count: "exact", head: true })
@@ -544,6 +546,13 @@ const AdminHub = () => {
                 : undefined
             }
             onClick={() => nav("/admin/members")}
+          />
+
+          <NavCard
+            icon={Globe}
+            title="International"
+            description="Registrations blocked outside the UK"
+            onClick={() => nav("/admin/international")}
           />
 
 
