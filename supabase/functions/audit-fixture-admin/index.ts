@@ -26,10 +26,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  // Only callable with the service role key (never from a browser session).
-  const auth = req.headers.get("Authorization") ?? "";
+  // Only callable with the one-time fixture token (never from a browser
+  // session). The secret is deleted along with this function.
+  const token = req.headers.get("x-fixture-token") ?? "";
+  const expected = Deno.env.get("AUDIT_FIXTURE_TOKEN") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!serviceKey || auth !== `Bearer ${serviceKey}`) {
+  if (!expected || !serviceKey || token !== expected) {
     return json(401, { error: "unauthenticated" });
   }
 
