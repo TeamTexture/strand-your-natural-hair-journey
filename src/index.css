@@ -206,3 +206,35 @@
   .strand-hscroll::-webkit-scrollbar { display: none; }
 
 }
+
+/* ---------------------------------------------------------------------------
+ * Global scrollbar suppression — deliberately OUTSIDE @layer so no Tailwind
+ * layer, component style or vendor stylesheet can outrank it. Covers every
+ * element that can scroll (html/body, inner overflow containers, dialogs,
+ * sheets, textareas, selects, code blocks) plus every WebKit scrollbar part.
+ * Scrolling itself is untouched — only the visual bar is hidden.
+ * ------------------------------------------------------------------------- */
+html,
+body,
+*,
+*::before,
+*::after {
+  scrollbar-width: none !important;   /* Firefox */
+  -ms-overflow-style: none !important; /* legacy Edge / IE */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar,
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-button,
+textarea::-webkit-scrollbar,
+select::-webkit-scrollbar,
+pre::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
