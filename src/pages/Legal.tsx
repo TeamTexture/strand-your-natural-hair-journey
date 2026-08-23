@@ -1,4 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { safeBack } from "@/lib/smartBack";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
