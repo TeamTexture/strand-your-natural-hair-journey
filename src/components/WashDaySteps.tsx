@@ -2,6 +2,7 @@
 // manuscript-grounded pipeline — never static copy, so there is no fallback
 // text when generation fails.
 
+import { useEffect, useRef } from "react";
 import { Droplets, RefreshCw } from "lucide-react";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import StepSequence from "@/components/guidance/StepSequence";
