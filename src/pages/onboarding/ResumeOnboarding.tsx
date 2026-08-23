@@ -11,7 +11,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
-import { getSubscribePath } from "@/lib/consumerOnboarding";
+import { getSubscribePath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
 
 /**
  * Pick-up-where-you-left-off screen.
@@ -45,7 +45,9 @@ const ResumeOnboarding = () => {
     if (!hairOutstanding && !bloodOutstanding && !consultationOutstanding) {
       clearResumeLock();
       if (subLoading) return;
-      navigate(hasAccess ? "/home" : getSubscribePath(), { replace: true });
+      // Reuse the SAME target the linear onboarding flow uses immediately after
+      // blood work is saved (see BloodHormones) — nothing bespoke here.
+      navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
       return;
     }
     // Something still outstanding — pin back navigation to this screen for the
@@ -63,7 +65,6 @@ const ResumeOnboarding = () => {
     : "/onboarding/profile-step-3-hair";
 
   const bloodPath = (() => {
-    if (!status.styleComplete) return "/onboarding/blood-timing";
     const allowed = new Set([
       "/blood-upload",
       "/onboarding/blood-iron-vitamins",
@@ -77,11 +78,12 @@ const ResumeOnboarding = () => {
     return "/onboarding/blood-timing";
   })();
 
+
   const startedBlood = !!bloodResume;
 
   // Something already done: shown greyed out so she can see it landed, with the
   // outstanding pieces still listed below.
-  const DoneCard = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
+  const DoneCard = ({ icon, title, note }: { icon: React.ReactNode; title: string; note?: string }) => (
     <SurfaceCard className="opacity-60">
       <div className="flex items-start gap-3">
         <span className="mt-1 shrink-0 text-muted-foreground" aria-hidden="true">{icon}</span>
@@ -90,6 +92,9 @@ const ResumeOnboarding = () => {
           <p className="text-xs text-muted-foreground font-body mt-1 leading-snug inline-flex items-center gap-1">
             <Check className="size-3" aria-hidden="true" /> Added — nothing more to do here.
           </p>
+          {note && (
+            <p className="text-xs text-muted-foreground font-body mt-1 leading-snug">{note}</p>
+          )}
         </div>
       </div>
     </SurfaceCard>
@@ -107,8 +112,21 @@ const ResumeOnboarding = () => {
         {!consultationOutstanding && (
           <DoneCard icon={<Stethoscope className="size-4" />} title="Professional consultation" />
         )}
-        {!bloodOutstanding && <DoneCard icon={<Droplets className="size-4" />} title="Blood work" />}
-        {!hairOutstanding && <DoneCard icon={<Scissors className="size-4" />} title="Hair characteristics" />}
+        {!bloodOutstanding && (
+          <DoneCard
+            icon={<Droplets className="size-4" />}
+            title="Blood work"
+            note={hairOutstanding ? "Your hair characteristics are still to add." : undefined}
+          />
+        )}
+        {!hairOutstanding && (
+          <DoneCard
+            icon={<Scissors className="size-4" />}
+            title="Hair characteristics"
+            note={bloodOutstanding ? "Your blood work is still to add." : undefined}
+          />
+        )}
+
 
 
 
@@ -193,15 +211,10 @@ const ResumeOnboarding = () => {
               size="pill"
               className="w-full mt-3 whitespace-normal break-words leading-tight"
               onClick={() => navigate(bloodPath)}
-              disabled={!status.styleComplete && !hairOutstanding}
             >
               {startedBlood ? "Continue my blood results →" : "Add my blood results →"}
             </Button>
-            {!status.styleComplete && (
-              <p className="text-[11px] font-body text-foreground/70 mt-2 leading-snug">
-                Your hair characteristics come first — your results are read against them.
-              </p>
-            )}
+
           </SurfaceCard>
         )}
 
