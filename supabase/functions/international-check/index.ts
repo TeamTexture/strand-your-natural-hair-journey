@@ -27,6 +27,11 @@ const HEADER_CANDIDATES = [
 ];
 const IP_HEADERS = ["x-forwarded-for", "x-real-ip", "cf-connecting-ip", "fly-client-ip"];
 const UK_CODES = new Set(["GB", "UK", "GG", "JE", "IM"]);
+/** Country names (lower-cased) that count as the UK when the member declares one. */
+const UK_NAMES = new Set([
+  "united kingdom", "uk", "great britain", "england", "scotland", "wales",
+  "northern ireland", "guernsey", "jersey", "isle of man",
+]);
 
 const clientIp = (req: Request): string | null => {
   for (const h of IP_HEADERS) {
