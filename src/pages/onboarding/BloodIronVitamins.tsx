@@ -11,6 +11,7 @@ import BloodSummaryBar from "@/components/BloodSummaryBar";
 import { Button } from "@/components/ui/button";
 import { useBloodValues, persistBloodValues } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
+import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
 
 const IRON = ["Ferritin", "Serum Iron", "TIBC", "Transferrin Saturation"];
 const VITS = ["Vitamin D", "Vitamin B12", "Folate", "Vitamin A", "Vitamin E", "Biotin"];
@@ -19,6 +20,8 @@ const ALL = [...IRON, ...VITS];
 const BloodIronVitamins = () => {
   const navigate = useNavigate();
   const { values, setValue } = useBloodValues();
+  // Auto-saved draft: restore across sessions/devices and remember this screen.
+  useBloodDraftResume("/onboarding/blood-iron-vitamins");
 
   const onContinue = async () => {
     const res = await persistBloodValues();

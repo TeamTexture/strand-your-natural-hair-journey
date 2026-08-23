@@ -8,6 +8,7 @@ import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriang
 
 import ScreenLayout from "@/components/ScreenLayout";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
+import { hydrateBloodDraft, setBloodDraftStep } from "@/hooks/useBloodValues";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
@@ -190,6 +191,14 @@ export default function BloodUpload() {
     }
   };
 
+
+  // Onboarding upload is part of the resumable blood flow: remember it as the
+  // place to come back to, and restore any draft saved on another device.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("onboarding") !== "1") return;
+    void hydrateBloodDraft().finally(() => setBloodDraftStep("/blood-upload"));
+  }, []);
 
   useEffect(() => {
     if (!user || !panelDate) { setDuplicatePanel(null); return; }

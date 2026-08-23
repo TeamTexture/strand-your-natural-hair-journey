@@ -57,7 +57,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   if (!status?.dataComplete) {
     const allowed = new Set(["/onboarding/profile-step-1"]);
     if (status?.basicComplete) allowed.add("/onboarding/profile-step-2");
+    // The pick-up-where-you-left-off prompt is reachable from the moment the
+    // hair/blood section opens, so a returning member can always get back in.
     if (status?.healthComplete) {
+      allowed.add("/onboarding/resume");
       // Supplements sit between the health profile and the pro gate. Leaving
       // this path out of the allow-list bounced every new member straight past
       // the step, so supplements were never captured during onboarding.
@@ -119,6 +122,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     "/onboarding/pro-details",
     "/onboarding/profile-step-3-hair",
     "/onboarding/profile-step-4-colour",
+    "/onboarding/resume",
     "/onboarding/blood-timing",
     "/blood-upload",
     "/onboarding/blood-iron-vitamins",

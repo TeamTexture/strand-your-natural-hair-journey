@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  clearLocalDraftTimes,
+  deleteAllRemoteDrafts,
+  loadRemoteDraft,
+  readLocalDraftTime,
+  saveRemoteDraft,
+  writeLocalDraftTime,
+  type DraftPayload,
+} from "@/lib/onboardingDraftStore";
 
 /**
- * Keeps a single onboarding step's form state alive across navigation.
+ * Keeps a single onboarding step's form state alive across navigation,
+ * sessions AND devices.
  *
  * Onboarding steps only wrote to Postgres on "Continue", so a member who
  * filled a step and tapped back lost everything they had typed. This hook
  * mirrors the live form state into localStorage (`strand_draft_*`, so it is
- * purged on sign-out with the rest of the user-scoped keys) and restores it
- * when the step is mounted again.
+ * purged on sign-out with the rest of the user-scoped keys) for instant
+ * hydration, and into `public.onboarding_drafts` so the same part-finished
+ * answers come back on another device or weeks later.
  *
  * Usage:
  *   useOnboardingDraft("pro-details", { name, type, notes }, (d) => {
@@ -28,27 +39,54 @@ export function useOnboardingDraft<T extends Record<string, unknown>>(
   restoreRef.current = restore;
 
   useEffect(() => {
+    let cancelled = false;
+    let localTime = 0;
+
+    // 1. Local cache first, synchronously, so the step never renders empty
+    //    while a network read is in flight.
     try {
       const raw = localStorage.getItem(onboardingDraftKey(key));
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
           restoreRef.current(parsed as Partial<T>);
+          localTime = readLocalDraftTime(key);
         }
       }
     } catch {
       /* ignore corrupt drafts */
     }
     setHydrated(true);
+
+    // 2. Then the durable copy. It only wins when this device has nothing
+    //    cached or was written earlier than the saved answers elsewhere.
+    void loadRemoteDraft(key).then((remote) => {
+      if (cancelled || !remote) return;
+      if (localTime && remote.updatedAt <= localTime) return;
+      restoreRef.current(remote.payload as Partial<T>);
+      try {
+        localStorage.setItem(onboardingDraftKey(key), JSON.stringify(remote.payload));
+      } catch {
+        /* quota / private mode */
+      }
+      writeLocalDraftTime(key, new Date(remote.updatedAt || Date.now()).toISOString());
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [key]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
       localStorage.setItem(onboardingDraftKey(key), JSON.stringify(values));
+      writeLocalDraftTime(key);
     } catch {
       /* quota / private mode */
     }
+    // Every answered field persists on its own — no explicit "save" action.
+    saveRemoteDraft(key, values as DraftPayload);
   }, [hydrated, key, values]);
 }
 
@@ -65,4 +103,6 @@ export function clearOnboardingDrafts(): void {
   } catch {
     /* ignore */
   }
+  clearLocalDraftTimes();
+  void deleteAllRemoteDrafts();
 }
