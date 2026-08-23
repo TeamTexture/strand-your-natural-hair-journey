@@ -443,7 +443,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   } catch (err) {
     console.error("[wash-day-tip] gateway fetch failed:", err);
     failOutcome("gateway_unreachable");
-    return json(502, { error: "ai gateway unreachable" });
+    return lastGoodOr503("gateway unreachable");
   }
   if (!aiResp.ok) {
     const text = await aiResp.text().catch(() => "");
@@ -451,7 +451,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     failOutcome(`gateway_${aiResp.status}`);
     if (aiResp.status === 429) return json(429, { error: "rate_limited" });
     if (aiResp.status === 402) return json(402, { error: "credits_exhausted" });
-    return json(502, { error: "ai gateway error" });
+    return lastGoodOr503(`gateway status ${aiResp.status}`);
   }
 
 
@@ -645,7 +645,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   if (!isUsable(parsed)) {
     console.error("[wash-day-tip] unusable model output:", raw.slice(0, 500));
     failOutcome("unusable_model_output");
-    return json(502, { error: "invalid model output" });
+    return lastGoodOr503("unusable model output");
   }
 
   // ── GRACEFUL DEGRADATION ─────────────────────────────────────────────
