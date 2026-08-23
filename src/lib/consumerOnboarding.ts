@@ -11,7 +11,7 @@ export const isSafeInternalPath = (path: string | null | undefined): path is str
   !!path && path.startsWith("/") && !path.startsWith("//");
 
 export async function getConsumerOnboardingStatus(userId: string) {
-  const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes] = await Promise.all([
+  const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes, proRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("onboarding_completed_at, avatar_url, display_name, phone_number, birth_year, postcode, country")
