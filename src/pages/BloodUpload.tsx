@@ -538,6 +538,13 @@ export default function BloodUpload() {
         // a second six-table progress read here caused slow/tablet connections
         // to bounce members back into onboarding instead of reaching payment.
         void invalidateOnboardingStatus();
+        // Blood work alone never unlocks the app: while other required pieces
+        // are outstanding, go back to the resume screen, which decides whether
+        // to move on to payment.
+        if (isResumeLocked()) {
+          navigate(RESUME_PATH, { replace: true });
+          return;
+        }
         navigate(hasAccess ? POST_PAYMENT_ANALYSIS_PATH : getSubscribePath(), { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
