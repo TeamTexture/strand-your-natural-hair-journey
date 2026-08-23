@@ -19,7 +19,7 @@ const PassportPreview = () => {
   if (loading || !user) {
     return (
       <ScreenLayout>
-        <TitleBar title="Passport preview" onBack={() => nav("/home")} />
+        <TitleBar title="Passport preview" onBack={smartBack(nav, "/profile/passport-visibility")} />
         <LoadingDot label="Loading preview…" fullScreen={false} />
       </ScreenLayout>
     );
