@@ -24,7 +24,17 @@ const UK_NAMES = new Set([
   "wales", "northern ireland", "guernsey", "jersey", "isle of man",
 ]);
 
-/** Add the blocked account to the international Klaviyo list only. */
+/**
+ * Add the blocked account to the international Klaviyo list only.
+ *
+ * Two calls, in this order, because Klaviyo's subscription bulk-create job
+ * REJECTS a `properties` object on the profile ("'properties' is not a valid
+ * field for the resource 'profile'", HTTP 400) — the earlier single-call version
+ * failed every time for exactly that reason:
+ *   1. POST /api/profile-import  — upserts the profile with name + custom props,
+ *   2. POST /api/profile-subscription-bulk-create-jobs — subscribes it to U69M2Q.
+ * Returns null on success, or a human-readable error string (never throws).
+ */
 async function pushToKlaviyo(
   name: string,
   email: string,
@@ -33,40 +43,63 @@ async function pushToKlaviyo(
 ): Promise<string | null> {
   const key = Deno.env.get("KLAVIYO_API_KEY");
   if (!key) return "KLAVIYO_API_KEY missing";
+  const headers = {
+    Authorization: `Klaviyo-API-Key ${key}`,
+    revision: "2024-10-15",
+    "content-type": "application/json",
+  };
+
   const properties: Record<string, string> = {
-    first_name: name,
     strand_country: country,
     strand_status: "international_waitlist",
   };
   if (phone) properties.strand_mobile = phone;
+
+  const profileAttributes: Record<string, unknown> = { email, properties };
+  if (name) profileAttributes.first_name = name;
+  // Klaviyo only accepts E.164 in phone_number; anything else 400s the whole
+  // call, so a local-format mobile stays in strand_mobile instead.
+  if (phone && /^\+[1-9]\d{6,14}$/.test(phone.replace(/[\s()-]/g, ""))) {
+    profileAttributes.phone_number = phone.replace(/[\s()-]/g, "");
+  }
+
   try {
-    const res = await fetch("https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs", {
+    const importRes = await fetch("https://a.klaviyo.com/api/profile-import", {
       method: "POST",
-      headers: {
-        Authorization: `Klaviyo-API-Key ${key}`,
-        revision: "2024-10-15",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        data: {
-          type: "profile-subscription-bulk-create-job",
-          attributes: {
-            profiles: {
-              data: [{
-                type: "profile",
-                attributes: {
-                  email,
-                  properties,
-                  subscriptions: { email: { marketing: { consent: "SUBSCRIBED" } } },
-                },
-              }],
-            },
-          },
-          relationships: { list: { data: { type: "list", id: KLAVIYO_LIST_ID } } },
-        },
-      }),
+      headers,
+      body: JSON.stringify({ data: { type: "profile", attributes: profileAttributes } }),
     });
-    if (!res.ok) return `klaviyo ${res.status}: ${(await res.text()).slice(0, 400)}`;
+    if (!importRes.ok) {
+      return `klaviyo profile-import ${importRes.status}: ${(await importRes.text()).slice(0, 400)}`;
+    }
+
+    const subRes = await fetch(
+      "https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs",
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          data: {
+            type: "profile-subscription-bulk-create-job",
+            attributes: {
+              profiles: {
+                data: [{
+                  type: "profile",
+                  attributes: {
+                    email,
+                    subscriptions: { email: { marketing: { consent: "SUBSCRIBED" } } },
+                  },
+                }],
+              },
+            },
+            relationships: { list: { data: { type: "list", id: KLAVIYO_LIST_ID } } },
+          },
+        }),
+      },
+    );
+    if (!subRes.ok) {
+      return `klaviyo subscribe ${subRes.status}: ${(await subRes.text()).slice(0, 400)}`;
+    }
     return null;
   } catch (e) {
     return e instanceof Error ? e.message : "klaviyo push failed";
@@ -153,7 +186,14 @@ Deno.serve(async (req) => {
     ? await pushToKlaviyo(name, email, phone, declared)
     : "no email on account";
 
-  await admin.from("country_waitlist").upsert({
+  if (klaviyoError) {
+    // Never silent: a failed list push is a real operational problem.
+    console.error("[gate] klaviyo push failed", { user_id: user.id, country: declared, error: klaviyoError });
+  } else {
+    console.log("[gate] klaviyo push ok", { user_id: user.id, country: declared, list: KLAVIYO_LIST_ID });
+  }
+
+  const { error: waitlistError } = await admin.from("country_waitlist").upsert({
     user_id: user.id,
     name,
     email,
@@ -164,6 +204,9 @@ Deno.serve(async (req) => {
     klaviyo_synced_at: klaviyoError ? null : new Date().toISOString(),
     klaviyo_error: klaviyoError,
   }, { onConflict: "user_id" });
+  if (waitlistError) {
+    console.error("[gate] country_waitlist upsert failed", { user_id: user.id, error: waitlistError.message });
+  }
 
   // Blocked member: honest waiting-list note, not a cold rejection.
   if (email) {
