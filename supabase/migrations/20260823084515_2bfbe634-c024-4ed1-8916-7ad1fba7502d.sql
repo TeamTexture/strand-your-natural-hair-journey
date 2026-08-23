@@ -1,0 +1,1 @@
+UPDATE public.pro_profiles SET is_published = false WHERE id = 'feed2598-28ef-43d5-9c7a-c3de485a06a0';
