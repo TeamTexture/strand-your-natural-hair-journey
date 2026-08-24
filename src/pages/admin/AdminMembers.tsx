@@ -391,6 +391,33 @@ const AdminMembers = () => {
     return list;
   }, [incompleteRows, q, sort]);
 
+  /** Cancels and clears membership billing rows left behind by deleted accounts. */
+  const reconcile = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke(
+        "admin-reconcile-consumer-subs",
+        { body: {} },
+      );
+      if (error) throw error;
+      return data as { orphans: number; results: { cancelled: boolean }[] };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      qc.invalidateQueries({ queryKey: ["admin", "hub", "stats"] });
+      const cancelled = (data?.results ?? []).filter((r) => r.cancelled).length;
+      toast.success(
+        data?.orphans
+          ? `Cleared ${data.orphans} leftover membership record${data.orphans === 1 ? "" : "s"}${
+              cancelled ? `, cancelling ${cancelled} still-live Stripe subscription${cancelled === 1 ? "" : "s"}` : ""
+            }.`
+          : "Nothing to clean up — every membership record belongs to a live account.",
+      );
+    },
+    onError: (err) => {
+      toast.error((err as Error).message ?? "Could not run the clean-up");
+    },
+  });
+
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All", count: rows.length },
     {
@@ -420,6 +447,20 @@ const AdminMembers = () => {
             className="pl-9"
           />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2.5 w-full h-8 rounded-pill text-[11px] font-body whitespace-nowrap"
+          disabled={reconcile.isPending}
+          onClick={() => reconcile.mutate()}
+        >
+          {reconcile.isPending ? (
+            <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
+          )}
+          Clean up billing for deleted accounts
+        </Button>
       </div>
 
       <div className="border-b border-primary/10">
