@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useGoals } from "@/hooks/useGoals";
 import { useChallenges } from "@/hooks/useChallenges";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
-import { TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
+import { setTourActive, TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
 
 /**
  * FIRST-RUN SEQUENCE — runs immediately after the guided tour, in this order:
@@ -70,6 +70,12 @@ const FirstRunSequence = () => {
   useEffect(() => {
     if (showProduct) productNudge.markSeen();
   }, [showProduct, productNudge]);
+
+  // The mandatory gate owns the screen: other first-run dialogs stand down.
+  useEffect(() => {
+    setTourActive(showGoalsGate);
+    return () => setTourActive(false);
+  }, [showGoalsGate]);
 
   if (showGoalsGate) {
     return (
