@@ -140,7 +140,7 @@ const Subscribe = () => {
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
   const [activationStuck, setActivationStuck] = useState(false);
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     if (isSafeInternalPath(nextPath)) {
@@ -522,6 +522,26 @@ const Subscribe = () => {
           Payments processed securely by Stripe. Your data is never deleted if your
           membership lapses — access is restored the moment you resubscribe.
         </p>
+
+        {/* Escape hatches — nobody is ever trapped on the paywall. */}
+        {!hasAccess && (
+          <div className="flex items-center justify-center gap-4 pt-1">
+            <button
+              type="button"
+              onClick={() => nav("/profile")}
+              className="text-[12px] font-body font-semibold text-foreground/70 underline underline-offset-2"
+            >
+              Back to my profile
+            </button>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="text-[12px] font-body font-semibold text-foreground/70 underline underline-offset-2"
+            >
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </ScreenLayout>
   );
