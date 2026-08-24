@@ -48,10 +48,9 @@ import {
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
 import BrandLink from "@/components/BrandLink";
-import HomeTour from "@/components/HomeTour";
 import GoalEditorSheet from "@/components/GoalEditorSheet";
 import ChallengesEditorSheet from "@/components/journal/ChallengesEditorSheet";
-import GoalsChallengesPrompt from "@/components/GoalsChallengesPrompt";
+import FirstRunSequence from "@/components/firstrun/FirstRunSequence";
 import { useChallenges } from "@/hooks/useChallenges";
 import AppointmentFollowUpDialog from "@/components/AppointmentFollowUpDialog";
 import HelloKleanDialog from "@/components/HelloKleanDialog";
@@ -1173,11 +1172,7 @@ const Home = () => {
         goal={goal}
       />
       <ChallengesEditorSheet open={challengesOpen} onOpenChange={setChallengesOpen} />
-      <GoalsChallengesPrompt
-        onAddGoal={() => setGoalEditorOpen(true)}
-        onAddChallenges={() => setChallengesOpen(true)}
-      />
-      <HomeTour />
+      <FirstRunSequence />
       <AppointmentFollowUpDialog />
       <HelloKleanDialog open={helloKleanOpen} onOpenChange={setHelloKleanOpen} userId={user?.id} />
     </ScreenLayout>

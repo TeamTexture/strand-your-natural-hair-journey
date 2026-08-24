@@ -18,6 +18,7 @@ import RoleGate from "./components/RoleGate";
 import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
+import HomeTour from "@/components/HomeTour";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import BrandPaywallGate from "@/components/BrandPaywallGate";
 import BrandSubGate from "@/components/BrandSubGate";
@@ -711,6 +712,9 @@ const App = () => (
 
 
                 </div>
+                {/* Guided first-run tour — mounted at shell level so it can
+                    walk the member page by page without unmounting. */}
+                <HomeTour />
               </div>
             </PhoneShell>
           </BackButtonProvider>
