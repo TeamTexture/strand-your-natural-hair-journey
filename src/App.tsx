@@ -712,11 +712,12 @@ const App = () => (
 
 
                 </div>
-                {/* Guided first-run tour — mounted at shell level so it can
-                    walk the member page by page without unmounting. */}
-                <HomeTour />
               </div>
             </PhoneShell>
+            {/* Guided first-run tour — mounted OUTSIDE PhoneShell, which keys
+                its children by pathname; inside it, the tour would remount and
+                lose its place every time it walked to the next page. */}
+            <HomeTour />
           </BackButtonProvider>
           </IngredientSheetProvider>
           </TipsLevelProvider>
