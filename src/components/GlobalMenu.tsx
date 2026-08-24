@@ -243,7 +243,7 @@ const GlobalMenu = () => {
             <button
               type="button"
               onClick={() => navigate(resumePath)}
-              className="h-9 px-3 rounded-full border border-primary/40 bg-primary/10 text-primary text-[11px] font-body uppercase tracking-[0.12em]"
+              className="h-8 px-2.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-bold uppercase tracking-[0.1em] whitespace-nowrap"
             >
               Continue onboarding
             </button>
