@@ -461,6 +461,20 @@ const AdminMembers = () => {
           )}
           Clean up billing for deleted accounts
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 w-full h-8 rounded-pill text-[11px] font-body whitespace-nowrap"
+          disabled={syncList.isPending}
+          onClick={() => syncList.mutate()}
+        >
+          {syncList.isPending ? (
+            <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
+          )}
+          Sync members to the mailing list
+        </Button>
       </div>
 
       <div className="border-b border-primary/10">
