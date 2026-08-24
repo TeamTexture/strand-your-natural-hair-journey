@@ -520,16 +520,9 @@ const Subscribe = () => {
           membership lapses — access is restored the moment you resubscribe.
         </p>
 
-        {/* Escape hatches — nobody is ever trapped on the paywall. */}
+        {/* Sign out is the only exit without a membership. */}
         {!hasAccess && (
-          <div className="flex items-center justify-center gap-4 pt-1">
-            <button
-              type="button"
-              onClick={() => nav("/profile")}
-              className="text-[12px] font-body font-semibold text-foreground/70 underline underline-offset-2"
-            >
-              Back to my profile
-            </button>
+          <div className="flex items-center justify-center pt-1">
             <button
               type="button"
               onClick={() => void signOut()}
