@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2, Mail, CheckCircle2, Circle } from "lucide-react";
+import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2, Mail, CheckCircle2, Circle, ArrowDownCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import MessageButton from "@/components/admin/MessageButton";
 import { useIncompleteMembers, type IncompleteMemberRow } from "@/hooks/useIncompleteMembers";
@@ -106,6 +106,7 @@ const AdminMembers = () => {
   const [sort, setSort] = useState<SortKey>("recent");
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
+  const [demoteTarget, setDemoteTarget] = useState<MemberRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
@@ -278,6 +279,27 @@ const AdminMembers = () => {
     },
     onError: (err) => {
       toast.error((err as Error).message ?? "Could not unrestrict");
+    },
+  });
+
+  const demoteTier = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-downgrade-consumer", {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      return data as { ok: boolean; stripe_updated: boolean };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      toast.success(
+        data?.stripe_updated
+          ? "Moved to STRAND. Their billing has been switched to the standard plan."
+          : "Moved to STRAND. No live billing to change.",
+      );
+    },
+    onError: (err) => {
+      toast.error((err as Error).message ?? "Could not change their plan");
     },
   });
 
@@ -539,6 +561,34 @@ const AdminMembers = () => {
                   isSelf={isSelf}
                 />
 
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-body font-medium">Membership plan</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        {isPlusMember(r)
+                          ? "On STRAND+. Moving them down switches billing to the standard plan."
+                          : "On STRAND, the standard plan."}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-medium px-2 py-1 rounded-full uppercase whitespace-nowrap bg-primary/15 text-primary">
+                      {isPlusMember(r) ? "STRAND+" : "STRAND"}
+                    </span>
+                  </div>
+                  {isPlusMember(r) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2.5 w-full h-8 rounded-pill text-[11px] font-body whitespace-nowrap"
+                      disabled={demoteTier.isPending}
+                      onClick={() => setDemoteTarget(r)}
+                    >
+                      <ArrowDownCircle className="size-3.5 mr-1.5 shrink-0" />
+                      Move down to STRAND
+                    </Button>
+                  )}
+                </div>
+
                 <div className="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-border">
                   <div className="min-w-0">
                     <p className="text-[12px] font-body font-medium">Complimentary access</p>
@@ -602,6 +652,43 @@ const AdminMembers = () => {
           })
         )}
       </div>
+
+      <AlertDialog open={!!demoteTarget} onOpenChange={(o) => !o && setDemoteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Move down to STRAND?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="font-semibold">
+                    {demoteTarget?.display_name ?? "This member"}
+                  </span>{" "}
+                  moves from STRAND+ to the standard STRAND plan.
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-foreground/75">
+                  <li>Their billing switches to the standard price, prorated by Stripe.</li>
+                  <li>STRAND+ features stop being available to them straight away.</li>
+                  <li>Complimentary access is switched off, as it grants every tier.</li>
+                  <li>You can move them back up, or they can upgrade themselves again.</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (demoteTarget) {
+                  demoteTier.mutate(demoteTarget.user_id);
+                  setDemoteTarget(null);
+                }
+              }}
+            >
+              Move to STRAND
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!restrictTarget} onOpenChange={(o) => !o && setRestrictTarget(null)}>
         <AlertDialogContent>

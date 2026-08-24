@@ -86,22 +86,23 @@ const AccountTypeControl = ({ userId, name, currentType, isSelf }: Props) => {
       </div>
 
       {!locked && (
-        <div className="mt-2.5 flex gap-1.5">
+        <div className="mt-2.5 grid grid-cols-3 gap-1.5">
           {options.map((o) => (
             <Button
               key={o}
               variant={o === currentType ? "default" : "outline"}
               size="sm"
               disabled={o === currentType || setAccountType.isPending}
-              className="flex-1 h-8 rounded-pill text-[11px] font-body"
+              className="w-full min-w-0 px-1.5 h-8 rounded-pill text-[11px] font-body whitespace-nowrap overflow-hidden"
               onClick={() => setTarget(o)}
             >
-              {o === currentType && <UserCog className="size-3 mr-1" />}
-              {ACCOUNT_TYPE_LABEL[o]}
+              {o === currentType && <UserCog className="size-3 mr-1 shrink-0" />}
+              <span className="truncate">{ACCOUNT_TYPE_LABEL[o]}</span>
             </Button>
           ))}
         </div>
       )}
+
 
       <button
         type="button"
