@@ -269,6 +269,16 @@ const ResumeOnboarding = () => {
             ? "Booking a consultation is optional and you can do it any time — it never holds up your membership."
             : "Your hair characteristics and blood work are both needed before STRAND unlocks, but there's no rush — nothing you've entered expires."}
         </p>
+
+        <Button
+          variant="outline"
+          size="pill"
+          className="w-full whitespace-nowrap leading-tight"
+          disabled={signingOut}
+          onClick={handleSaveAndSignOut}
+        >
+          {signingOut ? "Saving…" : "Save & sign out"}
+        </Button>
       </div>
     </ScreenLayout>
   );
