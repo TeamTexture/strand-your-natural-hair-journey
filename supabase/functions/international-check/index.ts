@@ -15,6 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { dispatchEmail } from "../_shared/app-email/core.ts";
+import { pushToKlaviyoList, KLAVIYO_MEMBER_LIST_ID } from "../_shared/klaviyo.ts";
 
 const KLAVIYO_LIST_ID = "U69M2Q";
 
