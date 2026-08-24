@@ -23,7 +23,7 @@ const InternationalBlockedSplash = ({ country }: Props) => {
         <HairStrandIcon className="h-14 w-auto text-primary" />
 
         <div>
-          <h1 className="font-display text-primary text-5xl font-semibold tracking-strand uppercase">
+          <h1 className="font-display text-primary text-5xl font-semibold tracking-strand uppercase whitespace-nowrap ml-[0.2em]">
             Strand
           </h1>
           <p className="mt-5 font-display italic text-foreground text-xl">
