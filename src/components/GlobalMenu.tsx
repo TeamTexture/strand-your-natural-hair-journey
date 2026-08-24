@@ -224,7 +224,7 @@ const GlobalMenu = () => {
               <ChevronLeft className="size-5" />
             </button>
           )}
-          <div className="flex items-center gap-1.5">
+          <div className="flex-1 flex items-center justify-between gap-2 pl-6">
             <button
               type="button"
               onClick={async () => {
