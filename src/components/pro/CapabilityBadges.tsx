@@ -30,6 +30,7 @@ const CapabilityBadge = ({
 }) => {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
+  const clamp = useEdgeClamp();
 
   // Tap-outside closes it, so an open tooltip never traps the tap target.
   useEffect(() => {
