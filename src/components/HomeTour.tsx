@@ -8,6 +8,7 @@ import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import {
   consumeTourAutostart,
   markTourFinished,
+  setTourActive,
   TOUR_START_EVENT,
 } from "@/lib/firstRunTour";
 
@@ -217,6 +218,12 @@ const HomeTour = () => {
   }, [tourEligible, location.pathname, markTourSeen]);
 
   // Walk the member to the page a step belongs to before measuring its anchor.
+  // Broadcast so other first-run dialogs stand down while the tour is on screen.
+  useEffect(() => {
+    setTourActive(active);
+    return () => setTourActive(false);
+  }, [active]);
+
   const stepRoute = STEPS[step]?.route ?? "/home";
   useEffect(() => {
     if (!active) return;

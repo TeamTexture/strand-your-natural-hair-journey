@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import {
@@ -9,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useProfileConfirmation } from "@/hooks/useProfileConfirmation";
+import { isTourActive, TOUR_ACTIVE_EVENT } from "@/lib/firstRunTour";
 
 /**
  * Reconfirmation prompt. Shown once per sign-in to members who finished
@@ -20,13 +22,21 @@ const ProfileReconfirmPrompt = () => {
   const { shouldPrompt, sections, snooze } = useProfileConfirmation();
   const next = sections.find((s) => !s.confirmed) ?? sections[0];
 
+  // Never cover the guided first-run tour.
+  const [tourOn, setTourOn] = useState(() => isTourActive());
+  useEffect(() => {
+    const on = (e: Event) => setTourOn(!!(e as CustomEvent).detail);
+    window.addEventListener(TOUR_ACTIVE_EVENT, on as EventListener);
+    return () => window.removeEventListener(TOUR_ACTIVE_EVENT, on as EventListener);
+  }, []);
+
   const start = () => {
     snooze();
     navigate(`${next.route}?confirm=1`);
   };
 
   return (
-    <Dialog open={shouldPrompt} onOpenChange={(o) => { if (!o) snooze(); }}>
+    <Dialog open={shouldPrompt && !tourOn} onOpenChange={(o) => { if (!o) snooze(); }}>
       <DialogContent className="w-[calc(100%-32px)] max-w-[320px] max-h-[calc(100dvh-32px)] overflow-y-auto overflow-x-hidden rounded-[20px] p-5">
         <DialogHeader className="text-left">
           <DialogTitle className="font-display text-[20px] leading-tight">

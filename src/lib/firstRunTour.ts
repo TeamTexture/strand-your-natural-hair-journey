@@ -42,3 +42,15 @@ export const markTourFinished = () => {
   write(DONE_KEY, true);
   window.dispatchEvent(new Event(TOUR_DONE_EVENT));
 };
+
+/**
+ * Live "the guided tour is on screen" signal. Other first-run dialogs (e.g. the
+ * profile reconfirmation prompt) subscribe to this so they never cover the tour.
+ */
+export const TOUR_ACTIVE_EVENT = "strand:tour-active";
+let tourActive = false;
+export const isTourActive = () => tourActive;
+export const setTourActive = (on: boolean) => {
+  tourActive = on;
+  window.dispatchEvent(new CustomEvent(TOUR_ACTIVE_EVENT, { detail: on }));
+};
