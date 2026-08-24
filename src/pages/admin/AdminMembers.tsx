@@ -418,6 +418,27 @@ const AdminMembers = () => {
     },
   });
 
+  /** Adds every STRAND end user (no professionals or brands) to the member mailing list. */
+  const syncList = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("klaviyo-member-sync", {
+        body: { mode: "backfill" },
+      });
+      if (error) throw error;
+      return data as { added: number; considered: number; failed: number };
+    },
+    onSuccess: (data) => {
+      toast.success(
+        data?.failed
+          ? `Added ${data.added} member${data.added === 1 ? "" : "s"} — ${data.failed} could not be added.`
+          : `Mailing list up to date — ${data?.added ?? 0} member${data?.added === 1 ? "" : "s"} on the list.`,
+      );
+    },
+    onError: (err) => {
+      toast.error((err as Error).message ?? "Could not sync the mailing list");
+    },
+  });
+
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All", count: rows.length },
     {
@@ -460,6 +481,20 @@ const AdminMembers = () => {
             <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
           )}
           Clean up billing for deleted accounts
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 w-full h-8 rounded-pill text-[11px] font-body whitespace-nowrap"
+          disabled={syncList.isPending}
+          onClick={() => syncList.mutate()}
+        >
+          {syncList.isPending ? (
+            <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
+          )}
+          Sync members to the mailing list
         </Button>
       </div>
 

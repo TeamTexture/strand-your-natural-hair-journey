@@ -15,6 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { dispatchEmail } from "../_shared/app-email/core.ts";
+import { pushToKlaviyoList, KLAVIYO_MEMBER_LIST_ID } from "../_shared/klaviyo.ts";
 
 const KLAVIYO_LIST_ID = "U69M2Q";
 
@@ -164,6 +165,17 @@ Deno.serve(async (req) => {
   // UK member: tell her what is left to do before the app opens up.
   if (!blocked) {
     if (memberEmail) {
+      // Keep the STRAND member mailing list current now that we have her name
+      // and mobile. Idempotent, and never allowed to break the gate.
+      const listError = await pushToKlaviyoList({
+        listId: KLAVIYO_MEMBER_LIST_ID,
+        email: memberEmail,
+        name: memberName,
+        phone: declaredPhone || (profile?.phone_number ? String(profile.phone_number) : null),
+        properties: { strand_account_type: "member", strand_country: declared },
+      });
+      if (listError) console.error("[gate] member list push failed", listError);
+
       const mail = await dispatchEmail({
         templateKey: "onboarding-next-steps",
         to: memberEmail,

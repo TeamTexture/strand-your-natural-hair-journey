@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
+import { addMemberToMailingList } from "@/lib/klaviyoMember";
 
 // Only allow same-origin relative paths for redirect to avoid open-redirect
 // attacks via crafted ?next=https://evil.com links.
@@ -201,6 +202,7 @@ const Auth = () => {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
         }
         void notifyAdminSignup("member", { name: name || null });
+        void addMemberToMailingList();
         toast.success("Welcome to Strand");
 
         // New accounts go straight into the required onboarding flow — the
