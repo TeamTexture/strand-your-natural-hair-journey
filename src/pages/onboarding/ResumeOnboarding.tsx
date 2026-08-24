@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Droplets, Scissors, Stethoscope } from "lucide-react";
+import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
