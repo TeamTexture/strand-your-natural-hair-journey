@@ -144,22 +144,27 @@ const useAdminStats = () =>
         else if (derived === "upcoming") bucket.scheduled += 1;
         else if (derived === "ended") bucket.expired += 1;
       });
-      const activePaid = await supabase
-        .from("consumer_subscriptions")
-        .select("user_id", { count: "exact", head: true })
-        .in("status", ["active", "trialing"]);
-      const plusCountQ = await supabase
-        .from("consumer_subscriptions")
-        .select("user_id", { count: "exact", head: true })
-        .in("status", ["active", "trialing"])
-        .eq("tier", "plus");
+      // Subscription rows can outlive the account they belong to (a deleted
+      // member leaves the row behind), so paid counts are only ever taken for
+      // user_ids that still have a live member profile.
+      const liveMemberIds = new Set(
+        profiles.filter((p) => !privileged.has(p.user_id)).map((p) => p.user_id),
+      );
+      const paidRows = await fetchAllRows<{ user_id: string; tier: string | null }>((from, to) =>
+        supabase
+          .from("consumer_subscriptions")
+          .select("user_id, tier")
+          .in("status", ["active", "trialing"])
+          .range(from, to),
+      );
+      const livePaid = paidRows.filter((r) => liveMemberIds.has(r.user_id));
       return {
         pendingApplications: pending.count ?? 0,
         livePros: live.count ?? 0,
         activeProSubs: proSubs.count ?? 0,
         membersTotal: memberCount,
-        activePaidMembers: activePaid.count ?? 0,
-        plusMembers: plusCountQ.count ?? 0,
+        activePaidMembers: livePaid.length,
+        plusMembers: livePaid.filter((r) => r.tier === "plus").length,
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
