@@ -164,6 +164,17 @@ Deno.serve(async (req) => {
   // UK member: tell her what is left to do before the app opens up.
   if (!blocked) {
     if (memberEmail) {
+      // Keep the STRAND member mailing list current now that we have her name
+      // and mobile. Idempotent, and never allowed to break the gate.
+      const listError = await pushToKlaviyoList({
+        listId: KLAVIYO_MEMBER_LIST_ID,
+        email: memberEmail,
+        name: memberName,
+        phone: declaredPhone || (profile?.phone_number ? String(profile.phone_number) : null),
+        properties: { strand_account_type: "member", strand_country: declared },
+      });
+      if (listError) console.error("[gate] member list push failed", listError);
+
       const mail = await dispatchEmail({
         templateKey: "onboarding-next-steps",
         to: memberEmail,
