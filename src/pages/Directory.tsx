@@ -48,7 +48,7 @@ const Directory = () => {
   const anchorSelf = params.get("self") === "1";
   const proParam = params.get("pro");
 
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   // Effective target for anchoring: explicit ?pro= wins, otherwise ?self=1
   // resolves to the current user's own listing.
   const targetProUserId = proParam ?? (anchorSelf && user?.id ? user.id : null);
