@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Droplets, Scissors, Stethoscope } from "lucide-react";
+import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
@@ -24,9 +26,23 @@ import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardi
  */
 const ResumeOnboarding = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const { data: status, isLoading } = useOnboardingStatus();
   const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
   const [bloodResume, setBloodResume] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSaveAndSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      navigate("/", { replace: true });
+    } catch (e) {
+      setSigningOut(false);
+      console.error("[sign out] failed", e);
+      toast.error("Sign out failed — check your connection and try again.");
+    }
+  };
 
   // Pull the saved blood draft down first, so the "continue" button points at
   // the exact screen she stopped on — including from another device.
@@ -253,6 +269,16 @@ const ResumeOnboarding = () => {
             ? "Booking a consultation is optional and you can do it any time — it never holds up your membership."
             : "Your hair characteristics and blood work are both needed before STRAND unlocks, but there's no rush — nothing you've entered expires."}
         </p>
+
+        <Button
+          variant="outline"
+          size="pill"
+          className="w-full whitespace-nowrap leading-tight"
+          disabled={signingOut}
+          onClick={handleSaveAndSignOut}
+        >
+          {signingOut ? "Saving…" : "Save & sign out"}
+        </Button>
       </div>
     </ScreenLayout>
   );
