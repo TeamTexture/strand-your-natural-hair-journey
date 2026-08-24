@@ -161,7 +161,7 @@ const Index = () => {
           <div className="flex flex-col items-center justify-center flex-1 pt-8 gap-8">
             <div className="flex flex-col items-center text-center">
               <HairStrandIcon className="h-16 w-auto text-primary mb-6" />
-              <h1 className="font-display text-primary text-6xl font-semibold tracking-strand uppercase">
+              <h1 className="font-display text-primary text-5xl font-semibold tracking-strand uppercase whitespace-nowrap ml-[0.2em]">
                 Strand
               </h1>
               <div className="mt-6 max-w-[260px] text-foreground/75 text-sm leading-relaxed space-y-1">
