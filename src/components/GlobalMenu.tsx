@@ -236,14 +236,14 @@ const GlobalMenu = () => {
                   toast.error("Sign out failed — check your connection and try again.");
                 }
               }}
-              className="h-8 px-2.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-bold uppercase tracking-[0.1em] whitespace-nowrap"
+              className="h-8 px-2.5 rounded-full bg-primary text-foreground text-[10px] font-body font-bold uppercase tracking-[0.1em] whitespace-nowrap"
             >
               Save & sign out
             </button>
             <button
               type="button"
               onClick={() => navigate(resumePath)}
-              className="h-8 px-2.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-bold uppercase tracking-[0.1em] whitespace-nowrap"
+              className="h-8 px-2.5 rounded-full bg-primary text-foreground text-[10px] font-body font-bold uppercase tracking-[0.1em] whitespace-nowrap"
             >
               Continue onboarding
             </button>
