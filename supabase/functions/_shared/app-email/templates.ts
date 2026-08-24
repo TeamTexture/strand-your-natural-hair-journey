@@ -13,6 +13,8 @@
  * Copy here is operational only — no hair-care or clinical guidance.
  */
 
+import { SUPPORT_EMAIL } from "./config.ts";
+
 export type EmailCategory = "transactional" | "marketing";
 
 /** Keys on public.email_preferences that can gate an optional email. */
@@ -405,6 +407,44 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     ],
     () => ({ label: "Open STRAND", path: "/home" }),
   ),
+
+  /**
+   * Sent when an admin removes an account. Essential: it is an account and
+   * payment notice, so it must reach the member whatever their preferences.
+   * `billing_note` is written by the delete flow from what Stripe actually
+   * did, so the email never promises a refund that was not issued.
+   */
+  "account-removed-by-admin": t(
+    "account-removed-by-admin",
+    "transactional",
+    true,
+    () => "Your STRAND account has been closed",
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      "Your STRAND account has been closed by our team and your records have been removed.",
+      s(d.reason) ? `Reason given: ${s(d.reason)}` : "",
+      s(d.billing_note),
+      `If you believe this was a mistake, or you have a question about your billing, reply to this email or contact us at ${SUPPORT_EMAIL} and we will look into it.`,
+    ].filter(Boolean),
+    undefined,
+    undefined,
+    {
+      eyebrow: "Account closed",
+      rows: (d) => {
+        const out: { label: string; value: string }[] = [];
+        const add = (label: string, value: string) => {
+          if (value) out.push({ label, value });
+        };
+        add("Closed on", s(d.closed_at));
+        add("Membership", s(d.plan_label));
+        add("Billing", s(d.billing_status));
+        add("Refund", s(d.refund_summary));
+        return out;
+      },
+    },
+  ),
+
+
 
   // ---------------- Enquiries and appointments ----------------
 
