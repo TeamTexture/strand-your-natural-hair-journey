@@ -176,6 +176,7 @@ const HomeTour = () => {
   }, []);
 
   const current = STEPS[step];
+  if (typeof window !== "undefined") console.log("[tourdbg]", { active, step, view, path: location.pathname });
 
   useLayoutEffect(() => {
     if (!active) return;
