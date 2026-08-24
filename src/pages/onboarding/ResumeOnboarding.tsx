@@ -26,9 +26,23 @@ import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardi
  */
 const ResumeOnboarding = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const { data: status, isLoading } = useOnboardingStatus();
   const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
   const [bloodResume, setBloodResume] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSaveAndSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      navigate("/", { replace: true });
+    } catch (e) {
+      setSigningOut(false);
+      console.error("[sign out] failed", e);
+      toast.error("Sign out failed — check your connection and try again.");
+    }
+  };
 
   // Pull the saved blood draft down first, so the "continue" button points at
   // the exact screen she stopped on — including from another device.
