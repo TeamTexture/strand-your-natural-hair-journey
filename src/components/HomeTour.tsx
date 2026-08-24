@@ -1,14 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { X, Sparkles, Minus } from "lucide-react";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
@@ -194,7 +186,6 @@ const HomeTour = () => {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [cardH, setCardH] = useState(240);
-  const [goalOpen, setGoalOpen] = useState(false);
 
   // Auto-start ONLY when onboarding just flagged the tour as pending.
   // We never auto-run for returning users on every login — they trigger it
@@ -449,43 +440,6 @@ const HomeTour = () => {
         </div>
       )}
 
-      <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
-        <DialogContent className="max-w-[340px] rounded-[20px]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-[22px] leading-tight">
-              Add your goal and your challenge
-            </DialogTitle>
-            <DialogDescription className="font-body text-sm leading-relaxed">
-              Your goal is what you're working toward. Your challenge is what's getting in the
-              way right now — breakage, dryness, an itchy scalp, thinning edges. STRAND needs
-              both to tailor every wash tip, product rating and nutrition suggestion. Takes
-              about 60 seconds.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full"
-              onClick={() => {
-                setGoalOpen(false);
-                navigate("/journal");
-              }}
-            >
-              Add goal &amp; challenge →
-            </Button>
-
-            <Button
-              variant="goldGhost"
-              size="pill"
-              className="w-full"
-              onClick={() => setGoalOpen(false)}
-            >
-              Later
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
