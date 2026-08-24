@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { Home, FlaskConical, Droplets, Apple, User } from "lucide-react";
 import { tap } from "@/lib/haptics";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
@@ -29,7 +29,6 @@ const BottomNav = () => {
   // are reachable mid-onboarding (e.g. the professional directory) therefore no
   // longer expose the rest of the app. See useMemberAppUnlocked.
   const { unlocked } = useMemberAppUnlocked();
-  const location = useLocation();
   // First run only: the Home tab glows with a START HERE label until the
   // member has taken the guided tour. Tapping it flags the tour to open the
   // moment Home mounts, so the tour always actually starts.
