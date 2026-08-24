@@ -82,14 +82,10 @@ Deno.serve(async (req) => {
     // --- Who sent it.
     const { data: memberProfile } = await admin
       .from("profiles")
-      .select("full_name, display_name")
-      .eq("id", enq.consumer_id)
+      .select("display_name")
+      .eq("user_id", enq.consumer_id)
       .maybeSingle();
-    const memberName =
-      (memberProfile as { full_name?: string | null; display_name?: string | null } | null)
-        ?.full_name ||
-      (memberProfile as { display_name?: string | null } | null)?.display_name ||
-      "A STRAND member";
+    const memberName = memberProfile?.display_name?.trim() || "A STRAND member";
 
     const receivedAt = new Date(enq.created_at as string).toLocaleString("en-GB", {
       dateStyle: "medium",
