@@ -10,6 +10,7 @@ import { useIncompleteMembers, type IncompleteMemberRow } from "@/hooks/useIncom
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -107,6 +108,8 @@ const AdminMembers = () => {
   const [restrictTarget, setRestrictTarget] = useState<MemberRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
   const [demoteTarget, setDemoteTarget] = useState<MemberRow | null>(null);
+  const [refundOnDelete, setRefundOnDelete] = useState(false);
+  const [notifyOnDelete, setNotifyOnDelete] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
@@ -304,16 +307,34 @@ const AdminMembers = () => {
   });
 
   const deleteUser = useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async (vars: { userId: string; refund: boolean; notify: boolean }) => {
       const { data, error } = await supabase.functions.invoke("admin-delete-user", {
-        body: { user_id: userId },
+        body: {
+          user_id: vars.userId,
+          refund_last_payment: vars.refund,
+          notify: vars.notify,
+        },
       });
       if (error) throw error;
-      return data as { ok: boolean };
+      return data as {
+        ok: boolean;
+        was_paying: boolean;
+        refunded: string | null;
+        refund_error: string | null;
+        emailed: boolean;
+        email_error: string | null;
+      };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["admin", "members"] });
-      toast.success("Member deleted. All their data has been removed.");
+      qc.invalidateQueries({ queryKey: ["admin", "hub", "stats"] });
+      const parts = ["Member deleted. All their data has been removed."];
+      if (data?.was_paying) parts.push("Their billing has been cancelled in Stripe.");
+      if (data?.refunded) parts.push(`${data.refunded} refunded.`);
+      if (data?.refund_error) parts.push(`Refund failed: ${data.refund_error}`);
+      if (data?.emailed) parts.push("They have been emailed the closure notice.");
+      else if (data?.email_error) parts.push(`Email not sent: ${data.email_error}`);
+      toast.success(parts.join(" "));
     },
     onError: (err) => {
       toast.error((err as Error).message ?? "Could not delete member");
@@ -749,9 +770,33 @@ const AdminMembers = () => {
                   moodboards, blood work, subscriptions and role. This cannot be undone.
                 </p>
                 <ul className="list-disc pl-5 space-y-1 text-foreground/75">
-                  <li>Any active Stripe subscription (consumer and/or pro) will be cancelled first.</li>
-                  <li>The auth account is removed — they'll need to sign up again to return.</li>
+                  <li>Any active Stripe subscription (consumer and/or pro) is cancelled first, so they are never billed again.</li>
+                  <li>The account login is removed — they'd need to sign up again to return.</li>
                 </ul>
+                <div className="mt-2 space-y-2 rounded-lg border border-border p-3">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={notifyOnDelete}
+                      onCheckedChange={(v) => setNotifyOnDelete(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-[12px] leading-snug">
+                      Email them a closure notice, including what happened to their membership
+                      payment and how to query it.
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={refundOnDelete}
+                      onCheckedChange={(v) => setRefundOnDelete(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-[12px] leading-snug">
+                      Refund their most recent membership payment in full. Leave this off to simply
+                      stop future charges.
+                    </span>
+                  </label>
+                </div>
                 <p className="pt-2">
                   Type <span className="font-mono font-semibold">DELETE</span> to confirm:
                 </p>
@@ -775,9 +820,15 @@ const AdminMembers = () => {
                   return;
                 }
                 if (deleteTarget) {
-                  deleteUser.mutate(deleteTarget.user_id);
+                  deleteUser.mutate({
+                    userId: deleteTarget.user_id,
+                    refund: refundOnDelete,
+                    notify: notifyOnDelete,
+                  });
                   setDeleteTarget(null);
                   setDeleteConfirm("");
+                  setRefundOnDelete(false);
+                  setNotifyOnDelete(true);
                 }
               }}
             >
