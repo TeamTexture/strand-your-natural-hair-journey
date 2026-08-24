@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
+import { addMemberToMailingList } from "@/lib/klaviyoMember";
 
 // Only allow same-origin relative paths for redirect to avoid open-redirect
 // attacks via crafted ?next=https://evil.com links.
