@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import LevelGate from "@/components/tips/LevelGate";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
@@ -76,6 +77,10 @@ const ProfileStep4Colour = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resolveNextPath } = useOnboardingCompletion();
+  // The label must reflect what is actually still outstanding: a member who has
+  // already saved her blood work goes on to membership, not back to blood.
+  const { data: onboardingStatus } = useOnboardingStatus();
+  const bloodOnFile = !!onboardingStatus?.bloodOnFile;
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
@@ -521,7 +526,7 @@ const ProfileStep4Colour = () => {
             navigate(await resolveNextPath(), { replace: true });
           }}
         >
-          Continue to Blood Test →
+          {bloodOnFile ? "Continue to Membership \u2192" : "Continue to Blood Test \u2192"}
         </Button>
       </div>
     </ScreenLayout>
