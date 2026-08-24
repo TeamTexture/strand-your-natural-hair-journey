@@ -19,6 +19,7 @@ const PhoneShell = ({ children }: Props) => {
   return (
   <div className="min-h-[100dvh] w-full bg-foreground/[0.04] sm:bg-foreground/[0.06] flex items-center justify-center p-0 sm:p-6 select-none overscroll-none">
     <div
+      data-app-frame
       className="
         relative w-full max-w-[375px] bg-background overflow-hidden
         h-[100dvh] sm:h-[812px]

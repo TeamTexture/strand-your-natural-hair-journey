@@ -8,6 +8,7 @@ import {
   TIPS_LEVEL_LABEL,
   type TipsLevel,
 } from "@/lib/tipsLevel";
+import { useEdgeClamp } from "@/hooks/useEdgeClamp";
 import { cn } from "@/lib/utils";
 
 const TOOLTIP_SEEN_KEY = "strand.tipsLevelHeaderTipSeen";
@@ -51,6 +52,9 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
     try { localStorage.setItem(TOOLTIP_SEEN_KEY, "1"); } catch { /* private mode */ }
   };
 
+  const hoverClamp = useEdgeClamp();
+  const hintClamp = useEdgeClamp();
+
   return (
     <>
       <div className={cn("relative", className)}>
@@ -70,7 +74,9 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
         {hovered && !showTooltip && (
           <span
             role="tooltip"
-            className="pointer-events-none absolute right-0 top-[calc(100%+8px)] z-40 whitespace-nowrap rounded-[10px] bg-foreground text-background px-2.5 py-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
+            ref={hoverClamp.ref}
+            style={hoverClamp.style}
+            className="pointer-events-none absolute right-0 top-[calc(100%+8px)] z-40 max-w-[calc(100vw-2rem)] rounded-[10px] bg-foreground text-background px-2.5 py-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
           >
             <span className="absolute -top-1 right-3 size-2 rotate-45 bg-foreground" />
             <span className="block text-[11px] leading-snug">
@@ -83,7 +89,9 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
           <button
             type="button"
             onClick={dismissTooltip}
-            className="absolute right-0 top-[calc(100%+8px)] z-40 w-[190px] rounded-[10px] bg-foreground text-background px-3 py-2 text-left shadow-lg animate-in fade-in-0 zoom-in-95"
+            ref={hintClamp.ref}
+            style={hintClamp.style}
+            className="absolute right-0 top-[calc(100%+8px)] z-40 w-[190px] max-w-[calc(100vw-2rem)] rounded-[10px] bg-foreground text-background px-3 py-2 text-left shadow-lg animate-in fade-in-0 zoom-in-95"
           >
             <span className="absolute -top-1 right-6 size-2 rotate-45 bg-foreground" />
             <span className="block text-[11px] leading-snug">

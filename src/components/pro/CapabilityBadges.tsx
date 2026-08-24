@@ -1,3 +1,4 @@
+import { useEdgeClamp } from "@/hooks/useEdgeClamp";
 import { useEffect, useRef, useState } from "react";
 import { Stethoscope, Droplet } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -69,7 +70,9 @@ const CapabilityBadge = ({
       {open && (
         <span
           role="tooltip"
-          className="absolute z-30 top-full left-0 mt-1 w-[170px] rounded-[8px] bg-foreground px-2 py-1.5 text-[10px] font-body leading-snug text-background shadow-md"
+          ref={clamp.ref}
+          style={clamp.style}
+          className="absolute z-30 top-full left-0 mt-1 w-[170px] max-w-[calc(100vw-2rem)] rounded-[8px] bg-foreground px-2 py-1.5 text-[10px] font-body leading-snug text-background shadow-md"
         >
           {tip}
         </span>
