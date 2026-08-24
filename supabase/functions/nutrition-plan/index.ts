@@ -274,13 +274,47 @@ OUTPUT RULES
 12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
 }
 
+type PlanPart = "supplements" | "diet" | "avoid";
+
+/**
+ * The two halves share one schema definition, so a card generated in the split
+ * path is identical in shape and depth to the old single-call path.
+ */
+function partSchema(part: PlanPart) {
+  const props = RETURN_PLAN_SCHEMA.properties as Record<string, unknown>;
+  const keys = part === "supplements"
+    ? ["summary", "supplements"]
+    : part === "diet"
+    ? ["diet"]
+    : ["avoid"];
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: keys,
+    properties: Object.fromEntries(keys.map((k) => [k, props[k]])),
+  };
+}
+
 async function runClaude(args: {
   body: RequestBody;
+  part: PlanPart;
   recentWashSignals: unknown[];
   sensitivityBlock?: string;
   retryNote?: string;
 }): Promise<NutritionPlanPayload> {
+  const BRIEFS: Record<PlanPart, string> = {
+    supplements: `THIS REQUEST — SUMMARY + SUPPLEMENTS ONLY.
+Produce the top-level "summary" and the "supplements" cards. Do not return diet or avoid cards; separate passes cover those, so do not thin out or shorten the supplement cards to make room. Every supplement rule above applies in full.`,
+    diet: `THIS REQUEST — DIET CARDS ONLY.
+Produce the "diet" cards. Do not return a summary, supplement cards or avoid cards; separate passes cover those, so do not thin out or shorten these cards to make room. Every diet and dietary-pattern rule above applies in full.`,
+    avoid: `THIS REQUEST — AVOID CARDS ONLY.
+Produce the "avoid" cards — pairing, timing and medication/supplement interactions, never eating less. Do not return a summary, supplement cards or diet cards; separate passes cover those, so do not thin out or shorten these cards to make room. Every avoid and dietary-pattern rule above applies in full.`,
+  };
+  const partBrief = BRIEFS[args.part];
+
   const userText = `${dietConstraintBlock(args.body.diet, args.body.dietOther)}${args.sensitivityBlock ?? ""}${args.retryNote ?? ""}
+
+${partBrief}
 
 User-supplied profile:
 ${JSON.stringify({
@@ -297,6 +331,7 @@ Recent wash days where the user reported scalp/hair feel issues (pattern context
 ${JSON.stringify(args.recentWashSignals, null, 2)}
 
 Return JSON only via the return_nutrition_plan tool.`;
+
 
   const userContent: ContentBlockInput[] = [{ type: "text", text: userText }];
 
@@ -325,17 +360,18 @@ Return JSON only via the return_nutrition_plan tool.`;
     rag_k: 5,
     tool: {
       name: "return_nutrition_plan",
-      description: "Return the personalised nutrition plan. Always invoke exactly once.",
-      input_schema: RETURN_PLAN_SCHEMA as unknown as Record<string, unknown>,
+      description: args.part === "supplements"
+        ? "Return the summary and supplement cards of the personalised nutrition plan. Always invoke exactly once."
+        : "Return the diet and avoid cards of the personalised nutrition plan. Always invoke exactly once.",
+      input_schema: partSchema(args.part) as unknown as Record<string, unknown>,
     },
     toolChoice: { type: "tool", name: "return_nutrition_plan" },
-    // Opus needs headroom for the full tool_use payload (6-10 diet + 4-6
-    // avoid cards, each 2-3 sentences, plus summary). 4096 was truncating
-    // mid-tool_use and Anthropic returned an empty/partial input object —
-    // which we then silently cached as { diet: [], avoid: [], summary: "" },
-    // so every subsequent page load served the empty state without ever
-    // re-invoking the function. 8192 leaves comfortable headroom.
-    max_tokens: 8192,
+    // Each half of the plan is well inside 4096 output tokens (summary + 4-8
+    // supplement cards, or 6-10 diet + 4-6 avoid cards). The full-plan call
+    // needed 8192 and truncated at 4096; splitting the work removes that
+    // pressure while keeping every card at full depth.
+    max_tokens: 6144,
+
   });
 
   console.log("[nutrition-debug] before model call");
@@ -392,14 +428,51 @@ Return JSON only via the return_nutrition_plan tool.`;
     avoid: Array.isArray(p.avoid) ? p.avoid : [],
   };
 
-  // Hard guard: never return (and therefore never cache) an empty plan.
-  if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+  // Hard guard: never return (and therefore never cache) an empty part.
+  const missing = args.part === "supplements"
+    ? (payload.supplements.length === 0 || !payload.summary)
+    : args.part === "diet"
+    ? payload.diet.length === 0
+    : payload.avoid.length === 0;
+  if (missing) {
     throw new Error(
-      `Claude returned incomplete plan (stop_reason=${result.stop_reason}, diet=${payload.diet.length}, avoid=${payload.avoid.length}, summary_len=${payload.summary.length})`,
+      `Claude returned incomplete plan part=${args.part} (stop_reason=${result.stop_reason}, supplements=${payload.supplements.length}, diet=${payload.diet.length}, avoid=${payload.avoid.length}, summary_len=${payload.summary.length})`,
     );
   }
   return payload;
 }
+
+/**
+ * SPEED (2026-08-24). The plan used to come back from ONE Opus call with up to
+ * 8192 output tokens (summary + 4-8 supplement cards + 6-10 diet cards + 4-6
+ * avoid cards), which is what made a cold generation take ~100s: latency here
+ * is dominated by output tokens, not by reasoning.
+ *
+ * It now runs three Opus calls CONCURRENTLY over the identical context, prompt
+ * and rules — one returns summary + supplements, one the
+ * diet cards, one the avoid cards — and the parts are merged. Same model, same instructions, same schema shape per
+ * card, so the depth of each card is unchanged; wall-clock roughly halves
+ * because the token streams run side by side.
+ */
+async function runClaudeSplit(args: {
+  body: RequestBody;
+  recentWashSignals: unknown[];
+  sensitivityBlock?: string;
+  retryNote?: string;
+}): Promise<NutritionPlanPayload> {
+  const [head, diet, avoid] = await Promise.all([
+    runClaude({ ...args, part: "supplements" }),
+    runClaude({ ...args, part: "diet" }),
+    runClaude({ ...args, part: "avoid" }),
+  ]);
+  return {
+    summary: head.summary,
+    supplements: head.supplements,
+    diet: diet.diet,
+    avoid: avoid.avoid,
+  };
+}
+
 
 // ─── Provider: Lovable+Gemini (legacy) ────────────────────────────────
 async function runLovable(
@@ -666,7 +739,7 @@ Deno.serve(async (req: Request) => {
         })
         .slice(0, 5);
 
-      payload = await runClaude({ body, recentWashSignals: recentSignals, sensitivityBlock });
+      payload = await runClaudeSplit({ body, recentWashSignals: recentSignals, sensitivityBlock });
       providerStamp = "claude";
     } else {
       payload = await runLovable(body, sensitivityBlock);
@@ -689,7 +762,7 @@ Deno.serve(async (req: Request) => {
       }. Rebuild the plan without these in any form, keeping the same number of items by substituting permitted foods that do the same job.`;
       console.log("[nutrition-debug] sensitivity retry", { hits: hits.length });
       payload = provider === "claude"
-        ? await runClaude({ body, recentWashSignals: [], sensitivityBlock, retryNote })
+        ? await runClaudeSplit({ body, recentWashSignals: [], sensitivityBlock, retryNote })
         : await runLovable(body, sensitivityBlock, retryNote);
       hits = validateAgainstAvoid(collect(payload), sens, "dietary");
       if (hits.length > 0) {

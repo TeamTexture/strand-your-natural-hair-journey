@@ -13,6 +13,8 @@ import { ShieldCheck } from "lucide-react";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
+import { readBloodData } from "@/lib/bloodRead";
+import { canonDiet } from "@/lib/dietaryPattern";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { shortForm } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
@@ -117,10 +119,29 @@ const BloodAiSummary = () => {
       // their blood summary. Claude/Opus can take 30-50s cold, and the
       // result is cached in ai_summaries — so by the time the user taps
       // "See Your Personalised Nutrition Plan" it's typically instant.
-      void aiInvoke("nutrition-plan", { context, force: shouldForce }).catch((err) => {
-        // Silent — NutritionPlan.tsx will retry on its own if this fails.
-        console.warn("[nutrition-plan prewarm] skipped", err);
-      });
+      // IMPORTANT: the prewarm must send the SAME inputs the Nutrition Plan
+      // page sends (diet, dietOther, alcohol, flaggedMarkers), because those
+      // fields are part of the server-side cache signature. Warming without
+      // them generated a plan under a different key, so the page still paid
+      // for a cold generation and the prewarm was wasted spend.
+      void (async () => {
+        try {
+          const { data: authData } = await supabase.auth.getUser();
+          const uid = authData?.user?.id;
+          const blood = uid ? await readBloodData(uid) : { flagged: [] as string[] };
+          await aiInvoke("nutrition-plan", {
+            context,
+            force: shouldForce,
+            diet: canonDiet((healthProfile as { diet?: string }).diet),
+            dietOther: (healthProfile as { dietOther?: string }).dietOther ?? "",
+            alcohol: (healthProfile as { alcohol?: string }).alcohol ?? "unknown",
+            flaggedMarkers: blood.flagged,
+          });
+        } catch (err) {
+          // Silent — NutritionPlan.tsx will retry on its own if this fails.
+          console.warn("[nutrition-plan prewarm] skipped", err);
+        }
+      })();
 
       // Hold 100% visible for a moment before unmounting the loader.
       await new Promise((r) => setTimeout(r, 400));
