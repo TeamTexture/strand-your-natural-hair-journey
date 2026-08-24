@@ -412,15 +412,45 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     "pro-new-enquiry",
     "transactional",
     false,
-    () => "You have a new STRAND enquiry",
+    (d) =>
+      s(d.member_name)
+        ? `New STRAND enquiry from ${s(d.member_name)}`
+        : "You have a new STRAND enquiry",
     (d) => [
       `Hi ${s(d.name, "there")},`,
-      `A member has sent you an enquiry through STRAND${s(d.member_name) ? ` (${s(d.member_name)})` : ""}.`,
-      "Open your portal to read it and reply.",
+      `${s(d.member_name, "A member")} has sent you an enquiry through STRAND${
+        s(d.stylist_name) ? ` for ${s(d.stylist_name)}` : ""
+      }.`,
+      ...(s(d.note) ? [`"${s(d.note)}"`] : []),
+      "Open the enquiry to read it in full and reply.",
     ],
-    () => ({ label: "Open enquiries", path: "/pro/enquiries" }),
+    () => ({ label: "Open enquiry", path: "/pro/enquiries" }),
     "enquiry_updates",
+    {
+      eyebrow: "New enquiry",
+      rows: (d) => {
+        const out: { label: string; value: string }[] = [];
+        const add = (label: string, value: string) => {
+          if (value) out.push({ label, value });
+        };
+        add("From", s(d.member_name));
+        add("For", s(d.stylist_name));
+        add("Service", s(d.service_interest));
+        add("Timeframe", s(d.preferred_timeframe));
+        add("Location", s(d.location_preference));
+        add("Budget", s(d.budget_range));
+        add("Preferred contact", s(d.contact_method));
+        add("Phone", s(d.contact_phone));
+        add("Received", s(d.received_at));
+        add(
+          "Hair passport",
+          d.share_passport_consent === true ? "Shared on acceptance" : "Not shared",
+        );
+        return out;
+      },
+    },
   ),
+
   "member-enquiry-replied": t(
     "member-enquiry-replied",
     "transactional",
