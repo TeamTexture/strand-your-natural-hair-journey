@@ -7,7 +7,7 @@
 // Both helpers return null on success or a human-readable error (never throw).
 
 /** The STRAND member (consumer) mailing list. Professionals/brands never go here. */
-export const KLAVIYO_MEMBER_LIST_ID = "TLPc7D";
+export const KLAVIYO_MEMBER_LIST_ID = "SgLnKi";
 
 function headers(key: string) {
   return {
