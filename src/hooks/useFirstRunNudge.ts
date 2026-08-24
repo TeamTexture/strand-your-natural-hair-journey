@@ -24,7 +24,9 @@ export type NudgeColumn =
   | "home_tour_seen_at"
   | "goals_prompt_seen_at"
   | "hair_length_prompt_seen_at"
-  | "pro_tour_seen_at";
+  | "pro_tour_seen_at"
+  | "photo_prompt_seen_at"
+  | "product_prompt_seen_at";
 
 const NEW_MEMBER_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 

@@ -4,6 +4,8 @@ import { tap } from "@/lib/haptics";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import { useMemberAppUnlocked } from "@/hooks/useMemberAppUnlocked";
+import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
+import { requestTourAutostart } from "@/lib/firstRunTour";
 
 const tabs = [
   { to: "/home", label: "Home", Icon: Home },
@@ -27,6 +29,10 @@ const BottomNav = () => {
   // are reachable mid-onboarding (e.g. the professional directory) therefore no
   // longer expose the rest of the app. See useMemberAppUnlocked.
   const { unlocked } = useMemberAppUnlocked();
+  // First run only: the Home tab glows with a START HERE label until the
+  // member has taken the guided tour. Tapping it flags the tour to open the
+  // moment Home mounts, so the tour always actually starts.
+  const { eligible: tourPending } = useFirstRunNudge("home_tour_seen_at");
   if (!allowsMemberFeatures(view)) return null;
   if (!unlocked) return null;
 
@@ -43,7 +49,10 @@ const BottomNav = () => {
         to={to}
         end
         onClick={() => tap()}
-        data-tour={to === "/profile" ? "bottom-nav-profile" : undefined}
+        data-tour={to === "/profile" ? "bottom-nav-profile" : `nav-${label.toLowerCase().replace(/ /g, "-")}`}
+        onClickCapture={() => {
+          if (to === "/home" && tourPending) requestTourAutostart();
+        }}
         className={({ isActive }) =>
           `min-h-[56px] py-2 flex flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.12em] font-body transition-colors ${
             isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
@@ -53,9 +62,31 @@ const BottomNav = () => {
         {({ isActive }) => (
           <>
             <span className="relative">
-              <Icon className={`size-5 ${isActive ? "stroke-[2]" : "stroke-[1.5]"}`} aria-hidden="true" />
+              <Icon
+                className={`size-5 ${isActive ? "stroke-[2]" : "stroke-[1.5]"} ${
+                  to === "/home" && tourPending ? "text-primary animate-pulse" : ""
+                }`}
+                aria-hidden="true"
+              />
+              {to === "/home" && tourPending && (
+                <>
+                  <span
+                    className="absolute -inset-2 rounded-full border border-primary/70 animate-ping"
+                    aria-hidden="true"
+                  />
+                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2 py-[3px] text-[8px] font-bold uppercase tracking-[0.12em] text-foreground shadow-lg">
+                    Start here
+                  </span>
+                </>
+              )}
             </span>
-            <span className="text-center leading-none">{label}</span>
+            <span
+              className={`text-center leading-none ${
+                to === "/home" && tourPending ? "text-primary font-semibold" : ""
+              }`}
+            >
+              {label}
+            </span>
           </>
         )}
       </NavLink>

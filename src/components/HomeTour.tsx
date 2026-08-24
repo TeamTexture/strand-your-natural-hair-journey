@@ -1,16 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { X, Sparkles, Minus } from "lucide-react";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
+import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { allowsMemberFeatures } from "@/lib/viewFeatures";
+import {
+  consumeTourAutostart,
+  markTourFinished,
+  TOUR_START_EVENT,
+} from "@/lib/firstRunTour";
 
 // Bumped key — tour is refreshed once for every user when new steps are added.
 const TOUR_KEY = "strand_home_tour_seen_v3";
@@ -21,6 +20,8 @@ type Step = {
   eyebrow: string;
   title: string;
   body: string;
+  /** Route this step is explained on. Defaults to Home. */
+  route?: string;
 };
 
 const STEPS: Step[] = [
@@ -139,9 +140,38 @@ const STEPS: Step[] = [
     body: "Tap the menu icon top-right on any screen to jump straight to Blood Work, Nutrition, Directory, Style Journal, Help, Contact or Sign out. It's the shortcut to everywhere else in STRAND.",
   },
   {
+    target: "nav-products",
+    route: "/products",
+    eyebrow: "Tab 2 — Products",
+    title: "Your product shelf",
+    body: "Everything you own lives here, scored against your hair profile. Add a product by scanning the bottle or pasting a link, then tap any product to see how it fits you and how to use it.",
+  },
+  {
+    target: "nav-wash-day",
+    route: "/wash-day",
+    eyebrow: "Tab 3 — Wash Day",
+    title: "Log a wash in five short steps",
+    body: "Start a wash day here and STRAND walks you through cleanse, condition, styling and how your scalp felt. Log it as you go — it's the single richest signal your guidance is built from.",
+  },
+  {
+    target: "nav-diet",
+    route: "/nutrition-plan",
+    eyebrow: "Tab 4 — Diet",
+    title: "Your nutrition plan",
+    body: "Built from your blood work and your diet pattern: supplements to consider, foods to prioritise, and what to keep apart from what. Open any card for the detail.",
+  },
+  {
+    target: "bottom-nav-profile",
+    route: "/profile",
+    eyebrow: "Tab 5 — Profile",
+    title: "Keep your details current",
+    body: "Hair type, health, medications, current style, photos and your support level all live here. Update anything that changes and your guidance updates with you.",
+  },
+  {
     target: null,
     eyebrow: "You're set",
     title: "Two things to do first",
+    route: "/home",
     body: "You can replay this tour anytime from the ‘Take the tour’ button pinned at the top of your home screen. Now add your goal and the challenge you're facing — those two answers are what STRAND builds every tip around.",
   },
 
@@ -149,12 +179,13 @@ const STEPS: Step[] = [
 
 const HomeTour = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const view = useActiveRoleView();
   const [active, setActive] = useState(false);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [cardH, setCardH] = useState(240);
-  const [goalOpen, setGoalOpen] = useState(false);
 
   // Auto-start ONLY when onboarding just flagged the tour as pending.
   // We never auto-run for returning users on every login — they trigger it
@@ -165,9 +196,15 @@ const HomeTour = () => {
   // never replays for someone who has already been through it.
   const { eligible: tourEligible, markSeen: markTourSeen } = useFirstRunNudge("home_tour_seen_at");
 
+  // The tour opens when the member taps the glowing START HERE beacon on the
+  // Home tab (which sets the autostart flag), and — as a safety net — the first
+  // time an eligible member is already sitting on Home. It never replays.
   useEffect(() => {
     if (!tourEligible) return;
+    const requested = consumeTourAutostart();
+    if (!requested && location.pathname !== "/home") return;
     const t = setTimeout(() => {
+      if (location.pathname !== "/home") navigate("/home");
       setStep(0);
       setActive(true);
       markTourSeen();
@@ -176,7 +213,16 @@ const HomeTour = () => {
       } catch {}
     }, 400);
     return () => clearTimeout(t);
-  }, [tourEligible, markTourSeen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourEligible, location.pathname, markTourSeen]);
+
+  // Walk the member to the page a step belongs to before measuring its anchor.
+  const stepRoute = STEPS[step]?.route ?? "/home";
+  useEffect(() => {
+    if (!active) return;
+    if (location.pathname !== stepRoute) navigate(stepRoute);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, step, stepRoute]);
 
 
   // Allow the pinned Home button (or any caller) to replay the tour on demand.
@@ -185,8 +231,8 @@ const HomeTour = () => {
       setStep(0);
       setActive(true);
     };
-    window.addEventListener("strand:start-tour", onStart as EventListener);
-    return () => window.removeEventListener("strand:start-tour", onStart as EventListener);
+    window.addEventListener(TOUR_START_EVENT, onStart as EventListener);
+    return () => window.removeEventListener(TOUR_START_EVENT, onStart as EventListener);
   }, []);
 
   const current = STEPS[step];
@@ -232,19 +278,21 @@ const HomeTour = () => {
       window.removeEventListener("resize", onScroll);
       window.removeEventListener("scroll", onScroll, true);
     };
-  }, [active, step, current?.target]);
+  }, [active, step, current?.target, location.pathname]);
 
-  if (!active && !goalOpen) return null;
+  if (!allowsMemberFeatures(view)) return null;
+  if (!active) return null;
 
-  const finish = (skipped = false) => {
+  const finish = (_skipped = false) => {
     try {
       localStorage.setItem(TOUR_KEY, "1");
       localStorage.removeItem(PENDING_KEY);
     } catch {}
     setActive(false);
-    // Even a skipped tour ends on the goal + challenge ask — it's the one thing
-    // STRAND cannot personalise without.
-    setTimeout(() => setGoalOpen(true), 250);
+    // Whether completed or skipped, the tour always hands over to the
+    // mandatory goal + challenge gate (see FirstRunSequence) on Home.
+    if (location.pathname !== "/home") navigate("/home");
+    setTimeout(() => markTourFinished(), 250);
   };
 
 
@@ -392,43 +440,6 @@ const HomeTour = () => {
         </div>
       )}
 
-      <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
-        <DialogContent className="max-w-[340px] rounded-[20px]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-[22px] leading-tight">
-              Add your goal and your challenge
-            </DialogTitle>
-            <DialogDescription className="font-body text-sm leading-relaxed">
-              Your goal is what you're working toward. Your challenge is what's getting in the
-              way right now — breakage, dryness, an itchy scalp, thinning edges. STRAND needs
-              both to tailor every wash tip, product rating and nutrition suggestion. Takes
-              about 60 seconds.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full"
-              onClick={() => {
-                setGoalOpen(false);
-                navigate("/journal");
-              }}
-            >
-              Add goal &amp; challenge →
-            </Button>
-
-            <Button
-              variant="goldGhost"
-              size="pill"
-              className="w-full"
-              onClick={() => setGoalOpen(false)}
-            >
-              Later
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
