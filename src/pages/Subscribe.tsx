@@ -339,7 +339,12 @@ const Subscribe = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Membership" onBack={hasAccess ? smartBack(nav, "/home") : undefined} />
+      {/* Never a dead end: without access the back arrow goes to Profile,
+          which is reachable without a membership. */}
+      <TitleBar
+        title="Membership"
+        onBack={hasAccess ? smartBack(nav, "/home") : () => nav("/profile")}
+      />
 
       <div className="px-5 pb-12 space-y-6">
         {hasAccess && (
