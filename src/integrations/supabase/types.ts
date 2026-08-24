@@ -4417,8 +4417,10 @@ export type Database = {
           payment_required_at: string | null
           personalised_offers_consent: boolean
           phone_number: string | null
+          photo_prompt_seen_at: string | null
           postcode: string | null
           pro_tour_seen_at: string | null
+          product_prompt_seen_at: string | null
           profile_confirmed_at: string | null
           terms_accepted_at: string | null
           terms_version: string | null
@@ -4453,8 +4455,10 @@ export type Database = {
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
           phone_number?: string | null
+          photo_prompt_seen_at?: string | null
           postcode?: string | null
           pro_tour_seen_at?: string | null
+          product_prompt_seen_at?: string | null
           profile_confirmed_at?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
@@ -4489,8 +4493,10 @@ export type Database = {
           payment_required_at?: string | null
           personalised_offers_consent?: boolean
           phone_number?: string | null
+          photo_prompt_seen_at?: string | null
           postcode?: string | null
           pro_tour_seen_at?: string | null
+          product_prompt_seen_at?: string | null
           profile_confirmed_at?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
