@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import LevelGate from "@/components/tips/LevelGate";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
@@ -525,7 +526,7 @@ const ProfileStep4Colour = () => {
             navigate(await resolveNextPath(), { replace: true });
           }}
         >
-          Continue to Blood Test →
+          {bloodOnFile ? "Continue to Membership \u2192" : "Continue to Blood Test \u2192"}
         </Button>
       </div>
     </ScreenLayout>
