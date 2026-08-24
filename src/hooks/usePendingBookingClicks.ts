@@ -64,9 +64,11 @@ export const usePendingBookingClicks = () => {
     refetchOnWindowFocus: "always",
 
     queryFn: async (): Promise<PendingBookingClick[]> => {
+      if (!user?.id) return [];
       const { data, error } = await supabase
         .from("pro_booking_clicks")
         .select("id,professional_id,clicked_at,discount_code_shown,prompted_at")
+        .eq("user_id", user.id)
         .is("outcome", null)
         .order("clicked_at", { ascending: true });
       if (error) throw error;
