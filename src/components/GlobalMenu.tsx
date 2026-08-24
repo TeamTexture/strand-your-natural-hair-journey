@@ -224,13 +224,30 @@ const GlobalMenu = () => {
               <ChevronLeft className="size-5" />
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => navigate(resumePath)}
-            className="h-9 px-3 rounded-full border border-primary/40 bg-primary/10 text-primary text-[11px] font-body uppercase tracking-[0.12em]"
-          >
-            Continue onboarding
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await signOut();
+                  navigate("/", { replace: true });
+                } catch (e) {
+                  console.error("[sign out] failed", e);
+                  toast.error("Sign out failed — check your connection and try again.");
+                }
+              }}
+              className="h-9 px-3 rounded-full border border-primary/40 bg-primary/10 text-primary text-[11px] font-body uppercase tracking-[0.12em]"
+            >
+              Save & sign out
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(resumePath)}
+              className="h-9 px-3 rounded-full border border-primary/40 bg-primary/10 text-primary text-[11px] font-body uppercase tracking-[0.12em]"
+            >
+              Continue onboarding
+            </button>
+          </div>
         </div>
       </div>
     );

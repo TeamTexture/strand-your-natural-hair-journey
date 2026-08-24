@@ -698,34 +698,10 @@ const Directory = () => {
               carry on where you left off — nothing you've entered is lost.
             </p>
           </SurfaceCard>
-          <Button
-            variant="goldGhost"
-            size="pill"
-            onClick={() => navigate("/onboarding/pro-details")}
-          >
-            Continue onboarding →
-          </Button>
-          <Button
-            variant="outline"
-            size="pill"
-            className="w-full whitespace-normal break-words leading-tight"
-            onClick={async () => {
-              try {
-                await signOut();
-                navigate("/", { replace: true });
-              } catch (e) {
-                console.error("[sign out] failed", e);
-                toast.error("Sign out failed — check your connection and try again.");
-              }
-            }}
-          >
-            Save &amp; sign out
-          </Button>
           <p className="text-[11px] font-body text-muted-foreground text-center leading-snug">
-            Everything you've entered is saved. Sign back in after your appointment and we'll
+            Everything you've entered is saved. Use <span className="font-semibold text-primary">Save &amp; sign out</span> at the top, then sign back in after your appointment and we'll
             pick up exactly where you left off.
           </p>
-
         </div>
       )}
 
