@@ -201,6 +201,7 @@ const Auth = () => {
           localStorage.setItem(`strand_setup_pending:${uid}`, "true");
         }
         void notifyAdminSignup("member", { name: name || null });
+        void addMemberToMailingList();
         toast.success("Welcome to Strand");
 
         // New accounts go straight into the required onboarding flow — the
