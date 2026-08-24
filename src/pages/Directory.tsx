@@ -705,6 +705,27 @@ const Directory = () => {
           >
             Continue onboarding →
           </Button>
+          <Button
+            variant="outline"
+            size="pill"
+            className="w-full whitespace-normal break-words leading-tight"
+            onClick={async () => {
+              try {
+                await signOut();
+                navigate("/", { replace: true });
+              } catch (e) {
+                console.error("[sign out] failed", e);
+                toast.error("Sign out failed — check your connection and try again.");
+              }
+            }}
+          >
+            Save &amp; sign out
+          </Button>
+          <p className="text-[11px] font-body text-muted-foreground text-center leading-snug">
+            Everything you've entered is saved. Sign back in after your appointment and we'll
+            pick up exactly where you left off.
+          </p>
+
         </div>
       )}
 
