@@ -238,3 +238,36 @@ pre::-webkit-scrollbar {
   display: none !important;
   background: transparent !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Edge-bleed safety net.
+   The app lives in a 375px frame, so anything wider than its column is a bug
+   the member sees as cut-off text or a horizontal jiggle. These rules stop the
+   common causes: long unbroken words/URLs, oversized media, wide floating
+   layers, and stray horizontal scroll on the document itself.
+--------------------------------------------------------------------------- */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Long words, emails, URLs and pasted product names wrap instead of pushing
+   their card wider than the frame. */
+body {
+  overflow-wrap: anywhere;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* Floating layers (dropdowns, selects, popovers, tooltips) can be positioned
+   by a library against the browser viewport; cap them to the frame column. */
+[data-radix-popper-content-wrapper] > * {
+  max-width: min(calc(100vw - 1.5rem), 351px);
+}
