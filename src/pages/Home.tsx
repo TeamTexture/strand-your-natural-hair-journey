@@ -128,6 +128,22 @@ const Home = () => {
 
 
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
+
+  // First-run sequence hand-offs: the mandatory goals gate and the optional
+  // photo prompt ask Home to open the relevant editor.
+  useEffect(() => {
+    const openGoal = () => setGoalEditorOpen(true);
+    const openChallenges = () => setChallengesOpen(true);
+    const openPhoto = () => setPhotoPickerOpen(true);
+    window.addEventListener("strand:open-goal-editor", openGoal);
+    window.addEventListener("strand:open-challenges", openChallenges);
+    window.addEventListener("strand:open-main-photo", openPhoto);
+    return () => {
+      window.removeEventListener("strand:open-goal-editor", openGoal);
+      window.removeEventListener("strand:open-challenges", openChallenges);
+      window.removeEventListener("strand:open-main-photo", openPhoto);
+    };
+  }, []);
   const [bloodSummary, setBloodSummary] = useState<{
     panelDate: string | null;
     label: string | null;
