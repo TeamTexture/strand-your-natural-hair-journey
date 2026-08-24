@@ -339,12 +339,9 @@ const Subscribe = () => {
 
   return (
     <ScreenLayout>
-      {/* Never a dead end: without access the back arrow goes to Profile,
-          which is reachable without a membership. */}
-      <TitleBar
-        title="Membership"
-        onBack={hasAccess ? smartBack(nav, "/home") : () => nav("/profile")}
-      />
+      {/* No membership, no way out but paying or signing out — the paywall is
+          deliberately terminal, so no back arrow is offered. */}
+      <TitleBar title="Membership" onBack={hasAccess ? smartBack(nav, "/home") : undefined} />
 
       <div className="px-5 pb-12 space-y-6">
         {hasAccess && (
