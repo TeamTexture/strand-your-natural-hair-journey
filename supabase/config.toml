@@ -23,3 +23,7 @@ verify_jwt = false
 
 [functions.notify-message-recipient]
 verify_jwt = false
+
+[functions.notify-pro-enquiry]
+verify_jwt = false
+
