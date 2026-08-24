@@ -339,12 +339,9 @@ const Subscribe = () => {
 
   return (
     <ScreenLayout>
-      {/* Never a dead end: without access the back arrow goes to Profile,
-          which is reachable without a membership. */}
-      <TitleBar
-        title="Membership"
-        onBack={hasAccess ? smartBack(nav, "/home") : () => nav("/profile")}
-      />
+      {/* No membership, no way out but paying or signing out — the paywall is
+          deliberately terminal, so no back arrow is offered. */}
+      <TitleBar title="Membership" onBack={hasAccess ? smartBack(nav, "/home") : undefined} />
 
       <div className="px-5 pb-12 space-y-6">
         {hasAccess && (
@@ -523,16 +520,9 @@ const Subscribe = () => {
           membership lapses — access is restored the moment you resubscribe.
         </p>
 
-        {/* Escape hatches — nobody is ever trapped on the paywall. */}
+        {/* Sign out is the only exit without a membership. */}
         {!hasAccess && (
-          <div className="flex items-center justify-center gap-4 pt-1">
-            <button
-              type="button"
-              onClick={() => nav("/profile")}
-              className="text-[12px] font-body font-semibold text-foreground/70 underline underline-offset-2"
-            >
-              Back to my profile
-            </button>
+          <div className="flex items-center justify-center pt-1">
             <button
               type="button"
               onClick={() => void signOut()}
