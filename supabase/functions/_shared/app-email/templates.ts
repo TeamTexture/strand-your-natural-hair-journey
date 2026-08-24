@@ -13,6 +13,8 @@
  * Copy here is operational only — no hair-care or clinical guidance.
  */
 
+import { SUPPORT_EMAIL } from "./config.ts";
+
 export type EmailCategory = "transactional" | "marketing";
 
 /** Keys on public.email_preferences that can gate an optional email. */
@@ -424,7 +426,7 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       s(d.billing_note),
       `If you believe this was a mistake, or you have a question about your billing, reply to this email or contact us at ${SUPPORT_EMAIL} and we will look into it.`,
     ].filter(Boolean),
-    null,
+    undefined,
     undefined,
     {
       eyebrow: "Account closed",
