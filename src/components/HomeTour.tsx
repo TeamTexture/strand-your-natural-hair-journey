@@ -133,12 +133,18 @@ const HomeTour = () => {
   // The tour opens when the member taps the glowing START HERE beacon on the
   // Home tab (which sets the autostart flag), and — as a safety net — the first
   // time an eligible member is already sitting on Home. It never replays.
+  const startedRef = useRef(false);
   useEffect(() => {
     if (!tourEligible) return;
+    // One auto-start per session: without this the effect re-fires after the
+    // tour finishes (the "seen" write has not round-tripped yet) and the member
+    // is thrown back to step 1.
+    if (startedRef.current) return;
     const requested = consumeTourAutostart();
     if (!requested && location.pathname !== "/home") return;
     const t = setTimeout(() => {
       if (location.pathname !== "/home") navigate("/home");
+      startedRef.current = true;
       setStep(0);
       setActive(true);
       markTourSeen();
