@@ -411,15 +411,16 @@ const ProfileStep4Colour = () => {
             <div className="border-t border-border" />
           </>
         )}
+        </div>
+        </OnboardingSectionCard>
 
-
-
-
+        <OnboardingSectionCard number={2} title="Your current style">
+        <div className="space-y-4">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+          <OnboardingQuestion>
             Current hairstyle{" "}
             <span className="font-semibold text-foreground">(choose one)</span>
-          </div>
+          </OnboardingQuestion>
           <StylePicker
             collapseOnSelect
             value={style[0] ?? null}
