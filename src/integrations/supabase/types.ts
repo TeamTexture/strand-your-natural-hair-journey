@@ -6729,6 +6729,7 @@ export type Database = {
       admin_list_member_activity: {
         Args: never
         Returns: {
+          created_at: string
           last_session: string
           session_count: number
           sessions_last_30d: number

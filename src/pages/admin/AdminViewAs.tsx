@@ -26,7 +26,18 @@ interface Row {
   display_name: string | null;
   email: string | null;
   roles: string[];
+  session_count: number;
+  last_session: string | null;
+  created_at: string | null;
 }
+
+type SortKey = "name" | "active" | "recent";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name (A–Z)" },
+  { key: "active", label: "Most active sessions" },
+  { key: "recent", label: "Recently registered" },
+];
 
 const roleChip = (role: string) => {
   const map: Record<string, string> = {
@@ -44,18 +55,20 @@ const AdminViewAs = () => {
   const { actualUser, isViewingAs } = useAuth();
   const { startViewAs, stopViewAs, viewAsDisplayName, viewAsUserId } = useViewAs();
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<SortKey>("name");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "view-as", "roster"],
     staleTime: 30_000,
     queryFn: async (): Promise<Row[]> => {
-      const [profilesRes, emailsRes, rolesRes] = await Promise.all([
+      const [profilesRes, emailsRes, rolesRes, activityRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name")
           .order("display_name", { ascending: true }),
         supabase.rpc("admin_list_member_emails"),
         supabase.from("user_roles").select("user_id, role"),
+        supabase.rpc("admin_list_member_activity"),
       ]);
       const emails = new Map<string, string>();
       for (const r of (emailsRes.data ?? []) as { user_id: string; email: string }[]) {
@@ -67,23 +80,55 @@ const AdminViewAs = () => {
         arr.push(r.role);
         roles.set(r.user_id, arr);
       }
-      return ((profilesRes.data ?? []) as { user_id: string; display_name: string | null }[]).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        email: emails.get(p.user_id) ?? null,
-        roles: roles.get(p.user_id) ?? [],
-      }));
+      type ActivityRow = {
+        user_id: string;
+        session_count: number | null;
+        last_session: string | null;
+        created_at: string | null;
+      };
+      const activity = new Map<string, ActivityRow>();
+      for (const r of (activityRes.data ?? []) as ActivityRow[]) {
+        activity.set(r.user_id, r);
+      }
+      return ((profilesRes.data ?? []) as { user_id: string; display_name: string | null }[]).map((p) => {
+        const a = activity.get(p.user_id);
+        return {
+          user_id: p.user_id,
+          display_name: p.display_name,
+          email: emails.get(p.user_id) ?? null,
+          roles: roles.get(p.user_id) ?? [],
+          session_count: a?.session_count ?? 0,
+          last_session: a?.last_session ?? null,
+          created_at: a?.created_at ?? null,
+        };
+      });
     },
   });
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((r) =>
-      (r.display_name ?? "").toLowerCase().includes(term) ||
-      (r.email ?? "").toLowerCase().includes(term),
-    );
-  }, [q, rows]);
+    const matched = term
+      ? rows.filter(
+          (r) =>
+            (r.display_name ?? "").toLowerCase().includes(term) ||
+            (r.email ?? "").toLowerCase().includes(term),
+        )
+      : rows;
+    const sorted = [...matched];
+    if (sort === "active") {
+      sorted.sort(
+        (a, b) => b.session_count - a.session_count,
+      );
+    } else if (sort === "recent") {
+      sorted.sort((a, b) => {
+        const ta = a.created_at ? Date.parse(a.created_at) : 0;
+        const tb = b.created_at ? Date.parse(b.created_at) : 0;
+        return tb - ta;
+      });
+    }
+    // "name" keeps the server's display_name ASC order.
+    return sorted;
+  }, [q, rows, sort]);
 
   const enter = (row: Row) => {
     if (!actualUser) return;
@@ -132,14 +177,28 @@ const AdminViewAs = () => {
           </SurfaceCard>
         )}
 
-        <div className="relative">
-          <Search className="size-4 absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name or email"
-            className="pl-9"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="size-4 absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name or email"
+              className="pl-9"
+            />
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sort users"
+            className="shrink-0 rounded-pill border border-border bg-background px-3 h-10 text-[12px] font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {isLoading ? (
@@ -171,6 +230,19 @@ const AdminViewAs = () => {
                     <p className="text-[11px] text-muted-foreground font-body truncate">
                       {row.email ?? "—"}
                     </p>
+                    {(row.session_count > 0 || row.created_at) && (
+                      <p className="text-[10px] text-muted-foreground/80 font-body mt-0.5">
+                        {row.session_count > 0
+                          ? `${row.session_count} session${row.session_count === 1 ? "" : "s"}`
+                          : "No sessions"}
+                        {row.created_at &&
+                          ` · joined ${new Date(row.created_at).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}`}
+                      </p>
+                    )}
                     {row.roles.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {row.roles.map((r) => (
