@@ -4,8 +4,6 @@
 export const HELLO_KLEAN_URL = "https://helloklean.com";
 export const HELLO_KLEAN_CODE = "HELLOKLEAN10";
 
-export const LOLA_HEALTH_URL = "https://lolahealth.co";
-export const LOLA_HEALTH_CODE = "STRANDLOLA10";
 
 // ── Hello Klean prompt state (per-user, localStorage) ──────────────
 
