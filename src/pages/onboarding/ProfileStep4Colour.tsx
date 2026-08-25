@@ -570,7 +570,7 @@ const ProfileStep4Colour = () => {
             navigate("/onboarding/blood-timing", { replace: true });
           }}
         >
-          {bloodOnFile ? "Subscribe \u2192" : "Next: add blood results \u2192"}
+          {bloodOnFile ? "Finish \u2192" : "Next: add blood results \u2192"}
         </Button>
 
         {!bloodOnFile && (
@@ -585,7 +585,7 @@ const ProfileStep4Colour = () => {
                 navigate(await resolveNextPath(), { replace: true });
               }}
             >
-              Skip for now — go to membership →
+              Skip for now — go to STRAND →
             </Button>
             <p className="text-[11px] text-foreground/60 font-body text-center leading-snug">
               Blood work is optional. You can add results any time — it unlocks your
