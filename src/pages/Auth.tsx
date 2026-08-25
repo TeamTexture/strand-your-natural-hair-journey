@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
 import { addMemberToMailingList } from "@/lib/klaviyoMember";
+import { markTrialOffer, trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
 // Only allow same-origin relative paths for redirect to avoid open-redirect
 // attacks via crafted ?next=https://evil.com links.
@@ -54,6 +55,10 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
     return getBrandEntryPath(userId, roles);
   }
   if (proApp) return "/pro/landing";
+  // Accounts registered into the 3-day trial funnel return to the paywall until
+  // they start a trial. Members who registered before it existed have no
+  // `trial_offer_at`, so this is never true for them.
+  if (await trialOfferPending(userId)) return TRIAL_PAYWALL_PATH;
   if (!profile?.onboarding_completed_at) {
     const status = await getConsumerOnboardingStatus(userId);
     if (!status.completed) return status.entryPath;
@@ -205,11 +210,12 @@ const Auth = () => {
         void addMemberToMailingList();
         toast.success("Welcome to Strand");
 
-        // New accounts go straight into the required onboarding flow — the
-        // profile page first, then hair characteristics and bloods.
+        // New accounts see the 3-day free trial paywall first, then the six
+        // onboarding steps. `trial_offer_at` is what marks them as a trial-funnel
+        // registration; existing members never carry it.
         if (data.session && uid) {
-          const target = await getPostSignInTarget(uid, params.get("next"));
-          navigate(target, { replace: true });
+          await markTrialOffer(uid);
+          navigate(TRIAL_PAYWALL_PATH, { replace: true });
           return;
         }
         // Email confirmation is on: nothing to route to until they confirm.

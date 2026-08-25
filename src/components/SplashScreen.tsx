@@ -13,6 +13,7 @@ import {
   getConsumerOnboardingStatus,
   getSubscribePath,
 } from "@/lib/consumerOnboarding";
+import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
 const safeNext = (raw: string | null, fallback: string) => {
   if (!raw) return fallback;
@@ -56,6 +57,7 @@ const SplashScreen = () => {
       return getBrandEntryPath(userId, roles);
     }
     if (proApp) return "/pro/landing";
+    if (await trialOfferPending(userId)) return TRIAL_PAYWALL_PATH;
     if (!onboardingStatus.completed) return onboardingStatus.entryPath;
     const hasAccess = await getConsumerAccessForUser(userId, roles);
     if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);

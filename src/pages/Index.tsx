@@ -4,6 +4,7 @@ import SplashScreen from "@/components/SplashScreen";
 import HairStrandIcon from "@/components/HairStrandIcon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -108,7 +109,12 @@ const Index = () => {
       }
 
       const hasAccess = await getConsumerAccessForUser(user.id, roles);
-      const consumerPath = onboardingStatus.completed
+      // A trial-funnel registration that never started its trial returns to the
+      // paywall; every pre-existing member falls through to their usual route.
+      const trialPending = !hasAccess && (await trialOfferPending(user.id));
+      const consumerPath = trialPending
+        ? TRIAL_PAYWALL_PATH
+        : onboardingStatus.completed
         ? hasAccess
           ? "/home"
           : getSubscribePath(onboardingStatus.analysisPath)
