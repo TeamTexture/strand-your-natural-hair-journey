@@ -36,10 +36,16 @@ const isSeedAllowed = (name: string) =>
 
 export const PRO_DIRECTORY_KEY = ["pro_directory"] as const;
 
+const PRO_TYPES: ProType[] = [
+  "Trichologist",
+  "Dermatologist",
+  "Curl Specialist",
+  "Colourist",
+  "Stylist",
+];
+
 const typeFor = (discipline: string | null | undefined): ProType =>
-  discipline === "Trichologist" || discipline === "Dermatologist"
-    ? discipline
-    : "Curl Specialist";
+  PRO_TYPES.includes(discipline as ProType) ? (discipline as ProType) : "Curl Specialist";
 
 const emojiFor = (type: ProType) =>
   type === "Trichologist" ? "🏥" : type === "Dermatologist" ? "🩺" : "✂️";

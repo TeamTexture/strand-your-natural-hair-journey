@@ -2,7 +2,7 @@
 // "Recommended Dermatologists & Trichologists (UK)" cheat sheet.
 // Used by the Professionals directory and the onboarding ProBook screen.
 
-export type ProType = "Trichologist" | "Dermatologist" | "Curl Specialist";
+export type ProType = "Trichologist" | "Dermatologist" | "Curl Specialist" | "Colourist" | "Stylist";
 
 export interface Professional {
   id: string;
