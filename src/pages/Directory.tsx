@@ -36,7 +36,7 @@ import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures, allowsProFeatures } from "@/lib/viewFeatures";
 import CapabilityBadges from "@/components/pro/CapabilityBadges";
 
-const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
+type DirectoryTab = "All" | ProType;
 
 /** Verified-capability filters. Both read `_verified` state only. */
 const CAP_FILTERS = [
@@ -56,7 +56,7 @@ const Directory = () => {
   // resolves to the current user's own listing.
   const targetProUserId = proParam ?? (anchorSelf && user?.id ? user.id : null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
+  const [tab, setTab] = useState<DirectoryTab>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading, error: directoryError, refresh } = useDirectoryProfessionals();
   const { stateForListing } = useProContactStates();
@@ -133,12 +133,15 @@ const Directory = () => {
   // Chip counts come from the FULL live directory (`pros` = published,
   // unsuspended pro profiles + active curated rows), never from the filtered
   // result set — so chips don't flicker as search/other filters change.
+  // The featured pro is counted too: she's excluded from the list below the
+  // featured card but she is still a live pro.
   // A category with zero listings is not rendered at all.
   const tabCounts = useMemo(() => {
     const counts = {} as Record<ProType, number>;
-    for (const p of listPros) counts[p.type] = (counts[p.type] ?? 0) + 1;
+    for (const p of pros) counts[p.type] = (counts[p.type] ?? 0) + 1;
     return counts;
-  }, [listPros]);
+  }, [pros]);
+
 
 
   // Same zero-count rule as the category chips: a capability filter that would
@@ -160,10 +163,15 @@ const Directory = () => {
     }));
   }, [capCounts.doctor, capCounts.bloods]);
 
-  const visibleTabs = useMemo(
-    () => tabs.filter((t) => t === "All" || (tabCounts[t] ?? 0) > 0),
-    [tabCounts],
-  );
+  // "All" first, then every discipline with at least one live pro, ordered by
+  // count descending then alphabetically.
+  const visibleTabs = useMemo<Array<"All" | ProType>>(() => {
+    const withPros = (Object.keys(tabCounts) as ProType[])
+      .filter((t) => (tabCounts[t] ?? 0) > 0)
+      .sort((a, b) => (tabCounts[b] ?? 0) - (tabCounts[a] ?? 0) || a.localeCompare(b));
+    return ["All", ...withPros];
+  }, [tabCounts]);
+
 
   // If the active category empties out, fall back to All so the list isn't
   // stuck on a chip that no longer exists.
