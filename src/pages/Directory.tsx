@@ -145,11 +145,12 @@ const Directory = () => {
   // return nothing is not rendered. Counts are VERIFIED-only.
   const capCounts = useMemo(
     () => ({
-      doctor: pros.filter((p) => p.isDoctorVerified === true).length,
-      bloods: pros.filter((p) => p.canTakeBloodsVerified === true).length,
+      doctor: listPros.filter((p) => p.isDoctorVerified === true).length,
+      bloods: listPros.filter((p) => p.canTakeBloodsVerified === true).length,
     }),
-    [pros],
+    [listPros],
   );
+
 
   // Never leave the user stranded on a filter that has emptied out.
   useEffect(() => {
