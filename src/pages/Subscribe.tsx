@@ -34,7 +34,7 @@ import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
-import { isSafeInternalPath, POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+import { isSafeInternalPath } from "@/lib/consumerOnboarding";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import LoadingDot from "@/components/LoadingDot";
 import { smartBack } from "@/lib/smartBack";
@@ -172,7 +172,7 @@ const Subscribe = () => {
       ? nextPath
       : isSafeInternalPath(storedNextPath)
         ? storedNextPath
-        : POST_PAYMENT_ANALYSIS_PATH;
+        : "/home";
     if (hasAccess) {
       try {
         localStorage.removeItem("strand_subscribe_next");
@@ -193,7 +193,7 @@ const Subscribe = () => {
 
   // A member who was bounced here by the paywall (so a `next` path exists) but
   // actually has access must not be left staring at the membership page —
-  // forward them to where they were headed, or to their blood analysis.
+  // forward them to where they were headed, or into the app.
   useEffect(() => {
     if (confirming || isLoading || !hasAccess) return;
     const pending = isSafeInternalPath(nextPath)
@@ -205,7 +205,7 @@ const Subscribe = () => {
     try {
       localStorage.removeItem("strand_subscribe_next");
     } catch {}
-    nav(pending === "/subscribe" ? POST_PAYMENT_ANALYSIS_PATH : pending, { replace: true });
+    nav(pending === "/subscribe" ? "/home" : pending, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirming, hasAccess, isLoading]);
 

@@ -164,7 +164,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
 
     resumePath,
     entryPath,
-    analysisPath: POST_PAYMENT_ANALYSIS_PATH,
+    analysisPath: getPostPaymentPath(bloodOnFile),
   };
 }
 
