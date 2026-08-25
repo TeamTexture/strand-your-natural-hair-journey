@@ -164,7 +164,11 @@ export const useAddSalonStylist = () => {
       return data;
     },
     onSuccess: () => {
+      // A stylist listing IS a directory listing: refresh both so the salon
+      // roster and the member-facing directory can never drift apart.
       qc.invalidateQueries({ queryKey: ["salon-stylists"] });
+      qc.invalidateQueries({ queryKey: ["pro_profile"] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
     },
   });
 };
@@ -180,7 +184,11 @@ export const useUpdateSalonStylist = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      // A stylist listing IS a directory listing: refresh both so the salon
+      // roster and the member-facing directory can never drift apart.
       qc.invalidateQueries({ queryKey: ["salon-stylists"] });
+      qc.invalidateQueries({ queryKey: ["pro_profile"] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
     },
   });
 };
@@ -203,7 +211,11 @@ export const useSetStylistPublished = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      // A stylist listing IS a directory listing: refresh both so the salon
+      // roster and the member-facing directory can never drift apart.
       qc.invalidateQueries({ queryKey: ["salon-stylists"] });
+      qc.invalidateQueries({ queryKey: ["pro_profile"] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
     },
   });
 };
