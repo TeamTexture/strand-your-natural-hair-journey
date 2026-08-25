@@ -144,11 +144,6 @@ const GlobalMenu = () => {
 
   const path = location.pathname;
 
-  // The trial paywall carries its own chrome and exactly one other action
-  // (Sign out). No app bar here — the locked bar's "Continue onboarding" button
-  // would be a door straight past the paywall.
-  if (path === TRIAL_PAYWALL_PATH) return null;
-
   // Tips-level preference is irrelevant on directory surfaces where the user
   // is browsing listings, not receiving personalised guidance.
   const isDirectoryPage = path.startsWith("/directory") || path.startsWith("/brands");
