@@ -48,7 +48,15 @@ export const isResumeLocked = (): boolean => {
  * back that would leave the group is pinned to the resume screen.
  */
 const GROUPS: string[][] = [
-  ["/onboarding/profile-step-3-hair", "/onboarding/profile-step-4-colour"],
+  // pro-details sits in the hair group as well as the professional group: the
+  // consultation record and the markers are one continuous flow now, so back
+  // from the markers form steps to the consultation it came from rather than
+  // bouncing off the resume screen.
+  [
+    "/onboarding/pro-details",
+    "/onboarding/profile-step-3-hair",
+    "/onboarding/profile-step-4-colour",
+  ],
   [
     "/onboarding/blood-timing",
     "/blood-upload",

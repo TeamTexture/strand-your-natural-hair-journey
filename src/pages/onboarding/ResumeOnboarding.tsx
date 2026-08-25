@@ -15,7 +15,7 @@ import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import OptionalBadge from "@/components/blood/OptionalBadge";
 import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
 import { useBloodSkipped } from "@/lib/bloodSkip";
-import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
+import { clearResumeLock, RESUME_PATH, setResumeLock } from "@/lib/onboardingLock";
 import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 
@@ -81,20 +81,20 @@ const ResumeOnboarding = () => {
     // rest of the session (dataComplete is the only thing that releases it).
     if (!status.dataComplete) setResumeLock();
     else clearResumeLock();
+    // This screen only earns its place when there is a real choice between two
+    // outstanding requirements. With exactly one left the decision layer names
+    // that screen, so hand her straight to it instead of showing a menu of one.
+    const next = getOnboardingNextPath(status, hasAccess);
+    if (next !== RESUME_PATH) navigate(next, { replace: true });
   }, [status, coreComplete, navigate, hasAccess, subLoading]);
 
   if (isLoading && !status) return <LoadingDot />;
 
   if (!status) return <LoadingDot />;
 
-  // The clinical markers come FROM the consultation, so who she saw and when has
-  // to be logged before the markers form is ever reached. Jumping straight to the
-  // markers screen skipped the most important part of this flow.
-  const hairPath = !status.consultationComplete
-    ? "/onboarding/pro-details"
-    : status.hairComplete
-      ? "/onboarding/profile-step-4-colour"
-      : "/onboarding/profile-step-3-hair";
+  // The clinical markers come FROM the consultation, so who she saw and when is
+  // always logged before the markers form is reached — the consultation card is
+  // the entry point, and pro-details hands straight over to the markers form.
 
   const bloodPath = (() => {
     const allowed = new Set([
@@ -219,34 +219,12 @@ const ResumeOnboarding = () => {
           </SurfaceCard>
         )}
 
-        {hairOutstanding && (
-          <SurfaceCard>
-            <div className="flex items-start gap-3">
-              <Scissors className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="font-display text-base font-semibold">
-                  Ready to add your hair characteristics?
-                </p>
-                <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
-                  {!status.consultationComplete
-                    ? "Your clinical markers come from your consultation, so log who you saw and when first. An appointment in the last 6 months counts — you do not need a new one."
-                    : status.hairComplete
-                      ? "Your clinical markers are saved. Colour and styling history is the last part."
-                      : "The clinical markers from your consultation — diameter, density, porosity, elasticity and your scalp."}
-
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full mt-3 whitespace-normal break-words leading-tight"
-              onClick={() => navigate(hairPath)}
-            >
-              Continue →
-            </Button>
-          </SurfaceCard>
-        )}
+        {/*
+          No standalone hair characteristics card. The consultation produces the
+          markers, so while the consultation is outstanding the card above is the
+          only way in — and once it is logged, hair is the single outstanding
+          requirement, which routes her straight to the form instead of here.
+        */}
 
         {bloodOutstanding && (
           bloodSkipped ? (
