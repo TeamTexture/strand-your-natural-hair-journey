@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const HOUR_MS = 60 * 60 * 1000;
+const AUTH_LOCK_SETTLE_MS = 2500;
 const storageKey = (userId: string) => `strand_last_session_log_${userId}`;
 
 // Track per-userId within this tab as an extra guard against duplicate fires
@@ -42,5 +43,5 @@ export function logUserSession(userId: string, source?: string): void {
       });
   };
   if (typeof window === "undefined") send();
-  else window.setTimeout(send, 0);
+  else window.setTimeout(send, AUTH_LOCK_SETTLE_MS);
 }
