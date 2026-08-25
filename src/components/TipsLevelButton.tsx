@@ -39,7 +39,6 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
   const { level, setLevel } = useTipsLevel();
   const [open, setOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     try {
@@ -52,7 +51,6 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
     try { localStorage.setItem(TOOLTIP_SEEN_KEY, "1"); } catch { /* private mode */ }
   };
 
-  const hoverClamp = useEdgeClamp();
   const hintClamp = useEdgeClamp();
 
   return (
@@ -61,29 +59,11 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
         <button
           type="button"
           onClick={() => { dismissTooltip(); setOpen(true); }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          onFocus={() => setHovered(true)}
-          onBlur={() => setHovered(false)}
           aria-label={`Guidance level: ${TIPS_LEVEL_LABEL[level]}. Tap to change.`}
           className="size-8 shrink-0 inline-flex items-center justify-center rounded-pill border border-border bg-card text-foreground/80 hover:border-primary/50 hover:text-primary transition-colors"
         >
           <LevelBars level={level} />
         </button>
-
-        {hovered && !showTooltip && (
-          <span
-            role="tooltip"
-            ref={hoverClamp.ref}
-            style={hoverClamp.style}
-            className="pointer-events-none absolute right-0 top-[calc(100%+8px)] z-40 max-w-[calc(100vw-2rem)] rounded-[10px] bg-foreground text-background px-2.5 py-1.5 shadow-lg animate-in fade-in-0 zoom-in-95"
-          >
-            <span className="absolute -top-1 right-3 size-2 rotate-45 bg-foreground" />
-            <span className="block text-[11px] leading-snug">
-              Guidance: {TIPS_LEVEL_LABEL[level]}
-            </span>
-          </span>
-        )}
 
         {showTooltip && (
           <button
