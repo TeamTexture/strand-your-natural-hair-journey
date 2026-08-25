@@ -41,14 +41,8 @@ const STEPS: Step[] = [
   {
     target: "goals",
     eyebrow: "Home",
-    title: "Your goal",
-    body: "What you're working towards, in your own words. STRAND reads it on every screen, so tips, wash advice and nutrition all pull toward it.",
-  },
-  {
-    target: "challenges",
-    eyebrow: "Home",
-    title: "Your challenges",
-    body: "What's getting in the way right now — shedding, dryness by week two, no time on wash day. Keep it current and the guidance follows.",
+    title: "Your goal & challenges",
+    body: "What you're working towards, and what's getting in the way right now. STRAND reads both on every screen, so tips, wash advice and nutrition all pull toward it.",
   },
   {
     target: "blood-work",
