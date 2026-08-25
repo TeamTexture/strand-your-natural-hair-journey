@@ -45,6 +45,8 @@ interface Props {
    * (AI-generated style-record steps).
    */
   stepHint?: StepProductHint | null;
+  /** Optional exact return route for auto-save scan/link flows. */
+  returnTo?: string;
 }
 
 
@@ -106,7 +108,7 @@ const Row = ({
 
 
 
-const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint, stepHint }: Props) => {
+const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint, stepHint, returnTo: returnToOverride }: Props) => {
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
@@ -176,7 +178,7 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
   // Where to send the user back to (so the detail screen can return them
   // to the journal entry / wash step they were on). The detail screen also
   // reads `auto_save` to add the new product straight to the shelf.
-  const returnTo = location.pathname + location.search;
+  const returnTo = returnToOverride ?? location.pathname + location.search;
   const navState = { intent: "shelf" as const, auto_save: true, returnTo };
 
   const openScan = (preferCamera: boolean) => {
