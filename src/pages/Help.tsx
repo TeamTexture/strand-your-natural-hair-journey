@@ -242,12 +242,6 @@ const Help = () => {
         <p className="font-body text-sm text-foreground/85 leading-snug">
           Short videos on how each part of STRAND works — rewatch any time.
         </p>
-        <SurfaceCard tone="gold" className="mt-2.5">
-          <p className="text-[12px] text-foreground/85 leading-snug">
-            The first two cover registering your account and your blood test.
-            Booking a professional is covered in video five.
-          </p>
-        </SurfaceCard>
       </div>
       <div className="px-5 pb-3 space-y-3">
         {WALKTHROUGHS.map((w, idx) => (
