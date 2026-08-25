@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -54,16 +53,12 @@ describe("onboarding goal step", () => {
   });
 
   it("stores her typed words in place of \"Something else\"", async () => {
-    const user = userEvent.setup();
     await renderStep();
 
-    await user.click(screen.getAllByText("Something else")[0]);
-    await user.type(
-      screen.getByLabelText("Your goal, in your words"),
-      "My twist-outs never last past day two",
-    );
-    await user.click(screen.getByText("Breakage"));
-    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    fireEvent.click(screen.getAllByText("Something else")[0]);
+    fireEvent.change(screen.getByLabelText("Your goal, in your words"), { target: { value: "My twist-outs never last past day two" } });
+    fireEvent.click(screen.getByText("Breakage"));
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
 
     await waitFor(() => expect(inserted).toHaveLength(1));
     expect(inserted[0]).toMatchObject({
@@ -75,14 +70,13 @@ describe("onboarding goal step", () => {
   });
 
   it("ignores an empty \"Something else\" and still continues", async () => {
-    const user = userEvent.setup();
     await renderStep();
 
-    await user.click(screen.getByText("Length"));
+    fireEvent.click(screen.getByText("Length"));
     // Multi-select challenge "Something else" left blank.
-    await user.click(screen.getAllByText("Something else")[1]);
-    await user.click(screen.getByText("Dryness"));
-    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    fireEvent.click(screen.getAllByText("Something else")[1]);
+    fireEvent.click(screen.getByText("Dryness"));
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
 
     await waitFor(() => expect(inserted).toHaveLength(1));
     expect(inserted[0].title).toBe("Length");
@@ -90,9 +84,8 @@ describe("onboarding goal step", () => {
   });
 
   it("saves nothing when she skips every question", async () => {
-    const user = userEvent.setup();
     await renderStep();
-    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
     await new Promise((r) => setTimeout(r, 50));
     expect(inserted).toHaveLength(0);
   });
