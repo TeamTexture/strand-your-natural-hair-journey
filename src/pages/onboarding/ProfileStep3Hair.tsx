@@ -145,6 +145,28 @@ const ProfileStep3Hair = () => {
       <ItalicSub>Answer these from what you know about your own hair. You can refine them later with a professional.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-5">
+        <div className="space-y-4">
+          <div className="text-xs uppercase tracking-[0.18em] text-foreground font-body font-medium">Feel and look</div>
+          <TagGroup
+            multi={false}
+            label="Roll one strand between your finger and thumb"
+            options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
+            value={diameter} onChange={setDiameter}
+          />
+          <TagGroup
+            multi={false}
+            label="Slide your fingers down a strand, root to tip"
+            options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
+            value={surfaceTexture} onChange={setSurfaceTexture}
+          />
+          <TagGroup
+            multi={false}
+            label="Part your hair and look along the line"
+            helper="Make a parting with a comb, then look at how much scalp shows along it."
+            options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
+            value={density} onChange={setDensity}
+          />
+        </div>
         <TagGroup
           multi={false}
           label="How your hair takes water"
