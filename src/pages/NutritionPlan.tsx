@@ -14,6 +14,7 @@ import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Tr
 import { capitaliseSentences } from "@/lib/paragraphs";
 
 import { readBloodData } from "@/lib/bloodRead";
+import OptionalBadge from "@/components/blood/OptionalBadge";
 import { useAuth } from "@/hooks/useAuth";
 
 import KeyFactChips from "@/components/guidance/KeyFactChips";
@@ -812,6 +813,7 @@ const NutritionPlan = () => {
         <TitleBar title="Nutrition Plan" tips onBack={smartBack(navigate, isOnboarding ? "/onboarding/blood-ai-summary" : "/home")} />
         <div className="px-5 pt-1 pb-8 space-y-4">
           <SurfaceCard tone="gold" className="space-y-3">
+            <OptionalBadge />
             <div className="flex items-start gap-3">
               <span className="mt-0.5 shrink-0 text-primary" aria-hidden="true">
                 <Lock className="size-4" />
@@ -821,8 +823,9 @@ const NutritionPlan = () => {
                   Locked until you add your bloods
                 </p>
                 <p className="text-[12.5px] font-body text-foreground/80 leading-relaxed mt-1">
-                  This section reads your iron, ferritin, vitamin D, B12 and thyroid
-                  values. It won't run on estimates.
+                  You don't need blood work to use STRAND. It only opens this diet and
+                  nutrition section, which reads your iron, ferritin, vitamin D, B12 and
+                  thyroid values and won't run on estimates.
                 </p>
               </div>
             </div>
@@ -835,8 +838,7 @@ const NutritionPlan = () => {
               Add my blood results →
             </Button>
             <p className="text-[11.5px] font-body text-muted-foreground leading-relaxed">
-              Blood work is optional and nothing you've entered expires — add it
-              whenever your results are ready.
+              Add your results whenever you're ready — nothing you've entered expires.
             </p>
           </SurfaceCard>
 
