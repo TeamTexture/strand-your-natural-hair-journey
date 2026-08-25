@@ -36,10 +36,35 @@ export const useChallenges = () => {
     },
   });
 
-  const labels = useMemo(
-    () => rows.map((r) => (r.label ?? "").trim()).filter(Boolean),
-    [rows],
-  );
+  // Fallback: the challenges she picked during onboarding live on her
+  // onboarding goal row (`user_goals.challenges`). Members who onboarded before
+  // `user_challenges` existed — and anyone who has never opened the challenges
+  // editor — must still see those answers pre-populated everywhere.
+  const { data: onboardingLabels = [] } = useQuery({
+    queryKey: ["user_challenges_onboarding", user?.id ?? "anon"],
+    enabled: !!user,
+    queryFn: async () => {
+      if (!user) return [] as string[];
+      const { data } = await supabase
+        .from("user_goals")
+        .select("challenges")
+        .eq("user_id", user.id)
+        .eq("kind", "onboarding")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const list = Array.isArray(data?.challenges) ? data!.challenges : [];
+      return list
+        .map((c) => String(c ?? "").trim())
+        .filter((c): c is string => c.length > 0);
+    },
+  });
+
+  const labels = useMemo(() => {
+    const own = rows.map((r) => (r.label ?? "").trim()).filter(Boolean);
+    return own.length > 0 ? own : onboardingLabels;
+  }, [rows, onboardingLabels]);
+
 
   /** Replace the whole list — the editor sheet works on a chip array. */
   const saveMutation = useMutation({
