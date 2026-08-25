@@ -7,6 +7,8 @@ import { useViewAs } from "@/hooks/useViewAs";
 import { clearOnboardingResolved } from "@/lib/onboardingResolved";
 import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
 
+const AUTH_RESTORE_TIMEOUT_MS = 4500;
+
 interface AuthCtx {
   session: Session | null;
   /** The user object the app should render for.
@@ -52,6 +54,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [session, isViewingAs, stopViewAs]);
 
   useEffect(() => {
+    let mounted = true;
+    let authResolved = false;
+    const finishAuthRestore = () => {
+      if (!mounted || authResolved) return;
+      authResolved = true;
+      setLoading(false);
+    };
+    const restoreTimeout = window.setTimeout(() => {
+      // The browser preview auth broker or a stale refresh can leave getSession()
+      // pending indefinitely. Never let that strand the whole app on Loading:
+      // auth events can still set the session later, and signed-out users can
+      // always reach the splash screen.
+      finishAuthRestore();
+    }, AUTH_RESTORE_TIMEOUT_MS);
+
     /** Purge only when a genuinely different member signs in on this device. */
     const guardDeviceOwner = (userId: string) => {
       try {
@@ -66,7 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!mounted) return;
       setSession(s);
+      finishAuthRestore();
       // A recovery link signs the user in before they've proven a password.
       // Lock the browser to the reset screen until the new password is saved.
       if (event === "PASSWORD_RECOVERY") {
@@ -85,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     supabase.auth.getSession()
       .then(({ data }) => {
+        if (!mounted) return;
         setSession(data.session);
         if (data.session?.user?.id) {
           guardDeviceOwner(data.session.user.id);
@@ -92,14 +112,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       })
       .catch((error: unknown) => {
+        if (!mounted) return;
         // A failed session restore must never leave the app as a blank,
         // permanent loading screen. The signed-out screen remains usable and
         // the member can sign in again without losing their saved answers.
         console.error("[auth] session restore failed", error);
         setSession(null);
       })
-      .finally(() => setLoading(false));
-    return () => sub.subscription.unsubscribe();
+      .finally(finishAuthRestore);
+    return () => {
+      mounted = false;
+      window.clearTimeout(restoreTimeout);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

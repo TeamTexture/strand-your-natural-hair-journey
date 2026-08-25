@@ -32,15 +32,16 @@ export function logUserSession(userId: string, source?: string): void {
   // those events; a database request started inside the same stack queues behind
   // that lock and can leave every signed-in read stuck on the Loading screen.
   const send = () => {
-    void supabase
-      .from("user_sessions")
-      .insert({ user_id: userId, source: source ?? null })
-      .then(() => {
+    void Promise.resolve(
+      supabase.from("user_sessions").insert({ user_id: userId, source: source ?? null })
+    ).then(
+      () => {
         inFlight.delete(userId);
-      })
-      .catch(() => {
+      },
+      () => {
         inFlight.delete(userId);
-      });
+      }
+    );
   };
   if (typeof window === "undefined") send();
   else window.setTimeout(send, AUTH_LOCK_SETTLE_MS);
