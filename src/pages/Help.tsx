@@ -62,7 +62,7 @@ const WALKTHROUGHS: Walkthrough[] = [
   {
     id: "wash-days-and-booking",
     loomId: "f19ec50f4fae474a8857c5516540f655",
-    category: "Wash days and how to book professionals",
+    category: "Wash days and booking",
     title: "Wash days and how to book professionals",
     aspectPadding: "64.74820143884892%",
   },
