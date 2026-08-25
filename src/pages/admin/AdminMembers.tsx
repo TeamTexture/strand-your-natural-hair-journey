@@ -241,6 +241,7 @@ const AdminMembers = () => {
           subscription_tier: subMap.get(p.user_id)?.subscription_tier ?? null,
           current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
           cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
+          has_billing_account: !!subMap.get(p.user_id)?.has_billing_account,
           session_count: act?.session_count ?? 0,
           last_session: act?.last_session ?? null,
           sessions_last_30d: act?.sessions_last_30d ?? 0,
