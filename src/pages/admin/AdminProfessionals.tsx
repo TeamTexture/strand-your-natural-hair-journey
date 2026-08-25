@@ -107,6 +107,136 @@ const completeness = (profile: Record<string, unknown> | null) => {
   return Math.round(((filled + (hasServices ? 1 : 0)) / (fields.length + 1)) * 100);
 };
 
+/**
+ * FEATURED DIRECTORY SLOT — reusable and time-bound. No professional is named
+ * in code: whoever is dated into the window today fills the single featured
+ * position at the top of the consumer directory. An expired window drops out
+ * by itself, so a placement can't be left running by accident.
+ */
+const FeaturedSlotControl = ({ userId }: { userId: string }) => {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "pro-featured", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pro_profiles")
+        .select("featured_from,featured_until,featured_rank,is_published,profile_review_status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [from, setFrom] = useState<string | null>(null);
+  const [until, setUntil] = useState<string | null>(null);
+  const [rank, setRank] = useState<string | null>(null);
+
+  const fromValue = from ?? data?.featured_from ?? "";
+  const untilValue = until ?? data?.featured_until ?? "";
+  const rankValue = rank ?? (data?.featured_rank != null ? String(data.featured_rank) : "");
+
+  const save = useMutation({
+    mutationFn: async (payload: {
+      featured_from: string | null;
+      featured_until: string | null;
+      featured_rank: number | null;
+    }) => {
+      const { error } = await supabase.from("pro_profiles").update(payload).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "pro-featured", userId] });
+      qc.invalidateQueries({ queryKey: ["pro_directory"] });
+      setFrom(null);
+      setUntil(null);
+      setRank(null);
+      toast.success("Featured slot updated.");
+    },
+    onError: (err) => toast.error((err as Error).message ?? "Could not update featured slot"),
+  });
+
+  const eligible = data?.is_published === true && data?.profile_review_status === "approved";
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border">
+      <p className="text-[12px] font-body font-medium">Featured directory slot</p>
+      <p className="text-[11px] text-muted-foreground leading-snug">
+        Shown at the top of the consumer directory, marked "Featured", while today falls inside
+        these dates. Leave the start empty for "already started", the end empty for "no end date" —
+        clearing all three switches the slot off. Lowest rank wins when more than one qualifies.
+      </p>
+      {!isLoading && !eligible && (
+        <p className="text-[11px] text-warn mt-1.5 leading-snug">
+          This profile is not published and approved, so it will not appear in the slot yet.
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-2 mt-2.5">
+        <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          From
+          <Input
+            type="date"
+            value={fromValue}
+            onChange={(e) => setFrom(e.target.value)}
+            className="mt-1 h-9 text-[12px]"
+          />
+        </label>
+        <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          Until
+          <Input
+            type="date"
+            value={untilValue}
+            onChange={(e) => setUntil(e.target.value)}
+            className="mt-1 h-9 text-[12px]"
+          />
+        </label>
+      </div>
+      <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mt-2">
+        Rank
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          value={rankValue}
+          onChange={(e) => setRank(e.target.value)}
+          className="mt-1 h-9 text-[12px]"
+        />
+      </label>
+      <div className="grid grid-cols-2 gap-2 mt-2.5">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-pill text-[11px] font-body"
+          disabled={save.isPending || isLoading}
+          onClick={() =>
+            save.mutate({
+              featured_from: fromValue ? fromValue : null,
+              featured_until: untilValue ? untilValue : null,
+              featured_rank: rankValue.trim() === "" ? null : Number(rankValue),
+            })
+          }
+        >
+          {save.isPending ? "Saving…" : "Save featured slot"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-9 rounded-pill text-[11px] font-body"
+          disabled={save.isPending || isLoading}
+          onClick={() => {
+            setFrom("");
+            setUntil("");
+            setRank("");
+            save.mutate({ featured_from: null, featured_until: null, featured_rank: null });
+          }}
+        >
+          Clear
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const ProDetailPanel = ({ userId }: { userId: string }) => {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "pro-usage", "detail", userId],
