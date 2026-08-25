@@ -417,9 +417,11 @@ const ProfileStep4Colour = () => {
 
         <div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-            Current hairstyle
+            Current hairstyle{" "}
+            <span className="font-semibold text-foreground">(choose one)</span>
           </div>
           <StylePicker
+            collapseOnSelect
             value={style[0] ?? null}
             onChange={(v) => {
               setStyle([v]);

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Tag from "@/components/Tag";
 import ChoiceChips from "@/components/nav/ChoiceChips";
 import {
@@ -30,6 +31,7 @@ const StylePicker = ({
   attributesRequired = true,
   attributeError,
   hideStyleOptions = false,
+  collapseOnSelect = false,
 }: {
   value: string | null;
   onChange: (next: string) => void;
@@ -42,20 +44,40 @@ const StylePicker = ({
   /** Attributes-only mode — used for the planned next style, where the style
    *  itself is chosen in a separate dropdown. */
   hideStyleOptions?: boolean;
+  /** Once one style is picked, hide every other option and show just the
+   *  chosen one with a way back to the full list. */
+  collapseOnSelect?: boolean;
 }) => {
   const asksTension = styleAsksTension(value);
   const asksExtensions = styleAsksExtensions(value);
+  const [expanded, setExpanded] = useState(false);
+  const collapsed = collapseOnSelect && !!value && !expanded;
 
   return (
     <div className="space-y-4">
-      {!hideStyleOptions && STYLE_GROUPS.map((group) => (
+      {!hideStyleOptions && collapsed && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Tag selected onClick={() => setExpanded(true)}>
+            {value}
+          </Tag>
+          <button
+            type="button"
+            className="text-[11px] font-body text-muted-foreground underline underline-offset-4"
+            onClick={() => setExpanded(true)}
+          >
+            Change
+          </button>
+        </div>
+      )}
+
+      {!hideStyleOptions && !collapsed && STYLE_GROUPS.map((group) => (
         <div key={group.label}>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
             {group.label}
           </div>
           <div className="flex flex-wrap gap-2">
             {group.options.map((o) => (
-              <Tag key={o} selected={value === o} onClick={() => onChange(o)}>
+              <Tag key={o} selected={value === o} onClick={() => { onChange(o); setExpanded(false); }}>
                 {o}
               </Tag>
             ))}
@@ -63,11 +85,11 @@ const StylePicker = ({
         </div>
       ))}
 
-      {!hideStyleOptions && includeNotSureYet && (
+      {!hideStyleOptions && !collapsed && includeNotSureYet && (
         <div className="flex flex-wrap gap-2">
           <Tag
             selected={value === NOT_SURE_YET}
-            onClick={() => onChange(NOT_SURE_YET)}
+            onClick={() => { onChange(NOT_SURE_YET); setExpanded(false); }}
           >
             {NOT_SURE_YET}
           </Tag>

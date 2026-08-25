@@ -17,6 +17,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { allChallenges, challengesOf } from "@/lib/goalChallenges";
+import { pickCurrentGoal } from "@/lib/currentGoal";
 import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
@@ -70,6 +71,16 @@ export interface AiContext {
    * locations on the head. Both feed the model; neither replaces the other.
    */
   challenges: string[];
+  /**
+   * Her CURRENT goal and what she said is getting in the way — MEMBER-SUPPLIED
+   * DATA, free text she typed herself. Omitted entirely when she has no live
+   * goal (existing members who never saw the goal step): never an empty string
+   * and never a placeholder, and the model must not comment on its absence.
+   */
+  currentGoal?: {
+    title: string;
+    challenges: string[];
+  };
   goals: Array<{
     kind: string;
     title: string;
@@ -188,6 +199,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
   let lowRated: Array<Record<string, unknown>> = [];
   let highRated: Array<Record<string, unknown>> = [];
   let goals: AiContext["goals"] = [];
+  let currentGoal: AiContext["currentGoal"] | undefined;
   let standaloneChallenges: string[] = [];
   let tools: Array<Record<string, unknown>> = [];
   let wishlist: Array<Record<string, unknown>> = [];
@@ -234,7 +246,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .eq("user_id", userId),
         supabase
           .from("user_goals")
-          .select("kind, title, challenges, challenge, target_text, target_value, target_date, unit, status")
+          .select("kind, title, challenges, challenge, target_text, target_value, target_date, unit, status, ended_at, created_at")
           .eq("user_id", userId),
         supabase
           .from("user_tools")
@@ -395,6 +407,17 @@ async function buildAiContextUncached(): Promise<AiContext> {
         unit: String(g.unit ?? ""),
         status: String(g.status ?? ""),
       })) as AiContext["goals"];
+      // One definition of "current goal", shared with useGoals.
+      const live = pickCurrentGoal(
+        ((goalRows.data ?? []) as Array<Record<string, unknown>>).map((g) => ({
+          title: String(g.title ?? ""),
+          challenges: challengesOf(g as { challenges?: string[] | null; challenge?: string | null }),
+          status: (g.status as string | null) ?? null,
+          ended_at: (g.ended_at as string | null) ?? null,
+          created_at: (g.created_at as string | null) ?? null,
+        })),
+      );
+      if (live?.title) currentGoal = { title: live.title, challenges: live.challenges };
       tools = ((toolRows.data ?? []) as Array<Record<string, unknown>>).slice(0, 25);
       wishlist = ((wishRows.data ?? []) as Array<Record<string, unknown>>).slice(0, 25);
       standaloneChallenges = ((challengeRows.data ?? []) as Array<{ label: string | null }>)
@@ -508,6 +531,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
       high_rated_products: highRated,
     },
     goals,
+    ...(currentGoal ? { currentGoal } : {}),
     // Challenges are their own record now (`user_challenges`), edited
     // separately from goals. Legacy per-goal challenges are merged so older
     // accounts keep their context until they re-save.

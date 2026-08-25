@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { isCurrentGoal } from "@/lib/currentGoal";
 
 export interface UserGoal {
   id: string;
@@ -130,9 +131,8 @@ export const useGoals = () => {
 
   // The member's current goal, whatever it is. There is NO preferred goal
   // kind — goals are free text and length is never the default.
-  const activeGoals = goals.filter(
-    (g) => (g.status ?? "in_progress") === "in_progress" && !g.ended_at,
-  );
+  // Shared definition — see src/lib/currentGoal.ts. Do not inline a second one.
+  const activeGoals = goals.filter((g) => isCurrentGoal(g));
   const pastGoals = goals
     .filter((g) => g.status === "past" || !!g.ended_at)
     .sort((a, b) => (b.ended_at ?? "").localeCompare(a.ended_at ?? ""));
