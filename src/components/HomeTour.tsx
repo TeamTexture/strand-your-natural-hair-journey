@@ -39,6 +39,13 @@ const STEPS: Step[] = [
     body: "The style you're wearing now, plus what's planned next. Tap it to open your full Strand summary — the picture every recommendation is built from.",
   },
   {
+    target: "style-photo",
+    eyebrow: "Home",
+    title: "Add a photo of your hair",
+    body: "Tap the photo frame (or the image icon top-right of this card) to add a picture of your hair as it looks today. Do this now — it's how you'll see your progress month to month.",
+  },
+
+  {
     target: "goals",
     eyebrow: "Home",
     title: "Your goal & challenges",
