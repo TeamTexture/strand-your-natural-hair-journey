@@ -3924,6 +3924,9 @@ export type Database = {
           doctor_review_note: string | null
           doctor_verified_at: string | null
           doctor_verified_by: string | null
+          featured_from: string | null
+          featured_rank: number | null
+          featured_until: string | null
           gmc_number: string | null
           id: string
           instagram_handle: string | null
@@ -3977,6 +3980,9 @@ export type Database = {
           doctor_review_note?: string | null
           doctor_verified_at?: string | null
           doctor_verified_by?: string | null
+          featured_from?: string | null
+          featured_rank?: number | null
+          featured_until?: string | null
           gmc_number?: string | null
           id?: string
           instagram_handle?: string | null
@@ -4030,6 +4036,9 @@ export type Database = {
           doctor_review_note?: string | null
           doctor_verified_at?: string | null
           doctor_verified_by?: string | null
+          featured_from?: string | null
+          featured_rank?: number | null
+          featured_until?: string | null
           gmc_number?: string | null
           id?: string
           instagram_handle?: string | null

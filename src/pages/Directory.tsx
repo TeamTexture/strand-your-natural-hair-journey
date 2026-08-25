@@ -98,14 +98,37 @@ const Directory = () => {
     bloods: false,
   });
 
+  /**
+   * FEATURED SLOT — at most ONE promoted listing, chosen purely by the dated
+   * window on `pro_profiles` (see isFeaturedToday in useDirectoryProfessionals).
+   * Order: featured_rank ascending, then display name. When nobody qualifies
+   * today this is null and NOTHING renders — no heading, no placeholder.
+   */
+  const featuredPro: Professional | null = useMemo(() => {
+    const eligible = pros.filter((p) => p.isFeaturedSlot === true);
+    if (eligible.length === 0) return null;
+    return [...eligible].sort((a, b) => {
+      const ra = a.featuredSlotRank ?? Number.MAX_SAFE_INTEGER;
+      const rb = b.featuredSlotRank ?? Number.MAX_SAFE_INTEGER;
+      return ra - rb || a.name.localeCompare(b.name);
+    })[0];
+  }, [pros]);
+
+  // The featured pro is removed from the listing below so she can never appear
+  // twice on the same screen — including inside her salon's group card.
+  const listPros = useMemo(
+    () => (featuredPro ? pros.filter((p) => p.id !== featuredPro.id) : pros),
+    [pros, featuredPro],
+  );
+
   const results = useMemo(() => {
-    const base = searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab);
+    const base = searchProfessionalsIn(listPros, query, bloodOnly ? "Dermatologist" : tab);
     return base.filter(
       (p) =>
         (!caps.doctor || p.isDoctorVerified === true) &&
         (!caps.bloods || p.canTakeBloodsVerified === true),
     );
-  }, [pros, query, tab, bloodOnly, caps]);
+  }, [listPros, query, tab, bloodOnly, caps]);
 
   // Chip counts come from the FULL live directory (`pros` = published,
   // unsuspended pro profiles + active curated rows), never from the filtered
@@ -113,19 +136,21 @@ const Directory = () => {
   // A category with zero listings is not rendered at all.
   const tabCounts = useMemo(() => {
     const counts = {} as Record<ProType, number>;
-    for (const p of pros) counts[p.type] = (counts[p.type] ?? 0) + 1;
+    for (const p of listPros) counts[p.type] = (counts[p.type] ?? 0) + 1;
     return counts;
-  }, [pros]);
+  }, [listPros]);
+
 
   // Same zero-count rule as the category chips: a capability filter that would
   // return nothing is not rendered. Counts are VERIFIED-only.
   const capCounts = useMemo(
     () => ({
-      doctor: pros.filter((p) => p.isDoctorVerified === true).length,
-      bloods: pros.filter((p) => p.canTakeBloodsVerified === true).length,
+      doctor: listPros.filter((p) => p.isDoctorVerified === true).length,
+      bloods: listPros.filter((p) => p.canTakeBloodsVerified === true).length,
     }),
-    [pros],
+    [listPros],
   );
+
 
   // Never leave the user stranded on a filter that has emptied out.
   useEffect(() => {
@@ -252,7 +277,7 @@ const Directory = () => {
 
   const rows = useMemo(() => {
     const rosterBySalon = new Map<string, Professional[]>();
-    for (const p of pros) {
+    for (const p of listPros) {
       if (!p.salonId) continue;
       const list = rosterBySalon.get(p.salonId) ?? [];
       list.push(p);
@@ -282,14 +307,15 @@ const Directory = () => {
       });
     }
     return out;
-  }, [pros, results]);
+  }, [listPros, results]);
 
   /**
    * ONE card renderer for every listing — solo pro, curated row, or a stylist
    * inside an expanded salon group. There is deliberately no second card
    * component: a salon stylist must read exactly like any other professional.
    */
-  const renderProCard = (p: Professional) => {
+  const renderProCard = (p: Professional, opts?: { featuredSlot?: boolean }) => {
+    const inFeaturedSlot = opts?.featuredSlot === true;
     const contact = stateForListing(p);
     const hasContact = contact.kind !== "none" || !!contact.threadId;
     const statusLine = proContactStatusLine(contact, (iso) =>
@@ -331,6 +357,9 @@ const Directory = () => {
         // existing secondary/primary token family. Everyone else sees
         // the standard white card.
         isOwn && "bg-secondary/70 border-primary/40 ring-1 ring-primary/25",
+        // PROMOTED featured slot: same background and radius as every other
+        // card, lifted only by a 2px gold border. Nothing else diverges.
+        inFeaturedSlot && "border-2 border-primary",
         // Brief highlight pulse when the user has been deep-linked
         // to this card so the eye finds the row after the scroll.
         highlightId === p.id && "ring-2 ring-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.18)] animate-pulse",
@@ -342,33 +371,44 @@ const Directory = () => {
           <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-start gap-1.5 min-w-0">
                 {isOwn && (
                   <Star
-                    className="size-3.5 text-primary shrink-0"
+                    className="size-3.5 text-primary shrink-0 mt-1"
                     fill="currentColor"
                     aria-label="Your listing"
                   />
                 )}
-                <p className="font-display text-base font-semibold leading-tight truncate">
+                {/* Names are never clipped: a professional's full name is the
+                    one thing a member must be able to read, so it wraps to two
+                    lines instead of truncating. */}
+                <p className="font-display text-base font-semibold leading-tight break-words line-clamp-2 min-w-0">
                   {p.name}
                 </p>
               </div>
-              {isOwn ? (
-                <button
-                  type="button"
-                  onClick={() => navigate("/pro/profile")}
-                  className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-1 rounded-full bg-primary text-primary-foreground"
-                >
-                  <Pencil className="size-3" />
-                  Edit
-                </button>
-              ) : hasContact ? (
-                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
-                  {enqLabel}
-                </span>
-              ) : null}
+              <div className="shrink-0 flex flex-col items-end gap-1">
+                {inFeaturedSlot && (
+                  <span className="inline-flex items-center text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/40">
+                    Featured
+                  </span>
+                )}
+                {isOwn ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pro/profile")}
+                    className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-1 rounded-full bg-primary text-primary-foreground"
+                  >
+                    <Pencil className="size-3" />
+                    Edit
+                  </button>
+                ) : hasContact ? (
+                  <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
+                    {enqLabel}
+                  </span>
+                ) : null}
+              </div>
             </div>
+
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <span className="text-[11px] text-muted-foreground">{p.title}</span>
               <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
@@ -825,6 +865,12 @@ const Directory = () => {
             })}
           </div>
         </div>
+      )}
+
+      {/* PROMOTED featured slot. Renders nothing at all when no professional
+          is dated into the slot today — no heading, no empty state. */}
+      {featuredPro && !loading && (
+        <div className="px-5 pb-4">{renderProCard(featuredPro, { featuredSlot: true })}</div>
       )}
 
       <div className="px-5 space-y-4 pb-8">
