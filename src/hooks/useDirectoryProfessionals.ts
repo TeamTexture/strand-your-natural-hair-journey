@@ -285,7 +285,13 @@ async function loadDirectory(): Promise<Professional[]> {
       isDoctorVerified: row.is_doctor_verified === true,
       canTakeBloodsVerified: row.can_take_bloods_verified === true,
       bloodsSetting: (row.bloods_setting as Professional["bloodsSetting"]) ?? null,
+      // Promoted, time-bound featured slot — recomputed on every load, so an
+      // expired window drops out of the slot by itself.
+      isFeaturedSlot: isFeaturedToday(row as Parameters<typeof isFeaturedToday>[0]),
+      featuredSlotRank:
+        row.featured_rank != null ? Number(row.featured_rank) : null,
     };
+
   });
 
   // ── Admin-curated directory rows.
