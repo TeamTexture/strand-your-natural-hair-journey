@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
+import { PRO_PROFILE_KEY } from "@/lib/proProfileCache";
 
 export type ProProfileRow = Database["public"]["Tables"]["pro_profiles"]["Row"];
 export type ProReviewStatus =
