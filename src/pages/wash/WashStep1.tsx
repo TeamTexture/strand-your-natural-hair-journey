@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import WashDaySteps from "@/components/WashDaySteps";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
+import ProductThumb from "@/components/ProductThumb";
 import HeatToolPicker from "@/components/HeatToolPicker";
 import HeatStepEditor, { type HeatChoice, type HeatRationale } from "@/components/wash/HeatStepEditor";
 import { washStepLabel, rollUpStepHeat, type StepHeat } from "@/lib/washSteps";
@@ -218,17 +219,30 @@ const StepCard = ({
           {selectedProducts.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/30 rounded-[10px]"
+              className="flex items-center gap-2 px-2.5 py-2 bg-primary/5 border border-primary/30 rounded-[10px]"
             >
               <Check className="size-4 text-good shrink-0" />
-              <span className="text-xs flex-1 truncate">{formatProduct(p)}</span>
+              <ProductThumb
+                imageUrl={p.image_url}
+                storagePath={p.storage_path}
+                alt={p.name}
+                brand={p.brand}
+                name={p.name}
+                cover
+                wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
+              />
+              {/* Two lines before truncating — several products share long
+                  prefixes and were indistinguishable clipped to one line. */}
+              <span className="text-xs flex-1 min-w-0 leading-snug line-clamp-2 break-words">
+                {formatProduct(p)}
+              </span>
               <button
                 type="button"
                 onClick={() => onRemoveProduct(p.id)}
                 aria-label={`Remove ${p.name}`}
-                className="size-6 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                className="size-8 -mr-1 rounded-full hover:bg-destructive/10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors shrink-0"
               >
-                <X className="size-3.5" />
+                <X className="size-4" />
               </button>
             </div>
           ))}

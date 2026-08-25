@@ -411,7 +411,7 @@ const JournalStepCard = ({
                 wrapperClassName="size-10 rounded-[9px] overflow-hidden bg-card shrink-0"
               />
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium truncate">{p?.name ?? "Product"}</p>
+                <p className="text-[13px] font-medium leading-snug line-clamp-2 break-words">{p?.name ?? "Product"}</p>
                 <div className="flex items-center gap-1.5 min-w-0">
                   {p?.brand && <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>}
                   <MatchStars item={p ?? null} size="sm" showValue={false} />
@@ -460,7 +460,7 @@ const JournalStepCard = ({
                 wrapperClassName="size-10 rounded-[9px] overflow-hidden bg-card shrink-0"
               />
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium truncate">{t?.name ?? "Tool"}</p>
+                <p className="text-[13px] font-medium leading-snug line-clamp-2 break-words">{t?.name ?? "Tool"}</p>
                 <div className="flex items-center gap-1.5 min-w-0">
                   {t?.brand && <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>}
                   <MatchStars item={t ?? null} size="sm" showValue={false} />
