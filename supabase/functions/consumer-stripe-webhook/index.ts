@@ -2,6 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
+import { pushToKlaviyoList, KLAVIYO_PAID_MEMBER_LIST_ID } from "../_shared/klaviyo.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -152,5 +153,35 @@ async function upsertFromSubscription(
     { onConflict: "user_id" },
   );
   if (error) throw error;
+
+  // Paying members are mirrored onto the Klaviyo paid-members list. Never blocks
+  // the webhook — a Klaviyo outage must not cause Stripe retries.
+  if (sub.status === "active" || sub.status === "trialing") {
+    try {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("display_name, phone_number")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const { data: authUser } = await admin.auth.admin.getUserById(userId);
+      const email = (authUser?.user?.email ?? "").toLowerCase();
+      if (email) {
+        const err = await pushToKlaviyoList({
+          listId: KLAVIYO_PAID_MEMBER_LIST_ID,
+          email,
+          name: (prof as any)?.display_name ?? null,
+          phone: (prof as any)?.phone_number ? String((prof as any).phone_number) : null,
+          properties: {
+            strand_account_type: "member",
+            strand_paid: "true",
+            strand_tier: tier,
+          },
+        });
+        if (err) console.error("[consumer-stripe-webhook] klaviyo paid push failed", err);
+      }
+    } catch (e) {
+      console.error("[consumer-stripe-webhook] klaviyo paid push threw", e);
+    }
+  }
 }
 
