@@ -44,20 +44,17 @@ const FirstRunSequence = () => {
   const loading = goalsLoading || challengesLoading;
   const goalsComplete = !!goal && challenges.length > 0;
 
-  // Mandatory gate: shown while the member is still inside the first-run
-  // window and either answer is missing. Marked seen only once satisfied.
-  const showGoalsGate = tourDone && !loading && goalsNudge.eligible && !goalsComplete;
+  // Goal and challenge are captured in onboarding step one, so the old blocking
+  // gate is gone. The flag is simply recorded as seen once both are on file.
   useEffect(() => {
     if (tourDone && !loading && goalsNudge.eligible && goalsComplete) goalsNudge.markSeen();
   }, [tourDone, loading, goalsNudge, goalsComplete]);
 
   const showPhoto =
-    tourDone && !loading && goalsComplete && !showGoalsGate && photoNudge.eligible && !photoDismissed;
+    tourDone && !loading && photoNudge.eligible && !photoDismissed;
   const showProduct =
     tourDone &&
     !loading &&
-    goalsComplete &&
-    !showGoalsGate &&
     !showPhoto &&
     (photoDismissed || !photoNudge.eligible) &&
     productNudge.eligible &&
@@ -71,65 +68,17 @@ const FirstRunSequence = () => {
     if (showProduct) productNudge.markSeen();
   }, [showProduct, productNudge]);
 
-  // The mandatory gate owns the screen: other first-run dialogs stand down.
+  // No first-run dialog owns the screen any more.
   useEffect(() => {
-    setTourActive(showGoalsGate);
-    return () => setTourActive(false);
-  }, [showGoalsGate]);
+    setTourActive(false);
+  }, []);
 
-  if (showGoalsGate) {
-    return (
-      <div
-        className="fixed inset-0 z-[110] flex items-center justify-center px-5"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="first-run-goals-title"
-      >
-        <div className="absolute inset-0 bg-[rgba(15,12,10,0.88)] backdrop-blur-sm" />
-        <div className="relative w-full max-w-[340px] rounded-[22px] border border-primary/30 bg-background shadow-2xl p-6">
-          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-primary font-semibold font-body">
-            <Sparkles className="size-3" aria-hidden />
-            One last step
-          </span>
-          <h2
-            id="first-run-goals-title"
-            className="font-display text-[22px] leading-tight mt-2"
-          >
-            Add your goal and your challenge
-          </h2>
-          <p className="font-body text-[13.5px] text-foreground/80 leading-relaxed mt-2">
-            Your goal is what you're working towards. Your challenge is what's getting in the way
-            right now — breakage, dryness, an itchy scalp, thinning edges. STRAND needs both before
-            it can tailor your tips, wash advice, product scores and nutrition. Takes about a
-            minute.
-          </p>
 
-          <div className="mt-4 space-y-2">
-            <Button
-              variant={goal ? "goldOutline" : "gold"}
-              size="pill"
-              className="w-full"
-              onClick={() => window.dispatchEvent(new Event("strand:open-goal-editor"))}
-            >
-              {goal ? "Goal added ✓ — edit" : "Add my goal →"}
-            </Button>
-            <Button
-              variant={challenges.length > 0 ? "goldOutline" : "gold"}
-              size="pill"
-              className="w-full"
-              onClick={() => window.dispatchEvent(new Event("strand:open-challenges"))}
-            >
-              {challenges.length > 0 ? "Challenges added ✓ — edit" : "Add my challenges →"}
-            </Button>
-          </div>
+  // The mandatory goals/challenges gate has been retired. Goal and challenge are
+  // now captured as step one of onboarding, so no existing member — paid or
+  // otherwise — should be asked to redo it from a blocking pop-up on Home.
 
-          <p className="text-[11px] font-body text-muted-foreground text-center mt-4 leading-relaxed">
-            This step can't be skipped — it's what the whole app personalises around.
-          </p>
-        </div>
-      </div>
-    );
-  }
+
 
   if (showPhoto) {
     return (

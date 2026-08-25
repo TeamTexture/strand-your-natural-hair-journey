@@ -118,10 +118,11 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     (d) => [
       `Hi ${s(d.name, "there")},`,
       "Thank you — your details are saved and your STRAND account is registered.",
-      "Two things open STRAND up: your hair characteristics, and logging the professional consultation they come from. That is what lets STRAND be specific with you rather than general.",
-      "Your hair characteristics tell us what your hair actually is — its pattern, its condition, how you wear it now. Blood results are optional and open the diet and nutrition side whenever you add them.",
-      "Pick up exactly where you left off whenever you have your report to hand. Nothing you have already entered is lost.",
+      "Setting up is seven steps, all answered by you: your goal and what is hardest right now; about you, including a real postcode, which sets your water hardness; your health profile; your supplements; your hair characteristics, which is curl pattern plus eight questions about your own hair; your colour history and the style you are in or moving to; then choosing your membership, and the app unlocks.",
+      "Two things are optional. A blood test report from the last six months opens the nutrition and diet side of STRAND — nothing else in the app waits on it, and you can tap straight past it. A professional consultation is strongly recommended, so your characteristics are measured rather than estimated, but it is never required and never blocks anything.",
+      "Pick up exactly where you left off whenever it suits you. Nothing you have already entered is lost.",
     ],
+
     () => ({ label: "Finish setting up", path: "/onboarding/profile-step-2" }),
     undefined,
     { eyebrow: "Getting started" },
