@@ -43,6 +43,8 @@ const TrialPaywall = () => {
   const { user, signOut } = useAuth();
   const { hasAccess, isLoading } = useConsumerSubscription();
   const { standard, plus } = useConsumerPricing();
+  const { trialEligible, known: offerKnown } = useTrialOffer();
+  const { data: onboarding } = useOnboardingStatus();
 
   const [tier, setTier] = useState<Tier>("plus");
   const [busy, setBusy] = useState(false);
@@ -51,6 +53,44 @@ const TrialPaywall = () => {
   const nextPath = isSafeInternalPath(params.get("next")) ? params.get("next")! : AFTER_TRIAL_PATH;
   const price = tier === "plus" ? plus : standard;
   const trialEnd = formatTrialEnd();
+
+  // A trial is only offered when the checkout will actually honour it — the
+  // one-trial-per-account rule is read from the same fields the edge function
+  // checks, so the screen and Stripe can never disagree.
+  const offerTrial = !offerKnown || trialEligible;
+
+  // "Has she given us anything yet?" — read from the existing completeness
+  // helpers, never a new check. Any captured stage counts as returning.
+  const hasData = !!(
+    onboarding &&
+    (onboarding.markedComplete ||
+      onboarding.basicComplete ||
+      onboarding.healthComplete ||
+      onboarding.hairComplete ||
+      onboarding.styleComplete ||
+      onboarding.bloodOnFile)
+  );
+
+  const copy = !hasData
+    ? {
+        eyebrow: "Welcome to STRAND",
+        heading: "Three days free, then decide.",
+        sub: "Set up your hair profile and use everything. Cancel before day three and you pay nothing.",
+        cta: `Start my ${TRIAL_DAYS} days free`,
+      }
+    : offerTrial
+      ? {
+          eyebrow: "Your profile is waiting",
+          heading: "Three days free, then decide.",
+          sub: "Everything you've already entered is saved. Start your trial to pick up where you left off.",
+          cta: `Start my ${TRIAL_DAYS} days free`,
+        }
+      : {
+          eyebrow: "Your profile is waiting",
+          heading: "Pick up where you left off.",
+          sub: "Everything you've already entered is saved.",
+          cta: "Subscribe and continue",
+        };
 
   useEffect(() => {
     const c = params.get("checkout");
