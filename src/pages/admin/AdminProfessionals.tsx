@@ -627,7 +627,12 @@ const AdminProfessionals = () => {
                   </div>
                 </button>
 
-                {isExpanded && <ProDetailPanel userId={r.user_id} />}
+                {isExpanded && (
+                  <>
+                    <ProDetailPanel userId={r.user_id} />
+                    <FeaturedSlotControl userId={r.user_id} />
+                  </>
+                )}
 
                 <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
                   <Button
