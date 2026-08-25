@@ -20,8 +20,13 @@ export function useMyProProfile() {
   // professional's own profile, so gating matches what they actually see.
   const { user } = useAuth();
   const q = useQuery({
-    queryKey: ["pro_profile_review", user?.id],
+    // SHARED key with the edit screen: one row, one cache entry, so a save in
+    // /pro/profile is reflected on the dashboard and every gate immediately.
+    queryKey: PRO_PROFILE_KEY(user?.id),
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<ProProfileRow | null> => {
       const { data, error } = await supabase
         .from("pro_profiles")
