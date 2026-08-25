@@ -1,0 +1,1 @@
+ALTER TABLE public.user_hair_profile ADD COLUMN IF NOT EXISTS curl_pattern text;
