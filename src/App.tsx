@@ -54,9 +54,6 @@ const Legal = lazyRetry(() => import("./pages/Legal"));
 const ProfileStep1 = lazyRetry(() => import("./pages/onboarding/ProfileStep1"));
 const ProfileStep2 = lazyRetry(() => import("./pages/onboarding/ProfileStep2"));
 const ProfileSupplements = lazyRetry(() => import("./pages/onboarding/ProfileSupplements"));
-const ProGate = lazyRetry(() => import("./pages/onboarding/ProGate"));
-const ProBook = lazyRetry(() => import("./pages/onboarding/ProBook"));
-const ProDetails = lazyRetry(() => import("./pages/onboarding/ProDetails"));
 const ProfileStep3Hair = lazyRetry(() => import("./pages/onboarding/ProfileStep3Hair"));
 const ProfileStep4Colour = lazyRetry(() => import("./pages/onboarding/ProfileStep4Colour"));
 const BloodTiming = lazyRetry(() => import("./pages/onboarding/BloodTiming"));
@@ -331,9 +328,13 @@ const App = () => (
               <Route path="/onboarding/profile-step-1" element={<Onboard><ProfileStep1 /></Onboard>} />
               <Route path="/onboarding/profile-step-2" element={<Onboard><ProfileStep2 /></Onboard>} />
               <Route path="/onboarding/profile-supplements" element={<Onboard><ProfileSupplements /></Onboard>} />
-              <Route path="/onboarding/pro-gate" element={<Onboard><ProGate /></Onboard>} />
-              <Route path="/onboarding/pro-book" element={<Onboard><ProBook /></Onboard>} />
-              <Route path="/onboarding/pro-details" element={<Onboard><ProDetails /></Onboard>} />
+              {/* The professional-consultation stage was removed from onboarding.
+                  Members parked on those paths (bookmark, email link, stale
+                  saved step) land on the hair characteristics form instead of a
+                  dead route. */}
+              <Route path="/onboarding/pro-gate" element={<Navigate to="/onboarding/profile-step-3-hair" replace />} />
+              <Route path="/onboarding/pro-book" element={<Navigate to="/onboarding/profile-step-3-hair" replace />} />
+              <Route path="/onboarding/pro-details" element={<Navigate to="/onboarding/profile-step-3-hair" replace />} />
               <Route path="/onboarding/profile-step-3-hair" element={<Onboard><ProfileStep3Hair /></Onboard>} />
               <Route path="/onboarding/profile-step-4-colour" element={<Onboard><ProfileStep4Colour /></Onboard>} />
               <Route path="/onboarding/resume" element={<Onboard><ResumeOnboarding /></Onboard>} />
