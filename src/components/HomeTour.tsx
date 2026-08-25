@@ -13,7 +13,7 @@ import {
 } from "@/lib/firstRunTour";
 
 // Bumped key — tour is refreshed once for every user when new steps are added.
-const TOUR_KEY = "strand_home_tour_seen_v3";
+const TOUR_KEY = "strand_home_tour_seen_v4";
 const PENDING_KEY = "strand_home_tour_pending";
 
 type Step = {
