@@ -17,6 +17,42 @@ import { toast } from "sonner";
 import PersonalisedOffersPrompt from "@/components/consent/PersonalisedOffersPrompt";
 import { usePersonalisedOffersAsk } from "@/hooks/usePersonalisedOffersAsk";
 
+/**
+ * Maps the self-assessment labels a member picks to the column values a
+ * professional would enter, so the stored data stays in the same convention
+ * regardless of who captured it. "Not sure" maps to null (unknown) — it
+ * satisfies validation without forcing a guess.
+ */
+export const HAIR_FEEL_MAP = {
+  diameter: {
+    "I can barely feel it": "Fine",
+    "I can feel it clearly": "Medium",
+    "Thick and wiry": "Coarse",
+    "Different across my head": "Mixed",
+    "Not sure": null,
+  } as Record<string, string | null>,
+  surface_texture: {
+    "Smooth all the way": "Silky / glassy",
+    "A little grip": "Medium",
+    "Bumpy, it catches": "Rough / crinkly",
+    "Not sure": null,
+  } as Record<string, string | null>,
+  density: {
+    "A wide band of scalp": "Low",
+    "A clear line with a little scalp either side": "Medium",
+    "The parting closes up as soon as I let go": "High",
+    "Not sure": null,
+  } as Record<string, string | null>,
+} as const;
+
+export type HairFeelField = keyof typeof HAIR_FEEL_MAP;
+
+/** Convert a picked label to its stored column value (or null for "Not sure"). */
+export function mapHairFeelLabel(field: HairFeelField, label: string | undefined): string | null {
+  if (!label) return null;
+  return HAIR_FEEL_MAP[field][label] ?? null;
+}
+
 interface TGProps {
   label: string;
   options: string[];
@@ -25,8 +61,10 @@ interface TGProps {
   multi?: boolean;
   /** When set, this option is affirmative and mutually exclusive with the rest. */
   noneLabel?: string;
+  /** Optional muted helper line rendered directly under the label. */
+  helper?: string;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   const toggle = (opt: string) => {
     if (multi) {
@@ -38,6 +76,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: 
   return (
     <div>
       <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
+      {helper && <div className="text-[11px] text-muted-foreground/80 font-body -mt-1.5 mb-2.5">{helper}</div>}
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
@@ -59,13 +98,19 @@ const ProfileStep3Hair = () => {
   const [scalp, setScalp] = useState<string[]>([]);
   const [diagnosed, setDiagnosed] = useState<string[]>([]);
   const [areas, setAreas] = useState<string[]>([]);
+  // Feel & look — self-assessed. State holds the picked label; the column
+  // value is derived at save time via mapHairFeelLabel so the stored data
+  // matches a professional capture. "Not sure" is a valid answer (→ null).
+  const [diameter, setDiameter] = useState<string[]>([]);
+  const [surfaceTexture, setSurfaceTexture] = useState<string[]>([]);
+  const [density, setDensity] = useState<string[]>([]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
 
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-3-hair",
-    { porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
+    { porosity, elasticity, scalp, diagnosed, areas, diameter, surfaceTexture, density, lengthInches, lengthBucket },
     (d) => {
       // Older saved drafts used different shapes. Only restore values the
       // current controls can render; malformed arrays previously crashed on
@@ -75,6 +120,9 @@ const ProfileStep3Hair = () => {
       if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.diagnosed)) setDiagnosed(d.diagnosed.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.areas)) setAreas(d.areas.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.diameter)) setDiameter(d.diameter.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.surfaceTexture)) setSurfaceTexture(d.surfaceTexture.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.density)) setDensity(d.density.filter((v): v is string => typeof v === "string"));
       if (typeof d.lengthInches === "string") setLengthInches(d.lengthInches);
       if (typeof d.lengthBucket === "string") setLengthBucket(d.lengthBucket);
     },
@@ -97,6 +145,28 @@ const ProfileStep3Hair = () => {
       <ItalicSub>Answer these from what you know about your own hair. You can refine them later with a professional.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-5">
+        <div className="space-y-4">
+          <div className="text-xs uppercase tracking-[0.18em] text-foreground font-body font-medium">Feel and look</div>
+          <TagGroup
+            multi={false}
+            label="Roll one strand between your finger and thumb"
+            options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
+            value={diameter} onChange={setDiameter}
+          />
+          <TagGroup
+            multi={false}
+            label="Slide your fingers down a strand, root to tip"
+            options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
+            value={surfaceTexture} onChange={setSurfaceTexture}
+          />
+          <TagGroup
+            multi={false}
+            label="Part your hair and look along the line"
+            helper="Make a parting with a comb, then look at how much scalp shows along it."
+            options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
+            value={density} onChange={setDensity}
+          />
+        </div>
         <TagGroup
           multi={false}
           label="How your hair takes water"
@@ -137,6 +207,9 @@ const ProfileStep3Hair = () => {
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           const gaps: string[] = [];
+          if (diameter.length === 0) gaps.push("rolling a strand between your fingers");
+          if (surfaceTexture.length === 0) gaps.push("sliding your fingers down a strand");
+          if (density.length === 0) gaps.push("parting your hair and looking along the line");
           if (porosity.length === 0) gaps.push("how your hair takes water");
           if (elasticity.length === 0) gaps.push("how a wet strand behaves");
           if (scalp.length === 0) gaps.push("scalp condition");
@@ -146,8 +219,16 @@ const ProfileStep3Hair = () => {
             toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
             return;
           }
+          // Map the self-assessed labels to the column values a professional
+          // would enter, so downstream consumers see the same convention.
+          const diameterVal = mapHairFeelLabel("diameter", diameter[0]);
+          const surfaceTextureVal = mapHairFeelLabel("surface_texture", surfaceTexture[0]);
+          const densityVal = mapHairFeelLabel("density", density[0]);
           localStorage.setItem("strand_hair_profile", JSON.stringify({
             porosity, elasticity, scalp, diagnosed, areas,
+            diameter: diameterVal ? [diameterVal] : [],
+            texture: surfaceTextureVal ? [surfaceTextureVal] : [],
+            density: densityVal ? [densityVal] : [],
             length_inches: lengthInches, length_bucket: lengthBucket,
           }));
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
@@ -166,6 +247,9 @@ const ProfileStep3Hair = () => {
                     user_id: u.user.id,
                     porosity: porosity[0] ?? null,
                     elasticity: elasticity[0] ?? null,
+                    diameter: diameterVal,
+                    surface_texture: surfaceTextureVal,
+                    density: densityVal,
                     scalp_condition_enc: enc.scalp,
                     diagnosed_conditions_enc: enc.diagnosed,
                     areas_of_concern: areas,
