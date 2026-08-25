@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
+import { useConsumerPricing } from "@/hooks/useConsumerPricing";
 import LoadingDot from "@/components/LoadingDot";
 import { smartBack } from "@/lib/smartBack";
 
@@ -124,19 +125,8 @@ const Subscribe = () => {
   const [busy, setBusy] = useState<"subscribe" | "portal" | null>(null);
   const [tier, setTier] = useState<"standard" | "plus">("standard");
 
-  const priceQ = useQuery({
-    queryKey: ["platform_settings", "consumer_monthly_price_gbp"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "consumer_monthly_price_gbp")
-        .maybeSingle();
-      const raw = (data?.value as number | string | null) ?? 9.99;
-      const n = typeof raw === "string" ? parseFloat(raw) : raw;
-      return isFinite(n) ? n : 9.99;
-    },
-  });
+  // Shared with the trial paywall — one source for both prices.
+  const pricing = useConsumerPricing();
 
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
   const [activationStuck, setActivationStuck] = useState(false);
@@ -249,8 +239,8 @@ const Subscribe = () => {
     }
   };
 
-  const basePrice = priceQ.data ?? 9.99;
-  const price = tier === "plus" ? 14.99 : basePrice;
+  const basePrice = pricing.standard;
+  const price = tier === "plus" ? pricing.plus : basePrice;
   const perDay = (price / 30).toFixed(2);
   const returnTo = isSafeInternalPath(nextPath) ? nextPath : isSafeInternalPath(storedNextPath) ? storedNextPath : "/home";
 
