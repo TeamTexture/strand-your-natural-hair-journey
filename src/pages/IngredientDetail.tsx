@@ -78,6 +78,7 @@ import { applySensitivityCeiling } from "@/lib/sensitivityCeiling";
 import { safeProductSummary } from "@/lib/sensitivitySummary";
 
 import AiProgressBar from "@/components/AiProgressBar";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 interface Ingredient {
   tone: "good" | "warn" | "bad";

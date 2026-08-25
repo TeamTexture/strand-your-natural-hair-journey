@@ -12,6 +12,7 @@ import { aiInvoke, isAuthInvokeError } from "@/lib/aiInvoke";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 interface Extracted {
   name?: string;

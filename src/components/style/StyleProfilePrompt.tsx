@@ -16,6 +16,7 @@ import {
   readPendingStylePrompt,
   type PendingStylePrompt,
 } from "@/lib/styleProfilePrompt";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 interface ProfileBefore {
   current_hairstyle: string | null;

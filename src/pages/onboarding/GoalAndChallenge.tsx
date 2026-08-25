@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
  * GoalAndChallenge — the FIRST consumer onboarding step.

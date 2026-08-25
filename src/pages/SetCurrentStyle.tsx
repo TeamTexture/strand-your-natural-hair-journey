@@ -24,6 +24,7 @@ import {
   invalidateClinicalContextCache,
   loadClinicalContext,
 } from "@/lib/clinicalContext";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const UNIT_OPTIONS: Choice[] = [
   { value: "days", label: "Days" },

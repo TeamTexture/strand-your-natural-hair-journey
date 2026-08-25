@@ -13,6 +13,7 @@
 // migration is self-healing without needing a destructive SQL migration.
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export type ListKind = "flag";
 

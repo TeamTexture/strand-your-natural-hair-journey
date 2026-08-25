@@ -18,6 +18,7 @@ import {
   saveRemoteDraft,
   writeLocalDraftTime,
 } from "@/lib/onboardingDraftStore";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const KEY = "strand_blood_values";
 const UNKNOWN_KEY = "strand_blood_unknown";

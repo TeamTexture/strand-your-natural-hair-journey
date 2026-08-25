@@ -22,6 +22,7 @@ import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsLevel } from "@/lib/tipsLevel";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface AiContext {
   hairProfile: Record<string, unknown> | null;

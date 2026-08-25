@@ -20,6 +20,7 @@ import HairLengthPicker from "@/components/HairLengthPicker";
 import { toast } from "sonner";
 import PersonalisedOffersPrompt from "@/components/consent/PersonalisedOffersPrompt";
 import { usePersonalisedOffersAsk } from "@/hooks/usePersonalisedOffersAsk";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
  * Maps the self-assessment labels a member picks to the column values a

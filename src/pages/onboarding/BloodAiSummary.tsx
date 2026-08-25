@@ -21,6 +21,7 @@ import AnchorStat from "@/components/guidance/AnchorStat";
 import GuidanceBody from "@/components/guidance/GuidanceBody";
 import ActionList from "@/components/guidance/ActionList";
 import MarkerBadgeRow, { type MarkerSeverity } from "@/components/blood/MarkerBadgeRow";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 interface Deficiency {
   marker: string;

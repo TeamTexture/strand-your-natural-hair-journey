@@ -11,6 +11,7 @@ import { challengeSummary } from "@/lib/goalChallenges";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { canonDiet } from "@/lib/dietaryPattern";
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 // ─── Brand tokens (mirrors fullProfilePdf.ts) ─────────────────────────────
 const PAGE = { w: 210, h: 297 };

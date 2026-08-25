@@ -30,6 +30,7 @@ import {
   toggleCondition,
   healthOptionLabel,
 } from "@/lib/healthOptions";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /* ── shared field shell ───────────────────────────────────────────────── */
 

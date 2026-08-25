@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface MealCookLog {
   id: string;

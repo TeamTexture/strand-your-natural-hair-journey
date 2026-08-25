@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
  * Referral tracking for directory listings.

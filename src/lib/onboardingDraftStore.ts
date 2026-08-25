@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
  * Database-backed store for onboarding drafts.

@@ -34,6 +34,7 @@ import {
   styleAsksTension,
   styleAsksExtensions,
 } from "@/lib/hairstyles";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const NATURAL_NEVER = "Natural (never coloured)";
 
