@@ -224,34 +224,12 @@ const ResumeOnboarding = () => {
           </SurfaceCard>
         )}
 
-        {hairOutstanding && (
-          <SurfaceCard>
-            <div className="flex items-start gap-3">
-              <Scissors className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="font-display text-base font-semibold">
-                  Ready to add your hair characteristics?
-                </p>
-                <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
-                  {!status.consultationComplete
-                    ? "Your clinical markers come from your consultation, so log who you saw and when first. An appointment in the last 6 months counts — you do not need a new one."
-                    : status.hairComplete
-                      ? "Your clinical markers are saved. Colour and styling history is the last part."
-                      : "The clinical markers from your consultation — diameter, density, porosity, elasticity and your scalp."}
-
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full mt-3 whitespace-normal break-words leading-tight"
-              onClick={() => navigate(hairPath)}
-            >
-              Continue →
-            </Button>
-          </SurfaceCard>
-        )}
+        {/*
+          No standalone hair characteristics card. The consultation produces the
+          markers, so while the consultation is outstanding the card above is the
+          only way in — and once it is logged, hair is the single outstanding
+          requirement, which routes her straight to the form instead of here.
+        */}
 
         {bloodOutstanding && (
           bloodSkipped ? (
