@@ -56,7 +56,13 @@ const BloodIronVitamins = () => {
         <SectionLabel>Vitamins</SectionLabel>
         <SurfaceCard className="divide-y divide-border/60 !py-1">
           {VITS.map((m) => (
-            <BloodInputRow key={m} marker={m} value={values[m] ?? null} onChange={(v) => setValue(m, v)} />
+            <BloodInputRow
+              key={m}
+              marker={m}
+              value={values[m] ?? null}
+              onChange={(v) => setValue(m, v)}
+              label={VIT_LABELS[m]}
+            />
           ))}
         </SurfaceCard>
 
