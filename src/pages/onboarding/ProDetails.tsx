@@ -67,18 +67,19 @@ const ProDetails = () => {
 
 
 
-  // Validate consultation date: must exist and be within 6 months (180 days).
-  const { dateError, isWithinWindow, isExpired } = useMemo(() => {
+  // Validate the consultation date. A date must exist, be valid and not be in the
+  // future. Anything older than 6 months is accepted — it only shows a quiet note.
+  const { dateError, isWithinWindow, isOlderThanWindow } = useMemo(() => {
     if (!date.trim()) {
       return {
         dateError: "Please enter the date of your consultation.",
         isWithinWindow: false,
-        isExpired: false,
+        isOlderThanWindow: false,
       };
     }
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) {
-      return { dateError: "Please enter a valid date.", isWithinWindow: false, isExpired: false };
+      return { dateError: "Please enter a valid date.", isWithinWindow: false, isOlderThanWindow: false };
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -86,10 +87,10 @@ const ProDetails = () => {
     consult.setHours(0, 0, 0, 0);
     const daysAgo = Math.floor((today.getTime() - consult.getTime()) / 86_400_000);
     if (daysAgo < 0) {
-      return { dateError: "Consultation date cannot be in the future.", isWithinWindow: false, isExpired: false };
+      return { dateError: "Consultation date cannot be in the future.", isWithinWindow: false, isOlderThanWindow: false };
     }
-    if (daysAgo > 180) return { dateError: "", isWithinWindow: false, isExpired: true };
-    return { dateError: "", isWithinWindow: true, isExpired: false };
+    if (daysAgo > 180) return { dateError: "", isWithinWindow: false, isOlderThanWindow: true };
+    return { dateError: "", isWithinWindow: true, isOlderThanWindow: false };
   }, [date]);
 
   // Search directory once the user has typed at least 2 characters into Name.
@@ -119,7 +120,7 @@ const ProDetails = () => {
   };
 
   const notesValid = notes.trim().length > 0 || !!notesAudioPath;
-  const canContinue = isWithinWindow && notesValid && name.trim().length > 0;
+  const canContinue = !dateError && notesValid && name.trim().length > 0;
 
   return (
     <ScreenLayout>
@@ -224,7 +225,7 @@ const ProDetails = () => {
             )}
           />
 
-          {dateError && !isExpired && (
+          {dateError && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-warn font-body">
               <AlertCircle className="size-3" />
               {dateError}
@@ -238,24 +239,13 @@ const ProDetails = () => {
             </div>
           )}
 
-          {isExpired && (
-            <div className="mt-3 p-4 bg-warn/5 border-2 border-warn/40 rounded-[12px] space-y-3">
-              <div className="flex items-start gap-2">
-                <CalendarX className="size-4 text-warn shrink-0 mt-0.5" />
-                <p className="text-xs text-foreground font-body leading-relaxed">
-                  Your consultation was over 6 months ago. STRAND reads your hair
-                  characteristics from a consultation within the last 6 months, so they stay
-                  accurate. Nothing you've entered expires — book when it suits you.
-                </p>
-              </div>
-              <div className="space-y-2 pt-1">
-                <Button variant="gold" size="pill" className="w-full" onClick={() => navigate("/onboarding/pro-book")}>
-                  Find a Professional →
-                </Button>
-                <Button variant="ghost" size="pill" className="w-full" onClick={() => navigate("/onboarding/pro-gate")}>
-                  ← Go Back
-                </Button>
-              </div>
+          {isOlderThanWindow && (
+            <div className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-foreground font-body leading-relaxed">
+              <CalendarX className="size-3 shrink-0 mt-0.5" />
+              <span>
+                This consultation is over 6 months old, so some of your characteristics may
+                have changed since. You can carry on either way.
+              </span>
             </div>
           )}
         </div>
@@ -273,8 +263,7 @@ const ProDetails = () => {
           errorMessage="Please add notes from your consultation"
         />
 
-        {!isExpired && (
-          <Button
+        <Button
             variant="gold"
             size="pill"
             className="mt-4"
@@ -330,10 +319,9 @@ const ProDetails = () => {
               void queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route"] });
               navigate(await resolveNextPath(), { replace: true });
             }}
-          >
-            Continue →
-          </Button>
-        )}
+        >
+          Continue →
+        </Button>
       </div>
     </ScreenLayout>
   );

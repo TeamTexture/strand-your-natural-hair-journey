@@ -93,9 +93,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     }
 
 
-    // The consultation is optional and ongoing: the resume screen routes the hair
-    // journey through pro-details first, but an unlogged consultation must never
-    // block the markers form — that would stop her ever reaching Subscribe.
+    // The consultation IS required for access (blood work is not), but the screens
+    // stay open in any order: the resume screen routes the hair journey through
+    // pro-details first, yet an unlogged consultation must never block the markers
+    // form — she needs both, and either one can be filled in first.
 
     if (!allowed.has(location.pathname)) {
       return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;

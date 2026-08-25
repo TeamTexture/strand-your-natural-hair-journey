@@ -61,7 +61,8 @@ const ResumeOnboarding = () => {
   const hairOutstanding = requirements?.hairOutstanding ?? false;
   const bloodOutstanding = requirements?.bloodOutstanding ?? false;
   const consultationOutstanding = requirements?.consultationOutstanding ?? false;
-  // Only these two gate Subscribe/app access. The consultation is optional.
+  // Hair characteristics + the professional consultation gate Subscribe/app access.
+  // Blood work gates nothing about access — it only opens diet and nutrition.
   const coreComplete = !!requirements?.coreComplete;
 
   useEffect(() => {

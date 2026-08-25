@@ -60,7 +60,7 @@ const GUIDES: Record<string, Guide> = {
     step: 4,
     label: "Your professional",
     what: "Confirm who assessed your hair and when.",
-    why: "We check the assessment is recent — hair changes, so we work in 90-day windows.",
+    why: "We check the assessment is recent — hair changes, so we work in 6-month windows.",
     next: "Next: your hair characteristics.",
   },
   "/onboarding/profile-step-3-hair": {
