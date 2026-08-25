@@ -51,6 +51,9 @@ const LolaPeakInsightsCard = ({
       <div className="rounded-md bg-primary/15 px-3 py-2 text-[12px] font-body">
         <span className="text-foreground/70">Discount code: </span>
         <span className="font-semibold tracking-wide">{LOLA_PEAK_INSIGHTS_CODE}</span>
+        <p className="text-foreground/70 mt-1 leading-relaxed">
+          The code works on any Lola Health test, not just this one.
+        </p>
       </div>
 
       <div className="space-y-1.5">
