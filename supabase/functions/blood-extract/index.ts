@@ -154,19 +154,30 @@ Deno.serve(async (req) => {
       return json(500, { error: "Model returned unparseable JSON" });
     }
 
-    // Keep every extracted numeric row. Map to STRAND canonical name when the
-    // model matched it to the whitelist; otherwise pass the raw marker through
-    // so the client can surface it under "Other markers from your report".
-    const whitelistSet = new Set(KNOWN_MARKERS.map((m) => m.marker));
+    // Keep every extracted numeric row. Map to STRAND canonical name — preferring
+    // a deterministic re-canonicalisation from the raw marker text over the
+    // model's guess, so a more specific marker always wins. Otherwise pass the
+    // raw marker through so the client can surface it under "Other markers".
+    const whitelistSet = new Set(KNOWN_BLOOD_MARKERS.map((m) => m.marker));
     const results = (parsed.results ?? [])
       .map((r) => {
         const canonicalRaw = r.canonical_marker == null ? "" : String(r.canonical_marker).trim();
         const rawMarker = String(r.raw_marker ?? canonicalRaw ?? "").trim();
         const value = typeof r.value === "number" ? r.value : Number(r.value);
         if (!Number.isFinite(value)) return null;
-        const isKnown = canonicalRaw && whitelistSet.has(canonicalRaw);
-        const known = isKnown ? KNOWN_MARKERS.find((m) => m.marker === canonicalRaw)! : null;
-        const marker = isKnown ? canonicalRaw : (rawMarker || canonicalRaw);
+        // Deterministic re-canonicalisation from the raw marker text. Overrides
+        // the model so "Active B12" / "Holotranscobalamin" can never be filed
+        // under total "Vitamin B12" just because "b12" / "cobalamin" are
+        // substrings of them. Longest-alias-first + word-boundary (see
+        // _shared/blood-markers.ts).
+        const det = rawMarker ? canonicaliseBloodMarker(rawMarker) : null;
+        const isKnown = det ? true : !!canonicalRaw && whitelistSet.has(canonicalRaw);
+        const known = det
+          ? KNOWN_BLOOD_MARKERS.find((m) => m.marker === det.marker)!
+          : isKnown
+            ? KNOWN_BLOOD_MARKERS.find((m) => m.marker === canonicalRaw)!
+            : null;
+        const marker = det ? det.marker : (isKnown ? canonicalRaw : (rawMarker || canonicalRaw));
         if (!marker) return null;
         const unit = known ? known.unit : String(r.unit_reported ?? "").trim();
         return {
