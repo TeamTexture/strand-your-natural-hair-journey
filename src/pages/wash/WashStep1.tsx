@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, X, Flame, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -284,7 +284,8 @@ const heatChips = (
 
 const WashStep1 = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
@@ -440,6 +441,17 @@ const WashStep1 = () => {
   const conditionSelected = useMemo(() => resolve(conditionIds), [conditionIds, shelfProducts]);
   const treatmentSelected = useMemo(() => resolve(treatmentIds), [treatmentIds, shelfProducts]);
 
+  // Track which step editors the user has actively touched, so the
+  // "pre-filled from your last wash day" hint disappears once they act on it.
+  type StepKey = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment";
+  const [touchedSteps, setTouchedSteps] = useState<Set<StepKey>>(new Set());
+  const markTouched = (k: StepKey) =>
+    setTouchedSteps((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  const hintFor = (k: StepKey, selectedCount: number): boolean =>
+    !!(lastWashProductIds && lastWashProductIds.length > 0)
+    && !touchedSteps.has(k)
+    && selectedCount > 0;
+
   // Picker sheet — one global sheet, opened with a target step so toggling
   // selects/deselects from that step's IDs. We also pass the target through
   // the picker's returnTo URL so any product added via auto_save lands back
@@ -447,30 +459,49 @@ const WashStep1 = () => {
   type PickerTarget = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment" | null;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+  const setStepState: Record<Exclude<PickerTarget, null>, (s: StepState) => void> = useMemo(
+    () => ({
+      prepoo: setPrePoo,
+      cleanse: setCleanse,
+      cowash: setCoWash,
+      condition: setCondition,
+      treatment: setTreatment,
+    }),
+    [],
+  );
+  const restorePickerTarget = useCallback(
+    (target: Exclude<PickerTarget, null>) => {
+      setPickerTarget(target);
+      setStepState[target]("editing");
+      markTouched(target);
+    },
+    [setStepState],
+  );
   const openPicker = (target: Exclude<PickerTarget, null>) => {
-    setPickerTarget(target);
-    // Encode the target in the URL so when the picker fires off the scan
-    // flow (which navigates away and uses the current URL as returnTo),
-    // we know which step the freshly-shelved product belongs to.
-    const next = new URLSearchParams(searchParams);
-    next.set("picker", target);
-    setSearchParams(next, { replace: true });
+    restorePickerTarget(target);
     setPickerOpen(true);
   };
-  const targetIds: Record<Exclude<PickerTarget, null>, string[]> = {
+  const pickerReturnTo = useMemo(() => {
+    if (!pickerTarget) return undefined;
+    const next = new URLSearchParams(searchParams);
+    next.set("picker", pickerTarget);
+    const query = next.toString();
+    return `${location.pathname}${query ? `?${query}` : ""}`;
+  }, [location.pathname, pickerTarget, searchParams]);
+  const targetIds: Record<Exclude<PickerTarget, null>, string[]> = useMemo(() => ({
     prepoo: prePooIds,
     cleanse: cleanseIds,
     cowash: coWashIds,
     condition: conditionIds,
     treatment: treatmentIds,
-  };
-  const targetSetters: Record<Exclude<PickerTarget, null>, (v: string[]) => void> = {
+  }), [prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds]);
+  const targetSetters: Record<Exclude<PickerTarget, null>, (v: string[]) => void> = useMemo(() => ({
     prepoo: setPrePooIds,
     cleanse: setCleanseIds,
     cowash: setCoWashIds,
     condition: setConditionIds,
     treatment: setTreatmentIds,
-  };
+  }), []);
   const handleTogglePicked = (productId: string) => {
     if (!pickerTarget) return;
     markTouched(pickerTarget);
@@ -492,6 +523,7 @@ const WashStep1 = () => {
     if (!hydrated) return;
     const target = searchParams.get("picker") as Exclude<PickerTarget, null> | null;
     if (!target) return;
+    if (!targetSetters[target]) return;
     const cutoff = Date.now() - 2 * 60 * 1000;
     const fresh = shelfProducts.filter((p) => {
       if (autoAdded.has(p.id)) return false;
@@ -508,10 +540,10 @@ const WashStep1 = () => {
         for (const id of additions) next.add(id);
         return next;
       });
-      setPickerTarget(target);
+      restorePickerTarget(target);
       setPickerOpen(true);
     }
-  }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters]);
+  }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters, restorePickerTarget]);
 
   // (heat-treatment state hoisted above the persist effect, see top of component)
 
@@ -552,18 +584,6 @@ const WashStep1 = () => {
     setHeatDialogOpen(true);
     void fetchHeatRationale();
   };
-
-
-  // Track which step editors the user has actively touched, so the
-  // "pre-filled from your last wash day" hint disappears once they act on it.
-  type StepKey = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment";
-  const [touchedSteps, setTouchedSteps] = useState<Set<StepKey>>(new Set());
-  const markTouched = (k: StepKey) =>
-    setTouchedSteps((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
-  const hintFor = (k: StepKey, selectedCount: number): boolean =>
-    !!(lastWashProductIds && lastWashProductIds.length > 0)
-    && !touchedSteps.has(k)
-    && selectedCount > 0;
 
   const removeFrom = (setter: (v: string[]) => void, ids: string[], key: StepKey) => (id: string) => {
     markTouched(key);
@@ -916,17 +936,11 @@ const WashStep1 = () => {
           setPickerOpen(o);
           if (!o) {
             setPickerTarget(null);
-            // Drop the picker target from the URL once the sheet closes so
-            // the auto-merge effect doesn't fire again on subsequent visits.
-            const next = new URLSearchParams(searchParams);
-            if (next.has("picker")) {
-              next.delete("picker");
-              setSearchParams(next, { replace: true });
-            }
           }
         }}
         selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
         stepHint={pickerTarget}
+        returnTo={pickerReturnTo}
         onToggle={handleTogglePicked}
 
       />
