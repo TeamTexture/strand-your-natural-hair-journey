@@ -15,7 +15,7 @@ import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import OptionalBadge from "@/components/blood/OptionalBadge";
 import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
 import { useBloodSkipped } from "@/lib/bloodSkip";
-import { clearResumeLock, RESUME_PATH, setResumeLock } from "@/lib/onboardingLock";
+import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
 import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 
@@ -81,12 +81,11 @@ const ResumeOnboarding = () => {
     // rest of the session (dataComplete is the only thing that releases it).
     if (!status.dataComplete) setResumeLock();
     else clearResumeLock();
-    // This screen only earns its place when there is a real choice between two
-    // outstanding requirements. With exactly one left the decision layer names
-    // that screen, so hand her straight to it instead of showing a menu of one.
-    const next = getOnboardingNextPath(status, hasAccess);
-    if (next !== RESUME_PATH) navigate(next, { replace: true });
+    // Signing back in must always land HERE, never deep inside a form. The
+    // linear flow still hands over directly step-to-step (see
+    // useOnboardingCompletion); this screen never forwards on its own.
   }, [status, coreComplete, navigate, hasAccess, subLoading]);
+
 
   if (isLoading && !status) return <LoadingDot />;
 
@@ -219,12 +218,35 @@ const ResumeOnboarding = () => {
           </SurfaceCard>
         )}
 
-        {/*
-          No standalone hair characteristics card. The consultation produces the
-          markers, so while the consultation is outstanding the card above is the
-          only way in — and once it is logged, hair is the single outstanding
-          requirement, which routes her straight to the form instead of here.
-        */}
+        {hairOutstanding && !consultationOutstanding && (
+          <SurfaceCard>
+            <div className="flex items-start gap-3">
+              <Scissors className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold">Hair characteristics</p>
+                <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
+                  Your consultation is logged. Add the characteristics from that assessment —
+                  everything you've already entered is saved.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full mt-3 whitespace-normal break-words leading-tight"
+              onClick={() =>
+                navigate(
+                  status.hairComplete
+                    ? "/onboarding/profile-step-4-colour"
+                    : "/onboarding/profile-step-3-hair",
+                )
+              }
+            >
+              Continue my hair characteristics →
+            </Button>
+          </SurfaceCard>
+        )}
+
 
         {bloodOutstanding && (
           bloodSkipped ? (
