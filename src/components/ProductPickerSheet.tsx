@@ -295,10 +295,11 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
             />
           ) : sections ? (
             sections.map((s) => (
-              <div key={s.slug} className="space-y-2">
-                <SectionLabel className="!px-0 !mt-4 first:!mt-0 !mb-1.5">
+              <div key={s.slug} className="space-y-2 mt-4 first:mt-0">
+                <SectionLabel className="!px-0 !mt-0 !mb-1.5">
                   {s.label}
                 </SectionLabel>
+
                 {s.products.map((p) => (
                   <Row
                     key={p.id}
