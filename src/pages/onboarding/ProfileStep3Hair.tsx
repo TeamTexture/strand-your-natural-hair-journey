@@ -99,7 +99,7 @@ const ProfileStep3Hair = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} right={<span>6 of 9</span>} />
+      <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} />
       <OnboardingGuide className="pt-2 pb-1" />
       <LevelGate min={2}><ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub></LevelGate>
 

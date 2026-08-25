@@ -38,7 +38,7 @@ const ProfileSupplements = () => {
     };
   }, [user]);
 
-  const next = () => navigate("/onboarding/pro-gate");
+  const next = () => navigate("/onboarding/profile-step-3-hair");
 
   const onContinue = async () => {
     if (!user) return;
@@ -84,8 +84,7 @@ const ProfileSupplements = () => {
     <ScreenLayout>
       <TitleBar
         title="Supplements"
-        onBack={onboardingBack(navigate, "/onboarding/profile-step-2")}
-        right={<span>3 of 9</span>}
+        onBack={onboardingBack(navigate, "/onboarding/profile-supplements")}
       />
       <OnboardingGuide className="pt-2 pb-1" />
 

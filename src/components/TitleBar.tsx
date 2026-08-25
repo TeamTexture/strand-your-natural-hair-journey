@@ -5,11 +5,13 @@ import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
 import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
 import NotificationsBell from "@/components/NotificationsBell";
+import { onboardingStepLabel } from "@/components/onboarding/OnboardingGuide";
 
 interface Props {
   /** Centre title text */
   title?: string;
-  /** Right-side small label (e.g. "1 of 9") or node */
+  /** Right-side small label or node. Onboarding pages leave this unset — the
+   *  counter is read from OnboardingGuide's map so the two cannot drift. */
   right?: ReactNode;
   /** Show back arrow. Defaults true; set false on profile etc. */
   back?: boolean;
@@ -68,7 +70,7 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
           )}
         </div>
         <div className="flex-shrink-0 flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-body">
-          {right}
+          {right ?? onboardingStepLabel(location.pathname)}
           <NotificationsBell />
         </div>
 
