@@ -530,7 +530,7 @@ const ProfileStep4Colour = () => {
             navigate(await resolveNextPath(), { replace: true });
           }}
         >
-          {bloodOnFile ? "Continue to Membership \u2192" : "Next: blood work (optional) \u2192"}
+          {bloodOnFile || bloodSkipped ? "Subscribe \u2192" : "Next: blood work (optional) \u2192"}
         </Button>
       </div>
     </ScreenLayout>
