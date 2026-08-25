@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftRight, CreditCard, PauseCircle, PlayCircle, Undo2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -77,7 +76,6 @@ const ActionRow = ({
  * changes and cancellation open Stripe Billing Portal deep-link flows.
  */
 const ManageSubscriptionSection = () => {
-  const navigate = useNavigate();
   const { subscription, paused, pauseResumesAt, complimentary, isLoading } =
     useConsumerSubscription();
   const pause = usePauseMembership();
@@ -105,9 +103,8 @@ const ManageSubscriptionSection = () => {
 
   const hasStripe = !!subscription?.stripe_customer_id && !!subscription?.stripe_subscription_id;
   const tier = subscription?.tier === "plus" ? "plus" : "standard";
-  const isPlus = tier === "plus";
-  const planName = isPlus ? "STRAND Plus" : "STRAND";
-  const price = isPlus ? PLUS_PRICE : (basePriceQ.data ?? 9.99);
+  const planName = tier === "plus" ? "STRAND Plus" : "STRAND";
+  const price = tier === "plus" ? PLUS_PRICE : (basePriceQ.data ?? 9.99);
   const cancelling = !!subscription?.cancel_at_period_end;
   const renews = formatLong(subscription?.current_period_end);
   const resumesOn = formatLong(pauseResumesAt);
