@@ -163,10 +163,15 @@ const Directory = () => {
     }));
   }, [capCounts.doctor, capCounts.bloods]);
 
-  const visibleTabs = useMemo(
-    () => tabs.filter((t) => t === "All" || (tabCounts[t] ?? 0) > 0),
-    [tabCounts],
-  );
+  // "All" first, then every discipline with at least one live pro, ordered by
+  // count descending then alphabetically.
+  const visibleTabs = useMemo<Array<"All" | ProType>>(() => {
+    const withPros = (Object.keys(tabCounts) as ProType[])
+      .filter((t) => (tabCounts[t] ?? 0) > 0)
+      .sort((a, b) => (tabCounts[b] ?? 0) - (tabCounts[a] ?? 0) || a.localeCompare(b));
+    return ["All", ...withPros];
+  }, [tabCounts]);
+
 
   // If the active category empties out, fall back to All so the list isn't
   // stuck on a chip that no longer exists.
