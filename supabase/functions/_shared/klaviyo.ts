@@ -9,6 +9,9 @@
 /** The STRAND member (consumer) mailing list. Professionals/brands never go here. */
 export const KLAVIYO_MEMBER_LIST_ID = "VUuiA7";
 
+/** Paying members only — anyone with a live (or trialing) STRAND subscription. */
+export const KLAVIYO_PAID_MEMBER_LIST_ID = "UehA5B";
+
 function headers(key: string) {
   return {
     Authorization: `Klaviyo-API-Key ${key}`,
