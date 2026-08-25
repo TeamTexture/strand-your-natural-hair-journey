@@ -212,6 +212,10 @@ const GlobalMenu = () => {
   // NOTHING renders while the lock answer is still unknown. A member who has
   // finished onboarding must never see the resume bar, not even for a frame, so
   // "no answer yet" renders no chrome at all rather than the locked bar.
+  // The trial paywall carries its own chrome and exactly one other action
+  // (Sign out). No app bar there — the locked bar's "Continue onboarding"
+  // button would be a door straight past the paywall.
+  if (path === TRIAL_PAYWALL_PATH) return null;
   if (activeView === "consumer" && !memberAppUnlocked && !memberAppLockKnown) return null;
   if (activeView === "consumer" && !memberAppUnlocked) {
     return (
