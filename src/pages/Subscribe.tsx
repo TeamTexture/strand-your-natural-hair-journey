@@ -20,6 +20,7 @@ import {
   Calendar,
   Leaf,
   Stethoscope,
+  Heart,
   ShieldCheck,
   Lock,
 } from "lucide-react";
