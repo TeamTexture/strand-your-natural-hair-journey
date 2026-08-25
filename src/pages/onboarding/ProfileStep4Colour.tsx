@@ -524,6 +524,10 @@ const ProfileStep4Colour = () => {
           </>
         )}
 
+        </div>
+        </OnboardingSectionCard>
+
+        <OnboardingSectionCard number={4} title="Your usual style">
         <MultiSelectDropdown
           label="Default / Normal Style"
           options={HAIRSTYLE_OPTIONS}
@@ -531,6 +535,7 @@ const ProfileStep4Colour = () => {
           onChange={setDefaultStyle}
           placeholder="Select your usual styles…"
         />
+        </OnboardingSectionCard>
 
 
         <Button
