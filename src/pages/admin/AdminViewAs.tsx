@@ -60,13 +60,14 @@ const AdminViewAs = () => {
     queryKey: ["admin", "view-as", "roster"],
     staleTime: 30_000,
     queryFn: async (): Promise<Row[]> => {
-      const [profilesRes, emailsRes, rolesRes] = await Promise.all([
+      const [profilesRes, emailsRes, rolesRes, activityRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, display_name")
           .order("display_name", { ascending: true }),
         supabase.rpc("admin_list_member_emails"),
         supabase.from("user_roles").select("user_id, role"),
+        supabase.rpc("admin_list_member_activity"),
       ]);
       const emails = new Map<string, string>();
       for (const r of (emailsRes.data ?? []) as { user_id: string; email: string }[]) {
@@ -78,12 +79,28 @@ const AdminViewAs = () => {
         arr.push(r.role);
         roles.set(r.user_id, arr);
       }
-      return ((profilesRes.data ?? []) as { user_id: string; display_name: string | null }[]).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        email: emails.get(p.user_id) ?? null,
-        roles: roles.get(p.user_id) ?? [],
-      }));
+      type ActivityRow = {
+        user_id: string;
+        session_count: number | null;
+        last_session: string | null;
+        created_at: string | null;
+      };
+      const activity = new Map<string, ActivityRow>();
+      for (const r of (activityRes.data ?? []) as ActivityRow[]) {
+        activity.set(r.user_id, r);
+      }
+      return ((profilesRes.data ?? []) as { user_id: string; display_name: string | null }[]).map((p) => {
+        const a = activity.get(p.user_id);
+        return {
+          user_id: p.user_id,
+          display_name: p.display_name,
+          email: emails.get(p.user_id) ?? null,
+          roles: roles.get(p.user_id) ?? [],
+          session_count: a?.session_count ?? 0,
+          last_session: a?.last_session ?? null,
+          created_at: a?.created_at ?? null,
+        };
+      });
     },
   });
 
