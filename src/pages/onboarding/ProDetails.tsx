@@ -319,10 +319,9 @@ const ProDetails = () => {
               void queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route"] });
               navigate(await resolveNextPath(), { replace: true });
             }}
-          >
-            Continue →
-          </Button>
-        )}
+        >
+          Continue →
+        </Button>
       </div>
     </ScreenLayout>
   );
