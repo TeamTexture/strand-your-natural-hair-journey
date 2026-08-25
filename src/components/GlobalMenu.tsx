@@ -135,7 +135,11 @@ const GlobalMenu = () => {
   const [open, setOpen] = useState(false);
   const { hasPageBackButton } = useBackButtonContext();
   // Paywall / onboarding chrome lock — see useMemberAppUnlocked.
-  const { unlocked: memberAppUnlocked, resumePath } = useMemberAppUnlocked();
+  const {
+    unlocked: memberAppUnlocked,
+    resumePath,
+    known: memberAppLockKnown,
+  } = useMemberAppUnlocked();
   const { blocked: internationalBlocked } = useInternationalBlock();
 
 
