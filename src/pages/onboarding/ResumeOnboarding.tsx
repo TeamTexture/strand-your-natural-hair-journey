@@ -81,6 +81,11 @@ const ResumeOnboarding = () => {
     // rest of the session (dataComplete is the only thing that releases it).
     if (!status.dataComplete) setResumeLock();
     else clearResumeLock();
+    // This screen only earns its place when there is a real choice between two
+    // outstanding requirements. With exactly one left the decision layer names
+    // that screen, so hand her straight to it instead of showing a menu of one.
+    const next = getOnboardingNextPath(status, hasAccess);
+    if (next !== RESUME_PATH) navigate(next, { replace: true });
   }, [status, coreComplete, navigate, hasAccess, subLoading]);
 
   if (isLoading && !status) return <LoadingDot />;
