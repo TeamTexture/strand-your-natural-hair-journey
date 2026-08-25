@@ -262,12 +262,15 @@ const Help = () => {
       <div className="px-5 pb-3 space-y-3">
         {WALKTHROUGHS.map((w, idx) => (
           <SurfaceCard key={w.id} className="overflow-hidden p-0">
-            <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+            <div
+              className="relative w-full"
+              style={{ paddingBottom: w.aspectPadding ?? "56.25%" }}
+            >
               <iframe
-                src={w.embedUrl}
+                src={`https://www.loom.com/embed/${w.loomId}`}
                 title={`${w.category} — ${w.title}`}
-                loading="lazy"
                 allowFullScreen
+                frameBorder="0"
                 className="absolute inset-0 h-full w-full border-0"
               />
             </div>
@@ -278,6 +281,14 @@ const Help = () => {
               <p className="text-sm font-semibold leading-tight mt-1">
                 {w.title}
               </p>
+              <a
+                href={`https://www.loom.com/share/${w.loomId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] text-primary font-medium mt-2 hover:underline"
+              >
+                Open in Loom <ExternalLink className="size-3" />
+              </a>
             </div>
           </SurfaceCard>
         ))}
