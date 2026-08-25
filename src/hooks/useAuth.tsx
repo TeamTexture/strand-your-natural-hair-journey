@@ -105,6 +105,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Deliberately no "last display name" cache: a signed-out device must
     // never reference a specific identity (shared/borrowed device privacy).
     purgeStrandUserScopedKeys("signOut-handler");
+    // Drop the "onboarding already complete" session memo so it can never leak
+    // into the next account signed in on this device.
+    clearOnboardingResolved();
     clearRecoveryLock();
     if (isViewingAs) stopViewAs();
     await supabase.auth.signOut();
