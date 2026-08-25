@@ -237,10 +237,9 @@ const ProfileStep1 = () => {
         .from(AVATAR_BUCKET)
         .upload(newPath, file, { contentType: file.type });
       if (upErr) throw upErr;
-      const { error: dbErr } = await supabase.rpc(
-        "save_consumer_avatar" as never,
-        { _avatar_url: newPath } as never,
-      );
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .upsert({ user_id: user.id, avatar_url: newPath }, { onConflict: "user_id" });
       if (dbErr) throw dbErr;
       const { data: sig } = await supabase.storage
         .from(AVATAR_BUCKET)
@@ -261,7 +260,9 @@ const ProfileStep1 = () => {
     setAvatarBusy(true);
     try {
       await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
-      await supabase.rpc("save_consumer_avatar" as never, { _avatar_url: null } as never);
+      await supabase
+        .from("profiles")
+        .upsert({ user_id: user.id, avatar_url: null }, { onConflict: "user_id" });
       setAvatarPath(null);
       setAvatarUrl(null);
     } catch (e) {
@@ -358,17 +359,12 @@ const ProfileStep1 = () => {
       };
       if (birth_year !== null) update.birth_year = birth_year;
       try {
-        const { error } = await supabase.rpc(
-          "save_consumer_registration" as never,
-          {
-            _display_name: update.display_name,
-            _phone_number: update.phone_number,
-            _birth_year: birth_year,
-            _postcode: update.postcode,
-            _country: update.country,
-            _heritage: update.heritage,
-          } as never,
-        );
+        const { error } = await supabase
+          .from("profiles")
+          .upsert(
+            { user_id: user.id, ...update },
+            { onConflict: "user_id" },
+          );
         if (error) throw error;
       } catch (err) {
         console.warn("[strand] profiles upsert (step 1) failed", err);
