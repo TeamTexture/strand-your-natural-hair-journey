@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
+import { useBloodSkipped } from "@/lib/bloodSkip";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
