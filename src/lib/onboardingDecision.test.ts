@@ -15,7 +15,7 @@ const statusFor = (
   styleComplete: hair,
   bloodOnFile: blood,
   consultationComplete: consultation,
-  dataComplete: hair && consultation,
+  dataComplete: hair,
   entryPath: "/onboarding/resume",
 });
 
@@ -39,25 +39,19 @@ describe("onboarding completion matrix", () => {
 
       expect(requirements.hairOutstanding).toBe(!hair);
       expect(requirements.bloodOutstanding).toBe(!blood);
-      expect(requirements.consultationOutstanding).toBe(!consultation);
-      expect(requirements.coreComplete).toBe(hair && consultation);
-      // The resume screen is only the answer when BOTH required pieces are
-      // outstanding — a genuine choice. Exactly one left routes straight to it.
-      const expected =
-        hair && consultation
-          ? "/subscribe?next=%2Fonboarding%2Fblood-ai-summary"
-          : !hair && !consultation
-            ? "/onboarding/resume"
-            : consultation
-              ? "/onboarding/profile-step-3-hair"
-              : "/onboarding/pro-gate";
+      // Neither blood work nor the consultation gates access any more.
+      expect(requirements.coreComplete).toBe(hair);
+      const expected = hair
+        ? "/subscribe?next=%2Fonboarding%2Fblood-ai-summary"
+        : "/onboarding/profile-step-3-hair";
       expect(getOnboardingNextPath(status, false)).toBe(expected);
     },
   );
 
-  it("routes a member with only hair outstanding into the markers form", () => {
-    const status = statusFor(false, false, true);
-    expect(getOnboardingNextPath(status, false)).toBe("/onboarding/profile-step-3-hair");
+  it("routes a member with hair outstanding into the markers form", () => {
+    expect(getOnboardingNextPath(statusFor(false, false, false), false)).toBe(
+      "/onboarding/profile-step-3-hair",
+    );
   });
 
   it("resumes the colour step when markers are saved but style is not", () => {
@@ -69,19 +63,11 @@ describe("onboarding completion matrix", () => {
     expect(getOnboardingNextPath(status, false)).toBe("/onboarding/profile-step-4-colour");
   });
 
-  it("routes a member with only the consultation outstanding into the pro flow", () => {
+  it("never lets a missing consultation gate subscribe", () => {
     const status = statusFor(true, false, false);
-    expect(getOnboardingNextPath(status, false)).toBe("/onboarding/pro-gate");
-  });
-
-  it("keeps the resume screen for a genuine choice between two outstanding pieces", () => {
-    const status = statusFor(false, false, false);
-    expect(getOnboardingNextPath(status, false)).toBe("/onboarding/resume");
-  });
-
-  it("sends a fully complete paid member home", () => {
-    expect(getOnboardingNextPath(statusFor(true, true, true), true)).toBe(
-      "/home",
+    expect(getOnboardingRequirements(status).coreComplete).toBe(true);
+    expect(getOnboardingNextPath(status, false)).toBe(
+      "/subscribe?next=%2Fonboarding%2Fblood-ai-summary",
     );
   });
 
@@ -91,6 +77,10 @@ describe("onboarding completion matrix", () => {
     expect(getOnboardingNextPath(status, false)).toBe(
       "/subscribe?next=%2Fonboarding%2Fblood-ai-summary",
     );
+  });
+
+  it("sends a fully complete paid member home", () => {
+    expect(getOnboardingNextPath(statusFor(true, true, true), true)).toBe("/home");
   });
 
   it("does not call hair complete until both hair and style are saved", () => {
