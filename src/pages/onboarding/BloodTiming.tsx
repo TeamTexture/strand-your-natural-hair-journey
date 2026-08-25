@@ -13,11 +13,13 @@ import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
 import { useBloodSkipped } from "@/lib/bloodSkip";
 import { Button } from "@/components/ui/button";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { useMembershipExit } from "@/hooks/useMembershipExit";
 import { cn } from "@/lib/utils";
 
 const BloodTiming = () => {
   const navigate = useNavigate();
   const { resolveNextPath } = useOnboardingCompletion();
+  const { resolveMembershipPath } = useMembershipExit();
   // No default — this question must be answered, not assumed.
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const [continuing, setContinuing] = useState(false);
@@ -29,7 +31,7 @@ const BloodTiming = () => {
   const continueWithout = async () => {
     setContinuing(true);
     try {
-      navigate(await resolveNextPath(), { replace: true });
+      navigate(await resolveMembershipPath(), { replace: true });
     } finally {
       setContinuing(false);
     }
@@ -41,7 +43,7 @@ const BloodTiming = () => {
     setContinuing(true);
     try {
       await skip();
-      navigate(await resolveNextPath(), { replace: true });
+      navigate(await resolveMembershipPath(), { replace: true });
     } finally {
       setContinuing(false);
     }
