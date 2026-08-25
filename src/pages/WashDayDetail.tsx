@@ -47,6 +47,8 @@ import { WashDay } from "@/hooks/useWashDays";
 import { toast } from "sonner";
 import AddToCalendarButton from "@/components/AddToCalendarButton";
 import BrandLink from "@/components/BrandLink";
+import ProductThumb from "@/components/ProductThumb";
+import VoiceNoteBlock from "@/components/VoiceNoteBlock";
 import { stripStaleDates } from "@/lib/stripStaleDates";
 import { toParagraphs } from "@/lib/formatTranscript";
 import AiProse from "@/components/tips/AiProse";
@@ -138,7 +140,13 @@ interface HeatTreatment {
   tools?: string[];
   tool_ids?: string[];
 }
-interface ProductLookup { id: string; name: string; brand: string | null }
+interface ProductLookup {
+  id: string;
+  name: string;
+  brand: string | null;
+  image_url?: string | null;
+  storage_path?: string | null;
+}
 
 interface StylingSnapshot {
   style?: string[];
@@ -233,7 +241,7 @@ const WashDayDetail = () => {
         if (ids.length) {
           const { data: prods } = await supabase
             .from("user_products")
-            .select("id, name, brand")
+            .select("id, name, brand, image_url, storage_path")
             .in("id", ids);
           if (!cancelled) setProducts((prods as ProductLookup[]) ?? []);
         } else {
@@ -246,7 +254,7 @@ const WashDayDetail = () => {
         if (s?.productIds?.length) {
           const { data: sp } = await supabase
             .from("user_products")
-            .select("id, name, brand")
+            .select("id, name, brand, image_url, storage_path")
             .in("id", s.productIds);
           if (!cancelled) setStylingProducts((sp as ProductLookup[]) ?? []);
         } else {
@@ -552,9 +560,17 @@ const WashDayDetail = () => {
             {products.map((p) => (
               <Link
                 key={p.id}
-                to={`/products/${p.id}`}
+                to={`/products/profile/${p.id}`}
                 className="flex items-center gap-3 p-3 hover:bg-primary/5 transition"
               >
+                <ProductThumb
+                  imageUrl={p.image_url}
+                  storagePath={p.storage_path}
+                  brand={p.brand}
+                  name={p.name}
+                  alt={p.name}
+                  cover
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
                   {p.brand && (
@@ -613,7 +629,15 @@ const WashDayDetail = () => {
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">Products used to style</p>
                 <div className="rounded-2xl border border-border/60 divide-y divide-border/60 overflow-hidden">
                   {stylingProducts.map((p) => (
-                    <Link key={p.id} to={`/products/${p.id}`} className="flex items-center gap-3 p-3 hover:bg-primary/5 transition">
+                    <Link key={p.id} to={`/products/profile/${p.id}`} className="flex items-center gap-3 p-3 hover:bg-primary/5 transition">
+                      <ProductThumb
+                        imageUrl={p.image_url}
+                        storagePath={p.storage_path}
+                        brand={p.brand}
+                        name={p.name}
+                        alt={p.name}
+                        cover
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
                         {p.brand && <p className="text-[11px] text-muted-foreground mt-0.5"><BrandLink brand={p.brand} /></p>}
@@ -626,21 +650,14 @@ const WashDayDetail = () => {
             )}
 
             <LevelGate min={2}>
-              {styling.note?.trim() && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Styling note</p>
-                  <p className="text-sm leading-relaxed whitespace-pre-line">{styling.note}</p>
-                </div>
+              {(styling.note?.trim() || stylingAudioUrl) && (
+                <VoiceNoteBlock
+                  label="Styling note"
+                  transcript={styling.note}
+                  audioUrl={stylingAudioUrl}
+                />
               )}
 
-              {stylingAudioUrl && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1 flex items-center gap-1.5">
-                    <Mic className="size-3" /> Styling voice note
-                  </p>
-                  <audio controls src={stylingAudioUrl} className="w-full" />
-                </div>
-              )}
             </LevelGate>
           </SurfaceCard>
         ) : null}
@@ -705,22 +722,13 @@ const WashDayDetail = () => {
 
         {/* ── Hair feel note + voice ─────────── */}
         {!editing && (wd.hair_feel_note || voiceUrl) && (
-          <SurfaceCard id="transcript">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2 flex items-center gap-1.5">
-              {voiceUrl ? <Mic className="size-3" /> : null} Your hair feel note
-            </p>
-            <div className="space-y-2">
-              {wd.hair_feel_note && (
-                /* Transcribed speech arrives as one block — break it into
-                   paragraphs so the full note is readable, not word vomit. */
-                <div className="space-y-3">
-                  {toParagraphs(wd.hair_feel_note).map((para, i) => (
-                    <p key={i} className="text-sm leading-relaxed">{para}</p>
-                  ))}
-                </div>
-              )}
-              {voiceUrl && <audio controls src={voiceUrl} className="w-full" />}
-            </div>
+          <SurfaceCard>
+            <VoiceNoteBlock
+              id="transcript"
+              label="Your hair feel note"
+              transcript={wd.hair_feel_note}
+              audioUrl={voiceUrl}
+            />
           </SurfaceCard>
         )}
 
