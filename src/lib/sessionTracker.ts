@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const HOUR_MS = 60 * 60 * 1000;
+const AUTH_LOCK_SETTLE_MS = 2500;
 const storageKey = (userId: string) => `strand_last_session_log_${userId}`;
 
 // Track per-userId within this tab as an extra guard against duplicate fires
@@ -26,11 +27,21 @@ export function logUserSession(userId: string, source?: string): void {
     // ignore
   }
 
-  // Fire-and-forget. Server-side trigger enforces the 1-hour dedupe too.
-  void supabase
-    .from("user_sessions")
-    .insert({ user_id: userId, source: source ?? null })
-    .then(() => {
-      inFlight.delete(userId);
-    });
+  // Fire-and-forget, but NEVER start the database request synchronously from an
+  // auth-state callback. The auth client holds its browser lock while emitting
+  // those events; a database request started inside the same stack queues behind
+  // that lock and can leave every signed-in read stuck on the Loading screen.
+  const send = () => {
+    void supabase
+      .from("user_sessions")
+      .insert({ user_id: userId, source: source ?? null })
+      .then(() => {
+        inFlight.delete(userId);
+      })
+      .catch(() => {
+        inFlight.delete(userId);
+      });
+  };
+  if (typeof window === "undefined") send();
+  else window.setTimeout(send, AUTH_LOCK_SETTLE_MS);
 }
