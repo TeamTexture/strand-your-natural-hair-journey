@@ -104,6 +104,14 @@ const STEPS: Step[] = [
     body: "Hair type, health, medications, current style, photos and how much guidance you want. Update anything that changes and STRAND updates with you.",
   },
   {
+    target: "manage-subscription",
+    route: "/profile",
+    eyebrow: "Profile tab",
+    title: "Manage your membership here",
+    body: "Scroll down your Profile tab to ‘Manage subscription’. This is where you switch plan, pause your membership, update your card or cancel — all in one place, whenever you need it.",
+  },
+
+  {
     target: null,
     route: "/home",
     eyebrow: "You're set",
