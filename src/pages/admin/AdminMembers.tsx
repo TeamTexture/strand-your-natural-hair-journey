@@ -525,7 +525,21 @@ const AdminMembers = () => {
           ) : (
             <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
           )}
-          Sync members to the mailing list
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 w-full h-8 rounded-pill text-[11px] font-body whitespace-nowrap"
+          disabled={syncPaidList.isPending}
+          onClick={() => syncPaidList.mutate()}
+        >
+          {syncPaidList.isPending ? (
+            <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
+          )}
+          Sync paying members to the paid list
+        </Button>
         </Button>
       </div>
 
