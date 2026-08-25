@@ -63,8 +63,38 @@ type SalonRow = {
  * privileges). Signed-out visitors therefore load the listing columns only.
  */
 const PRO_LISTING_COLUMNS =
-  "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,photos,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting";
+  "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,photos,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting,profile_review_status,featured_from,featured_until,featured_rank";
 const PRO_DISCOUNT_COLUMNS = "discount_code,discount_description,discount_active";
+
+/**
+ * FEATURED SLOT — a reusable, time-bound promoted placement. No professional is
+ * ever named in code: the slot is whoever the admin has dated into it today.
+ *
+ * Featured requires: published + review status approved + today inside the
+ * window (inclusive). A null `featured_from` means "already started" and a null
+ * `featured_until` means "no end date", but ONLY when the other bound is set —
+ * a row with all three fields null is never featured, so the slot can't switch
+ * itself on for the whole directory.
+ */
+export function isFeaturedToday(
+  row: {
+    is_published?: boolean | null;
+    profile_review_status?: string | null;
+    featured_from?: string | null;
+    featured_until?: string | null;
+  },
+  today: string = new Date().toISOString().slice(0, 10),
+): boolean {
+  if (row.is_published !== true) return false;
+  if (row.profile_review_status !== "approved") return false;
+  const from = row.featured_from ?? null;
+  const until = row.featured_until ?? null;
+  if (!from && !until) return false;
+  if (from && today < from) return false;
+  if (until && today > until) return false;
+  return true;
+}
+
 
 async function loadDirectory(): Promise<Professional[]> {
   const { data: sessionData } = await supabase.auth.getSession();
