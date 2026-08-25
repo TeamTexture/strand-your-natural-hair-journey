@@ -73,6 +73,7 @@ const ProductsByIngredient = () => {
                 leading={
                   <ProductThumb
                     imageUrl={p.image_url}
+                    storagePath={p.storage_path}
                     alt={p.name}
                     brand={p.brand}
                     name={p.name}
