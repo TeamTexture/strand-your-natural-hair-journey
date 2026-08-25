@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { purgeStrandUserScopedKeys, STRAND_OWNER_KEY } from "@/lib/strandLocalStorage";
 import { logUserSession } from "@/lib/sessionTracker";
 import { useViewAs } from "@/hooks/useViewAs";
+import { clearOnboardingResolved } from "@/lib/onboardingResolved";
 import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
 
 interface AuthCtx {
@@ -105,6 +106,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Deliberately no "last display name" cache: a signed-out device must
     // never reference a specific identity (shared/borrowed device privacy).
     purgeStrandUserScopedKeys("signOut-handler");
+    // Drop the "onboarding already complete" session memo so it can never leak
+    // into the next account signed in on this device.
+    clearOnboardingResolved();
     clearRecoveryLock();
     if (isViewingAs) stopViewAs();
     await supabase.auth.signOut();

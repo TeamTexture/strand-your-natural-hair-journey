@@ -135,7 +135,11 @@ const GlobalMenu = () => {
   const [open, setOpen] = useState(false);
   const { hasPageBackButton } = useBackButtonContext();
   // Paywall / onboarding chrome lock — see useMemberAppUnlocked.
-  const { unlocked: memberAppUnlocked, resumePath } = useMemberAppUnlocked();
+  const {
+    unlocked: memberAppUnlocked,
+    resumePath,
+    known: memberAppLockKnown,
+  } = useMemberAppUnlocked();
   const { blocked: internationalBlocked } = useInternationalBlock();
 
 
@@ -205,6 +209,10 @@ const GlobalMenu = () => {
   // reachable mid-onboarding (the professional directory is part of the
   // consultation step), so the bar itself stays for the back button and a single
   // way onward: back into onboarding.
+  // NOTHING renders while the lock answer is still unknown. A member who has
+  // finished onboarding must never see the resume bar, not even for a frame, so
+  // "no answer yet" renders no chrome at all rather than the locked bar.
+  if (activeView === "consumer" && !memberAppUnlocked && !memberAppLockKnown) return null;
   if (activeView === "consumer" && !memberAppUnlocked) {
     return (
       <div className="shrink-0 border-b border-border/40 bg-background">

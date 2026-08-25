@@ -84,6 +84,11 @@ const PaidGateInner = ({ children }: { children: ReactNode }) => {
   }
 
 
+  // ENTITLEMENT MUST BE KNOWN BEFORE ANY PAYWALL UI. A paying member must never
+  // see the paywall or the membership-ended screen because a read was still in
+  // flight: unresolved renders the neutral loader, never the negative state.
+  if (!hasAccess && isLoading) return <LoadingDot />;
+
   if (!hasAccess) {
     // A member whose membership has ended gets an explanation, never a silent
     // bounce. Someone who has never subscribed goes to the paywall as before.
