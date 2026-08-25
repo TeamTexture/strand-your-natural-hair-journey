@@ -206,7 +206,7 @@ const ResumeOnboarding = () => {
                 className="w-full whitespace-normal break-words leading-tight"
                 onClick={() => navigate("/onboarding/pro-details")}
               >
-                I've already had one →
+                I've had my appointment →
               </Button>
             </div>
           </SurfaceCard>
