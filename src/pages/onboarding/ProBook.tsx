@@ -116,8 +116,11 @@ const ProBook = () => {
         <SurfaceCard tone="orange">
           <p className="text-sm leading-snug">
             Your app will unlock once you have had your appointment. Open Strand during or after
-            your consultation to fill in your hair characteristics with your professional.
+            your consultation to fill in your hair characteristics with your professional. Already
+            seen someone in the last 6 months? That appointment counts — log it instead of booking
+            again.
           </p>
+
         </SurfaceCard>
 
         <div className="relative">
