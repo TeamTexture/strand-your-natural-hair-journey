@@ -344,8 +344,10 @@ const ProfileStep3Hair = () => {
                 .upsert(
                   {
                     user_id: u.user.id,
-                    porosity: porosity[0] ?? null,
-                    elasticity: elasticity[0] ?? null,
+                    curl_pattern: curlPattern,
+                    porosity: porosityVal,
+                    elasticity: elasticityVal,
+
                     diameter: diameterVal,
                     surface_texture: surfaceTextureVal,
                     density: densityVal,
