@@ -398,6 +398,14 @@ const Home = () => {
     if (title && title.toLowerCase() !== "hair goal") return title;
     return "Your goal";
   })();
+  // A long goal gets previewed in the square tile with a way to read it in full,
+  // so the tile can never stretch the dashboard row.
+  const goalIsLong = Boolean(goal) && goalName.length > 70;
+  const showGoalInFull = () => {
+    const card = document.querySelector('[data-tour="goals"]');
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    else navigate("/journal");
+  };
 
   // Short chip for the STRAND tip — the member's OWN words, never a category.
   const goalChipLabel = (() => {
