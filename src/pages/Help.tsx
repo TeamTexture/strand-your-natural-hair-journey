@@ -66,7 +66,6 @@ const WALKTHROUGHS: Walkthrough[] = [
     title: "Wash days and how to book professionals",
     aspectPadding: "64.74820143884892%",
   },
-
 ];
 
 interface Retailer {
