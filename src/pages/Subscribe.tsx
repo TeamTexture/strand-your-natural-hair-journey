@@ -19,6 +19,7 @@ import {
   Users,
   Calendar,
   Leaf,
+  Stethoscope,
   Heart,
   ShieldCheck,
   Lock,
@@ -66,9 +67,9 @@ const PILLARS: Pillar[] = [
     benefit: "Scan, analyse and curate a shelf that actually works for you.",
   },
   {
-    icon: Heart,
-    title: "Blood work decoded",
-    benefit: "Upload results and see what every marker means for your strands.",
+    icon: Stethoscope,
+    title: "Vetted professionals",
+    benefit: "Search the directory, book, and keep every appointment in one place.",
   },
   {
     icon: Camera,
@@ -397,7 +398,7 @@ const Subscribe = () => {
             </span>
           </div>
           <h2 className="font-display text-2xl font-semibold text-foreground">
-            Eight pillars, one hair story
+            Every pillar, one hair story
           </h2>
           <p className="font-body text-[12.5px] text-foreground/70 leading-relaxed max-w-[300px] mx-auto">
             Every feature in STRAND is designed to answer one question: what does{" "}
@@ -437,7 +438,22 @@ const Subscribe = () => {
           </div>
         </div>
 
-
+        {/* Blood work — included in the same membership, opens when she adds results */}
+        <SurfaceCard>
+          <div className="flex items-start gap-3">
+            <Heart className="size-4 mt-0.5 text-primary shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-display text-[15px] font-semibold leading-snug">
+                The diet and nutrition side opens when you add blood results
+              </p>
+              <p className="font-body text-[12px] text-foreground/75 leading-snug mt-1">
+                It is part of the same membership, not an extra. Your nutrition plan and marker
+                readings need your iron, ferritin, vitamin D, B12 and thyroid values, so they stay
+                closed until those are on file. Blood work is optional and you can add it any time.
+              </p>
+            </div>
+          </div>
+        </SurfaceCard>
 
         {/* Reassurance strip */}
         <div className="space-y-2 pt-1">

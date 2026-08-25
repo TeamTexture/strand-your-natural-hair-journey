@@ -10,7 +10,7 @@
 //  Cautionary
 //   - Wash overdue (7+ days since last wash) when in protective style
 //   - Style worn 42+ days → time to take down
-//   - Blood retest due (>85 days since latest blood panel date)
+//   - Blood retest available (~6 months since latest blood panel date, only if one exists)
 //   - Last appointment > 170 days ago → rebook
 //   - Any blood marker still flagged "low" → nutrition guidance available
 //   - Hard water area + no clarifying step in the last 3 wash days
@@ -496,7 +496,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         });
       }
 
-      // 5. Blood retest due — ~6 months since latest actual test date, OR never uploaded one.
+      // 5. Blood retest — ~6 months since latest actual test date. Never-tested members get nothing here.
       // IMPORTANT: use blood_panels.panel_date (the test date), not blood_results.updated_at
       // (the upload/save date), otherwise an old report uploaded today never appears due on Home.
       if (scheduledBloodDate) {
@@ -514,35 +514,22 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         next.push({
           id: ALERT_KEYS.BLOOD_TEST_OVERDUE,
           emoji: "🧪",
-          title: "Time to book a blood test",
-          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair, nutrition and supplement guidance stays accurate.`,
+          title: "Retest your bloods when it suits you",
+          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. A fresh panel keeps your diet and nutrition guidance reading current values.`,
           to: "/directory?bloodOnly=1",
 
-          tone: "danger",
+          tone: "warning",
           signature: alertSignature(ALERT_KEYS.BLOOD_TEST_OVERDUE, [
             lastBloodPanelDate,
             timeBucket(ALERT_KEYS.BLOOD_TEST_OVERDUE, daysSinceBlood),
           ]),
         });
-      } else if (!lastBloodPanelDate) {
-        // Never uploaded a blood test — nudge after a 14-day grace window
-        const accountCreatedIso = user.created_at ?? null;
-        const daysSinceSignup = daysSince(accountCreatedIso);
-        if (!Number.isFinite(daysSinceSignup) || daysSinceSignup >= 14) {
-          next.push({
-            id: ALERT_KEYS.BLOOD_TEST_MISSING,
-            emoji: "🧪",
-            title: "Book your first blood test",
-            body: "Add a recent blood test so STRAND can personalise your hair, nutrition and supplement guidance to your body.",
-            to: "/directory?bloodOnly=1",
-
-            tone: "danger",
-            signature: alertSignature(ALERT_KEYS.BLOOD_TEST_MISSING, [
-              timeBucket(ALERT_KEYS.BLOOD_TEST_MISSING, daysSinceSignup),
-            ]),
-          });
-        }
       }
+      // No panel on file at all: nothing is "due", because nothing came before.
+      // Blood work is optional, so Home stays quiet about it. The neutral
+      // "Add your blood results" option lives on Profile and in the locked
+      // nutrition state, where she is already looking for it.
+
 
 
       // 6. Rebook professional
