@@ -98,6 +98,12 @@ const ProfileStep3Hair = () => {
   const [scalp, setScalp] = useState<string[]>([]);
   const [diagnosed, setDiagnosed] = useState<string[]>([]);
   const [areas, setAreas] = useState<string[]>([]);
+  // Feel & look — self-assessed. State holds the picked label; the column
+  // value is derived at save time via mapHairFeelLabel so the stored data
+  // matches a professional capture. "Not sure" is a valid answer (→ null).
+  const [diameter, setDiameter] = useState<string[]>([]);
+  const [surfaceTexture, setSurfaceTexture] = useState<string[]>([]);
+  const [density, setDensity] = useState<string[]>([]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
 
