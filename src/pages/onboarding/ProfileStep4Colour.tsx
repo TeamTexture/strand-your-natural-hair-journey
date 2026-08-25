@@ -146,6 +146,177 @@ const ProfileStep4Colour = () => {
   const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
 
+  /**
+   * Validate and persist the colour/style answers. Returns false when anything
+   * is missing so the caller can leave her on the form — both the "add blood
+   * results" and the "skip to membership" routes save exactly the same way.
+   */
+  const saveStyle = async (): Promise<boolean> => {
+            // Every answer on this step must be explicit.
+            const gaps: string[] = [];
+            if (colour.length === 0) gaps.push("current colour status");
+            if (!isNaturalNever) {
+              if (chemHist.length === 0) gaps.push("chemical history");
+              if (!colourType) gaps.push("colour type");
+              if (!colourProduct) gaps.push("product used");
+              if (!colourLast) gaps.push("last colour treatment");
+              if (!colourReaction) gaps.push("colour reaction");
+            }
+            if (!style[0]) gaps.push("current hairstyle");
+            if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
+              gaps.push("how long in this style");
+            }
+            if (!plansToChange) gaps.push("plans to change style");
+            if (plansToChange === "yes") {
+              if (changeNum.trim() === "") gaps.push("when you plan to change");
+              if (changingTo.length === 0) gaps.push("what you are changing to");
+            }
+            if (defaultStyle.length === 0) gaps.push("default / normal style");
+            if (gaps.length > 0) {
+              toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+              return false;
+            }
+
+            // Require reaction details (text or voice note) when a reaction is flagged.
+            if (
+              !isNaturalNever &&
+              colourReaction === "yes" &&
+              !colourReactionDetails.trim() &&
+              !colourReactionAudioPath
+            ) {
+              setReactionError(true);
+              toast.error("Please describe what happened, or record a voice note.");
+              return false;
+            }
+
+            const num = parseInt(howLongNum, 10);
+            const unit = howLongUnit;
+            const days = Number.isFinite(num)
+              ? unit === "weeks"
+                ? num * 7
+                : unit === "months"
+                ? num * 30
+                : num
+              : 0;
+            const howLong = `${howLongNum} ${howLongUnit}`;
+            const style_set_at = new Date(
+              Date.now() - days * 24 * 60 * 60 * 1000,
+            ).toISOString();
+
+            let planned_change_date: string | null = null;
+            if (plansToChange === "yes") {
+              const cNum = parseInt(changeNum, 10);
+              const cDays = Number.isFinite(cNum)
+                ? changeUnit === "weeks"
+                  ? cNum * 7
+                  : changeUnit === "months"
+                  ? cNum * 30
+                  : cNum
+                : 0;
+              planned_change_date = new Date(
+                Date.now() + cDays * 24 * 60 * 60 * 1000,
+              ).toISOString();
+            }
+
+            // When "Natural (never coloured)" is selected, chemical + colour history
+            // sections are hidden — persist neutral values so stale data can't leak
+            // through to advice.
+            const currentStyle = style[0] ?? "";
+            if (
+              (styleAsksTension(currentStyle) && !attrs.tension) ||
+              (styleAsksExtensions(currentStyle) && attrs.extensions === null)
+            ) {
+              setAttrError(true);
+              toast.error("Answer the tension and extensions questions for this style");
+              return false;
+            }
+            setAttrError(false);
+
+            const chemHistToSave = isNaturalNever ? ["None"] : chemHist;
+            const colourTypeToSave = isNaturalNever ? null : colourType;
+            const colourProductToSave = isNaturalNever ? null : colourProduct;
+            const colourLastToSave = isNaturalNever ? "Never coloured" : colourLast;
+            const reactionFlag = !isNaturalNever && colourReaction === "yes";
+
+            localStorage.setItem(
+              "strand_current_style",
+              JSON.stringify({
+                current_hairstyle: style[0] ?? "",
+                style_set_at,
+                planned_next_style: changingTo[0] ?? "",
+                planned_change_date,
+                howLong,
+                howLongNum,
+                howLongUnit,
+                plansToChange,
+                changeNum,
+                changeUnit,
+                changingTo,
+                defaultStyle,
+                colour,
+                chemHist: chemHistToSave,
+                current_style_tension: styleAsksTension(style[0]) ? attrs.tension : null,
+                current_style_extensions: styleAsksExtensions(style[0])
+                  ? attrs.extensions
+                  : null,
+                planned_style_tension: styleAsksTension(changingTo[0])
+                  ? plannedAttrs.tension
+                  : null,
+                planned_style_extensions: styleAsksExtensions(changingTo[0])
+                  ? plannedAttrs.extensions
+                  : null,
+              }),
+            );
+            // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
+            try {
+              const { data: u } = await supabase.auth.getUser();
+              if (u?.user) {
+                const { error } = await supabase
+                  .from("user_style_profile")
+                  .upsert(
+                    {
+                      user_id: u.user.id,
+                      current_colour_status: colour[0] ?? null,
+                      chemical_history: chemHistToSave,
+                      current_hairstyle: style[0] ?? null,
+                      style_set_at,
+                      planned_next_style: changingTo[0] ?? null,
+                      planned_change_date,
+                      default_styles: defaultStyle,
+                      current_style_tension: styleAsksTension(style[0]) ? attrs.tension : null,
+                      current_style_extensions: styleAsksExtensions(style[0])
+                        ? attrs.extensions
+                        : null,
+                      planned_style_tension: styleAsksTension(changingTo[0])
+                        ? plannedAttrs.tension
+                        : null,
+                      planned_style_extensions: styleAsksExtensions(changingTo[0])
+                        ? plannedAttrs.extensions
+                        : null,
+                      colour_type: colourTypeToSave,
+                      colour_product: colourProductToSave,
+                      colour_last_treated: colourLastToSave,
+                      colour_reaction: reactionFlag,
+                      colour_reaction_details: reactionFlag ? colourReactionDetails || null : null,
+                      colour_reaction_audio_path: reactionFlag ? colourReactionAudioPath : null,
+                    } as never,
+                    { onConflict: "user_id" },
+                  );
+                if (error) throw error;
+              }
+            } catch (err) {
+              console.error("[strand] user_style_profile upsert failed", err);
+              toast.error("Could not save your style profile. Check your connection.");
+              return false;
+            }
+            // Same-tab listeners (Home banner) need a custom event because the
+            // browser `storage` event only fires in OTHER tabs.
+            window.dispatchEvent(new Event("strand:style-updated"));
+            const { data: currentUser } = await supabase.auth.getUser();
+            await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
+    return true;
+  };
+
   return (
     <ScreenLayout>
       <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} />
@@ -360,178 +531,7 @@ const ProfileStep4Colour = () => {
           placeholder="Select your usual styles…"
         />
 
-  /**
-   * Validate and persist the colour/style answers. Returns false when anything
-   * is missing so the caller can leave her on the form — both the "add blood
-   * results" and the "skip to membership" routes save exactly the same way.
-   */
-  const saveStyle = async (): Promise<boolean> => {
-              // Every answer on this step must be explicit.
-              const gaps: string[] = [];
-              if (colour.length === 0) gaps.push("current colour status");
-              if (!isNaturalNever) {
-                if (chemHist.length === 0) gaps.push("chemical history");
-                if (!colourType) gaps.push("colour type");
-                if (!colourProduct) gaps.push("product used");
-                if (!colourLast) gaps.push("last colour treatment");
-                if (!colourReaction) gaps.push("colour reaction");
-              }
-              if (!style[0]) gaps.push("current hairstyle");
-              if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
-                gaps.push("how long in this style");
-              }
-              if (!plansToChange) gaps.push("plans to change style");
-              if (plansToChange === "yes") {
-                if (changeNum.trim() === "") gaps.push("when you plan to change");
-                if (changingTo.length === 0) gaps.push("what you are changing to");
-              }
-              if (defaultStyle.length === 0) gaps.push("default / normal style");
-              if (gaps.length > 0) {
-                toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
-                return false;
-              }
 
-              // Require reaction details (text or voice note) when a reaction is flagged.
-              if (
-                !isNaturalNever &&
-                colourReaction === "yes" &&
-                !colourReactionDetails.trim() &&
-                !colourReactionAudioPath
-              ) {
-                setReactionError(true);
-                toast.error("Please describe what happened, or record a voice note.");
-                return false;
-              }
-
-              const num = parseInt(howLongNum, 10);
-              const unit = howLongUnit;
-              const days = Number.isFinite(num)
-                ? unit === "weeks"
-                  ? num * 7
-                  : unit === "months"
-                  ? num * 30
-                  : num
-                : 0;
-              const howLong = `${howLongNum} ${howLongUnit}`;
-              const style_set_at = new Date(
-                Date.now() - days * 24 * 60 * 60 * 1000,
-              ).toISOString();
-
-              let planned_change_date: string | null = null;
-              if (plansToChange === "yes") {
-                const cNum = parseInt(changeNum, 10);
-                const cDays = Number.isFinite(cNum)
-                  ? changeUnit === "weeks"
-                    ? cNum * 7
-                    : changeUnit === "months"
-                    ? cNum * 30
-                    : cNum
-                  : 0;
-                planned_change_date = new Date(
-                  Date.now() + cDays * 24 * 60 * 60 * 1000,
-                ).toISOString();
-              }
-
-              // When "Natural (never coloured)" is selected, chemical + colour history
-              // sections are hidden — persist neutral values so stale data can't leak
-              // through to advice.
-              const currentStyle = style[0] ?? "";
-              if (
-                (styleAsksTension(currentStyle) && !attrs.tension) ||
-                (styleAsksExtensions(currentStyle) && attrs.extensions === null)
-              ) {
-                setAttrError(true);
-                toast.error("Answer the tension and extensions questions for this style");
-                return false;
-              }
-              setAttrError(false);
-
-              const chemHistToSave = isNaturalNever ? ["None"] : chemHist;
-              const colourTypeToSave = isNaturalNever ? null : colourType;
-              const colourProductToSave = isNaturalNever ? null : colourProduct;
-              const colourLastToSave = isNaturalNever ? "Never coloured" : colourLast;
-              const reactionFlag = !isNaturalNever && colourReaction === "yes";
-
-              localStorage.setItem(
-                "strand_current_style",
-                JSON.stringify({
-                  current_hairstyle: style[0] ?? "",
-                  style_set_at,
-                  planned_next_style: changingTo[0] ?? "",
-                  planned_change_date,
-                  howLong,
-                  howLongNum,
-                  howLongUnit,
-                  plansToChange,
-                  changeNum,
-                  changeUnit,
-                  changingTo,
-                  defaultStyle,
-                  colour,
-                  chemHist: chemHistToSave,
-                  current_style_tension: styleAsksTension(style[0]) ? attrs.tension : null,
-                  current_style_extensions: styleAsksExtensions(style[0])
-                    ? attrs.extensions
-                    : null,
-                  planned_style_tension: styleAsksTension(changingTo[0])
-                    ? plannedAttrs.tension
-                    : null,
-                  planned_style_extensions: styleAsksExtensions(changingTo[0])
-                    ? plannedAttrs.extensions
-                    : null,
-                }),
-              );
-              // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
-              try {
-                const { data: u } = await supabase.auth.getUser();
-                if (u?.user) {
-                  const { error } = await supabase
-                    .from("user_style_profile")
-                    .upsert(
-                      {
-                        user_id: u.user.id,
-                        current_colour_status: colour[0] ?? null,
-                        chemical_history: chemHistToSave,
-                        current_hairstyle: style[0] ?? null,
-                        style_set_at,
-                        planned_next_style: changingTo[0] ?? null,
-                        planned_change_date,
-                        default_styles: defaultStyle,
-                        current_style_tension: styleAsksTension(style[0]) ? attrs.tension : null,
-                        current_style_extensions: styleAsksExtensions(style[0])
-                          ? attrs.extensions
-                          : null,
-                        planned_style_tension: styleAsksTension(changingTo[0])
-                          ? plannedAttrs.tension
-                          : null,
-                        planned_style_extensions: styleAsksExtensions(changingTo[0])
-                          ? plannedAttrs.extensions
-                          : null,
-                        colour_type: colourTypeToSave,
-                        colour_product: colourProductToSave,
-                        colour_last_treated: colourLastToSave,
-                        colour_reaction: reactionFlag,
-                        colour_reaction_details: reactionFlag ? colourReactionDetails || null : null,
-                        colour_reaction_audio_path: reactionFlag ? colourReactionAudioPath : null,
-                      } as never,
-                      { onConflict: "user_id" },
-                    );
-                  if (error) throw error;
-                }
-              } catch (err) {
-                console.error("[strand] user_style_profile upsert failed", err);
-                toast.error("Could not save your style profile. Check your connection.");
-                return false;
-              }
-              // Same-tab listeners (Home banner) need a custom event because the
-              // browser `storage` event only fires in OTHER tabs.
-              window.dispatchEvent(new Event("strand:style-updated"));
-              const { data: currentUser } = await supabase.auth.getUser();
-              await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
-    return true;
-  };
-
-        <Button
         <Button
           variant="gold"
           size="pill"
@@ -562,7 +562,7 @@ const ProfileStep4Colour = () => {
                 navigate(await resolveNextPath(), { replace: true });
               }}
             >
-              Skip for now — go to membership \u2192
+              Skip for now — go to membership →
             </Button>
             <p className="text-[11px] text-foreground/60 font-body text-center leading-snug">
               Blood work is optional. You can add results any time — it unlocks your
