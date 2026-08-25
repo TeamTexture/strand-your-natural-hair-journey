@@ -5744,6 +5744,7 @@ export type Database = {
         Row: {
           areas_of_concern: string[]
           created_at: string
+          curl_pattern: string | null
           density: string | null
           diagnosed_conditions_enc: string | null
           diameter: string | null
@@ -5760,6 +5761,7 @@ export type Database = {
         Insert: {
           areas_of_concern?: string[]
           created_at?: string
+          curl_pattern?: string | null
           density?: string | null
           diagnosed_conditions_enc?: string | null
           diameter?: string | null
@@ -5776,6 +5778,7 @@ export type Database = {
         Update: {
           areas_of_concern?: string[]
           created_at?: string
+          curl_pattern?: string | null
           density?: string | null
           diagnosed_conditions_enc?: string | null
           diameter?: string | null

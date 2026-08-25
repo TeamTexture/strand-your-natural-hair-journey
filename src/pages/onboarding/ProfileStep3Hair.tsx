@@ -11,6 +11,8 @@ import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHea
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
+import CurlPatternPicker from "@/components/onboarding/CurlPatternPicker";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
@@ -45,6 +47,16 @@ export const HAIR_FEEL_MAP = {
     "The parting closes up as soon as I let go": "High",
     "Not sure": null,
   } as Record<string, string | null>,
+  porosity: {
+    "Soaks it up fast": "High",
+    "Water beads and sits on top": "Low",
+    "Somewhere in between": "Medium",
+  } as Record<string, string | null>,
+  elasticity: {
+    "Stretches and springs back": "Strong",
+    "Snaps, or stays stretched": "Weak",
+    "Not sure": null,
+  } as Record<string, string | null>,
 } as const;
 
 export type HairFeelField = keyof typeof HAIR_FEEL_MAP;
@@ -54,6 +66,39 @@ export function mapHairFeelLabel(field: HairFeelField, label: string | undefined
   if (!label) return null;
   return HAIR_FEEL_MAP[field][label] ?? null;
 }
+
+/**
+ * The clinical shorthand shown in brackets after each option, so she learns
+ * what her answer means. Presentation only — keyed by the plain option text,
+ * which stays the stored/compared value.
+ */
+const ANNOTATIONS: Record<string, Record<string, string>> = {
+  diameter: {
+    "I can barely feel it": "fine",
+    "I can feel it clearly": "medium",
+    "Thick and wiry": "coarse",
+    "Different across my head": "mixed",
+  },
+  surface_texture: {
+    "Smooth all the way": "silky",
+    "A little grip": "medium",
+    "Bumpy, it catches": "rough",
+  },
+  density: {
+    "A wide band of scalp": "low density",
+    "A clear line with a little scalp either side": "medium density",
+    "The parting closes up as soon as I let go": "high density",
+  },
+  porosity: {
+    "Soaks it up fast": "high porosity",
+    "Water beads and sits on top": "low porosity",
+    "Somewhere in between": "medium porosity",
+  },
+  elasticity: {
+    "Stretches and springs back": "strong elasticity",
+    "Snaps, or stays stretched": "weak elasticity",
+  },
+};
 
 interface TGProps {
   label: string;
@@ -68,9 +113,12 @@ interface TGProps {
   /** The clinical name for what is being asked, shown as a small gold badge
    *  beside the question rather than as part of the question itself. */
   term?: string;
+  /** Key into ANNOTATIONS, when this question's options carry shorthand. */
+  annotationSet?: keyof typeof ANNOTATIONS;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term, annotationSet }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
+  const annotations = annotationSet ? ANNOTATIONS[annotationSet] : undefined;
   const toggle = (opt: string) => {
     if (multi) {
       onChange(noneLabel ? toggleWithNone(safeValue, opt, noneLabel) : safeValue.includes(opt) ? safeValue.filter((v) => v !== opt) : [...safeValue, opt]);
@@ -85,7 +133,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
       </OnboardingQuestion>
       <div className="flex flex-wrap gap-[7px]">
         {options.map((o) => (
-          <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
+          <Tag key={o} selected={safeValue.includes(o)} annotation={annotations?.[o]} onClick={() => toggle(o)}>
             {o}
           </Tag>
         ))}
@@ -94,11 +142,13 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
   );
 };
 
+
 const ProfileStep3Hair = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // No defaults — a pre-selected answer would be an assumption about her hair
   // and scalp that she never made, so every group starts genuinely empty.
+  const [curlPattern, setCurlPattern] = useState<string | null>(null);
   const [porosity, setPorosity] = useState<string[]>([]);
   const [elasticity, setElasticity] = useState<string[]>([]);
   const [scalp, setScalp] = useState<string[]>([]);
@@ -116,11 +166,12 @@ const ProfileStep3Hair = () => {
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-3-hair",
-    { porosity, elasticity, scalp, diagnosed, areas, diameter, surfaceTexture, density, lengthInches, lengthBucket },
+    { curl_pattern: curlPattern, porosity, elasticity, scalp, diagnosed, areas, diameter, surfaceTexture, density, lengthInches, lengthBucket },
     (d) => {
       // Older saved drafts used different shapes. Only restore values the
       // current controls can render; malformed arrays previously crashed on
       // `.includes()` immediately after a refresh.
+      if (typeof d.curl_pattern === "string") setCurlPattern(d.curl_pattern);
       if (Array.isArray(d.porosity)) setPorosity(d.porosity.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.elasticity)) setElasticity(d.elasticity.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
@@ -133,6 +184,7 @@ const ProfileStep3Hair = () => {
       if (typeof d.lengthBucket === "string") setLengthBucket(d.lengthBucket);
     },
   );
+
   const { shouldAsk } = usePersonalisedOffersAsk();
   const [askOffers, setAskOffers] = useState(false);
 
@@ -150,16 +202,24 @@ const ProfileStep3Hair = () => {
       <OnboardingGuide className="pt-2 pb-1" />
       <OnboardingScreenHeading
         title="Your hair, in your own hands"
-        subtitle="Four short sections. Answer from what you know — you can refine any of it later with a professional."
+        subtitle="Five short sections. Answer from what you know — you can refine any of it later with a professional."
       />
 
       <div className="px-5 pb-8 space-y-3">
-        <OnboardingSectionCard number={1} title="Feel and look">
+        <OnboardingSectionCard number={1} title="Curl pattern">
+          <OnboardingQuestion term="Curl pattern">
+            Which is your hair most closely matched to?
+          </OnboardingQuestion>
+          <CurlPatternPicker value={curlPattern} onChange={setCurlPattern} />
+        </OnboardingSectionCard>
+
+        <OnboardingSectionCard number={2} title="Feel and look">
           <div className="space-y-4">
             <TagGroup
               multi={false}
               label="Roll one strand between your finger and thumb"
               term="strand diameter"
+              annotationSet="diameter"
               options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
               value={diameter} onChange={setDiameter}
             />
@@ -167,6 +227,7 @@ const ProfileStep3Hair = () => {
               multi={false}
               label="Slide your fingers down a strand, root to tip"
               term="surface texture"
+              annotationSet="surface_texture"
               options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
               value={surfaceTexture} onChange={setSurfaceTexture}
             />
@@ -174,6 +235,7 @@ const ProfileStep3Hair = () => {
               multi={false}
               label="Part your hair and look along the line"
               term="density"
+              annotationSet="density"
               helper="Make a parting with a comb, then look at how much scalp shows along it."
               options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
               value={density} onChange={setDensity}
@@ -181,12 +243,13 @@ const ProfileStep3Hair = () => {
           </div>
         </OnboardingSectionCard>
 
-        <OnboardingSectionCard number={2} title="Water and stretch">
+        <OnboardingSectionCard number={3} title="Water and stretch">
           <div className="space-y-4">
             <TagGroup
               multi={false}
               label="How your hair takes water"
               term="porosity"
+              annotationSet="porosity"
               options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
               value={porosity} onChange={setPorosity}
             />
@@ -194,13 +257,15 @@ const ProfileStep3Hair = () => {
               multi={false}
               label="How a wet strand behaves when you stretch it"
               term="elasticity"
+              annotationSet="elasticity"
               options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
               value={elasticity} onChange={setElasticity}
             />
           </div>
+
         </OnboardingSectionCard>
 
-        <OnboardingSectionCard number={3} title="Scalp and concerns">
+        <OnboardingSectionCard number={4} title="Scalp and concerns">
           <div className="space-y-4">
             <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
             <TagGroup
@@ -220,7 +285,7 @@ const ProfileStep3Hair = () => {
           </div>
         </OnboardingSectionCard>
 
-        <OnboardingSectionCard number={4} title="Length">
+        <OnboardingSectionCard number={5} title="Length">
           <HairLengthPicker
             inches={lengthInches}
             bucket={lengthBucket}
@@ -236,6 +301,7 @@ const ProfileStep3Hair = () => {
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           const gaps: string[] = [];
+          if (!curlPattern) gaps.push("which pattern your hair most closely matches");
           if (diameter.length === 0) gaps.push("rolling a strand between your fingers");
           if (surfaceTexture.length === 0) gaps.push("sliding your fingers down a strand");
           if (density.length === 0) gaps.push("parting your hair and looking along the line");
@@ -253,13 +319,19 @@ const ProfileStep3Hair = () => {
           const diameterVal = mapHairFeelLabel("diameter", diameter[0]);
           const surfaceTextureVal = mapHairFeelLabel("surface_texture", surfaceTexture[0]);
           const densityVal = mapHairFeelLabel("density", density[0]);
+          const porosityVal = mapHairFeelLabel("porosity", porosity[0]);
+          const elasticityVal = mapHairFeelLabel("elasticity", elasticity[0]);
           localStorage.setItem("strand_hair_profile", JSON.stringify({
-            porosity, elasticity, scalp, diagnosed, areas,
+            curl_pattern: curlPattern,
+            porosity: porosityVal ? [porosityVal] : [],
+            elasticity: elasticityVal ? [elasticityVal] : [],
+            scalp, diagnosed, areas,
             diameter: diameterVal ? [diameterVal] : [],
             texture: surfaceTextureVal ? [surfaceTextureVal] : [],
             density: densityVal ? [densityVal] : [],
             length_inches: lengthInches, length_bucket: lengthBucket,
           }));
+
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
           try {
             const { data: u } = await supabase.auth.getUser();
@@ -274,8 +346,10 @@ const ProfileStep3Hair = () => {
                 .upsert(
                   {
                     user_id: u.user.id,
-                    porosity: porosity[0] ?? null,
-                    elasticity: elasticity[0] ?? null,
+                    curl_pattern: curlPattern,
+                    porosity: porosityVal,
+                    elasticity: elasticityVal,
+
                     diameter: diameterVal,
                     surface_texture: surfaceTextureVal,
                     density: densityVal,

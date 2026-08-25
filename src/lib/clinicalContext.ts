@@ -23,6 +23,10 @@ import { supabase } from "@/integrations/supabase/client";
 // ─────────────────────────── Types ───────────────────────────
 
 export interface HairSlice {
+  /** Which pattern the member says her hair most closely matches, in words
+   *  only ("Straight" | "Wavy" | "Curly" | "Coily (Afro-textured)"). Never
+   *  expressed or reasoned about as a letter/number classification. */
+  curl_pattern: string | null;
   diameter: string[];
   texture: string[];
   density: string[];
@@ -211,6 +215,7 @@ async function fetchDecryptedContext(): Promise<DecryptedContext | null> {
 // ─────────────────── Slice builders (local fallback) ───────────────────
 
 interface LegacyHair {
+  curl_pattern?: unknown;
   diameter?: unknown;
   texture?: unknown;
   density?: unknown;
@@ -285,6 +290,7 @@ function hairFromLocal(): HairSlice | null {
   if (!raw) return null;
   const inchesNum = Number(raw.length_inches);
   return {
+    curl_pattern: typeof raw.curl_pattern === "string" && raw.curl_pattern ? raw.curl_pattern : null,
     diameter: ensureStringArray(raw.diameter),
     texture: ensureStringArray(raw.texture),
     density: ensureStringArray(raw.density),
@@ -520,7 +526,7 @@ async function loadClinicalContextUncached(
         supabase
           .from("user_hair_profile")
           .select(
-            "diameter, surface_texture, density, porosity, elasticity, areas_of_concern, length_inches, length_bucket",
+            "curl_pattern, diameter, surface_texture, density, porosity, elasticity, areas_of_concern, length_inches, length_bucket",
           )
           .eq("user_id", userId)
           .maybeSingle(),
@@ -584,6 +590,10 @@ async function loadClinicalContextUncached(
       const hairRowAny = hairRow as Record<string, unknown>;
       const li = Number(hairRowAny.length_inches);
       ctx.hair = {
+        curl_pattern:
+          typeof hairRowAny.curl_pattern === "string" && hairRowAny.curl_pattern
+            ? (hairRowAny.curl_pattern as string)
+            : (ctx.hair?.curl_pattern ?? null),
         diameter: wrap(hairRow.diameter),
         texture: wrap(hairRow.surface_texture),
         density: wrap(hairRow.density),
