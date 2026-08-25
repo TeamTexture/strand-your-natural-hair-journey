@@ -12,15 +12,12 @@ import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
 import ShelfItemRemoveDialog from "@/components/ShelfItemRemoveDialog";
-import SectionLabel from "@/components/SectionLabel";
+import CategoryProductPanels from "@/components/CategoryProductPanels";
 
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  groupProductsByCategory,
-  type StepProductHint,
-} from "@/lib/productCategories";
+import { type StepProductHint } from "@/lib/productCategories";
 
 
 interface Props {
@@ -137,14 +134,10 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
   const loading = tab === "shelf" ? loadingShelf : loadingWishlist;
   const isSelected = (id: string) => selectedIds.includes(id);
 
-  // Sectioning only earns its keep on a long list — a two-item wishlist reads
-  // better flat. Every product lands in exactly one section (null category →
-  // "Other"), so the visible count always equals the tab label count.
+  // Panels only earn their keep on a longer list — a two-item wishlist reads
+  // better flat. Every product lands in exactly one panel (null category →
+  // "Other"), so the expanded count always equals the tab label count.
   const SECTION_THRESHOLD = 6;
-  const sections = useMemo(
-    () => (list.length >= SECTION_THRESHOLD ? groupProductsByCategory(list, stepHint) : null),
-    [list, stepHint],
-  );
 
 
   // Two escape routes from the bin: keep the product in the app but off the
@@ -295,34 +288,21 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
               message={tab === "shelf" ? "No products on your shelf" : "Your wishlist is empty"}
               hint="Add a product above, or pick from the Products tab."
             />
-          ) : sections ? (
-            sections.map((s) => (
-              <div key={s.slug} className="space-y-2 pt-3 first:pt-0">
-                <SectionLabel className="!px-0 !mt-0 !mb-1.5">
-                  {s.label}
-                </SectionLabel>
-
-                {s.products.map((p) => (
-                  <Row
-                    key={p.id}
-                    p={p}
-                    selected={isSelected(p.id)}
-                    onClick={() => onToggle(p.id)}
-                    onRemove={() => setPendingRemove(p)}
-                  />
-                ))}
-              </div>
-            ))
           ) : (
-            list.map((p) => (
-              <Row
-                key={p.id}
-                p={p}
-                selected={isSelected(p.id)}
-                onClick={() => onToggle(p.id)}
-                onRemove={() => setPendingRemove(p)}
-              />
-            ))
+            <CategoryProductPanels
+              products={list}
+              stepHint={stepHint}
+              selectedIds={selectedIds}
+              flatBelow={SECTION_THRESHOLD}
+              renderRow={(p) => (
+                <Row
+                  p={p}
+                  selected={isSelected(p.id)}
+                  onClick={() => onToggle(p.id)}
+                  onRemove={() => setPendingRemove(p)}
+                />
+              )}
+            />
           )}
 
         </div>
