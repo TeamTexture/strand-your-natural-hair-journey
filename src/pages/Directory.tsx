@@ -133,12 +133,15 @@ const Directory = () => {
   // Chip counts come from the FULL live directory (`pros` = published,
   // unsuspended pro profiles + active curated rows), never from the filtered
   // result set — so chips don't flicker as search/other filters change.
+  // The featured pro is counted too: she's excluded from the list below the
+  // featured card but she is still a live pro.
   // A category with zero listings is not rendered at all.
   const tabCounts = useMemo(() => {
     const counts = {} as Record<ProType, number>;
-    for (const p of listPros) counts[p.type] = (counts[p.type] ?? 0) + 1;
+    for (const p of pros) counts[p.type] = (counts[p.type] ?? 0) + 1;
     return counts;
-  }, [listPros]);
+  }, [pros]);
+
 
 
   // Same zero-count rule as the category chips: a capability filter that would
