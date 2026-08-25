@@ -149,6 +149,11 @@ interface DecryptedContext {
 
 function safeParse<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
+  // A cached value may only be read for the user it belongs to. While an admin
+  // is viewing the app as a member, this cache holds the ADMIN's clinical data
+  // — reading it would render the admin's style/hair/health under the member's
+  // name (the "Afro Mohawk on Jem's Home card" bug).
+  if (isViewingAsUser()) return fallback;
   try {
     const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
@@ -156,6 +161,7 @@ function safeParse<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
+
 
 const wrap = (v: string | null | undefined): string[] => (v ? [v] : []);
 
