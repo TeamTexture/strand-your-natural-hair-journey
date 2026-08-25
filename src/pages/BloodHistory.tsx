@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarPlus,
+  Stethoscope,
   FlaskConical,
   Pencil,
   Trash2,
@@ -68,6 +69,7 @@ import AiProse from "@/components/tips/AiProse";
 import { limitSupporting } from "@/lib/tipsRender";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import EmptyState from "@/components/EmptyState";
+import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 
 type PanelStatus = "logged" | "scheduled";
 
@@ -179,6 +181,7 @@ const BloodHistory = () => {
   const [cursor, setCursor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<PanelRow | null>(null);
   const [scheduling, setScheduling] = useState<boolean>(false);
+  const [booking, setBooking] = useState<boolean>(false);
   // Kept for backwards compatibility with any earlier UI paths, but the new
   // thumbnail routes to /blood-panel/:id via a "Review results" button.
   const [, setExpanded] = useState<Set<string>>(new Set());
@@ -339,7 +342,7 @@ const BloodHistory = () => {
           const months = Math.max(3, Math.floor((daysSinceLatest ?? 0) / 30));
           return (
             <button
-              onClick={() => setScheduling(true)}
+              onClick={() => setBooking(true)}
               className="w-full flex items-start gap-3 rounded-[14px] border-2 border-red-600/60 bg-red-600/10 p-3 text-left"
             >
               <div className="size-8 rounded-full bg-red-600/20 text-red-600 flex items-center justify-center shrink-0">
@@ -370,12 +373,25 @@ const BloodHistory = () => {
           <Button
             variant="outline"
             size="pill"
+            onClick={() => setBooking(true)}
+            className="w-full"
+          >
+            <Stethoscope className="size-4" />
+            Book a blood test
+          </Button>
+          <Button
+            variant="outline"
+            size="pill"
             onClick={() => setScheduling(true)}
             className="w-full"
           >
             <CalendarPlus className="size-4" />
             Schedule
           </Button>
+          <p className="text-[11.5px] font-body text-muted-foreground leading-snug text-center px-2">
+            Book with an at-home kit provider or a professional who can take your bloods
+            in person — then schedule the date here.
+          </p>
         </div>
 
 
@@ -603,6 +619,12 @@ const BloodHistory = () => {
         onDelete={(id) => deletePanel.mutate(id)}
         deleting={deletePanel.isPending}
         onSaved={() => qc.invalidateQueries({ queryKey: ["blood-history"] })}
+      />
+
+      <BloodTestRoutesSheet
+        open={booking}
+        onOpenChange={setBooking}
+        reason="Two ways to get your bloods done."
       />
 
       <SchedulePanelSheet
