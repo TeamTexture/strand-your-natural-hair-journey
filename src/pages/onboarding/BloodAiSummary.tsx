@@ -160,10 +160,32 @@ const BloodAiSummary = () => {
   }, []);
 
 
+  // Defensive guard: blood work is optional, so a stale link, bookmark or
+  // back-button must never strand a member on a progress bar with nothing to
+  // analyse. No panel on file → straight into the app.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      if (!uid) return;
+      const { count } = await supabase
+        .from("blood_panels")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", uid);
+      if (!cancelled && (count ?? 0) === 0) navigate("/home", { replace: true });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     generate(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values]);
+
 
   if (loading) {
     const pct = Math.min(100, Math.max(0, Math.round(progress)));
