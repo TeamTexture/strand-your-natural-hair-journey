@@ -273,6 +273,7 @@ export const PROFESSIONALS: Professional[] = [
 ];
 
 /** Search any list of professionals by name, clinic, postcode, location, bio, or specialism. */
+const norm = (s: string) => (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const PINNED_ORDER = ["dr-eve-skin", "erica-liburd"];
 
 /**
