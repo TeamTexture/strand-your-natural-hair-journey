@@ -7,6 +7,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
+import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
 
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
@@ -442,9 +445,9 @@ const ProfileStep4Colour = () => {
         </div>
 
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+          <OnboardingQuestion>
             How Long in This Style
-          </div>
+          </OnboardingQuestion>
           <div className="flex gap-3">
             <Input
               type="number"
@@ -484,9 +487,9 @@ const ProfileStep4Colour = () => {
         {isChanging && (
           <>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+              <OnboardingQuestion>
                 When do you plan to change it?
-              </div>
+              </OnboardingQuestion>
               <div className="flex gap-3">
                 <Input
                   type="number"
