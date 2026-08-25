@@ -37,7 +37,7 @@ const WALKTHROUGHS: Walkthrough[] = [
   {
     id: "your-blood-work",
     category: "Your blood work",
-    title: "Unlock hair growth with blood work",
+    title: "What your blood work shows",
     embedUrl: "https://www.loom.com/embed/d9904d76c04d4b16a4f3cb5603e4920f",
   },
   {

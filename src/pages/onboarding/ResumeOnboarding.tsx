@@ -18,8 +18,9 @@ import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardi
 /**
  * Pick-up-where-you-left-off screen.
  *
- * All three required pieces (professional consultation, hair characteristics,
- * blood work) are always shown. Anything already done is greyed out and marked
+ * Hair characteristics and the professional consultation are what unlock STRAND;
+ * blood work is optional and opens the diet and nutrition side. All three are
+ * always shown. Anything already done is greyed out and marked
  * as added, so a member who has just uploaded her bloods can see it landed and
  * see exactly what is still owed. Nothing here unlocks the app: once all three
  * are genuinely complete she goes on to payment (or Home if she already pays).
@@ -147,7 +148,7 @@ const ResumeOnboarding = () => {
           <DoneCard
             icon={<Scissors className="size-4" />}
             title="Hair characteristics"
-            note={bloodOutstanding ? "Your blood work is still to add." : undefined}
+            note={bloodOutstanding ? "Blood work is optional — add it whenever you like." : undefined}
           />
         )}
 
@@ -160,8 +161,8 @@ const ResumeOnboarding = () => {
               That's everything STRAND needs.
             </p>
             <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
-              Your hair characteristics and blood work are both in. Choose your membership to
-              unlock STRAND.
+              Your hair characteristics and your consultation are both in. Choose your
+              membership to unlock STRAND.
             </p>
             <Button
               variant="gold"
@@ -248,7 +249,7 @@ const ResumeOnboarding = () => {
                 <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
                   {startedBlood
                     ? "You've already started entering your results — we'll drop you back exactly where you stopped."
-                    : "Bring your results when you have them. If you still need a test, we'll show you where to get one."}
+                    : "Optional — it opens the diet and nutrition side. Bring your results when you have them, or see where to get tested."}
                 </p>
               </div>
             </div>
@@ -266,8 +267,8 @@ const ResumeOnboarding = () => {
 
         <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
           {coreComplete
-            ? "Booking a consultation is optional and you can do it any time — it never holds up your membership."
-            : "Your hair characteristics and blood work are both needed before STRAND unlocks, but there's no rush — nothing you've entered expires."}
+            ? "Blood work is optional and you can add it any time — it opens the diet and nutrition side and never holds up your membership."
+            : "Your hair characteristics and a logged consultation are what STRAND needs to unlock. Blood work is optional — it opens the diet and nutrition side. There's no rush: nothing you've entered expires."}
         </p>
 
         <Button

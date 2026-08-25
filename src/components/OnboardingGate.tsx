@@ -135,12 +135,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     "/onboarding/profile-step-3-hair",
     "/onboarding/profile-step-4-colour",
     "/onboarding/resume",
-    "/onboarding/blood-timing",
-    "/blood-upload",
-    "/onboarding/blood-iron-vitamins",
-    "/onboarding/blood-minerals",
-    "/onboarding/blood-thyroid",
-    "/onboarding/blood-hormones",
+    // The blood screens are deliberately NOT here. Blood work is optional, so a
+    // paid member with no bloods must be able to open the blood flow instead of
+    // being silently bounced to /home by the stale-bookmark rule below.
   ]);
   if (status?.dataComplete && hasAccess && capturePaths.has(location.pathname)) {
     return <Navigate to="/home" replace />;

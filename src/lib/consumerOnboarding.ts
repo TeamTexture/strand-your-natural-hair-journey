@@ -98,10 +98,11 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // Consultation: logged professional with a consultation date on file.
   const consultationRow = (proRes.data ?? [])[0] as { consultation_date?: string | null } | undefined;
   const consultationComplete = markedComplete || !!consultationRow?.consultation_date;
-  // The consultation is optional and ongoing — it NEVER gates payment or app
-  // access. Only the hair characteristics (markers + style) and blood work do.
+  // Blood work is OPTIONAL — it gates the diet and nutrition surfaces only,
+  // never payment or app access. The hair characteristics (markers + style) and
+  // a logged professional consultation are what unlock STRAND.
   const fieldsComplete =
-    basicComplete && healthComplete && hairComplete && styleComplete && bloodOnFile;
+    basicComplete && healthComplete && hairComplete && styleComplete && consultationComplete;
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {
@@ -120,20 +121,23 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // jumped straight to the screen labelled 5 of 9.
   if (healthComplete) resumePath = "/onboarding/pro-gate";
   if (hairComplete) resumePath = "/onboarding/profile-step-4-colour";
-  if (styleComplete) resumePath = "/onboarding/blood-timing";
+  // Blood work is optional, so a member who has finished her hair profile is
+  // never dropped into the blood flow as if it were the next requirement. What
+  // is actually outstanding is the consultation.
+  if (styleComplete) resumePath = consultationComplete ? "/onboarding/resume" : "/onboarding/pro-details";
 
   // Where a RETURNING member should land. Once the health profile is in, the
-  // three remaining requirements (hair characteristics, consultation, blood
+  // remaining pieces (hair characteristics, consultation, and optionally blood
   // work) are each done in their own time — two of them off-app — so she is
   // offered all of the outstanding ones rather than dropped into one form.
   const entryPath =
     healthComplete && !dataComplete ? "/onboarding/resume" : resumePath;
 
 
-  // Blood data on file is NOT a payment checkpoint on its own — members often
-  // upload bloods before finishing their hair/style profile, and blocking them
-  // there left them stranded mid-onboarding. Payment is only due once the whole
-  // onboarding data set is captured; the paywall on /home catches the rest.
+  // `bloodOnFile` is reported here but gates NOTHING about access: it is the
+  // flag the diet and nutrition surfaces read. Payment becomes due once the
+  // required data set (hair characteristics + consultation) is captured; the
+  // paywall on /home catches the rest.
   return {
     completed: dataComplete,
     markedComplete,
