@@ -177,14 +177,28 @@ const AdminViewAs = () => {
           </SurfaceCard>
         )}
 
-        <div className="relative">
-          <Search className="size-4 absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name or email"
-            className="pl-9"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="size-4 absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search by name or email"
+              className="pl-9"
+            />
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sort users"
+            className="shrink-0 rounded-pill border border-border bg-background px-3 h-10 text-[12px] font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {isLoading ? (
