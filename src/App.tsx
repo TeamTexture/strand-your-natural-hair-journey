@@ -14,6 +14,7 @@ import { ViewAsProvider } from "@/hooks/useViewAs";
 import RequireAuth from "@/components/RequireAuth";
 import PaidGate from "@/components/PaidGate";
 import OnboardingGate from "@/components/OnboardingGate";
+import TrialWall from "@/components/TrialWall";
 import RoleGate from "./components/RoleGate";
 import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
