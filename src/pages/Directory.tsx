@@ -277,7 +277,7 @@ const Directory = () => {
 
   const rows = useMemo(() => {
     const rosterBySalon = new Map<string, Professional[]>();
-    for (const p of pros) {
+    for (const p of listPros) {
       if (!p.salonId) continue;
       const list = rosterBySalon.get(p.salonId) ?? [];
       list.push(p);
