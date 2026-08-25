@@ -22,9 +22,12 @@ import { toast } from "sonner";
  * "onboarding"` so it never collides with the numeric length-tracking goals
  * that also live there. No new table, no new column.
  *
- * This step is entirely optional — it is deliberately absent from every
- * completion and access check, so it can never gate Subscribe, payment or the
- * app. Continue works with nothing selected, and "Skip for now" bypasses it.
+ * Both questions are REQUIRED on the screen — Continue blocks until she has
+ * picked a goal and at least one challenge. That is screen-level validation
+ * ONLY: this step is deliberately absent from every completion, gating and
+ * access check (fieldsComplete, coreComplete, onboarding routing), because 207
+ * existing members never saw it and must keep resuming exactly where they do
+ * today.
  *
  * Anything she types here is member-supplied DATA. If it ever reaches an AI
  * prompt it must be passed as data only and never read as instructions.
@@ -138,14 +141,28 @@ const GoalAndChallenge = () => {
   const save = async () => {
     const typedGoal = goalOther.trim().slice(0, MAX_FREE_TEXT);
     const typedChallenge = challengeOther.trim().slice(0, MAX_FREE_TEXT);
-    // "Something else" with nothing typed is ignored entirely — never stored as
-    // the literal words "Something else", and never a reason to block Continue.
     const title = goal === OTHER ? typedGoal : (goal ?? "");
     const challengeList = challenges
       .map((c) => (c === OTHER ? typedChallenge : c))
       .filter((c) => c.length > 0);
 
-    if (!title && challengeList.length === 0) return true; // nothing to save
+    // Required on the screen: name the first outstanding thing and stay put.
+    if (!goal) {
+      toast.error("Please choose what you're working towards.");
+      return false;
+    }
+    if (goal === OTHER && !typedGoal) {
+      toast.error("Please type your goal in your own words.");
+      return false;
+    }
+    if (challenges.length === 0) {
+      toast.error("Please choose at least one thing that's hardest right now.");
+      return false;
+    }
+    if (challenges.includes(OTHER) && !typedChallenge) {
+      toast.error("Please type your challenge in your own words.");
+      return false;
+    }
 
     const { data: u } = await supabase.auth.getUser();
     if (!u?.user) return true;
@@ -155,7 +172,10 @@ const GoalAndChallenge = () => {
       kind: "onboarding",
       title: title || "Hair goal",
       challenges: challengeList,
-      status: "active",
+      // "in_progress" is the ONLY status useGoals counts as active, so this is
+      // the very row that shows up in her goal section — no copy, no duplicate.
+      status: "in_progress",
+      ended_at: null,
       started_at: new Date().toISOString(),
     };
 
@@ -239,13 +259,6 @@ const GoalAndChallenge = () => {
           <Button variant="gold" size="pill" className="w-full" disabled={saving} onClick={onContinue}>
             Continue →
           </Button>
-          <button
-            type="button"
-            className="w-full text-center text-[12px] font-body text-muted-foreground underline underline-offset-4"
-            onClick={() => void goNext("/onboarding/profile-step-1")}
-          >
-            Skip for now
-          </button>
         </div>
       </div>
     </ScreenLayout>

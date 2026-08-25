@@ -63,8 +63,11 @@ interface TGProps {
   noneLabel?: string;
   /** Optional muted helper line rendered directly under the label. */
   helper?: string;
+  /** The clinical name for what is being asked, shown in brackets after the
+   *  question and styled as a label rather than part of the question. */
+  term?: string;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   const toggle = (opt: string) => {
     if (multi) {
@@ -75,7 +78,10 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
   };
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
+      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+        {label}
+        {term && <span className="ml-1 normal-case tracking-normal font-normal text-muted-foreground/70">({term})</span>}
+      </div>
       {helper && <div className="text-[11px] text-muted-foreground/80 font-body -mt-1.5 mb-2.5">{helper}</div>}
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
@@ -150,18 +156,21 @@ const ProfileStep3Hair = () => {
           <TagGroup
             multi={false}
             label="Roll one strand between your finger and thumb"
+            term="strand diameter"
             options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
             value={diameter} onChange={setDiameter}
           />
           <TagGroup
             multi={false}
             label="Slide your fingers down a strand, root to tip"
+            term="surface texture"
             options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
             value={surfaceTexture} onChange={setSurfaceTexture}
           />
           <TagGroup
             multi={false}
             label="Part your hair and look along the line"
+            term="density"
             helper="Make a parting with a comb, then look at how much scalp shows along it."
             options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
             value={density} onChange={setDensity}
@@ -170,12 +179,14 @@ const ProfileStep3Hair = () => {
         <TagGroup
           multi={false}
           label="How your hair takes water"
+            term="porosity"
           options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
           value={porosity} onChange={setPorosity}
         />
         <TagGroup
           multi={false}
           label="How a wet strand behaves when you stretch it"
+            term="elasticity"
           options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
           value={elasticity} onChange={setElasticity}
         />

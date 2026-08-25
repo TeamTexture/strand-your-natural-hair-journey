@@ -8,7 +8,8 @@ import { BackButtonProvider } from "@/components/BackButtonContext";
  * The onboarding goal/challenge step writes ONE row to the existing user_goals
  * table. The rules that must never regress:
  *  - "Something else" stores what she TYPED, never the literal option label
- *  - an empty "Something else" is ignored and never blocks Continue
+ *  - an empty "Something else" BLOCKS Continue (both questions are required)
+ *  - the saved status is "in_progress" so useGoals treats it as her live goal
  *  - the row is tagged kind: "onboarding" so it cannot collide with the
  *    numeric length-tracking goals that share the table
  */
@@ -66,27 +67,31 @@ describe("onboarding goal step", () => {
     await waitFor(() => expect(inserted).toHaveLength(1));
     expect(inserted[0]).toMatchObject({
       kind: "onboarding",
-      status: "active",
+      status: "in_progress",
       title: "My twist-outs never last past day two",
       challenges: ["Breakage"],
     });
   });
 
-  it("ignores an empty \"Something else\" and still continues", async () => {
+  it("blocks on an empty \"Something else\" challenge", async () => {
     await renderStep();
 
     fireEvent.click(screen.getByText("Length"));
-    // Multi-select challenge "Something else" left blank.
+    // Multi-select challenge "Something else" left blank — must now block.
     fireEvent.click(screen.getAllByText("Something else")[1]);
-    fireEvent.click(screen.getByText("Dryness"));
     fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(inserted).toHaveLength(0);
 
+    fireEvent.click(screen.getByText("Dryness"));
+    fireEvent.click(screen.getAllByText("Something else")[1]); // deselect it
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
     await waitFor(() => expect(inserted).toHaveLength(1));
     expect(inserted[0].title).toBe("Length");
     expect(inserted[0].challenges).toEqual(["Dryness"]);
   });
 
-  it("saves nothing when she skips every question", async () => {
+  it("saves nothing when both questions are unanswered", async () => {
     await renderStep();
     fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
     await new Promise((r) => setTimeout(r, 50));
