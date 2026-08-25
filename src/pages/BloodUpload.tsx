@@ -37,7 +37,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import { renderPdfToImage, PdfPasswordRequiredError } from "@/lib/pdfUnlock";
 import { resizeToThumbnail } from "@/lib/bloodThumbnail";
-import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { useMembershipExit } from "@/hooks/useMembershipExit";
 import { titleCase } from "@/lib/humanise";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 
@@ -107,7 +107,7 @@ async function fileToBase64(file: File): Promise<string> {
 
 export default function BloodUpload() {
   const navigate = useNavigate();
-  const { resolveNextPath } = useOnboardingCompletion();
+  const { resolveMembershipPath } = useMembershipExit();
 
   const { user } = useAuth();
   const { level } = useTipsLevel();
@@ -531,7 +531,7 @@ export default function BloodUpload() {
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
       const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
       if (isOnboarding) {
-        navigate(await resolveNextPath(), { replace: true });
+        navigate(await resolveMembershipPath(), { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
@@ -590,7 +590,7 @@ export default function BloodUpload() {
                 variant="gold"
                 size="pill"
                 className="w-full"
-                onClick={async () => navigate(await resolveNextPath(), { replace: true })}
+                onClick={async () => navigate(await resolveMembershipPath(), { replace: true })}
               >
                 Continue to Analysis →
               </Button>
