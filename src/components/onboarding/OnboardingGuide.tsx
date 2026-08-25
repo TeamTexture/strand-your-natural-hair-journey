@@ -67,7 +67,6 @@ const GUIDES: Record<string, Guide> = {
     step: 5,
     label: "Hair characteristics",
     what: "Enter the characteristics your professional gave you — porosity, density, texture and the rest.",
-    why: "Everything STRAND recommends is built on these numbers, which is why they should come from a professional within the last 6 months rather than a best guess.",
     next: "Next: colour and your current style.",
   },
   "/onboarding/profile-step-4-colour": {
