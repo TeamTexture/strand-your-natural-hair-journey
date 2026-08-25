@@ -239,7 +239,7 @@ async function fetchAll(userId: string) {
 // ─── Generator ────────────────────────────────────────────────────────────
 
 export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: string }> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getDisplayedAuthUser();
   if (!user) throw new Error("Not signed in");
 
   const d = await fetchAll(user.id);

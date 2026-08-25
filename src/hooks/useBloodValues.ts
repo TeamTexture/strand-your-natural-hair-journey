@@ -334,7 +334,7 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
 
 export async function persistBloodValues() {
   const values = read();
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData } = await getDisplayedAuthUser();
   const user = userData?.user;
   if (!user) return { ok: false, reason: "no_user" as const };
 

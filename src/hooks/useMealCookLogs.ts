@@ -54,7 +54,7 @@ export const useMealCookLogs = () => {
       rating: number;
       photo?: File | null;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) throw new Error("Not signed in");
 
       let photoPath: string | null = null;

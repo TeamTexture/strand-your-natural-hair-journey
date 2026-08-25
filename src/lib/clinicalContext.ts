@@ -507,7 +507,7 @@ async function loadClinicalContextUncached(
 
   let userId: string | null = null;
   try {
-    const { data } = await supabase.auth.getUser();
+    const { data } = await getDisplayedAuthUser();
     userId = data.user?.id ?? null;
   } catch {
     return ctx;

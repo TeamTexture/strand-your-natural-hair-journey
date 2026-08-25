@@ -310,7 +310,7 @@ function washAggregate(washes: { wash_date: string; scalp_feel: string | null; b
 export async function generateProfessionalSnapshotPdf(
   extraNote?: string,
 ): Promise<{ blob: Blob; fileName: string }> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getDisplayedAuthUser();
   if (!user) throw new Error("Not signed in");
 
   const d = await fetchAll(user.id);

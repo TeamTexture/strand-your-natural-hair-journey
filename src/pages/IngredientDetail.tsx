@@ -431,7 +431,7 @@ const IngredientDetail = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       const user = userData?.user;
       if (!user) return;
       const { data } = await supabase
@@ -465,7 +465,7 @@ const IngredientDetail = () => {
     }
     let cancelled = false;
     (async () => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       const user = userData?.user;
       if (!user) return;
       const { data: ratingRow } = await supabase
@@ -517,7 +517,7 @@ const IngredientDetail = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       const uid = userData?.user?.id;
       if (!uid) {
         if (!cancelled) setProfileChecked(true);
@@ -653,7 +653,7 @@ const IngredientDetail = () => {
         // Cache the analysis so future visits via the saved-products path can
         // read it back without re-running ingredient-analysis.
         try {
-          const { data: userData } = await supabase.auth.getUser();
+          const { data: userData } = await getDisplayedAuthUser();
           const uid = userData?.user?.id;
           if (uid) {
             await supabase.from("ai_summaries").insert({

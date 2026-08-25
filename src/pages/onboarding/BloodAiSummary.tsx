@@ -126,7 +126,7 @@ const BloodAiSummary = () => {
       // for a cold generation and the prewarm was wasted spend.
       void (async () => {
         try {
-          const { data: authData } = await supabase.auth.getUser();
+          const { data: authData } = await getDisplayedAuthUser();
           const uid = authData?.user?.id;
           const blood = uid ? await readBloodData(uid) : { flagged: [] as string[] };
           await aiInvoke("nutrition-plan", {
@@ -166,7 +166,7 @@ const BloodAiSummary = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData } = await getDisplayedAuthUser();
       const uid = authData?.user?.id;
       if (!uid) return;
       const { count } = await supabase

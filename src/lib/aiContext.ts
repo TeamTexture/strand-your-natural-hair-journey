@@ -167,7 +167,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
   // cached strand_* payload to a freshly-signed-in user on the same browser.
   let userId: string | null = null;
   try {
-    const { data: u } = await supabase.auth.getUser();
+    const { data: u } = await getDisplayedAuthUser();
     userId = u?.user?.id ?? null;
   } catch {
     userId = null;

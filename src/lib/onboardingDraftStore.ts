@@ -52,7 +52,7 @@ export function clearLocalDraftTimes(): void {
 }
 
 async function currentUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await getDisplayedAuthUser();
   return data?.user?.id ?? null;
 }
 

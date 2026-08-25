@@ -84,7 +84,7 @@ const GoalAndChallenge = () => {
   useEffect(() => {
     let live = true;
     (async () => {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (!u?.user) return;
       const { data } = await supabase
         .from("user_goals")
@@ -134,7 +134,7 @@ const GoalAndChallenge = () => {
 
   const goNext = async (path: string) => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-1");
-    const { data } = await supabase.auth.getUser();
+    const { data } = await getDisplayedAuthUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", data.user?.id] });
     await queryClient.invalidateQueries({ queryKey: ["user_goals", data.user?.id ?? "anon"] });
     navigate(path);
@@ -166,7 +166,7 @@ const GoalAndChallenge = () => {
       return false;
     }
 
-    const { data: u } = await supabase.auth.getUser();
+    const { data: u } = await getDisplayedAuthUser();
     if (!u?.user) return true;
 
     const payload = {

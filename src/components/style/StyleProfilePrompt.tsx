@@ -51,7 +51,7 @@ const StyleProfilePrompt = () => {
     const p = readPendingStylePrompt();
     if (!p) return;
     void (async () => {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (!u?.user) return;
       const { data } = await supabase
         .from("user_style_profile")
@@ -130,7 +130,7 @@ const StyleProfilePrompt = () => {
     }
     setSaving(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (!u?.user) throw new Error("Not signed in");
       const { error } = await supabase.from("user_style_profile").upsert(
         {

@@ -151,7 +151,7 @@ const SetCurrentStyle = () => {
     );
 
     try {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (u?.user) {
         const { error } = await supabase
           .from("user_style_profile")
