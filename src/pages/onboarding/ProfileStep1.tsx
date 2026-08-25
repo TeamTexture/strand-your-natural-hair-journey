@@ -2,7 +2,7 @@ import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
-import { BadgeCheck, Camera, Check, ChevronDown, ImagePlus, Loader2, X } from "lucide-react";
+import { Camera, Check, ChevronDown, ImagePlus, Loader2, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
@@ -14,10 +14,6 @@ import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
-import {
-  LOLA_PEAK_INSIGHTS_CODE,
-  LOLA_PEAK_INSIGHTS_URL,
-} from "@/components/blood/LolaPeakInsightsCard";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -415,45 +411,6 @@ const ProfileStep1 = () => {
       <TitleBar title="About You" />
       <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>This shapes every recommendation Strand makes.</ItalicSub>
-
-      <div className="px-5 pt-1 pb-3">
-        <SurfaceCard tone="gold" className="!py-3">
-          <div className="flex gap-2.5">
-            <BadgeCheck className="size-4 text-primary shrink-0 mt-0.5" />
-            <div className="text-[12.5px] leading-snug font-body space-y-1.5">
-              <p className="font-semibold text-foreground">
-                Member offer — Lola Health blood tests
-              </p>
-              <p className="text-foreground/85">
-                Blood work is optional, but it's what opens your diet and nutrition
-                guidance. We recommend Peak Insights 70: a phlebotomist visits you at
-                home or you attend a clinic, and it covers more of the iron, thyroid
-                and hormone markers STRAND reads than any other panel we compared.
-              </p>
-              <p className="text-foreground/85">
-                Your code works on <span className="font-semibold">any</span> Lola
-                Health test, so choose whichever suits you.
-              </p>
-              <p className="rounded-md bg-primary/15 px-2.5 py-1.5 text-[12px]">
-                <span className="text-foreground/70">Discount code: </span>
-                <span className="font-semibold tracking-wide">{LOLA_PEAK_INSIGHTS_CODE}</span>
-              </p>
-              <a
-                href={LOLA_PEAK_INSIGHTS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-primary text-[12px] font-semibold underline underline-offset-2"
-              >
-                See the Lola Health tests →
-              </a>
-              <p className="text-[11px] text-foreground/60 leading-relaxed">
-                STRAND earns a commission on orders placed through this link.
-              </p>
-            </div>
-          </div>
-        </SurfaceCard>
-      </div>
-
 
       <form
         className="px-5 space-y-4 pb-8"
