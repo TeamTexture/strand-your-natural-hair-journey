@@ -8,6 +8,9 @@ import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
 import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
+import OptionalBadge from "@/components/blood/OptionalBadge";
+import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
+import { useBloodSkipped } from "@/lib/bloodSkip";
 import { Button } from "@/components/ui/button";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { cn } from "@/lib/utils";
@@ -18,6 +21,7 @@ const BloodTiming = () => {
   // No default — this question must be answered, not assumed.
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const [continuing, setContinuing] = useState(false);
+  const { skipped, skip, unskip } = useBloodSkipped();
 
   // Blood work is optional, so skipping must go somewhere sensible rather than
   // dead-ending. The shared decision layer answers where she belongs next, and
@@ -25,6 +29,18 @@ const BloodTiming = () => {
   const continueWithout = async () => {
     setContinuing(true);
     try {
+      navigate(await resolveNextPath(), { replace: true });
+    } finally {
+      setContinuing(false);
+    }
+  };
+
+  // "I'll decide later" — the same reversible decision as on the resume screen,
+  // saved durably so the card is greyed out on every device until she comes back.
+  const skipForNow = async () => {
+    setContinuing(true);
+    try {
+      await skip();
       navigate(await resolveNextPath(), { replace: true });
     } finally {
       setContinuing(false);
@@ -45,14 +61,21 @@ const BloodTiming = () => {
           nutrition side of STRAND reads.
         </ItalicSub>
 
-        <SurfaceCard tone="gold">
-          <p className="text-sm font-body leading-snug">
-            <span className="font-semibold">Blood work is optional.</span>{" "}
-            Your hair characteristics and a logged consultation are what STRAND needs to
-            unlock. Adding your results opens the diet and nutrition guidance — you can
-            do it whenever they're ready.
-          </p>
-        </SurfaceCard>
+        {skipped ? (
+          <BloodWorkSkippedCard onAdd={() => { void unskip(); setChoice("yes"); }} />
+        ) : (
+          <SurfaceCard tone="gold">
+            <OptionalBadge />
+            <p className="font-display text-base font-semibold mt-2">Blood work</p>
+            <p className="text-sm font-body leading-snug mt-1">
+              You don't need this to use STRAND. It only opens the diet and nutrition
+              section — everything else works without it.
+            </p>
+            <p className="text-sm font-body leading-snug mt-2">
+              Add your results whenever you're ready.
+            </p>
+          </SurfaceCard>
+        )}
 
         <div className="space-y-3">
           {(["yes", "no"] as const).map((v) => (
@@ -81,8 +104,20 @@ const BloodTiming = () => {
 
         {!choice && (
           <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
-            Choose one of the two answers above to continue.
+            Choose one of the two answers above, or leave it for now.
           </p>
+        )}
+
+        {!skipped && (
+          <Button
+            variant="outline"
+            size="pill"
+            className="w-full whitespace-normal break-words leading-tight"
+            disabled={continuing}
+            onClick={() => void skipForNow()}
+          >
+            Skip — I'll decide later
+          </Button>
         )}
 
         {choice === "no" ? (
