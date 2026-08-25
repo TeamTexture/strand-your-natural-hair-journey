@@ -36,7 +36,7 @@ import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures, allowsProFeatures } from "@/lib/viewFeatures";
 import CapabilityBadges from "@/components/pro/CapabilityBadges";
 
-const tabs: Array<"All" | ProType> = ["All", "Trichologist", "Dermatologist", "Curl Specialist"];
+type DirectoryTab = "All" | ProType;
 
 /** Verified-capability filters. Both read `_verified` state only. */
 const CAP_FILTERS = [
@@ -56,7 +56,7 @@ const Directory = () => {
   // resolves to the current user's own listing.
   const targetProUserId = proParam ?? (anchorSelf && user?.id ? user.id : null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [tab, setTab] = useState<(typeof tabs)[number]>(bloodOnly ? "Dermatologist" : "All");
+  const [tab, setTab] = useState<DirectoryTab>(bloodOnly ? "Dermatologist" : "All");
   const [query, setQuery] = useState("");
   const { pros, loading, error: directoryError, refresh } = useDirectoryProfessionals();
   const { stateForListing } = useProContactStates();
