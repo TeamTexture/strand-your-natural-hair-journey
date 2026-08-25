@@ -11,6 +11,7 @@ import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
+import ManageSubscriptionSection from "@/components/profile/ManageSubscriptionSection";
 import IconChipGrid from "@/components/nav/IconChipGrid";
 import Eyebrow from "@/components/nav/Eyebrow";
 import EmptyState from "@/components/EmptyState";
@@ -637,6 +638,9 @@ const Profile = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Billing self-service — high up, it is a main reason to open Profile */}
+      <ManageSubscriptionSection />
 
       {/* Quick jumps to editable profile sections */}
       <div className="px-5 pb-3">
