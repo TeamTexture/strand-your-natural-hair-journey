@@ -26,6 +26,7 @@ export function useScrollRestoration(ref: React.RefObject<HTMLElement>) {
   const { key, pathname } = useLocation();
   const navType = useNavigationType();
   const outcomeRef = useRef<RestoreOutcome | null>(null);
+  const previousPathnameRef = useRef<string | null>(null);
 
   // Coordinate with the browser: we own scroll position, it does not.
   useEffect(() => {
@@ -72,15 +73,22 @@ export function useScrollRestoration(ref: React.RefObject<HTMLElement>) {
     };
   }, [key, pathname, ref]);
 
-  // Restore — on POP (back/forward through history) only. A fresh PUSH or
-  // REPLACE navigation always starts at the top.
+  // Restore — on POP (back/forward through history) only. A fresh PUSH to a
+  // different page starts at the top; same-page search/hash changes preserve
+  // the user's current scroll position.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (navType !== "POP") {
+      if (previousPathnameRef.current === pathname) {
+        previousPathnameRef.current = pathname;
+        return;
+      }
       el.scrollTop = 0;
+      previousPathnameRef.current = pathname;
       return;
     }
+    previousPathnameRef.current = pathname;
     const mark = readScrollMark(key, pathname);
     if (!mark) return;
 

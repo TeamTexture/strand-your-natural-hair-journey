@@ -480,6 +480,13 @@ const WashStep1 = () => {
     restorePickerTarget(target);
     setPickerOpen(true);
   };
+  const pickerReturnTo = useMemo(() => {
+    if (!pickerTarget) return undefined;
+    const next = new URLSearchParams(searchParams);
+    next.set("picker", pickerTarget);
+    const query = next.toString();
+    return `${location.pathname}${query ? `?${query}` : ""}`;
+  }, [location.pathname, pickerTarget, searchParams]);
   const targetIds: Record<Exclude<PickerTarget, null>, string[]> = useMemo(() => ({
     prepoo: prePooIds,
     cleanse: cleanseIds,
@@ -932,7 +939,7 @@ const WashStep1 = () => {
         }}
         selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
         stepHint={pickerTarget}
-        returnTo={pickerTarget ? `/wash/step-1?picker=${pickerTarget}` : undefined}
+        returnTo={pickerReturnTo}
         onToggle={handleTogglePicked}
 
       />
