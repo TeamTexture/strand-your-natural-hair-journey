@@ -546,6 +546,7 @@ const AdminMembers = () => {
           ) : (
             <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
           )}
+          Sync members to the mailing list
         </Button>
         <Button
           variant="outline"
@@ -560,7 +561,6 @@ const AdminMembers = () => {
             <ShieldCheck className="size-3.5 mr-1.5 shrink-0" />
           )}
           Sync paying members to the paid list
-        </Button>
         </Button>
       </div>
 
