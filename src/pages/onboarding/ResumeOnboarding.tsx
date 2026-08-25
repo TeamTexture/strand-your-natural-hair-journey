@@ -12,8 +12,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
+import OptionalBadge from "@/components/blood/OptionalBadge";
+import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
+import { useBloodSkipped } from "@/lib/bloodSkip";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
 import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
+
 
 /**
  * Pick-up-where-you-left-off screen.
