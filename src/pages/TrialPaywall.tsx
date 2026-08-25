@@ -17,6 +17,8 @@ import { useConsumerPricing, formatGbp } from "@/hooks/useConsumerPricing";
 import { verifyConsumerMembership } from "@/lib/membershipVerify";
 import { formatTrialEnd, TRIAL_DAYS } from "@/lib/trialOffer";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
+import { useTrialOffer } from "@/hooks/useTrialOffer";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AFTER_TRIAL_PATH = "/onboarding/goal";
 
@@ -43,6 +45,8 @@ const TrialPaywall = () => {
   const { user, signOut } = useAuth();
   const { hasAccess, isLoading } = useConsumerSubscription();
   const { standard, plus } = useConsumerPricing();
+  const { trialEligible, known: offerKnown } = useTrialOffer();
+  const { data: onboarding } = useOnboardingStatus();
 
   const [tier, setTier] = useState<Tier>("plus");
   const [busy, setBusy] = useState(false);
@@ -52,10 +56,52 @@ const TrialPaywall = () => {
   const price = tier === "plus" ? plus : standard;
   const trialEnd = formatTrialEnd();
 
+  // A trial is only offered when the checkout will actually honour it — the
+  // one-trial-per-account rule is read from the same fields the edge function
+  // checks, so the screen and Stripe can never disagree.
+  const offerTrial = !offerKnown || trialEligible;
+
+  // "Has she given us anything yet?" — read from the existing completeness
+  // helpers, never a new check. Any captured stage counts as returning.
+  const hasData = !!(
+    onboarding &&
+    (onboarding.markedComplete ||
+      onboarding.basicComplete ||
+      onboarding.healthComplete ||
+      onboarding.hairComplete ||
+      onboarding.styleComplete ||
+      onboarding.bloodOnFile)
+  );
+
+  const copy = !hasData
+    ? {
+        eyebrow: "Welcome to STRAND",
+        heading: "Three days free, then decide.",
+        sub: "Set up your hair profile and use everything. Cancel before day three and you pay nothing.",
+        cta: `Start my ${TRIAL_DAYS} days free`,
+      }
+    : offerTrial
+      ? {
+          eyebrow: "Your profile is waiting",
+          heading: "Three days free, then decide.",
+          sub: "Everything you've already entered is saved. Start your trial to pick up where you left off.",
+          cta: `Start my ${TRIAL_DAYS} days free`,
+        }
+      : {
+          eyebrow: "Your profile is waiting",
+          heading: "Pick up where you left off.",
+          sub: "Everything you've already entered is saved.",
+          cta: "Subscribe and continue",
+        };
+
   useEffect(() => {
     const c = params.get("checkout");
     if (c === "cancelled") {
-      toast("No card taken. You can start your free trial whenever you like.");
+      toast(
+        offerTrial
+          ? "No card taken. You can start your free trial whenever you like."
+          : "No card taken. You can subscribe whenever you like.",
+      );
       params.delete("checkout");
       setParams(params, { replace: true });
     }
@@ -63,7 +109,7 @@ const TrialPaywall = () => {
   }, []);
 
   // Stripe returns before the webhook lands, so ask Stripe directly and hold
-  // here until the trial is confirmed — never drop her back on the paywall.
+  // here until the membership is confirmed — never drop her back on the paywall.
   useEffect(() => {
     if (hasAccess) {
       nav(nextPath, { replace: true });
@@ -87,13 +133,16 @@ const TrialPaywall = () => {
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("consumer-checkout", {
-        body: { next: AFTER_TRIAL_PATH, tier, trial: true, returnTo: "/start-trial" },
+        body: { next: AFTER_TRIAL_PATH, tier, trial: offerTrial, returnTo: "/start-trial" },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e) {
-      toast.error((e as Error).message ?? "Could not start your free trial");
+      toast.error(
+        (e as Error).message ??
+          (offerTrial ? "Could not start your free trial" : "Could not start your membership"),
+      );
       setBusy(false);
     }
   };
@@ -104,7 +153,7 @@ const TrialPaywall = () => {
         <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
           <Loader2 className="size-5 animate-spin text-primary" />
           <p className="font-body text-sm text-muted-foreground">
-            Setting up your free trial…
+            {offerTrial ? "Setting up your free trial…" : "Setting up your membership…"}
           </p>
         </div>
       </ScreenLayout>
@@ -142,13 +191,13 @@ const TrialPaywall = () => {
       <StatusBar />
       <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-5 pt-3 pb-4">
         <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
-          Welcome to STRAND
+          {copy.eyebrow}
         </p>
         <h1 className="mt-2 font-display text-[28px] leading-[1.15] text-foreground">
-          Three days free, then decide.
+          {copy.heading}
         </h1>
         <p className="mt-2 font-body text-[13px] leading-relaxed text-muted-foreground">
-          Set up your hair profile and use everything. Cancel before day three and you pay nothing.
+          {copy.sub}
         </p>
 
         <div className="mt-4 flex items-stretch gap-2.5">
@@ -170,14 +219,9 @@ const TrialPaywall = () => {
           </ul>
         </SurfaceCard>
 
-        <div className="mt-5 flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => nav(AFTER_TRIAL_PATH, { replace: true })}
-            className="font-body text-[12.5px] underline text-muted-foreground"
-          >
-            Set up my profile first
-          </button>
+        {/* Sign out is the ONLY other action. There is deliberately no way to
+            continue into onboarding or the app from here. */}
+        <div className="mt-5 flex flex-col items-center">
           <button
             type="button"
             onClick={() => void signOut()}
@@ -192,9 +236,18 @@ const TrialPaywall = () => {
       <div className="shrink-0 border-t border-border bg-background px-5 pt-3 pb-[max(env(safe-area-inset-bottom),14px)]">
         <SurfaceCard tone="gold" className="p-3">
           <p className="font-body text-[12px] leading-snug text-foreground">
-            <span className="font-semibold">Free until {trialEnd}</span>. After that it&apos;s{" "}
-            {formatGbp(price)} a month, charged automatically, until you cancel. Cancel any time
-            from your profile in two taps.
+            {offerTrial ? (
+              <>
+                <span className="font-semibold">Free until {trialEnd}</span>. After that it&apos;s{" "}
+                {formatGbp(price)} a month, charged automatically, until you cancel. Cancel any time
+                from your profile in two taps.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{formatGbp(price)} a month</span>, charged today and
+                renewing monthly, until you cancel. Cancel any time from your profile in two taps.
+              </>
+            )}
           </p>
         </SurfaceCard>
         <Button
@@ -204,10 +257,12 @@ const TrialPaywall = () => {
           onClick={startTrial}
           disabled={busy}
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : `Start my ${TRIAL_DAYS} days free`}
+          {busy ? <Loader2 className="size-4 animate-spin" /> : copy.cta}
         </Button>
         <p className="mt-1.5 text-center font-body text-[11px] text-muted-foreground">
-          Card details taken now. Nothing charged today.
+          {offerTrial
+            ? "Card details taken now. Nothing charged today."
+            : "Cancel any time from your profile."}
         </p>
       </div>
     </div>

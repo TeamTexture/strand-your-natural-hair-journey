@@ -14,6 +14,7 @@ import { ViewAsProvider } from "@/hooks/useViewAs";
 import RequireAuth from "@/components/RequireAuth";
 import PaidGate from "@/components/PaidGate";
 import OnboardingGate from "@/components/OnboardingGate";
+import TrialWall from "@/components/TrialWall";
 import RoleGate from "./components/RoleGate";
 import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
@@ -254,11 +255,19 @@ const queryClient = new QueryClient({
 });
 
 
-// Helper to wrap protected routes
-const Protected = ({ children }: { children: React.ReactNode }) => <RequireAuth>{children}</RequireAuth>;
-const Paid = ({ children }: { children: React.ReactNode }) => <PaidGate>{children}</PaidGate>;
+// Helper to wrap protected routes.
+// <TrialWall> sits OUTSIDE the membership/onboarding gates on purpose: a member
+// stamped into the trial funnel must be returned to the paywall, not handed to
+// the older /subscribe redirects, and cannot reach ANY screen outside the
+// paywall allowlist — onboarding steps included.
+const Protected = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth><TrialWall>{children}</TrialWall></RequireAuth>
+);
+const Paid = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth><TrialWall><PaidGate>{children}</PaidGate></TrialWall></RequireAuth>
+);
 const Onboard = ({ children }: { children: React.ReactNode }) => (
-  <OnboardingGate>{children}</OnboardingGate>
+  <RequireAuth><TrialWall><OnboardingGate>{children}</OnboardingGate></TrialWall></RequireAuth>
 );
 
 // Suspense fallback that matches the app's warm-sand shell so it never

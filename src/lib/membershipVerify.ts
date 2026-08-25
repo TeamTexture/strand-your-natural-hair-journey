@@ -30,11 +30,13 @@ export async function verifyConsumerMembership(
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["consumer_subscription", userId] }),
       qc.invalidateQueries({ queryKey: ["plus_access", userId] }),
+      qc.invalidateQueries({ queryKey: ["trial_offer_state", userId] }),
       qc.invalidateQueries({ queryKey: myProfileKey(userId) }),
     ]);
   } else {
     await qc.invalidateQueries({ queryKey: ["consumer_subscription"] });
     await qc.invalidateQueries({ queryKey: ["plus_access"] });
+    await qc.invalidateQueries({ queryKey: ["trial_offer_state"] });
   }
   return active;
 }

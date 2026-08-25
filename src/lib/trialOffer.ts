@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { rowGrantsAccess } from "@/lib/entitlement";
 
 /**
  * The 3-day free trial paywall — the FIRST screen a brand-new member sees after
@@ -41,12 +42,28 @@ export async function markTrialOffer(userId: string): Promise<void> {
   }
 }
 
+export type TrialOfferState = {
+  /** True when this account must be held on the paywall. */
+  walled: boolean;
+  /** True when a 3-day trial may still be offered — mirrors consumer-checkout. */
+  trialEligible: boolean;
+};
+
 /**
- * True when this account should be routed to the trial paywall: it was
- * registered into the trial funnel and has never held a subscription.
+ * The paywall's single decision.
+ *
+ * WALLED = stamped into the funnel (`profiles.trial_offer_at`), with no live
+ * membership, no complimentary access and no admin/professional role. A paused
+ * membership is left alone — `PaidGate` owns that screen.
+ *
+ * TRIAL ELIGIBLE mirrors the one-trial-per-account rule in `consumer-checkout`
+ * exactly, so the screen and the checkout can never disagree: no prior
+ * subscription id, no recorded `trial_end`, and a status of `none` (or none at
+ * all). A member must never tap "Start my 3 days free" and be charged today.
  */
-export async function trialOfferPending(userId: string): Promise<boolean> {
-  const [{ data: profile }, { data: sub }] = await Promise.all([
+export async function getTrialOfferState(userId: string): Promise<TrialOfferState> {
+  const none: TrialOfferState = { walled: false, trialEligible: false };
+  const [{ data: profile }, { data: sub }, { data: roleRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("trial_offer_at, complimentary_access")
@@ -54,17 +71,39 @@ export async function trialOfferPending(userId: string): Promise<boolean> {
       .maybeSingle(),
     supabase
       .from("consumer_subscriptions")
-      .select("status, stripe_subscription_id")
+      .select("status, current_period_end, paused, stripe_subscription_id, trial_end")
       .eq("user_id", userId)
       .maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", userId),
   ]);
   const row = profile as
     | { trial_offer_at?: string | null; complimentary_access?: boolean | null }
     | null;
-  if (!row?.trial_offer_at) return false;
-  if (row.complimentary_access) return false;
-  const s = sub as { status?: string | null; stripe_subscription_id?: string | null } | null;
-  if (s?.stripe_subscription_id) return false;
-  if (s?.status && s.status !== "none") return false;
-  return true;
+  if (!row?.trial_offer_at) return none;
+  if (row.complimentary_access) return none;
+
+  const roles = new Set(((roleRows ?? []) as { role: string }[]).map((r) => r.role));
+  if (roles.has("admin") || roles.has("professional")) return none;
+
+  const s = sub as {
+    status?: string | null;
+    current_period_end?: string | null;
+    paused?: boolean | null;
+    stripe_subscription_id?: string | null;
+    trial_end?: string | null;
+  } | null;
+  if (s?.paused) return none;
+  if (rowGrantsAccess(s)) return none;
+
+  const trialEligible =
+    !s?.stripe_subscription_id && !s?.trial_end && (!s?.status || s.status === "none");
+  return { walled: true, trialEligible };
+}
+
+/**
+ * True when this account should be held on the trial paywall. Kept as the
+ * routing helper used by the sign-in / splash / welcome destination resolvers.
+ */
+export async function trialOfferPending(userId: string): Promise<boolean> {
+  return (await getTrialOfferState(userId)).walled;
 }
