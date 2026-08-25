@@ -5,6 +5,7 @@
 // Response: { panel_date: string | null, results: Array<{ marker, value, unit, raw_marker, raw_value }> }
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { KNOWN_BLOOD_MARKERS, canonicaliseBloodMarker } from "../_shared/blood-markers.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "blood-extract", stage: 2 } as const;
@@ -15,41 +16,12 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const KNOWN_MARKERS: Array<{ marker: string; unit: string; aliases: string[] }> = [
-  { marker: "Ferritin", unit: "ng/mL", aliases: ["ferritin"] },
-  { marker: "Serum Iron", unit: "μmol/L", aliases: ["iron", "serum iron"] },
-  { marker: "TIBC", unit: "μmol/L", aliases: ["tibc", "total iron binding capacity"] },
-  { marker: "Transferrin Saturation", unit: "%", aliases: ["transferrin saturation", "tsat", "tf sat"] },
-  { marker: "Vitamin D", unit: "nmol/L", aliases: ["vitamin d", "25-oh vitamin d", "25(oh)d", "vit d"] },
-  { marker: "Vitamin B12", unit: "pmol/L", aliases: ["vitamin b12", "b12", "cobalamin"] },
-  { marker: "Folate", unit: "nmol/L", aliases: ["folate", "serum folate"] },
-  { marker: "Vitamin A", unit: "μmol/L", aliases: ["vitamin a", "retinol"] },
-  { marker: "Vitamin E", unit: "μmol/L", aliases: ["vitamin e", "tocopherol"] },
-  { marker: "Biotin", unit: "pg/mL", aliases: ["biotin", "vitamin b7"] },
-  { marker: "Zinc", unit: "μmol/L", aliases: ["zinc"] },
-  { marker: "Magnesium", unit: "mmol/L", aliases: ["magnesium"] },
-  { marker: "Selenium", unit: "μmol/L", aliases: ["selenium"] },
-  { marker: "Copper", unit: "μmol/L", aliases: ["copper"] },
-  { marker: "CRP", unit: "mg/L", aliases: ["crp", "c-reactive protein"] },
-  { marker: "Blood Glucose", unit: "mmol/L", aliases: ["glucose", "blood glucose", "fasting glucose"] },
-  { marker: "Albumin", unit: "g/L", aliases: ["albumin"] },
-  { marker: "HbA1c", unit: "mmol/mol", aliases: ["hba1c", "haemoglobin a1c", "hemoglobin a1c"] },
-  { marker: "ESR", unit: "mm/hr", aliases: ["esr"] },
-  { marker: "ANA", unit: "titre", aliases: ["ana", "antinuclear antibody"] },
-  { marker: "TSH", unit: "mU/L", aliases: ["tsh", "thyroid stimulating hormone"] },
-  { marker: "Free T3", unit: "pmol/L", aliases: ["free t3", "ft3"] },
-  { marker: "Free T4", unit: "pmol/L", aliases: ["free t4", "ft4"] },
-  { marker: "Thyroid Antibodies (TPO)", unit: "IU/mL", aliases: ["tpo", "anti-tpo", "thyroid peroxidase antibody"] },
-  { marker: "Oestrogen / Oestradiol", unit: "pmol/L", aliases: ["oestradiol", "estradiol", "e2", "oestrogen", "estrogen"] },
-  { marker: "Testosterone", unit: "nmol/L", aliases: ["testosterone"] },
-  { marker: "DHEA-S", unit: "μmol/L", aliases: ["dhea-s", "dheas", "dhea sulfate"] },
-  { marker: "Prolactin", unit: "mIU/L", aliases: ["prolactin"] },
-  { marker: "FSH", unit: "IU/L", aliases: ["fsh", "follicle stimulating hormone"] },
-  { marker: "LH", unit: "IU/L", aliases: ["lh", "luteinizing hormone"] },
-  { marker: "Cortisol", unit: "nmol/L", aliases: ["cortisol"] },
-];
-
-const MARKER_LIST_FOR_PROMPT = KNOWN_MARKERS
+// The marker whitelist + alias matcher live in _shared/blood-markers.ts so the
+// client review/test suite imports the SAME list (edge functions cannot import
+// from src/, and duplicating it would silently drift). The marker strings must
+// match src/data/bloodRanges.ts keys verbatim — they are written to
+// blood_results.marker.
+const MARKER_LIST_FOR_PROMPT = KNOWN_BLOOD_MARKERS
   .map((m) => `- "${m.marker}" (target unit: ${m.unit}; also called: ${m.aliases.join(", ")})`)
   .join("\n");
 
@@ -182,19 +154,30 @@ Deno.serve(async (req) => {
       return json(500, { error: "Model returned unparseable JSON" });
     }
 
-    // Keep every extracted numeric row. Map to STRAND canonical name when the
-    // model matched it to the whitelist; otherwise pass the raw marker through
-    // so the client can surface it under "Other markers from your report".
-    const whitelistSet = new Set(KNOWN_MARKERS.map((m) => m.marker));
+    // Keep every extracted numeric row. Map to STRAND canonical name — preferring
+    // a deterministic re-canonicalisation from the raw marker text over the
+    // model's guess, so a more specific marker always wins. Otherwise pass the
+    // raw marker through so the client can surface it under "Other markers".
+    const whitelistSet = new Set(KNOWN_BLOOD_MARKERS.map((m) => m.marker));
     const results = (parsed.results ?? [])
       .map((r) => {
         const canonicalRaw = r.canonical_marker == null ? "" : String(r.canonical_marker).trim();
         const rawMarker = String(r.raw_marker ?? canonicalRaw ?? "").trim();
         const value = typeof r.value === "number" ? r.value : Number(r.value);
         if (!Number.isFinite(value)) return null;
-        const isKnown = canonicalRaw && whitelistSet.has(canonicalRaw);
-        const known = isKnown ? KNOWN_MARKERS.find((m) => m.marker === canonicalRaw)! : null;
-        const marker = isKnown ? canonicalRaw : (rawMarker || canonicalRaw);
+        // Deterministic re-canonicalisation from the raw marker text. Overrides
+        // the model so "Active B12" / "Holotranscobalamin" can never be filed
+        // under total "Vitamin B12" just because "b12" / "cobalamin" are
+        // substrings of them. Longest-alias-first + word-boundary (see
+        // _shared/blood-markers.ts).
+        const det = rawMarker ? canonicaliseBloodMarker(rawMarker) : null;
+        const isKnown = det ? true : !!canonicalRaw && whitelistSet.has(canonicalRaw);
+        const known = det
+          ? KNOWN_BLOOD_MARKERS.find((m) => m.marker === det.marker)!
+          : isKnown
+            ? KNOWN_BLOOD_MARKERS.find((m) => m.marker === canonicalRaw)!
+            : null;
+        const marker = det ? det.marker : (isKnown ? canonicalRaw : (rawMarker || canonicalRaw));
         if (!marker) return null;
         const unit = known ? known.unit : String(r.unit_reported ?? "").trim();
         return {
