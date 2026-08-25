@@ -338,7 +338,6 @@ const App = () => (
               <Route path="/onboarding/pro-book" element={<Navigate to="/onboarding/profile-step-3-hair" replace />} />
               <Route path="/onboarding/pro-details" element={<Navigate to="/onboarding/profile-step-3-hair" replace />} />
               <Route path="/onboarding/profile-step-3-hair" element={<Onboard><ProfileStep3Hair /></Onboard>} />
-              <Route path="/dev-hair-preview" element={<ProfileStep3Hair />} />
               <Route path="/onboarding/profile-step-4-colour" element={<Onboard><ProfileStep4Colour /></Onboard>} />
               <Route path="/onboarding/resume" element={<Onboard><ResumeOnboarding /></Onboard>} />
               <Route path="/onboarding/blood-timing" element={<Onboard><BloodTiming /></Onboard>} />
