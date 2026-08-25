@@ -63,7 +63,7 @@ type SalonRow = {
  * privileges). Signed-out visitors therefore load the listing columns only.
  */
 const PRO_LISTING_COLUMNS =
-  "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting";
+  "id,user_id,salon_id,display_name,discipline,bio,services,specialisms,location,postcode,contact_email,booking_url,website_url,instagram_handle,avatar_path,photos,is_published,suspended_at,business_phone,business_email,address_line1,address_line2,city,opening_hours,listing_tier,referral_fee_percent,qualifications,is_doctor_verified,can_take_bloods_verified,bloods_setting";
 const PRO_DISCOUNT_COLUMNS = "discount_code,discount_description,discount_active";
 
 async function loadDirectory(): Promise<Professional[]> {
@@ -141,6 +141,23 @@ async function loadDirectory(): Promise<Professional[]> {
     }),
   );
 
+  // The professional's own work gallery. It lives in a private bucket, so the
+  // paths have to be signed here — without this a pro who has uploaded photos
+  // still shows a bare listing. Capped so a large gallery can't stall the load.
+  const gallerySigning = Promise.all(
+    liveRows.map(async (row) => {
+      const paths = ((row.photos as string[] | null) ?? []).filter(Boolean).slice(0, 8);
+      if (paths.length === 0) return [row.id as string, [] as string[]] as const;
+      const { data: signed } = await supabase.storage
+        .from("pro-photos")
+        .createSignedUrls(paths, 3600);
+      const urls = (signed ?? [])
+        .map((s) => s.signedUrl)
+        .filter((u): u is string => !!u);
+      return [row.id as string, urls] as const;
+    }),
+  );
+
   const proIds = Array.from(
     new Set(liveRows.map((r) => r.user_id).filter((id): id is string => !!id)),
   );
@@ -155,9 +172,14 @@ async function loadDirectory(): Promise<Professional[]> {
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null } as const);
 
-  const [avatarPairs, { data: offers }] = await Promise.all([avatarSigning, offersQuery]);
+  const [avatarPairs, galleryPairs, { data: offers }] = await Promise.all([
+    avatarSigning,
+    gallerySigning,
+    offersQuery,
+  ]);
 
   const avatarMap = new Map<string, string | null>(avatarPairs);
+  const galleryMap = new Map<string, string[]>(galleryPairs);
   const nowMs = Date.now();
   const offerMap = new Map<string, { title: string; code: string | null }>();
   for (const o of offers ?? []) {
@@ -212,6 +234,7 @@ async function loadDirectory(): Promise<Professional[]> {
       bookingUrl: row.booking_url ?? row.website_url ?? undefined,
       featured: true,
       photoUrl: avatarMap.get(row.id as string) ?? undefined,
+      galleryUrls: galleryMap.get(row.id as string) ?? [],
       proUserId: (row.user_id as string | null) ?? undefined,
       proProfileId: row.id as string,
       salonId: row.salon_id ?? null,

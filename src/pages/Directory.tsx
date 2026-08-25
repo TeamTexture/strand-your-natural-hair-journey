@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus, Stethoscope, Droplet } from "lucide-react";
+import {
+  BadgeCheck, ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus, Stethoscope, Droplet,
+} from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -420,6 +423,39 @@ const Directory = () => {
         {p.bio && (
           <p className="text-[11px] text-foreground/80 leading-relaxed mt-3">{p.bio}</p>
         )}
+
+        {/* Qualifications the professional entered — part of their listing. */}
+        {p.qualifications && p.qualifications.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[10px] font-body font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Qualifications
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {p.qualifications.map((q) => (
+                <li key={q} className="flex items-start gap-1.5 text-[11px] font-body text-foreground/85">
+                  <BadgeCheck className="size-3.5 text-primary shrink-0 mt-[1px]" />
+                  <span>{q}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* The professional's own work gallery. */}
+        {p.galleryUrls && p.galleryUrls.length > 0 && (
+          <div className="mt-3 -mx-4 px-4 flex gap-2 overflow-x-auto no-scrollbar">
+            {p.galleryUrls.map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt={`Work by ${p.name}`}
+                loading="lazy"
+                className="size-[76px] shrink-0 rounded-[10px] object-cover border border-border/60"
+              />
+            ))}
+          </div>
+        )}
+
 
         {p.proUserId && ratingSummary && (
           <DirectoryReviewPreview proUserId={p.proUserId} />
