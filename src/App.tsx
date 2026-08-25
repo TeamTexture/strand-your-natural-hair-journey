@@ -255,17 +255,18 @@ const queryClient = new QueryClient({
 
 
 // Helper to wrap protected routes.
-// Every authenticated wrapper passes through <TrialWall>, so a member stamped
-// into the trial funnel cannot reach ANY screen outside the paywall allowlist —
-// onboarding steps included.
+// <TrialWall> sits OUTSIDE the membership/onboarding gates on purpose: a member
+// stamped into the trial funnel must be returned to the paywall, not handed to
+// the older /subscribe redirects, and cannot reach ANY screen outside the
+// paywall allowlist — onboarding steps included.
 const Protected = ({ children }: { children: React.ReactNode }) => (
   <RequireAuth><TrialWall>{children}</TrialWall></RequireAuth>
 );
 const Paid = ({ children }: { children: React.ReactNode }) => (
-  <PaidGate><TrialWall>{children}</TrialWall></PaidGate>
+  <RequireAuth><TrialWall><PaidGate>{children}</PaidGate></TrialWall></RequireAuth>
 );
 const Onboard = ({ children }: { children: React.ReactNode }) => (
-  <OnboardingGate><TrialWall>{children}</TrialWall></OnboardingGate>
+  <RequireAuth><TrialWall><OnboardingGate>{children}</OnboardingGate></TrialWall></RequireAuth>
 );
 
 // Suspense fallback that matches the app's warm-sand shell so it never
