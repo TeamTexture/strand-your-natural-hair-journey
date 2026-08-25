@@ -67,18 +67,19 @@ const ProDetails = () => {
 
 
 
-  // Validate consultation date: must exist and be within 6 months (180 days).
-  const { dateError, isWithinWindow, isExpired } = useMemo(() => {
+  // Validate the consultation date. A date must exist, be valid and not be in the
+  // future. Anything older than 6 months is accepted — it only shows a quiet note.
+  const { dateError, isWithinWindow, isOlderThanWindow } = useMemo(() => {
     if (!date.trim()) {
       return {
         dateError: "Please enter the date of your consultation.",
         isWithinWindow: false,
-        isExpired: false,
+        isOlderThanWindow: false,
       };
     }
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) {
-      return { dateError: "Please enter a valid date.", isWithinWindow: false, isExpired: false };
+      return { dateError: "Please enter a valid date.", isWithinWindow: false, isOlderThanWindow: false };
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -86,10 +87,10 @@ const ProDetails = () => {
     consult.setHours(0, 0, 0, 0);
     const daysAgo = Math.floor((today.getTime() - consult.getTime()) / 86_400_000);
     if (daysAgo < 0) {
-      return { dateError: "Consultation date cannot be in the future.", isWithinWindow: false, isExpired: false };
+      return { dateError: "Consultation date cannot be in the future.", isWithinWindow: false, isOlderThanWindow: false };
     }
-    if (daysAgo > 180) return { dateError: "", isWithinWindow: false, isExpired: true };
-    return { dateError: "", isWithinWindow: true, isExpired: false };
+    if (daysAgo > 180) return { dateError: "", isWithinWindow: false, isOlderThanWindow: true };
+    return { dateError: "", isWithinWindow: true, isOlderThanWindow: false };
   }, [date]);
 
   // Search directory once the user has typed at least 2 characters into Name.
