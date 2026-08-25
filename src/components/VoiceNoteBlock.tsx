@@ -40,6 +40,8 @@ const VoiceNoteBlock = ({
   const text = (transcript ?? "").trim();
   const paragraphs = text ? toParagraphs(text) : [];
   const hasAudio = !!audioUrl;
+  // Short notes fit inside the preview, so there is nothing to expand.
+  const clampable = text.length > 170 || paragraphs.length > 1;
   if (!text && !hasAudio) return null;
 
   const toggle = () => {
@@ -83,7 +85,7 @@ const VoiceNoteBlock = ({
 
       {text && (
         <>
-          {expanded ? (
+          {expanded && clampable ? (
             <div className="space-y-3">
               {paragraphs.map((para, i) => (
                 <p key={i} className="text-sm leading-relaxed">{para}</p>
@@ -92,6 +94,7 @@ const VoiceNoteBlock = ({
           ) : (
             <p className="text-sm leading-relaxed line-clamp-3">{text}</p>
           )}
+          {clampable && (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -99,6 +102,7 @@ const VoiceNoteBlock = ({
           >
             {expanded ? "See less" : "See more"}
           </button>
+          )}
         </>
       )}
     </div>
