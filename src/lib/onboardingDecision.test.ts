@@ -15,7 +15,7 @@ const statusFor = (
   styleComplete: hair,
   bloodOnFile: blood,
   consultationComplete: consultation,
-  dataComplete: hair && blood,
+  dataComplete: hair && consultation,
   entryPath: "/onboarding/resume",
 });
 
@@ -40,9 +40,9 @@ describe("onboarding completion matrix", () => {
       expect(requirements.hairOutstanding).toBe(!hair);
       expect(requirements.bloodOutstanding).toBe(!blood);
       expect(requirements.consultationOutstanding).toBe(!consultation);
-      expect(requirements.coreComplete).toBe(hair && blood);
+      expect(requirements.coreComplete).toBe(hair && consultation);
       expect(getOnboardingNextPath(status, false)).toBe(
-        hair && blood
+        hair && consultation
           ? "/subscribe?next=%2Fonboarding%2Fblood-ai-summary"
           : "/onboarding/resume",
       );
@@ -55,8 +55,8 @@ describe("onboarding completion matrix", () => {
     );
   });
 
-  it("never lets an outstanding consultation gate subscribe", () => {
-    const status = statusFor(true, true, false);
+  it("never lets outstanding blood work gate subscribe", () => {
+    const status = statusFor(true, false, true);
     expect(getOnboardingRequirements(status).coreComplete).toBe(true);
     expect(getOnboardingNextPath(status, false)).toBe(
       "/subscribe?next=%2Fonboarding%2Fblood-ai-summary",
@@ -64,7 +64,7 @@ describe("onboarding completion matrix", () => {
   });
 
   it("does not call hair complete until both hair and style are saved", () => {
-    const status = { ...statusFor(true, false, true), styleComplete: false, dataComplete: false };
+    const status = { ...statusFor(true, true, true), styleComplete: false, dataComplete: false };
     expect(getOnboardingRequirements(status).hairOutstanding).toBe(true);
   });
 });
