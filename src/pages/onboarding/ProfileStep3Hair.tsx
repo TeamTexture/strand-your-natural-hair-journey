@@ -200,16 +200,24 @@ const ProfileStep3Hair = () => {
       <OnboardingGuide className="pt-2 pb-1" />
       <OnboardingScreenHeading
         title="Your hair, in your own hands"
-        subtitle="Four short sections. Answer from what you know — you can refine any of it later with a professional."
+        subtitle="Five short sections. Answer from what you know — you can refine any of it later with a professional."
       />
 
       <div className="px-5 pb-8 space-y-3">
-        <OnboardingSectionCard number={1} title="Feel and look">
+        <OnboardingSectionCard number={1} title="Curl pattern">
+          <OnboardingQuestion term="Curl pattern">
+            Which is your hair most closely matched to?
+          </OnboardingQuestion>
+          <CurlPatternPicker value={curlPattern} onChange={setCurlPattern} />
+        </OnboardingSectionCard>
+
+        <OnboardingSectionCard number={2} title="Feel and look">
           <div className="space-y-4">
             <TagGroup
               multi={false}
               label="Roll one strand between your finger and thumb"
               term="strand diameter"
+              annotationSet="diameter"
               options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
               value={diameter} onChange={setDiameter}
             />
@@ -217,6 +225,7 @@ const ProfileStep3Hair = () => {
               multi={false}
               label="Slide your fingers down a strand, root to tip"
               term="surface texture"
+              annotationSet="surface_texture"
               options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
               value={surfaceTexture} onChange={setSurfaceTexture}
             />
@@ -224,6 +233,7 @@ const ProfileStep3Hair = () => {
               multi={false}
               label="Part your hair and look along the line"
               term="density"
+              annotationSet="density"
               helper="Make a parting with a comb, then look at how much scalp shows along it."
               options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
               value={density} onChange={setDensity}
@@ -231,12 +241,13 @@ const ProfileStep3Hair = () => {
           </div>
         </OnboardingSectionCard>
 
-        <OnboardingSectionCard number={2} title="Water and stretch">
+        <OnboardingSectionCard number={3} title="Water and stretch">
           <div className="space-y-4">
             <TagGroup
               multi={false}
               label="How your hair takes water"
               term="porosity"
+              annotationSet="porosity"
               options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
               value={porosity} onChange={setPorosity}
             />
@@ -244,10 +255,12 @@ const ProfileStep3Hair = () => {
               multi={false}
               label="How a wet strand behaves when you stretch it"
               term="elasticity"
+              annotationSet="elasticity"
               options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
               value={elasticity} onChange={setElasticity}
             />
           </div>
+
         </OnboardingSectionCard>
 
         <OnboardingSectionCard number={3} title="Scalp and concerns">
