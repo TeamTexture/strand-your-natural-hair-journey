@@ -12,7 +12,11 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser, requireAdminOrService } from "../_shared/auth.ts";
-import { pushToKlaviyoList, KLAVIYO_MEMBER_LIST_ID } from "../_shared/klaviyo.ts";
+import {
+  pushToKlaviyoList,
+  KLAVIYO_MEMBER_LIST_ID,
+  KLAVIYO_PAID_MEMBER_LIST_ID,
+} from "../_shared/klaviyo.ts";
 
 interface Candidate {
   userId: string;
@@ -54,6 +58,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json() as { mode?: unknown } | null;
     if (body?.mode === "backfill") mode = "backfill";
+    if (body?.mode === "paid-backfill") mode = "paid-backfill";
   } catch (_e) { /* default mode */ }
 
   const admin = adminClient();
@@ -91,6 +96,57 @@ Deno.serve(async (req) => {
       return json(200, { added: false, error });
     }
     return json(200, { added: true, list: KLAVIYO_MEMBER_LIST_ID });
+  }
+
+  // ---- paid-members backfill (admin only) ----
+  if (mode === "paid-backfill") {
+    const paidGate = await requireAdminOrService(req);
+    if (paidGate instanceof Response) return paidGate;
+
+    const { data: subs } = await admin
+      .from("consumer_subscriptions")
+      .select("user_id, status, tier")
+      .in("status", ["active", "trialing"]);
+    const rows = subs ?? [];
+
+    let added = 0;
+    const failures: { user_id: string; error: string }[] = [];
+    for (const s of rows) {
+      const userId = s.user_id as string;
+      const [{ data: prof }, { data: authUser }] = await Promise.all([
+        admin.from("profiles").select("display_name, phone_number").eq("user_id", userId)
+          .maybeSingle(),
+        admin.auth.admin.getUserById(userId),
+      ]);
+      const email = (authUser?.user?.email ?? "").toLowerCase();
+      if (!email) { failures.push({ user_id: userId, error: "no email" }); continue; }
+      const error = await pushToKlaviyoList({
+        listId: KLAVIYO_PAID_MEMBER_LIST_ID,
+        email,
+        name: (prof as { display_name?: string | null } | null)?.display_name ?? null,
+        phone: (prof as { phone_number?: unknown } | null)?.phone_number
+          ? String((prof as { phone_number?: unknown }).phone_number)
+          : null,
+        properties: {
+          strand_account_type: "member",
+          strand_paid: "true",
+          strand_tier: (s.tier as string | null) ?? "standard",
+        },
+      });
+      if (error) failures.push({ user_id: userId, error });
+      else added += 1;
+    }
+
+    console.log("[klaviyo-member-sync] paid backfill", {
+      considered: rows.length, added, failed: failures.length,
+    });
+    return json(200, {
+      list: KLAVIYO_PAID_MEMBER_LIST_ID,
+      considered: rows.length,
+      added,
+      failed: failures.length,
+      failures: failures.slice(0, 20),
+    });
   }
 
   // ---- backfill (admin only) ----
