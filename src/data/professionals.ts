@@ -26,6 +26,9 @@ export interface Professional {
   featured?: boolean;
   /** Optional headshot URL (square). When absent, initials avatar is used. */
   photoUrl?: string;
+  /** Signed URLs for the professional's own work gallery (`pro_profiles.photos`). */
+  galleryUrls?: string[];
+
   /** GMC number (Dermatologists / GPs) — auto-filled in ProDetails when picked. */
   gmcNumber?: string;
   /** IOT membership number (Trichologists) — auto-filled in ProDetails when picked. */
