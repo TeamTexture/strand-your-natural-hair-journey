@@ -242,31 +242,60 @@ const ResumeOnboarding = () => {
         )}
 
         {bloodOutstanding && (
-          <SurfaceCard tone="gold">
-            <div className="flex items-start gap-3">
-              <Droplets className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="font-display text-base font-semibold">
-                  Have you had your blood work done yet?
-                </p>
-                <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
-                  {startedBlood
-                    ? "You've already started entering your results — we'll drop you back exactly where you stopped."
-                    : "Optional — it opens the diet and nutrition side. Bring your results when you have them, or see where to get tested."}
-                </p>
+          bloodSkipped ? (
+            <BloodWorkSkippedCard
+              onAdd={() => {
+                void unskipBlood();
+                navigate(bloodPath);
+              }}
+            />
+          ) : (
+            <SurfaceCard tone="gold">
+              <OptionalBadge />
+              <div className="flex items-start gap-3 mt-2">
+                <Droplets className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="font-display text-base font-semibold">Blood work</p>
+                  {startedBlood ? (
+                    <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
+                      You've already started entering your results — we'll drop you back
+                      exactly where you stopped.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
+                        You don't need this to use STRAND. It only opens the diet and
+                        nutrition section — everything else works without it.
+                      </p>
+                      <p className="text-xs text-foreground/80 font-body mt-2 leading-snug">
+                        Add your results whenever you're ready.
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            <Button
-              variant="gold"
-              size="pill"
-              className="w-full mt-3 whitespace-normal break-words leading-tight"
-              onClick={() => navigate(bloodPath)}
-            >
-              {startedBlood ? "Continue my blood results →" : "Add my blood results →"}
-            </Button>
-
-          </SurfaceCard>
+              <div className="mt-3 space-y-2">
+                <Button
+                  variant="gold"
+                  size="pill"
+                  className="w-full whitespace-normal break-words leading-tight"
+                  onClick={() => navigate(bloodPath)}
+                >
+                  {startedBlood ? "Continue my blood results →" : "Add my blood results →"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="pill"
+                  className="w-full whitespace-normal break-words leading-tight"
+                  onClick={() => void skipBlood()}
+                >
+                  Skip — I'll decide later
+                </Button>
+              </div>
+            </SurfaceCard>
+          )
         )}
+
 
         <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
           {coreComplete
