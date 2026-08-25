@@ -51,6 +51,7 @@ const OAuthConsent = lazyRetry(() => import("./pages/OAuthConsent"));
 const Legal = lazyRetry(() => import("./pages/Legal"));
 
 // Onboarding
+const GoalAndChallenge = lazyRetry(() => import("./pages/onboarding/GoalAndChallenge"));
 const ProfileStep1 = lazyRetry(() => import("./pages/onboarding/ProfileStep1"));
 const ProfileStep2 = lazyRetry(() => import("./pages/onboarding/ProfileStep2"));
 const ProfileSupplements = lazyRetry(() => import("./pages/onboarding/ProfileSupplements"));
@@ -325,6 +326,7 @@ const App = () => (
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
 
               {/* Onboarding (auth required so data persists) */}
+              <Route path="/onboarding/goal" element={<Onboard><GoalAndChallenge /></Onboard>} />
               <Route path="/onboarding/profile-step-1" element={<Onboard><ProfileStep1 /></Onboard>} />
               <Route path="/onboarding/profile-step-2" element={<Onboard><ProfileStep2 /></Onboard>} />
               <Route path="/onboarding/profile-supplements" element={<Onboard><ProfileSupplements /></Onboard>} />

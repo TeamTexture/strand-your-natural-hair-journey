@@ -140,7 +140,7 @@ const Index = () => {
         console.error("[welcome] couldn't resolve account destination", error);
         setDestinations([
           {
-            path: "/onboarding/profile-step-1",
+            path: "/onboarding/goal",
             label: "Continue setting up STRAND",
             sub: "Your saved answers are still here",
           },

@@ -12,6 +12,7 @@ import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
  * Back inside onboarding is now deterministic: always the previous step.
  */
 export const ONBOARDING_PREV: Record<string, string> = {
+  "/onboarding/profile-step-1": "/onboarding/goal",
   "/onboarding/profile-step-2": "/onboarding/profile-step-1",
   "/onboarding/profile-supplements": "/onboarding/profile-step-2",
   "/onboarding/profile-step-3-hair": "/onboarding/profile-supplements",
@@ -25,7 +26,7 @@ export const ONBOARDING_PREV: Record<string, string> = {
 };
 
 /** First step of the flow — used when we have nowhere sensible to go back to. */
-export const ONBOARDING_FIRST_STEP = "/onboarding/profile-step-1";
+export const ONBOARDING_FIRST_STEP = "/onboarding/goal";
 
 /**
  * Paths deleted with the professional-consultation stage. A saved step or a
