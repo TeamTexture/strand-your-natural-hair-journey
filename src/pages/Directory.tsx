@@ -361,27 +361,29 @@ const Directory = () => {
                   {p.name}
                 </p>
               </div>
-              {inFeaturedSlot ? (
-                <span className="shrink-0 inline-flex items-center text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/40">
-                  Featured
-                </span>
-              ) : null}
-
-              {isOwn ? (
-                <button
-                  type="button"
-                  onClick={() => navigate("/pro/profile")}
-                  className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-1 rounded-full bg-primary text-primary-foreground"
-                >
-                  <Pencil className="size-3" />
-                  Edit
-                </button>
-              ) : hasContact ? (
-                <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
-                  {enqLabel}
-                </span>
-              ) : null}
+              <div className="shrink-0 flex flex-col items-end gap-1">
+                {inFeaturedSlot && (
+                  <span className="inline-flex items-center text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/40">
+                    Featured
+                  </span>
+                )}
+                {isOwn ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pro/profile")}
+                    className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-1 rounded-full bg-primary text-primary-foreground"
+                  >
+                    <Pencil className="size-3" />
+                    Edit
+                  </button>
+                ) : hasContact ? (
+                  <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${enqCls}`}>
+                    {enqLabel}
+                  </span>
+                ) : null}
+              </div>
             </div>
+
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <span className="text-[11px] text-muted-foreground">{p.title}</span>
               <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
