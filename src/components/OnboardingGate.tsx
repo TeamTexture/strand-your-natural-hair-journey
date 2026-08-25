@@ -125,8 +125,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   // onboarding is complete. Never reopen those stale forms or expose the menu
   // around them; paid members return to Home instead.
   const capturePaths = new Set([
-    // TEMP-SCREENSHOT
-
+    "/onboarding/goal",
     "/onboarding/profile-step-1",
     "/onboarding/profile-step-2",
     "/onboarding/profile-supplements",
