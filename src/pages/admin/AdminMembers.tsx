@@ -197,6 +197,7 @@ const AdminMembers = () => {
             subscription_tier: (s as { tier?: string | null }).tier ?? null,
             current_period_end: s.current_period_end,
             cancel_at_period_end: s.cancel_at_period_end,
+            has_billing_account: !!s.stripe_customer_id,
           },
         ]),
       );
