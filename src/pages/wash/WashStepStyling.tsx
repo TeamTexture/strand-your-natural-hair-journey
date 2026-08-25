@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
+import CategoryProductPanels from "@/components/CategoryProductPanels";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import {
   CANONICAL_STYLE_OPTIONS,
@@ -362,12 +363,13 @@ const WashStepStyling = () => {
               No products on your shelf yet — add some on the Products screen.
             </p>
           ) : (
-            <div className="space-y-1.5">
-              {shelfProducts.map((p) => {
+            <CategoryProductPanels
+              products={shelfProducts}
+              selectedIds={productIds}
+              renderRow={(p) => {
                 const selected = productIds.includes(p.id);
                 return (
                   <button
-                    key={p.id}
                     type="button"
                     onClick={() => toggleProduct(p.id)}
                     aria-pressed={selected}
@@ -402,8 +404,8 @@ const WashStepStyling = () => {
                     </div>
                   </button>
                 );
-              })}
-            </div>
+              }}
+            />
           )}
         </div>
 
