@@ -17,15 +17,15 @@ export function useTrialOffer() {
     staleTime: 60_000,
     retry: 2,
     refetchOnWindowFocus: false,
-    placeholderData: (prev) => prev,
   });
+  const hasAuthoritativeData = !!user?.id && !!q.data && !q.isPlaceholderData;
 
   return {
-    walled: !!q.data?.walled,
-    trialEligible: !!q.data?.trialEligible,
+    walled: hasAuthoritativeData && !!q.data?.walled,
+    trialEligible: hasAuthoritativeData && !!q.data?.trialEligible,
     /** False until the answer is known — never wall or unwall on a guess. */
-    known: !!user?.id && !!q.data,
-    loading: authLoading || q.isLoading,
+    known: hasAuthoritativeData,
+    loading: authLoading || q.isLoading || q.isPlaceholderData,
     refetch: q.refetch,
   };
 }

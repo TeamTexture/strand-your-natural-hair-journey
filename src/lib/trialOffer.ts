@@ -38,6 +38,12 @@ export async function markTrialOffer(userId: string): Promise<void> {
       .is("trial_offer_at", null)
       .select("user_id");
     if (!error && (data?.length ?? 0) > 0) return;
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("trial_offer_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing?.trial_offer_at) return;
     await new Promise((r) => setTimeout(r, 400));
   }
 }
