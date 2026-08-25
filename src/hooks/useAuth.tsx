@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { purgeStrandUserScopedKeys, STRAND_OWNER_KEY } from "@/lib/strandLocalStorage";
 import { logUserSession } from "@/lib/sessionTracker";
 import { useViewAs } from "@/hooks/useViewAs";
+import { clearOnboardingResolved } from "@/lib/onboardingResolved";
 import { beginRecoveryLock, clearRecoveryLock } from "@/lib/recoveryLock";
 
 interface AuthCtx {
