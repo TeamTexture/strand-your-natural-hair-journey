@@ -703,14 +703,15 @@ const Home = () => {
 
 
 
-        {/* GOALS — the member's own words. No categories, no length default,
-            no measurement UI unless she has actually entered numbers. */}
+        {/* GOALS + CHALLENGES — one card, two rows. The member's own words.
+            No categories, no length default, no measurement UI unless she has
+            actually entered numbers. */}
         <SurfaceCard data-tour="goals">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
-              Your hair care goals
+              Your hair care goals & challenges
             </p>
-            {goal && (
+            {(goal || challenges.length > 0) && (
               <button
                 onClick={() => setGoalEditorOpen(true)}
                 className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
@@ -793,23 +794,11 @@ const Home = () => {
               </button>
             </div>
           )}
-        </SurfaceCard>
 
-        {/* CHALLENGES — separate records, shown verbatim as chips. */}
-        <SurfaceCard data-tour="challenges">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground truncate">
-              Your hair care challenges
-            </p>
-            {challenges.length > 0 && (
-              <button
-                onClick={() => setChallengesOpen(true)}
-                className="text-xs uppercase tracking-[0.15em] text-primary font-medium shrink-0 ml-2"
-              >
-                Update
-              </button>
-            )}
-          </div>
+          {/* Subtle divider between goal and challenges within the same card */}
+          {(goal || challenges.length > 0) && (
+            <div className="my-3 h-px w-full bg-border/60" />
+          )}
 
           {challenges.length > 0 ? (
             <button
