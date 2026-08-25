@@ -524,25 +524,12 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
             timeBucket(ALERT_KEYS.BLOOD_TEST_OVERDUE, daysSinceBlood),
           ]),
         });
-      } else if (!lastBloodPanelDate) {
-        // Never uploaded a blood test — nudge after a 14-day grace window
-        const accountCreatedIso = user.created_at ?? null;
-        const daysSinceSignup = daysSince(accountCreatedIso);
-        if (!Number.isFinite(daysSinceSignup) || daysSinceSignup >= 14) {
-          next.push({
-            id: ALERT_KEYS.BLOOD_TEST_MISSING,
-            emoji: "🧪",
-            title: "Book your first blood test",
-            body: "Add a recent blood test so STRAND can personalise your hair, nutrition and supplement guidance to your body.",
-            to: "/directory?bloodOnly=1",
-
-            tone: "danger",
-            signature: alertSignature(ALERT_KEYS.BLOOD_TEST_MISSING, [
-              timeBucket(ALERT_KEYS.BLOOD_TEST_MISSING, daysSinceSignup),
-            ]),
-          });
-        }
       }
+      // No panel on file at all: nothing is "due", because nothing came before.
+      // Blood work is optional, so Home stays quiet about it. The neutral
+      // "Add your blood results" option lives on Profile and in the locked
+      // nutrition state, where she is already looking for it.
+
 
 
       // 6. Rebook professional
