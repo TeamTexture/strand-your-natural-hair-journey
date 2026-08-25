@@ -139,11 +139,15 @@ const OnboardingGuide = ({ className }: { className?: string }) => {
   const guide = GUIDES[pathname];
   if (!guide) return null;
 
+  // Optional stages must not look like progress through the counted flow: the
+  // dots stay exactly where the last counted step left them.
+  const heading = guide.optional ? "Optional" : `Step ${guide.step} of ${TOTAL}`;
+
   return (
     <div className={cn("px-1", className)}>
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-[10px] uppercase tracking-[0.2em] font-bold font-body text-primary">
-          Step {guide.step} of {TOTAL}
+          {heading}
         </p>
         <p className="text-[11px] font-body text-muted-foreground truncate max-w-[55%]">
           {guide.label}
@@ -155,18 +159,23 @@ const OnboardingGuide = ({ className }: { className?: string }) => {
         aria-valuemin={1}
         aria-valuemax={TOTAL}
         aria-valuenow={guide.step}
-        aria-label={`Step ${guide.step} of ${TOTAL}`}
+        aria-label={heading}
       >
         {Array.from({ length: TOTAL }).map((_, i) => (
           <span
             key={i}
             className={cn(
               "h-1.5 flex-1 rounded-full transition-all",
-              i + 1 === guide.step ? "bg-primary" : i + 1 < guide.step ? "bg-primary/55" : "bg-primary/15",
+              !guide.optional && i + 1 === guide.step
+                ? "bg-primary"
+                : i + 1 <= guide.step
+                  ? "bg-primary/55"
+                  : "bg-primary/15",
             )}
           />
         ))}
       </div>
+
 
       <section className="mt-3 rounded-[14px] border border-primary/25 bg-primary/[0.06] p-3.5">
         <div className="flex items-start gap-2.5">
