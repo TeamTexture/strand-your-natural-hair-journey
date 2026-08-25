@@ -317,6 +317,11 @@ const ProDetails = () => {
                 return;
               }
               void queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route"] });
+              // The consultation produces the characteristics, so this hands
+              // straight over to the markers form: with the consultation now
+              // logged, hair is the only outstanding requirement and the shared
+              // decision layer returns /onboarding/profile-step-3-hair rather
+              // than the resume screen. Nothing bespoke, no return trip.
               navigate(await resolveNextPath(), { replace: true });
             }}
         >
