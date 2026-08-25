@@ -11,6 +11,8 @@ import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHea
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
+import CurlPatternPicker from "@/components/onboarding/CurlPatternPicker";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
