@@ -142,13 +142,13 @@ const TrialPaywall = () => {
       <StatusBar />
       <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-5 pt-3 pb-4">
         <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
-          Welcome to STRAND
+          {copy.eyebrow}
         </p>
         <h1 className="mt-2 font-display text-[28px] leading-[1.15] text-foreground">
-          Three days free, then decide.
+          {copy.heading}
         </h1>
         <p className="mt-2 font-body text-[13px] leading-relaxed text-muted-foreground">
-          Set up your hair profile and use everything. Cancel before day three and you pay nothing.
+          {copy.sub}
         </p>
 
         <div className="mt-4 flex items-stretch gap-2.5">
@@ -170,14 +170,9 @@ const TrialPaywall = () => {
           </ul>
         </SurfaceCard>
 
-        <div className="mt-5 flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => nav(AFTER_TRIAL_PATH, { replace: true })}
-            className="font-body text-[12.5px] underline text-muted-foreground"
-          >
-            Set up my profile first
-          </button>
+        {/* Sign out is the ONLY other action. There is deliberately no way to
+            continue into onboarding or the app from here. */}
+        <div className="mt-5 flex flex-col items-center">
           <button
             type="button"
             onClick={() => void signOut()}
@@ -192,9 +187,18 @@ const TrialPaywall = () => {
       <div className="shrink-0 border-t border-border bg-background px-5 pt-3 pb-[max(env(safe-area-inset-bottom),14px)]">
         <SurfaceCard tone="gold" className="p-3">
           <p className="font-body text-[12px] leading-snug text-foreground">
-            <span className="font-semibold">Free until {trialEnd}</span>. After that it&apos;s{" "}
-            {formatGbp(price)} a month, charged automatically, until you cancel. Cancel any time
-            from your profile in two taps.
+            {offerTrial ? (
+              <>
+                <span className="font-semibold">Free until {trialEnd}</span>. After that it&apos;s{" "}
+                {formatGbp(price)} a month, charged automatically, until you cancel. Cancel any time
+                from your profile in two taps.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{formatGbp(price)} a month</span>, charged today and
+                renewing monthly, until you cancel. Cancel any time from your profile in two taps.
+              </>
+            )}
           </p>
         </SurfaceCard>
         <Button
@@ -204,10 +208,12 @@ const TrialPaywall = () => {
           onClick={startTrial}
           disabled={busy}
         >
-          {busy ? <Loader2 className="size-4 animate-spin" /> : `Start my ${TRIAL_DAYS} days free`}
+          {busy ? <Loader2 className="size-4 animate-spin" /> : copy.cta}
         </Button>
         <p className="mt-1.5 text-center font-body text-[11px] text-muted-foreground">
-          Card details taken now. Nothing charged today.
+          {offerTrial
+            ? "Card details taken now. Nothing charged today."
+            : "Cancel any time from your profile."}
         </p>
       </div>
     </div>
