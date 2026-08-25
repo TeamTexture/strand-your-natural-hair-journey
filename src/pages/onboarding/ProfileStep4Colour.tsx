@@ -44,8 +44,8 @@ interface TGProps {
 const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   return <div>
-    <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
-    <div className="flex flex-wrap gap-2">
+    <OnboardingQuestion>{label}</OnboardingQuestion>
+    <div className="flex flex-wrap gap-[7px]">
       {options.map((o) => (
         <Tag
           key={o}
