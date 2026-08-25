@@ -1,31 +1,33 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, ExternalLink, Stethoscope, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { Stethoscope, Upload } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
 import SurfaceCard from "@/components/SurfaceCard";
+import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
 import { Button } from "@/components/ui/button";
+import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { cn } from "@/lib/utils";
-
-const DAYE_URL = "https://www.yourdaye.com/products/hormone-test/";
-const DAYE_CODE = "STRAND20";
-const LOLA_URL = "https://lolahealth.com/?srsltid=AfmBOopC3BcYrhp3GEEOOo1kCw-uXtlfLw6cfcDaHrkXcso14m5rdtDx";
 
 const BloodTiming = () => {
   const navigate = useNavigate();
+  const { resolveNextPath } = useOnboardingCompletion();
   // No default — this question must be answered, not assumed.
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
+  const [continuing, setContinuing] = useState(false);
 
-  const copyCode = async () => {
+  // Blood work is optional, so skipping must go somewhere sensible rather than
+  // dead-ending. The shared decision layer answers where she belongs next, and
+  // everything already entered stays saved.
+  const continueWithout = async () => {
+    setContinuing(true);
     try {
-      await navigator.clipboard.writeText(DAYE_CODE);
-      toast.success(`✓ Code ${DAYE_CODE} copied`);
-    } catch {
-      toast(`Code: ${DAYE_CODE}`);
+      navigate(await resolveNextPath(), { replace: true });
+    } finally {
+      setContinuing(false);
     }
   };
 
@@ -39,13 +41,16 @@ const BloodTiming = () => {
           Have you had a blood test in the last 6 months?
         </h2>
         <ItalicSub>
-          Blood deficiencies are one of the most overlooked causes of hair shedding and slow growth.
+          Your iron, ferritin, vitamin D, B12 and thyroid values are what the diet and
+          nutrition side of STRAND reads.
         </ItalicSub>
 
         <SurfaceCard tone="gold">
           <p className="text-sm font-body leading-snug">
-            <span className="font-semibold">A recent blood test is required to unlock STRAND.</span>{" "}
-            Your results power every piece of guidance — from your nutrition plan to your wash-day tips.
+            <span className="font-semibold">Blood work is optional.</span>{" "}
+            Your hair characteristics and a logged consultation are what STRAND needs to
+            unlock. Adding your results opens the diet and nutrition guidance — you can
+            do it whenever they're ready.
           </p>
         </SurfaceCard>
 
@@ -68,7 +73,7 @@ const BloodTiming = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 {v === "yes"
                   ? "You'll upload or enter your results next"
-                  : "We'll help you book a test — your profile stays saved"}
+                  : "Carry on without them, or see where to get tested"}
               </p>
             </button>
           ))}
@@ -82,71 +87,38 @@ const BloodTiming = () => {
 
         {choice === "no" ? (
           <>
-            <SurfaceCard tone="orange">
+            <SurfaceCard>
               <p className="text-sm font-body leading-snug">
-                You'll need recent blood work to unlock STRAND. Book with a vetted
-                professional below — your profile will be waiting when you're ready.
+                You can carry on without blood work. The diet and nutrition section stays
+                closed until you add results, and everything else is unaffected.
               </p>
             </SurfaceCard>
 
             <Button
               variant="gold"
               size="pill"
-              className="w-full"
+              className="w-full whitespace-normal break-words leading-tight"
+              disabled={continuing}
+              onClick={() => void continueWithout()}
+            >
+              {continuing ? "Saving…" : "Continue without bloods for now →"}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="pill"
+              className="w-full whitespace-normal break-words leading-tight"
               onClick={() => navigate("/directory?bloodOnly=1")}
             >
               <Stethoscope className="size-4 mr-1.5" />
               See verified doctors →
             </Button>
 
-            <SurfaceCard tone="gold">
-              <p className="font-display text-base font-semibold mb-1">
-                Or — order an at-home kit with Lola Health
-              </p>
-              <p className="text-xs text-foreground/80 mb-3 font-body">
-                Simple at-home blood test kit — posted to your door with fast results.
-              </p>
-              <a
-                href={LOLA_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground rounded-full px-5 py-3 text-sm font-medium hover:bg-primary/90 transition-colors min-h-[44px]"
-              >
-                Buy a Lola Health kit
-                <ExternalLink className="size-4" />
-              </a>
-            </SurfaceCard>
-
-            <SurfaceCard tone="gold">
-              <p className="font-display text-base font-semibold mb-1">
-                Or — order an at-home kit with Daye
-              </p>
-              <p className="text-xs text-foreground/80 mb-3 font-body">
-                Full hair & scalp blood panel posted to your door. Results in 5 days.
-              </p>
-              <button
-                type="button"
-                onClick={copyCode}
-                className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-[11px] tracking-[0.2em] font-medium px-3 py-1.5 rounded hover:bg-primary/90 transition-colors min-h-[36px]"
-                aria-label={`Copy discount code ${DAYE_CODE}`}
-              >
-                {DAYE_CODE}
-                <Copy className="size-3" />
-              </button>
-              <a
-                href={DAYE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground rounded-full px-5 py-3 text-sm font-medium hover:bg-primary/90 transition-colors min-h-[44px]"
-              >
-                Order Your Daye Kit
-                <ExternalLink className="size-4" />
-              </a>
-            </SurfaceCard>
+            <LolaPeakInsightsCard />
 
             <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
-              Blood work can't be skipped — it's what every piece of STRAND guidance is
-              built on. Your profile stays saved until your results are ready.
+              Nothing you've entered expires. Add your results any time from your
+              nutrition plan or your profile.
             </p>
           </>
         ) : choice === "yes" ? (
@@ -159,6 +131,15 @@ const BloodTiming = () => {
             >
               <Upload className="size-4 mr-1.5" />
               Upload my tests
+            </Button>
+            <Button
+              variant="outline"
+              size="pill"
+              className="w-full whitespace-normal break-words leading-tight"
+              disabled={continuing}
+              onClick={() => void continueWithout()}
+            >
+              I'll add them later →
             </Button>
           </div>
         ) : null}
