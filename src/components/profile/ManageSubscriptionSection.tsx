@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import {
   useBillingPortal,
   usePauseMembership,
@@ -175,7 +176,11 @@ const ManageSubscriptionSection = () => {
           </span>
         </div>
 
-        {complimentary || !hasStripe ? (
+        {isViewingAs ? (
+          <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-3">
+            Billing cannot be managed while viewing as another member.
+          </p>
+        ) : complimentary || !hasStripe ? (
           <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-3">
             {complimentary
               ? "Your access is complimentary, so there is nothing to pause or cancel. Nothing you have logged is ever deleted."
