@@ -398,6 +398,14 @@ const Home = () => {
     if (title && title.toLowerCase() !== "hair goal") return title;
     return "Your goal";
   })();
+  // A long goal gets previewed in the square tile with a way to read it in full,
+  // so the tile can never stretch the dashboard row.
+  const goalIsLong = Boolean(goal) && goalName.length > 70;
+  const showGoalInFull = () => {
+    const card = document.querySelector('[data-tour="goals"]');
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    else navigate("/journal");
+  };
 
   // Short chip for the STRAND tip — the member's OWN words, never a category.
   const goalChipLabel = (() => {
@@ -469,6 +477,7 @@ const Home = () => {
       {/* Anchor-first dashboard — the numbers that matter, tappable. */}
       <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
         <StatTile
+          square
           icon={ICONS.washDay}
           value={washDaysValue === "—" ? washDaysValue : `${washDaysValue}d`}
           label="Last wash"
@@ -477,14 +486,18 @@ const Home = () => {
           to="/wash-day"
         />
         <StatTile
+          square
           icon={ICONS.goal}
           value={goalName}
           valueClassName="text-[15px] leading-snug"
+          clampLines={goalIsLong ? 4 : undefined}
+          moreLabel={goalIsLong ? "See more" : undefined}
           label="Goal focus"
           tone={goal ? "good" : "muted"}
-          to="/journal"
+          onClick={showGoalInFull}
         />
         <StatTile
+          square
           icon={ICONS.blood}
           value={flaggedValue}
           label="Blood work"
@@ -493,6 +506,7 @@ const Home = () => {
           to="/blood-history"
         />
         <StatTile
+          square
           icon={ICONS.products}
           value={`${shelfCount}`}
           label="On my shelf"

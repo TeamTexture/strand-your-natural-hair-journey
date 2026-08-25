@@ -22,6 +22,12 @@ export interface StatTileProps {
   label: string;
   /** One short line under the stat. Never a paragraph. */
   sub?: string;
+  /** Lock the tile to a square so a long value can never stretch the row. */
+  square?: boolean;
+  /** Clamp the value to N lines. Pair with `moreLabel` to offer a way to read it in full. */
+  clampLines?: number;
+  /** Footer affordance shown when the value is clamped, e.g. "See more". */
+  moreLabel?: string;
   tone?: GuidanceTone;
   to?: string;
   onClick?: () => void;
@@ -34,6 +40,9 @@ const StatTile = ({
   valueClassName,
   label,
   sub,
+  square = false,
+  clampLines,
+  moreLabel,
   tone = "gold",
   to,
   onClick,
@@ -51,7 +60,14 @@ const StatTile = ({
         </span>
         {interactive && <ChevronRight className="size-3.5 text-muted-foreground/70" aria-hidden />}
       </div>
-      <p className={cn("mt-2 font-body text-[28px] font-semibold leading-none tracking-tight text-foreground break-words [overflow-wrap:anywhere]", valueClassName)}>
+      <p
+        className={cn(
+          "mt-2 font-body text-[28px] font-semibold leading-none tracking-tight text-foreground break-words [overflow-wrap:anywhere]",
+          clampLines && "overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical]",
+          valueClassName,
+        )}
+        style={clampLines ? { WebkitLineClamp: clampLines } : undefined}
+      >
         {value}
       </p>
       <p className="mt-1.5 text-[9.5px] uppercase tracking-[0.16em] font-bold font-body text-muted-foreground break-words">
@@ -60,11 +76,17 @@ const StatTile = ({
       {sub && (
         <p className={cn("mt-0.5 text-[11px] leading-snug font-body break-words", t.label)}>{sub}</p>
       )}
+      {moreLabel && (
+        <span className="mt-auto pt-1.5 text-[10px] uppercase tracking-[0.14em] font-bold font-body text-primary">
+          {moreLabel}
+        </span>
+      )}
     </>
   );
 
   const shell = cn(
     "block w-full min-h-[44px] rounded-[14px] border p-3 text-left transition",
+    square && "aspect-square flex flex-col overflow-hidden",
     t.box,
     interactive && "hover:opacity-95 active:scale-[0.99]",
     className,
