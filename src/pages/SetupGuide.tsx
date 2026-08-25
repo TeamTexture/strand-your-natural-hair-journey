@@ -399,7 +399,7 @@ const SetupGuide = () => {
     if (fromHelp) {
       safeBack(navigate, "/home");
     } else {
-      navigate("/onboarding/profile-step-1", { replace: true });
+      navigate("/onboarding/goal", { replace: true });
     }
   };
 

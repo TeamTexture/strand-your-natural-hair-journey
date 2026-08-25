@@ -90,7 +90,7 @@ const Auth = () => {
           console.error("[auth] couldn't resolve post-sign-in route", error);
           // OnboardingGate checks the database and forwards this safe entry to
           // the earliest genuinely incomplete step.
-          navigate("/onboarding/profile-step-1", { replace: true });
+          navigate("/onboarding/goal", { replace: true });
         }
       })();
     }

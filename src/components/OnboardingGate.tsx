@@ -61,7 +61,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     return <Navigate to={`${BRAND_ACCESS_PATH}?next=${encodeURIComponent("/brand")}`} replace />;
   }
   if (!status?.dataComplete) {
-    const allowed = new Set(["/onboarding/profile-step-1"]);
+    // The goal/challenge step is the first screen and gates nothing, so it is
+    // always reachable — a new member must not be bounced past it.
+    const allowed = new Set(["/onboarding/goal", "/onboarding/profile-step-1"]);
     if (status?.basicComplete) allowed.add("/onboarding/profile-step-2");
     // The pick-up-where-you-left-off prompt is reachable from the moment the
     // hair/blood section opens, so a returning member can always get back in.
@@ -123,6 +125,7 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
   // onboarding is complete. Never reopen those stale forms or expose the menu
   // around them; paid members return to Home instead.
   const capturePaths = new Set([
+    "/onboarding/goal",
     "/onboarding/profile-step-1",
     "/onboarding/profile-step-2",
     "/onboarding/profile-supplements",

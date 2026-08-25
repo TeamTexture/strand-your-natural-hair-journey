@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
  * the top of every consumer onboarding screen, above the form.
  *
  * It also carries the overall position marker so the member always knows how
- * many stages are left in onboarding (the 6-stage consumer flow). This file is
+ * many stages are left in onboarding (the 7-stage consumer flow). This file is
  * the SINGLE SOURCE OF TRUTH for step position: TitleBar reads its counter from
  * the map below, so the header and the guide can never drift apart.
  *
@@ -18,14 +18,14 @@ import { cn } from "@/lib/utils";
  * Never a paragraph, never a duplicate of the page's own headings.
  */
 
-const TOTAL = 6;
+const TOTAL = 7;
 
 interface Guide {
-  /** Position in the 6-stage flow. Optional stages carry the previous step. */
+  /** Position in the 7-stage flow. Optional stages carry the previous step. */
   step: number;
   /** Outside the counted flow (blood work) — shows "Optional" instead. */
   optional?: boolean;
-  /** Name of this stage — shown next to "Step n of 6". */
+  /** Name of this stage — shown next to "Step n of 7". */
   label: string;
   /** What to do on this page. */
   what: string;
@@ -36,47 +36,53 @@ interface Guide {
 }
 
 const GUIDES: Record<string, Guide> = {
-  "/onboarding/profile-step-1": {
+  "/onboarding/goal": {
     step: 1,
+    label: "Your goal",
+    what: "Tell us what you're working towards, and what's getting in the way.",
+    next: "Next: a few basics about you.",
+  },
+  "/onboarding/profile-step-1": {
+    step: 2,
     label: "About you",
     what: "Tell us who you are and where you are — a few basics only.",
     why: "Your location sets your water hardness, which changes how your hair behaves.",
     next: "Next: your health profile.",
   },
   "/onboarding/profile-step-2": {
-    step: 2,
+    step: 3,
     label: "Health profile",
     what: "Answer every health question honestly — there are no defaults.",
     why: "Hair responds to what is happening inside the body, so blanks weaken your guidance.",
     next: "Next: your supplements.",
   },
   "/onboarding/profile-supplements": {
-    step: 3,
+    step: 4,
     label: "Supplements",
     what: "Tell us what you're already taking.",
     why: "Your nutrition guidance builds on what you already cover instead of repeating it.",
     next: "Next: your hair characteristics.",
   },
   "/onboarding/profile-step-3-hair": {
-    step: 4,
+    step: 5,
     label: "Hair characteristics",
     what: "Answer six questions about your hair and scalp — porosity, elasticity, scalp condition and the rest.",
     next: "Next: colour and your current style.",
   },
   "/onboarding/profile-step-4-colour": {
-    step: 5,
+    step: 6,
     label: "Colour & style",
     what: "Tell us your colour history and the style you're in or moving to.",
     why: "Colour and style decide how much moisture and manipulation your hair can take.",
     next: "Next: choose your membership.",
   },
   "/subscribe": {
-    step: 6,
+    step: 7,
     label: "Membership",
     what: "Choose your membership and STRAND unlocks.",
   },
   "/onboarding/blood-timing": {
-    step: 5,
+    step: 6,
     optional: true,
     label: "Blood test",
     what: "Tell us when your blood test was taken — it needs to be within the last 6 months.",
@@ -84,7 +90,7 @@ const GUIDES: Record<string, Guide> = {
     next: "Next: upload your results, or type them in.",
   },
   "/blood-upload": {
-    step: 5,
+    step: 6,
     optional: true,
     label: "Your results",
     what: "Upload your blood test and check each value we read from it.",
@@ -92,7 +98,7 @@ const GUIDES: Record<string, Guide> = {
     next: "Then your membership, and the app unlocks.",
   },
   "/onboarding/blood-iron-vitamins": {
-    step: 5,
+    step: 6,
     optional: true,
     label: "Your results",
     what: "Enter your iron and vitamin values, or mark anything you weren't tested for.",
@@ -100,21 +106,21 @@ const GUIDES: Record<string, Guide> = {
     next: "Then minerals, thyroid and hormones — then your membership.",
   },
   "/onboarding/blood-minerals": {
-    step: 5,
+    step: 6,
     optional: true,
     label: "Your results",
     what: "Add your mineral values, or mark them untested.",
     next: "Then thyroid and hormones — then your membership.",
   },
   "/onboarding/blood-thyroid": {
-    step: 5,
+    step: 6,
     optional: true,
     label: "Your results",
     what: "Add your thyroid values, or mark them untested.",
     next: "One panel left: hormones.",
   },
   "/onboarding/blood-hormones": {
-    step: 5,
+    step: 6,
     optional: true,
     label: "Your results",
     what: "Add your hormone values, or mark them untested.",
@@ -123,7 +129,7 @@ const GUIDES: Record<string, Guide> = {
 };
 
 /**
- * The header counter for an onboarding path — "Step 4 of 6", or "Optional" for
+ * The header counter for an onboarding path — "Step 5 of 7", or "Optional" for
  * the blood stages. Null for anything outside the flow, so TitleBar leaves the
  * slot empty. Read from the same map the guide card uses, by design.
  */
