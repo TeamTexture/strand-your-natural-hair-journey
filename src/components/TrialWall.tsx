@@ -23,18 +23,17 @@ const TrialWall = ({ children }: { children: ReactNode }) => {
   const { walled, known, loading } = useTrialOffer();
   const { data: onboarding, isLoading: onboardingLoading } = useOnboardingStatus();
 
-  if (isTrialWallAllowedPath(location.pathname)) return <>{children}</>;
   // Hold rather than guess: showing the screen first and redirecting after
   // would let a walled member see a flash of the app.
   if (!known && loading) return <LoadingDot />;
-  if (
-    walled &&
-    location.pathname === TRIAL_REGISTRATION_PATH &&
-    !onboarding?.basicComplete
-  ) {
+  if (walled && !onboarding?.basicComplete) {
     if (onboardingLoading) return <LoadingDot />;
+    if (location.pathname !== TRIAL_REGISTRATION_PATH) {
+      return <Navigate to={TRIAL_REGISTRATION_PATH} replace />;
+    }
     return <>{children}</>;
   }
+  if (isTrialWallAllowedPath(location.pathname)) return <>{children}</>;
   if (walled) return <Navigate to={TRIAL_PAYWALL_PATH} replace />;
   return <>{children}</>;
 };
