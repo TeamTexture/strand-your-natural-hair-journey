@@ -422,7 +422,7 @@ const ProfileStep1 = () => {
               </p>
               <ul className="mt-1 space-y-0.5 text-foreground/85">
                 <li>• A blood test within the last 6 months</li>
-                <li>• A professional hair consultation within the last 3 months</li>
+                <li>• A professional hair consultation within the last 6 months</li>
               </ul>
               <button
                 type="button"

@@ -39,7 +39,7 @@ const ProGate = () => {
         </SurfaceCard>
 
         <p className="text-sm font-medium font-body text-foreground pt-2">
-          Have you had a professional hair consultation in the last 3 months?
+          Have you had a professional hair consultation in the last 6 months?
         </p>
 
         <button
@@ -50,9 +50,9 @@ const ProGate = () => {
             choice === "yes" ? "border-primary border-2" : "border-border",
           )}
         >
-          <p className="text-sm font-medium font-body">Yes — within the last 3 months</p>
+          <p className="text-sm font-medium font-body">Yes — within the last 6 months</p>
           <p className="text-xs text-muted-foreground mt-1">
-            You can enter their details and your characteristics now
+            That appointment counts — enter their details and your characteristics now
           </p>
         </button>
 
@@ -94,8 +94,9 @@ const ProGate = () => {
         </Button>
         {choice === "no" && (
           <p className="text-[12px] text-muted-foreground text-center leading-snug pt-2">
-            You'll need a recent professional hair consultation to unlock STRAND.
-            Book with a vetted expert — your profile will be waiting when you're ready.
+            A consultation in the last 6 months is what STRAND needs to unlock. Book with a
+            vetted expert — your profile will be waiting when you're ready, and nothing you've
+            entered expires.
           </p>
         )}
       </div>

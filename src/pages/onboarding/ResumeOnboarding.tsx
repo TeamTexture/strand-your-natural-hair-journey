@@ -185,8 +185,10 @@ const ResumeOnboarding = () => {
                 </p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
                   Your hair characteristics come from a trichologist, dermatologist or curl
-                  specialist. Book with a vetted professional, then log who you saw and when.
+                  specialist. If you have seen one in the last 6 months that appointment
+                  counts — log who you saw and when instead of booking again.
                 </p>
+
               </div>
             </div>
             <div className="mt-3 space-y-2">
@@ -204,7 +206,7 @@ const ResumeOnboarding = () => {
                 className="w-full whitespace-normal break-words leading-tight"
                 onClick={() => navigate("/onboarding/pro-details")}
               >
-                I've already had one →
+                I've had my appointment →
               </Button>
             </div>
           </SurfaceCard>
@@ -220,10 +222,11 @@ const ResumeOnboarding = () => {
                 </p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
                   {!status.consultationComplete
-                    ? "First, log who you saw and when — your clinical markers come from that consultation."
+                    ? "Your clinical markers come from your consultation, so log who you saw and when first. An appointment in the last 6 months counts — you do not need a new one."
                     : status.hairComplete
                       ? "Your clinical markers are saved. Colour and styling history is the last part."
                       : "The clinical markers from your consultation — diameter, density, porosity, elasticity and your scalp."}
+
                 </p>
               </div>
             </div>
