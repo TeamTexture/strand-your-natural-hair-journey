@@ -332,6 +332,9 @@ const Directory = () => {
         // existing secondary/primary token family. Everyone else sees
         // the standard white card.
         isOwn && "bg-secondary/70 border-primary/40 ring-1 ring-primary/25",
+        // PROMOTED featured slot: same background and radius as every other
+        // card, lifted only by a 2px gold border. Nothing else diverges.
+        inFeaturedSlot && "border-2 border-primary",
         // Brief highlight pulse when the user has been deep-linked
         // to this card so the eye finds the row after the scroll.
         highlightId === p.id && "ring-2 ring-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.18)] animate-pulse",
@@ -343,18 +346,27 @@ const Directory = () => {
           <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-[52px]" />
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-start gap-1.5 min-w-0">
                 {isOwn && (
                   <Star
-                    className="size-3.5 text-primary shrink-0"
+                    className="size-3.5 text-primary shrink-0 mt-1"
                     fill="currentColor"
                     aria-label="Your listing"
                   />
                 )}
-                <p className="font-display text-base font-semibold leading-tight truncate">
+                {/* Names are never clipped: a professional's full name is the
+                    one thing a member must be able to read, so it wraps to two
+                    lines instead of truncating. */}
+                <p className="font-display text-base font-semibold leading-tight break-words line-clamp-2 min-w-0">
                   {p.name}
                 </p>
               </div>
+              {inFeaturedSlot ? (
+                <span className="shrink-0 inline-flex items-center text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/40">
+                  Featured
+                </span>
+              ) : null}
+
               {isOwn ? (
                 <button
                   type="button"
