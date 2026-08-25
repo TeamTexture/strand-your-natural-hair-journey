@@ -108,7 +108,9 @@ interface TGProps {
   multi?: boolean;
   /** When set, this option is affirmative and mutually exclusive with the rest. */
   noneLabel?: string;
-  /** Optional muted helper line rendered directly under the label. */
+  /** What the characteristic IS — a quiet definition block under the question. */
+  definition?: string;
+  /** How to CHECK it — italic helper line with a gold left border. */
   helper?: string;
   /** The clinical name for what is being asked, shown as a small gold badge
    *  beside the question rather than as part of the question itself. */
@@ -116,7 +118,7 @@ interface TGProps {
   /** Key into ANNOTATIONS, when this question's options carry shorthand. */
   annotationSet?: keyof typeof ANNOTATIONS;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term, annotationSet }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, definition, helper, term, annotationSet }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   const annotations = annotationSet ? ANNOTATIONS[annotationSet] : undefined;
   const toggle = (opt: string) => {
@@ -128,7 +130,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
   };
   return (
     <div>
-      <OnboardingQuestion term={term} helper={helper}>
+      <OnboardingQuestion term={term} definition={definition} helper={helper}>
         {label}
       </OnboardingQuestion>
       <div className="flex flex-wrap gap-[7px]">
