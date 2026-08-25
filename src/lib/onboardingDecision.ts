@@ -16,7 +16,7 @@ export interface OnboardingRequirements {
   hairComplete: boolean;
   bloodComplete: boolean;
   consultationComplete: boolean;
-  /** Hair + consultation only — the two things that gate Subscribe/app access. */
+  /** Hair characteristics only — the one thing that gates Subscribe/app access. */
   coreComplete: boolean;
   dataComplete: boolean;
   hairOutstanding: boolean;
@@ -27,10 +27,10 @@ export interface OnboardingRequirements {
 /**
  * The authoritative interpretation of onboarding completion.
  *
- * Hair characteristics are only complete once both the clinical markers and
- * colour/style step are saved. A logged professional consultation is required
- * alongside them. Blood work is optional — `bloodComplete` is reported here so
- * the diet and nutrition surfaces can read it, but it never counts towards
+ * Hair characteristics are only complete once both the markers and the
+ * colour/style step are saved — and they are the only requirement. Blood work
+ * and the professional consultation are optional: both are reported here (the
+ * diet and nutrition surfaces read `bloodComplete`) but neither counts towards
  * coreComplete. No screen should infer these from a draft, route or local lock.
  */
 export function getOnboardingRequirements(
@@ -39,7 +39,7 @@ export function getOnboardingRequirements(
   const hairComplete = status.hairComplete && status.styleComplete;
   const bloodComplete = status.bloodOnFile;
   const consultationComplete = status.consultationComplete;
-  const coreComplete = hairComplete && consultationComplete;
+  const coreComplete = hairComplete;
 
   return {
     hairComplete,
@@ -54,19 +54,12 @@ export function getOnboardingRequirements(
 }
 
 /**
- * The screen for the single outstanding required piece, or null when there is a
- * genuine choice (two things outstanding) and the resume screen is the answer.
- *
- * The consultation and the hair characteristics are one sequence, not two jobs:
- * the consultation produces the markers. So when only one of them is left there
- * is nothing to choose between — send her straight into it rather than parking
- * her on a splash screen she then has to navigate herself.
+ * The screen for the single outstanding required piece — the hair
+ * characteristics — or null when nothing required is left.
  */
 function singleOutstandingPath(status: OnboardingCompletionStatus): string | null {
-  const { hairOutstanding, consultationOutstanding } = getOnboardingRequirements(status);
-  const outstandingCount = Number(hairOutstanding) + Number(consultationOutstanding);
-  if (outstandingCount !== 1) return null;
-  if (consultationOutstanding) return "/onboarding/pro-gate";
+  const { hairOutstanding } = getOnboardingRequirements(status);
+  if (!hairOutstanding) return null;
   // Markers saved but colour/style still missing → resume that form, not step 3.
   return status.hairComplete
     ? "/onboarding/profile-step-4-colour"

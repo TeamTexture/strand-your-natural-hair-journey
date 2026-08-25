@@ -8,7 +8,6 @@ import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import ItalicSub from "@/components/ItalicSub";
-import LevelGate from "@/components/tips/LevelGate";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,11 +52,8 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: 
 const ProfileStep3Hair = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // No defaults — these are clinical markers taken from the member's
-  // consultation, so a pre-selected answer would be a fabricated diagnosis.
-  const [diameter, setDiameter] = useState<string[]>([]);
-  const [texture, setTexture] = useState<string[]>([]);
-  const [density, setDensity] = useState<string[]>([]);
+  // No defaults — a pre-selected answer would be an assumption about her hair
+  // and scalp that she never made, so every group starts genuinely empty.
   const [porosity, setPorosity] = useState<string[]>([]);
   const [elasticity, setElasticity] = useState<string[]>([]);
   const [scalp, setScalp] = useState<string[]>([]);
@@ -69,14 +65,11 @@ const ProfileStep3Hair = () => {
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-3-hair",
-    { diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
+    { porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
     (d) => {
       // Older saved drafts used different shapes. Only restore values the
       // current controls can render; malformed arrays previously crashed on
       // `.includes()` immediately after a refresh.
-      if (Array.isArray(d.diameter)) setDiameter(d.diameter.filter((v): v is string => typeof v === "string"));
-      if (Array.isArray(d.texture)) setTexture(d.texture.filter((v): v is string => typeof v === "string"));
-      if (Array.isArray(d.density)) setDensity(d.density.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.porosity)) setPorosity(d.porosity.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.elasticity)) setElasticity(d.elasticity.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
@@ -99,16 +92,23 @@ const ProfileStep3Hair = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} right={<span>6 of 9</span>} />
+      <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} />
       <OnboardingGuide className="pt-2 pb-1" />
-      <LevelGate min={2}><ItalicSub>Fill these in from your consultation notes. These are the real clinical markers — not curl typing.</ItalicSub></LevelGate>
+      <ItalicSub>Answer these from what you know about your own hair. You can refine them later with a professional.</ItalicSub>
 
       <div className="px-5 pb-8 space-y-5">
-        <TagGroup multi={false} label="Strand Diameter" options={["Fine", "Medium", "Coarse", "Mixed"]} value={diameter} onChange={setDiameter} />
-        <TagGroup multi={false} label="Surface Texture" options={["Rough / crinkly", "Medium", "Silky / glassy"]} value={texture} onChange={setTexture} />
-        <TagGroup multi={false} label="Density" options={["Low", "Medium", "High"]} value={density} onChange={setDensity} />
-        <TagGroup multi={false} label="Porosity" options={["Low — tightly closed cuticle", "High — raised cuticle"]} value={porosity} onChange={setPorosity} />
-        <TagGroup multi={false} label="Elasticity" options={["Strong — stretches and bounces back", "Weak — snaps or does not return"]} value={elasticity} onChange={setElasticity} />
+        <TagGroup
+          multi={false}
+          label="How your hair takes water"
+          options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
+          value={porosity} onChange={setPorosity}
+        />
+        <TagGroup
+          multi={false}
+          label="How a wet strand behaves when you stretch it"
+          options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
+          value={elasticity} onChange={setElasticity}
+        />
         <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
         <TagGroup
           label="Diagnosed Conditions"
@@ -137,11 +137,8 @@ const ProfileStep3Hair = () => {
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           const gaps: string[] = [];
-          if (diameter.length === 0) gaps.push("strand diameter");
-          if (texture.length === 0) gaps.push("surface texture");
-          if (density.length === 0) gaps.push("density");
-          if (porosity.length === 0) gaps.push("porosity");
-          if (elasticity.length === 0) gaps.push("elasticity");
+          if (porosity.length === 0) gaps.push("how your hair takes water");
+          if (elasticity.length === 0) gaps.push("how a wet strand behaves");
           if (scalp.length === 0) gaps.push("scalp condition");
           if (diagnosed.length === 0) gaps.push("diagnosed conditions");
           if (areas.length === 0) gaps.push("areas of concern");
@@ -150,7 +147,7 @@ const ProfileStep3Hair = () => {
             return;
           }
           localStorage.setItem("strand_hair_profile", JSON.stringify({
-            diameter, texture, density, porosity, elasticity, scalp, diagnosed, areas,
+            porosity, elasticity, scalp, diagnosed, areas,
             length_inches: lengthInches, length_bucket: lengthBucket,
           }));
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
@@ -167,9 +164,6 @@ const ProfileStep3Hair = () => {
                 .upsert(
                   {
                     user_id: u.user.id,
-                    diameter: diameter[0] ?? null,
-                    surface_texture: texture[0] ?? null,
-                    density: density[0] ?? null,
                     porosity: porosity[0] ?? null,
                     elasticity: elasticity[0] ?? null,
                     scalp_condition_enc: enc.scalp,

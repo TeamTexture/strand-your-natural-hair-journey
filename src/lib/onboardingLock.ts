@@ -1,10 +1,9 @@
 // Back-navigation pinning for the locked onboarding state.
 //
-// While a member still owes any of the three required pieces (hair
-// characteristics, blood work, professional consultation) she lives on the
-// pick-up-where-you-left-off screen. Back from that screen — or from any
-// sub-flow reached from it — must land on the resume screen, never walk her
-// back through the original step 1-9 onboarding history.
+// While a member still owes hair characteristics (or has blood work part-way
+// through) she lives on the pick-up-where-you-left-off screen. Back from that
+// screen — or from any sub-flow reached from it — must land on the resume
+// screen, never walk her back through the original onboarding history.
 //
 // The lock is a stored flag set by the resume screen itself (the only place
 // that knows the outstanding requirements) and cleared the moment the data set
@@ -48,12 +47,7 @@ export const isResumeLocked = (): boolean => {
  * back that would leave the group is pinned to the resume screen.
  */
 const GROUPS: string[][] = [
-  // pro-details sits in the hair group as well as the professional group: the
-  // consultation record and the markers are one continuous flow now, so back
-  // from the markers form steps to the consultation it came from rather than
-  // bouncing off the resume screen.
   [
-    "/onboarding/pro-details",
     "/onboarding/profile-step-3-hair",
     "/onboarding/profile-step-4-colour",
   ],
@@ -65,7 +59,6 @@ const GROUPS: string[][] = [
     "/onboarding/blood-thyroid",
     "/onboarding/blood-hormones",
   ],
-  ["/onboarding/pro-details", "/onboarding/pro-book", "/directory"],
 ];
 
 const pathOnly = (p: string) => p.split("?")[0];

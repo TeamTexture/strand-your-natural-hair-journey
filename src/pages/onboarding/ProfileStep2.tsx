@@ -288,7 +288,7 @@ const ProfileStep2 = () => {
       setSaving(false);
       return;
     }
-    localStorage.setItem("strand_onboarding_step", "/onboarding/pro-gate");
+    localStorage.setItem("strand_onboarding_step", "/onboarding/profile-supplements");
     const { data: currentUser } = await supabase.auth.getUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
     navigate("/onboarding/profile-supplements");
@@ -296,7 +296,7 @@ const ProfileStep2 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Health Profile" onBack={onboardingBack(navigate, "/onboarding/profile-step-2")} right={<span>2 of 9</span>} />
+      <TitleBar title="Health Profile" onBack={onboardingBack(navigate, "/onboarding/profile-step-2")} />
       <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>
         Hormones and health conditions are the biggest drivers of hair behaviour. All data is private.

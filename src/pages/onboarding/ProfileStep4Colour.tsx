@@ -148,7 +148,7 @@ const ProfileStep4Colour = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} right={<span>7 of 9</span>} />
+      <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} />
       <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-5">

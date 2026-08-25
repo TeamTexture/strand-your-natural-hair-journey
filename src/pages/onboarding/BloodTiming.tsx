@@ -49,7 +49,7 @@ const BloodTiming = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Blood Test" onBack={onboardingBack(navigate, "/onboarding/blood-timing")} right={<span>8 of 9</span>} />
+      <TitleBar title="Blood Test" onBack={onboardingBack(navigate, "/onboarding/blood-timing")} />
       <OnboardingGuide className="pt-2 pb-1" />
 
       <div className="px-5 pb-8 space-y-4">

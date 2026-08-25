@@ -76,8 +76,10 @@ export async function getConsumerOnboardingStatus(userId: string) {
     health.diet && health.diet_balance && health.smoke && health.alcohol &&
     health.daily_water && health.exercise && health.sleep_quality
   );
+  // The six self-answerable questions. diameter/surface_texture/density are no
+  // longer asked during onboarding, so they must never be required here.
   const hairFieldsComplete = !!(
-    hair?.diameter && hair.surface_texture && hair.density && hair.porosity &&
+    hair?.porosity &&
     hair.elasticity && hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
     Array.isArray(hair.areas_of_concern) && hair.areas_of_concern.length > 0
   );
@@ -95,14 +97,16 @@ export async function getConsumerOnboardingStatus(userId: string) {
   const hairComplete = markedComplete || (healthComplete && hairFieldsComplete);
   const styleComplete = markedComplete || (hairComplete && styleFieldsComplete);
   const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
-  // Consultation: logged professional with a consultation date on file.
+  // Consultation: logged professional with a consultation date on file. Kept as
+  // information only — it gates nothing.
   const consultationRow = (proRes.data ?? [])[0] as { consultation_date?: string | null } | undefined;
   const consultationComplete = markedComplete || !!consultationRow?.consultation_date;
   // Blood work is OPTIONAL — it gates the diet and nutrition surfaces only,
-  // never payment or app access. The hair characteristics (markers + style) and
-  // a logged professional consultation are what unlock STRAND.
+  // never payment or app access. The professional consultation gates nothing at
+  // all now: the hair characteristics (markers + colour/style) are what unlock
+  // STRAND, and the member answers them herself.
   const fieldsComplete =
-    basicComplete && healthComplete && hairComplete && styleComplete && consultationComplete;
+    basicComplete && healthComplete && hairComplete && styleComplete;
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {
@@ -116,28 +120,24 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // never restarts the whole journey from step 1.
   let resumePath = "/onboarding/profile-step-1";
   if (basicOk) resumePath = "/onboarding/profile-step-2";
-  // The consultation choice/details steps do not persist their own database
-  // marker, so a returning member must resume at that fork rather than being
-  // jumped straight to the screen labelled 5 of 9.
-  if (healthComplete) resumePath = "/onboarding/pro-gate";
+  if (healthComplete) resumePath = "/onboarding/profile-step-3-hair";
   if (hairComplete) resumePath = "/onboarding/profile-step-4-colour";
   // Blood work is optional, so a member who has finished her hair profile is
-  // never dropped into the blood flow as if it were the next requirement. What
-  // is actually outstanding is the consultation.
-  if (styleComplete) resumePath = consultationComplete ? "/onboarding/resume" : "/onboarding/pro-details";
+  // never dropped into the blood flow as if it were the next requirement.
+  if (styleComplete) resumePath = "/onboarding/resume";
 
   // Where a RETURNING member should land. Once the health profile is in, the
-  // remaining pieces (hair characteristics, consultation, and optionally blood
-  // work) are each done in their own time — two of them off-app — so she is
-  // offered all of the outstanding ones rather than dropped into one form.
+  // remaining pieces (hair characteristics, and optionally blood work) are each
+  // done in their own time, so she is offered the outstanding ones rather than
+  // dropped into one form.
   const entryPath =
     healthComplete && !dataComplete ? "/onboarding/resume" : resumePath;
 
 
   // `bloodOnFile` is reported here but gates NOTHING about access: it is the
   // flag the diet and nutrition surfaces read. Payment becomes due once the
-  // required data set (hair characteristics + consultation) is captured; the
-  // paywall on /home catches the rest.
+  // required data set (hair characteristics) is captured; the paywall on /home
+  // catches the rest.
   return {
     completed: dataComplete,
     markedComplete,

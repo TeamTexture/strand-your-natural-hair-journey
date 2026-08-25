@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Droplets, Scissors, Stethoscope } from "lucide-react";
+import { Check, Droplets, Scissors } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -22,12 +22,12 @@ import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardi
 /**
  * Pick-up-where-you-left-off screen.
  *
- * Hair characteristics and the professional consultation are what unlock STRAND;
- * blood work is optional and opens the diet and nutrition side. All three are
- * always shown. Anything already done is greyed out and marked
- * as added, so a member who has just uploaded her bloods can see it landed and
- * see exactly what is still owed. Nothing here unlocks the app: once all three
- * are genuinely complete she goes on to payment (or Home if she already pays).
+ * Hair characteristics are what unlock STRAND; blood work is optional and opens
+ * the diet and nutrition side. Both are always shown. Anything already done is
+ * greyed out and marked as added, so a member who has just uploaded her bloods
+ * can see it landed and see exactly what is still owed. Nothing here unlocks the
+ * app: once the hair characteristics are genuinely complete she goes on to
+ * payment (or Home if she already pays).
  */
 const ResumeOnboarding = () => {
   const navigate = useNavigate();
@@ -60,9 +60,8 @@ const ResumeOnboarding = () => {
   const requirements = status ? getOnboardingRequirements(status) : null;
   const hairOutstanding = requirements?.hairOutstanding ?? false;
   const bloodOutstanding = requirements?.bloodOutstanding ?? false;
-  const consultationOutstanding = requirements?.consultationOutstanding ?? false;
-  // Hair characteristics + the professional consultation gate Subscribe/app access.
-  // Blood work gates nothing about access — it only opens diet and nutrition.
+  // Hair characteristics gate Subscribe/app access. Blood work gates nothing
+  // about access — it only opens diet and nutrition.
   const coreComplete = !!requirements?.coreComplete;
 
   useEffect(() => {
@@ -90,10 +89,6 @@ const ResumeOnboarding = () => {
   if (isLoading && !status) return <LoadingDot />;
 
   if (!status) return <LoadingDot />;
-
-  // The clinical markers come FROM the consultation, so who she saw and when is
-  // always logged before the markers form is reached — the consultation card is
-  // the entry point, and pro-details hands straight over to the markers form.
 
   const bloodPath = (() => {
     const allowed = new Set([
@@ -140,9 +135,6 @@ const ResumeOnboarding = () => {
           in from. Carry on whenever you're ready.
         </ItalicSub>
 
-        {!consultationOutstanding && (
-          <DoneCard icon={<Stethoscope className="size-4" />} title="Professional consultation" />
-        )}
         {!bloodOutstanding && (
           <DoneCard
             icon={<Droplets className="size-4" />}
@@ -167,8 +159,7 @@ const ResumeOnboarding = () => {
               That's everything STRAND needs.
             </p>
             <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
-              Your hair characteristics and your consultation are both in. Choose your
-              membership to unlock STRAND.
+              Your hair characteristics are in. Choose your membership to unlock STRAND.
             </p>
             <Button
               variant="gold"
@@ -181,52 +172,15 @@ const ResumeOnboarding = () => {
           </SurfaceCard>
         )}
 
-        {consultationOutstanding && (
-          <SurfaceCard>
-            <div className="flex items-start gap-3">
-              <Stethoscope className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="font-display text-base font-semibold">
-                  Ready to book a professional consultation?
-                </p>
-                <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
-                  Your hair characteristics come from a trichologist, dermatologist or curl
-                  specialist. If you have seen one in the last 6 months that appointment
-                  counts — log who you saw and when instead of booking again.
-                </p>
-
-              </div>
-            </div>
-            <div className="mt-3 space-y-2">
-              <Button
-                variant="gold"
-                size="pill"
-                className="w-full whitespace-normal break-words leading-tight"
-                onClick={() => navigate("/directory?consultation=1")}
-              >
-                Find a professional →
-              </Button>
-              <Button
-                variant="outline"
-                size="pill"
-                className="w-full whitespace-normal break-words leading-tight"
-                onClick={() => navigate("/onboarding/pro-details")}
-              >
-                I've had my appointment →
-              </Button>
-            </div>
-          </SurfaceCard>
-        )}
-
-        {hairOutstanding && !consultationOutstanding && (
+        {hairOutstanding && (
           <SurfaceCard>
             <div className="flex items-start gap-3">
               <Scissors className="size-4 mt-1 text-primary shrink-0" aria-hidden="true" />
               <div className="min-w-0">
                 <p className="font-display text-base font-semibold">Hair characteristics</p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
-                  Your consultation is logged. Add the characteristics from that assessment —
-                  everything you've already entered is saved.
+                  Six quick questions about your hair and scalp — everything you've already
+                  entered is saved.
                 </p>
               </div>
             </div>
@@ -307,7 +261,7 @@ const ResumeOnboarding = () => {
         <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">
           {coreComplete
             ? "Blood work is optional and you can add it any time — it opens the diet and nutrition side and never holds up your membership."
-            : "Your hair characteristics and a logged consultation are what STRAND needs to unlock. Blood work is optional — it opens the diet and nutrition side. There's no rush: nothing you've entered expires."}
+            : "Your hair characteristics are what STRAND needs to unlock. Blood work is optional — it opens the diet and nutrition side. There's no rush: nothing you've entered expires."}
         </p>
 
         <Button

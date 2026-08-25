@@ -408,7 +408,7 @@ const ProfileStep1 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="About You" right={<span>1 of 9</span>} />
+      <TitleBar title="About You" />
       <OnboardingGuide className="pt-2 pb-1" />
       <ItalicSub>This shapes every recommendation Strand makes.</ItalicSub>
 

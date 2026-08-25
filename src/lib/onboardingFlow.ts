@@ -14,10 +14,7 @@ import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
 export const ONBOARDING_PREV: Record<string, string> = {
   "/onboarding/profile-step-2": "/onboarding/profile-step-1",
   "/onboarding/profile-supplements": "/onboarding/profile-step-2",
-  "/onboarding/pro-gate": "/onboarding/profile-supplements",
-  "/onboarding/pro-book": "/onboarding/pro-gate",
-  "/onboarding/pro-details": "/onboarding/pro-gate",
-  "/onboarding/profile-step-3-hair": "/onboarding/pro-details",
+  "/onboarding/profile-step-3-hair": "/onboarding/profile-supplements",
   "/onboarding/profile-step-4-colour": "/onboarding/profile-step-3-hair",
   "/onboarding/blood-timing": "/onboarding/profile-step-4-colour",
   "/blood-upload": "/onboarding/blood-timing",
@@ -30,8 +27,40 @@ export const ONBOARDING_PREV: Record<string, string> = {
 /** First step of the flow — used when we have nowhere sensible to go back to. */
 export const ONBOARDING_FIRST_STEP = "/onboarding/profile-step-1";
 
+/**
+ * Paths deleted with the professional-consultation stage. A saved step or a
+ * stored back target pointing at one of these must resolve to the hair
+ * characteristics form, never to a dead route.
+ */
+const RETIRED_PATHS: Record<string, string> = {
+  "/onboarding/pro-gate": "/onboarding/profile-step-3-hair",
+  "/onboarding/pro-book": "/onboarding/profile-step-3-hair",
+  "/onboarding/pro-details": "/onboarding/profile-step-3-hair",
+};
+
+/** Resolve any onboarding path, rewriting retired ones. */
+export const resolveOnboardingPath = (path: string | null | undefined): string | null => {
+  if (!path) return null;
+  const bare = path.split("?")[0];
+  return RETIRED_PATHS[bare] ?? path;
+};
+
+/**
+ * The member's last saved onboarding step, with retired pro paths rewritten on
+ * READ — members mid-flow must not open the app onto a blank screen.
+ */
+export const readStoredOnboardingStep = (): string | null => {
+  try {
+    return resolveOnboardingPath(localStorage.getItem("strand_onboarding_step"));
+  } catch {
+    return null;
+  }
+};
+
 export const onboardingPrevPath = (current: string): string =>
-  ONBOARDING_PREV[current] ?? ONBOARDING_FIRST_STEP;
+  resolveOnboardingPath(ONBOARDING_PREV[resolveOnboardingPath(current) ?? current]) ??
+  ONBOARDING_FIRST_STEP;
+
 
 /** `onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")}` */
 export const onboardingBack =
