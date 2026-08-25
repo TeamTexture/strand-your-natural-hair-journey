@@ -1,5 +1,4 @@
 import { smartBack } from "@/lib/smartBack";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Flower2, HeartPulse, ExternalLink, Sparkles, Scissors } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { directoryLinkForPro } from "@/lib/directoryLink";
 import SponsoredOfferCard from "@/components/SponsoredOfferCard";
 import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
-import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 
 
 interface OfferProps {
@@ -89,7 +87,6 @@ const Discounts = () => {
   const navigate = useNavigate();
   const { data: brandOffers } = useAllLiveBrandOffers();
   const { data: proOffers } = useProOffersForConsumer();
-  const [routesOpen, setRoutesOpen] = useState(false);
 
   return (
     <ScreenLayout>
@@ -148,9 +145,9 @@ const Discounts = () => {
           variant="outline"
           size="pill"
           className="w-full gap-1.5"
-          onClick={() => setRoutesOpen(true)}
+          onClick={() => navigate("/directory?bloodOnly=1")}
         >
-          <Droplets className="size-3.5" /> All ways to book a blood test
+          <Droplets className="size-3.5" /> Book with a professional
         </Button>
 
         {/*
@@ -159,20 +156,7 @@ const Discounts = () => {
           not delete them.
         */}
 
-        {(proOffers?.length ?? 0) === 0 && (brandOffers?.length ?? 0) === 0 && (
-          <div className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
-            <p className="font-body text-[12.5px] text-foreground/75 leading-relaxed">
-              No brand or professional offers just now. New partner discounts land here as they go
-              live — we'll let you know when they do.
-            </p>
-          </div>
-        )}
 
-        <BloodTestRoutesSheet
-          open={routesOpen}
-          onOpenChange={setRoutesOpen}
-          reason="Ways to get a blood test through STRAND."
-        />
 
 
 
