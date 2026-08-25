@@ -78,10 +78,13 @@ const ProfileStep4Colour = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resolveNextPath } = useOnboardingCompletion();
-  // The label must reflect what is actually still outstanding: a member who has
-  // already saved her blood work goes on to membership, not back to blood.
+  // The label must reflect what is actually still outstanding: a member who
+  // has already saved her blood work goes on to membership, not back to blood.
+  // The same is true for a member who has consciously skipped blood work —
+  // routing already sends her to Subscribe, so the label must say so too.
   const { data: onboardingStatus } = useOnboardingStatus();
   const bloodOnFile = !!onboardingStatus?.bloodOnFile;
+  const { skipped: bloodSkipped } = useBloodSkipped();
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
