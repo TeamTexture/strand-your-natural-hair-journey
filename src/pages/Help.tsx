@@ -43,25 +43,30 @@ const WALKTHROUGHS: Walkthrough[] = [
     loomId: "d9904d76c04d4b16a4f3cb5603e4920f",
     category: "Your blood work",
     title: "What your blood work shows",
+    aspectPadding: "64.74820143884892%",
   },
   {
     id: "personalisation",
     loomId: "b2c7417a59934531b1af6dfb43fed2ac",
     category: "Personalisation",
     title: "How STRAND personalises haircare and ads",
+    aspectPadding: "64.74820143884892%",
   },
   {
     id: "products",
     loomId: "4b9af503670140f4aac7cd132ed90019",
     category: "Products",
     title: "How to scan products and learn ingredients",
+    aspectPadding: "64.74820143884892%",
   },
   {
     id: "wash-days-and-booking",
     loomId: "f19ec50f4fae474a8857c5516540f655",
-    category: "Wash days and booking",
+    category: "Wash days and how to book professionals",
     title: "Wash days and how to book professionals",
+    aspectPadding: "64.74820143884892%",
   },
+
 ];
 
 interface Retailer {
