@@ -95,7 +95,11 @@ const TrialPaywall = () => {
   useEffect(() => {
     const c = params.get("checkout");
     if (c === "cancelled") {
-      toast("No card taken. You can start your free trial whenever you like.");
+      toast(
+        offerTrial
+          ? "No card taken. You can start your free trial whenever you like."
+          : "No card taken. You can subscribe whenever you like.",
+      );
       params.delete("checkout");
       setParams(params, { replace: true });
     }
@@ -103,7 +107,7 @@ const TrialPaywall = () => {
   }, []);
 
   // Stripe returns before the webhook lands, so ask Stripe directly and hold
-  // here until the trial is confirmed — never drop her back on the paywall.
+  // here until the membership is confirmed — never drop her back on the paywall.
   useEffect(() => {
     if (hasAccess) {
       nav(nextPath, { replace: true });
@@ -127,13 +131,16 @@ const TrialPaywall = () => {
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("consumer-checkout", {
-        body: { next: AFTER_TRIAL_PATH, tier, trial: true, returnTo: "/start-trial" },
+        body: { next: AFTER_TRIAL_PATH, tier, trial: offerTrial, returnTo: "/start-trial" },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e) {
-      toast.error((e as Error).message ?? "Could not start your free trial");
+      toast.error(
+        (e as Error).message ??
+          (offerTrial ? "Could not start your free trial" : "Could not start your membership"),
+      );
       setBusy(false);
     }
   };
@@ -144,7 +151,7 @@ const TrialPaywall = () => {
         <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
           <Loader2 className="size-5 animate-spin text-primary" />
           <p className="font-body text-sm text-muted-foreground">
-            Setting up your free trial…
+            {offerTrial ? "Setting up your free trial…" : "Setting up your membership…"}
           </p>
         </div>
       </ScreenLayout>
