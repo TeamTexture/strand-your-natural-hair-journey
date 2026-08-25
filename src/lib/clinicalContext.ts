@@ -19,7 +19,7 @@
 // reads in the same render to a single edge-function round-trip.
 
 import { supabase } from "@/integrations/supabase/client";
-import { getDisplayedAuthUser } from "@/lib/displayedUser";
+import { getDisplayedAuthUser, isViewingAsUser } from "@/lib/displayedUser";
 
 // ─────────────────────────── Types ───────────────────────────
 
