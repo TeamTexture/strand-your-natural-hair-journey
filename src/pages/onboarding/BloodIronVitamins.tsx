@@ -9,6 +9,7 @@ import SectionLabel from "@/components/SectionLabel";
 import BloodInputRow from "@/components/BloodInputRow";
 import BloodSummaryBar from "@/components/BloodSummaryBar";
 import { Button } from "@/components/ui/button";
+import { useMembershipExit } from "@/hooks/useMembershipExit";
 import { useBloodValues, persistBloodValues } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
@@ -26,6 +27,7 @@ const VIT_LABELS: Record<string, string> = {
 
 const BloodIronVitamins = () => {
   const navigate = useNavigate();
+  const { resolveMembershipPath } = useMembershipExit();
   const { values, setValue } = useBloodValues();
   // Auto-saved draft: restore across sessions/devices and remember this screen.
   useBloodDraftResume("/onboarding/blood-iron-vitamins");
@@ -71,6 +73,16 @@ const BloodIronVitamins = () => {
         <Button variant="gold" size="pill" className="mt-4" onClick={onContinue}>
           Next — Minerals →
         </Button>
+
+        <Button
+          variant="ghost"
+          size="pill"
+          className="w-full whitespace-normal break-words leading-tight text-[12.5px] text-foreground/70"
+          onClick={async () => navigate(await resolveMembershipPath(), { replace: true })}
+        >
+          Skip for now — go to membership →
+        </Button>
+
       </div>
     </ScreenLayout>
   );

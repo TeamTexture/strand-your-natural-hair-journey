@@ -9,6 +9,7 @@ import SectionLabel from "@/components/SectionLabel";
 import BloodInputRow from "@/components/BloodInputRow";
 import BloodSummaryBar from "@/components/BloodSummaryBar";
 import { Button } from "@/components/ui/button";
+import { useMembershipExit } from "@/hooks/useMembershipExit";
 import { useBloodValues, persistBloodValues } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
@@ -19,6 +20,7 @@ const ALL = [...MINERALS, ...INFLAM];
 
 const BloodMinerals = () => {
   const navigate = useNavigate();
+  const { resolveMembershipPath } = useMembershipExit();
   const { values, setValue } = useBloodValues();
   // Auto-saved draft: restore across sessions/devices and remember this screen.
   useBloodDraftResume("/onboarding/blood-minerals");
@@ -58,6 +60,16 @@ const BloodMinerals = () => {
         <Button variant="gold" size="pill" className="mt-4" onClick={onContinue}>
           Next — Thyroid →
         </Button>
+
+        <Button
+          variant="ghost"
+          size="pill"
+          className="w-full whitespace-normal break-words leading-tight text-[12.5px] text-foreground/70"
+          onClick={async () => navigate(await resolveMembershipPath(), { replace: true })}
+        >
+          Skip for now — go to membership →
+        </Button>
+
       </div>
     </ScreenLayout>
   );
