@@ -30,6 +30,7 @@ import {
   toggleCondition,
   healthOptionLabel,
 } from "@/lib/healthOptions";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /* ── shared field shell ───────────────────────────────────────────────── */
 
@@ -226,7 +227,7 @@ const ProfileStep2 = () => {
       medications: meds.map((m) => m.name),
     }));
     try {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (u?.user) {
         const userId = u.user.id;
 
@@ -287,7 +288,7 @@ const ProfileStep2 = () => {
       return;
     }
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-supplements");
-    const { data: currentUser } = await supabase.auth.getUser();
+    const { data: currentUser } = await getDisplayedAuthUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
     navigate("/onboarding/profile-supplements");
   };

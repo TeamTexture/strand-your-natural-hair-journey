@@ -18,6 +18,7 @@ import {
   saveRemoteDraft,
   writeLocalDraftTime,
 } from "@/lib/onboardingDraftStore";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const KEY = "strand_blood_values";
 const UNKNOWN_KEY = "strand_blood_unknown";
@@ -334,7 +335,7 @@ async function ensureDraftPanel(userId: string): Promise<string | null> {
 
 export async function persistBloodValues() {
   const values = read();
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData } = await getDisplayedAuthUser();
   const user = userData?.user;
   if (!user) return { ok: false, reason: "no_user" as const };
 

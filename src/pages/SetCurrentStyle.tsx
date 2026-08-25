@@ -24,6 +24,7 @@ import {
   invalidateClinicalContextCache,
   loadClinicalContext,
 } from "@/lib/clinicalContext";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const UNIT_OPTIONS: Choice[] = [
   { value: "days", label: "Days" },
@@ -151,7 +152,7 @@ const SetCurrentStyle = () => {
     );
 
     try {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (u?.user) {
         const { error } = await supabase
           .from("user_style_profile")

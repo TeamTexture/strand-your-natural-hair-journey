@@ -34,6 +34,7 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { formatTime12h } from "@/lib/formatTime";
 
 import { BLOOD_RANGES, evaluate, statusLabel } from "@/data/bloodRanges";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const PAGE = { w: 210, h: 297 };
 const MARGIN = 16;
@@ -239,7 +240,7 @@ async function fetchAll(userId: string) {
 // ─── Generator ────────────────────────────────────────────────────────────
 
 export async function generateFullProfilePdf(): Promise<{ blob: Blob; fileName: string }> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getDisplayedAuthUser();
   if (!user) throw new Error("Not signed in");
 
   const d = await fetchAll(user.id);

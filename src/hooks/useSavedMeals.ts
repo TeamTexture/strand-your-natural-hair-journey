@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface SavedMeal {
   id: string;
@@ -50,7 +51,7 @@ export const useSavedMeals = () => {
     queryKey: savedMealsKey(user?.id),
     enabled: !!user?.id,
     queryFn: async (): Promise<SavedMeal[]> => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user || userData.user.id !== user?.id) return [];
       const { data, error } = await supabase
         .from("user_saved_meals")
@@ -75,7 +76,7 @@ export const useSavedMeals = () => {
 
   const save = useMutation({
     mutationFn: async (draft: MealDraft) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) throw new Error("Not signed in");
       // Idempotent save: if she has already saved this meal, silently succeed
       // rather than surfacing a unique-violation to her.
@@ -105,7 +106,7 @@ export const useSavedMeals = () => {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) throw new Error("Not signed in");
       const { error } = await supabase
         .from("user_saved_meals")

@@ -70,3 +70,40 @@ export function purgeStrandUserScopedKeys(source = "unknown"): void {
   }
 }
 
+
+// ─────────────────── Ownership guard for cached values ───────────────────
+// A cached `strand_*` value belongs to whichever user was signed in when it
+// was written (tracked in STRAND_OWNER_KEY). It must never be read as a
+// fallback for a DIFFERENT displayed user — which is exactly what happens
+// during admin "View as" mode, where the cache holds the ADMIN's clinical
+// data while the screen is labelled as the member's.
+
+/** The uid that owns the `strand_*` cache on this device, if known. */
+export function strandCacheOwnerId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(STRAND_OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when the cached `strand_*` payload belongs to the member currently
+ * being displayed. False while impersonating (cache is the admin's) or when
+ * the owner uid doesn't match the displayed id.
+ */
+export function strandCacheBelongsTo(displayedUserId: string | null): boolean {
+  if (typeof window === "undefined") return false;
+  let viewAs: string | null = null;
+  try {
+    viewAs = sessionStorage.getItem("strand_view_as_user_id");
+  } catch {
+    viewAs = null;
+  }
+  if (viewAs) return false;
+  const owner = strandCacheOwnerId();
+  if (!owner) return true; // pre-sign-in onboarding writes: no other identity yet
+  if (!displayedUserId) return true;
+  return owner === displayedUserId;
+}

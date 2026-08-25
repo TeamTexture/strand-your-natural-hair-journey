@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface Supplement {
   id: string;
@@ -58,7 +59,7 @@ export const useSupplements = () => {
 
   const add = useMutation({
     mutationFn: async (draft: SupplementDraft) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) throw new Error("Not signed in");
       const { error } = await supabase.from("user_supplements").insert({
         user_id: userData.user.id,
@@ -77,7 +78,7 @@ export const useSupplements = () => {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) throw new Error("Not signed in");
       const { error } = await supabase
         .from("user_supplements")

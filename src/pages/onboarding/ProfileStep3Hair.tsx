@@ -20,6 +20,7 @@ import HairLengthPicker from "@/components/HairLengthPicker";
 import { toast } from "sonner";
 import PersonalisedOffersPrompt from "@/components/consent/PersonalisedOffersPrompt";
 import { usePersonalisedOffersAsk } from "@/hooks/usePersonalisedOffersAsk";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
  * Maps the self-assessment labels a member picks to the column values a
@@ -192,7 +193,7 @@ const ProfileStep3Hair = () => {
 
   const goNext = async () => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
-    const { data } = await supabase.auth.getUser();
+    const { data } = await getDisplayedAuthUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", data.user?.id] });
     navigate("/onboarding/profile-step-4-colour");
   };
@@ -341,7 +342,7 @@ const ProfileStep3Hair = () => {
 
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
           try {
-            const { data: u } = await supabase.auth.getUser();
+            const { data: u } = await getDisplayedAuthUser();
             if (u?.user) {
               const enc = await encryptForStorage([
                 { id: "scalp", plaintext: scalp[0] ?? "" },

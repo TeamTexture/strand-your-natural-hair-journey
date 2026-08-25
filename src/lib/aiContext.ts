@@ -22,6 +22,7 @@ import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsLevel } from "@/lib/tipsLevel";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface AiContext {
   hairProfile: Record<string, unknown> | null;
@@ -167,7 +168,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
   // cached strand_* payload to a freshly-signed-in user on the same browser.
   let userId: string | null = null;
   try {
-    const { data: u } = await supabase.auth.getUser();
+    const { data: u } = await getDisplayedAuthUser();
     userId = u?.user?.id ?? null;
   } catch {
     userId = null;

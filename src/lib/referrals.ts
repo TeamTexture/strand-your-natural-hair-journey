@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
  * Referral tracking for directory listings.
@@ -31,7 +32,7 @@ export async function logReferralClick(params: {
   directoryId?: string | null;
 }) {
   try {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getDisplayedAuthUser();
     const userId = auth.user?.id;
     if (!userId) return;
     await supabase.from("pro_referral_clicks").insert({
@@ -57,7 +58,7 @@ export async function logReferralAttribution(params: {
   appointmentId?: string | null;
 }) {
   try {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getDisplayedAuthUser();
     if (!auth.user?.id) return;
     const { error } = await supabase.rpc("log_referral_attribution" as never, {
       p_event_type: params.eventType,

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { assertNotViewingAs } from "@/lib/viewAsReadOnly";
 import { myProfileKey } from "@/hooks/useMyProfile";
 
 /**
@@ -40,12 +41,16 @@ function useRefreshAccess() {
 }
 
 async function invoke<T>(fn: string, body?: Record<string, unknown>): Promise<T> {
+  // Every lifecycle/billing function authenticates as the SIGNED-IN user, so
+  // during impersonation it would act on the admin's own account. Refuse.
+  assertNotViewingAs("Billing");
   const { data, error } = await supabase.functions.invoke(fn, { body: body ?? {} });
   if (error) throw new Error(error.message);
   const payload = data as { error?: string } | null;
   if (payload?.error) throw new Error(payload.error);
   return data as T;
 }
+
 
 /** Pause collection on the membership (Stripe `pause_collection`, behaviour void). */
 export function usePauseMembership() {

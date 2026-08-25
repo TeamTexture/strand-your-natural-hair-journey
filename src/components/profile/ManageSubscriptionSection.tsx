@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import {
   useBillingPortal,
   usePauseMembership,
@@ -109,6 +110,11 @@ const ManageSubscriptionSection = () => {
   const renews = formatLong(subscription?.current_period_end);
   const resumesOn = formatLong(pauseResumesAt);
   const status = (subscription?.status ?? "none").toLowerCase();
+  // An admin viewing as a member must never be able to open that member's
+  // Stripe portal — the edge function authenticates as the ADMIN, so the
+  // portal would be the admin's own billing under the member's name.
+  const { isViewingAs } = useAuth();
+
 
   const pill: { label: string; tone: string } = complimentary
     ? { label: "Complimentary", tone: "bg-primary/15 text-primary border-primary/30" }
@@ -175,7 +181,11 @@ const ManageSubscriptionSection = () => {
           </span>
         </div>
 
-        {complimentary || !hasStripe ? (
+        {isViewingAs ? (
+          <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-3">
+            Billing cannot be managed while viewing as another member.
+          </p>
+        ) : complimentary || !hasStripe ? (
           <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-3">
             {complimentary
               ? "Your access is complimentary, so there is nothing to pause or cancel. Nothing you have logged is ever deleted."

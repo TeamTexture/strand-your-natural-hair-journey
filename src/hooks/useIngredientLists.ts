@@ -13,6 +13,7 @@
 // migration is self-healing without needing a destructive SQL migration.
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export type ListKind = "flag";
 
@@ -239,7 +240,7 @@ async function recomputeFlagList(userId: string) {
 /** Recompute the flag list for the current user. Call after any change to
  *  the user's product library (add, remove, off-shelf, etc.). */
 export async function recomputeIngredientFlags() {
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData } = await getDisplayedAuthUser();
   const user = userData?.user;
   if (!user) return;
   await recomputeFlagList(user.id);
@@ -263,7 +264,7 @@ export interface SaveRatingArgs {
  * product library, recomputed via {@link recomputeIngredientFlags}.
  */
 export async function saveProductRating(args: SaveRatingArgs) {
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData } = await getDisplayedAuthUser();
   const user = userData?.user;
   if (!user) throw new Error("Not signed in");
 
@@ -322,7 +323,7 @@ export function useIngredientLists() {
     setLoading(true);
     setError(null);
     try {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       const user = userData?.user;
       if (!user) {
         setFlags([]);

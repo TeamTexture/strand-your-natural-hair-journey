@@ -34,6 +34,7 @@ import {
   styleAsksTension,
   styleAsksExtensions,
 } from "@/lib/hairstyles";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const NATURAL_NEVER = "Natural (never coloured)";
 
@@ -271,7 +272,7 @@ const ProfileStep4Colour = () => {
     );
     // Dual-write to user_style_profile. PHASE_1_PLAN.md §15.
     try {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u } = await getDisplayedAuthUser();
       if (u?.user) {
         const { error } = await supabase
           .from("user_style_profile")
@@ -314,7 +315,7 @@ const ProfileStep4Colour = () => {
     // Same-tab listeners (Home banner) need a custom event because the
     // browser `storage` event only fires in OTHER tabs.
     window.dispatchEvent(new Event("strand:style-updated"));
-    const { data: currentUser } = await supabase.auth.getUser();
+    const { data: currentUser } = await getDisplayedAuthUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", currentUser.user?.id] });
     return true;
   };

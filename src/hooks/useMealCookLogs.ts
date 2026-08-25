@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface MealCookLog {
   id: string;
@@ -54,7 +55,7 @@ export const useMealCookLogs = () => {
       rating: number;
       photo?: File | null;
     }) => {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) throw new Error("Not signed in");
 
       let photoPath: string | null = null;

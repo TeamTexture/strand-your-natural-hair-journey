@@ -12,6 +12,7 @@ import { aiInvoke, isAuthInvokeError } from "@/lib/aiInvoke";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 interface Extracted {
   name?: string;
@@ -47,7 +48,7 @@ const MySupplementsSection = () => {
   /** Store the bottle photo privately so it can be the supplement thumbnail. */
   const uploadPhoto = async (file: File): Promise<string | null> => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getDisplayedAuthUser();
       if (!userData.user) return null;
       const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase().slice(0, 5);
       const path = `${userData.user.id}/supplements/${crypto.randomUUID()}.${ext}`;
