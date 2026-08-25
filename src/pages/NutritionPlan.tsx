@@ -907,7 +907,9 @@ const NutritionPlan = () => {
       // member as her data being incomplete.
       const missing: Array<{ label: string; to: string }> = [];
       if (hasHealthProfile === false) missing.push({ label: "your health and diet answers", to: "/onboarding/profile-step-2" });
-      if (hasBloodPanel === false) missing.push({ label: "a logged blood test", to: "/blood-upload" });
+      // No blood-panel branch here: a member with no bloods never reaches this
+      // point — the whole screen renders its locked state above instead.
+
 
       if (missing.length > 0) {
         return (
