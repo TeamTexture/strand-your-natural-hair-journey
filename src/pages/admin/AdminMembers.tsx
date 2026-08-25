@@ -81,7 +81,7 @@ function statusBadge(row: MemberRow) {
   const s = row.subscription_status;
   if (s === "active" || s === "trialing") return { label: "Active", cls: "bg-good/15 text-good" };
   if (s === "past_due" || s === "unpaid") return { label: "Past due", cls: "bg-warn/20 text-warn" };
-  if (startedCheckoutUnpaid(row)) return { label: "Started checkout — not paid", cls: "bg-warn/15 text-warn" };
+  if (startedCheckoutUnpaid(row)) return { label: "Not paid", cls: "bg-warn/15 text-warn" };
   if (s === "canceled") return { label: "Cancelled", cls: "bg-muted text-muted-foreground" };
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
@@ -666,9 +666,14 @@ const AdminMembers = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <AccountTypeBadge type={r.account_type} />
-                    <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
+                    <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase whitespace-nowrap ${badge.cls}`}>
                       {badge.label}
                     </span>
+                    {startedCheckoutUnpaid(r) && (
+                      <p className="text-[10px] font-body text-warn text-right leading-tight max-w-[110px]">
+                        Started checkout, never paid
+                      </p>
+                    )}
                   </div>
                 </div>
 
