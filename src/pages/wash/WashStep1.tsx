@@ -1,5 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Check, X, Flame, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -447,30 +447,42 @@ const WashStep1 = () => {
   type PickerTarget = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment" | null;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
+  const setStepState: Record<Exclude<PickerTarget, null>, (s: StepState) => void> = useMemo(
+    () => ({
+      prepoo: setPrePoo,
+      cleanse: setCleanse,
+      cowash: setCoWash,
+      condition: setCondition,
+      treatment: setTreatment,
+    }),
+    [],
+  );
+  const restorePickerTarget = useCallback(
+    (target: Exclude<PickerTarget, null>) => {
+      setPickerTarget(target);
+      setStepState[target]("editing");
+      markTouched(target);
+    },
+    [setStepState],
+  );
   const openPicker = (target: Exclude<PickerTarget, null>) => {
-    setPickerTarget(target);
-    // Encode the target in the URL so when the picker fires off the scan
-    // flow (which navigates away and uses the current URL as returnTo),
-    // we know which step the freshly-shelved product belongs to.
-    const next = new URLSearchParams(searchParams);
-    next.set("picker", target);
-    setSearchParams(next, { replace: true });
+    restorePickerTarget(target);
     setPickerOpen(true);
   };
-  const targetIds: Record<Exclude<PickerTarget, null>, string[]> = {
+  const targetIds: Record<Exclude<PickerTarget, null>, string[]> = useMemo(() => ({
     prepoo: prePooIds,
     cleanse: cleanseIds,
     cowash: coWashIds,
     condition: conditionIds,
     treatment: treatmentIds,
-  };
-  const targetSetters: Record<Exclude<PickerTarget, null>, (v: string[]) => void> = {
+  }), [prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds]);
+  const targetSetters: Record<Exclude<PickerTarget, null>, (v: string[]) => void> = useMemo(() => ({
     prepoo: setPrePooIds,
     cleanse: setCleanseIds,
     cowash: setCoWashIds,
     condition: setConditionIds,
     treatment: setTreatmentIds,
-  };
+  }), []);
   const handleTogglePicked = (productId: string) => {
     if (!pickerTarget) return;
     markTouched(pickerTarget);
@@ -492,6 +504,7 @@ const WashStep1 = () => {
     if (!hydrated) return;
     const target = searchParams.get("picker") as Exclude<PickerTarget, null> | null;
     if (!target) return;
+    if (!targetSetters[target]) return;
     const cutoff = Date.now() - 2 * 60 * 1000;
     const fresh = shelfProducts.filter((p) => {
       if (autoAdded.has(p.id)) return false;
@@ -508,10 +521,10 @@ const WashStep1 = () => {
         for (const id of additions) next.add(id);
         return next;
       });
-      setPickerTarget(target);
+      restorePickerTarget(target);
       setPickerOpen(true);
     }
-  }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters]);
+  }, [shelfProducts, hydrated, searchParams, autoAdded, targetIds, targetSetters, restorePickerTarget]);
 
   // (heat-treatment state hoisted above the persist effect, see top of component)
 
@@ -916,17 +929,11 @@ const WashStep1 = () => {
           setPickerOpen(o);
           if (!o) {
             setPickerTarget(null);
-            // Drop the picker target from the URL once the sheet closes so
-            // the auto-merge effect doesn't fire again on subsequent visits.
-            const next = new URLSearchParams(searchParams);
-            if (next.has("picker")) {
-              next.delete("picker");
-              setSearchParams(next, { replace: true });
-            }
           }
         }}
         selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
         stepHint={pickerTarget}
+        returnTo={pickerTarget ? `/wash/step-1?picker=${pickerTarget}` : undefined}
         onToggle={handleTogglePicked}
 
       />
