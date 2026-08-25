@@ -36,6 +36,8 @@ const ResumeOnboarding = () => {
   const { hasAccess, isLoading: subLoading } = useConsumerSubscription();
   const [bloodResume, setBloodResume] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const { skipped: bloodSkipped, skip: skipBlood, unskip: unskipBlood } = useBloodSkipped();
+
 
   const handleSaveAndSignOut = async () => {
     setSigningOut(true);
