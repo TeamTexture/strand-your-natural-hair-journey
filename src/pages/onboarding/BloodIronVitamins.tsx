@@ -14,8 +14,15 @@ import { toast } from "sonner";
 import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
 
 const IRON = ["Ferritin", "Serum Iron", "TIBC", "Transferrin Saturation"];
-const VITS = ["Vitamin D", "Vitamin B12", "Folate", "Vitamin A", "Vitamin E", "Biotin"];
+const VITS = ["Vitamin D", "Vitamin B12", "Active B12", "Folate", "Vitamin A", "Vitamin E", "Biotin"];
 const ALL = [...IRON, ...VITS];
+
+// Display-only labels so a member can tell the two B12 fields apart. The stored
+// `blood_results.marker` values stay verbatim ("Vitamin B12" / "Active B12").
+const VIT_LABELS: Record<string, string> = {
+  "Vitamin B12": "Vitamin B12 (total)",
+  "Active B12": "Active B12 (holoTC)",
+};
 
 const BloodIronVitamins = () => {
   const navigate = useNavigate();
@@ -49,7 +56,13 @@ const BloodIronVitamins = () => {
         <SectionLabel>Vitamins</SectionLabel>
         <SurfaceCard className="divide-y divide-border/60 !py-1">
           {VITS.map((m) => (
-            <BloodInputRow key={m} marker={m} value={values[m] ?? null} onChange={(v) => setValue(m, v)} />
+            <BloodInputRow
+              key={m}
+              marker={m}
+              value={values[m] ?? null}
+              onChange={(v) => setValue(m, v)}
+              label={VIT_LABELS[m]}
+            />
           ))}
         </SurfaceCard>
 
