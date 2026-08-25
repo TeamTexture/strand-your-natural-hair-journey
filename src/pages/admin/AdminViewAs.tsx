@@ -107,12 +107,28 @@ const AdminViewAs = () => {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((r) =>
-      (r.display_name ?? "").toLowerCase().includes(term) ||
-      (r.email ?? "").toLowerCase().includes(term),
-    );
-  }, [q, rows]);
+    const matched = term
+      ? rows.filter(
+          (r) =>
+            (r.display_name ?? "").toLowerCase().includes(term) ||
+            (r.email ?? "").toLowerCase().includes(term),
+        )
+      : rows;
+    const sorted = [...matched];
+    if (sort === "active") {
+      sorted.sort(
+        (a, b) => b.session_count - a.session_count,
+      );
+    } else if (sort === "recent") {
+      sorted.sort((a, b) => {
+        const ta = a.created_at ? Date.parse(a.created_at) : 0;
+        const tb = b.created_at ? Date.parse(b.created_at) : 0;
+        return tb - ta;
+      });
+    }
+    // "name" keeps the server's display_name ASC order.
+    return sorted;
+  }, [q, rows, sort]);
 
   const enter = (row: Row) => {
     if (!actualUser) return;
