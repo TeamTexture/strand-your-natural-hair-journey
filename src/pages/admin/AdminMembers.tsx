@@ -44,6 +44,7 @@ interface MemberRow {
   subscription_tier: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  has_billing_account: boolean;
   session_count: number;
   last_session: string | null;
   sessions_last_30d: number;
@@ -56,6 +57,23 @@ function isPlusMember(r: MemberRow): boolean {
   return active && r.subscription_tier === "plus";
 }
 
+/**
+ * Started checkout but never paid: a billing account exists in Stripe, yet no
+ * subscription ever became live. These members look like customers on the
+ * surface while producing no revenue, so they get their own status.
+ */
+function startedCheckoutUnpaid(r: MemberRow): boolean {
+  if (r.access_restricted || r.complimentary_access) return false;
+  if (!r.has_billing_account) return false;
+  const s = r.subscription_status;
+  return (
+    s === null ||
+    s === "none" ||
+    s === "incomplete" ||
+    s === "incomplete_expired"
+  );
+}
+
 function statusBadge(row: MemberRow) {
   if (row.access_restricted) return { label: "Restricted", cls: "bg-destructive/15 text-destructive" };
   if (isPlusMember(row) && !row.complimentary_access) return { label: "STRAND+", cls: "bg-primary/20 text-primary font-bold" };
@@ -63,6 +81,7 @@ function statusBadge(row: MemberRow) {
   const s = row.subscription_status;
   if (s === "active" || s === "trialing") return { label: "Active", cls: "bg-good/15 text-good" };
   if (s === "past_due" || s === "unpaid") return { label: "Past due", cls: "bg-warn/20 text-warn" };
+  if (startedCheckoutUnpaid(row)) return { label: "Started checkout — not paid", cls: "bg-warn/15 text-warn" };
   if (s === "canceled") return { label: "Cancelled", cls: "bg-muted text-muted-foreground" };
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
@@ -71,9 +90,11 @@ type Filter =
   | "all"
   | "active"
   | "plus"
+  | "checkout_unpaid"
   | "complimentary"
   | "restricted"
   | "incomplete";
+
 
 
 type SortKey = "recent" | "most_active";
