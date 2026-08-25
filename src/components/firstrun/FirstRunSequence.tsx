@@ -44,20 +44,17 @@ const FirstRunSequence = () => {
   const loading = goalsLoading || challengesLoading;
   const goalsComplete = !!goal && challenges.length > 0;
 
-  // Mandatory gate: shown while the member is still inside the first-run
-  // window and either answer is missing. Marked seen only once satisfied.
-  const showGoalsGate = tourDone && !loading && goalsNudge.eligible && !goalsComplete;
+  // Goal and challenge are captured in onboarding step one, so the old blocking
+  // gate is gone. The flag is simply recorded as seen once both are on file.
   useEffect(() => {
     if (tourDone && !loading && goalsNudge.eligible && goalsComplete) goalsNudge.markSeen();
   }, [tourDone, loading, goalsNudge, goalsComplete]);
 
   const showPhoto =
-    tourDone && !loading && goalsComplete && !showGoalsGate && photoNudge.eligible && !photoDismissed;
+    tourDone && !loading && photoNudge.eligible && !photoDismissed;
   const showProduct =
     tourDone &&
     !loading &&
-    goalsComplete &&
-    !showGoalsGate &&
     !showPhoto &&
     (photoDismissed || !photoNudge.eligible) &&
     productNudge.eligible &&
@@ -71,11 +68,11 @@ const FirstRunSequence = () => {
     if (showProduct) productNudge.markSeen();
   }, [showProduct, productNudge]);
 
-  // The mandatory gate owns the screen: other first-run dialogs stand down.
+  // No first-run dialog owns the screen any more.
   useEffect(() => {
-    setTourActive(showGoalsGate);
-    return () => setTourActive(false);
-  }, [showGoalsGate]);
+    setTourActive(false);
+  }, []);
+
 
   // The mandatory goals/challenges gate has been retired. Goal and challenge are
   // now captured as step one of onboarding, so no existing member — paid or
