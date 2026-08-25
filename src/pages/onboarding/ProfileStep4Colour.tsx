@@ -78,13 +78,12 @@ const ProfileStep4Colour = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resolveNextPath } = useOnboardingCompletion();
-  // The label must reflect what is actually still outstanding: a member who
-  // has already saved her blood work goes on to membership, not back to blood.
-  // The same is true for a member who has consciously skipped blood work —
-  // routing already sends her to Subscribe, so the label must say so too.
+  // Only results actually on file take her past the blood step. A previous
+  // "I'll decide later" is reversible by design, so finishing hair still offers
+  // the upload first — with skipping to membership one tap underneath.
   const { data: onboardingStatus } = useOnboardingStatus();
   const bloodOnFile = !!onboardingStatus?.bloodOnFile;
-  const { skipped: bloodSkipped, skip: skipBlood } = useBloodSkipped();
+  const { skip: skipBlood, unskip: unskipBlood } = useBloodSkipped();
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
@@ -541,16 +540,20 @@ const ProfileStep4Colour = () => {
             // Blood work is optional, but it is what opens the diet and
             // nutrition side — so the primary action offers it rather than
             // stepping over it. Skipping is one tap away underneath.
-            navigate(
-              bloodOnFile || bloodSkipped ? await resolveNextPath() : "/onboarding/blood-timing",
-              { replace: true },
-            );
+            if (bloodOnFile) {
+              navigate(await resolveNextPath(), { replace: true });
+              return;
+            }
+            // Taking the blood route clears any earlier "decide later" so the
+            // screens open in their normal, un-greyed state.
+            await unskipBlood();
+            navigate("/onboarding/blood-timing", { replace: true });
           }}
         >
-          {bloodOnFile || bloodSkipped ? "Subscribe \u2192" : "Next: add blood results \u2192"}
+          {bloodOnFile ? "Subscribe \u2192" : "Next: add blood results \u2192"}
         </Button>
 
-        {!bloodOnFile && !bloodSkipped && (
+        {!bloodOnFile && (
           <>
             <Button
               variant="ghost"
