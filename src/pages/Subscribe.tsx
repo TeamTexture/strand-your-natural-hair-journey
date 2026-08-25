@@ -31,7 +31,6 @@ import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
@@ -475,7 +474,7 @@ const Subscribe = () => {
                   tier === "standard" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70",
                 )}
               >
-                STRAND · £9.99
+                {`STRAND · £${pricing.standard.toFixed(2)}`}
               </button>
               <button
                 type="button"
@@ -485,7 +484,7 @@ const Subscribe = () => {
                   tier === "plus" ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/70",
                 )}
               >
-                <Sparkles className="size-3" /> STRAND+ · £14.99
+                <Sparkles className="size-3" /> {`STRAND+ · £${pricing.plus.toFixed(2)}`}
               </button>
             </div>
             {tier === "plus" && (
