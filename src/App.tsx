@@ -327,12 +327,6 @@ const App = () => (
 
               {/* Onboarding (auth required so data persists) */}
               <Route path="/onboarding/goal" element={<Onboard><GoalAndChallenge /></Onboard>} />
-              <Route path="/__vpreview/step1" element={<ProfileStep1 />} />
-              <Route path="/__vpreview/hair" element={<ProfileStep3Hair />} />
-              <Route path="/__vpreview/step4" element={<ProfileStep4Colour />} />
-              <Route path="/__vpreview/goal" element={<GoalAndChallenge />} />
-              <Route path="/__vpreview/step2" element={<ProfileStep2 />} />
-              <Route path="/__vpreview/supp" element={<ProfileSupplements />} />
               <Route path="/onboarding/profile-step-1" element={<Onboard><ProfileStep1 /></Onboard>} />
               <Route path="/onboarding/profile-step-2" element={<Onboard><ProfileStep2 /></Onboard>} />
               <Route path="/onboarding/profile-supplements" element={<Onboard><ProfileSupplements /></Onboard>} />
