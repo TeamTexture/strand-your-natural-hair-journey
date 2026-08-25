@@ -45,6 +45,16 @@ export const HAIR_FEEL_MAP = {
     "The parting closes up as soon as I let go": "High",
     "Not sure": null,
   } as Record<string, string | null>,
+  porosity: {
+    "Soaks it up fast": "High",
+    "Water beads and sits on top": "Low",
+    "Somewhere in between": "Medium",
+  } as Record<string, string | null>,
+  elasticity: {
+    "Stretches and springs back": "Strong",
+    "Snaps, or stays stretched": "Weak",
+    "Not sure": null,
+  } as Record<string, string | null>,
 } as const;
 
 export type HairFeelField = keyof typeof HAIR_FEEL_MAP;
@@ -54,6 +64,39 @@ export function mapHairFeelLabel(field: HairFeelField, label: string | undefined
   if (!label) return null;
   return HAIR_FEEL_MAP[field][label] ?? null;
 }
+
+/**
+ * The clinical shorthand shown in brackets after each option, so she learns
+ * what her answer means. Presentation only — keyed by the plain option text,
+ * which stays the stored/compared value.
+ */
+const ANNOTATIONS: Record<string, Record<string, string>> = {
+  diameter: {
+    "I can barely feel it": "fine",
+    "I can feel it clearly": "medium",
+    "Thick and wiry": "coarse",
+    "Different across my head": "mixed",
+  },
+  surface_texture: {
+    "Smooth all the way": "silky",
+    "A little grip": "medium",
+    "Bumpy, it catches": "rough",
+  },
+  density: {
+    "A wide band of scalp": "low density",
+    "A clear line with a little scalp either side": "medium density",
+    "The parting closes up as soon as I let go": "high density",
+  },
+  porosity: {
+    "Soaks it up fast": "high porosity",
+    "Water beads and sits on top": "low porosity",
+    "Somewhere in between": "medium porosity",
+  },
+  elasticity: {
+    "Stretches and springs back": "strong elasticity",
+    "Snaps, or stays stretched": "weak elasticity",
+  },
+};
 
 interface TGProps {
   label: string;
@@ -68,9 +111,12 @@ interface TGProps {
   /** The clinical name for what is being asked, shown as a small gold badge
    *  beside the question rather than as part of the question itself. */
   term?: string;
+  /** Key into ANNOTATIONS, when this question's options carry shorthand. */
+  annotationSet?: keyof typeof ANNOTATIONS;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term, annotationSet }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
+  const annotations = annotationSet ? ANNOTATIONS[annotationSet] : undefined;
   const toggle = (opt: string) => {
     if (multi) {
       onChange(noneLabel ? toggleWithNone(safeValue, opt, noneLabel) : safeValue.includes(opt) ? safeValue.filter((v) => v !== opt) : [...safeValue, opt]);
@@ -85,7 +131,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
       </OnboardingQuestion>
       <div className="flex flex-wrap gap-[7px]">
         {options.map((o) => (
-          <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
+          <Tag key={o} selected={safeValue.includes(o)} annotation={annotations?.[o]} onClick={() => toggle(o)}>
             {o}
           </Tag>
         ))}
@@ -93,6 +139,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
     </div>
   );
 };
+
 
 const ProfileStep3Hair = () => {
   const navigate = useNavigate();
