@@ -530,11 +530,38 @@ const Subscribe = () => {
           <CtaBlock />
         </SurfaceCard>
 
+        {/* Advisory notes — informational only, never a blocker or a link out. */}
+        <div className="pt-4 border-t border-border/60 space-y-3">
+          <div className="rounded-[14px] border border-primary/25 bg-primary/[0.06] p-3.5">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/12">
+                <Droplet className="size-3.5 text-primary" aria-hidden />
+              </span>
+              <p className="text-[12.5px] font-body leading-snug text-foreground/80">
+                Adding your blood results opens the nutrition and diet side of STRAND.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[14px] border border-primary/25 bg-primary/[0.06] p-3.5">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/12">
+                <Stethoscope className="size-3.5 text-primary" aria-hidden />
+              </span>
+              <p className="text-[12.5px] font-body leading-snug text-foreground/80">
+                We strongly recommend a professional consultation. Your recommendations are
+                built on your hair characteristics, so having them measured by a professional
+                — and kept up to date — makes everything STRAND tells you more accurate.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <p className="text-[11px] text-foreground/50 font-body text-center leading-relaxed">
           Payments processed securely by Stripe. Your data is never deleted if your
           membership lapses — access is restored the moment you resubscribe.
         </p>
+
 
         {/* Sign out is the only exit without a membership. */}
         {!hasAccess && (
