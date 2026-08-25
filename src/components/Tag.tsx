@@ -5,12 +5,19 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   selected?: boolean;
   /** Style variants */
   tone?: "default" | "warn";
+  /**
+   * Optional clinical shorthand shown in brackets after the option text, so a
+   * member learns what her plain-English answer actually means. Presentation
+   * only — the stored/compared value is always the option text itself, never
+   * this annotation.
+   */
+  annotation?: string;
 }
 
 /**
  * Pill-shaped multi-select tag. Tap toggles gold fill.
  */
-const Tag = ({ selected, tone = "default", className, children, ...rest }: Props) => (
+const Tag = ({ selected, tone = "default", annotation, className, children, ...rest }: Props) => (
   <button
     type="button"
     aria-pressed={selected}
@@ -25,6 +32,16 @@ const Tag = ({ selected, tone = "default", className, children, ...rest }: Props
     {...rest}
   >
     {children}
+    {annotation && (
+      <span
+        className={cn(
+          "ml-1 font-normal",
+          selected ? "text-primary-foreground/75" : "text-gold-deep",
+        )}
+      >
+        ({annotation})
+      </span>
+    )}
   </button>
 );
 
