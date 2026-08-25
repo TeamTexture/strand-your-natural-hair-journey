@@ -465,6 +465,27 @@ const AdminMembers = () => {
     },
   });
 
+  /** Adds every member with a live or trialing subscription to the paid mailing list. */
+  const syncPaidList = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("klaviyo-member-sync", {
+        body: { mode: "paid-backfill" },
+      });
+      if (error) throw error;
+      return data as { added: number; considered: number; failed: number };
+    },
+    onSuccess: (data) => {
+      toast.success(
+        data?.failed
+          ? `Added ${data.added} paying member${data.added === 1 ? "" : "s"} — ${data.failed} could not be added.`
+          : `Paid list up to date — ${data?.added ?? 0} paying member${data?.added === 1 ? "" : "s"} on the list.`,
+      );
+    },
+    onError: (err) => {
+      toast.error((err as Error).message ?? "Could not sync the paid mailing list");
+    },
+  });
+
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: "all", label: "All", count: rows.length },
     {
