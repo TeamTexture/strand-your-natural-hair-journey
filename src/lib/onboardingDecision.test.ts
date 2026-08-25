@@ -41,8 +41,12 @@ describe("onboarding completion matrix", () => {
       expect(requirements.bloodOutstanding).toBe(!blood);
       // Neither blood work nor the consultation gates access any more.
       expect(requirements.coreComplete).toBe(hair);
+      // Post-payment destination follows bloodOnFile: the analysis screen only
+      // when there is something to analyse, otherwise straight into the app.
       const expected = hair
-        ? "/subscribe?next=%2Fonboarding%2Fblood-ai-summary"
+        ? blood
+          ? "/subscribe?next=%2Fonboarding%2Fblood-ai-summary"
+          : "/subscribe?next=%2Fhome"
         : "/onboarding/profile-step-3-hair";
       expect(getOnboardingNextPath(status, false)).toBe(expected);
     },
@@ -66,17 +70,13 @@ describe("onboarding completion matrix", () => {
   it("never lets a missing consultation gate subscribe", () => {
     const status = statusFor(true, false, false);
     expect(getOnboardingRequirements(status).coreComplete).toBe(true);
-    expect(getOnboardingNextPath(status, false)).toBe(
-      "/subscribe?next=%2Fonboarding%2Fblood-ai-summary",
-    );
+    expect(getOnboardingNextPath(status, false)).toBe("/subscribe?next=%2Fhome");
   });
 
   it("never lets outstanding blood work gate subscribe", () => {
     const status = statusFor(true, false, true);
     expect(getOnboardingRequirements(status).coreComplete).toBe(true);
-    expect(getOnboardingNextPath(status, false)).toBe(
-      "/subscribe?next=%2Fonboarding%2Fblood-ai-summary",
-    );
+    expect(getOnboardingNextPath(status, false)).toBe("/subscribe?next=%2Fhome");
   });
 
   it("sends a fully complete paid member home", () => {
