@@ -255,6 +255,7 @@ const ProfileStep3Hair = () => {
               label="How your hair takes water"
               term="porosity"
               annotationSet="porosity"
+              definition="Porosity is how readily your hair takes in water and lets it go again."
               options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
               value={porosity} onChange={setPorosity}
             />
@@ -263,6 +264,7 @@ const ProfileStep3Hair = () => {
               label="How a wet strand behaves when you stretch it"
               term="elasticity"
               annotationSet="elasticity"
+              definition="Elasticity is how far a wet strand can stretch and come back without breaking."
               options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
               value={elasticity} onChange={setElasticity}
             />
