@@ -6,7 +6,9 @@ interface Props {
   children: ReactNode;
   /** The clinical name for what is being asked, shown as a small gold badge. */
   term?: string;
-  /** Optional quiet helper line under the question. */
+  /** What the characteristic IS — a quiet definition block under the question. */
+  definition?: string;
+  /** How to CHECK it — italic helper line with a gold left border. */
   helper?: string;
   className?: string;
 }
@@ -16,7 +18,7 @@ interface Props {
  * typeset as a question (sentence case body type), with the clinical term kept
  * separate as a badge so it never reads as part of what she is being asked.
  */
-const OnboardingQuestion = ({ children, term, helper, className }: Props) => (
+const OnboardingQuestion = ({ children, term, definition, helper, className }: Props) => (
   <div className={cn("mb-[9px]", className)}>
     <p className="font-body text-[14.5px] font-medium leading-[1.3] text-foreground">
       {children}
@@ -26,6 +28,13 @@ const OnboardingQuestion = ({ children, term, helper, className }: Props) => (
         </span>
       )}
     </p>
+    {definition && (
+      <p
+        className="mt-2 mb-2.5 rounded-[8px] bg-primary/[0.09] px-2.5 py-2 font-body text-[11.5px] leading-[1.45] text-[#6A5A38]"
+      >
+        {definition}
+      </p>
+    )}
     {helper && (
       <p className="mt-1.5 border-l-2 border-primary/40 pl-[9px] font-body text-[12px] italic leading-snug text-muted-foreground">
         {helper}
