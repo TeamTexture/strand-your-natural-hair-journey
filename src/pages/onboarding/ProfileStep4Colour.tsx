@@ -354,7 +354,7 @@ const ProfileStep4Colour = () => {
               </div>
 
               <div>
-                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Product used</div>
+                <OnboardingQuestion className="mb-1.5">Product used</OnboardingQuestion>
                 <Select value={colourProduct} onValueChange={setColourProduct}>
                   <SelectTrigger><SelectValue placeholder="Select product used…" /></SelectTrigger>
                   <SelectContent>
@@ -369,9 +369,9 @@ const ProfileStep4Colour = () => {
               </div>
 
               <div>
-                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">
+                <OnboardingQuestion className="mb-1.5">
                   When was your last colour treatment?
-                </div>
+                </OnboardingQuestion>
                 <Select value={colourLast} onValueChange={setColourLast}>
                   <SelectTrigger><SelectValue placeholder="Select a timeframe…" /></SelectTrigger>
                   <SelectContent>
