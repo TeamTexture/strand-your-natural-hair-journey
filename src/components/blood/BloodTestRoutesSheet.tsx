@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { BadgeCheck, Droplet, FlaskConical, Stethoscope } from "lucide-react";
+import { Droplet, FlaskConical, Stethoscope } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +13,7 @@ import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import BrandBloodPanelRow from "@/components/blood/BrandBloodPanelRow";
+import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
 import { useBloodTestBrandPanels } from "@/hooks/useBloodTestBrands";
 import { useDirectoryProfessionals } from "@/hooks/useDirectoryProfessionals";
 import { orderPanelsByRelevance } from "@/lib/bloodTestBrands";
