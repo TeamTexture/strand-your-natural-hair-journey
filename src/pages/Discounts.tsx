@@ -16,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { directoryLinkForPro } from "@/lib/directoryLink";
 import SponsoredOfferCard from "@/components/SponsoredOfferCard";
 import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
-import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 
 
 interface OfferProps {
@@ -89,7 +88,6 @@ const Discounts = () => {
   const navigate = useNavigate();
   const { data: brandOffers } = useAllLiveBrandOffers();
   const { data: proOffers } = useProOffersForConsumer();
-  const [routesOpen, setRoutesOpen] = useState(false);
 
   return (
     <ScreenLayout>
