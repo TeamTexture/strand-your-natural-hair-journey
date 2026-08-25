@@ -185,8 +185,10 @@ const ResumeOnboarding = () => {
                 </p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
                   Your hair characteristics come from a trichologist, dermatologist or curl
-                  specialist. Book with a vetted professional, then log who you saw and when.
+                  specialist. If you have seen one in the last 6 months that appointment
+                  counts — log who you saw and when instead of booking again.
                 </p>
+
               </div>
             </div>
             <div className="mt-3 space-y-2">
