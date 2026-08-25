@@ -10,7 +10,7 @@ import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
-import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle, Lock } from "lucide-react";
 import { capitaliseSentences } from "@/lib/paragraphs";
 
 import { readBloodData } from "@/lib/bloodRead";
@@ -756,11 +756,14 @@ const NutritionPlan = () => {
         const dietOther = clinical.health?.dietOther ?? "";
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
         if (cancelled) return;
-        setHasBloodPanel(blood.results.length > 0);
+        const bloodOnFile = blood.results.length > 0;
+        setHasBloodPanel(bloodOnFile);
         setHasHealthProfile(!!clinical.health);
         const next = { diet, dietOther, alcohol, flagged };
         setProfile(next);
-        void fetchPlan(false, next);
+        // No bloods on file: this screen renders its locked state, so there is
+        // nothing to generate. Blood work is optional; adding it later opens it.
+        if (bloodOnFile) void fetchPlan(false, next);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -793,6 +796,55 @@ const NutritionPlan = () => {
       </ScreenLayout>
     );
 
+  }
+
+  /**
+   * LOCKED STATE — no blood work on file.
+   *
+   * Blood work is optional, so this is a lock and an open door, never an error
+   * or an empty page. Supplements stay available: they are not derived from
+   * blood values. Blood history and trends keep their own "not enough data"
+   * state elsewhere — no second lock is added there.
+   */
+  if (hasBloodPanel === false) {
+    return (
+      <ScreenLayout bottomNav={!isOnboarding}>
+        <TitleBar title="Nutrition Plan" tips onBack={smartBack(navigate, isOnboarding ? "/onboarding/blood-ai-summary" : "/home")} />
+        <div className="px-5 pt-1 pb-8 space-y-4">
+          <SurfaceCard tone="gold" className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 shrink-0 text-primary" aria-hidden="true">
+                <Lock className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-display text-[16px] leading-tight">
+                  Locked until you add your bloods
+                </p>
+                <p className="text-[12.5px] font-body text-foreground/80 leading-relaxed mt-1">
+                  This section reads your iron, ferritin, vitamin D, B12 and thyroid
+                  values. It won't run on estimates.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full whitespace-normal break-words leading-tight"
+              onClick={() => navigate("/blood-upload")}
+            >
+              Add my blood results →
+            </Button>
+            <p className="text-[11.5px] font-body text-muted-foreground leading-relaxed">
+              Blood work is optional and nothing you've entered expires — add it
+              whenever your results are ready.
+            </p>
+          </SurfaceCard>
+
+          <div className="pt-1 border-t border-border/70" />
+          <MySupplementsSection />
+        </div>
+      </ScreenLayout>
+    );
   }
 
   // Supplements — prefer AI (personalised, layman's terms); fall back to
