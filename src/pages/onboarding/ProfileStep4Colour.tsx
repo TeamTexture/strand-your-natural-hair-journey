@@ -463,7 +463,11 @@ const ProfileStep4Colour = () => {
             </Select>
           </div>
         </div>
+        </div>
+        </OnboardingSectionCard>
 
+        <OnboardingSectionCard number={3} title="Changing your style">
+        <div className="space-y-4">
         <TagGroup
           label="Plans to Change Style"
           options={["Yes", "No"]}
