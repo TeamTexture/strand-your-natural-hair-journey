@@ -440,6 +440,17 @@ const WashStep1 = () => {
   const conditionSelected = useMemo(() => resolve(conditionIds), [conditionIds, shelfProducts]);
   const treatmentSelected = useMemo(() => resolve(treatmentIds), [treatmentIds, shelfProducts]);
 
+  // Track which step editors the user has actively touched, so the
+  // "pre-filled from your last wash day" hint disappears once they act on it.
+  type StepKey = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment";
+  const [touchedSteps, setTouchedSteps] = useState<Set<StepKey>>(new Set());
+  const markTouched = (k: StepKey) =>
+    setTouchedSteps((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  const hintFor = (k: StepKey, selectedCount: number): boolean =>
+    !!(lastWashProductIds && lastWashProductIds.length > 0)
+    && !touchedSteps.has(k)
+    && selectedCount > 0;
+
   // Picker sheet — one global sheet, opened with a target step so toggling
   // selects/deselects from that step's IDs. We also pass the target through
   // the picker's returnTo URL so any product added via auto_save lands back
@@ -565,18 +576,6 @@ const WashStep1 = () => {
     setHeatDialogOpen(true);
     void fetchHeatRationale();
   };
-
-
-  // Track which step editors the user has actively touched, so the
-  // "pre-filled from your last wash day" hint disappears once they act on it.
-  type StepKey = "prepoo" | "cleanse" | "cowash" | "condition" | "treatment";
-  const [touchedSteps, setTouchedSteps] = useState<Set<StepKey>>(new Set());
-  const markTouched = (k: StepKey) =>
-    setTouchedSteps((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
-  const hintFor = (k: StepKey, selectedCount: number): boolean =>
-    !!(lastWashProductIds && lastWashProductIds.length > 0)
-    && !touchedSteps.has(k)
-    && selectedCount > 0;
 
   const removeFrom = (setter: (v: string[]) => void, ids: string[], key: StepKey) => (id: string) => {
     markTouched(key);
