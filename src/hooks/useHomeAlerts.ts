@@ -10,7 +10,7 @@
 //  Cautionary
 //   - Wash overdue (7+ days since last wash) when in protective style
 //   - Style worn 42+ days → time to take down
-//   - Blood retest due (>85 days since latest blood panel date)
+//   - Blood retest available (~6 months since latest blood panel date, only if one exists)
 //   - Last appointment > 170 days ago → rebook
 //   - Any blood marker still flagged "low" → nutrition guidance available
 //   - Hard water area + no clarifying step in the last 3 wash days
@@ -496,7 +496,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         });
       }
 
-      // 5. Blood retest due — ~6 months since latest actual test date, OR never uploaded one.
+      // 5. Blood retest — ~6 months since latest actual test date. Never-tested members get nothing here.
       // IMPORTANT: use blood_panels.panel_date (the test date), not blood_results.updated_at
       // (the upload/save date), otherwise an old report uploaded today never appears due on Home.
       if (scheduledBloodDate) {

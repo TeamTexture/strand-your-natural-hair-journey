@@ -454,7 +454,7 @@ const Profile = () => {
       });
     }
 
-    // Blood test due / never uploaded / scheduled
+    // Blood work — optional retest, optional first entry, or a scheduled test
     if (bloodTestAlert?.kind === "due") {
       const months = Math.floor(bloodTestAlert.days / 30);
       out.push({
