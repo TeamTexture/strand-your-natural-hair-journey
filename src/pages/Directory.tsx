@@ -867,6 +867,12 @@ const Directory = () => {
         </div>
       )}
 
+      {/* PROMOTED featured slot. Renders nothing at all when no professional
+          is dated into the slot today — no heading, no empty state. */}
+      {featuredPro && !loading && (
+        <div className="px-5 pb-4">{renderProCard(featuredPro, { featuredSlot: true })}</div>
+      )}
+
       <div className="px-5 space-y-4 pb-8">
         {loading && pros.length === 0 ? (
           <LoadingDot label="Loading directory…" fullScreen={false} />
