@@ -77,7 +77,7 @@ const MedicationPicker = ({ value, onChange, label = "Medications" }: Props) => 
   return (
     <div className="space-y-2.5">
       <div className="flex items-baseline justify-between">
-        <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+        <span className="block font-body text-[14.5px] font-medium leading-[1.3] text-foreground">
           {label}
         </span>
         <span

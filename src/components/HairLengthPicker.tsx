@@ -89,7 +89,7 @@ const HairLengthPicker = ({ inches, bucket, onChange, labelSize = "sm" }: Props)
       </div>
 
       <div>
-        <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+        <div className="font-body text-[14.5px] font-medium leading-[1.3] text-foreground mb-1.5">
           Exact length (optional)
         </div>
         <div className="flex items-center gap-2">

@@ -5,7 +5,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
-import ItalicSub from "@/components/ItalicSub";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
+import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import SurfaceCard from "@/components/SurfaceCard";
 import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
 import OptionalBadge from "@/components/blood/OptionalBadge";
@@ -51,16 +53,12 @@ const BloodTiming = () => {
     <ScreenLayout>
       <TitleBar title="Blood Test" onBack={onboardingBack(navigate, "/onboarding/blood-timing")} />
       <OnboardingGuide className="pt-2 pb-1" />
+      <OnboardingScreenHeading
+        title="Blood work, if you have it"
+        subtitle="Your iron, ferritin, vitamin D, B12 and thyroid values are what the diet and nutrition side of STRAND reads."
+      />
 
-      <div className="px-5 pb-8 space-y-4">
-        <h2 className="font-display text-[22px] leading-tight text-center pt-2">
-          Have you had a blood test in the last 6 months?
-        </h2>
-        <ItalicSub>
-          Your iron, ferritin, vitamin D, B12 and thyroid values are what the diet and
-          nutrition side of STRAND reads.
-        </ItalicSub>
-
+      <div className="px-5 pb-8 space-y-3">
         {skipped ? (
           <BloodWorkSkippedCard onAdd={() => { void unskip(); setChoice("yes"); }} />
         ) : (
@@ -77,30 +75,36 @@ const BloodTiming = () => {
           </SurfaceCard>
         )}
 
-        <div className="space-y-3">
-          {(["yes", "no"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setChoice(v)}
-              className={cn(
-                "w-full text-left p-4 rounded-[14px] border bg-card transition-colors",
-                choice === v ? "border-primary border-2" : "border-border",
-              )}
-            >
-              <p className="text-sm font-medium font-body">
-                {v === "yes"
-                  ? "Yes — within the last 6 months"
-                  : "No — it's older than 6 months or I've never tested"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {v === "yes"
-                  ? "You'll upload or enter your results next"
-                  : "Carry on without them, or see where to get tested"}
-              </p>
-            </button>
-          ))}
-        </div>
+        <OnboardingSectionCard number={1} title="Your last test">
+          <OnboardingQuestion>
+            Have you had a blood test in the last 6 months?
+          </OnboardingQuestion>
+          <div className="space-y-2">
+            {(["yes", "no"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setChoice(v)}
+                className={cn(
+                  "w-full text-left p-4 rounded-[14px] border bg-surface-raised transition-colors",
+                  choice === v ? "border-primary border-2" : "border-border",
+                )}
+              >
+                <p className="text-sm font-medium font-body">
+                  {v === "yes"
+                    ? "Yes — within the last 6 months"
+                    : "No — it's older than 6 months or I've never tested"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {v === "yes"
+                    ? "You'll upload or enter your results next"
+                    : "Carry on without them, or see where to get tested"}
+                </p>
+              </button>
+            ))}
+          </div>
+        </OnboardingSectionCard>
+
 
         {!choice && (
           <p className="text-[12px] font-body text-muted-foreground text-center leading-snug">

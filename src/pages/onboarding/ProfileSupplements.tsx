@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
-import SurfaceCard from "@/components/SurfaceCard";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import SupplementPicker, { type SelectedSupplement } from "@/components/SupplementPicker";
 import { Button } from "@/components/ui/button";
 import { onboardingBack } from "@/lib/onboardingFlow";
@@ -87,18 +88,16 @@ const ProfileSupplements = () => {
         onBack={onboardingBack(navigate, "/onboarding/profile-supplements")}
       />
       <OnboardingGuide className="pt-2 pb-1" />
+      <OnboardingScreenHeading
+        title="What you're already taking"
+        subtitle="Tell us what you're already taking. STRAND uses this so your nutrition guidance builds on what you're covering instead of repeating it back to you."
+      />
 
-      <div className="px-5 pb-10 space-y-4">
-        <SurfaceCard>
-          <p className="text-xs font-body leading-[1.7] text-foreground/85">
-            Tell us what you're already taking. STRAND uses this so your nutrition guidance
-            builds on what you're covering instead of repeating it back to you.
-          </p>
-        </SurfaceCard>
-
-        <SurfaceCard>
+      <div className="px-5 pb-10 space-y-3">
+        <OnboardingSectionCard number={1} title="Your supplements">
           <SupplementPicker value={supps} onChange={setSupps} label="What you take" />
-        </SurfaceCard>
+        </OnboardingSectionCard>
+
 
         <Button
           variant="gold"

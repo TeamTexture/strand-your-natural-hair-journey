@@ -275,7 +275,7 @@ const VoiceNoteField = ({
 
   return (
     <div className="space-y-2">
-      <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+      <span className="block font-body text-[14.5px] font-medium leading-[1.3] text-foreground">
         {label}
         {required && <span className="text-warn ml-1">*</span>}
       </span>

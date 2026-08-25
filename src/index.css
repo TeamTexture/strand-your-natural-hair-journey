@@ -17,6 +17,11 @@
     --card: 36 67% 97%;
     --card-foreground: 36 32% 13%;
 
+    /* Pure white, for controls that sit on top of a cream card */
+    --surface-raised: 0 0% 100%;
+    /* Deep gold #8A6A22 — small gold type that needs contrast on cream */
+    --gold-deep: 42 60% 34%;
+
     --popover: 36 67% 97%;
     --popover-foreground: 36 32% 13%;
 

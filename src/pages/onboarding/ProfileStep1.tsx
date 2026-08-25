@@ -6,7 +6,8 @@ import { Camera, Check, ChevronDown, ImagePlus, Loader2, X } from "lucide-react"
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
-import ItalicSub from "@/components/ItalicSub";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import SurfaceCard from "@/components/SurfaceCard";
 import HardWaterHint from "@/components/HardWaterHint";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,9 @@ import { convertHeicToJpeg } from "@/lib/imagePrep";
 
 const AVATAR_BUCKET = "avatars";
 
-/** Shared label style. */
+/** Shared label style — a real question, not a form field name. */
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-  <span className="block text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-1.5">
+  <span className="block font-body text-[14.5px] font-medium leading-[1.3] text-foreground mb-[9px]">
     {children}
   </span>
 );
@@ -42,7 +43,7 @@ const FieldFrame = ({
 }) => (
   <div
     className={cn(
-      "relative flex items-center bg-card rounded-[10px] border transition-colors",
+      "relative flex items-center bg-surface-raised rounded-[10px] border transition-colors",
       invalid
         ? "border-[#A04040]"
         : filled
@@ -410,10 +411,13 @@ const ProfileStep1 = () => {
     <ScreenLayout>
       <TitleBar title="About You" />
       <OnboardingGuide className="pt-2 pb-1" />
-      <ItalicSub>This shapes every recommendation Strand makes.</ItalicSub>
+      <OnboardingScreenHeading
+        title="A little about you"
+        subtitle="This shapes every recommendation Strand makes."
+      />
 
       <form
-        className="px-5 space-y-4 pb-8"
+        className="px-5 space-y-3 pb-8"
         onClick={dismissKeyboard}
         onSubmit={(e) => {
           e.preventDefault();
@@ -421,6 +425,7 @@ const ProfileStep1 = () => {
         }}
         noValidate
       >
+        <OnboardingSectionCard number={1} title="Your photo">
         {/* Profile Photo */}
         <div>
           <FieldLabel>Profile Photo</FieldLabel>
@@ -506,7 +511,10 @@ const ProfileStep1 = () => {
           </div>
           {submitted && errors.photo && <FieldError>{errors.photo}</FieldError>}
         </div>
+        </OnboardingSectionCard>
 
+        <OnboardingSectionCard number={2} title="Your details">
+        <div className="space-y-4">
         {/* Full Name */}
         <label className="block">
           <FieldLabel>Full Name</FieldLabel>
@@ -596,7 +604,11 @@ const ProfileStep1 = () => {
           </FieldFrame>
           {submitted && errors.age && <FieldError>{errors.age}</FieldError>}
         </label>
+        </div>
+        </OnboardingSectionCard>
 
+        <OnboardingSectionCard number={3} title="Where you live">
+        <div className="space-y-4">
         {/* Country */}
         <label className="block">
           <FieldLabel>Country of Residence</FieldLabel>
@@ -654,7 +666,6 @@ const ProfileStep1 = () => {
           {isUK && <HardWaterHint postcode={postcode} />}
         </label>
 
-
         {/* Outside the UK — details are still saved, then the member is shown
             the waiting-list splash instead of onboarding. */}
         {country !== "" && !isUK && (
@@ -665,8 +676,10 @@ const ProfileStep1 = () => {
             </p>
           </SurfaceCard>
         )}
+        </div>
+        </OnboardingSectionCard>
 
-
+        <OnboardingSectionCard number={4} title="Heritage">
         {/* Heritage */}
         <label className="block">
           <FieldLabel>
@@ -704,6 +717,8 @@ const ProfileStep1 = () => {
             This is never shared and used only to personalise your hair care recommendations.
           </p>
         </label>
+        </OnboardingSectionCard>
+
 
         {/* Never disabled: a silent disabled button is a dead-end on the very
             first screen every new member sees. Tapping it surfaces exactly

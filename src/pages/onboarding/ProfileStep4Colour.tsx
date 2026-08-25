@@ -7,6 +7,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
+import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
 
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
@@ -44,8 +47,8 @@ interface TGProps {
 const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   return <div>
-    <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
-    <div className="flex flex-wrap gap-2">
+    <OnboardingQuestion>{label}</OnboardingQuestion>
+    <div className="flex flex-wrap gap-[7px]">
       {options.map((o) => (
         <Tag
           key={o}
@@ -320,8 +323,14 @@ const ProfileStep4Colour = () => {
     <ScreenLayout>
       <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} />
       <OnboardingGuide className="pt-2 pb-1" />
+      <OnboardingScreenHeading
+        title="Colour and how you wear it"
+        subtitle="What's been on your hair, and how you're wearing it right now."
+      />
 
-      <div className="px-5 pb-8 space-y-5">
+      <div className="px-5 pb-8 space-y-3">
+        <OnboardingSectionCard number={1} title="Colour and chemical history">
+        <div className="space-y-4">
         <TagGroup
           label="Current Colour Status"
           options={[NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
@@ -341,12 +350,10 @@ const ProfileStep4Colour = () => {
 
             {/* ── Colour History ── */}
             <div className="space-y-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-                Colour History
-              </div>
+              <OnboardingQuestion>Colour History</OnboardingQuestion>
 
               <div>
-                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Colour type</div>
+                <OnboardingQuestion className="mb-1.5">Colour type</OnboardingQuestion>
                 <Select value={colourType} onValueChange={setColourType}>
                   <SelectTrigger><SelectValue placeholder="Select colour type…" /></SelectTrigger>
                   <SelectContent>
@@ -356,7 +363,7 @@ const ProfileStep4Colour = () => {
               </div>
 
               <div>
-                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Product used</div>
+                <OnboardingQuestion className="mb-1.5">Product used</OnboardingQuestion>
                 <Select value={colourProduct} onValueChange={setColourProduct}>
                   <SelectTrigger><SelectValue placeholder="Select product used…" /></SelectTrigger>
                   <SelectContent>
@@ -371,9 +378,9 @@ const ProfileStep4Colour = () => {
               </div>
 
               <div>
-                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">
+                <OnboardingQuestion className="mb-1.5">
                   When was your last colour treatment?
-                </div>
+                </OnboardingQuestion>
                 <Select value={colourLast} onValueChange={setColourLast}>
                   <SelectTrigger><SelectValue placeholder="Select a timeframe…" /></SelectTrigger>
                   <SelectContent>
@@ -411,15 +418,16 @@ const ProfileStep4Colour = () => {
             <div className="border-t border-border" />
           </>
         )}
+        </div>
+        </OnboardingSectionCard>
 
-
-
-
+        <OnboardingSectionCard number={2} title="Your current style">
+        <div className="space-y-4">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+          <OnboardingQuestion>
             Current hairstyle{" "}
             <span className="font-semibold text-foreground">(choose one)</span>
-          </div>
+          </OnboardingQuestion>
           <StylePicker
             collapseOnSelect
             value={style[0] ?? null}
@@ -437,9 +445,9 @@ const ProfileStep4Colour = () => {
         </div>
 
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+          <OnboardingQuestion>
             How Long in This Style
-          </div>
+          </OnboardingQuestion>
           <div className="flex gap-3">
             <Input
               type="number"
@@ -463,7 +471,11 @@ const ProfileStep4Colour = () => {
             </Select>
           </div>
         </div>
+        </div>
+        </OnboardingSectionCard>
 
+        <OnboardingSectionCard number={3} title="Changing your style">
+        <div className="space-y-4">
         <TagGroup
           label="Plans to Change Style"
           options={["Yes", "No"]}
@@ -475,9 +487,9 @@ const ProfileStep4Colour = () => {
         {isChanging && (
           <>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+              <OnboardingQuestion>
                 When do you plan to change it?
-              </div>
+              </OnboardingQuestion>
               <div className="flex gap-3">
                 <Input
                   type="number"
@@ -524,6 +536,10 @@ const ProfileStep4Colour = () => {
           </>
         )}
 
+        </div>
+        </OnboardingSectionCard>
+
+        <OnboardingSectionCard number={4} title="Your usual style">
         <MultiSelectDropdown
           label="Default / Normal Style"
           options={HAIRSTYLE_OPTIONS}
@@ -531,6 +547,7 @@ const ProfileStep4Colour = () => {
           onChange={setDefaultStyle}
           placeholder="Select your usual styles…"
         />
+        </OnboardingSectionCard>
 
 
         <Button

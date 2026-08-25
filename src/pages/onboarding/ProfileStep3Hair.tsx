@@ -7,7 +7,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
-import ItalicSub from "@/components/ItalicSub";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
+import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,8 +65,8 @@ interface TGProps {
   noneLabel?: string;
   /** Optional muted helper line rendered directly under the label. */
   helper?: string;
-  /** The clinical name for what is being asked, shown in brackets after the
-   *  question and styled as a label rather than part of the question. */
+  /** The clinical name for what is being asked, shown as a small gold badge
+   *  beside the question rather than as part of the question itself. */
   term?: string;
 }
 const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper, term }: TGProps) => {
@@ -78,12 +80,10 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, he
   };
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
+      <OnboardingQuestion term={term} helper={helper}>
         {label}
-        {term && <span className="ml-1 normal-case tracking-normal font-normal text-muted-foreground/70">({term})</span>}
-      </div>
-      {helper && <div className="text-[11px] text-muted-foreground/80 font-body -mt-1.5 mb-2.5">{helper}</div>}
-      <div className="flex flex-wrap gap-2">
+      </OnboardingQuestion>
+      <div className="flex flex-wrap gap-[7px]">
         {options.map((o) => (
           <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
             {o}
@@ -148,72 +148,90 @@ const ProfileStep3Hair = () => {
     <ScreenLayout>
       <TitleBar title="Hair Characteristics" onBack={onboardingBack(navigate, "/onboarding/profile-step-3-hair")} />
       <OnboardingGuide className="pt-2 pb-1" />
-      <ItalicSub>Answer these from what you know about your own hair. You can refine them later with a professional.</ItalicSub>
+      <OnboardingScreenHeading
+        title="Your hair, in your own hands"
+        subtitle="Four short sections. Answer from what you know — you can refine any of it later with a professional."
+      />
 
-      <div className="px-5 pb-8 space-y-5">
-        <div className="space-y-4">
-          <div className="text-xs uppercase tracking-[0.18em] text-foreground font-body font-medium">Feel and look</div>
-          <TagGroup
-            multi={false}
-            label="Roll one strand between your finger and thumb"
-            term="strand diameter"
-            options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
-            value={diameter} onChange={setDiameter}
-          />
-          <TagGroup
-            multi={false}
-            label="Slide your fingers down a strand, root to tip"
-            term="surface texture"
-            options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
-            value={surfaceTexture} onChange={setSurfaceTexture}
-          />
-          <TagGroup
-            multi={false}
-            label="Part your hair and look along the line"
-            term="density"
-            helper="Make a parting with a comb, then look at how much scalp shows along it."
-            options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
-            value={density} onChange={setDensity}
-          />
-        </div>
-        <TagGroup
-          multi={false}
-          label="How your hair takes water"
-            term="porosity"
-          options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
-          value={porosity} onChange={setPorosity}
-        />
-        <TagGroup
-          multi={false}
-          label="How a wet strand behaves when you stretch it"
-            term="elasticity"
-          options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
-          value={elasticity} onChange={setElasticity}
-        />
-        <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
-        <TagGroup
-          label="Diagnosed Conditions"
-          options={[
-            "Traction alopecia", "Androgenetic alopecia", "Alopecia areata", "CCCA",
-            "Telogen effluvium", "Seborrheic dermatitis", "Folliculitis",
-            "Scalp psoriasis", "Scalp eczema", "None diagnosed",
-          ]}
-          value={diagnosed} onChange={setDiagnosed} noneLabel="None diagnosed"
-        />
-        <TagGroup
-          label="Areas of Concern"
-          options={["Edges / hairline", "Temples", "Crown", "Nape", "Overall thinning", "None"]}
-          value={areas} onChange={setAreas} noneLabel="None"
-        />
+      <div className="px-5 pb-8 space-y-3">
+        <OnboardingSectionCard number={1} title="Feel and look">
+          <div className="space-y-4">
+            <TagGroup
+              multi={false}
+              label="Roll one strand between your finger and thumb"
+              term="strand diameter"
+              options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
+              value={diameter} onChange={setDiameter}
+            />
+            <TagGroup
+              multi={false}
+              label="Slide your fingers down a strand, root to tip"
+              term="surface texture"
+              options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
+              value={surfaceTexture} onChange={setSurfaceTexture}
+            />
+            <TagGroup
+              multi={false}
+              label="Part your hair and look along the line"
+              term="density"
+              helper="Make a parting with a comb, then look at how much scalp shows along it."
+              options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
+              value={density} onChange={setDensity}
+            />
+          </div>
+        </OnboardingSectionCard>
 
-        <HairLengthPicker
-          inches={lengthInches}
-          bucket={lengthBucket}
-          onChange={({ inches, bucket }) => {
-            setLengthInches(inches);
-            setLengthBucket(bucket);
-          }}
-        />
+        <OnboardingSectionCard number={2} title="Water and stretch">
+          <div className="space-y-4">
+            <TagGroup
+              multi={false}
+              label="How your hair takes water"
+              term="porosity"
+              options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
+              value={porosity} onChange={setPorosity}
+            />
+            <TagGroup
+              multi={false}
+              label="How a wet strand behaves when you stretch it"
+              term="elasticity"
+              options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
+              value={elasticity} onChange={setElasticity}
+            />
+          </div>
+        </OnboardingSectionCard>
+
+        <OnboardingSectionCard number={3} title="Scalp and concerns">
+          <div className="space-y-4">
+            <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
+            <TagGroup
+              label="Diagnosed Conditions"
+              options={[
+                "Traction alopecia", "Androgenetic alopecia", "Alopecia areata", "CCCA",
+                "Telogen effluvium", "Seborrheic dermatitis", "Folliculitis",
+                "Scalp psoriasis", "Scalp eczema", "None diagnosed",
+              ]}
+              value={diagnosed} onChange={setDiagnosed} noneLabel="None diagnosed"
+            />
+            <TagGroup
+              label="Areas of Concern"
+              options={["Edges / hairline", "Temples", "Crown", "Nape", "Overall thinning", "None"]}
+              value={areas} onChange={setAreas} noneLabel="None"
+            />
+          </div>
+        </OnboardingSectionCard>
+
+        <OnboardingSectionCard number={4} title="Length">
+          <HairLengthPicker
+            inches={lengthInches}
+            bucket={lengthBucket}
+            onChange={({ inches, bucket }) => {
+              setLengthInches(inches);
+              setLengthBucket(bucket);
+            }}
+          />
+        </OnboardingSectionCard>
+
+
 
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
