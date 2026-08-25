@@ -64,7 +64,7 @@ const ProSalonStylists = () => {
           <SurfaceCard>
             <p className="text-sm font-body leading-snug">
               This account isn't linked to a salon listing. If you run a salon with
-              more than one stylist, email info@teamtexture.co.uk and we'll set it up.
+              more than one stylist, email support@teamtexture.co.uk and we'll set it up.
             </p>
           </SurfaceCard>
         </div>

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const SUPPORT_EMAIL = "info@teamtexture.co.uk";
+const SUPPORT_EMAIL = "support@teamtexture.co.uk";
 
 const AccessRestricted = () => {
   const { signOut } = useAuth();
