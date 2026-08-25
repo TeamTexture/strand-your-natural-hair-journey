@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Suspense, type ReactNode } from "react";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { lazyRetry } from "@/lib/lazyRetry";
