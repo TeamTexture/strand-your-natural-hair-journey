@@ -25,6 +25,14 @@ export const BLOOD_RANGES: Record<string, BloodRange> = {
   // Vitamins
   "Vitamin D": { marker: "Vitamin D", unit: "nmol/L", low: 50, high: 250, category: "vitamins" },
   "Vitamin B12": { marker: "Vitamin B12", unit: "pmol/L", low: 200, high: 900, category: "vitamins" },
+  // Active B12 (holotranscobalamin) — reported by Lola Health and other UK
+  // providers on a completely different scale to total B12. Lola's published
+  // "sufficient" threshold is 37.5 pmol/L (borderline 25.1–37.5, deficient <25.1).
+  // BloodStatus has no "borderline" state, so 37.5 deliberately flags the
+  // borderline band as low (the conservative direction). No published upper
+  // reference limit exists, so `high` is left undefined (partial ranges are an
+  // established pattern here — see CRP).
+  "Active B12": { marker: "Active B12", unit: "pmol/L", low: 37.5, category: "vitamins" },
   Folate: { marker: "Folate", unit: "nmol/L", low: 7, high: 45, category: "vitamins" },
   "Vitamin A": { marker: "Vitamin A", unit: "μmol/L", low: 1.05, high: 2.27, category: "vitamins" },
   "Vitamin E": { marker: "Vitamin E", unit: "μmol/L", low: 12, high: 42, category: "vitamins" },
