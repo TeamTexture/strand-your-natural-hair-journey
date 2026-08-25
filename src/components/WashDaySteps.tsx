@@ -192,7 +192,7 @@ const WashDaySteps = ({ className }: { className?: string }) => {
         )}
 
         {hasSteps && (
-          <div className="mt-3 min-w-0">
+          <div className="mt-3 min-w-0 empty:hidden empty:mt-0">
             <TipsLevelPrompt />
           </div>
         )}
