@@ -67,7 +67,7 @@ const ProDetails = () => {
 
 
 
-  // Validate consultation date: must exist and be within 90 days.
+  // Validate consultation date: must exist and be within 6 months (180 days).
   const { dateError, isWithinWindow, isExpired } = useMemo(() => {
     if (!date.trim()) {
       return {
@@ -88,7 +88,7 @@ const ProDetails = () => {
     if (daysAgo < 0) {
       return { dateError: "Consultation date cannot be in the future.", isWithinWindow: false, isExpired: false };
     }
-    if (daysAgo > 90) return { dateError: "", isWithinWindow: false, isExpired: true };
+    if (daysAgo > 180) return { dateError: "", isWithinWindow: false, isExpired: true };
     return { dateError: "", isWithinWindow: true, isExpired: false };
   }, [date]);
 
@@ -234,7 +234,7 @@ const ProDetails = () => {
           {isWithinWindow && (
             <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-good font-body bg-good/10 px-2 py-1 rounded">
               <Check className="size-3" />
-              Consultation within 3 months
+              Consultation within 6 months
             </div>
           )}
 
@@ -243,9 +243,9 @@ const ProDetails = () => {
               <div className="flex items-start gap-2">
                 <CalendarX className="size-4 text-warn shrink-0 mt-0.5" />
                 <p className="text-xs text-foreground font-body leading-relaxed">
-                  Your consultation was over 3 months ago. Strand requires a consultation
-                  within the last 3 months to ensure your hair characteristics are accurate
-                  and up to date. Please go back and book a new appointment.
+                  Your consultation was over 6 months ago. STRAND reads your hair
+                  characteristics from a consultation within the last 6 months, so they stay
+                  accurate. Nothing you've entered expires — book when it suits you.
                 </p>
               </div>
               <div className="space-y-2 pt-1">

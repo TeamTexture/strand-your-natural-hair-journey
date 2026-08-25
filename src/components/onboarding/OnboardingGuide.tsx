@@ -45,7 +45,7 @@ const GUIDES: Record<string, Guide> = {
   "/onboarding/pro-gate": {
     step: 3,
     label: "Hair analysis",
-    what: "Tell us whether a hair professional has assessed your hair in the last 3 months.",
+    what: "Tell us whether a hair professional has assessed your hair in the last 6 months. An appointment you have already had counts.",
     why: "Your plan is only as good as the data behind it, so we want it measured, not guessed.",
     next: "No recent assessment? Book one below — we'll hold your place.",
   },
@@ -67,7 +67,7 @@ const GUIDES: Record<string, Guide> = {
     step: 5,
     label: "Hair characteristics",
     what: "Enter the characteristics your professional gave you — porosity, density, texture and the rest.",
-    why: "Everything STRAND recommends is built on these numbers, which is why they should come from a professional within the last 3 months rather than a best guess.",
+    why: "Everything STRAND recommends is built on these numbers, which is why they should come from a professional within the last 6 months rather than a best guess.",
     next: "Next: colour and your current style.",
   },
   "/onboarding/profile-step-4-colour": {
