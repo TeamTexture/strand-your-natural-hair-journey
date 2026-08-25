@@ -926,7 +926,9 @@ const WashStep1 = () => {
           }
         }}
         selectedIds={pickerTarget ? targetIds[pickerTarget] : []}
+        stepHint={pickerTarget}
         onToggle={handleTogglePicked}
+
       />
     </ScreenLayout>
   );
