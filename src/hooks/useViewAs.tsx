@@ -12,6 +12,9 @@
 // of other users' data.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import { purgeStrandUserScopedKeys } from "@/lib/strandLocalStorage";
+import { invalidateClinicalContextCache } from "@/lib/clinicalContext";
+import { installViewAsReadOnlyGuard } from "@/lib/viewAsReadOnly";
 
 const STORAGE_KEY = "strand_view_as_user_id";
 const NAME_KEY = "strand_view_as_display_name";
@@ -40,6 +43,9 @@ export const ViewAsProvider = ({ children }: { children: ReactNode }) => {
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(() => readSession(STORAGE_KEY));
   const [viewAsDisplayName, setViewAsDisplayName] = useState<string | null>(() => readSession(NAME_KEY));
 
+  // Refuse every mutating request while impersonation is active.
+  useEffect(() => { installViewAsReadOnlyGuard(); }, []);
+
   // Keep multiple tabs in sync in case the admin opens the app in two tabs.
   useEffect(() => {
     const handler = () => {
@@ -51,6 +57,11 @@ export const ViewAsProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const startViewAs = useCallback((userId: string, displayName?: string | null) => {
+    // Entering impersonation: every cached `strand_*` value on this device
+    // belongs to the ADMIN. Purge it (and the in-memory clinical cache) before
+    // the swap so nothing of the admin's bleeds into the member's screens.
+    purgeStrandUserScopedKeys("view-as-start");
+    invalidateClinicalContextCache();
     try {
       sessionStorage.setItem(STORAGE_KEY, userId);
       if (displayName) sessionStorage.setItem(NAME_KEY, displayName);
@@ -66,6 +77,10 @@ export const ViewAsProvider = ({ children }: { children: ReactNode }) => {
       sessionStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(NAME_KEY);
     } catch { /* ignore */ }
+    // Leaving impersonation: anything cached during the view belongs to the
+    // member, not the admin. Purge it too.
+    purgeStrandUserScopedKeys("view-as-stop");
+    invalidateClinicalContextCache();
     setViewAsUserId(null);
     setViewAsDisplayName(null);
     window.dispatchEvent(new Event("strand:view-as-changed"));
