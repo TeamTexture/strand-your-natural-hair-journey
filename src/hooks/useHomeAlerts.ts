@@ -518,7 +518,7 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
           body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. A fresh panel keeps your diet and nutrition guidance reading current values.`,
           to: "/directory?bloodOnly=1",
 
-          tone: "info",
+          tone: "warning",
           signature: alertSignature(ALERT_KEYS.BLOOD_TEST_OVERDUE, [
             lastBloodPanelDate,
             timeBucket(ALERT_KEYS.BLOOD_TEST_OVERDUE, daysSinceBlood),
