@@ -307,7 +307,7 @@ const Directory = () => {
       });
     }
     return out;
-  }, [pros, results]);
+  }, [listPros, results]);
 
   /**
    * ONE card renderer for every listing — solo pro, curated row, or a stylist
