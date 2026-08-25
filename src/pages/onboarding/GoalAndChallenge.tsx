@@ -138,6 +138,9 @@ const GoalAndChallenge = () => {
     const { data } = await getDisplayedAuthUser();
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", data.user?.id] });
     await queryClient.invalidateQueries({ queryKey: ["user_goals", data.user?.id ?? "anon"] });
+    await queryClient.invalidateQueries({ queryKey: ["user_challenges", data.user?.id ?? "anon"] });
+    await queryClient.invalidateQueries({ queryKey: ["user_challenges_onboarding", data.user?.id ?? "anon"] });
+
     navigate(path);
   };
 
