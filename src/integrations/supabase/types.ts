@@ -7052,10 +7052,6 @@ export type Database = {
         Args: { _user: string }
         Returns: boolean
       }
-      can_write_consumer_registration: {
-        Args: { _user: string }
-        Returns: boolean
-      }
       chat_book_appointment: {
         Args: {
           _appointment_date: string
@@ -7306,21 +7302,6 @@ export type Database = {
       resolve_mention_user_ids: { Args: { _text: string }; Returns: string[] }
       rollup_ad_stats: { Args: { p_from?: string }; Returns: number }
       rollup_brand_product_stats: { Args: { p_from?: string }; Returns: number }
-      save_consumer_avatar: {
-        Args: { _avatar_url: string }
-        Returns: undefined
-      }
-      save_consumer_registration: {
-        Args: {
-          _birth_year: number
-          _country: string
-          _display_name: string
-          _heritage?: string[]
-          _phone_number: string
-          _postcode: string
-        }
-        Returns: undefined
-      }
       send_enquiry_to_profile: {
         Args: {
           _budget_range: string
