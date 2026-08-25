@@ -1,4 +1,5 @@
 import {
+  getPostPaymentPath,
   getSubscribePath,
 } from "@/lib/consumerOnboarding";
 
@@ -73,7 +74,9 @@ export function getOnboardingNextPath(
 ): string {
   const { coreComplete } = getOnboardingRequirements(status);
   if (status.dataComplete || coreComplete) {
-    return hasAccess ? "/home" : getSubscribePath();
+    return hasAccess
+      ? "/home"
+      : getSubscribePath(getPostPaymentPath(status.bloodOnFile));
   }
   if (!status.healthComplete) return status.entryPath;
   return singleOutstandingPath(status) ?? "/onboarding/resume";

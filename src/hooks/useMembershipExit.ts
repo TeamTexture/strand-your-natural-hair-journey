@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
-import { getConsumerOnboardingStatus, getSubscribePath } from "@/lib/consumerOnboarding";
+import { getConsumerOnboardingStatus, getPostPaymentPath, getSubscribePath } from "@/lib/consumerOnboarding";
 import { getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 /**
@@ -23,7 +23,8 @@ export function useMembershipExit() {
     if (path.startsWith("/onboarding/resume") && user?.id) {
       try {
         const status = await getConsumerOnboardingStatus(user.id);
-        if (getOnboardingRequirements(status).coreComplete) return getSubscribePath();
+        if (getOnboardingRequirements(status).coreComplete)
+          return getSubscribePath(getPostPaymentPath(status.bloodOnFile));
       } catch {
         // Fall through to the resolved path on a read failure.
       }
