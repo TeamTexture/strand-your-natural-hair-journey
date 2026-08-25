@@ -3,7 +3,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
+import { Compass, HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
@@ -450,7 +450,15 @@ const Home = () => {
 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
-
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
+            aria-label="Take the tour"
+            className="inline-flex items-center gap-1.5 rounded-pill border border-primary/40 bg-primary/10 px-3 h-9 text-[11px] font-semibold font-body text-primary hover:bg-primary/20 transition-colors shrink-0"
+          >
+            <Compass className="size-3.5" />
+            Tour
+          </button>
+          <button
             onClick={() => navigate("/help")}
             aria-label="Help & Support"
             className="size-9 rounded-full bg-card border border-border text-foreground/80 hover:text-primary hover:border-primary/50 flex items-center justify-center transition-colors shrink-0"
