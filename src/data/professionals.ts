@@ -28,6 +28,16 @@ export interface Professional {
   photoUrl?: string;
   /** Signed URLs for the professional's own work gallery (`pro_profiles.photos`). */
   galleryUrls?: string[];
+  /**
+   * PROMOTED featured directory slot — a time-bound, admin-set placement on
+   * `pro_profiles` (featured_from / featured_until / featured_rank). This is
+   * deliberately separate from `featured` above (the onboarding "Recommended"
+   * flag) because it is paid/promoted positioning, not editorial merit.
+   */
+  isFeaturedSlot?: boolean;
+  /** Ordering inside the featured slot, ascending. Null = last. */
+  featuredSlotRank?: number | null;
+
 
   /** GMC number (Dermatologists / GPs) — auto-filled in ProDetails when picked. */
   gmcNumber?: string;
