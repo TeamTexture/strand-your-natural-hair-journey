@@ -320,8 +320,14 @@ const ProfileStep4Colour = () => {
     <ScreenLayout>
       <TitleBar title="Colour & Style" onBack={onboardingBack(navigate, "/onboarding/profile-step-4-colour")} />
       <OnboardingGuide className="pt-2 pb-1" />
+      <OnboardingScreenHeading
+        title="Colour and how you wear it"
+        subtitle="What's been on your hair, and how you're wearing it right now."
+      />
 
-      <div className="px-5 pb-8 space-y-5">
+      <div className="px-5 pb-8 space-y-3">
+        <OnboardingSectionCard number={1} title="Colour and chemical history">
+        <div className="space-y-4">
         <TagGroup
           label="Current Colour Status"
           options={[NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
