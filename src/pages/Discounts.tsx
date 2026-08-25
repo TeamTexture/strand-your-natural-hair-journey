@@ -1,4 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Flower2, HeartPulse, ExternalLink, Sparkles, Scissors } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -9,12 +10,14 @@ import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { Button } from "@/components/ui/button";
 import {
   HELLO_KLEAN_URL, HELLO_KLEAN_CODE,
-  LOLA_HEALTH_URL, LOLA_HEALTH_CODE,
 } from "@/lib/discounts";
 import { useAllLiveBrandOffers } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { directoryLinkForPro } from "@/lib/directoryLink";
 import SponsoredOfferCard from "@/components/SponsoredOfferCard";
+import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
+import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
+
 
 interface OfferProps {
   icon: React.ComponentType<{ className?: string }>;
