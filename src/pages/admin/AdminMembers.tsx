@@ -475,6 +475,11 @@ const AdminMembers = () => {
       ).length,
     },
     { key: "plus", label: "STRAND+", count: rows.filter(isPlusMember).length },
+    {
+      key: "checkout_unpaid",
+      label: "Not paid",
+      count: rows.filter(startedCheckoutUnpaid).length,
+    },
     { key: "complimentary", label: "Complimentary", count: rows.filter((r) => r.complimentary_access).length },
     { key: "incomplete", label: "Incomplete", count: incompleteRows.length },
     { key: "restricted", label: "Restricted", count: rows.filter((r) => r.access_restricted).length },
