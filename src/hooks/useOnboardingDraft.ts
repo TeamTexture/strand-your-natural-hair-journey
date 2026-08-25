@@ -35,12 +35,18 @@ export function useOnboardingDraft<T extends Record<string, unknown>>(
   restore: (draft: Partial<T>) => void,
 ) {
   const [hydrated, setHydrated] = useState(false);
+  // Saving to Postgres must wait until the remote read has settled. Writing the
+  // empty initial form state straight away overwrote the member's saved answers
+  // on the server before they could be restored, so a returning member found a
+  // blank step every time and could never get past it.
+  const [remoteSettled, setRemoteSettled] = useState(false);
   const restoreRef = useRef(restore);
   restoreRef.current = restore;
 
   useEffect(() => {
     let cancelled = false;
     let localTime = 0;
+    setRemoteSettled(false);
 
     // 1. Local cache first, synchronously, so the step never renders empty
     //    while a network read is in flight.
@@ -60,17 +66,21 @@ export function useOnboardingDraft<T extends Record<string, unknown>>(
 
     // 2. Then the durable copy. It only wins when this device has nothing
     //    cached or was written earlier than the saved answers elsewhere.
-    void loadRemoteDraft(key).then((remote) => {
-      if (cancelled || !remote) return;
-      if (localTime && remote.updatedAt <= localTime) return;
-      restoreRef.current(remote.payload as Partial<T>);
-      try {
-        localStorage.setItem(onboardingDraftKey(key), JSON.stringify(remote.payload));
-      } catch {
-        /* quota / private mode */
-      }
-      writeLocalDraftTime(key, new Date(remote.updatedAt || Date.now()).toISOString());
-    });
+    void loadRemoteDraft(key)
+      .then((remote) => {
+        if (cancelled || !remote) return;
+        if (localTime && remote.updatedAt <= localTime) return;
+        restoreRef.current(remote.payload as Partial<T>);
+        try {
+          localStorage.setItem(onboardingDraftKey(key), JSON.stringify(remote.payload));
+        } catch {
+          /* quota / private mode */
+        }
+        writeLocalDraftTime(key, new Date(remote.updatedAt || Date.now()).toISOString());
+      })
+      .finally(() => {
+        if (!cancelled) setRemoteSettled(true);
+      });
 
     return () => {
       cancelled = true;
@@ -86,8 +96,9 @@ export function useOnboardingDraft<T extends Record<string, unknown>>(
       /* quota / private mode */
     }
     // Every answered field persists on its own — no explicit "save" action.
-    saveRemoteDraft(key, values as DraftPayload);
-  }, [hydrated, key, values]);
+    if (remoteSettled) saveRemoteDraft(key, values as DraftPayload);
+  }, [hydrated, remoteSettled, key, values]);
+
 }
 
 /** Called once onboarding is finished so drafts don't linger. */
