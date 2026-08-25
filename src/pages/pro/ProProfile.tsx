@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { PRO_PROFILE_KEY, refreshProProfile } from "@/lib/proProfileCache";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -152,7 +153,10 @@ const ProProfile = () => {
 
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ["pro_profile", user?.id],
+    queryKey: PRO_PROFILE_KEY(user?.id),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -297,10 +301,7 @@ const ProProfile = () => {
       toast.success("Profile saved");
       // One live source of truth: the pro's saved row IS the directory listing,
       // so refresh both caches before navigating and the new data is on screen.
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] }),
-        qc.invalidateQueries({ queryKey: ["pro_directory"] }),
-      ]);
+      await refreshProProfile(qc, user?.id);
       nav("/directory?self=1");
     },
     onError: (e: Error) => {
@@ -325,8 +326,7 @@ const ProProfile = () => {
           ? "Your listing is live in the directory again"
           : "Your listing is hidden — all your details are kept safe",
       );
-      qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
-      qc.invalidateQueries({ queryKey: ["pro_directory"] });
+      void refreshProProfile(qc, user?.id);
     },
     onError: (e: Error) => {
       console.error(e);

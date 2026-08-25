@@ -41,6 +41,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProProfile } from "@/hooks/useProProfileReview";
+import { refreshProProfile } from "@/lib/proProfileCache";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -327,10 +328,7 @@ const ProSetup = () => {
       return { suspended };
     },
     onSuccess: async (res) => {
-      await qc.invalidateQueries({ queryKey: ["pro_profile_review"] });
-      qc.invalidateQueries({ queryKey: ["pro_profile", user?.id] });
-      qc.invalidateQueries({ queryKey: ["pro_directory"] });
-      qc.invalidateQueries({ queryKey: ["directory"] });
+      await refreshProProfile(qc, user?.id);
       await refetch();
       toast.success(
         res?.suspended
