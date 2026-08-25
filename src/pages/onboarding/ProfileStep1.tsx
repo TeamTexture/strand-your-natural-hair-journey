@@ -479,7 +479,7 @@ const ProfileStep1 = () => {
                 type="button"
                 variant="goldOutline"
                 size="pill"
-                className="!px-2 !gap-1.5 !min-h-[40px] !text-[11px] !tracking-wider"
+                className="!px-2 !gap-1.5 !min-h-[40px] !text-[10px] !tracking-wide"
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={avatarBusy}
               >
@@ -490,7 +490,7 @@ const ProfileStep1 = () => {
                 type="button"
                 variant="goldOutline"
                 size="pill"
-                className="!px-2 !gap-1.5 !min-h-[40px] !text-[11px] !tracking-wider"
+                className="!px-2 !gap-1.5 !min-h-[40px] !text-[10px] !tracking-wide"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarBusy}
               >
