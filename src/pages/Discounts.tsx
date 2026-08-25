@@ -138,20 +138,41 @@ const Discounts = () => {
           </>
         )}
 
+        {/* Blood testing — the STRAND-recommended panel, shown as a standing
+            member offer and as a route to booking a test. Single source of
+            truth for the Lola copy, shared with the retest routes sheet. */}
+        <SectionLabel>Blood testing</SectionLabel>
+        <LolaPeakInsightsCard showHeading={false} showPrepNotes={false} />
+        <Button
+          variant="outline"
+          size="pill"
+          className="w-full gap-1.5"
+          onClick={() => setRoutesOpen(true)}
+        >
+          <Droplets className="size-3.5" /> All ways to book a blood test
+        </Button>
+
         {/*
-          Hello Klean and Lola Health are hidden until their partnerships
-          are signed off. The codes and URLs stay in this file so the cards can
-          be switched back on — do not delete them.
+          Hello Klean is hidden until the partnership is signed off. The code
+          and URL stay in this file so the card can be switched back on — do
+          not delete them.
         */}
 
         {(proOffers?.length ?? 0) === 0 && (brandOffers?.length ?? 0) === 0 && (
           <div className="rounded-[14px] border border-dashed border-border px-4 py-6 text-center">
             <p className="font-body text-[12.5px] text-foreground/75 leading-relaxed">
-              No offers just now. New partner discounts land here as they go live — we'll let you
-              know when they do.
+              No brand or professional offers just now. New partner discounts land here as they go
+              live — we'll let you know when they do.
             </p>
           </div>
         )}
+
+        <BloodTestRoutesSheet
+          open={routesOpen}
+          onOpenChange={setRoutesOpen}
+          reason="Ways to get a blood test through STRAND."
+        />
+
 
 
 
