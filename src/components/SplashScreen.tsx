@@ -57,8 +57,10 @@ const SplashScreen = () => {
       return getBrandEntryPath(userId, roles);
     }
     if (proApp) return "/pro/landing";
-    if (await trialOfferPending(userId)) return TRIAL_PAYWALL_PATH;
     if (!onboardingStatus.completed) return onboardingStatus.entryPath;
+    if (await trialOfferPending(userId)) {
+      return onboardingStatus.basicComplete ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-1";
+    }
     const hasAccess = await getConsumerAccessForUser(userId, roles);
     if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);
     return next;

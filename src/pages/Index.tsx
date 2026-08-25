@@ -109,11 +109,13 @@ const Index = () => {
       }
 
       const hasAccess = await getConsumerAccessForUser(user.id, roles);
-      // A trial-funnel registration that never started its trial returns to the
-      // paywall; every pre-existing member falls through to their usual route.
+      // A trial-funnel registration can finish registration details first; after
+      // that, it returns to the paywall until the trial is started.
       const trialPending = !hasAccess && (await trialOfferPending(user.id));
       const consumerPath = trialPending
-        ? TRIAL_PAYWALL_PATH
+        ? onboardingStatus.basicComplete
+          ? TRIAL_PAYWALL_PATH
+          : "/onboarding/profile-step-1"
         : onboardingStatus.completed
         ? hasAccess
           ? "/home"

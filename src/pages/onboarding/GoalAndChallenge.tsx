@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getDisplayedAuthUser } from "@/lib/displayedUser";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 /**
  * GoalAndChallenge — the FIRST consumer onboarding step.
@@ -72,6 +73,7 @@ const CharCount = ({ value }: { value: string }) => (
 const GoalAndChallenge = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: onboarding } = useOnboardingStatus();
 
   const [goal, setGoal] = useState<string | null>(null);
   const [goalOther, setGoalOther] = useState("");
@@ -226,7 +228,7 @@ const GoalAndChallenge = () => {
     setSaving(true);
     const ok = await save();
     setSaving(false);
-    if (ok) void goNext("/onboarding/profile-step-1");
+    if (ok) void goNext(onboarding?.basicComplete ? "/onboarding/profile-step-2" : "/onboarding/profile-step-1");
   };
 
   return (

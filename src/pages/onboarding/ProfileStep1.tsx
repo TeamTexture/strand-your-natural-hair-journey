@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
+import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -394,7 +395,8 @@ const ProfileStep1 = () => {
       .catch((err) => console.error("[gate] declared-country check failed", err));
 
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
-    navigate("/onboarding/profile-step-2");
+    const needsTrial = user ? await trialOfferPending(user.id) : false;
+    navigate(needsTrial ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-2");
 
   };
 
