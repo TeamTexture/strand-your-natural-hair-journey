@@ -373,6 +373,7 @@ const AdminMembers = () => {
 
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "plus" && !isPlusMember(r)) return false;
+      if (filter === "checkout_unpaid" && !startedCheckoutUnpaid(r)) return false;
       if (filter === "active") {
         const active = r.subscription_status === "active" || r.subscription_status === "trialing";
         if (!active || r.access_restricted) return false;
