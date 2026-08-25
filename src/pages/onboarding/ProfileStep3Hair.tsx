@@ -263,7 +263,7 @@ const ProfileStep3Hair = () => {
 
         </OnboardingSectionCard>
 
-        <OnboardingSectionCard number={3} title="Scalp and concerns">
+        <OnboardingSectionCard number={4} title="Scalp and concerns">
           <div className="space-y-4">
             <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
             <TagGroup
@@ -283,7 +283,7 @@ const ProfileStep3Hair = () => {
           </div>
         </OnboardingSectionCard>
 
-        <OnboardingSectionCard number={4} title="Length">
+        <OnboardingSectionCard number={5} title="Length">
           <HairLengthPicker
             inches={lengthInches}
             bucket={lengthBucket}
@@ -299,6 +299,7 @@ const ProfileStep3Hair = () => {
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           const gaps: string[] = [];
+          if (!curlPattern) gaps.push("which pattern your hair most closely matches");
           if (diameter.length === 0) gaps.push("rolling a strand between your fingers");
           if (surfaceTexture.length === 0) gaps.push("sliding your fingers down a strand");
           if (density.length === 0) gaps.push("parting your hair and looking along the line");
@@ -316,13 +317,19 @@ const ProfileStep3Hair = () => {
           const diameterVal = mapHairFeelLabel("diameter", diameter[0]);
           const surfaceTextureVal = mapHairFeelLabel("surface_texture", surfaceTexture[0]);
           const densityVal = mapHairFeelLabel("density", density[0]);
+          const porosityVal = mapHairFeelLabel("porosity", porosity[0]);
+          const elasticityVal = mapHairFeelLabel("elasticity", elasticity[0]);
           localStorage.setItem("strand_hair_profile", JSON.stringify({
-            porosity, elasticity, scalp, diagnosed, areas,
+            curl_pattern: curlPattern,
+            porosity: porosityVal ? [porosityVal] : [],
+            elasticity: elasticityVal ? [elasticityVal] : [],
+            scalp, diagnosed, areas,
             diameter: diameterVal ? [diameterVal] : [],
             texture: surfaceTextureVal ? [surfaceTextureVal] : [],
             density: densityVal ? [densityVal] : [],
             length_inches: lengthInches, length_bucket: lengthBucket,
           }));
+
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
           try {
             const { data: u } = await supabase.auth.getUser();
