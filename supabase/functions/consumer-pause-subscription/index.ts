@@ -2,9 +2,10 @@
 //
 // PAUSE / RESUME a member's own consumer membership.
 //
-// Stripe's `pause_collection` leaves the subscription `status` as `active`, so
-// the paused state is persisted on `consumer_subscriptions.paused` and read by
-// the entitlement check. A paused member has NO app access.
+// Stripe's `pause_collection` leaves the subscription `status` as `active`.
+// This function only updates Stripe; `consumer-stripe-webhook` mirrors the
+// paused state into `consumer_subscriptions` so Stripe remains the source of
+// truth. A paused member has NO app access once the webhook lands.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { preflight, json } from "../_shared/cors.ts";
@@ -50,18 +51,6 @@ Deno.serve(async (req) => {
     const pause = (updated as any).pause_collection as
       | { behavior?: string; resumes_at?: number | null }
       | null;
-
-    const { error } = await admin
-      .from("consumer_subscriptions")
-      .update({
-        paused: !!pause,
-        pause_resumes_at: pause?.resumes_at
-          ? new Date(pause.resumes_at * 1000).toISOString()
-          : null,
-        status: updated.status,
-      })
-      .eq("user_id", userId);
-    if (error) return json(400, { error: error.message });
 
     console.log("consumer-pause-subscription", {
       userId,

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftRight, CreditCard, PauseCircle, PlayCircle, Undo2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -72,14 +71,11 @@ const ActionRow = ({
  * Billing self-service on the consumer Profile screen: plan state, plan change,
  * pause / resume and cancel-at-period-end.
  *
- * Pause and resume call the existing `consumer-pause-subscription` function
- * (Stripe `pause_collection`, persisted to `consumer_subscriptions.paused` and
- * `pause_resumes_at`). Cancellation and un-cancellation go through the existing
- * Stripe billing portal, which is configured to cancel at period end — no new
- * Stripe integration is introduced here.
+ * Pause and resume call `consumer-pause-subscription`, which updates Stripe's
+ * `pause_collection`; the webhook mirrors that state into the database. Plan
+ * changes and cancellation open Stripe Billing Portal deep-link flows.
  */
 const ManageSubscriptionSection = () => {
-  const navigate = useNavigate();
   const { subscription, paused, pauseResumesAt, complimentary, isLoading } =
     useConsumerSubscription();
   const pause = usePauseMembership();
@@ -107,9 +103,8 @@ const ManageSubscriptionSection = () => {
 
   const hasStripe = !!subscription?.stripe_customer_id && !!subscription?.stripe_subscription_id;
   const tier = subscription?.tier === "plus" ? "plus" : "standard";
-  const isPlus = tier === "plus";
-  const planName = isPlus ? "STRAND Plus" : "STRAND";
-  const price = isPlus ? PLUS_PRICE : (basePriceQ.data ?? 9.99);
+  const planName = tier === "plus" ? "STRAND Plus" : "STRAND";
+  const price = tier === "plus" ? PLUS_PRICE : (basePriceQ.data ?? 9.99);
   const cancelling = !!subscription?.cancel_at_period_end;
   const renews = formatLong(subscription?.current_period_end);
   const resumesOn = formatLong(pauseResumesAt);
@@ -141,8 +136,8 @@ const ManageSubscriptionSection = () => {
           ? `£${price.toFixed(2)} a month · renews ${renews}`
           : `£${price.toFixed(2)} a month`;
 
-  const openPortal = (label: string) =>
-    portal.mutate("/profile", {
+  const openPortal = (label: string, flow: "subscription_update" | "subscription_cancel" | "portal") =>
+    portal.mutate({ returnPath: "/profile", flow }, {
       onError: (e) =>
         toast.error(e instanceof Error ? e.message : `Could not open ${label}`),
     });
@@ -193,7 +188,7 @@ const ManageSubscriptionSection = () => {
                 icon={ArrowLeftRight}
                 title="Change your plan"
                 description="Move up or down a tier any time"
-                onClick={() => (isPlus ? openPortal("the billing portal") : navigate("/plus/upgrade"))}
+                onClick={() => openPortal("plan change", "subscription_update")}
                 disabled={portal.isPending}
               />
               {paused ? (
@@ -232,7 +227,7 @@ const ManageSubscriptionSection = () => {
                       ? `Cancelling on ${renews} — turn it back on`
                       : "Turn your cancellation back off"
                   }
-                  onClick={() => openPortal("the billing portal")}
+                  onClick={() => openPortal("the billing portal", "portal")}
                   disabled={portal.isPending}
                 />
               ) : (
@@ -307,7 +302,7 @@ const ManageSubscriptionSection = () => {
             <Button
               variant="outline"
               disabled={portal.isPending}
-              onClick={() => openPortal("the cancellation page")}
+              onClick={() => openPortal("the cancellation page", "subscription_cancel")}
             >
               {portal.isPending ? "Opening…" : "Continue to cancel"}
             </Button>
