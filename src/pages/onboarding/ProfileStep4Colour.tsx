@@ -84,7 +84,7 @@ const ProfileStep4Colour = () => {
   // routing already sends her to Subscribe, so the label must say so too.
   const { data: onboardingStatus } = useOnboardingStatus();
   const bloodOnFile = !!onboardingStatus?.bloodOnFile;
-  const { skipped: bloodSkipped } = useBloodSkipped();
+  const { skipped: bloodSkipped, skip: skipBlood } = useBloodSkipped();
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
