@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { routeToView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
+import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
 import {
   Menu,
