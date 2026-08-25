@@ -17,8 +17,8 @@ const Tag = ({ selected, tone = "default", className, children, ...rest }: Props
     className={cn(
       "px-3.5 py-2 rounded-full text-xs font-body border transition-colors leading-snug text-left max-w-full whitespace-normal [overflow-wrap:anywhere]",
       selected
-        ? "bg-primary text-primary-foreground border-primary"
-        : "bg-card text-foreground border-border hover:border-primary/50",
+        ? "bg-primary text-primary-foreground border-primary font-medium"
+        : "bg-surface-raised text-foreground border-border hover:border-primary/50",
       tone === "warn" && !selected && "text-warn",
       className,
     )}

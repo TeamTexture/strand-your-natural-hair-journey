@@ -6,7 +6,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
-import ItalicSub from "@/components/ItalicSub";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
+import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
 import MedicationPicker from "@/components/MedicationPicker";
 import { Button } from "@/components/ui/button";
@@ -48,14 +50,14 @@ const Field = ({ id, label, answered, invalid, hint, registerRef, children }: Fi
       invalid && "ring-2 ring-destructive/70 bg-destructive/5 -mx-2 px-2 py-2",
     )}
   >
-    <div className="flex items-baseline justify-between gap-2 mb-2">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
+    <div className="flex items-baseline justify-between gap-2">
+      <OnboardingQuestion helper={hint} className="mb-[9px] min-w-0">
         {label}
-      </div>
+      </OnboardingQuestion>
       {!answered && (
         <span
           className={cn(
-            "text-[10px] uppercase tracking-[0.14em] font-body",
+            "shrink-0 text-[10px] uppercase tracking-[0.14em] font-body",
             invalid ? "text-destructive" : "text-muted-foreground/70",
           )}
         >
@@ -64,7 +66,6 @@ const Field = ({ id, label, answered, invalid, hint, registerRef, children }: Fi
       )}
     </div>
     {children}
-    {hint && <p className="mt-1.5 text-[12px] italic text-muted-foreground leading-snug">{hint}</p>}
   </div>
 );
 
@@ -76,7 +77,7 @@ interface ChipFieldProps extends Omit<FieldProps, "children" | "answered" | "inv
 }
 const ChipField = ({ options, value, onToggle, ...rest }: ChipFieldProps) => (
   <Field {...rest} answered={value.length > 0}>
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-[7px]">
       {options.map((o) => (
         <Tag key={o} selected={value.includes(o)} onClick={() => onToggle(o)} className="min-h-[38px]">
           {healthOptionLabel(o)}
@@ -106,7 +107,7 @@ const RadioField = ({ options, value, onSelect, ...rest }: RadioFieldProps) => (
             aria-checked={selected}
             onClick={() => onSelect(o)}
             className={cn(
-              "w-full min-h-[46px] flex items-center gap-3 px-3.5 rounded-[12px] border bg-card text-left transition-colors",
+              "w-full min-h-[46px] flex items-center gap-3 px-3.5 rounded-[12px] border bg-surface-raised text-left transition-colors",
               selected ? "border-primary border-2" : "border-border",
             )}
           >
@@ -126,9 +127,6 @@ const RadioField = ({ options, value, onSelect, ...rest }: RadioFieldProps) => (
   </Field>
 );
 
-const SectionHeading = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="font-display text-[19px] leading-tight text-foreground pt-2">{children}</h2>
-);
 
 /* ── screen ───────────────────────────────────────────────────────────── */
 
@@ -298,16 +296,18 @@ const ProfileStep2 = () => {
     <ScreenLayout>
       <TitleBar title="Health Profile" onBack={onboardingBack(navigate, "/onboarding/profile-step-2")} />
       <OnboardingGuide className="pt-2 pb-1" />
-      <ItalicSub>
-        Hormones and health conditions are the biggest drivers of hair behaviour. All data is private.
-      </ItalicSub>
+      <OnboardingScreenHeading
+        title="Your health picture"
+        subtitle="Hormones and health conditions are the biggest drivers of hair behaviour. All data is private."
+      />
 
-      <div className="px-5 space-y-5 pb-8">
+      <div className="px-5 space-y-3 pb-8">
         <p className="text-[13px] font-body text-muted-foreground leading-snug">
           Every question here needs your own answer — we never assume one for you.
         </p>
 
-        <SectionHeading>Hormones and health</SectionHeading>
+        <OnboardingSectionCard number={1} title="Hormones and health">
+          <div className="space-y-4">
         <ChipField
           id="lifeStage"
           label="Life Stage"
@@ -337,10 +337,11 @@ const ProfileStep2 = () => {
           invalid={invalid("conditions")}
           registerRef={registerRef}
         />
+          </div>
+        </OnboardingSectionCard>
 
-        <div className="border-t border-border my-2" />
-
-        <SectionHeading>Diet</SectionHeading>
+        <OnboardingSectionCard number={2} title="Diet">
+          <div className="space-y-4">
         <RadioField
           id="diet"
           label="Diet Type"
@@ -352,16 +353,14 @@ const ProfileStep2 = () => {
         />
         {canonDiet(diet) === "other" && (
           <div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-              What You Avoid
-            </div>
+            <OnboardingQuestion>What You Avoid</OnboardingQuestion>
             <input
               type="text"
               value={dietOther}
               maxLength={200}
               onChange={(e) => setDietOther(e.target.value)}
               placeholder="e.g. no dairy, no pork"
-              className="w-full min-h-[46px] rounded-[12px] border border-border bg-card px-3.5 py-2.5 text-[15px] font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              className="w-full min-h-[46px] rounded-[12px] border border-border bg-surface-raised px-3.5 py-2.5 text-[15px] font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
             />
             <p className="mt-1.5 text-[12px] italic text-muted-foreground leading-snug">
               Optional. Until you tell us, we keep every food suggestion plant-based rather than guess.
@@ -377,10 +376,11 @@ const ProfileStep2 = () => {
           invalid={invalid("dietBalance")}
           registerRef={registerRef}
         />
+          </div>
+        </OnboardingSectionCard>
 
-        <div className="border-t border-border my-2" />
-
-        <SectionHeading>Lifestyle</SectionHeading>
+        <OnboardingSectionCard number={3} title="Lifestyle">
+          <div className="space-y-4">
         <ChipField
           id="smoke"
           label="Do You Smoke"
@@ -426,10 +426,12 @@ const ProfileStep2 = () => {
           invalid={invalid("sleep")}
           registerRef={registerRef}
         />
+          </div>
+        </OnboardingSectionCard>
 
-        <div className="border-t border-border my-2" />
-
-        <MedicationPicker value={meds} onChange={setMeds} />
+        <OnboardingSectionCard number={4} title="Medications">
+          <MedicationPicker value={meds} onChange={setMeds} />
+        </OnboardingSectionCard>
 
         {missing.length > 0 && (
           <div className="rounded-[14px] border border-border bg-card px-4 py-3">

@@ -4,7 +4,9 @@ import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
-import ItalicSub from "@/components/ItalicSub";
+import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
+import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
+import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
 import Tag from "@/components/Tag";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,14 +204,15 @@ const GoalAndChallenge = () => {
     <ScreenLayout>
       <TitleBar title="Your Goal" onBack={onboardingBack(navigate, "/onboarding/goal")} />
       <OnboardingGuide className="pt-2 pb-1" />
-      <ItalicSub>There are no wrong answers, and you can change this at any time.</ItalicSub>
+      <OnboardingScreenHeading
+        title="What you're working towards"
+        subtitle="There are no wrong answers, and you can change this at any time."
+      />
 
-      <div className="px-5 pb-8 space-y-6">
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-            What are you working towards?
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="px-5 pb-8 space-y-3">
+        <OnboardingSectionCard number={1} title="Your goal">
+          <OnboardingQuestion>What are you working towards?</OnboardingQuestion>
+          <div className="flex flex-wrap gap-[7px]">
             {GOALS.map((o) => (
               <Tag key={o} selected={goal === o} onClick={() => pickGoal(o)}>
                 {o}
@@ -228,13 +231,11 @@ const GoalAndChallenge = () => {
               <CharCount value={goalOther} />
             </div>
           )}
-        </div>
+        </OnboardingSectionCard>
 
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">
-            What's the hardest part right now?
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <OnboardingSectionCard number={2} title="What's in the way">
+          <OnboardingQuestion>What's the hardest part right now?</OnboardingQuestion>
+          <div className="flex flex-wrap gap-[7px]">
             {CHALLENGES.map((o) => (
               <Tag key={o} selected={challenges.includes(o)} onClick={() => toggleChallenge(o)}>
                 {o}
@@ -253,7 +254,8 @@ const GoalAndChallenge = () => {
               <CharCount value={challengeOther} />
             </div>
           )}
-        </div>
+        </OnboardingSectionCard>
+
 
         <div className="space-y-3 pt-1">
           <Button variant="gold" size="pill" className="w-full" disabled={saving} onClick={onContinue}>
