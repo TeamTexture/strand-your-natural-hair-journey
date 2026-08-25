@@ -222,10 +222,11 @@ const ResumeOnboarding = () => {
                 </p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
                   {!status.consultationComplete
-                    ? "First, log who you saw and when — your clinical markers come from that consultation."
+                    ? "Your clinical markers come from your consultation, so log who you saw and when first. An appointment in the last 6 months counts — you do not need a new one."
                     : status.hairComplete
                       ? "Your clinical markers are saved. Colour and styling history is the last part."
                       : "The clinical markers from your consultation — diameter, density, porosity, elasticity and your scalp."}
+
                 </p>
               </div>
             </div>
