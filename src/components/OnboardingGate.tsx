@@ -67,13 +67,10 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     // hair/blood section opens, so a returning member can always get back in.
     if (status?.healthComplete) {
       allowed.add("/onboarding/resume");
-      // Supplements sit between the health profile and the pro gate. Leaving
+      // Supplements sit between the health profile and the hair form. Leaving
       // this path out of the allow-list bounced every new member straight past
       // the step, so supplements were never captured during onboarding.
       allowed.add("/onboarding/profile-supplements");
-      allowed.add("/onboarding/pro-gate");
-      allowed.add("/onboarding/pro-book");
-      allowed.add("/onboarding/pro-details");
       allowed.add("/onboarding/profile-step-3-hair");
     }
     if (status?.hairComplete) allowed.add("/onboarding/profile-step-4-colour");
@@ -93,10 +90,9 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     }
 
 
-    // The consultation IS required for access (blood work is not), but the screens
-    // stay open in any order: the resume screen routes the hair journey through
-    // pro-details first, yet an unlogged consultation must never block the markers
-    // form — she needs both, and either one can be filled in first.
+    // Hair characteristics are the only requirement. Blood work and the
+    // professional consultation gate nothing, and the blood screens stay open in
+    // any order.
 
     if (!allowed.has(location.pathname)) {
       return <Navigate to={getOnboardingNextPath(status, hasAccess)} replace />;
@@ -130,9 +126,6 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     "/onboarding/profile-step-1",
     "/onboarding/profile-step-2",
     "/onboarding/profile-supplements",
-    "/onboarding/pro-gate",
-    "/onboarding/pro-book",
-    "/onboarding/pro-details",
     "/onboarding/profile-step-3-hair",
     "/onboarding/profile-step-4-colour",
     "/onboarding/resume",
