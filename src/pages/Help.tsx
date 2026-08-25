@@ -28,23 +28,9 @@ interface Walkthrough {
   aspectPadding?: string;
 }
 
-// In-app walkthrough videos, hosted on Loom, in filming order. The first two
-// cover registering and your blood test; booking a professional is video five.
+// In-app walkthrough videos, hosted on Loom, covering personalisation,
+// products and wash days/booking. Numbering is derived from array position.
 const WALKTHROUGHS: Walkthrough[] = [
-  {
-    id: "getting-started",
-    loomId: "5f202daa2e534b6fa8d21c8792cfdd2c",
-    category: "Getting started",
-    title: "Strand end user onboarding process explained",
-    aspectPadding: "64.74820143884892%",
-  },
-  {
-    id: "your-blood-work",
-    loomId: "d9904d76c04d4b16a4f3cb5603e4920f",
-    category: "Your blood work",
-    title: "What your blood work shows",
-    aspectPadding: "64.74820143884892%",
-  },
   {
     id: "personalisation",
     loomId: "b2c7417a59934531b1af6dfb43fed2ac",
