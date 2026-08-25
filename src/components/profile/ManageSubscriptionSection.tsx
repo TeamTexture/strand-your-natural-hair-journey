@@ -149,7 +149,7 @@ const ManageSubscriptionSection = () => {
     });
 
   return (
-    <div className="px-5 pb-4">
+    <div className="px-5 pb-4" data-tour="manage-subscription">
       <div className="rounded-[14px] border border-border bg-card p-4 min-w-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="size-[26px] shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
