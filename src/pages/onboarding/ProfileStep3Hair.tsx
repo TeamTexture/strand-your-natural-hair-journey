@@ -146,6 +146,7 @@ const ProfileStep3Hair = () => {
   const queryClient = useQueryClient();
   // No defaults — a pre-selected answer would be an assumption about her hair
   // and scalp that she never made, so every group starts genuinely empty.
+  const [curlPattern, setCurlPattern] = useState<string | null>(null);
   const [porosity, setPorosity] = useState<string[]>([]);
   const [elasticity, setElasticity] = useState<string[]>([]);
   const [scalp, setScalp] = useState<string[]>([]);
@@ -163,11 +164,12 @@ const ProfileStep3Hair = () => {
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-3-hair",
-    { porosity, elasticity, scalp, diagnosed, areas, diameter, surfaceTexture, density, lengthInches, lengthBucket },
+    { curl_pattern: curlPattern, porosity, elasticity, scalp, diagnosed, areas, diameter, surfaceTexture, density, lengthInches, lengthBucket },
     (d) => {
       // Older saved drafts used different shapes. Only restore values the
       // current controls can render; malformed arrays previously crashed on
       // `.includes()` immediately after a refresh.
+      if (typeof d.curl_pattern === "string") setCurlPattern(d.curl_pattern);
       if (Array.isArray(d.porosity)) setPorosity(d.porosity.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.elasticity)) setElasticity(d.elasticity.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
@@ -180,6 +182,7 @@ const ProfileStep3Hair = () => {
       if (typeof d.lengthBucket === "string") setLengthBucket(d.lengthBucket);
     },
   );
+
   const { shouldAsk } = usePersonalisedOffersAsk();
   const [askOffers, setAskOffers] = useState(false);
 
