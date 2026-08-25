@@ -1,16 +1,26 @@
 import { useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
-import { getConsumerOnboardingStatus, getPostPaymentPath, getSubscribePath } from "@/lib/consumerOnboarding";
+import {
+  getConsumerAccessForUser,
+  getConsumerOnboardingStatus,
+  getPostPaymentPath,
+  getSubscribePath,
+} from "@/lib/consumerOnboarding";
 import { getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 /**
  * The forward exit out of the optional blood-work flow.
  *
  * Blood work never gates payment, so a member who has met every requirement
- * must always be carried on to membership — never dead-ended, and never bounced
- * back to the resume screen. Everything she has already entered stays saved:
- * this only resolves a destination, it writes nothing.
+ * must always be carried forward — never dead-ended, and never bounced back to
+ * the resume screen. Everything she has already entered stays saved: this only
+ * resolves a destination, it writes nothing.
+ *
+ * Payment happens at the START of the journey now (the trial paywall), so an
+ * entitled member — `trialing` included — is carried to the app or her blood
+ * analysis, never to /subscribe. /subscribe is only ever the answer for someone
+ * with no live entitlement at all (trial ended, cancelled).
  */
 export function useMembershipExit() {
   const { user } = useAuth();
@@ -19,12 +29,15 @@ export function useMembershipExit() {
   const resolveMembershipPath = useCallback(async () => {
     const path = await resolveNextPath();
     // Belt and braces: if anything resolves her back to the pick-up screen while
-    // her required data is in fact complete, send her to membership instead.
+    // her required data is in fact complete, carry her forward instead.
     if (path.startsWith("/onboarding/resume") && user?.id) {
       try {
         const status = await getConsumerOnboardingStatus(user.id);
-        if (getOnboardingRequirements(status).coreComplete)
-          return getSubscribePath(getPostPaymentPath(status.bloodOnFile));
+        if (getOnboardingRequirements(status).coreComplete) {
+          const forward = getPostPaymentPath(status.bloodOnFile);
+          const entitled = await getConsumerAccessForUser(user.id);
+          return entitled ? forward : getSubscribePath(forward);
+        }
       } catch {
         // Fall through to the resolved path on a read failure.
       }

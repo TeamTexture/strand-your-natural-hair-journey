@@ -159,7 +159,9 @@ const ResumeOnboarding = () => {
               That's everything STRAND needs.
             </p>
             <p className="text-xs text-foreground/80 font-body mt-1 leading-snug">
-              Your hair characteristics are in. Choose your membership to unlock STRAND.
+              {hasAccess
+                ? "Your hair characteristics are in. STRAND is ready for you."
+                : "Your hair characteristics are in. Choose your membership to unlock STRAND."}
             </p>
             <Button
               variant="gold"
