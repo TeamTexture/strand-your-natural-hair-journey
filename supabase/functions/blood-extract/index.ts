@@ -16,41 +16,12 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const KNOWN_MARKERS: Array<{ marker: string; unit: string; aliases: string[] }> = [
-  { marker: "Ferritin", unit: "ng/mL", aliases: ["ferritin"] },
-  { marker: "Serum Iron", unit: "μmol/L", aliases: ["iron", "serum iron"] },
-  { marker: "TIBC", unit: "μmol/L", aliases: ["tibc", "total iron binding capacity"] },
-  { marker: "Transferrin Saturation", unit: "%", aliases: ["transferrin saturation", "tsat", "tf sat"] },
-  { marker: "Vitamin D", unit: "nmol/L", aliases: ["vitamin d", "25-oh vitamin d", "25(oh)d", "vit d"] },
-  { marker: "Vitamin B12", unit: "pmol/L", aliases: ["vitamin b12", "b12", "cobalamin"] },
-  { marker: "Folate", unit: "nmol/L", aliases: ["folate", "serum folate"] },
-  { marker: "Vitamin A", unit: "μmol/L", aliases: ["vitamin a", "retinol"] },
-  { marker: "Vitamin E", unit: "μmol/L", aliases: ["vitamin e", "tocopherol"] },
-  { marker: "Biotin", unit: "pg/mL", aliases: ["biotin", "vitamin b7"] },
-  { marker: "Zinc", unit: "μmol/L", aliases: ["zinc"] },
-  { marker: "Magnesium", unit: "mmol/L", aliases: ["magnesium"] },
-  { marker: "Selenium", unit: "μmol/L", aliases: ["selenium"] },
-  { marker: "Copper", unit: "μmol/L", aliases: ["copper"] },
-  { marker: "CRP", unit: "mg/L", aliases: ["crp", "c-reactive protein"] },
-  { marker: "Blood Glucose", unit: "mmol/L", aliases: ["glucose", "blood glucose", "fasting glucose"] },
-  { marker: "Albumin", unit: "g/L", aliases: ["albumin"] },
-  { marker: "HbA1c", unit: "mmol/mol", aliases: ["hba1c", "haemoglobin a1c", "hemoglobin a1c"] },
-  { marker: "ESR", unit: "mm/hr", aliases: ["esr"] },
-  { marker: "ANA", unit: "titre", aliases: ["ana", "antinuclear antibody"] },
-  { marker: "TSH", unit: "mU/L", aliases: ["tsh", "thyroid stimulating hormone"] },
-  { marker: "Free T3", unit: "pmol/L", aliases: ["free t3", "ft3"] },
-  { marker: "Free T4", unit: "pmol/L", aliases: ["free t4", "ft4"] },
-  { marker: "Thyroid Antibodies (TPO)", unit: "IU/mL", aliases: ["tpo", "anti-tpo", "thyroid peroxidase antibody"] },
-  { marker: "Oestrogen / Oestradiol", unit: "pmol/L", aliases: ["oestradiol", "estradiol", "e2", "oestrogen", "estrogen"] },
-  { marker: "Testosterone", unit: "nmol/L", aliases: ["testosterone"] },
-  { marker: "DHEA-S", unit: "μmol/L", aliases: ["dhea-s", "dheas", "dhea sulfate"] },
-  { marker: "Prolactin", unit: "mIU/L", aliases: ["prolactin"] },
-  { marker: "FSH", unit: "IU/L", aliases: ["fsh", "follicle stimulating hormone"] },
-  { marker: "LH", unit: "IU/L", aliases: ["lh", "luteinizing hormone"] },
-  { marker: "Cortisol", unit: "nmol/L", aliases: ["cortisol"] },
-];
-
-const MARKER_LIST_FOR_PROMPT = KNOWN_MARKERS
+// The marker whitelist + alias matcher live in _shared/blood-markers.ts so the
+// client review/test suite imports the SAME list (edge functions cannot import
+// from src/, and duplicating it would silently drift). The marker strings must
+// match src/data/bloodRanges.ts keys verbatim — they are written to
+// blood_results.marker.
+const MARKER_LIST_FOR_PROMPT = KNOWN_BLOOD_MARKERS
   .map((m) => `- "${m.marker}" (target unit: ${m.unit}; also called: ${m.aliases.join(", ")})`)
   .join("\n");
 
