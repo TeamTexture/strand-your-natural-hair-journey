@@ -514,11 +514,11 @@ export function useHomeAlerts(opts?: { static?: boolean }) {
         next.push({
           id: ALERT_KEYS.BLOOD_TEST_OVERDUE,
           emoji: "🧪",
-          title: "Time to book a blood test",
-          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. Book a retest so your hair, nutrition and supplement guidance stays accurate.`,
+          title: "Retest your bloods when it suits you",
+          body: `It's been ${months} month${months === 1 ? "" : "s"} since your last blood test. A fresh panel keeps your diet and nutrition guidance reading current values.`,
           to: "/directory?bloodOnly=1",
 
-          tone: "danger",
+          tone: "info",
           signature: alertSignature(ALERT_KEYS.BLOOD_TEST_OVERDUE, [
             lastBloodPanelDate,
             timeBucket(ALERT_KEYS.BLOOD_TEST_OVERDUE, daysSinceBlood),

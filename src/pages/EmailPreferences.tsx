@@ -42,8 +42,8 @@ const OPTIONAL: { key: PrefKey; label: string; help: string }[] = [
   },
   {
     key: "blood_test_due",
-    label: "Blood test due",
-    help: "When your next test date comes around.",
+    label: "Blood retest reminders",
+    help: "An optional nudge when your last blood test starts to age. Only sent if you already have results on file.",
   },
   {
     key: "enquiry_updates",

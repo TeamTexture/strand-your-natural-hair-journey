@@ -460,9 +460,9 @@ const Profile = () => {
       out.push({
         key: "blood-due",
         icon: <FlaskConical className="size-5" />,
-        label: "Blood test due",
-        detail: `${months >= 1 ? `${months} month${months === 1 ? "" : "s"}` : `${bloodTestAlert.days} days`} since last test · book a new one`,
-        tone: "danger",
+        label: "Retest your bloods",
+        detail: `${months >= 1 ? `${months} month${months === 1 ? "" : "s"}` : `${bloodTestAlert.days} days`} since your last test · retest whenever suits you`,
+        tone: "info",
         onClick: () => {
           setRetestReason("Your last test was a while ago. Two ways to get retested.");
           setRetestOpen(true);
@@ -472,9 +472,9 @@ const Profile = () => {
       out.push({
         key: "blood-first",
         icon: <FlaskConical className="size-5" />,
-        label: "Book your first blood test",
-        detail: "Add recent bloods so STRAND can personalise your guidance",
-        tone: "danger",
+        label: "Add your blood results",
+        detail: "Optional — it opens the diet and nutrition side of STRAND",
+        tone: "info",
         onClick: () => {
           setRetestReason("Two ways to get your first test done.");
           setRetestOpen(true);
