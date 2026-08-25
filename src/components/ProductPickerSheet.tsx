@@ -74,10 +74,11 @@ const Row = ({
         wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
       />
       <div className="flex-1 min-w-0">
-        {/* Two lines before truncating — several shelf products share a long
-            prefix ("Dove Scalp + Hair Therapy …") and were indistinguishable
-            when clipped to one line. */}
-        <p className="text-sm font-medium line-clamp-2 break-words">{p.name}</p>
+        {/* Wrap rather than truncate — several shelf products share a long
+            prefix ("Dove Scalp + Hair Therapy …") and stay indistinguishable
+            until the tail of the name is visible, which needs a third line at
+            375px. */}
+        <p className="text-sm font-medium leading-snug line-clamp-3 break-words">{p.name}</p>
 
         <div className="flex items-center gap-2 min-w-0">
           {p.brand && (
