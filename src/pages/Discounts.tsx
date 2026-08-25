@@ -1,5 +1,4 @@
 import { smartBack } from "@/lib/smartBack";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Droplets, Flower2, HeartPulse, ExternalLink, Sparkles, Scissors } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
