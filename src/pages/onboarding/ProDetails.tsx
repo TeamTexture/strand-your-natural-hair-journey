@@ -120,7 +120,7 @@ const ProDetails = () => {
   };
 
   const notesValid = notes.trim().length > 0 || !!notesAudioPath;
-  const canContinue = isWithinWindow && notesValid && name.trim().length > 0;
+  const canContinue = !dateError && notesValid && name.trim().length > 0;
 
   return (
     <ScreenLayout>
@@ -225,7 +225,7 @@ const ProDetails = () => {
             )}
           />
 
-          {dateError && !isExpired && (
+          {dateError && (
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-warn font-body">
               <AlertCircle className="size-3" />
               {dateError}
@@ -239,24 +239,13 @@ const ProDetails = () => {
             </div>
           )}
 
-          {isExpired && (
-            <div className="mt-3 p-4 bg-warn/5 border-2 border-warn/40 rounded-[12px] space-y-3">
-              <div className="flex items-start gap-2">
-                <CalendarX className="size-4 text-warn shrink-0 mt-0.5" />
-                <p className="text-xs text-foreground font-body leading-relaxed">
-                  Your consultation was over 6 months ago. STRAND reads your hair
-                  characteristics from a consultation within the last 6 months, so they stay
-                  accurate. Nothing you've entered expires — book when it suits you.
-                </p>
-              </div>
-              <div className="space-y-2 pt-1">
-                <Button variant="gold" size="pill" className="w-full" onClick={() => navigate("/onboarding/pro-book")}>
-                  Find a Professional →
-                </Button>
-                <Button variant="ghost" size="pill" className="w-full" onClick={() => navigate("/onboarding/pro-gate")}>
-                  ← Go Back
-                </Button>
-              </div>
+          {isOlderThanWindow && (
+            <div className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-foreground font-body leading-relaxed">
+              <CalendarX className="size-3 shrink-0 mt-0.5" />
+              <span>
+                This consultation is over 6 months old, so some of your characteristics may
+                have changed since. You can carry on either way.
+              </span>
             </div>
           )}
         </div>
