@@ -9,7 +9,6 @@ import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { Button } from "@/components/ui/button";
 import {
   HELLO_KLEAN_URL, HELLO_KLEAN_CODE,
-  DAYE_URL, DAYE_CODE,
   LOLA_HEALTH_URL, LOLA_HEALTH_CODE,
 } from "@/lib/discounts";
 import { useAllLiveBrandOffers } from "@/hooks/useBrandOffers";
@@ -137,7 +136,7 @@ const Discounts = () => {
         )}
 
         {/*
-          Hello Klean, Daye and Lola Health are hidden until their partnerships
+          Hello Klean and Lola Health are hidden until their partnerships
           are signed off. The codes and URLs stay in this file so the cards can
           be switched back on — do not delete them.
         */}
