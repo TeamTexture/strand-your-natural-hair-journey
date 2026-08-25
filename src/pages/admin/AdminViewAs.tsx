@@ -230,6 +230,19 @@ const AdminViewAs = () => {
                     <p className="text-[11px] text-muted-foreground font-body truncate">
                       {row.email ?? "—"}
                     </p>
+                    {(row.session_count > 0 || row.created_at) && (
+                      <p className="text-[10px] text-muted-foreground/80 font-body mt-0.5">
+                        {row.session_count > 0
+                          ? `${row.session_count} session${row.session_count === 1 ? "" : "s"}`
+                          : "No sessions"}
+                        {row.created_at &&
+                          ` · joined ${new Date(row.created_at).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}`}
+                      </p>
+                    )}
                     {row.roles.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {row.roles.map((r) => (
