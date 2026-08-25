@@ -89,6 +89,7 @@ const Discounts = () => {
   const navigate = useNavigate();
   const { data: brandOffers } = useAllLiveBrandOffers();
   const { data: proOffers } = useProOffersForConsumer();
+  const [routesOpen, setRoutesOpen] = useState(false);
 
   return (
     <ScreenLayout>
