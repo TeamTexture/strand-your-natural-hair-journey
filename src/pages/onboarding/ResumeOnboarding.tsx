@@ -15,7 +15,7 @@ import { getBloodDraftStep, hydrateBloodDraft } from "@/hooks/useBloodValues";
 import OptionalBadge from "@/components/blood/OptionalBadge";
 import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
 import { useBloodSkipped } from "@/lib/bloodSkip";
-import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
+import { clearResumeLock, RESUME_PATH, setResumeLock } from "@/lib/onboardingLock";
 import { getOnboardingNextPath, getOnboardingRequirements } from "@/lib/onboardingDecision";
 
 
