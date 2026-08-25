@@ -66,11 +66,20 @@ export function useResumeMembership() {
 }
 
 /** Stripe billing portal — cancellation, payment method, invoice history. */
+export type BillingPortalFlow = "subscription_update" | "subscription_cancel" | "portal";
+
 export function useBillingPortal() {
   return useMutation({
-    mutationFn: async (returnPath?: string) => {
+    mutationFn: async (input?: string | { returnPath?: string; flow?: BillingPortalFlow }) => {
+      const returnPath = typeof input === "string"
+        ? input
+        : input?.returnPath;
+      const flow = typeof input === "string"
+        ? undefined
+        : input?.flow;
       const res = await invoke<{ url: string }>("consumer-portal", {
         return_path: returnPath ?? "/profile/data-access",
+        flow: flow ?? "portal",
       });
       if (!res?.url) throw new Error("Could not open the billing portal");
       window.location.href = res.url;

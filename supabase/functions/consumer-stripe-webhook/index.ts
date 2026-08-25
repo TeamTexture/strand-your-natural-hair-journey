@@ -85,12 +85,9 @@ Deno.serve(async (req) => {
       status: 200, headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
-    // Acknowledge the delivery even when our own processing failed: Stripe
-    // disables endpoints that keep erroring, and membership state is
-    // reconciled directly from Stripe by consumer-verify-subscription.
     console.error("webhook handler error", event?.type, e);
-    return new Response(JSON.stringify({ received: true, handled: false }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ received: false, error: "webhook handler failed" }), {
+      status: 500, headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -137,7 +134,7 @@ async function upsertFromSubscription(
     | null
     | undefined;
 
-  await admin.from("consumer_subscriptions").upsert(
+  const { error } = await admin.from("consumer_subscriptions").upsert(
     {
       user_id: userId,
       stripe_customer_id: customerId,
@@ -154,5 +151,6 @@ async function upsertFromSubscription(
     },
     { onConflict: "user_id" },
   );
+  if (error) throw error;
 }
 
