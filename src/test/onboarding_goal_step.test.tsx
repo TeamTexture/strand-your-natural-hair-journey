@@ -1,0 +1,99 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+/**
+ * The onboarding goal/challenge step writes ONE row to the existing user_goals
+ * table. The rules that must never regress:
+ *  - "Something else" stores what she TYPED, never the literal option label
+ *  - an empty "Something else" is ignored and never blocks Continue
+ *  - the row is tagged kind: "onboarding" so it cannot collide with the
+ *    numeric length-tracking goals that share the table
+ */
+
+const inserted: Record<string, unknown>[] = [];
+
+vi.mock("@/integrations/supabase/client", () => {
+  const chain = () => {
+    const api: Record<string, unknown> = {};
+    for (const k of ["select", "eq", "order", "limit"]) api[k] = () => api;
+    api.maybeSingle = async () => ({ data: null, error: null });
+    api.insert = (payload: Record<string, unknown>) => {
+      inserted.push(payload);
+      return {
+        select: () => ({ maybeSingle: async () => ({ data: { id: "row-1" }, error: null }) }),
+      };
+    };
+    api.update = () => api;
+    return api;
+  };
+  return {
+    supabase: {
+      auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
+      from: () => chain(),
+    },
+  };
+});
+
+const renderStep = async () => {
+  const { default: GoalAndChallenge } = await import("@/pages/onboarding/GoalAndChallenge");
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={["/onboarding/goal"]}>
+        <GoalAndChallenge />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+};
+
+describe("onboarding goal step", () => {
+  beforeEach(() => {
+    inserted.length = 0;
+  });
+
+  it("stores her typed words in place of \"Something else\"", async () => {
+    const user = userEvent.setup();
+    await renderStep();
+
+    await user.click(screen.getAllByText("Something else")[0]);
+    await user.type(
+      screen.getByLabelText("Your goal, in your words"),
+      "My twist-outs never last past day two",
+    );
+    await user.click(screen.getByText("Breakage"));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+
+    await waitFor(() => expect(inserted).toHaveLength(1));
+    expect(inserted[0]).toMatchObject({
+      kind: "onboarding",
+      status: "active",
+      title: "My twist-outs never last past day two",
+      challenges: ["Breakage"],
+    });
+  });
+
+  it("ignores an empty \"Something else\" and still continues", async () => {
+    const user = userEvent.setup();
+    await renderStep();
+
+    await user.click(screen.getByText("Length"));
+    // Multi-select challenge "Something else" left blank.
+    await user.click(screen.getAllByText("Something else")[1]);
+    await user.click(screen.getByText("Dryness"));
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+
+    await waitFor(() => expect(inserted).toHaveLength(1));
+    expect(inserted[0].title).toBe("Length");
+    expect(inserted[0].challenges).toEqual(["Dryness"]);
+  });
+
+  it("saves nothing when she skips every question", async () => {
+    const user = userEvent.setup();
+    await renderStep();
+    await user.click(screen.getByRole("button", { name: /Continue/ }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(inserted).toHaveLength(0);
+  });
+});
