@@ -275,6 +275,16 @@ export const PROFESSIONALS: Professional[] = [
 /** Search any list of professionals by name, clinic, postcode, location, bio, or specialism. */
 const PINNED_ORDER = ["dr-eve-skin", "erica-liburd"];
 
+/**
+ * Listings demoted to the bottom of the directory, matched on normalised name
+ * so a display-name edit on the pro's own profile can't slip back above the
+ * others. Currently: Hair by Lauralyn (live profile "Hair By Lauralyn London"
+ * and the editorial seed "Hair by Laura Lyn Clinton").
+ */
+const BOTTOM_NAMES = ["hairbylauralyn"];
+const isBottomPinned = (p: Professional) =>
+  BOTTOM_NAMES.some((n) => norm(p.name).includes(n));
+
 export function searchProfessionalsIn(
   list: Professional[],
   query: string,
@@ -292,6 +302,11 @@ export function searchProfessionalsIn(
     return haystack.includes(q);
   });
   return filtered.sort((a, b) => {
+    // Bottom-pinned listings sink below every other row, preserving their own
+    // relative order. Top-pinned rows still rise above both groups.
+    const aBottom = isBottomPinned(a);
+    const bBottom = isBottomPinned(b);
+    if (aBottom !== bBottom) return aBottom ? 1 : -1;
     const ai = PINNED_ORDER.indexOf(a.id);
     const bi = PINNED_ORDER.indexOf(b.id);
     if (ai === -1 && bi === -1) return 0;
