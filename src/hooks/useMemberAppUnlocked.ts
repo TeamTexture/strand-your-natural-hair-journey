@@ -1,7 +1,12 @@
+import { useEffect } from "react";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import { useRoles } from "@/hooks/useRoles";
+import {
+  rememberOnboardingComplete,
+  wasOnboardingComplete,
+} from "@/lib/onboardingResolved";
 
 /**
  * Is this account allowed to see the full member app navigation?
