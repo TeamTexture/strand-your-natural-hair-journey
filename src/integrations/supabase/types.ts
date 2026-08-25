@@ -7048,6 +7048,10 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      can_write_consumer_onboarding: {
+        Args: { _user: string }
+        Returns: boolean
+      }
       chat_book_appointment: {
         Args: {
           _appointment_date: string

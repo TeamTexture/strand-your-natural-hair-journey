@@ -116,15 +116,26 @@ const TrialPaywall = () => {
       return;
     }
     if (!confirming) return;
-    void verifyConsumerMembership(qc, user?.id);
-    const poll = window.setInterval(() => void verifyConsumerMembership(qc, user?.id), 2500);
-    const giveUp = window.setTimeout(() => {
-      setConfirming(false);
+    let attempts = 0;
+    const verify = async () => {
+      const active = await verifyConsumerMembership(qc, user?.id);
+      if (!active) {
+        attempts += 1;
+        if (attempts >= 5) {
+          const cleaned = new URLSearchParams(params);
+          cleaned.delete("checkout");
+          setParams(cleaned, { replace: true });
+          setConfirming(false);
+          toast.error("We couldn't confirm an active trial or membership yet.");
+        }
+        return;
+      }
       nav(nextPath, { replace: true });
-    }, 12000);
+    };
+    void verify();
+    const poll = window.setInterval(() => void verify(), 2500);
     return () => {
       window.clearInterval(poll);
-      window.clearTimeout(giveUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirming, hasAccess]);

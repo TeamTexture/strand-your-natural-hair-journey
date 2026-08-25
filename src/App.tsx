@@ -322,6 +322,7 @@ const App = () => (
                 <AccessRestrictedGate>
                 <BrandPaywallGate>
                 <InternationalGate>
+                <TrialWall>
                 <ConsentGate>
                 <RouteCrashGuard>
                 <Suspense fallback={<RouteFallback />}>
@@ -722,6 +723,7 @@ const App = () => (
                 </Suspense>
                 </RouteCrashGuard>
                 </ConsentGate>
+                </TrialWall>
                 </InternationalGate>
                 </BrandPaywallGate>
                 </AccessRestrictedGate>
