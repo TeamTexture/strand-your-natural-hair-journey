@@ -207,6 +207,9 @@ const ProfileStep3Hair = () => {
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
           const gaps: string[] = [];
+          if (diameter.length === 0) gaps.push("rolling a strand between your fingers");
+          if (surfaceTexture.length === 0) gaps.push("sliding your fingers down a strand");
+          if (density.length === 0) gaps.push("parting your hair and looking along the line");
           if (porosity.length === 0) gaps.push("how your hair takes water");
           if (elasticity.length === 0) gaps.push("how a wet strand behaves");
           if (scalp.length === 0) gaps.push("scalp condition");
@@ -216,8 +219,16 @@ const ProfileStep3Hair = () => {
             toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
             return;
           }
+          // Map the self-assessed labels to the column values a professional
+          // would enter, so downstream consumers see the same convention.
+          const diameterVal = mapHairFeelLabel("diameter", diameter[0]);
+          const surfaceTextureVal = mapHairFeelLabel("surface_texture", surfaceTexture[0]);
+          const densityVal = mapHairFeelLabel("density", density[0]);
           localStorage.setItem("strand_hair_profile", JSON.stringify({
             porosity, elasticity, scalp, diagnosed, areas,
+            diameter: diameterVal ? [diameterVal] : [],
+            texture: surfaceTextureVal ? [surfaceTextureVal] : [],
+            density: densityVal ? [densityVal] : [],
             length_inches: lengthInches, length_bucket: lengthBucket,
           }));
           // Dual-write to user_hair_profile. PHASE_1_PLAN.md §15.
@@ -236,6 +247,9 @@ const ProfileStep3Hair = () => {
                     user_id: u.user.id,
                     porosity: porosity[0] ?? null,
                     elasticity: elasticity[0] ?? null,
+                    diameter: diameterVal,
+                    surface_texture: surfaceTextureVal,
+                    density: densityVal,
                     scalp_condition_enc: enc.scalp,
                     diagnosed_conditions_enc: enc.diagnosed,
                     areas_of_concern: areas,
