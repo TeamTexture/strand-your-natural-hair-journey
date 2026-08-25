@@ -1,6 +1,6 @@
 import { smartBack } from "@/lib/smartBack";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, X, Flame, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -284,7 +284,8 @@ const heatChips = (
 
 const WashStep1 = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   // Default every step to "todo" so the user has to actively log what they did.
   // The previous defaults (all "done") implied actions had been completed before
   // the user ever opened the screen, which doubled as hardcoded data.
