@@ -20,6 +20,7 @@ import ConsentGateScreen from "@/pages/ConsentGateScreen";
 const ALLOWED_PREFIXES = [
   "/legal",
   "/auth",
+  "/start-trial",
   "/pro/auth",
   "/brand/auth",
   "/reset-password",
