@@ -76,8 +76,10 @@ export async function getConsumerOnboardingStatus(userId: string) {
     health.diet && health.diet_balance && health.smoke && health.alcohol &&
     health.daily_water && health.exercise && health.sleep_quality
   );
+  // The six self-answerable questions. diameter/surface_texture/density are no
+  // longer asked during onboarding, so they must never be required here.
   const hairFieldsComplete = !!(
-    hair?.diameter && hair.surface_texture && hair.density && hair.porosity &&
+    hair?.porosity &&
     hair.elasticity && hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
     Array.isArray(hair.areas_of_concern) && hair.areas_of_concern.length > 0
   );
