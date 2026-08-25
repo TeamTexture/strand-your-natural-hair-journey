@@ -4,8 +4,18 @@ const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 export const POST_PAYMENT_ANALYSIS_PATH = "/onboarding/blood-ai-summary";
 export const BRAND_ACCESS_PATH = "/brand/subscribe";
 
-export const getSubscribePath = (next = POST_PAYMENT_ANALYSIS_PATH) =>
+/**
+ * Where a member belongs once payment lands. Blood work is optional, so the
+ * analysis screen is only ever a destination when there is something to
+ * analyse — otherwise she goes straight into the app.
+ */
+export const getPostPaymentPath = (bloodOnFile: boolean) =>
+  bloodOnFile ? POST_PAYMENT_ANALYSIS_PATH : "/home";
+
+/** The destination is always explicit: no caller can fall back to the analysis screen. */
+export const getSubscribePath = (next: string) =>
   `/subscribe?next=${encodeURIComponent(next)}`;
+
 
 export const isSafeInternalPath = (path: string | null | undefined): path is string =>
   !!path && path.startsWith("/") && !path.startsWith("//");
