@@ -7,7 +7,6 @@ import { allowsMemberFeatures } from "@/lib/viewFeatures";
 
 import {
   Menu,
-  Star,
   ChevronLeft,
   Home as HomeIcon,
   Droplets,
