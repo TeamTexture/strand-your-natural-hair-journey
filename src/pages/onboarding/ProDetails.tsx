@@ -263,8 +263,7 @@ const ProDetails = () => {
           errorMessage="Please add notes from your consultation"
         />
 
-        {!isExpired && (
-          <Button
+        <Button
             variant="gold"
             size="pill"
             className="mt-4"
