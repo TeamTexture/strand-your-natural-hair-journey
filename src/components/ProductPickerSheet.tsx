@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Check, Camera, ImagePlus, Link2, Loader2, Trash2 } from "lucide-react";
@@ -12,15 +12,12 @@ import DualPhotoCaptureSheet from "@/components/DualPhotoCaptureSheet";
 import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
 import ShelfItemRemoveDialog from "@/components/ShelfItemRemoveDialog";
-import SectionLabel from "@/components/SectionLabel";
+import CategoryProductPanels from "@/components/CategoryProductPanels";
 
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  groupProductsByCategory,
-  type StepProductHint,
-} from "@/lib/productCategories";
+import { type StepProductHint } from "@/lib/productCategories";
 
 
 interface Props {
@@ -77,10 +74,11 @@ const Row = ({
         wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
       />
       <div className="flex-1 min-w-0">
-        {/* Two lines before truncating — several shelf products share a long
-            prefix ("Dove Scalp + Hair Therapy …") and were indistinguishable
-            when clipped to one line. */}
-        <p className="text-sm font-medium line-clamp-2 break-words">{p.name}</p>
+        {/* Wrap rather than truncate — several shelf products share a long
+            prefix ("Dove Scalp + Hair Therapy …") and stay indistinguishable
+            until the tail of the name is visible, which needs a third line at
+            375px. */}
+        <p className="text-sm font-medium leading-snug line-clamp-3 break-words">{p.name}</p>
 
         <div className="flex items-center gap-2 min-w-0">
           {p.brand && (
@@ -137,14 +135,10 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
   const loading = tab === "shelf" ? loadingShelf : loadingWishlist;
   const isSelected = (id: string) => selectedIds.includes(id);
 
-  // Sectioning only earns its keep on a long list — a two-item wishlist reads
-  // better flat. Every product lands in exactly one section (null category →
-  // "Other"), so the visible count always equals the tab label count.
+  // Panels only earn their keep on a longer list — a two-item wishlist reads
+  // better flat. Every product lands in exactly one panel (null category →
+  // "Other"), so the expanded count always equals the tab label count.
   const SECTION_THRESHOLD = 6;
-  const sections = useMemo(
-    () => (list.length >= SECTION_THRESHOLD ? groupProductsByCategory(list, stepHint) : null),
-    [list, stepHint],
-  );
 
 
   // Two escape routes from the bin: keep the product in the app but off the
@@ -295,34 +289,21 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
               message={tab === "shelf" ? "No products on your shelf" : "Your wishlist is empty"}
               hint="Add a product above, or pick from the Products tab."
             />
-          ) : sections ? (
-            sections.map((s) => (
-              <div key={s.slug} className="space-y-2 pt-3 first:pt-0">
-                <SectionLabel className="!px-0 !mt-0 !mb-1.5">
-                  {s.label}
-                </SectionLabel>
-
-                {s.products.map((p) => (
-                  <Row
-                    key={p.id}
-                    p={p}
-                    selected={isSelected(p.id)}
-                    onClick={() => onToggle(p.id)}
-                    onRemove={() => setPendingRemove(p)}
-                  />
-                ))}
-              </div>
-            ))
           ) : (
-            list.map((p) => (
-              <Row
-                key={p.id}
-                p={p}
-                selected={isSelected(p.id)}
-                onClick={() => onToggle(p.id)}
-                onRemove={() => setPendingRemove(p)}
-              />
-            ))
+            <CategoryProductPanels
+              products={list}
+              stepHint={stepHint}
+              selectedIds={selectedIds}
+              flatBelow={SECTION_THRESHOLD}
+              renderRow={(p) => (
+                <Row
+                  p={p}
+                  selected={isSelected(p.id)}
+                  onClick={() => onToggle(p.id)}
+                  onRemove={() => setPendingRemove(p)}
+                />
+              )}
+            />
           )}
 
         </div>
