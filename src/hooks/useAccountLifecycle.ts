@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { assertNotViewingAs } from "@/lib/viewAsReadOnly";
 import { myProfileKey } from "@/hooks/useMyProfile";
 
 /**
