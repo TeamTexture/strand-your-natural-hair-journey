@@ -58,6 +58,16 @@ const BloodThyroid = () => {
         <Button variant="gold" size="pill" className="mt-4" onClick={onContinue}>
           Next — Hormones →
         </Button>
+
+        <Button
+          variant="ghost"
+          size="pill"
+          className="w-full whitespace-normal break-words leading-tight text-[12.5px] text-foreground/70"
+          onClick={async () => navigate(await resolveMembershipPath(), { replace: true })}
+        >
+          Skip for now — go to membership →
+        </Button>
+
       </div>
     </ScreenLayout>
   );

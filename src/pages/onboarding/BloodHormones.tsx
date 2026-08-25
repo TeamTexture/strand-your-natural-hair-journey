@@ -15,7 +15,7 @@ import { useState } from "react";
 import { useBloodValues, persistBloodValues, useUnknownMarkers } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
-import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
+import { useMembershipExit } from "@/hooks/useMembershipExit";
 
 
 const MARKERS = [
@@ -35,7 +35,7 @@ const BloodHormones = () => {
   // Auto-saved draft: restore across sessions/devices and remember this screen.
   useBloodDraftResume("/onboarding/blood-hormones");
   const { unknown, setUnknown } = useUnknownMarkers();
-  const { resolveNextPath } = useOnboardingCompletion();
+  const { resolveMembershipPath } = useMembershipExit();
   const [showOther, setShowOther] = useState(false);
 
 
@@ -45,7 +45,7 @@ const BloodHormones = () => {
       toast.error("Could not save. Check your connection.");
       return;
     }
-    navigate(await resolveNextPath(), { replace: true });
+    navigate(await resolveMembershipPath(), { replace: true });
   };
 
   return (
