@@ -80,7 +80,7 @@ const GUIDES: Record<string, Guide> = {
     step: 7,
     label: "Blood test",
     what: "Tell us when your blood test was taken — it needs to be within the last 6 months.",
-    why: "Iron, thyroid and vitamin levels shape shedding and growth more than any product.",
+    why: "We read your iron, thyroid and vitamin levels to build your nutrition and diet guidance. The more recent your test, the more accurate that guidance is.",
     next: "Next: upload your results, or type them in.",
   },
   "/blood-upload": {
