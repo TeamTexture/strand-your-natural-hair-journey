@@ -32,7 +32,7 @@ const WHAT_YOU_GET = [
 type Tier = "standard" | "plus";
 
 /**
- * The 3-day free trial paywall — the first screen after registration.
+ * The 3-day free trial paywall — shown after registration details are saved.
  *
  * The charge terms and the CTA share a fixed footer, so they are on screen
  * together at 375px no matter how far the content above has scrolled. A member

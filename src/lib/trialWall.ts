@@ -1,13 +1,14 @@
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
+export const TRIAL_REGISTRATION_PATH = "/onboarding/profile-step-1";
+
 // Trial paywall allowlist.
 //
-// A stamped account with no live membership may reach ONLY these surfaces: the
-// paywall itself, the payment paths that take money, the legal documents,
-// support contact and sign out. Everything else — onboarding steps included —
-// bounces back to the paywall. This is enforced in the route guards, not by
-// hiding links, so a typed URL, a stale localStorage step and the browser back
-// button all land in the same place.
+// A stamped account with no live membership may reach ONLY these surfaces plus
+// the registration-details step until it is complete. Everything after name,
+// address and basic details bounces back to the paywall. This is enforced in the
+// route guards, not by hiding links, so a typed URL, stale localStorage step and
+// the browser back button all land in the same place.
 const ALLOWED_EXACT = [
   "/",
   TRIAL_PAYWALL_PATH,

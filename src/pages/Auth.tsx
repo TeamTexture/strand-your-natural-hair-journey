@@ -29,12 +29,7 @@ const safeNext = (raw: string | null, fallback: string) => {
 };
 
 const getPostSignInTarget = async (userId: string, requestedNext: string | null) => {
-  const [{ data: profile }, { data: roleRows }, { data: brandProfile }, { data: proApp }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("onboarding_completed_at")
-      .eq("user_id", userId)
-      .maybeSingle(),
+  const [{ data: roleRows }, { data: brandProfile }, { data: proApp }, onboardingStatus] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", userId),
     supabase.from("brand_profiles").select("id").eq("user_id", userId).maybeSingle(),
     supabase
@@ -44,6 +39,7 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    getConsumerOnboardingStatus(userId),
   ]);
 
   const roles = (roleRows ?? []).map((row) => row.role as string);
@@ -55,14 +51,12 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
     return getBrandEntryPath(userId, roles);
   }
   if (proApp) return "/pro/landing";
-  // Accounts registered into the 3-day trial funnel return to the paywall until
-  // they start a trial. Members who registered before it existed have no
-  // `trial_offer_at`, so this is never true for them.
-  if (await trialOfferPending(userId)) return TRIAL_PAYWALL_PATH;
-  if (!profile?.onboarding_completed_at) {
-    const status = await getConsumerOnboardingStatus(userId);
-    if (!status.completed) return status.entryPath;
+  // Trial-funnel accounts may complete the registration-details step first;
+  // everything after that waits behind the card-confirmation wall.
+  if (await trialOfferPending(userId)) {
+    return onboardingStatus.basicComplete ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-1";
   }
+  if (!onboardingStatus.completed) return onboardingStatus.entryPath;
   return requestedNext ? safeNext(requestedNext, "/") : "/";
 };
 
@@ -210,12 +204,11 @@ const Auth = () => {
         void addMemberToMailingList();
         toast.success("Welcome to Strand");
 
-        // New accounts see the 3-day free trial paywall first, then the six
-        // onboarding steps. `trial_offer_at` is what marks them as a trial-funnel
-        // registration; existing members never carry it.
+        // New accounts enter their registration details first, then see the
+        // 3-day free trial paywall before the rest of onboarding.
         if (data.session && uid) {
           await markTrialOffer(uid);
-          navigate(TRIAL_PAYWALL_PATH, { replace: true });
+          navigate("/onboarding/profile-step-1", { replace: true });
           return;
         }
         // Email confirmation is on: nothing to route to until they confirm.

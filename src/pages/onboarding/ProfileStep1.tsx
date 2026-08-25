@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
+import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -236,9 +237,10 @@ const ProfileStep1 = () => {
         .from(AVATAR_BUCKET)
         .upload(newPath, file, { contentType: file.type });
       if (upErr) throw upErr;
-      const { error: dbErr } = await supabase
-        .from("profiles")
-        .upsert({ user_id: user.id, avatar_url: newPath }, { onConflict: "user_id" });
+      const { error: dbErr } = await supabase.rpc(
+        "save_consumer_avatar" as never,
+        { _avatar_url: newPath } as never,
+      );
       if (dbErr) throw dbErr;
       const { data: sig } = await supabase.storage
         .from(AVATAR_BUCKET)
@@ -259,9 +261,7 @@ const ProfileStep1 = () => {
     setAvatarBusy(true);
     try {
       await supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
-      await supabase
-        .from("profiles")
-        .upsert({ user_id: user.id, avatar_url: null }, { onConflict: "user_id" });
+      await supabase.rpc("save_consumer_avatar" as never, { _avatar_url: null } as never);
       setAvatarPath(null);
       setAvatarUrl(null);
     } catch (e) {
@@ -358,12 +358,17 @@ const ProfileStep1 = () => {
       };
       if (birth_year !== null) update.birth_year = birth_year;
       try {
-        const { error } = await supabase
-          .from("profiles")
-          .upsert(
-            { user_id: user.id, ...update },
-            { onConflict: "user_id" },
-          );
+        const { error } = await supabase.rpc(
+          "save_consumer_registration" as never,
+          {
+            _display_name: update.display_name,
+            _phone_number: update.phone_number,
+            _birth_year: birth_year,
+            _postcode: update.postcode,
+            _country: update.country,
+            _heritage: update.heritage,
+          } as never,
+        );
         if (error) throw error;
       } catch (err) {
         console.warn("[strand] profiles upsert (step 1) failed", err);
@@ -394,7 +399,8 @@ const ProfileStep1 = () => {
       .catch((err) => console.error("[gate] declared-country check failed", err));
 
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
-    navigate("/onboarding/profile-step-2");
+    const needsTrial = user ? await trialOfferPending(user.id) : false;
+    navigate(needsTrial ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-2");
 
   };
 

@@ -2,7 +2,8 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import LoadingDot from "@/components/LoadingDot";
 import { useTrialOffer } from "@/hooks/useTrialOffer";
-import { isTrialWallAllowedPath } from "@/lib/trialWall";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { isTrialWallAllowedPath, TRIAL_REGISTRATION_PATH } from "@/lib/trialWall";
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
 /**
@@ -20,11 +21,20 @@ import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 const TrialWall = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const { walled, known, loading } = useTrialOffer();
+  const { data: onboarding, isLoading: onboardingLoading } = useOnboardingStatus();
 
   if (isTrialWallAllowedPath(location.pathname)) return <>{children}</>;
   // Hold rather than guess: showing the screen first and redirecting after
   // would let a walled member see a flash of the app.
   if (!known && loading) return <LoadingDot />;
+  if (
+    walled &&
+    location.pathname === TRIAL_REGISTRATION_PATH &&
+    !onboarding?.basicComplete
+  ) {
+    if (onboardingLoading) return <LoadingDot />;
+    return <>{children}</>;
+  }
   if (walled) return <Navigate to={TRIAL_PAYWALL_PATH} replace />;
   return <>{children}</>;
 };
