@@ -209,7 +209,7 @@ const ProfileStep3Hair = () => {
 
       <div className="px-5 pb-8 space-y-3">
         <OnboardingSectionCard number={1} title="Curl pattern">
-          <OnboardingQuestion term="Curl pattern">
+          <OnboardingQuestion term="Curl pattern" helper="Not sure? Give it your best guess — you can book a consultation once you're in the app to confirm it.">
             Which is your hair most closely matched to?
           </OnboardingQuestion>
           <CurlPatternPicker value={curlPattern} onChange={setCurlPattern} />
@@ -222,6 +222,7 @@ const ProfileStep3Hair = () => {
               label="Roll one strand between your finger and thumb"
               term="strand diameter"
               annotationSet="diameter"
+              definition="Strand diameter is how thick a single hair is, from the finest to the coarsest."
               options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
               value={diameter} onChange={setDiameter}
             />
@@ -230,6 +231,7 @@ const ProfileStep3Hair = () => {
               label="Slide your fingers down a strand, root to tip"
               term="surface texture"
               annotationSet="surface_texture"
+              definition="Surface texture is how smooth or uneven the outside of a strand feels along its length."
               options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
               value={surfaceTexture} onChange={setSurfaceTexture}
             />
@@ -238,6 +240,7 @@ const ProfileStep3Hair = () => {
               label="Part your hair and look along the line"
               term="density"
               annotationSet="density"
+              definition="Density is how many strands grow on your head — not how thick each one is."
               helper="Make a parting with a comb, then look at how much scalp shows along it."
               options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
               value={density} onChange={setDensity}
