@@ -341,12 +341,10 @@ const ProfileStep4Colour = () => {
 
             {/* ── Colour History ── */}
             <div className="space-y-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body">
-                Colour History
-              </div>
+              <OnboardingQuestion>Colour History</OnboardingQuestion>
 
               <div>
-                <div className="text-[11px] font-medium text-foreground/80 mb-1.5">Colour type</div>
+                <OnboardingQuestion className="mb-1.5">Colour type</OnboardingQuestion>
                 <Select value={colourType} onValueChange={setColourType}>
                   <SelectTrigger><SelectValue placeholder="Select colour type…" /></SelectTrigger>
                   <SelectContent>
