@@ -116,6 +116,7 @@ const AdminMembers = () => {
       "all",
       "active",
       "plus",
+      "checkout_unpaid",
       "complimentary",
       "restricted",
       "incomplete",
