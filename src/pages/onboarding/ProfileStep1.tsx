@@ -2,7 +2,7 @@ import { uuid } from "@/lib/uuid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
-import { BadgeCheck, Camera, Check, ChevronDown, ImagePlus, Loader2, X } from "lucide-react";
+import { Camera, Check, ChevronDown, ImagePlus, Loader2, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
