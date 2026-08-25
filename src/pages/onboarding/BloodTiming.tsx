@@ -12,13 +12,11 @@ import OptionalBadge from "@/components/blood/OptionalBadge";
 import BloodWorkSkippedCard from "@/components/blood/BloodWorkSkippedCard";
 import { useBloodSkipped } from "@/lib/bloodSkip";
 import { Button } from "@/components/ui/button";
-import { useOnboardingCompletion } from "@/hooks/useOnboardingCompletion";
 import { useMembershipExit } from "@/hooks/useMembershipExit";
 import { cn } from "@/lib/utils";
 
 const BloodTiming = () => {
   const navigate = useNavigate();
-  const { resolveNextPath } = useOnboardingCompletion();
   const { resolveMembershipPath } = useMembershipExit();
   // No default — this question must be answered, not assumed.
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);

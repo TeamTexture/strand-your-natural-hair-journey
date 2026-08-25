@@ -9,6 +9,7 @@ import SectionLabel from "@/components/SectionLabel";
 import BloodInputRow from "@/components/BloodInputRow";
 import BloodSummaryBar from "@/components/BloodSummaryBar";
 import { Button } from "@/components/ui/button";
+import { useMembershipExit } from "@/hooks/useMembershipExit";
 import { useBloodValues, persistBloodValues } from "@/hooks/useBloodValues";
 import { toast } from "sonner";
 import { useBloodDraftResume } from "@/hooks/useBloodDraftResume";
@@ -19,6 +20,7 @@ const ALL = [...MINERALS, ...INFLAM];
 
 const BloodMinerals = () => {
   const navigate = useNavigate();
+  const { resolveMembershipPath } = useMembershipExit();
   const { values, setValue } = useBloodValues();
   // Auto-saved draft: restore across sessions/devices and remember this screen.
   useBloodDraftResume("/onboarding/blood-minerals");
