@@ -7,7 +7,6 @@ import { allowsMemberFeatures } from "@/lib/viewFeatures";
 
 import {
   Menu,
-  Star,
   ChevronLeft,
   Home as HomeIcon,
   Droplets,
@@ -440,25 +439,6 @@ const GlobalMenu = () => {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" sideOffset={6}>
                     <span>Upgrade to STRAND+</span>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {location.pathname === "/home" && (
-              <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="Take the tour"
-                      onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
-                      className="size-9 rounded-full flex items-center justify-center text-primary bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-colors shrink-0"
-                    >
-                      <Star className="size-[18px] fill-current" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={6}>
-                    <span>Take the tour</span>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
