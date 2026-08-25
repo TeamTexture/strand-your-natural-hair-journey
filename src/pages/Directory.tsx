@@ -98,14 +98,37 @@ const Directory = () => {
     bloods: false,
   });
 
+  /**
+   * FEATURED SLOT — at most ONE promoted listing, chosen purely by the dated
+   * window on `pro_profiles` (see isFeaturedToday in useDirectoryProfessionals).
+   * Order: featured_rank ascending, then display name. When nobody qualifies
+   * today this is null and NOTHING renders — no heading, no placeholder.
+   */
+  const featuredPro: Professional | null = useMemo(() => {
+    const eligible = pros.filter((p) => p.isFeaturedSlot === true);
+    if (eligible.length === 0) return null;
+    return [...eligible].sort((a, b) => {
+      const ra = a.featuredSlotRank ?? Number.MAX_SAFE_INTEGER;
+      const rb = b.featuredSlotRank ?? Number.MAX_SAFE_INTEGER;
+      return ra - rb || a.name.localeCompare(b.name);
+    })[0];
+  }, [pros]);
+
+  // The featured pro is removed from the listing below so she can never appear
+  // twice on the same screen — including inside her salon's group card.
+  const listPros = useMemo(
+    () => (featuredPro ? pros.filter((p) => p.id !== featuredPro.id) : pros),
+    [pros, featuredPro],
+  );
+
   const results = useMemo(() => {
-    const base = searchProfessionalsIn(pros, query, bloodOnly ? "Dermatologist" : tab);
+    const base = searchProfessionalsIn(listPros, query, bloodOnly ? "Dermatologist" : tab);
     return base.filter(
       (p) =>
         (!caps.doctor || p.isDoctorVerified === true) &&
         (!caps.bloods || p.canTakeBloodsVerified === true),
     );
-  }, [pros, query, tab, bloodOnly, caps]);
+  }, [listPros, query, tab, bloodOnly, caps]);
 
   // Chip counts come from the FULL live directory (`pros` = published,
   // unsuspended pro profiles + active curated rows), never from the filtered
@@ -113,9 +136,10 @@ const Directory = () => {
   // A category with zero listings is not rendered at all.
   const tabCounts = useMemo(() => {
     const counts = {} as Record<ProType, number>;
-    for (const p of pros) counts[p.type] = (counts[p.type] ?? 0) + 1;
+    for (const p of listPros) counts[p.type] = (counts[p.type] ?? 0) + 1;
     return counts;
-  }, [pros]);
+  }, [listPros]);
+
 
   // Same zero-count rule as the category chips: a capability filter that would
   // return nothing is not rendered. Counts are VERIFIED-only.
