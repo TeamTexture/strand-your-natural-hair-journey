@@ -27,8 +27,14 @@ export function useOnboardingStatus() {
       if (!user?.id) throw new Error("A signed-in member is required for onboarding");
       return getConsumerOnboardingStatus(user.id);
     },
-    staleTime: 30_000,
-    gcTime: 10 * 60_000,
+    // `profiles.onboarding_completed_at` is a durable marker that never
+    // un-sets, so this does NOT need re-asking on every page navigation. A long
+    // freshness window plus no refetch-on-mount keeps a resolved answer stable
+    // for the session; the saves that can advance onboarding invalidate it
+    // explicitly (useInvalidateOnboardingStatus), so nothing goes stale.
+    staleTime: 10 * 60_000,
+    gcTime: Infinity,
+    refetchOnMount: false,
     retry: 2,
     refetchOnWindowFocus: false,
     placeholderData: (prev) => prev,
