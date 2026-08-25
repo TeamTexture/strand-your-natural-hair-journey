@@ -26,7 +26,18 @@ interface Row {
   display_name: string | null;
   email: string | null;
   roles: string[];
+  session_count: number;
+  last_session: string | null;
+  created_at: string | null;
 }
+
+type SortKey = "name" | "active" | "recent";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name (A–Z)" },
+  { key: "active", label: "Most active sessions" },
+  { key: "recent", label: "Recently registered" },
+];
 
 const roleChip = (role: string) => {
   const map: Record<string, string> = {
