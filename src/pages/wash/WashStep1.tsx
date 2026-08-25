@@ -233,7 +233,7 @@ const StepCard = ({
               />
               {/* Two lines before truncating — several products share long
                   prefixes and were indistinguishable clipped to one line. */}
-              <span className="text-xs flex-1 min-w-0 leading-snug line-clamp-2 break-words">
+              <span className="text-xs flex-1 min-w-0 leading-snug line-clamp-3 break-words">
                 {formatProduct(p)}
               </span>
               <button
