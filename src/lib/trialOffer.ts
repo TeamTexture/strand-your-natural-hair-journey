@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { rowGrantsAccess } from "@/lib/entitlement";
 
 /**
  * The 3-day free trial paywall — the FIRST screen a brand-new member sees after
