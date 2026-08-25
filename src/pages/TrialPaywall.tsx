@@ -17,6 +17,8 @@ import { useConsumerPricing, formatGbp } from "@/hooks/useConsumerPricing";
 import { verifyConsumerMembership } from "@/lib/membershipVerify";
 import { formatTrialEnd, TRIAL_DAYS } from "@/lib/trialOffer";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
+import { useTrialOffer } from "@/hooks/useTrialOffer";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AFTER_TRIAL_PATH = "/onboarding/goal";
 
