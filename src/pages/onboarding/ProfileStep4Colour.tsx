@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
+import { useBloodSkipped } from "@/lib/bloodSkip";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -77,10 +78,13 @@ const ProfileStep4Colour = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resolveNextPath } = useOnboardingCompletion();
-  // The label must reflect what is actually still outstanding: a member who has
-  // already saved her blood work goes on to membership, not back to blood.
+  // The label must reflect what is actually still outstanding: a member who
+  // has already saved her blood work goes on to membership, not back to blood.
+  // The same is true for a member who has consciously skipped blood work —
+  // routing already sends her to Subscribe, so the label must say so too.
   const { data: onboardingStatus } = useOnboardingStatus();
   const bloodOnFile = !!onboardingStatus?.bloodOnFile;
+  const { skipped: bloodSkipped } = useBloodSkipped();
   // No pre-filled answers anywhere on this step — a silent default became the
   // member's real profile and drove their guidance.
   const [colour, setColour] = useState<string[]>([]);
@@ -526,7 +530,7 @@ const ProfileStep4Colour = () => {
             navigate(await resolveNextPath(), { replace: true });
           }}
         >
-          {bloodOnFile ? "Continue to Membership \u2192" : "Next: blood work (optional) \u2192"}
+          {bloodOnFile || bloodSkipped ? "Subscribe \u2192" : "Next: blood work (optional) \u2192"}
         </Button>
       </div>
     </ScreenLayout>
