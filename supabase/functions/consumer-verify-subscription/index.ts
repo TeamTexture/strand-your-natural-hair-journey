@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         price_id: priceId,
         cancel_at_period_end: chosen.cancel_at_period_end ?? false,
+        trial_end: chosen.trial_end ? new Date(chosen.trial_end * 1000).toISOString() : null,
         tier,
       },
       { onConflict: "user_id" },

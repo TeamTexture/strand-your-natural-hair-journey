@@ -79,6 +79,14 @@ Deno.serve(async (req) => {
         }
         break;
       }
+      // Fires ~3 days before the trial ends, which on a 3-day trial is almost
+      // immediately. Logged only — it must never drive a "your trial ends
+      // tomorrow" message, because that would be wrong.
+      case "customer.subscription.trial_will_end": {
+        const sub = event.data.object as Stripe.Subscription;
+        console.log("trial_will_end", sub.id, "trial_end", sub.trial_end);
+        break;
+      }
       default: break;
     }
 
@@ -144,6 +152,9 @@ async function upsertFromSubscription(
       current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       price_id: priceId,
       cancel_at_period_end: sub.cancel_at_period_end ?? false,
+      // Persisted so the app can say when the free period ends and so a second
+      // trial is never granted to the same account.
+      trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
       tier,
       paused: !!pause,
       pause_resumes_at: pause?.resumes_at

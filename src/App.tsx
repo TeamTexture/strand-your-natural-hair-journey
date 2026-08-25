@@ -179,6 +179,7 @@ const BrandsDirectory = lazyRetry(() => import("./pages/BrandsDirectory"));
 const BrandDetailPage = lazyRetry(() => import("./pages/BrandDetailPage"));
 const BrandShelfProductOpen = lazyRetry(() => import("./pages/BrandShelfProductOpen"));
 const Subscribe = lazyRetry(() => import("./pages/Subscribe"));
+const TrialPaywall = lazyRetry(() => import("./pages/TrialPaywall"));
 
 // Main app
 const Home = lazyRetry(() => import("./pages/Home"));
@@ -615,6 +616,10 @@ const App = () => (
 
 
               <Route path="/subscribe" element={<Protected><Subscribe /></Protected>} />
+              {/* 3-day free trial paywall — auth only, deliberately outside the
+                  onboarding and paywall gates so an abandoned trial can always
+                  be reopened without hitting a redirect loop. */}
+              <Route path="/start-trial" element={<Protected><TrialPaywall /></Protected>} />
               <Route path="/admin/international" element={<RoleGate allow={["admin"]}><AdminInternational /></RoleGate>} />
               <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />

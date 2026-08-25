@@ -1779,6 +1779,7 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           tier: string
+          trial_end: string | null
           updated_at: string
           user_id: string
         }
@@ -1794,6 +1795,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier?: string
+          trial_end?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1809,6 +1811,7 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier?: string
+          trial_end?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4436,6 +4439,7 @@ export type Database = {
           tips_level: number
           tips_level_prompted_at: string | null
           topical_sensitivities_confirmed_at: string | null
+          trial_offer_at: string | null
           updated_at: string
           user_id: string
         }
@@ -4474,6 +4478,7 @@ export type Database = {
           tips_level?: number
           tips_level_prompted_at?: string | null
           topical_sensitivities_confirmed_at?: string | null
+          trial_offer_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -4512,6 +4517,7 @@ export type Database = {
           tips_level?: number
           tips_level_prompted_at?: string | null
           topical_sensitivities_confirmed_at?: string | null
+          trial_offer_at?: string | null
           updated_at?: string
           user_id?: string
         }

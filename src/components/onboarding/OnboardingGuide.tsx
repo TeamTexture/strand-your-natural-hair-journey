@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
  * the top of every consumer onboarding screen, above the form.
  *
  * It also carries the overall position marker so the member always knows how
- * many stages are left in onboarding (the 7-stage consumer flow). This file is
+ * many stages are left in onboarding (the 6-stage consumer flow). This file is
  * the SINGLE SOURCE OF TRUTH for step position: TitleBar reads its counter from
  * the map below, so the header and the guide can never drift apart.
  *
@@ -18,14 +18,14 @@ import { cn } from "@/lib/utils";
  * Never a paragraph, never a duplicate of the page's own headings.
  */
 
-const TOTAL = 7;
+const TOTAL = 6;
 
 interface Guide {
-  /** Position in the 7-stage flow. Optional stages carry the previous step. */
+  /** Position in the 6-stage flow. Optional stages carry the previous step. */
   step: number;
   /** Outside the counted flow (blood work) — shows "Optional" instead. */
   optional?: boolean;
-  /** Name of this stage — shown next to "Step n of 7". */
+  /** Name of this stage — shown next to "Step n of 6". */
   label: string;
   /** What to do on this page. */
   what: string;
@@ -74,12 +74,7 @@ const GUIDES: Record<string, Guide> = {
     label: "Colour & style",
     what: "Tell us your colour history and the style you're in or moving to.",
     why: "Colour and style decide how much moisture and manipulation your hair can take.",
-    next: "Next: choose your membership.",
-  },
-  "/subscribe": {
-    step: 7,
-    label: "Membership",
-    what: "Choose your membership and STRAND unlocks.",
+    next: "That's everything — STRAND is ready for you.",
   },
   "/onboarding/blood-timing": {
     step: 6,
@@ -95,7 +90,7 @@ const GUIDES: Record<string, Guide> = {
     label: "Your results",
     what: "Upload your blood test and check each value we read from it.",
     why: "We only use values you've confirmed — nothing is assumed.",
-    next: "Then your membership, and the app unlocks.",
+    next: "Then your nutrition guidance is ready.",
   },
   "/onboarding/blood-iron-vitamins": {
     step: 6,
@@ -103,14 +98,14 @@ const GUIDES: Record<string, Guide> = {
     label: "Your results",
     what: "Enter your iron and vitamin values, or mark anything you weren't tested for.",
     why: "These are the markers most closely tied to shedding and regrowth.",
-    next: "Then minerals, thyroid and hormones — then your membership.",
+    next: "Then minerals, thyroid and hormones.",
   },
   "/onboarding/blood-minerals": {
     step: 6,
     optional: true,
     label: "Your results",
     what: "Add your mineral values, or mark them untested.",
-    next: "Then thyroid and hormones — then your membership.",
+    next: "Then thyroid and hormones.",
   },
   "/onboarding/blood-thyroid": {
     step: 6,
@@ -124,12 +119,12 @@ const GUIDES: Record<string, Guide> = {
     optional: true,
     label: "Your results",
     what: "Add your hormone values, or mark them untested.",
-    next: "Next: confirm your membership and your app unlocks.",
+    next: "That's your blood work complete.",
   },
 };
 
 /**
- * The header counter for an onboarding path — "Step 5 of 7", or "Optional" for
+ * The header counter for an onboarding path — "Step 5 of 6", or "Optional" for
  * the blood stages. Null for anything outside the flow, so TitleBar leaves the
  * slot empty. Read from the same map the guide card uses, by design.
  */

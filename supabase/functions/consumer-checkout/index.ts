@@ -32,9 +32,13 @@ Deno.serve(async (req) => {
     const userId = user.sub as string;
     const email = (user.email as string | undefined) ?? undefined;
 
-    const body = await req.json().catch(() => ({})) as { next?: string; tier?: Tier };
+    const body = await req.json().catch(() => ({})) as {
+      next?: string; tier?: Tier; trial?: boolean; returnTo?: string;
+    };
     const nextPath = isSafeInternalPath(body.next) ? body.next : "/home";
     const tier: Tier = body.tier === "plus" ? "plus" : "standard";
+    const wantsTrial = body.trial === true;
+    const returnTo = isSafeInternalPath(body.returnTo) ? body.returnTo : "/subscribe";
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) return json({ error: "Stripe not configured" }, 500);
@@ -63,9 +67,16 @@ Deno.serve(async (req) => {
 
     const { data: existing } = await admin
       .from("consumer_subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id, status, trial_end")
       .eq("user_id", userId)
       .maybeSingle();
+
+    // ONE TRIAL PER ACCOUNT. Anyone who has already held a subscription (or has
+    // already had a trial recorded) checks out at full price immediately.
+    const trialAllowed = wantsTrial &&
+      !existing?.stripe_subscription_id &&
+      !existing?.trial_end &&
+      (!existing?.status || existing.status === "none");
 
     let customerId = existing?.stripe_customer_id ?? null;
     if (!customerId) {
@@ -79,17 +90,29 @@ Deno.serve(async (req) => {
 
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
     const nextParam = encodeURIComponent(nextPath);
-    const successUrl = tier === "plus"
-      ? `${origin}/plus/welcome?checkout=success&next=${nextParam}`
-      : `${origin}/subscribe?checkout=success&next=${nextParam}`;
+    const successUrl = trialAllowed
+      ? `${origin}${returnTo}?checkout=success&next=${nextParam}`
+      : tier === "plus"
+        ? `${origin}/plus/welcome?checkout=success&next=${nextParam}`
+        : `${origin}/subscribe?checkout=success&next=${nextParam}`;
+    const cancelUrl = trialAllowed
+      ? `${origin}${returnTo}?checkout=cancelled&next=${nextParam}`
+      : `${origin}/subscribe?checkout=cancelled&next=${nextParam}`;
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl,
-      cancel_url: `${origin}/subscribe?checkout=cancelled&next=${nextParam}`,
+      cancel_url: cancelUrl,
       allow_promotion_codes: true,
-      subscription_data: { metadata: { consumer_user_id: userId, tier } },
+      // Card details are always collected up front. `trial_settings.end_behavior`
+      // is deliberately NOT set — that is only for trials without a payment
+      // method, which is not what this is.
+      ...(trialAllowed ? { payment_method_collection: "always" as const } : {}),
+      subscription_data: {
+        metadata: { consumer_user_id: userId, tier },
+        ...(trialAllowed ? { trial_period_days: 3 } : {}),
+      },
     });
 
     return json({ url: session.url });
