@@ -17,6 +17,42 @@ import { toast } from "sonner";
 import PersonalisedOffersPrompt from "@/components/consent/PersonalisedOffersPrompt";
 import { usePersonalisedOffersAsk } from "@/hooks/usePersonalisedOffersAsk";
 
+/**
+ * Maps the self-assessment labels a member picks to the column values a
+ * professional would enter, so the stored data stays in the same convention
+ * regardless of who captured it. "Not sure" maps to null (unknown) — it
+ * satisfies validation without forcing a guess.
+ */
+export const HAIR_FEEL_MAP = {
+  diameter: {
+    "I can barely feel it": "Fine",
+    "I can feel it clearly": "Medium",
+    "Thick and wiry": "Coarse",
+    "Different across my head": "Mixed",
+    "Not sure": null,
+  } as Record<string, string | null>,
+  surface_texture: {
+    "Smooth all the way": "Silky / glassy",
+    "A little grip": "Medium",
+    "Bumpy, it catches": "Rough / crinkly",
+    "Not sure": null,
+  } as Record<string, string | null>,
+  density: {
+    "A wide band of scalp": "Low",
+    "A clear line with a little scalp either side": "Medium",
+    "The parting closes up as soon as I let go": "High",
+    "Not sure": null,
+  } as Record<string, string | null>,
+} as const;
+
+export type HairFeelField = keyof typeof HAIR_FEEL_MAP;
+
+/** Convert a picked label to its stored column value (or null for "Not sure"). */
+export function mapHairFeelLabel(field: HairFeelField, label: string | undefined): string | null {
+  if (!label) return null;
+  return HAIR_FEEL_MAP[field][label] ?? null;
+}
+
 interface TGProps {
   label: string;
   options: string[];
@@ -25,8 +61,10 @@ interface TGProps {
   multi?: boolean;
   /** When set, this option is affirmative and mutually exclusive with the rest. */
   noneLabel?: string;
+  /** Optional muted helper line rendered directly under the label. */
+  helper?: string;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: TGProps) => {
+const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, helper }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   const toggle = (opt: string) => {
     if (multi) {
@@ -38,6 +76,7 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel }: 
   return (
     <div>
       <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">{label}</div>
+      {helper && <div className="text-[11px] text-muted-foreground/80 font-body -mt-1.5 mb-2.5">{helper}</div>}
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <Tag key={o} selected={safeValue.includes(o)} onClick={() => toggle(o)}>
