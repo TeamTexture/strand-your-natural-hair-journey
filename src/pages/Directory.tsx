@@ -289,7 +289,8 @@ const Directory = () => {
    * inside an expanded salon group. There is deliberately no second card
    * component: a salon stylist must read exactly like any other professional.
    */
-  const renderProCard = (p: Professional) => {
+  const renderProCard = (p: Professional, opts?: { featuredSlot?: boolean }) => {
+    const inFeaturedSlot = opts?.featuredSlot === true;
     const contact = stateForListing(p);
     const hasContact = contact.kind !== "none" || !!contact.threadId;
     const statusLine = proContactStatusLine(contact, (iso) =>
