@@ -191,7 +191,32 @@ const GoalAndChallenge = () => {
       return false;
     }
     if (saved?.id) setRowId(saved.id);
+
+    // Mirror the same answers into `user_challenges` so the Home / Journal
+    // challenge chips (which read that table) are pre-populated with exactly
+    // what she picked here. Replace, so returning and editing stays in sync.
+    const { data: existing } = await supabase
+      .from("user_challenges")
+      .select("id, label")
+      .eq("user_id", u.user.id);
+    const keep = new Set(challengeList.map((c) => c.toLowerCase()));
+    const have = new Map(
+      (existing ?? []).map((r) => [(r.label ?? "").trim().toLowerCase(), r.id] as const),
+    );
+    const toDelete = (existing ?? [])
+      .filter((r) => !keep.has((r.label ?? "").trim().toLowerCase()))
+      .map((r) => r.id);
+    const toInsert = challengeList
+      .filter((c) => !have.has(c.toLowerCase()))
+      .map((label) => ({ user_id: u.user.id, label }));
+    if (toDelete.length > 0) {
+      await supabase.from("user_challenges").delete().in("id", toDelete).eq("user_id", u.user.id);
+    }
+    if (toInsert.length > 0) {
+      await supabase.from("user_challenges").insert(toInsert as never);
+    }
     return true;
+
   };
 
   const onContinue = async () => {
