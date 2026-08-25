@@ -44,6 +44,7 @@ interface MemberRow {
   subscription_tier: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  has_billing_account: boolean;
   session_count: number;
   last_session: string | null;
   sessions_last_30d: number;
@@ -56,6 +57,23 @@ function isPlusMember(r: MemberRow): boolean {
   return active && r.subscription_tier === "plus";
 }
 
+/**
+ * Started checkout but never paid: a billing account exists in Stripe, yet no
+ * subscription ever became live. These members look like customers on the
+ * surface while producing no revenue, so they get their own status.
+ */
+function startedCheckoutUnpaid(r: MemberRow): boolean {
+  if (r.access_restricted || r.complimentary_access) return false;
+  if (!r.has_billing_account) return false;
+  const s = r.subscription_status;
+  return (
+    s === null ||
+    s === "none" ||
+    s === "incomplete" ||
+    s === "incomplete_expired"
+  );
+}
+
 function statusBadge(row: MemberRow) {
   if (row.access_restricted) return { label: "Restricted", cls: "bg-destructive/15 text-destructive" };
   if (isPlusMember(row) && !row.complimentary_access) return { label: "STRAND+", cls: "bg-primary/20 text-primary font-bold" };
@@ -63,6 +81,7 @@ function statusBadge(row: MemberRow) {
   const s = row.subscription_status;
   if (s === "active" || s === "trialing") return { label: "Active", cls: "bg-good/15 text-good" };
   if (s === "past_due" || s === "unpaid") return { label: "Past due", cls: "bg-warn/20 text-warn" };
+  if (startedCheckoutUnpaid(row)) return { label: "Not paid", cls: "bg-warn/15 text-warn" };
   if (s === "canceled") return { label: "Cancelled", cls: "bg-muted text-muted-foreground" };
   return { label: "No sub", cls: "bg-muted text-muted-foreground" };
 }
@@ -71,9 +90,11 @@ type Filter =
   | "all"
   | "active"
   | "plus"
+  | "checkout_unpaid"
   | "complimentary"
   | "restricted"
   | "incomplete";
+
 
 
 type SortKey = "recent" | "most_active";
@@ -95,6 +116,7 @@ const AdminMembers = () => {
       "all",
       "active",
       "plus",
+      "checkout_unpaid",
       "complimentary",
       "restricted",
       "incomplete",
@@ -141,10 +163,11 @@ const AdminMembers = () => {
           tier?: string | null;
           current_period_end: string | null;
           cancel_at_period_end: boolean | null;
+          stripe_customer_id: string | null;
         }>((from, to) =>
           supabase
             .from("consumer_subscriptions")
-            .select("user_id, status, current_period_end, cancel_at_period_end, tier")
+            .select("user_id, status, current_period_end, cancel_at_period_end, tier, stripe_customer_id")
             .range(from, to),
         ),
         supabase.rpc("admin_list_member_emails"),
@@ -174,6 +197,7 @@ const AdminMembers = () => {
             subscription_tier: (s as { tier?: string | null }).tier ?? null,
             current_period_end: s.current_period_end,
             cancel_at_period_end: s.cancel_at_period_end,
+            has_billing_account: !!s.stripe_customer_id,
           },
         ]),
       );
@@ -217,6 +241,7 @@ const AdminMembers = () => {
           subscription_tier: subMap.get(p.user_id)?.subscription_tier ?? null,
           current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
           cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
+          has_billing_account: !!subMap.get(p.user_id)?.has_billing_account,
           session_count: act?.session_count ?? 0,
           last_session: act?.last_session ?? null,
           sessions_last_30d: act?.sessions_last_30d ?? 0,
@@ -348,6 +373,7 @@ const AdminMembers = () => {
 
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "plus" && !isPlusMember(r)) return false;
+      if (filter === "checkout_unpaid" && !startedCheckoutUnpaid(r)) return false;
       if (filter === "active") {
         const active = r.subscription_status === "active" || r.subscription_status === "trialing";
         if (!active || r.access_restricted) return false;
@@ -449,6 +475,11 @@ const AdminMembers = () => {
       ).length,
     },
     { key: "plus", label: "STRAND+", count: rows.filter(isPlusMember).length },
+    {
+      key: "checkout_unpaid",
+      label: "Not paid",
+      count: rows.filter(startedCheckoutUnpaid).length,
+    },
     { key: "complimentary", label: "Complimentary", count: rows.filter((r) => r.complimentary_access).length },
     { key: "incomplete", label: "Incomplete", count: incompleteRows.length },
     { key: "restricted", label: "Restricted", count: rows.filter((r) => r.access_restricted).length },
@@ -635,9 +666,14 @@ const AdminMembers = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <AccountTypeBadge type={r.account_type} />
-                    <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase ${badge.cls}`}>
+                    <span className={`text-[10px] font-medium px-2 py-1 rounded-full uppercase whitespace-nowrap ${badge.cls}`}>
                       {badge.label}
                     </span>
+                    {startedCheckoutUnpaid(r) && (
+                      <p className="text-[10px] font-body text-warn text-right leading-tight max-w-[110px]">
+                        Started checkout, never paid
+                      </p>
+                    )}
                   </div>
                 </div>
 
