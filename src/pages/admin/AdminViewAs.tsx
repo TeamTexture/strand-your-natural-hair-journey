@@ -55,6 +55,7 @@ const AdminViewAs = () => {
   const { actualUser, isViewingAs } = useAuth();
   const { startViewAs, stopViewAs, viewAsDisplayName, viewAsUserId } = useViewAs();
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<SortKey>("name");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin", "view-as", "roster"],
