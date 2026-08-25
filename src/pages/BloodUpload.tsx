@@ -609,7 +609,7 @@ export default function BloodUpload() {
         {isOnboarding && !savedInOnboarding && files.length === 0 && (
           <SurfaceCard tone="gold">
             <p className="text-sm font-body leading-snug">
-              <span className="font-semibold">At least one blood test is required to use STRAND.</span>{" "}
+              <span className="font-semibold">Blood work is optional — it opens the diet and nutrition side of STRAND.</span>{" "}
               <LevelGate min={2}>
                 Drag &amp; drop your lab report below and we'll pre-fill your panel — no manual typing needed.
               </LevelGate>
