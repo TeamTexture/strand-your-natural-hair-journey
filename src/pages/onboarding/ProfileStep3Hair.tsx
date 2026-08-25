@@ -110,7 +110,7 @@ const ProfileStep3Hair = () => {
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-3-hair",
-    { porosity, elasticity, scalp, diagnosed, areas, lengthInches, lengthBucket },
+    { porosity, elasticity, scalp, diagnosed, areas, diameter, surfaceTexture, density, lengthInches, lengthBucket },
     (d) => {
       // Older saved drafts used different shapes. Only restore values the
       // current controls can render; malformed arrays previously crashed on
@@ -120,6 +120,9 @@ const ProfileStep3Hair = () => {
       if (Array.isArray(d.scalp)) setScalp(d.scalp.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.diagnosed)) setDiagnosed(d.diagnosed.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.areas)) setAreas(d.areas.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.diameter)) setDiameter(d.diameter.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.surfaceTexture)) setSurfaceTexture(d.surfaceTexture.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.density)) setDensity(d.density.filter((v): v is string => typeof v === "string"));
       if (typeof d.lengthInches === "string") setLengthInches(d.lengthInches);
       if (typeof d.lengthBucket === "string") setLengthBucket(d.lengthBucket);
     },
