@@ -20,9 +20,12 @@ import SectionLabel from "@/components/SectionLabel";
 
 interface Walkthrough {
   id: string;
+  /** Raw Loom video ID, used for both the embed and share URLs. */
+  loomId: string;
   category: string;
   title: string;
-  embedUrl: string;
+  /** Loom's own padding-bottom percentage for this recording; defaults to 16:9. */
+  aspectPadding?: string;
 }
 
 // In-app walkthrough videos, hosted on Loom, in filming order. The first two
@@ -30,33 +33,34 @@ interface Walkthrough {
 const WALKTHROUGHS: Walkthrough[] = [
   {
     id: "getting-started",
+    loomId: "5f202daa2e534b6fa8d21c8792cfdd2c",
     category: "Getting started",
     title: "Strand end user onboarding process explained",
-    embedUrl: "https://www.loom.com/embed/5f202daa2e534b6fa8d21c8792cfdd2c",
+    aspectPadding: "64.74820143884892%",
   },
   {
     id: "your-blood-work",
+    loomId: "d9904d76c04d4b16a4f3cb5603e4920f",
     category: "Your blood work",
     title: "What your blood work shows",
-    embedUrl: "https://www.loom.com/embed/d9904d76c04d4b16a4f3cb5603e4920f",
   },
   {
     id: "personalisation",
+    loomId: "b2c7417a59934531b1af6dfb43fed2ac",
     category: "Personalisation",
     title: "How STRAND personalises haircare and ads",
-    embedUrl: "https://www.loom.com/embed/b2c7417a59934531b1af6dfb43fed2ac",
   },
   {
     id: "products",
+    loomId: "4b9af503670140f4aac7cd132ed90019",
     category: "Products",
     title: "How to scan products and learn ingredients",
-    embedUrl: "https://www.loom.com/embed/4b9af503670140f4aac7cd132ed90019",
   },
   {
     id: "wash-days-and-booking",
+    loomId: "f19ec50f4fae474a8857c5516540f655",
     category: "Wash days and booking",
     title: "Wash days and how to book professionals",
-    embedUrl: "https://www.loom.com/embed/f19ec50f4fae474a8857c5516540f655",
   },
 ];
 
