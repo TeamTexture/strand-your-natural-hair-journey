@@ -97,7 +97,7 @@ const PersonalisedOffers = () => {
 
         <p className="text-[10.5px] font-body text-muted-foreground text-center pt-1 leading-relaxed">
           Every change to this setting is logged with a timestamp. Questions about how your data is
-          used? Email info@teamtexture.co.uk.
+          used? Email support@teamtexture.co.uk.
         </p>
       </div>
     </ScreenLayout>

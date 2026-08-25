@@ -163,7 +163,7 @@ const Discounts = () => {
 
         <p className="text-[10.5px] font-body text-muted-foreground text-center pt-2">
           Discount codes are provided by partners and may change. If a code stops working, let us
-          know at info@teamtexture.co.uk.
+          know at support@teamtexture.co.uk.
         </p>
       </div>
     </ScreenLayout>

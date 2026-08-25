@@ -153,9 +153,9 @@ const Help = () => {
       body: "Prefer email? Reach the team straight from your inbox.",
       action: () => {
         window.location.href =
-          "mailto:info@teamtexture.co.uk?subject=STRAND%20support";
+          "mailto:support@teamtexture.co.uk?subject=STRAND%20support";
       },
-      cta: "info@teamtexture.co.uk",
+      cta: "support@teamtexture.co.uk",
     },
     {
       key: "report",
@@ -200,7 +200,7 @@ const Help = () => {
       title: "Rate STRAND",
       body: "If STRAND is helping you, a quick review goes a long way.",
       action: () => {
-        window.location.href = "mailto:info@teamtexture.co.uk?subject=STRAND%20review";
+        window.location.href = "mailto:support@teamtexture.co.uk?subject=STRAND%20review";
       },
       cta: "Leave a review",
     },
@@ -400,7 +400,7 @@ const Help = () => {
           },
           {
             q: "How do I delete my account?",
-            a: "Email info@teamtexture.co.uk from your account address and we will erase your data within 30 days.",
+            a: "Email support@teamtexture.co.uk from your account address and we will erase your data within 30 days.",
           },
         ].map(({ q, a }) => (
           <SurfaceCard key={q}>

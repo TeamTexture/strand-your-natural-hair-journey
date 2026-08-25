@@ -73,7 +73,7 @@ const DeletionPending = () => {
         </SurfaceCard>
 
         <p className="font-body text-[11px] text-center text-muted-foreground">
-          Need to talk to someone first? Email info@teamtexture.co.uk.
+          Need to talk to someone first? Email support@teamtexture.co.uk.
         </p>
       </div>
     </ScreenLayout>

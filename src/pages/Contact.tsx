@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-const SUPPORT_EMAIL = "info@teamtexture.co.uk";
+const SUPPORT_EMAIL = "support@teamtexture.co.uk";
 
 const Contact = () => {
   const navigate = useNavigate();

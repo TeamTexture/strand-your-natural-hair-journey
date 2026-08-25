@@ -45,7 +45,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Who we are",
         body: [
-          `STRAND is operated by Team Texture Ltd, a company registered in England and Wales, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE. You can contact us at info@teamtexture.co.uk.`,
+          `STRAND is operated by Team Texture Ltd, a company registered in England and Wales, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE. You can contact us at support@teamtexture.co.uk.`,
           `These terms form a contract between you and us. By accepting them you agree to be bound by them. If you do not agree, do not use STRAND.`,
         ],
       },
@@ -166,7 +166,7 @@ const DOCS: Record<string, LegalDoc> = {
           `Team Texture Ltd, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE, is the data controller for the personal data described here. We are registered with the Information Commissioner's Office under registration reference ZC216631, registered on 7 August 2026.`,
           `The ICO keeps a public register of data controllers, which is searchable at ico.org.uk, so you can check our registration yourself at any time.`,
 
-          `For any question about your data, or to exercise a right, contact info@teamtexture.co.uk or use the data protection complaint form in the app.`,
+          `For any question about your data, or to exercise a right, contact support@teamtexture.co.uk or use the data protection complaint form in the app.`,
         ],
       },
       {
@@ -240,7 +240,7 @@ const DOCS: Record<string, LegalDoc> = {
         body: [
           `You have the right to be told what we hold about you and to get a copy; to have inaccurate data corrected; to have your data deleted; to restrict how we use it; to receive it in a portable form; to object to processing based on our legitimate interests; and to withdraw any consent you have given.`,
           `We will respond within one month. We will not charge you, and we will not treat you differently for asking.`,
-          `To exercise a right, contact info@teamtexture.co.uk or use the data protection complaint form in the app. If you are unhappy with how we have handled it you can complain to the Information Commissioner's Office at ico.org.uk, or call 0303 123 1113. You can complain to the ICO at any time; you do not have to come to us first.`,
+          `To exercise a right, contact support@teamtexture.co.uk or use the data protection complaint form in the app. If you are unhappy with how we have handled it you can complain to the Information Commissioner's Office at ico.org.uk, or call 0303 123 1113. You can complain to the ICO at any time; you do not have to come to us first.`,
         ],
       },
       {
@@ -300,7 +300,7 @@ const DOCS: Record<string, LegalDoc> = {
         body: [
           `Blood test results shown in STRAND are your own records, entered or uploaded by you. We display them so you can keep them in one place and see them over time.`,
           `We do not interpret them clinically. Where a result sits outside a typical reference range, we will tell you that and suggest you discuss it with your GP. We will not tell you what it means for your health.`,
-          `We do not claim that a blood marker is the cause of a hair concern unless that link is clinically established, and where we do refer to such a link it is drawn from a source we can cite. If you see anything in STRAND suggesting a connection between a blood result and your hair that you do not understand, treat it as unreliable and tell us at info@teamtexture.co.uk.`,
+          `We do not claim that a blood marker is the cause of a hair concern unless that link is clinically established, and where we do refer to such a link it is drawn from a source we can cite. If you see anything in STRAND suggesting a connection between a blood result and your hair that you do not understand, treat it as unreliable and tell us at support@teamtexture.co.uk.`,
           `Always discuss your results with your GP or the clinician who ordered the test. Do not change any medication, supplement or treatment on the basis of anything in STRAND.`,
         ],
       },
@@ -341,7 +341,7 @@ const DOCS: Record<string, LegalDoc> = {
         heading: "Who this applies to",
         body: [
           `This undertaking applies to you if you are listed on STRAND as a professional — a stylist, loctician, braider, trichologist, dermatologist, or any other professional listed in our directory.`,
-          `STRAND is operated by Team Texture Ltd, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE. You can contact us at info@teamtexture.co.uk.`,
+          `STRAND is operated by Team Texture Ltd, company number 16901086, registered office 103 Ferdinand Magellan Court, 5 Clipper Street, London, England, E16 2XE. You can contact us at support@teamtexture.co.uk.`,
           `You must accept this undertaking before you can view any member's passport or health records. You can use every other part of your professional account without accepting it.`,
         ],
       },
@@ -390,7 +390,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Tell us if something goes wrong",
         body: [
-          `If you think a member's information has been lost, seen by someone who should not have seen it, or used in a way this undertaking does not allow, tell us at info@teamtexture.co.uk as soon as you become aware of it, and no later than 24 hours afterwards.`,
+          `If you think a member's information has been lost, seen by someone who should not have seen it, or used in a way this undertaking does not allow, tell us at support@teamtexture.co.uk as soon as you become aware of it, and no later than 24 hours afterwards.`,
           `Tell us even if you are not sure. It is better to raise something that turns out to be nothing.`,
         ],
       },
@@ -453,7 +453,7 @@ const DOCS: Record<string, LegalDoc> = {
       },
       {
         heading: "Questions",
-        body: [`Contact info@teamtexture.co.uk.`],
+        body: [`Contact support@teamtexture.co.uk.`],
       },
     ],
   },
@@ -526,7 +526,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Withdrawing your consent",
         body: [
-          `You can withdraw at any time by contacting info@teamtexture.co.uk or using the data protection complaint form in the app.`,
+          `You can withdraw at any time by contacting support@teamtexture.co.uk or using the data protection complaint form in the app.`,
           `Because STRAND cannot work without this information, withdrawing means we can no longer provide the service, and your account will be closed. We will delete your health information, and confirm when we have. Withdrawing does not affect anything we lawfully did before you withdrew.`,
           `If you would rather remove specific information than close your account, you can delete individual records — a blood panel, a photograph, a condition — at any time, and keep using STRAND.`,
         ],
@@ -534,7 +534,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Questions",
         body: [
-          `Contact info@teamtexture.co.uk, or use the data protection complaint form in the app. You can also complain to the Information Commissioner's Office at ico.org.uk or on 0303 123 1113.`,
+          `Contact support@teamtexture.co.uk, or use the data protection complaint form in the app. You can also complain to the Information Commissioner's Office at ico.org.uk or on 0303 123 1113.`,
         ],
       },
     ],

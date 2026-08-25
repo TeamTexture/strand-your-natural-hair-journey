@@ -67,7 +67,7 @@ const MembershipEnded = ({ next }: { next?: string }) => {
         </SurfaceCard>
 
         <p className="font-body text-[11px] text-center text-muted-foreground">
-          Questions about your membership? Email info@teamtexture.co.uk.
+          Questions about your membership? Email support@teamtexture.co.uk.
         </p>
       </div>
     </ScreenLayout>

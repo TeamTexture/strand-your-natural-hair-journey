@@ -49,10 +49,10 @@ const InternationalBlockedSplash = ({ country }: Props) => {
         <p className="text-xs text-muted-foreground max-w-[270px] leading-relaxed">
           Told us the wrong country by mistake? Email{" "}
           <a
-            href="mailto:info@teamtexture.co.uk"
+            href="mailto:support@teamtexture.co.uk"
             className="underline underline-offset-4 text-foreground/80"
           >
-            info@teamtexture.co.uk
+            support@teamtexture.co.uk
           </a>{" "}
           and we'll take a look.
         </p>

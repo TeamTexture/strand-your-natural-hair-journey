@@ -18,4 +18,4 @@ export const appUrl = (path: string): string => {
 export const FROM_NOTIFICATIONS = "STRAND <notifications@mystrand.co.uk>";
 export const FROM_NOREPLY = "STRAND <noreply@mystrand.co.uk>";
 
-export const SUPPORT_EMAIL = "info@teamtexture.co.uk";
+export const SUPPORT_EMAIL = "support@teamtexture.co.uk";

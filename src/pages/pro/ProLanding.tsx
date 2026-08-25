@@ -127,10 +127,10 @@ const ProLanding = () => {
               be in touch once your application has been reviewed.
             </p>
             <a
-              href="mailto:info@teamtexture.co.uk"
+              href="mailto:support@teamtexture.co.uk"
               className="inline-flex items-center gap-1.5 text-[12px] font-body text-primary underline underline-offset-2"
             >
-              <Mail className="size-3.5" /> Questions? info@teamtexture.co.uk
+              <Mail className="size-3.5" /> Questions? support@teamtexture.co.uk
             </a>
           </SurfaceCard>
         )}
@@ -146,10 +146,10 @@ const ProLanding = () => {
               out any time.
             </p>
             <a
-              href="mailto:info@teamtexture.co.uk"
+              href="mailto:support@teamtexture.co.uk"
               className="inline-flex items-center gap-1.5 text-[12px] font-body text-primary underline underline-offset-2"
             >
-              <Mail className="size-3.5" /> info@teamtexture.co.uk
+              <Mail className="size-3.5" /> support@teamtexture.co.uk
             </a>
           </SurfaceCard>
         )}
