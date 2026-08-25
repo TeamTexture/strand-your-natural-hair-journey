@@ -5,6 +5,7 @@
 // Response: { panel_date: string | null, results: Array<{ marker, value, unit, raw_marker, raw_value }> }
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { KNOWN_BLOOD_MARKERS, canonicaliseBloodMarker } from "../_shared/blood-markers.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "blood-extract", stage: 2 } as const;
