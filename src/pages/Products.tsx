@@ -45,7 +45,6 @@ import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import BrandBanner from "@/components/BrandBanner";
 import LevelGate from "@/components/tips/LevelGate";
-import SectionHeader from "@/components/nav/SectionHeader";
 import SensitivityCaptureCard from "@/components/sensitivity/SensitivityCaptureCard";
 import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
 import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
