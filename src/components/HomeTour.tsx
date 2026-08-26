@@ -25,6 +25,9 @@ type Step = {
   body: string;
   /** Route this step is explained on. Defaults to Home. */
   route?: string;
+  /** Optional in-step action, e.g. opening the photo picker. */
+  action?: "add-photo";
+  actionLabel?: string;
 };
 
 const STEPS: Step[] = [
