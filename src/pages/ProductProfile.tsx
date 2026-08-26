@@ -33,6 +33,7 @@ import MatchStars from "@/components/MatchStars";
 import { matchScoreOf, scoreTone as toneForScore } from "@/lib/matchStars";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { buildAiContext } from "@/lib/aiContext";
+import { aiInvoke } from "@/lib/aiInvoke";
 import BrandLink from "@/components/BrandLink";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
@@ -221,8 +222,7 @@ const ProductProfile = () => {
           catch { return null; }
         })();
         const challenges = allChallenges(goals);
-        const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
-          body: {
+        const { data, error } = await aiInvoke("ingredient-analysis", {
             productKey: product.product_key,
             productName: product.name,
             productBrand: product.brand,
@@ -244,7 +244,6 @@ const ProductProfile = () => {
             currentStyle: styleLocal,
             challenges,
             context,
-          },
         });
         if (cancelled) return;
         if (error) throw error;

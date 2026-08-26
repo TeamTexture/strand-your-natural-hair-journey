@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { loadDecryptedContext } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { aiInvoke } from "@/lib/aiInvoke";
 import {
   loadResponsiveSignals,
   responsiveSignatureParts,
@@ -220,8 +221,7 @@ export function useDynamicWashTip() {
         ].join("::"),
       );
 
-      const { data, error } = await supabase.functions.invoke("wash-day-tip", {
-        body: {
+      const { data, error } = await aiInvoke("wash-day-tip", {
           fingerprint,
           hairProfile: h,
           healthProfile: he,
@@ -249,7 +249,6 @@ export function useDynamicWashTip() {
           hairFeelNotes: history.aggregate.hairFeelNotes,
           shelfProducts: history.shelfProducts,
           tipsLevel: level,
-        },
       });
 
       if (error) {

@@ -6,11 +6,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { loadStyleTipContext } from "@/hooks/useDynamicWashTip";
 import type { GuidanceTip } from "@/lib/tipsRender";
+import { aiInvoke } from "@/lib/aiInvoke";
 import {
   hashString,
   loadResponsiveSignals,
@@ -65,8 +65,7 @@ export function useStyleTip() {
         ].join("::"),
       );
 
-      const { data, error } = await supabase.functions.invoke("wash-day-tip", {
-        body: {
+      const { data, error } = await aiInvoke("wash-day-tip", {
           surface: "style",
           fingerprint,
           hairProfile: h,
@@ -89,7 +88,6 @@ export function useStyleTip() {
           recentWashDay: signals.recentWashDay,
           recentAppointment: signals.recentAppointment,
           tipsLevel: level,
-        },
       });
 
       if (error) {
