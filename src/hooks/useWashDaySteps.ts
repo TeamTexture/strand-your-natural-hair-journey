@@ -92,9 +92,18 @@ export function useWashDaySteps() {
   return useQuery({
     queryKey: ["wash_day_steps_v2", user?.id, level],
     enabled: !!user?.id,
-    staleTime: Infinity,
+    // A SUCCESSFUL sequence is cached for the session; a FAILURE never is.
+    // React Query keeps an errored query in the cache too, and with
+    // staleTime/gcTime Infinity that error used to stick for the whole session:
+    // the card said "could not be prepared" and never attempted again (this is
+    // what produced the 2026-08-26 report where no call was made at all).
+    staleTime: (query) => (query.state.error ? 0 : Infinity),
     gcTime: Infinity,
-    retry: 1,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 8000),
+    // Failures are transient — every remount re-attempts.
+    refetchOnMount: (query) => (query.state.error ? "always" : false),
+    refetchOnWindowFocus: (query) => !!query.state.error,
     queryFn: async (): Promise<WashDayStepsResult> => {
       if (!user?.id) return { steps: [], stale: false };
 
@@ -164,7 +173,13 @@ export function useWashDaySteps() {
       });
       if (error) throw new Error(error.message);
       const res = data as { steps?: WashDayStep[]; stale?: boolean } | null;
-      return { steps: (res?.steps ?? []) as WashDayStep[], stale: res?.stale === true };
+      const returned = (res?.steps ?? []) as WashDayStep[];
+      // An empty sequence is a failure, not a result: treated as an error so the
+      // card offers "Try again" instead of sitting there silently disabled, and
+      // so nothing hollow is ever held as though it were her sequence.
+      if (returned.length === 0) throw new Error("no_steps_returned");
+      return { steps: returned, stale: res?.stale === true };
+
 
     },
   });

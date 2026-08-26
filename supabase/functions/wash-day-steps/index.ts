@@ -22,7 +22,7 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { STEP_BUDGET, normaliseSteps, type WashStep } from "./normalise.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiFailure } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-steps", stage: 2 } as const;
@@ -329,14 +329,18 @@ Deno.serve(async (req) => {
         });
       }
     }
-    return json(503, { error: "guidance_unavailable" });
+    // `reason` is diagnostic only — the client renders its own copy. Nothing is
+    // written to the cache on this path, so the next view retries cleanly.
+    return json(503, { error: "guidance_unavailable", reason });
   };
 
   const requestBody = JSON.stringify({
     model: "google/gemini-3.6-flash",
     // Output cap — output tokens drive latency, but too tight a cap truncates
-    // the JSON mid-step and the whole sequence was being thrown away.
-    max_tokens: 4000,
+    // the JSON mid-step and the whole sequence was being thrown away. Real
+    // level-3/4 runs have been measured at ~3.4k output tokens, so 4000 sat
+    // right on the ceiling: raised with headroom rather than trimming content.
+    max_tokens: 6500,
 
     messages: [
       {
@@ -395,16 +399,39 @@ Deno.serve(async (req) => {
       // dead-ending her — nothing is invented, only truncated text dropped.
       const salvaged = salvageSteps(rawContent);
       if (salvaged.length === 0) {
-        console.error(
-          `[wash-day-steps] unparsable output (finish_reason=${finishReason}, chars=${rawContent.length})`,
-        );
-        return { fail: `unparsable model output (finish_reason=${finishReason})` };
+        const detail =
+          `unparsable model output (finish_reason=${finishReason}, chars=${rawContent.length})`;
+        console.error(`[wash-day-steps] ${detail}`);
+        // Logged distinguishably: the gateway call itself succeeded, so without
+        // this the row reads `completed` and looks like a success.
+        recordAiFailure({
+          function_name: "wash-day-steps",
+          surface: "wash-day-steps",
+          user_id: user.id,
+          error_text: detail,
+          rejection_rule: finishReason === "length" ? "truncated_output" : "unparsable_output",
+        });
+        return { fail: detail };
       }
+      console.warn(
+        `[wash-day-steps] salvaged ${salvaged.length} steps from truncated output (finish_reason=${finishReason})`,
+      );
       parsed = { steps: salvaged };
     }
 
     const attemptSteps = normaliseSteps(parsed.steps, level);
-    if (attemptSteps.length === 0) return { fail: "no valid steps after normalisation" };
+    if (attemptSteps.length === 0) {
+      const detail = `no valid steps after normalisation (finish_reason=${finishReason})`;
+      console.error(`[wash-day-steps] ${detail}`);
+      recordAiFailure({
+        function_name: "wash-day-steps",
+        surface: "wash-day-steps",
+        user_id: user.id,
+        error_text: detail,
+        rejection_rule: "empty_after_normalisation",
+      });
+      return { fail: detail };
+    }
     return { steps: attemptSteps };
   };
 
