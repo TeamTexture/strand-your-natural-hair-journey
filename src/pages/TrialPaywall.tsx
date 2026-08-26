@@ -68,6 +68,7 @@ const REASSURANCE = [
   { icon: Sparkles, title: "Always improving", body: "New features and refinements every month, included at no extra cost." },
 ];
 
+type Tier = "standard" | "plus";
 
 /**
  * The 3-day free trial paywall — shown after registration details are saved.
