@@ -8,7 +8,16 @@ import ActionList from "@/components/guidance/ActionList";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { emphasisSplit } from "@/lib/tipsRender";
 
-export type HeatChoice = "yes" | "no" | null;
+/**
+ * The answer to one step's heat question.
+ *
+ * - "yes"       — heat was used on THIS step
+ * - "no"        — heat was not used on this step at all
+ * - "elsewhere" — she used heat, but on her treatment step, not this one. Counts
+ *                 as NO heat here; the treatment step carries the real answer.
+ */
+export type HeatChoice = "yes" | "no" | "elsewhere" | null;
+
 
 export interface HeatRationale {
   headline: string;
