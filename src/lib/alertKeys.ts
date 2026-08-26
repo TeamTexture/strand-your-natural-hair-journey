@@ -23,6 +23,9 @@ export const ALERT_KEYS = {
 
   // Record / event based (no bucket)
   APPOINTMENT_UPCOMING: "appointment_upcoming",
+  // "Did this appointment happen?" — signature is the appointment id, so a
+  // dismissal is permanent and per-appointment, never a global mute.
+  APPOINTMENT_FOLLOW_UP: "appointment_follow_up",
   BREAKAGE_LOGGED: "breakage_logged",
   LOW_RATED_ON_SHELF: "low_rated_on_shelf",
   GOAL_TARGET_PASSED: "goal_target_passed",

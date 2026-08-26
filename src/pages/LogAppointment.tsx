@@ -292,7 +292,12 @@ const LogAppointment = () => {
       if (error || !inserted) {
         setSaving(false);
         console.error("Appointment save failed:", error);
-        toast.error("Could not save appointment");
+        toast.error(
+          (error?.message ?? "").includes("duplicate_appointment")
+            ? "You already have an appointment with this professional at that date and time."
+            : "Could not save appointment",
+        );
+
         return;
       }
       savedId = inserted.id;
@@ -340,9 +345,26 @@ const LogAppointment = () => {
         ...(planId ? { treatment_plan_id: planId } : {}),
       };
 
-      const { error: followErr } = await supabase.from("appointments").insert(followPayload);
-      if (followErr) console.error("Follow-up insert failed", followErr);
+      // Don't create a second row when she has already booked this follow-up
+      // herself — that is exactly how the duplicate pairs came about. The
+      // database trigger is the backstop; this keeps it from ever firing.
+      const { data: already } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("appointment_date", followUpDate)
+        .ilike("professional_name", proName.trim())
+        .neq("status", "cancelled")
+        .limit(1);
+
+      if ((already ?? []).length > 0) {
+        console.info("Follow-up already booked for that date — not inserting a duplicate.");
+      } else {
+        const { error: followErr } = await supabase.from("appointments").insert(followPayload);
+        if (followErr) console.error("Follow-up insert failed", followErr);
+      }
     }
+
 
     setSaving(false);
     toast.success("Appointment logged");
