@@ -5,6 +5,7 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Loader2 } from "lucide-react";
 import SectionLabel from "@/components/SectionLabel";
@@ -105,6 +106,11 @@ export default function BloodChangeAnalysis({
     [latestPanel.id, previousPanel?.id, latestResults.length],
   );
 
+  // Refresh is the only path that regenerates. The server persists the
+  // analysis, so an ordinary fetch after a reload or remount is a cheap
+  // cache read rather than a paid call.
+  const forceRef = useRef(false);
+
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: cacheKey,
     // Only run when we actually have data worth analysing.
@@ -124,9 +130,11 @@ export default function BloodChangeAnalysis({
             deltas,
             latestResults,
             context,
+            force: forceRef.current,
           },
         },
       );
+      forceRef.current = false;
       if (error) throw error;
       return (resp as { analysis?: Analysis })?.analysis ?? null;
     },
@@ -138,7 +146,10 @@ export default function BloodChangeAnalysis({
         <SectionLabel>AI analysis — changes since last test</SectionLabel>
         {data && !isFetching && (
           <button
-            onClick={() => refetch()}
+            onClick={() => {
+              forceRef.current = true;
+              void refetch();
+            }}
             className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-primary flex items-center gap-1"
             aria-label="Regenerate analysis"
           >

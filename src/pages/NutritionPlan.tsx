@@ -665,21 +665,22 @@ const NutritionPlan = () => {
   };
 
   /**
-   * RELIABILITY (2026-08-15). A cold generation takes ~100s server side. If the
-   * client's request drops, times out or transiently errors, the plan is
-   * nonetheless generated and cached server side — so instead of falling
-   * silently back to generic copy, we retry (force=false, which returns the
-   * cached plan in <1s once it exists) before giving up.
+   * SPEND CONTROL (2026-08-26). This surface used to fire up to three writer
+   * calls per view: a mount call, plus retries whenever the response lacked
+   * supplements. With the old volatile cache signature every one of those was a
+   * cold generation — 17 calls / 380k tokens in eleven minutes for one member.
+   *
+   * Now: one request per view at most, collapsed through an in-flight ref, and
+   * `force` is set ONLY from the explicit "Generate a new plan" control. A
+   * failure surfaces a "Try again" button instead of silently re-spending.
    */
-  const fetchPlan = async (force = false, currentProfile = profile, attempt = 0) => {
+  const inFlightRef = useRef(false);
+
+  const fetchPlan = async (force = false, currentProfile = profile) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setAiLoading(true);
     startProgress();
-    const retry = async () => {
-      if (attempt >= 2) return false;
-      await new Promise((r) => setTimeout(r, 12000));
-      await fetchPlan(false, currentProfile, attempt + 1);
-      return true;
-    };
     try {
       const context = await buildAiContext();
       const { data, error } = await aiInvoke<Record<string, unknown>>("nutrition-plan", {
@@ -692,7 +693,6 @@ const NutritionPlan = () => {
       });
       if (error) {
         const msg = (error instanceof Error ? error.message : String(error)) || "Couldn't generate plan";
-        if (await retry()) return;
         if (msg.includes("429")) toast.error("Try again in a moment.");
         else if (msg.includes("402")) toast.error("AI credits needed.");
         else toast.error(msg);
@@ -703,21 +703,16 @@ const NutritionPlan = () => {
       const nextPlan = data?.plan as AiPlan | undefined;
       const hasSupplements = Array.isArray(nextPlan?.supplements) && nextPlan.supplements.length > 0;
       if (nextPlan) setPlan(nextPlan);
-      if (!hasSupplements) {
-        if (await retry()) return;
-        setPlanFailed(true);
-      } else {
-        setPlanFailed(false);
-      }
+      setPlanFailed(!hasSupplements);
       stopProgress(100);
       await new Promise((r) => setTimeout(r, 400));
     } catch (e) {
       console.error("nutrition-plan invoke failed", e);
-      if (await retry()) return;
       toast.error("Couldn't generate your plan.");
       setPlanFailed(true);
       stopProgress(0);
     } finally {
+      inFlightRef.current = false;
       setAiLoading(false);
     }
   };
@@ -982,6 +977,20 @@ const NutritionPlan = () => {
             </p>
           </div>
         </div>
+
+        {/* The ONLY path that spends tokens on this screen. Viewing, navigating
+            back, or re-rendering always reads the stored plan. */}
+        {plan && !aiLoading && (
+          <div className="mb-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => void fetchPlan(true, profile)}
+              className="px-4 py-2 rounded-pill border border-border bg-background text-[11px] font-body font-semibold tracking-wide uppercase"
+            >
+              Generate a new plan
+            </button>
+          </div>
+        )}
 
         <div className="mb-4 space-y-2">
           {sensitivityAsk && (

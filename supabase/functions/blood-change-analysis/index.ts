@@ -11,6 +11,12 @@ import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  bloodFingerprint,
+  readSurfaceCache,
+  sha,
+  writeSurfaceCache,
+} from "../_shared/surface-cache.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -55,6 +61,8 @@ interface Payload {
   }>;
   /** aiContext slice — hair profile, health profile, goals, current style. */
   context?: Record<string, unknown>;
+  /** Set only by an explicit member action ("Refresh analysis"). */
+  force?: boolean;
 }
 
 import { dietConstraintBlock } from "../_shared/diet.ts";
@@ -115,6 +123,30 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     const body: Payload = await req.json();
+
+    // REGENERATION TRIGGER (2026-08-26). Previously this surface was cached in
+    // React Query only, so a reload, a tab change or a remount re-ran a paid
+    // call. It is now persisted in ai_summaries and regenerates only when her
+    // blood data changes or when she taps refresh.
+    const bloodFp = await bloodFingerprint(auth.supabase, auth.user.id);
+    const sig = await sha(JSON.stringify({
+      v: "v1-2026-08-26",
+      blood: bloodFp,
+      tipsLevel: (body.context as Record<string, unknown> | undefined)?.tipsLevel ?? null,
+    }));
+    if (!body.force) {
+      const cached = await readSurfaceCache(
+        auth.supabase,
+        auth.user.id,
+        "blood_change_analysis",
+        sig,
+      );
+      if (cached) {
+        return new Response(JSON.stringify({ analysis: cached, cached: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const healthProfile = ((body.context ?? {}) as { healthProfile?: { diet?: string; dietOther?: string } }).healthProfile;
     const userPayload = JSON.stringify({
@@ -248,13 +280,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    const clean = await sanitiseAndLog(analysis, "blood-change-analysis", {
+      context: body.context,
+      grounding: grounding.block,
+    }) as Record<string, unknown>;
+
+    // Only a complete analysis is stored — never a partial or failed one.
+    if (Array.isArray(clean.focus_areas) && clean.focus_areas.length > 0) {
+      await writeSurfaceCache(
+        auth.supabase,
+        auth.user.id,
+        "blood_change_analysis",
+        sig,
+        clean,
+      );
+    }
+
     return new Response(
-      JSON.stringify({
-        analysis: await sanitiseAndLog(analysis, "blood-change-analysis", {
-                context: body.context,
-          grounding: grounding.block,
-        }),
-      }),
+      JSON.stringify({ analysis: clean, cached: false }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
