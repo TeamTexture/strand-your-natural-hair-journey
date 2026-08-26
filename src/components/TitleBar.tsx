@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
 import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
+import { ONBOARDING_PREV, onboardingPrevPath } from "@/lib/onboardingFlow";
+
 import NotificationsBell from "@/components/NotificationsBell";
 import { onboardingStepLabel } from "@/components/onboarding/OnboardingGuide";
 
