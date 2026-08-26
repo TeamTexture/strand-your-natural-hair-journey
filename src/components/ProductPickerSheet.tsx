@@ -17,7 +17,11 @@ import CategoryProductPanels from "@/components/CategoryProductPanels";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { type StepProductHint } from "@/lib/productCategories";
+import {
+  normaliseProductCategory,
+  type ProductCategorySlug,
+  type StepProductHint,
+} from "@/lib/productCategories";
 
 
 interface Props {
@@ -27,6 +31,18 @@ interface Props {
   selectedIds: string[];
   /** Called when the user toggles a product on/off */
   onToggle: (productId: string) => void;
+  /**
+   * ADD-AND-RETURN commit. When provided, a row's "Add" attaches the product and
+   * hands the caller the category it came from, so the caller can close the
+   * sheet and return the member to the step she was filling in. Without it the
+   * sheet keeps its original toggle-and-stay behaviour.
+   */
+  onAdd?: (productId: string, category: ProductCategorySlug) => void;
+  /**
+   * Category to open on mount — the one she last added from on this step, so a
+   * second product is two taps rather than six. Session-only; the caller holds it.
+   */
+  initialOpenCategory?: ProductCategorySlug | null;
   /**
    * When provided, a pasted link is handed to the caller instead of taking the
    * member off to the analysis screen — used by style record steps, which
