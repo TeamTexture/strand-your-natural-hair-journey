@@ -104,7 +104,7 @@ const STEPS: Step[] = [
     route: "/nutrition-plan",
     eyebrow: "Diet tab",
     title: "Your nutrition plan",
-    body: "Foods to prioritise, supplements to consider and what to keep apart from what — built from your markers and your diet pattern.",
+    body: "Foods to prioritise, supplements to consider and what to keep apart from what — built from your markers and your diet pattern. This side of STRAND opens once you add blood results.",
   },
   {
     target: "bottom-nav-profile",
