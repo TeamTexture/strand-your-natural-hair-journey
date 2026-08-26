@@ -25,7 +25,7 @@
 // CRITICAL: do NOT remove the Lovable+Gemini path. The flag defaults to
 // "lovable"; Paige flips to "claude" only after manual verification.
 
-import { json, preflight } from "../_shared/cors.ts";
+import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import {
@@ -113,6 +113,12 @@ interface RequestBody {
     flagged_ingredients?: string[];
   };
   force?: boolean;
+  /** SPEED: stream the analysis back as SSE so the member sees the product
+   *  name, brand and ingredient list within a few seconds. The final
+   *  `complete` event carries the same fully guarded payload the plain JSON
+   *  response returns. */
+  stream?: boolean;
+
 }
 
 /** User-facing 400 message when the Claude path is invoked without both
@@ -260,7 +266,27 @@ ${FLAGGED_INGREDIENTS_RULES}`;
 
 }
 
+/**
+ * SPEED (2026-08). Every token Claude emits costs the member roughly 22ms of
+ * waiting, and the scan was spending them on prose the app never renders.
+ * These rules cut nothing the UI shows and touch no guardrail — they only
+ * forbid padding, and they fix the emission order so the score, reasons and
+ * headline stream out before the longer guidance blocks.
+ */
+const OUTPUT_ECONOMY_RULES = `
+
+OUTPUT ECONOMY — HARD RULES (latency: the member is watching a spinner):
+- Emit NOTHING outside the return_product_analysis tool call. No preamble, no commentary, no "I'll analyse this", no closing summary.
+- Fill the tool's fields in the order the schema lists them. Do not reorder.
+- key_ingredients: 4–6 entries only, the ones that actually decide the score. benefit ≤12 words. reason ≤20 words, one sentence.
+- score_reasons: at most 4 entries, each reason one sentence ≤25 words.
+- ai_summary: exactly ONE sentence.
+- marketed_purpose_note and routine_suggestion: at most 2 short sentences each.
+- Never restate the same point in two fields, and never re-list the full ingredient panel in prose.
+- Brevity is a formatting rule only: it must NEVER reduce the number of ingredients you transcribe into "ingredients", change a flag, or soften a warning.`;
+
 // ─── Provider: Claude ──────────────────────────────────────────────────
+
 async function runClaude(args: {
   front_image_url: string;
   back_image_url: string;
@@ -268,6 +294,10 @@ async function runClaude(args: {
   selectorContext: SelectorContext;
   ledgerBlock: string;
   sensitivityBlock?: string;
+  /** SPEED: when set, the model call streams and this receives the
+   *  accumulated tool JSON so the caller can push partial results to the
+   *  member while the verdict is still being written. */
+  onPartialJson?: (accumulatedJson: string) => void;
 }): Promise<{ payload: ProductAnalysisPayload; web_search_invocations: number }> {
   const userText = `Two photos of the same product follow. Photo 1 is the FRONT of the product (brand + product name + marketing claims). Photo 2 is the BACK of the product (ingredient panel + usage instructions + regulatory text). Read both. Use web_search if anything is missing or unclear.
 
@@ -275,6 +305,7 @@ User context (use to compute key_ingredients flags, match_score, ai_summary, use
 ${JSON.stringify(args.context ?? {}, null, 2)}
 
 Return JSON only via the return_product_analysis tool.`;
+
 
   const userContent: ContentBlockInput[] = [
     { type: "text", text: "Photo 1 — FRONT of product:" },
@@ -299,7 +330,8 @@ Return JSON only via the return_product_analysis tool.`;
     function_kind: "product-analyse",
     task_instructions: `${buildTaskInstructions(tipsLevel)}${
       args.sensitivityBlock ?? ""
-    }${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}`,
+    }${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}`,
+
     user_payload: {}, // unused — user_content overrides
     user_content: userContent,
     user_context: args.context,
@@ -329,7 +361,11 @@ Return JSON only via the return_product_analysis tool.`;
     max_tokens: 4096,
   });
 
-  const result = await callClaude<ProductAnalysisPayload>(req);
+  const result = await callClaude<ProductAnalysisPayload>({
+    ...req,
+    onPartialJson: args.onPartialJson,
+  });
+
 
   const web_search_invocations = result.server_tool_use_count ?? 0;
 
@@ -532,7 +568,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // SPEED (2026-08): when the caller asks for a stream, the same pipeline
+    // runs unchanged — every gate, cache check, guardrail and cache write —
+    // but partial model output is pushed to the member as it arrives. The
+    // pipeline is a closure so the code below is identical in both modes.
+    const wantsStream = body.stream === true;
+    const pipeline = async (
+      emit: ((event: string, data: unknown) => void) | null,
+    ): Promise<Record<string, unknown> | Response> => {
     const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_PHOTO");
+
 
     // ── Input validation: provider-specific contracts (audit §5 Step 3) ──
     // Claude path: dual-photo strict — both front + back required, no
@@ -592,15 +637,16 @@ Deno.serve(async (req: Request) => {
         : cached._model_version === LOVABLE_MODEL_VERSION;
       const hashOk = cached._profile_snapshot_hash === profileHash;
       if (versionOk && hashOk) {
-        return json(200, await sanitiseAndLog(
+        return await sanitiseAndLog(
           annotateProductSensitivities(
             cached as unknown as Record<string, unknown>,
             sens,
             "product-analyse",
           ) as unknown as ProductAnalysisPayload,
           "product-analyse",
-        ));
+        ) as unknown as Record<string, unknown>;
       }
+
     }
 
     if (capped) return capped;
@@ -623,7 +669,11 @@ Deno.serve(async (req: Request) => {
         selectorContext: buildSelectorContext(body),
         ledgerBlock,
         sensitivityBlock,
+        onPartialJson: emit
+          ? (acc) => emit("partial", { json: acc })
+          : undefined,
       });
+
       analysis = {
         ...payload,
         _model_version: MODEL_VERSION,
@@ -705,7 +755,72 @@ Deno.serve(async (req: Request) => {
         : [],
     );
 
-    return json(200, await sanitiseAndLog(analysis, "product-analyse"));
+      return await sanitiseAndLog(analysis, "product-analyse") as unknown as Record<
+        string,
+        unknown
+      >;
+    };
+
+    if (!wantsStream) {
+      const result = await pipeline(null);
+      return result instanceof Response ? result : json(200, result);
+    }
+
+    // ── SSE mode ──────────────────────────────────────────────────────
+    // Events: `partial` (accumulated tool JSON, best-effort), `complete`
+    // (the final, fully guarded payload — the ONLY payload the client
+    // saves) and `error`. The client renders partials as a preview only.
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (event: string, data: unknown) => {
+          try {
+            controller.enqueue(
+              encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
+            );
+          } catch {
+            // Client went away mid-scan; the pipeline still finishes and
+            // writes its cache row so the next open is free.
+          }
+        };
+        // Flush immediately so the browser opens the stream (and the member
+        // sees the "reading the label" state) without waiting on the model.
+        send("open", { ok: true });
+        try {
+          const result = await pipeline(send);
+          if (result instanceof Response) {
+            const text = await result.text();
+            let parsed: unknown = { error: "request_failed" };
+            try {
+              parsed = JSON.parse(text);
+            } catch { /* non-JSON body */ }
+            send("error", { status: result.status, body: parsed });
+          } else {
+            send("complete", result);
+          }
+        } catch (e) {
+          const resp = aiErrorResponse(e, "product-analyse");
+          let parsed: unknown = { error: "analysis_failed" };
+          try {
+            parsed = JSON.parse(await resp.text());
+          } catch { /* non-JSON body */ }
+          send("error", { status: resp.status, body: parsed });
+        } finally {
+          try {
+            controller.close();
+          } catch { /* already closed */ }
+        }
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+
   } catch (e) {
     return aiErrorResponse(e, "product-analyse");
   }

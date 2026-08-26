@@ -45,25 +45,11 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
       description:
         "Full INCI list, lowercase, in label order. If the visible label is partial or obscured and web_search resolved the canonical formulation, return the full canonical list — not just what was visible in the photo.",
     },
-    key_ingredients: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          benefit: { type: "string" },
-          flag: { type: "string", enum: ["good", "warn", "avoid"] },
-          reason: { type: "string" },
-          surfactant_role: {
-            type: "string",
-            enum: ["primary", "secondary", "none"],
-            description:
-              "For cleansing agents only: 'primary' for the main detergent doing the bulk of the cleansing (e.g. sodium lauryl sulfate, sodium laureth sulfate, sodium coco-sulfate, sodium C14-16 olefin sulfonate), 'secondary' for co-surfactants/amphoterics that boost lather and soften the primary (e.g. cocamidopropyl betaine, coco-glucoside, decyl glucoside, sodium cocoamphoacetate). 'none' for every non-surfactant ingredient.",
-          },
-        },
-        required: ["name", "benefit", "flag", "reason"],
-      },
-    },
+    // NOTE (speed, 2026-08): key_ingredients deliberately sits AFTER
+    // ai_summary in this schema. Claude emits tool JSON in schema order and
+    // the response is streamed, so the score, reasons and headline reach the
+    // member ~10s earlier when the long per-ingredient block comes last.
+
     marketed_purpose: {
       type: "string",
       enum: [
@@ -100,6 +86,34 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
       description:
         "Exactly ONE tight sentence: the overall call and the single user signal driving it. score_reasons carry the why.",
     },
+    key_ingredients: {
+      type: "array",
+      maxItems: 6,
+      description:
+        "The 4–6 ingredients that actually decide this product for THIS member — the ones driving the score. Never a walk-through of the whole INCI list.",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          benefit: { type: "string", description: "What it does, 12 words maximum." },
+          flag: { type: "string", enum: ["good", "warn", "avoid"] },
+          reason: {
+            type: "string",
+            description:
+              "Why that flag for THIS member, naming the trait it turns on. 20 words maximum, one sentence.",
+          },
+          surfactant_role: {
+            type: "string",
+            enum: ["primary", "secondary", "none"],
+            description:
+              "For cleansing agents only: 'primary' for the main detergent doing the bulk of the cleansing (e.g. sodium lauryl sulfate, sodium laureth sulfate, sodium coco-sulfate, sodium C14-16 olefin sulfonate), 'secondary' for co-surfactants/amphoterics that boost lather and soften the primary (e.g. cocamidopropyl betaine, coco-glucoside, decyl glucoside, sodium cocoamphoacetate). 'none' for every non-surfactant ingredient.",
+          },
+        },
+        required: ["name", "benefit", "flag", "reason"],
+      },
+    },
+
+
 
     usage_instructions: {
       type: "string",
@@ -128,22 +142,24 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
         "1–2 short sentences suggesting how to slot THIS product into the user's existing routine (wash-day step, frequency, layered before/after which items on their shelf). Empty string if nothing meaningful can be said from the user context.",
     },
   },
+  // Order mirrors `properties` so the streamed emission order puts the
+  // verdict (score, reasons, headline) ahead of the longer guidance blocks.
   required: [
     "product_name",
     "brand",
     "category",
     "ingredients",
-    "key_ingredients",
     "marketed_purpose",
     "match_score",
     "score_reasons",
     "insight",
-
     "ai_summary",
+    "key_ingredients",
     "usage_instructions",
     "use_cases",
     "tips",
   ],
+
 } as const;
 
 /** TypeScript-side mirror of the schema shape. Kept loose (no enums on

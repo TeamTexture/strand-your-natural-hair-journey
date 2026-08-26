@@ -10,7 +10,12 @@ import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { resolveProductKey } from "@/lib/productIdentity";
+import {
+  streamProductAnalyse,
+  type PartialAnalysis,
+} from "@/lib/streamProductAnalyse";
 import { toast } from "sonner";
+
 
 /** Nav state shape produced by useProductScan after the dual-photo upload. */
 interface NavState {
@@ -38,7 +43,9 @@ const ProductScanning = () => {
   const [error, setError] = useState("");
   const [loadingMessage, setLoadingMessage] = useState("Reading the front of the label…");
   const [progressPct, setProgressPct] = useState(0);
+  const [partial, setPartial] = useState<PartialAnalysis>({});
   const ranRef = useRef(false);
+
 
   // Rotate the headline through a sequence of progress signals so the
   // ~60s wait feels like activity rather than a frozen state. These
@@ -143,29 +150,29 @@ const ProductScanning = () => {
           decision: "fresh_scan",
         });
 
-        console.log("[scan-debug] about to invoke product-analyse");
-        const { data, error: invErr } = await supabase.functions.invoke(
-          "product-analyse",
-          {
-            body: {
-              photos: { front, back },
-              context,
-              force: true,
-            },
+        console.log("[scan-debug] about to invoke product-analyse (stream)");
+        // SPEED: streamed so the real product name, brand and ingredient
+        // count replace the cosmetic progress copy within a few seconds.
+        // The resolved payload is the guarded `complete` event — the preview
+        // is never saved or scored from.
+        const data = await streamProductAnalyse({
+          body: { photos: { front, back }, context, force: true },
+          onPartial: (p) => {
+            setPartial((prev) => ({ ...prev, ...p }));
+            if (p.ingredients?.length) {
+              setLoadingMessage(
+                `Read ${p.ingredients.length} ingredients — matching to your hair profile…`,
+              );
+            } else if (p.product_name) {
+              setLoadingMessage("Reading the ingredients…");
+            }
           },
-        );
-
-        // The dual-photo Claude path returns 400 with a user-facing error
-        // message when both photos aren't supplied (audit §5 Step 3 strict
-        // contract). `supabase.functions.invoke` surfaces non-2xx as
-        // `invErr.context.json.error` — surface that string to the user
-        // verbatim because Paige wrote it for them.
-        if (invErr) {
-          const userFacing = await extractFunctionErrorMessage(invErr);
-          throw new Error(userFacing);
+        });
+        if ((data as { error?: string })?.error) {
+          throw new Error((data as { error?: string }).error!);
         }
-        if (data?.error) throw new Error(data.error);
-        console.log("[scan-debug] function returned ok", { hasData: !!data, productName: data?.product_name, brand: data?.brand });
+        console.log("[scan-debug] function returned ok", { hasData: !!data, productName: data.product_name, brand: data.brand });
+
 
         // Persist the freshly-scanned product so the unified product page
         // (/products/ingredient) — which loads from user_products by
@@ -337,6 +344,31 @@ const ProductScanning = () => {
               );
             })()}
             <p className="font-display text-lg mt-4">{loadingMessage}</p>
+            {/* Real detail from the label, streamed in as it's read. Preview
+                only — the score and verdict land when the analysis finishes. */}
+            {(partial.product_name || partial.brand) && (
+              <div
+                className="mt-3 w-full max-w-xs rounded-[12px] border border-primary/30 bg-card px-3 py-2 text-left"
+                aria-live="polite"
+              >
+                {partial.brand && (
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {partial.brand}
+                  </p>
+                )}
+                {partial.product_name && (
+                  <p className="font-display text-sm leading-snug">
+                    {partial.product_name}
+                  </p>
+                )}
+                {partial.ingredients?.length ? (
+                  <p className="mt-1 text-[11px] font-body text-muted-foreground">
+                    {partial.ingredients.length} ingredients read
+                  </p>
+                ) : null}
+              </div>
+            )}
+
             <p className="mt-3 max-w-xs text-xs font-body text-foreground bg-card border border-primary/40 rounded-[12px] px-3 py-2">
               Stay on this page while we work. Leaving or closing it before the
               analysis finishes will interrupt it, and you'll need to start
