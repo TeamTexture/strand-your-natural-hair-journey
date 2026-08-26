@@ -496,10 +496,39 @@ const WashStep1 = () => {
     },
     [setStepState],
   );
+  /**
+   * Add-and-return: adding closes the sheet, so we remember where she was so
+   * she comes back looking at the step she was filling in, and which category
+   * she added from so a second product on that step is two taps. Session-only
+   * (component state) — nothing persisted.
+   */
+  const returnMarkRef = useRef<{ offset: number; anchorId?: string } | null>(null);
+  const [lastCategory, setLastCategory] = useState<
+    Partial<Record<Exclude<PickerTarget, null>, ProductCategorySlug>>
+  >({});
+  const scrollContainer = () =>
+    (document.querySelector("main.overflow-y-auto") as HTMLElement | null) ?? null;
   const openPicker = (target: Exclude<PickerTarget, null>) => {
+    const container = scrollContainer();
+    returnMarkRef.current = {
+      offset: container?.scrollTop ?? 0,
+      anchorId: `anchor-washstep-${target}`,
+    };
     restorePickerTarget(target);
     setPickerOpen(true);
   };
+  /** Restore the remembered position once the sheet has unmounted and the step re-rendered. */
+  const returnToStep = useCallback(() => {
+    const mark = returnMarkRef.current;
+    if (!mark) return;
+    let tries = 0;
+    const tick = () => {
+      const container = scrollContainer();
+      if (container && applyScrollMark(container, mark)) return;
+      if (tries++ < 20) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, []);
   const pickerReturnTo = useMemo(() => {
     if (!pickerTarget) return undefined;
     const next = new URLSearchParams(searchParams);
@@ -529,6 +558,19 @@ const WashStep1 = () => {
       current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
     );
   };
+  /** The sheet's explicit "Add" — attach, remember, close, return to the step. */
+  const handleAddPicked = (productId: string, category: ProductCategorySlug) => {
+    const target = pickerTarget;
+    if (!target) return;
+    markTouched(target);
+    const current = targetIds[target];
+    if (!current.includes(productId)) targetSetters[target]([...current, productId]);
+    setLastCategory((prev) => ({ ...prev, [target]: category }));
+    setPickerOpen(false);
+    setPickerTarget(null);
+    returnToStep();
+  };
+
 
 
   // When the user adds a brand new product via the picker (auto_save) they
