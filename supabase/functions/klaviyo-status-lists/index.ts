@@ -10,7 +10,7 @@
 //                                  idempotent, so it is safe to trigger.
 //
 // Every mode skips anyone already pushed successfully to that list (read from
-// klaviyo_sync_log) and anyone without email_preferences.marketing_consent.
+// klaviyo_sync_log) and anyone without profiles.personalised_offers_consent.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAdminOrService } from "../_shared/auth.ts";
