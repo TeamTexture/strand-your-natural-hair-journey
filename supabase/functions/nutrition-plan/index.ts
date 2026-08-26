@@ -763,7 +763,7 @@ Deno.serve(async (req: Request) => {
       ...p.avoid.flatMap((x) => Object.values(x ?? {}).map(String)),
     ];
     const lastGoodPlan = async () => {
-      const { data: prior } = await supabase
+      const { data: prior } = await dataClient
         .from("ai_summaries")
         .select("payload")
         .eq("user_id", memberId)
