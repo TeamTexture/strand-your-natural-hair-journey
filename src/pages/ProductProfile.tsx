@@ -57,6 +57,16 @@ interface IngredientFlag {
   sensitivity?: boolean;
 }
 
+interface IngredientAnalysisResponse {
+  error?: string;
+  analysis?: {
+    ingredients?: IngredientFlag[];
+    summary?: string;
+    match_score?: number;
+    score_reasons?: unknown;
+  };
+}
+
 const formatDate = (iso: string) => {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
@@ -82,7 +92,7 @@ const ProductProfile = () => {
   const navigate = useNavigate();
   const { level: tipsLevel } = useTipsLevel();
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isViewingAs } = useAuth();
   const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
   const { washDays } = useWashDays();
   const { flags } = useIngredientLists();
@@ -222,7 +232,7 @@ const ProductProfile = () => {
           catch { return null; }
         })();
         const challenges = allChallenges(goals);
-        const { data, error } = await aiInvoke("ingredient-analysis", {
+        const { data, error } = await aiInvoke<IngredientAnalysisResponse>("ingredient-analysis", {
             productKey: product.product_key,
             productName: product.name,
             productBrand: product.brand,
@@ -279,7 +289,7 @@ const ProductProfile = () => {
             flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
           };
         });
-        if (summary || score != null || mergedKeyIngredients.length > 0) {
+        if (!isViewingAs && (summary || score != null || mergedKeyIngredients.length > 0)) {
           await supabase
             .from("user_products")
             .update({
@@ -301,7 +311,7 @@ const ProductProfile = () => {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, user?.id]);
+  }, [product?.id, user?.id, isViewingAs]);
 
   if (loading) {
     return (

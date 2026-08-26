@@ -27,6 +27,13 @@ interface StyleTipPayload {
   technique: string;
 }
 
+interface StyleTipResponse {
+  tip?: StyleTipPayload;
+}
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error ?? "Unknown error");
+
 export function useStyleTip() {
   const { user } = useAuth();
   const { level } = useTipsLevel();
@@ -65,7 +72,7 @@ export function useStyleTip() {
         ].join("::"),
       );
 
-      const { data, error } = await aiInvoke("wash-day-tip", {
+      const { data, error } = await aiInvoke<StyleTipResponse>("wash-day-tip", {
           surface: "style",
           fingerprint,
           hairProfile: h,
@@ -91,10 +98,10 @@ export function useStyleTip() {
       });
 
       if (error) {
-        console.warn("[useStyleTip] invoke failed", error.message);
+        console.warn("[useStyleTip] invoke failed", errorMessage(error));
         return [];
       }
-      const tip = (data as { tip?: StyleTipPayload } | null)?.tip;
+      const tip = data?.tip;
       if (!tip?.headline) return [];
 
       const tips: GuidanceTip[] = [
