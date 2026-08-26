@@ -21,7 +21,7 @@ import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRen
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import {
   classifySurfactant,
-  inferMarketedPurpose,
+
   isMarketedPurpose,
   MARKETED_PURPOSE_SURFACTANT_NOTE,
   MARKETED_PURPOSE_LABEL,
