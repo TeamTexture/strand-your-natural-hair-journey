@@ -10,6 +10,8 @@ import {
   markTourFinished,
   setTourActive,
   TOUR_START_EVENT,
+  OPEN_MAIN_PHOTO_EVENT,
+  MAIN_PHOTO_CLOSED_EVENT,
 } from "@/lib/firstRunTour";
 
 // Bumped key — tour is refreshed once for every user when new steps are added.
@@ -23,6 +25,9 @@ type Step = {
   body: string;
   /** Route this step is explained on. Defaults to Home. */
   route?: string;
+  /** Optional in-step action, e.g. opening the photo picker. */
+  action?: "add-photo";
+  actionLabel?: string;
 };
 
 const STEPS: Step[] = [
@@ -42,7 +47,9 @@ const STEPS: Step[] = [
     target: "style-photo",
     eyebrow: "Home",
     title: "Add a photo of your hair",
-    body: "Tap the photo frame (or the image icon top-right of this card) to add a picture of your hair as it looks today. Do this now — it's how you'll see your progress month to month.",
+    body: "Add a picture of your hair as it looks today — it's how you'll see your progress month to month. Tap ‘Add a photo now’ and the picker opens; the tour waits and picks up right here.",
+    action: "add-photo",
+    actionLabel: "Add a photo now",
   },
 
   {
@@ -179,6 +186,26 @@ const HomeTour = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, stepRoute]);
 
+
+  // The photo picker sheet sits below the tour overlay, so the tour steps aside
+  // while it is open and comes back on the same step once it closes.
+  const pausedRef = useRef(false);
+  useEffect(() => {
+    const onClosed = () => {
+      if (!pausedRef.current) return;
+      pausedRef.current = false;
+      setActive(true);
+    };
+    window.addEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
+    return () =>
+      window.removeEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
+  }, []);
+
+  const openPhotoPicker = () => {
+    pausedRef.current = true;
+    setActive(false);
+    window.dispatchEvent(new Event(OPEN_MAIN_PHOTO_EVENT));
+  };
 
   // Allow the pinned Home button (or any caller) to replay the tour on demand.
   useEffect(() => {
@@ -362,14 +389,34 @@ const HomeTour = () => {
               {current.body}
             </p>
 
+            {current.action === "add-photo" && (
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full mt-4"
+                onClick={openPhotoPicker}
+              >
+                {current.actionLabel ?? "Add a photo now"}
+              </Button>
+            )}
+
             <div className="flex items-center gap-2 mt-4">
               {step > 0 && (
                 <Button variant="goldOutline" size="pill" className="flex-1" onClick={prev}>
                   Back
                 </Button>
               )}
-              <Button variant="gold" size="pill" className="flex-1" onClick={next}>
-                {step === STEPS.length - 1 ? "Finish" : "Next →"}
+              <Button
+                variant={current.action ? "goldOutline" : "gold"}
+                size="pill"
+                className="flex-1"
+                onClick={next}
+              >
+                {step === STEPS.length - 1
+                  ? "Finish"
+                  : current.action
+                    ? "Later →"
+                    : "Next →"}
               </Button>
             </div>
 
