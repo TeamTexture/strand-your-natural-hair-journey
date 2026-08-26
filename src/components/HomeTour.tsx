@@ -441,9 +441,8 @@ const HomeTour = () => {
       )
     : null;
 
-  // Small icons need more breathing room than large cards so the ring does not
-  // crowd them.
-  const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
+
+
 
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
