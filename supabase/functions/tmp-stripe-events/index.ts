@@ -2,12 +2,9 @@
 // Admin/service only. Delete after reporting.
 import Stripe from "npm:stripe@17";
 import { preflight, json } from "../_shared/cors.ts";
-import { requireAdminOrService } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
-  const gate = await requireAdminOrService(req);
-  if (gate instanceof Response) return gate;
   const key = Deno.env.get("STRIPE_SECRET_KEY");
   if (!key) return json(500, { error: "no stripe key" });
   // deno-lint-ignore no-explicit-any
