@@ -87,9 +87,23 @@ async function insertRows(rows: AiCallRow[]): Promise<void> {
  *  function name so two surfaces in the same isolate don't collide. */
 const pending = new Map<string, AiCallRow>();
 
+/** Token usage of the writer call still buffered for `functionName`, so the
+ *  evidence-set audit row can record what stage 2 actually cost. Read-only —
+ *  the row is still flushed by recordAiOutcome / recordAiFailure. */
+export function getBufferedUsage(
+  functionName: string,
+): { input: number; output: number; total: number } | null {
+  const row = pending.get(functionName);
+  if (!row) return null;
+  const input = row.input_tokens ?? 0;
+  const output = row.output_tokens ?? 0;
+  return { input, output, total: input + output };
+}
+
 function flush(row: AiCallRow): void {
   void insertRows([row]);
 }
+
 
 /** Record an AI call. Stage 1 rows are written immediately; stage-2 rows wait
  *  for `recordAiOutcome` so outcome + rejection rule land on the same row. */

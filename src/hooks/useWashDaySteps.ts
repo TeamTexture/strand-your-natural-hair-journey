@@ -99,11 +99,14 @@ export function useWashDaySteps() {
     // what produced the 2026-08-26 report where no call was made at all).
     staleTime: (query) => (query.state.error ? 0 : Infinity),
     gcTime: Infinity,
-    retry: 2,
-    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 8000),
+    // NO client retry. Each invocation is a paid writer call, and retrying here
+    // on top of the server's own attempt multiplied one card into several
+    // generations. A failure shows the error state; a remount re-attempts once.
+    retry: 0,
     // Failures are transient — every remount re-attempts.
     refetchOnMount: (query) => (query.state.error ? "always" : false),
-    refetchOnWindowFocus: (query) => !!query.state.error,
+    refetchOnWindowFocus: false,
+
     queryFn: async (): Promise<WashDayStepsResult> => {
       if (!user?.id) return { steps: [], stale: false };
 
