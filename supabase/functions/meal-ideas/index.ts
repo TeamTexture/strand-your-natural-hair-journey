@@ -10,6 +10,12 @@ import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
+import {
+  MAX_REJECTION_ATTEMPTS,
+  buildRejectionRetryInstruction,
+  makeGenerationId,
+  retryReasonFromRules,
+} from "../_shared/guardrail-retry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,7 +134,7 @@ Deno.serve(async (req) => {
     const sens = await loadSensitivities(auth.supabase, auth.user.id, "dietary");
     const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
 
-    const userPayload = `${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}
+    const buildUserPayload = (retryRules: string[] | null) => `${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}
 
 USER CONTEXT (full profile — bloods, hair, health, goals, style, professional, location, history):
 ${JSON.stringify(body.context ?? {}, null, 2)}
@@ -150,7 +156,9 @@ ingredient, different cooking method, different cuisine. Never pad the list by
 rewording an excluded dish.
 Variation token (ignore its meaning, use it only to make this batch different from the last): ${crypto.randomUUID()}
 
-Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
+Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
+      retryRules?.length ? `\n\n${buildRejectionRetryInstruction(retryRules, "meal ideas")}` : ""
+    }`;
 
     const groundingCtx = (body.context ?? null) as Record<string, unknown> | null;
     const grounding = await buildGroundingBlock({
@@ -163,127 +171,139 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
       ragK: 4,
     });
 
-    const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+    const generationId = makeGenerationId();
+    let sanitised: { meals?: unknown[] } = {};
+    let retryRules: string[] | null = null;
+    let lastRejection = "unknown";
+    for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+      const aiResp = await gatewayFetch(
+        {
+          ...AI_METER_META,
+          user_id: auth.user.id,
+          generation_id: generationId,
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+          retry_reason: retryReasonFromRules(retryRules),
         },
-        body: JSON.stringify({
-          model: "google/gemini-3.6-flash",
-          // Regeneration must produce a visibly different batch each time.
-          temperature: 1.1,
-          messages: [
-            { role: "system", content: `${systemPrompt}${grounding.block}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
-            { role: "user", content: userPayload },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "return_meal_ideas",
-                description:
-                  "Return 6 personalised, easy-to-cook meal ideas grounded in the user's data.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    meals: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          emoji: { type: "string" },
-                          name: { type: "string" },
-                          cuisine: { type: "string" },
-                          time_minutes: { type: "number" },
-                          summary: { type: "string" },
-                          targets: {
-                            type: "array",
-                            items: { type: "string" },
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3.6-flash",
+            // Regeneration must produce a visibly different batch each time.
+            temperature: 1.1,
+            messages: [
+              { role: "system", content: `${systemPrompt}${grounding.block}\n\n${buildTipsLevelBlock(((body.context as Record<string, unknown> | undefined)?.tipsLevel))}` },
+              { role: "user", content: buildUserPayload(retryRules) },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "return_meal_ideas",
+                  description:
+                    "Return 6 personalised, easy-to-cook meal ideas grounded in the user's data.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      meals: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            emoji: { type: "string" },
+                            name: { type: "string" },
+                            cuisine: { type: "string" },
+                            time_minutes: { type: "number" },
+                            summary: { type: "string" },
+                            targets: { type: "array", items: { type: "string" } },
+                            ingredients: { type: "array", items: { type: "string" } },
+                            steps: { type: "array", items: { type: "string" } },
                           },
-                          ingredients: {
-                            type: "array",
-                            items: { type: "string" },
-                          },
-                          steps: {
-                            type: "array",
-                            items: { type: "string" },
-                          },
+                          required: [
+                            "emoji",
+                            "name",
+                            "cuisine",
+                            "time_minutes",
+                            "summary",
+                            "targets",
+                            "ingredients",
+                            "steps",
+                          ],
                         },
-                        required: [
-                          "emoji",
-                          "name",
-                          "cuisine",
-                          "time_minutes",
-                          "summary",
-                          "targets",
-                          "ingredients",
-                          "steps",
-                        ],
                       },
                     },
+                    required: ["meals"],
                   },
-                  required: ["meals"],
                 },
               },
-            },
-          ],
-          tool_choice: {
-            type: "function",
-            function: { name: "return_meal_ideas" },
-          },
-        }),
-      },
-    );
+            ],
+            tool_choice: { type: "function", function: { name: "return_meal_ideas" } },
+          }),
+        },
+      );
 
-    if (!aiResp.ok) {
-      if (aiResp.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+      if (!aiResp.ok) {
+        if (aiResp.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        if (aiResp.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        const t = await aiResp.text();
+        console.error("meal-ideas gateway error", aiResp.status, t);
+        return new Response(JSON.stringify({ error: "AI generation failed" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      if (aiResp.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+
+      const aiJson = await aiResp.json();
+      const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall?.function?.arguments) {
+        console.error("No tool call from meal-ideas", JSON.stringify(aiJson).slice(0, 400));
+        return new Response(JSON.stringify({ error: "Malformed AI output" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      const t = await aiResp.text();
-      console.error("meal-ideas gateway error", aiResp.status, t);
-      return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    const aiJson = await aiResp.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      console.error("No tool call from meal-ideas", JSON.stringify(aiJson).slice(0, 400));
-      return new Response(JSON.stringify({ error: "Malformed AI output" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      let parsed: { meals: unknown[] };
+      try {
+        parsed = JSON.parse(toolCall.function.arguments);
+      } catch (e) {
+        console.error("Bad JSON from meal-ideas tool call", e);
+        return new Response(JSON.stringify({ error: "Bad AI JSON" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    let parsed: { meals: unknown[] };
-    try {
-      parsed = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("Bad JSON from meal-ideas tool call", e);
-      return new Response(JSON.stringify({ error: "Bad AI JSON" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const rejected: string[] = [];
+      sanitised = await sanitiseAndLog(parsed, "meal-ideas", {
+        context: body.context,
+        surface: "meal-ideas",
+        userId: auth.user.id,
+        generationId,
+        attemptNumber,
+        maxAttempts: MAX_REJECTION_ATTEMPTS,
+        retryReason: retryReasonFromRules(retryRules),
+        onRejected: (rules) => rejected.push(...rules),
+      }) as { meals?: unknown[] };
+      if (rejected.length === 0) break;
+      retryRules = [...new Set(rejected)];
+      lastRejection = retryReasonFromRules(retryRules) ?? "guardrail_rejection";
     }
-
-    const sanitised = await sanitiseAndLog(parsed, "meal-ideas", {
-      context: body.context,
-      surface: "meal-ideas",
-      userId: auth.user.id,
-    }) as { meals?: unknown[] };
 
     // The fidelity filter can strip a meal's summary sentence. A blank summary
     // renders as an empty card, so fall back to a plain factual line built from
@@ -330,13 +350,15 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
     // her in `ai_call_log` so it is diagnosable. Only a non-empty, fully
     // sanitised batch is ever written as the new last-good.
     const finalMeals = Array.isArray(sanitised?.meals) ? sanitised.meals : [];
-    if (finalMeals.length === 0) {
+    if (finalMeals.length === 0 || retryRules?.length) {
       recordAiOutcome({
         function_name: "meal-ideas",
         surface: "meal-ideas",
         user_id: auth.user.id,
         outcome: "rejected",
-        rejection_rule: "no_meals_survived_guardrails",
+        rejection_rule: finalMeals.length === 0 ? "no_meals_survived_guardrails" : lastRejection,
+        generation_id: generationId,
+        max_attempts: MAX_REJECTION_ATTEMPTS,
       });
       const { data: lastGood } = await auth.supabase
         .from("ai_summaries")
