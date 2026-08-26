@@ -397,16 +397,39 @@ Deno.serve(async (req) => {
       // dead-ending her — nothing is invented, only truncated text dropped.
       const salvaged = salvageSteps(rawContent);
       if (salvaged.length === 0) {
-        console.error(
-          `[wash-day-steps] unparsable output (finish_reason=${finishReason}, chars=${rawContent.length})`,
-        );
-        return { fail: `unparsable model output (finish_reason=${finishReason})` };
+        const detail =
+          `unparsable model output (finish_reason=${finishReason}, chars=${rawContent.length})`;
+        console.error(`[wash-day-steps] ${detail}`);
+        // Logged distinguishably: the gateway call itself succeeded, so without
+        // this the row reads `completed` and looks like a success.
+        recordAiFailure({
+          function_name: "wash-day-steps",
+          surface: "wash-day-steps",
+          user_id: user.id,
+          error_text: detail,
+          rejection_rule: finishReason === "length" ? "truncated_output" : "unparsable_output",
+        });
+        return { fail: detail };
       }
+      console.warn(
+        `[wash-day-steps] salvaged ${salvaged.length} steps from truncated output (finish_reason=${finishReason})`,
+      );
       parsed = { steps: salvaged };
     }
 
     const attemptSteps = normaliseSteps(parsed.steps, level);
-    if (attemptSteps.length === 0) return { fail: "no valid steps after normalisation" };
+    if (attemptSteps.length === 0) {
+      const detail = `no valid steps after normalisation (finish_reason=${finishReason})`;
+      console.error(`[wash-day-steps] ${detail}`);
+      recordAiFailure({
+        function_name: "wash-day-steps",
+        surface: "wash-day-steps",
+        user_id: user.id,
+        error_text: detail,
+        rejection_rule: "empty_after_normalisation",
+      });
+      return { fail: detail };
+    }
     return { steps: attemptSteps };
   };
 
