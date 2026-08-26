@@ -1008,6 +1008,8 @@ const WashStep1 = () => {
         stepHint={pickerTarget}
         returnTo={pickerReturnTo}
         onToggle={handleTogglePicked}
+        onAdd={handleAddPicked}
+        initialOpenCategory={pickerTarget ? lastCategory[pickerTarget] ?? null : null}
 
       />
     </ScreenLayout>
