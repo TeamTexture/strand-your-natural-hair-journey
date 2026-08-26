@@ -359,7 +359,9 @@ export type Database = {
           generation_id: string | null
           http_status: number | null
           id: string
+          impersonated_by: string | null
           input_tokens: number | null
+          is_impersonated: boolean
           max_attempts: number | null
           model: string
           model_called: boolean
@@ -383,7 +385,9 @@ export type Database = {
           generation_id?: string | null
           http_status?: number | null
           id?: string
+          impersonated_by?: string | null
           input_tokens?: number | null
+          is_impersonated?: boolean
           max_attempts?: number | null
           model: string
           model_called?: boolean
@@ -407,7 +411,9 @@ export type Database = {
           generation_id?: string | null
           http_status?: number | null
           id?: string
+          impersonated_by?: string | null
           input_tokens?: number | null
+          is_impersonated?: boolean
           max_attempts?: number | null
           model?: string
           model_called?: boolean
@@ -6699,7 +6705,9 @@ export type Database = {
           generation_id: string | null
           http_status: number | null
           id: string | null
+          impersonated_by: string | null
           input_tokens: number | null
+          is_impersonated: boolean | null
           max_attempts: number | null
           model: string | null
           model_called: boolean | null
