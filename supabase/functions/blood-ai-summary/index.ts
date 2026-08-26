@@ -33,6 +33,7 @@ import {
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { bloodFingerprint } from "../_shared/surface-cache.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -467,10 +468,12 @@ Deno.serve(async (req: Request) => {
       num_flagged: flagged.length,
     });
 
-    // Cache (existing pattern: one row per user/kind, no _sig in legacy code).
-    // We keep the existing key for the user-facing payload. In parallel mode
-    // we *additionally* write a sidecar row (kind = "blood_summary_claude_shadow")
-    // so Paige can compare cached Claude outputs without re-running.
+    // REGENERATION TRIGGER (2026-08-26). One row per user/kind. It is reused
+    // unless (a) she asked for a new one, (b) her blood data actually changed —
+    // measured by a fingerprint read from the database, not from the request —
+    // (c) her support level changed, or (d) the cache version moved. Nothing
+    // about a page view or a re-render can invalidate it.
+    const bloodFp = await bloodFingerprint(supabase, user.id);
     if (!force) {
       const { data: existing } = await supabase
         .from("ai_summaries")
@@ -482,7 +485,11 @@ Deno.serve(async (req: Request) => {
       const cacheFresh =
         !!existingPayload &&
         existingPayload._cache_version === CACHE_VERSION &&
-        (existingPayload._tips_level ?? null) === requestedTipsLevel;
+        (existingPayload._tips_level ?? null) === requestedTipsLevel &&
+        // Legacy rows have no fingerprint: accept them rather than burning a
+        // generation on data that has not moved.
+        (existingPayload._blood_fp === undefined ||
+          existingPayload._blood_fp === bloodFp);
       if (cacheFresh) {
         console.log("[blood-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
@@ -491,6 +498,7 @@ Deno.serve(async (req: Request) => {
         });
       }
     }
+
 
     // Spend protection: per-user daily cap (model-spend paths only).
     // Workspace-wide automatic brake (see _shared/usage-cap.ts).
@@ -640,6 +648,7 @@ Deno.serve(async (req: Request) => {
       _provider: providerStamp,
       _cache_version: CACHE_VERSION,
       _tips_level: requestedTipsLevel,
+      _blood_fp: bloodFp,
       ...(providerStamp === "claude" ? { _model_version: MODEL_VERSION } : {}),
     } as Record<string, unknown>;
 

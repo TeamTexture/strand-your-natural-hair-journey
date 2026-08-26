@@ -100,10 +100,14 @@ const BloodAiSummary = () => {
       const hairProfile = (clinical.hair ?? {}) as Record<string, unknown>;
       const healthProfile = (clinical.health ?? {}) as Record<string, unknown>;
       const heritage = clinical.basic?.heritage ?? [];
-      const { payload, fingerprint } = buildFingerprint(hairProfile, healthProfile, heritage);
-      const lastFingerprint = localStorage.getItem("strand_blood_summary_fp");
-      const inputsChanged = lastFingerprint !== fingerprint;
-      const shouldForce = force || inputsChanged;
+      const { payload } = buildFingerprint(hairProfile, healthProfile, heritage);
+      // SPEND CONTROL (2026-08-26). `force` now comes ONLY from an explicit
+      // member action. The old localStorage fingerprint treated any incidental
+      // profile change (and any cleared browser storage) as a reason to
+      // regenerate, and passed that same force through to the nutrition-plan
+      // prewarm — so opening this screen could pay for two cold generations.
+      // Staleness is decided server side from her actual blood data.
+      const shouldForce = force;
 
       const context = await buildAiContext();
       const { data, error: fnError } = await aiInvoke<{ error?: string; summary?: Summary }>(
@@ -113,7 +117,6 @@ const BloodAiSummary = () => {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
       setSummary(data.summary as Summary);
-      localStorage.setItem("strand_blood_summary_fp", fingerprint);
       stopProgress(100);
 
       // Fire-and-forget: pre-warm the nutrition plan while the user reads
@@ -132,14 +135,15 @@ const BloodAiSummary = () => {
           const blood = uid ? await readBloodData(uid) : { flagged: [] as string[] };
           await aiInvoke("nutrition-plan", {
             context,
-            force: shouldForce,
+            // Prewarm only: never forces a regeneration.
+            force: false,
             diet: canonDiet((healthProfile as { diet?: string }).diet),
             dietOther: (healthProfile as { dietOther?: string }).dietOther ?? "",
             alcohol: (healthProfile as { alcohol?: string }).alcohol ?? "unknown",
             flaggedMarkers: blood.flagged,
           });
         } catch (err) {
-          // Silent — NutritionPlan.tsx will retry on its own if this fails.
+          // Silent — the Nutrition Plan screen generates on first open if needed.
           console.warn("[nutrition-plan prewarm] skipped", err);
         }
       })();

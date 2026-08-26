@@ -22,6 +22,7 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { bloodFingerprint, readSurfaceCache, sha } from "../_shared/surface-cache.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -661,9 +662,19 @@ Deno.serve(async (req: Request) => {
       currentStyle: (context as { currentStyle?: unknown } | undefined)?.currentStyle ?? null,
     });
 
-    // Build a signature from the inputs that should invalidate cache.
-    // Provider is included so flipping the flag forces a regen.
-    const sigSource = JSON.stringify({
+    // REGENERATION TRIGGER (2026-08-26). The signature is built ONLY from
+    // things that legitimately change the plan:
+    //   • her blood data (read from the database, never from the request body)
+    //   • her dietary pattern and alcohol answer
+    //   • her hard dietary exclusions (a safety guardrail, not a preference)
+    //   • the schema / model / provider stamp
+    // Everything else that used to be in here — whole hairProfile, healthProfile
+    // and goals objects, plus the raw blood array off the client context — moved
+    // with every render and made each page view pay for a cold generation.
+    // An explicit `force` (the member tapped "Generate a new plan") still
+    // regenerates once.
+    const bloodFp = await bloodFingerprint(supabase, user.id);
+    const sig = await sha(JSON.stringify({
       schema_version: "v7-full-detail-2026-08-15",
       model_version: MODEL_VERSION,
       provider,
@@ -675,42 +686,23 @@ Deno.serve(async (req: Request) => {
         .map((e) => `${e.label}:${e.severity}`)
         .slice()
         .sort(),
-      blood: ((context as { bloodResults?: unknown[] })?.bloodResults ?? []),
-      hair: (context as { hairProfile?: unknown })?.hairProfile ?? null,
-      health: (context as { healthProfile?: unknown })?.healthProfile ?? null,
-      goals: (context as { goals?: unknown })?.goals ?? null,
+      blood: bloodFp,
       // Nutrition always renders at full detail, so the support level is
       // deliberately excluded from the cache signature.
       tipsLevel: "full",
-    });
-    let sig = "";
-    try {
-      const buf = new TextEncoder().encode(sigSource);
-      const hash = await crypto.subtle.digest("SHA-256", buf);
-      sig = Array.from(new Uint8Array(hash))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("")
-        .slice(0, 32);
-    } catch {
-      sig = String(sigSource.length);
-    }
+    }));
 
     if (!force) {
-      const { data: existing } = await supabase
-        .from("ai_summaries")
-        .select("payload, updated_at")
-        .eq("user_id", user.id)
-        .eq("kind", "nutrition_plan")
-        .maybeSingle();
-      const existingSig = (existing?.payload as { _sig?: string } | undefined)?._sig;
-      if (existing?.payload && existingSig === sig) {
+      const cached = await readSurfaceCache(supabase, user.id, "nutrition_plan", sig);
+      if (cached) {
         console.log("[nutrition-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
           cached: true,
-          plan: await sanitiseAndLog(existing.payload, "nutrition-plan", { context: body.context }),
+          plan: await sanitiseAndLog(cached, "nutrition-plan", { context: body.context }),
         });
       }
     }
+
 
     // Spend protection: per-user daily cap (model-spend paths only).
     // Workspace-wide automatic brake (see _shared/usage-cap.ts).
