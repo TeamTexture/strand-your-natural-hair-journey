@@ -63,11 +63,11 @@ const PersonalisedOffersCard = () => {
             <X className="size-4" />
           </button>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="gold"
             size="pill"
-            className="flex-1 text-[12px]"
+            className="min-w-0 px-2 text-[12px] tracking-tight whitespace-nowrap"
             disabled={busy}
             onClick={() => void choose(true)}
           >
@@ -76,13 +76,14 @@ const PersonalisedOffersCard = () => {
           <Button
             variant="outline"
             size="pill"
-            className="flex-1 text-[12px]"
+            className="min-w-0 px-2 text-[12px] tracking-tight whitespace-nowrap"
             disabled={busy}
             onClick={() => void choose(false)}
           >
             No thanks
           </Button>
         </div>
+
       </SurfaceCard>
     </div>
   );
