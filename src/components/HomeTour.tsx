@@ -406,8 +406,17 @@ const HomeTour = () => {
                   Back
                 </Button>
               )}
-              <Button variant="gold" size="pill" className="flex-1" onClick={next}>
-                {step === STEPS.length - 1 ? "Finish" : "Next →"}
+              <Button
+                variant={current.action ? "goldOutline" : "gold"}
+                size="pill"
+                className="flex-1"
+                onClick={next}
+              >
+                {step === STEPS.length - 1
+                  ? "Finish"
+                  : current.action
+                    ? "Later →"
+                    : "Next →"}
               </Button>
             </div>
 
