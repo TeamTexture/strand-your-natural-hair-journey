@@ -173,7 +173,13 @@ export function useWashDaySteps() {
       });
       if (error) throw new Error(error.message);
       const res = data as { steps?: WashDayStep[]; stale?: boolean } | null;
-      return { steps: (res?.steps ?? []) as WashDayStep[], stale: res?.stale === true };
+      const returned = (res?.steps ?? []) as WashDayStep[];
+      // An empty sequence is a failure, not a result: treated as an error so the
+      // card offers "Try again" instead of sitting there silently disabled, and
+      // so nothing hollow is ever held as though it were her sequence.
+      if (returned.length === 0) throw new Error("no_steps_returned");
+      return { steps: returned, stale: res?.stale === true };
+
 
     },
   });
