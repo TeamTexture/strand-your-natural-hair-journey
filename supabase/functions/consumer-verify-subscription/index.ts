@@ -146,6 +146,15 @@ Deno.serve(async (req) => {
       { onConflict: "user_id" },
     );
 
+    // CONVERSION path #3 (return-from-Stripe, often before the webhook lands):
+    // she comes off BOTH nurture lists. Never fails the verification.
+    if (ACTIVE.has(chosen.status)) {
+      await removeFromNurtureLists(admin, {
+        userId,
+        reason: `verify_${chosen.status}`,
+      });
+    }
+
     return json(200, {
       active: ACTIVE.has(chosen.status),
       status: chosen.status,
