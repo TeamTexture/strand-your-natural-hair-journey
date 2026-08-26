@@ -117,7 +117,13 @@ export default function BloodChangeAnalysis({
     enabled: latestResults.length > 0,
     staleTime: 1000 * 60 * 60 * 24, // 1 day
     gcTime: 1000 * 60 * 60 * 24 * 7,
-    retry: 1,
+    // Transport failures only — a rejected generation is never re-bought.
+    retry: retryTransportOnce,
+    retryDelay: aiRetryDelay,
+    // Stays OFF (also the global default): switching apps and back must never
+    // buy a new analysis.
+    refetchOnWindowFocus: false,
+
     queryFn: async (): Promise<Analysis | null> => {
       const context = await buildAiContext().catch(() => ({}));
       const { data: resp, error } = await supabase.functions.invoke(
