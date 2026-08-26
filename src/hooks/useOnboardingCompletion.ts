@@ -12,7 +12,6 @@ import {
 } from "@/lib/consumerOnboarding";
 import { getOnboardingNextPath } from "@/lib/onboardingDecision";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
-import { requestTourAutostart } from "@/lib/firstRunTour";
 
 /**
  * Re-read the durable rows after a save, update the shared cache, then decide
