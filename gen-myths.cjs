@@ -157,7 +157,7 @@ const FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com">'
  + '&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">';
 
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-  .replace(/"/g,'"').replace(/'/g,'&#x27;');
+  .replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
 
 const bar = () => '<header class="bar"><div><a class="logo" href="' + BASE + '/">STRAND</a>'
   + '<a class="join" href="' + BASE + '/auth">Join the app</a></div></header>';
