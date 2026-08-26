@@ -46,6 +46,37 @@ export interface AiCallRow {
   error_text?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// AMBIENT MEMBER ATTRIBUTION (2026-08-26 incident)
+// ---------------------------------------------------------------------------
+// Every surface built its meter metadata from a module-level `AI_METER_META`
+// constant that carries no user id, and almost no call site threaded `userId`
+// into sanitiseAndLog. The result: `ai_call_log.user_id` was null on nearly
+// every row, so a rejection could not be traced to the member it broke.
+//
+// `requireAuthedUser` now sets the ambient id the moment a request is
+// authenticated, and every row falls back to it. An EXPLICIT user_id on the row
+// always wins, so a function that threads the id through is unaffected.
+//
+// Isolate reuse caveat: one isolate can serve concurrent requests, so the
+// ambient value is a best-effort attribution, not an audit-grade one. The
+// surfaces that matter for triage also pass `userId` explicitly, which takes
+// precedence. Never use the ambient id for an authorisation decision — it is a
+// logging convenience only.
+let ambientUserId: string | null = null;
+
+/** Set the member the current request belongs to. Called from requireAuthedUser. */
+export function setAiCallUser(userId: string | null | undefined): void {
+  ambientUserId = userId ?? null;
+}
+
+/** The ambient member id, where one has been established for this request. */
+export function getAiCallUser(): string | null {
+  return ambientUserId;
+}
+
+
+
 async function insertRows(rows: AiCallRow[]): Promise<void> {
   if (rows.length === 0) return;
   try {
