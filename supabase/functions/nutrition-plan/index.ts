@@ -77,6 +77,12 @@ import {
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
 import { gatewayFetch, setAiCallUser } from "../_shared/ai-meter.ts";
+import {
+  MAX_REJECTION_ATTEMPTS,
+  buildRejectionRetryInstruction,
+  makeGenerationId,
+  retryReasonFromRules,
+} from "../_shared/guardrail-retry.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "nutrition-plan", stage: 2 } as const;
@@ -302,6 +308,9 @@ async function runClaude(args: {
   recentWashSignals: unknown[];
   sensitivityBlock?: string;
   retryNote?: string;
+  generationId?: string | null;
+  attemptNumber?: number | null;
+  maxAttempts?: number | null;
 }): Promise<NutritionPlanPayload> {
   const BRIEFS: Record<PlanPart, string> = {
     supplements: `THIS REQUEST — SUMMARY + SUPPLEMENTS ONLY.
@@ -372,6 +381,10 @@ Return JSON only via the return_nutrition_plan tool.`;
     // needed 8192 and truncated at 4096; splitting the work removes that
     // pressure while keeping every card at full depth.
     max_tokens: 6144,
+    generation_id: args.generationId ?? null,
+    attempt_number: args.attemptNumber ?? null,
+    max_attempts: args.maxAttempts ?? null,
+    retry_reason: retryReasonFromRules(args.retryNote ? [args.retryNote] : null),
 
   });
 
@@ -460,6 +473,9 @@ async function runClaudeSplit(args: {
   recentWashSignals: unknown[];
   sensitivityBlock?: string;
   retryNote?: string;
+  generationId?: string | null;
+  attemptNumber?: number | null;
+  maxAttempts?: number | null;
 }): Promise<NutritionPlanPayload> {
   const [head, diet, avoid] = await Promise.all([
     runClaude({ ...args, part: "supplements" }),
@@ -480,6 +496,7 @@ async function runLovable(
   body: RequestBody,
   sensitivityBlock = "",
   retryNote = "",
+  retryMeta?: { generationId?: string | null; attemptNumber?: number | null; maxAttempts?: number | null },
 ): Promise<NutritionPlanPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -507,7 +524,13 @@ async function runLovable(
   const timeoutId = setTimeout(() => controller.abort(), 55_000);
   let aiResp: Response;
   try {
-    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
+    aiResp = await gatewayFetch({
+      ...AI_METER_META,
+      generation_id: retryMeta?.generationId ?? null,
+      attempt_number: retryMeta?.attemptNumber ?? null,
+      max_attempts: retryMeta?.maxAttempts ?? null,
+      retry_reason: retryReasonFromRules(retryNote ? [retryNote] : null),
+    }, "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         signal: controller.signal,
@@ -715,72 +738,134 @@ Deno.serve(async (req: Request) => {
     const capped = await checkDailyCap(user.id, "nutrition-plan", 8);
     if (capped) return capped;
 
-    let payload: NutritionPlanPayload;
+    let payload: NutritionPlanPayload | null = null;
     let providerStamp: "claude" | "lovable";
-    if (provider === "claude") {
-      // Pull last 5 wash days where the user reported a hair-feel signal.
-      const { data: recentRaw } = await supabase
-        .from("wash_days")
-        .select("wash_date, scalp_feel, breakage, hair_feel_note")
-        .eq("user_id", user.id)
-        .order("wash_date", { ascending: false })
-        .limit(15);
-      const recentSignals = (recentRaw ?? [])
-        .filter((r) => {
-          const note = (r as { hair_feel_note?: string | null }).hair_feel_note;
-          const sf = (r as { scalp_feel?: string | null }).scalp_feel;
-          const br = (r as { breakage?: string | null }).breakage;
-          return (note && note.trim().length > 0) || sf || br;
-        })
-        .slice(0, 5);
-
-      payload = await runClaudeSplit({ body, recentWashSignals: recentSignals, sensitivityBlock });
-      providerStamp = "claude";
-    } else {
-      payload = await runLovable(body, sensitivityBlock);
-      providerStamp = "lovable";
-    }
-
-    // Deterministic post-generation check. The prompt is a filter, not a
-    // guarantee — so every string is scanned against the member's hard
-    // exclusions and their aliases. One retry, then drop the offending items.
+    const generationId = makeGenerationId();
     const collect = (p: NutritionPlanPayload): string[] => [
       p.summary,
       ...p.supplements.flatMap((x) => Object.values(x ?? {}).map(String)),
       ...p.diet.flatMap((x) => Object.values(x ?? {}).map(String)),
       ...p.avoid.flatMap((x) => Object.values(x ?? {}).map(String)),
     ];
-    let hits = validateAgainstAvoid(collect(payload), sens, "dietary");
-    if (hits.length > 0) {
-      const retryNote = `\n\nRETRY — your previous answer broke a hard exclusion. It referenced: ${
-        hits.map((h) => `${h.label} (as "${h.term}")`).join("; ")
-      }. Rebuild the plan without these in any form, keeping the same number of items by substituting permitted foods that do the same job.`;
-      console.log("[nutrition-debug] sensitivity retry", { hits: hits.length });
-      payload = provider === "claude"
-        ? await runClaudeSplit({ body, recentWashSignals: [], sensitivityBlock, retryNote })
-        : await runLovable(body, sensitivityBlock, retryNote);
-      hits = validateAgainstAvoid(collect(payload), sens, "dietary");
-      if (hits.length > 0) {
-        const bad = (x: unknown) =>
-          validateAgainstAvoid(Object.values(x ?? {}).map(String), sens, "dietary").length > 0;
-        payload = {
-          summary: validateAgainstAvoid([payload.summary], sens, "dietary").length > 0
-            ? ""
-            : payload.summary,
-          supplements: payload.supplements.filter((x) => !bad(x)),
-          diet: payload.diet.filter((x) => !bad(x)),
-          avoid: payload.avoid.filter((x) => !bad(x)),
-        };
-        console.log("[nutrition-debug] sensitivity items dropped");
+    const lastGoodPlan = async () => {
+      const { data: prior } = await supabase
+        .from("ai_summaries")
+        .select("payload")
+        .eq("user_id", user.id)
+        .eq("kind", "nutrition_plan")
+        .maybeSingle();
+      const priorPayload = prior?.payload as Record<string, unknown> | null;
+      return priorPayload && Array.isArray(priorPayload.diet) && priorPayload.diet.length > 0
+        ? priorPayload
+        : null;
+    };
+
+    let retryRules: string[] | null = null;
+    for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+      const guardrailRetry = retryRules?.length
+        ? `\n\n${buildRejectionRetryInstruction(retryRules, "nutrition plan")}`
+        : "";
+      if (provider === "claude") {
+        // Pull last 5 wash days where the user reported a hair-feel signal.
+        const { data: recentRaw } = await supabase
+          .from("wash_days")
+          .select("wash_date, scalp_feel, breakage, hair_feel_note")
+          .eq("user_id", user.id)
+          .order("wash_date", { ascending: false })
+          .limit(15);
+        const recentSignals = (recentRaw ?? [])
+          .filter((r) => {
+            const note = (r as { hair_feel_note?: string | null }).hair_feel_note;
+            const sf = (r as { scalp_feel?: string | null }).scalp_feel;
+            const br = (r as { breakage?: string | null }).breakage;
+            return (note && note.trim().length > 0) || sf || br;
+          })
+          .slice(0, 5);
+
+        payload = await runClaudeSplit({
+          body,
+          recentWashSignals: recentSignals,
+          sensitivityBlock,
+          retryNote: guardrailRetry,
+          generationId,
+          attemptNumber,
+          maxAttempts: MAX_REJECTION_ATTEMPTS,
+        });
+        providerStamp = "claude";
+      } else {
+        payload = await runLovable(body, sensitivityBlock, guardrailRetry, {
+          generationId,
+          attemptNumber,
+          maxAttempts: MAX_REJECTION_ATTEMPTS,
+        });
+        providerStamp = "lovable";
       }
+
+      // Deterministic post-generation check. The prompt is a filter, not a
+      // guarantee — so every string is scanned against the member's hard
+      // exclusions and their aliases. One retry, then drop the offending items.
+      let hits = validateAgainstAvoid(collect(payload), sens, "dietary");
+      if (hits.length > 0) {
+        const retryNote = `\n\nRETRY — your previous answer broke a hard exclusion. It referenced: ${
+          hits.map((h) => `${h.label} (as "${h.term}")`).join("; ")
+        }. Rebuild the plan without these in any form, keeping the same number of items by substituting permitted foods that do the same job.`;
+        console.log("[nutrition-debug] sensitivity retry", { hits: hits.length });
+        payload = provider === "claude"
+          ? await runClaudeSplit({
+            body,
+            recentWashSignals: [],
+            sensitivityBlock,
+            retryNote,
+            generationId,
+            attemptNumber,
+            maxAttempts: MAX_REJECTION_ATTEMPTS,
+          })
+          : await runLovable(body, sensitivityBlock, retryNote, {
+            generationId,
+            attemptNumber,
+            maxAttempts: MAX_REJECTION_ATTEMPTS,
+          });
+        hits = validateAgainstAvoid(collect(payload), sens, "dietary");
+        if (hits.length > 0) {
+          const bad = (x: unknown) =>
+            validateAgainstAvoid(Object.values(x ?? {}).map(String), sens, "dietary").length > 0;
+          payload = {
+            summary: validateAgainstAvoid([payload.summary], sens, "dietary").length > 0
+              ? ""
+              : payload.summary,
+            supplements: payload.supplements.filter((x) => !bad(x)),
+            diet: payload.diet.filter((x) => !bad(x)),
+            avoid: payload.avoid.filter((x) => !bad(x)),
+          };
+          console.log("[nutrition-debug] sensitivity items dropped");
+        }
+      }
+
+      if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+        throw new Error(
+          `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
+        );
+      }
+
+      const rejected: string[] = [];
+      payload = await sanitiseAndLog(payload, "nutrition-plan", {
+        context: body.context,
+        surface: "nutrition-plan",
+        userId: user.id,
+        generationId,
+        attemptNumber,
+        maxAttempts: MAX_REJECTION_ATTEMPTS,
+        retryReason: retryReasonFromRules(retryRules),
+        onRejected: (rules) => rejected.push(...rules),
+      }) as NutritionPlanPayload;
+      if (rejected.length === 0) break;
+      retryRules = [...new Set(rejected)];
     }
 
-    // Defence in depth: never write an empty plan to the cache. runClaude
-    // already throws on empty/truncated tool_use, but the legacy Lovable
-    // path could conceivably return an empty payload too; if either does,
-    // surface as a 500 instead of poisoning the cache and freezing the
-    // page on the empty state.
+    if (!payload) throw new Error("Nutrition plan generation returned no payload");
     if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+      const priorPayload = await lastGoodPlan();
+      if (priorPayload) return json(200, { cached: true, stale: true, plan: priorPayload });
       throw new Error(
         `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
       );
@@ -818,7 +903,7 @@ Deno.serve(async (req: Request) => {
     });
     return json(200, {
       cached: false,
-      plan: await sanitiseAndLog(stamped, "nutrition-plan", { context: body.context }),
+      plan: stamped,
     });
   } catch (e) {
     console.log("[nutrition-debug] failed", { total_ms: Date.now() - t0 });
