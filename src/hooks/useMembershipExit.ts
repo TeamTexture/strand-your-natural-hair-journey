@@ -34,9 +34,9 @@ export function useMembershipExit() {
       try {
         const status = await getConsumerOnboardingStatus(user.id);
         if (getOnboardingRequirements(status).coreComplete) {
-          const forward = getPostPaymentPath(status.bloodOnFile);
           const entitled = await getConsumerAccessForUser(user.id);
-          return entitled ? forward : getSubscribePath(forward);
+          const forward = getPostPaymentPath(status.bloodOnFile);
+          return entitled ? "/onboarding/success" : getSubscribePath(forward);
         }
       } catch {
         // Fall through to the resolved path on a read failure.
