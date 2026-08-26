@@ -12,6 +12,14 @@ const DONE_KEY = "strand_tour_finished_v1";
 export const TOUR_DONE_EVENT = "strand:tour-finished";
 export const TOUR_START_EVENT = "strand:start-tour";
 
+/**
+ * The tour's "Add a photo now" action asks Home to open the main photo picker,
+ * and Home tells the tour when that sheet closes so it can come back on screen
+ * at the same step.
+ */
+export const OPEN_MAIN_PHOTO_EVENT = "strand:open-main-photo";
+export const MAIN_PHOTO_CLOSED_EVENT = "strand:main-photo-closed";
+
 const read = (key: string) => {
   try {
     return localStorage.getItem(key) === "1";
