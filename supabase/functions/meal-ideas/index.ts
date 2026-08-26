@@ -40,7 +40,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome, setAiCallUser } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "meal-ideas", stage: 2 } as const;
@@ -114,6 +114,8 @@ Deno.serve(async (req) => {
   // Paid AI generation — signed-in members only.
   const auth = await requireAuthedUser(req);
   if (auth instanceof Response) return auth;
+  // Every meter row for this isolate is attributed to her from here on.
+  setAiCallUser(auth.user.id);
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -320,6 +322,64 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
           after: sanitised.meals.length,
         });
       }
+    }
+
+    // LAST-GOOD FALLBACK. A batch can be emptied entirely by the guardrails or
+    // the sensitivity scan. An empty meals tab is never served: she gets the
+    // last batch that passed, marked stale, and the failure is logged against
+    // her in `ai_call_log` so it is diagnosable. Only a non-empty, fully
+    // sanitised batch is ever written as the new last-good.
+    const finalMeals = Array.isArray(sanitised?.meals) ? sanitised.meals : [];
+    if (finalMeals.length === 0) {
+      recordAiOutcome({
+        function_name: "meal-ideas",
+        surface: "meal-ideas",
+        user_id: auth.user.id,
+        outcome: "rejected",
+        rejection_rule: "no_meals_survived_guardrails",
+      });
+      const { data: lastGood } = await auth.supabase
+        .from("ai_summaries")
+        .select("payload")
+        .eq("user_id", auth.user.id)
+        .eq("kind", "meal_ideas")
+        .maybeSingle();
+      const priorMeals = (lastGood?.payload as { meals?: unknown[] } | null)?.meals;
+      if (Array.isArray(priorMeals) && priorMeals.length > 0) {
+        return new Response(
+          JSON.stringify({ meals: priorMeals, stale: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ error: "meals_unavailable" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    recordAiOutcome({
+      function_name: "meal-ideas",
+      surface: "meal-ideas",
+      user_id: auth.user.id,
+      outcome: "completed",
+    });
+
+    const { data: priorRow } = await auth.supabase
+      .from("ai_summaries")
+      .select("id")
+      .eq("user_id", auth.user.id)
+      .eq("kind", "meal_ideas")
+      .maybeSingle();
+    const payload = { meals: finalMeals, _generated_at: new Date().toISOString() };
+    if (priorRow?.id) {
+      await auth.supabase
+        .from("ai_summaries")
+        .update({ payload, updated_at: new Date().toISOString() })
+        .eq("id", priorRow.id);
+    } else {
+      await auth.supabase
+        .from("ai_summaries")
+        .insert({ user_id: auth.user.id, kind: "meal_ideas", payload });
     }
 
     return new Response(JSON.stringify(sanitised), {
