@@ -6,6 +6,8 @@ import type { UserGoal } from "@/hooks/useGoals";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_AI_DIRECTIVE } from "@/lib/tipsLevel";
+import { aiRetryDelay, retryTransportOnce } from "@/lib/aiRetry";
+
 import {
   hashString,
   strandTipSignatureParts,

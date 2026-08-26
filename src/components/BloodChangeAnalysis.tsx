@@ -14,6 +14,8 @@ import SurfaceCard from "@/components/SurfaceCard";
 import ActionList from "@/components/guidance/ActionList";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { aiRetryDelay, retryTransportOnce } from "@/lib/aiRetry";
+
 import { buildAiContext } from "@/lib/aiContext";
 
 interface Delta {
