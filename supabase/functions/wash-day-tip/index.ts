@@ -43,6 +43,12 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { gatewayFetch, recordAiOutcome, setAiCallUser } from "../_shared/ai-meter.ts";
+import {
+  MAX_REJECTION_ATTEMPTS,
+  buildRejectionRetryInstruction,
+  makeGenerationId,
+  retryReasonFromRules,
+} from "../_shared/guardrail-retry.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-tip", stage: 2 } as const;
@@ -419,10 +425,17 @@ Do not substitute other cleansing or sealing methods for these two.`
   // model receiving three different instructions about the same thing.
   const systemPrompt = `${isStyle ? STYLE_SYSTEM : SYSTEM}${grounding.block}${cornrowBlock}${ledgerBlock ? `\n\n${ledgerBlock}` : ""}${tipLevelPromptBlock(requestedLevel)}`;
 
+  const generationId = makeGenerationId();
 
   let aiResp: Response;
   try {
-    aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
+    aiResp = await gatewayFetch({
+      ...AI_METER_META,
+      user_id: user.id,
+      generation_id: generationId,
+      attempt_number: 1,
+      max_attempts: MAX_REJECTION_ATTEMPTS,
+    }, "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -557,7 +570,14 @@ Do not substitute other cleansing or sealing methods for these two.`
     // One regeneration pass with the corrective directive. Grounding block is
     // resent unchanged — the retry never relaxes it.
     try {
-      const retryResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const retryResp = await gatewayFetch({
+        ...AI_METER_META,
+        user_id: user.id,
+        generation_id: generationId,
+        attempt_number: 1,
+        max_attempts: MAX_REJECTION_ATTEMPTS,
+        retry_reason: "quality_floor_retry",
+      }, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
@@ -608,7 +628,14 @@ Do not substitute other cleansing or sealing methods for these two.`
   // with a bare, rule-free prompt whose only job is to emit the object.
   if (!isUsable(parsed)) {
     try {
-      const salvage = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const salvage = await gatewayFetch({
+        ...AI_METER_META,
+        user_id: user.id,
+        generation_id: generationId,
+        attempt_number: 1,
+        max_attempts: MAX_REJECTION_ATTEMPTS,
+        retry_reason: "salvage_retry",
+      }, "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
         body: JSON.stringify({
@@ -728,11 +755,92 @@ Do not substitute other cleansing or sealing methods for these two.`
   // blood guardrail all run here, against THIS generation's grounding passages,
   // and the sanitised result is what gets stored and served. Sanitising on read
   // instead (with no grounding to hand) is what was deleting the `reason`.
+  let guardrailRejected: string[] = [];
   finalPayload = await sanitiseAndLog(finalPayload, "wash-day-tip", {
 
     context: body,
     grounding: grounding.block,
+    surface: isStyle ? "style-tip" : "wash-day-tip",
+    userId: user.id,
+    generationId,
+    attemptNumber: 1,
+    maxAttempts: MAX_REJECTION_ATTEMPTS,
+    onRejected: (rules) => guardrailRejected.push(...rules),
   });
+
+  for (let attemptNumber = 2; guardrailRejected.length > 0 && attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+    const retryRules = [...new Set(guardrailRejected)];
+    await logTipRejection(
+      isStyle ? "style-tip" : "wash-day-tip",
+      ["guardrail_retry", ...retryRules],
+      JSON.stringify(finalPayload).slice(0, 3000),
+    );
+    const retryResp = await gatewayFetch({
+      ...AI_METER_META,
+      user_id: user.id,
+      generation_id: generationId,
+      attempt_number: attemptNumber,
+      max_attempts: MAX_REJECTION_ATTEMPTS,
+      retry_reason: retryReasonFromRules(retryRules),
+    }, "https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Lovable-API-Key": LOVABLE_API_KEY },
+      body: JSON.stringify({
+        model: "google/gemini-3.6-flash",
+        max_tokens: 2400,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `${styleHeader}\n\nUser data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn the tip JSON now.\n\n${buildRejectionRetryInstruction(retryRules, isStyle ? "style tip" : "wash day tip")}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+    if (!retryResp.ok) break;
+    const retryJson = await retryResp.json();
+    const retryRaw = retryJson?.choices?.[0]?.message?.content ?? "{}";
+    const retryParsed = parseTip(retryRaw);
+    if (!isUsable(retryParsed)) continue;
+    const retryVerdict = check(retryParsed);
+    if (!retryVerdict.ok && !String(retryParsed.action ?? "").trim()) continue;
+    const retryCapped = applyLevelCaps(requestedLevel, {
+      action: String(retryParsed.action ?? ""),
+      reason: String(retryParsed.reason ?? ""),
+      technique: "",
+      why: String(retryParsed.why ?? ""),
+      next_time: isStyle ? "" : String(retryParsed.next_time ?? "").trim(),
+    });
+    const retryPayload: TipPayload = {
+      headline: String(retryParsed.headline).trim(),
+      why: retryCapped.why,
+      action: retryCapped.action,
+      reason: retryCapped.reason,
+      technique: "",
+      next_time: retryCapped.next_time,
+      fingerprint: body.fingerprint,
+      _model_version: MODEL_VERSION,
+      tipsLevel: requestedLevel,
+      _manuscript_grounded: grounding.grounded,
+      _rag_passages: grounding.passages,
+    };
+    const retryPlain = stripMarkdown(retryPayload);
+    const retryNamed = findProductNames(retryPlain, wall.names);
+    const retryFinal = retryNamed.length > 0 ? redactProductNames(retryPlain, retryNamed) : retryPlain;
+    guardrailRejected = [];
+    finalPayload = await sanitiseAndLog(retryFinal, "wash-day-tip", {
+      context: body,
+      grounding: grounding.block,
+      surface: isStyle ? "style-tip" : "wash-day-tip",
+      userId: user.id,
+      generationId,
+      attemptNumber,
+      maxAttempts: MAX_REJECTION_ATTEMPTS,
+      retryReason: retryReasonFromRules(retryRules),
+      onRejected: (rules) => guardrailRejected.push(...rules),
+    });
+  }
 
   // THE REASON IS NEVER THE FIELD THAT GOES. If the guardrail emptied it (an
   // ungrounded mechanism phrase, or a blood/hair bridge), ask for ONE
