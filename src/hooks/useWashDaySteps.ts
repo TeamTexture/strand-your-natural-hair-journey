@@ -92,9 +92,18 @@ export function useWashDaySteps() {
   return useQuery({
     queryKey: ["wash_day_steps_v2", user?.id, level],
     enabled: !!user?.id,
-    staleTime: Infinity,
+    // A SUCCESSFUL sequence is cached for the session; a FAILURE never is.
+    // React Query keeps an errored query in the cache too, and with
+    // staleTime/gcTime Infinity that error used to stick for the whole session:
+    // the card said "could not be prepared" and never attempted again (this is
+    // what produced the 2026-08-26 report where no call was made at all).
+    staleTime: (query) => (query.state.error ? 0 : Infinity),
     gcTime: Infinity,
-    retry: 1,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 8000),
+    // Failures are transient — every remount re-attempts.
+    refetchOnMount: (query) => (query.state.error ? "always" : false),
+    refetchOnWindowFocus: (query) => !!query.state.error,
     queryFn: async (): Promise<WashDayStepsResult> => {
       if (!user?.id) return { steps: [], stale: false };
 
