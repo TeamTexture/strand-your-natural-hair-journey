@@ -378,89 +378,9 @@ const Subscribe = () => {
         </div>
 
 
-        {/* Section header */}
-        <div className="text-center pt-2 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brown/10 border border-brown/20">
-            <HairStrandIcon className="h-3.5 w-auto text-brown" />
-            <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-brown">
-              What's inside
-            </span>
-          </div>
-          <h2 className="font-display text-2xl font-semibold text-foreground">
-            Every pillar, one hair story
-          </h2>
-          <p className="font-body text-[12.5px] text-foreground/70 leading-relaxed max-w-[300px] mx-auto">
-            Every feature in STRAND is designed to answer one question: what does{" "}
-            <span className="italic">your</span> hair need next?
-          </p>
-        </div>
+        {/* Full marketing block — shared with /start-trial. */}
+        <MembershipMarketing />
 
-        {/* Pillars */}
-        <div className="relative">
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-56 h-56 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative space-y-2.5">
-            {PILLARS.map((p, i) => {
-              const Icon = p.icon;
-              return (
-                <div
-                  key={p.title}
-                  className="relative overflow-hidden rounded-[14px] p-4 flex items-center gap-4 border border-primary/30 bg-brown text-brown-foreground"
-                >
-                  <div className="absolute top-0 left-0 bottom-0 w-[2px] bg-primary" />
-                  <div className="size-11 shrink-0 rounded-full flex items-center justify-center bg-primary/15 text-primary border border-primary/30">
-                    <Icon className="size-[20px]" strokeWidth={1.6} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] font-body font-bold uppercase tracking-[0.22em] text-primary/80 mb-0.5">
-                      {String(i + 1).padStart(2, "0")}
-                    </p>
-                    <h3 className="font-display text-[15px] font-semibold leading-[1.2] text-brown-foreground mb-0.5">
-                      {p.title}
-                    </h3>
-                    <p className="font-body text-[11.5px] leading-snug text-brown-foreground/80">
-                      {p.benefit}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Blood work — included in the same membership, opens when she adds results */}
-        <SurfaceCard>
-          <div className="flex items-start gap-3">
-            <Heart className="size-4 mt-0.5 text-primary shrink-0" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="font-display text-[15px] font-semibold leading-snug">
-                The diet and nutrition side opens when you add blood results
-              </p>
-              <p className="font-body text-[12px] text-foreground/75 leading-snug mt-1">
-                It is part of the same membership, not an extra. Your nutrition plan and marker
-                readings need your iron, ferritin, vitamin D, B12 and thyroid values, so they stay
-                closed until those are on file. Blood work is optional and you can add it any time.
-              </p>
-            </div>
-          </div>
-        </SurfaceCard>
-
-        {/* Reassurance strip */}
-        <div className="space-y-2 pt-1">
-          {REASSURANCE.map((r) => {
-            const Icon = r.icon;
-            return (
-              <div key={r.title} className="flex items-start gap-3 p-4 rounded-[14px] border border-border bg-card">
-                <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Icon className="size-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-[13px] font-semibold text-foreground">{r.title}</p>
-                  <p className="font-body text-[12px] text-foreground/70 leading-snug mt-0.5">{r.body}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
         {/* Tier toggle */}
         {!hasAccess && (
