@@ -267,7 +267,25 @@ const TrialPaywall = () => {
             ? "Card details taken now. Nothing charged today."
             : "Cancel any time from your profile."}
         </p>
+
+        {/* Save and sign out is the ONLY other action — a quiet exit, not a
+            door. Tapping it signs the member out; her account and trial offer
+            stay intact so she lands back on this screen next sign-in. There is
+            deliberately no way to continue into onboarding or the app. */}
+        <div className="mt-2 flex flex-col items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="font-body text-[12px] text-muted-foreground/80"
+          >
+            Save and sign out
+          </button>
+          <p className="font-body text-[10.5px] text-muted-foreground/55">
+            Your account is saved. You&apos;ll come back to this screen.
+          </p>
+        </div>
       </div>
+
     </div>
   );
 };
