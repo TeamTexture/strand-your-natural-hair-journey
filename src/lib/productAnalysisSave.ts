@@ -7,7 +7,11 @@ interface ProductAnalysisLike {
   ai_summary?: unknown;
   match_score?: unknown;
   score_reasons?: unknown;
+  marketed_purpose?: unknown;
+  marketed_purpose_note?: unknown;
+  marketed_purpose_confidence?: unknown;
 }
+
 
 type SavedScoreReason = {
   direction: "plus" | "minus";
