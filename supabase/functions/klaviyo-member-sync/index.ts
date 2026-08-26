@@ -19,6 +19,7 @@ import {
   KLAVIYO_MEMBER_LIST_ID,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
+import { addToPaywallList, removeFromPaywallList } from "../_shared/klaviyo-nurture.ts";
 
 interface Candidate {
   userId: string;
