@@ -411,7 +411,7 @@ const ProfileStep1 = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="About You" />
+      <TitleBar title="About You" back={false} />
       <OnboardingGuide className="pt-2 pb-1" />
       <OnboardingScreenHeading
         title="A little about you"
