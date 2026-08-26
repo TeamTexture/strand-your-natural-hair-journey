@@ -1124,6 +1124,19 @@ const IngredientDetail = () => {
                 </div>
               );
             })()}
+            {/* The ONLY way a score is recomputed on demand. Opening this page
+                never re-analyses on its own. */}
+            {productRow && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => runAnalysis(true)}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground underline underline-offset-2 disabled:opacity-50"
+              >
+                <RefreshCw className="size-3" />
+                {loading ? "Re-analysing…" : "Re-analyse this product"}
+              </button>
+            )}
           </div>
 
         </SurfaceCard>
