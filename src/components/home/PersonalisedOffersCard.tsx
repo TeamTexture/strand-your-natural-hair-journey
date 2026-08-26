@@ -11,6 +11,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { usePersonalisedOffersCard } from "@/hooks/usePersonalisedOffersCard";
 import { useFirstRunPromptsBlocked } from "@/hooks/useFirstRunPromptsBlocked";
+import { markOffersCardDone } from "@/lib/firstRunQueue";
 
 const PersonalisedOffersCard = () => {
   const { eligible, answer, dismiss } = usePersonalisedOffersCard();
@@ -26,6 +27,7 @@ const PersonalisedOffersCard = () => {
     try {
       await answer(on);
       setGone(true);
+      markOffersCardDone();
       toast.success(on ? "Personalised offers turned on" : "Saved — no offer emails");
     } catch {
       setBusy(false);
@@ -53,6 +55,7 @@ const PersonalisedOffersCard = () => {
             disabled={busy}
             onClick={() => {
               setGone(true);
+              markOffersCardDone();
               void dismiss();
             }}
             className="shrink-0 text-muted-foreground hover:text-foreground"

@@ -37,6 +37,9 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
   const { upload, uploading } = usePhotoUploader("before-photos");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // A member with no progress photos gets the upload control and nothing else:
+  // no "most recent" option, no empty grid, no in-use labels.
+  const hasPhotos = photos.length > 0;
 
   const choose = async (id: string | null) => {
     try {
@@ -95,21 +98,24 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
         </SheetHeader>
 
         <div className="mt-4 space-y-4 pb-2">
-          <button
-            type="button"
-            onClick={() => void choose(null)}
-            disabled={setMainPhoto.isPending}
-            className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left"
-          >
-            <Sparkles className="size-4 text-primary shrink-0" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">Use my most recent photo</span>
-              <span className="block text-xs text-muted-foreground">
-                Keeps the card in step with every new progress photo
+          {/* AUTO mode only means something once there is a photo to follow. */}
+          {hasPhotos && (
+            <button
+              type="button"
+              onClick={() => void choose(null)}
+              disabled={setMainPhoto.isPending}
+              className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left"
+            >
+              <Sparkles className="size-4 text-primary shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">Use my most recent photo</span>
+                <span className="block text-xs text-muted-foreground">
+                  Keeps the card in step with every new progress photo
+                </span>
               </span>
-            </span>
-            {isAuto && <Check className="size-4 text-primary shrink-0" aria-label="In use" />}
-          </button>
+              {isAuto && <Check className="size-4 text-primary shrink-0" aria-label="In use" />}
+            </button>
+          )}
 
           {/* Add a photo — tap to open camera roll / camera, or drop a file in. */}
           <div
@@ -156,12 +162,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
             </p>
           </div>
 
-          {photos.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
-              <ImageOff className="size-6" />
-              <p className="text-sm">No progress photos yet — add one to use it here.</p>
-            </div>
-          ) : (
+          {hasPhotos && (
             <div className="grid grid-cols-2 gap-3">
               {photos.map((p) => {
                 const inUse = photo?.id === p.id;

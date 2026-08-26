@@ -6,6 +6,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useChallenges } from "@/hooks/useChallenges";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 import { setTourActive, TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
+import { useLateFirstRunSlot } from "@/hooks/useLateFirstRunSlot";
 
 /**
  * FIRST-RUN SEQUENCE — runs immediately after the guided tour, in this order:
@@ -44,6 +45,17 @@ const FirstRunSequence = () => {
   const loading = goalsLoading || challengesLoading;
   const goalsComplete = !!goal && challenges.length > 0;
 
+  // Tier 3 of the first-run queue: one prompt per session, after the offers card.
+  const photoSlot = useLateFirstRunSlot(
+    "photo-prompt",
+    tourDone && !loading && photoNudge.eligible && !photoDismissed,
+  );
+  const productSlot = useLateFirstRunSlot(
+    "product-prompt",
+    tourDone && !loading && productNudge.eligible && !productDismissed,
+  );
+
+
   // Goal and challenge are captured in onboarding step one, so the old blocking
   // gate is gone. The flag is simply recorded as seen once both are on file.
   useEffect(() => {
@@ -51,10 +63,11 @@ const FirstRunSequence = () => {
   }, [tourDone, loading, goalsNudge, goalsComplete]);
 
   const showPhoto =
-    tourDone && !loading && photoNudge.eligible && !photoDismissed;
+    tourDone && !loading && photoSlot && photoNudge.eligible && !photoDismissed;
   const showProduct =
     tourDone &&
     !loading &&
+    productSlot &&
     !showPhoto &&
     (photoDismissed || !photoNudge.eligible) &&
     productNudge.eligible &&
