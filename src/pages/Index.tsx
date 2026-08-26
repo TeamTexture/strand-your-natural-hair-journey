@@ -134,6 +134,15 @@ const Index = () => {
 
       if (dests.length === 0) dests.push({ path: consumerPath, label: "Enter STRAND", sub: "Your personal hair journal" });
 
+      // The branded Enter STRAND moment belongs at the end of first-time
+      // onboarding, not between sign-in and an unfinished member's next step.
+      // Keep this chooser only for multi-role accounts that genuinely need to
+      // choose which workspace to enter.
+      if (dests.length === 1 && hasConsumer && !hasAdmin && !hasPro && !hasBrand) {
+        navigate(consumerPath, { replace: true });
+        return;
+      }
+
       setDestinations(dests);
       // Personalisation is derived from the live session only — never cached
       // to localStorage, so a signed-out visitor sees no name at all.

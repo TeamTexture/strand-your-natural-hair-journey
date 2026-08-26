@@ -12,7 +12,6 @@ import {
 } from "@/lib/consumerOnboarding";
 import { getOnboardingNextPath } from "@/lib/onboardingDecision";
 import { clearResumeLock, setResumeLock } from "@/lib/onboardingLock";
-import { requestTourAutostart } from "@/lib/firstRunTour";
 
 /**
  * Re-read the durable rows after a save, update the shared cache, then decide
@@ -65,7 +64,10 @@ export function useOnboardingCompletion() {
           .eq("user_id", user.id);
       }
       await queryClient.invalidateQueries({ queryKey: myProfileKey(user.id) });
-      if (access) requestTourAutostart();
+      // The final welcome screen is the deliberate hand-off into the app. It
+      // arms the tour only when the member taps Enter STRAND, rather than
+      // starting it behind an onboarding or blood-work screen.
+      if (access) return "/onboarding/success";
     }
 
     return getOnboardingNextPath(status, access);
