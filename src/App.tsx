@@ -630,7 +630,6 @@ const App = () => (
                   onboarding and paywall gates so an abandoned trial can always
                   be reopened without hitting a redirect loop. */}
               <Route path="/start-trial" element={<Protected><TrialPaywall /></Protected>} />
-              <Route path="/__preview-trial" element={<TrialPaywall />} />
               <Route path="/admin/international" element={<RoleGate allow={["admin"]}><AdminInternational /></RoleGate>} />
               <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
               <Route path="/admin/members/:userId/passport" element={<RoleGate allow={["admin"]}><AdminMemberPassport /></RoleGate>} />
