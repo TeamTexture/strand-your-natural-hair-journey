@@ -331,17 +331,12 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onAdd, 
                   selected={isSelected(p.id)}
                   onClick={() => {
                     if (onAdd) {
-                      if (!isSelected(p.id)) {
-                        onAdd(p.id, normaliseProductCategory(p.category));
-                      } else {
-                        // Already on the step — still return her there rather
-                        // than silently doing nothing.
-                        onAdd(p.id, normaliseProductCategory(p.category));
-                      }
+                      onAdd(p.id, normaliseProductCategory(p.category));
                       return;
                     }
                     onToggle(p.id);
                   }}
+
                   // In an add-and-return picker the bin is a shelf-management
                   // action wearing a picker's clothes — it deletes the product
                   // from the app, not from the step. Hidden here; still on the
