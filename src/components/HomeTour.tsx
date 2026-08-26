@@ -10,6 +10,8 @@ import {
   markTourFinished,
   setTourActive,
   TOUR_START_EVENT,
+  OPEN_MAIN_PHOTO_EVENT,
+  MAIN_PHOTO_CLOSED_EVENT,
 } from "@/lib/firstRunTour";
 
 // Bumped key — tour is refreshed once for every user when new steps are added.
