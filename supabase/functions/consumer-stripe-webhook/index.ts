@@ -7,6 +7,7 @@ import {
   logKlaviyoSync,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
+import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -89,6 +90,14 @@ Deno.serve(async (req) => {
       case "customer.subscription.trial_will_end": {
         const sub = event.data.object as Stripe.Subscription;
         console.log("trial_will_end", sub.id, "trial_end", sub.trial_end);
+        break;
+      }
+      // Checkout abandoned. She is ALREADY on the abandoned-checkout Klaviyo
+      // list (added when the session was created), so there is nothing to push
+      // here — Klaviyo owns the timing. Logged so the event is visible.
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log("checkout.session.expired", session.id, session.customer);
         break;
       }
       default: break;
@@ -209,6 +218,14 @@ async function upsertFromSubscription(
           ok: !err,
           error: err,
           context: { status: sub.status, tier },
+        });
+        // CONVERSION: she is off both nurture lists the moment she reaches
+        // trialing or active. Failures are logged loudly — a paying member
+        // receiving "you never subscribed" emails is the worst outcome here.
+        await removeFromNurtureLists(admin as any, {
+          userId,
+          email,
+          reason: `subscription_${sub.status}`,
         });
       }
     } catch (e) {

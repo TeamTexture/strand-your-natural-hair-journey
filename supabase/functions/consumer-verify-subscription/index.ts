@@ -19,6 +19,7 @@ import Stripe from "npm:stripe@17";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
+import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
 
 const ACTIVE = new Set(["active", "trialing"]);
 
@@ -145,6 +146,15 @@ Deno.serve(async (req) => {
       },
       { onConflict: "user_id" },
     );
+
+    // CONVERSION path #3 (return-from-Stripe, often before the webhook lands):
+    // she comes off BOTH nurture lists. Never fails the verification.
+    if (ACTIVE.has(chosen.status)) {
+      await removeFromNurtureLists(admin, {
+        userId,
+        reason: `verify_${chosen.status}`,
+      });
+    }
 
     return json(200, {
       active: ACTIVE.has(chosen.status),

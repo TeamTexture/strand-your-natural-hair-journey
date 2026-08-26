@@ -19,6 +19,7 @@ import {
   KLAVIYO_MEMBER_LIST_ID,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
+import { addToPaywallList, removeFromPaywallList } from "../_shared/klaviyo-nurture.ts";
 
 interface Candidate {
   userId: string;
@@ -151,6 +152,17 @@ Deno.serve(async (req) => {
       error,
       context: { consent: profile?.personalised_offers_consent === true, status },
     });
+
+    // Consent gate on the PAYWALL nurture list (a marketing list): a yes adds
+    // her, a no takes her off. The abandoned-checkout list is untouched here —
+    // it is a service message about an action she started, so it deliberately
+    // ignores this flag.
+    if (profile?.personalised_offers_consent === true) {
+      await addToPaywallList(admin, user.id);
+    } else {
+      await removeFromPaywallList(admin, email, user.id, "offers_consent_false");
+    }
+
     if (error) {
       console.error("[klaviyo-member-sync] consent sync failed", { user_id: user.id, error });
       return json(200, { synced: false, error });
