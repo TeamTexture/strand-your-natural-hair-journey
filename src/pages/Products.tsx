@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart, Tag } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -34,6 +34,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { anchorProps } from "@/lib/scrollMemory";
+import CategoryProductPanels from "@/components/CategoryProductPanels";
+import { readViewPref, writeViewPref } from "@/lib/viewPrefs";
+import { useAuth } from "@/hooks/useAuth";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
@@ -42,7 +45,6 @@ import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import BrandBanner from "@/components/BrandBanner";
 import LevelGate from "@/components/tips/LevelGate";
-import SectionHeader from "@/components/nav/SectionHeader";
 import SensitivityCaptureCard from "@/components/sensitivity/SensitivityCaptureCard";
 import SensitivitySheet from "@/components/sensitivity/SensitivitySheet";
 import AvoidingSummary from "@/components/sensitivity/AvoidingSummary";
@@ -70,6 +72,7 @@ const Products = () => {
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
   const batch = useBatchSelection();
+  const { user } = useAuth();
 
   const filterState = useProductsFilterState();
 
@@ -94,6 +97,36 @@ const Products = () => {
     if (other) ordered.push({ key: "other", label: other.label, items: other.items });
     return ordered;
   }, [filteredProducts]);
+
+  // Which shelf categories she has folded away. A view preference, so it lives
+  // in namespaced browser storage (per user id, cleared on sign-out) rather than
+  // a database column. Everything starts OPEN — collapsing is opt-in.
+  const [collapsedCategories, setCollapsedCategories] = useState<string[]>(() =>
+    readViewPref<string[]>(user?.id, "shelfCollapsedCategories", []),
+  );
+  // Re-read once the signed-in user is known (auth resolves after first paint).
+  useEffect(() => {
+    setCollapsedCategories(readViewPref<string[]>(user?.id, "shelfCollapsedCategories", []));
+  }, [user?.id]);
+
+  const toggleCategoryCollapsed = (slug: string) => {
+    setCollapsedCategories((prev) => {
+      const next = prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug];
+      writeViewPref(user?.id, "shelfCollapsedCategories", next);
+      return next;
+    });
+  };
+
+  // Search / filters run across EVERY product regardless of fold state; while
+  // either is active the panels are forced open so a match in a collapsed group
+  // still shows. Counts (tab total, filter counts) never look at fold state.
+  const filtersActive = Boolean(
+    filterState.search.trim() ||
+      filterState.categoryFilter ||
+      filterState.brandFilter ||
+      filterState.ratingFilter,
+  );
+
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -248,17 +281,25 @@ const Products = () => {
             hint="Try a different search or clear your filters."
           />
         ) : (
-          groups.map((group) => (
-            <div key={group.key} id={`section-products-${group.key}`} data-scroll-section className="space-y-2">
-              <SectionHeader className="pt-1">
-                {group.label} ({group.items.length})
-              </SectionHeader>
-              {group.items.map((p) => {
-                const isOpen = expanded === p.product_key;
-                const noteCount = counts[p.product_key] ?? 0;
-                const isSelected = batch.selected.has(p.id);
+          <CategoryProductPanels
+            products={filteredProducts}
+            sections={groups.map((g) => ({ slug: g.key, label: g.label, products: g.items }))}
+            // Her own shelf: everything OPEN on arrival, collapsing is opt-in.
+            defaultOpen="all"
+            flatBelow={0}
+            countStyle="parens"
+            collapsedSlugs={collapsedCategories}
+            onToggleCollapsed={toggleCategoryCollapsed}
+            // A search or filter must never be defeated by a fold: while either
+            // is active every panel is forced open, so a match is always visible.
+            forceOpen={filtersActive}
+            sectionId={(slug) => `section-products-${slug}`}
+            renderRow={(p) => {
+              const isOpen = expanded === p.product_key;
+              const noteCount = counts[p.product_key] ?? 0;
+              const isSelected = batch.selected.has(p.id);
 
-                return (
+              return (
                   <ShelfProductCard
                     key={p.id}
                     anchor={anchorProps(p.id)}
@@ -396,12 +437,11 @@ const Products = () => {
                       </div>
                     )}
                   </ShelfProductCard>
-
-                );
-              })}
-            </div>
-          ))
+              );
+            }}
+          />
         )}
+
       </div>
 
       {!batch.selectMode && <MyToolsSection />}
