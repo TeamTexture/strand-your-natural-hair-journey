@@ -326,7 +326,10 @@ const IngredientDetail = () => {
   // them. Only ever writes values the analysis itself produced — never a guess.
   useEffect(() => {
     if (!productRow?.id) return;
-    const patch: Record<string, string> = {};
+    const patch: {
+      marketed_purpose?: MarketedPurpose;
+      marketed_purpose_note?: string;
+    } = {};
     if (!storedPurpose && scanPurpose) patch.marketed_purpose = scanPurpose;
     if (!firstSentences(row?.marketed_purpose_note)) {
       const note = firstSentences(detected?.marketed_purpose_note);
@@ -334,6 +337,7 @@ const IngredientDetail = () => {
     }
     if (Object.keys(patch).length === 0) return;
     void supabase.from("user_products").update(patch).eq("id", productRow.id);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productRow?.id, storedPurpose, scanPurpose, detected]);
 
