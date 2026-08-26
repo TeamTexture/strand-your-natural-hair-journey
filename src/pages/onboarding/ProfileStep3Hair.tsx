@@ -18,8 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
 import HairLengthPicker from "@/components/HairLengthPicker";
 import { toast } from "sonner";
-import PersonalisedOffersPrompt from "@/components/consent/PersonalisedOffersPrompt";
-import { usePersonalisedOffersAsk } from "@/hooks/usePersonalisedOffersAsk";
 import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /**
@@ -188,8 +186,6 @@ const ProfileStep3Hair = () => {
     },
   );
 
-  const { shouldAsk } = usePersonalisedOffersAsk();
-  const [askOffers, setAskOffers] = useState(false);
 
   const goNext = async () => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
@@ -376,22 +372,12 @@ const ProfileStep3Hair = () => {
             toast.error("Could not save your hair profile. Check your connection.");
             return;
           }
-          // One-time optional ask, at the moment the hair profile is complete.
-          if (shouldAsk) {
-            setAskOffers(true);
-            return;
-          }
+          // The personalised-offers ask no longer lives in onboarding — it is a
+          // dismissible card on /home, shown only once she is subscribed.
            void goNext();
         }}>
           Continue →
         </Button>
-        <PersonalisedOffersPrompt
-          open={askOffers}
-          onFinish={() => {
-            setAskOffers(false);
-             void goNext();
-          }}
-        />
       </div>
     </ScreenLayout>
   );

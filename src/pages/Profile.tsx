@@ -10,6 +10,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
 import SectionHeader from "@/components/nav/SectionHeader";
 import ListRow from "@/components/nav/ListRow";
+import PersonalisedOffersToggle from "@/components/profile/PersonalisedOffersToggle";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import ManageSubscriptionSection from "@/components/profile/ManageSubscriptionSection";
 import IconChipGrid from "@/components/nav/IconChipGrid";
@@ -720,6 +721,9 @@ const Profile = () => {
         </div>
         <div className="p-4 rounded-[12px] bg-card border border-border mt-3">
           <TipsLevelControl />
+        </div>
+        <div className="p-4 rounded-[12px] bg-card border border-border mt-3">
+          <PersonalisedOffersToggle />
         </div>
       </div>
 

@@ -2995,6 +2995,42 @@ export type Database = {
           },
         ]
       }
+      klaviyo_sync_log: {
+        Row: {
+          action: string
+          context: Json | null
+          created_at: string
+          email: string | null
+          error: string | null
+          id: string
+          list_id: string | null
+          ok: boolean
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          context?: Json | null
+          created_at?: string
+          email?: string | null
+          error?: string | null
+          id?: string
+          list_id?: string | null
+          ok: boolean
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          context?: Json | null
+          created_at?: string
+          email?: string | null
+          error?: string | null
+          id?: string
+          list_id?: string | null
+          ok?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       manuscript_chunks: {
         Row: {
           body: string
@@ -4427,7 +4463,10 @@ export type Database = {
           international_country: string | null
           onboarding_completed_at: string | null
           payment_required_at: string | null
+          personalised_offers_answered_at: string | null
           personalised_offers_consent: boolean
+          personalised_offers_prompt_count: number
+          personalised_offers_prompt_seen_at: string | null
           phone_number: string | null
           photo_prompt_seen_at: string | null
           postcode: string | null
@@ -4466,7 +4505,10 @@ export type Database = {
           international_country?: string | null
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
+          personalised_offers_answered_at?: string | null
           personalised_offers_consent?: boolean
+          personalised_offers_prompt_count?: number
+          personalised_offers_prompt_seen_at?: string | null
           phone_number?: string | null
           photo_prompt_seen_at?: string | null
           postcode?: string | null
@@ -4505,7 +4547,10 @@ export type Database = {
           international_country?: string | null
           onboarding_completed_at?: string | null
           payment_required_at?: string | null
+          personalised_offers_answered_at?: string | null
           personalised_offers_consent?: boolean
+          personalised_offers_prompt_count?: number
+          personalised_offers_prompt_seen_at?: string | null
           phone_number?: string | null
           photo_prompt_seen_at?: string | null
           postcode?: string | null
@@ -7225,6 +7270,10 @@ export type Database = {
       }
       passport_treatment_plans: { Args: { _client: string }; Returns: Json }
       pause_lapsed_treatment_plans: { Args: never; Returns: number }
+      personalised_offers_prompt_ack: {
+        Args: { _answered?: boolean }
+        Returns: undefined
+      }
       pro_cancel_appointment: {
         Args: { _appointment_id: string; _reason: string }
         Returns: undefined

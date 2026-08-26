@@ -7,7 +7,6 @@ import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { consentKey } from "@/hooks/useConsentState";
@@ -112,24 +111,20 @@ const ConsentGateScreen = ({
     () => outstanding.filter((k) => k !== PRO_UNDERTAKING_KEY && keyAllowedInView(k, view)),
     [outstanding, view],
   );
-  const scopedOptional = useMemo(
-    () => optionalKeys.filter((k) => k !== PRO_UNDERTAKING_KEY && keyAllowedInView(k, view)),
-    [optionalKeys, view],
-  );
   const tier1Keys = useMemo(() => TIER1.filter((k) => scoped.includes(k)), [TIER1, scoped]);
   const needTier1 = tier1Keys.length > 0;
   const needDisclaimer = scoped.includes("medical_disclaimer");
   const needHealth = scoped.includes("health_data");
 
-  const offersOffered = scopedOptional.includes("personalised_offers");
-  const marketingOffered = scopedOptional.includes("marketing_email");
+  // MARKETING CONSENT DELIBERATELY NOT ASKED HERE.
+  // The personalised-offers / marketing ask moved out of registration to a
+  // dismissible card on /home shown only after a subscription exists. An
+  // unticked box at sign-up was being recorded as a refusal it never was.
 
   const [tier1, setTier1] = useState(false);
   const [health, setHealth] = useState(false);
   // TIER 3 — optional, and never blocks the continue button. Toggles reflect the
   // member's recorded state; they only ever appear when never answered.
-  const [offers, setOffers] = useState(!!optionalGranted.personalised_offers);
-  const [marketing, setMarketing] = useState(!!optionalGranted.marketing_email);
   const [saving, setSaving] = useState(false);
 
   // The Professional Data Handling Undertaking is intentionally absent here —
@@ -144,10 +139,10 @@ const ConsentGateScreen = ({
       const payload: Partial<Record<ConsentKey, boolean>> = {};
       for (const key of tier1Keys) payload[key] = true;
       if (needHealth) payload.health_data = true;
-      // Optional choices are always recorded — including a decline — but only
-      // for the keys this account's roles were actually offered.
-      if (offersOffered) payload.personalised_offers = offers;
-      if (marketingOffered) payload.marketing_email = marketing;
+      // MARKETING CONSENT DELIBERATELY NOT ASKED HERE.
+      // The personalised-offers / marketing ask moved out of registration to a
+      // dismissible card on /home, shown only once a subscription exists — an
+      // unticked box at sign-up was being recorded as a refusal it never was.
 
       await recordConsents(payload);
       await qc.invalidateQueries({ queryKey: consentKey(user?.id) });
@@ -196,45 +191,6 @@ const ConsentGateScreen = ({
               <DocLink to="/legal/health-data" label="How we use health information" />
             </div>
           </SurfaceCard>
-        )}
-
-        {(offersOffered || marketingOffered) && (
-        <div className="mt-7 border-t border-border/60 pt-1">
-          <SectionLabel className="px-0">Optional — your choice</SectionLabel>
-          <p className="text-[12px] leading-relaxed text-muted-foreground">
-            These are entirely optional. Leaving them off does not affect your access to STRAND in
-            any way, and you can change them any time in your profile.
-          </p>
-
-          <SurfaceCard className="mt-3 space-y-4">
-            {offersOffered && (
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[13px] text-foreground">Personalised brand offers</p>
-                  <p className="text-[12px] text-muted-foreground">
-                    Show offers matched to non-health details like your hair type and styles.
-                  </p>
-                </div>
-                <Switch checked={offers} onCheckedChange={setOffers} aria-label="Personalised brand offers" />
-              </div>
-            )}
-            {marketingOffered && (
-              <div
-                className={`flex items-start justify-between gap-4 ${
-                  offersOffered ? "border-t border-border/60 pt-4" : ""
-                }`}
-              >
-                <div>
-                  <p className="text-[13px] text-foreground">Marketing emails</p>
-                  <p className="text-[12px] text-muted-foreground">
-                    News, launches and occasional offers. Service emails are sent either way.
-                  </p>
-                </div>
-                <Switch checked={marketing} onCheckedChange={setMarketing} aria-label="Marketing emails" />
-              </div>
-            )}
-          </SurfaceCard>
-        </div>
         )}
 
         <Button

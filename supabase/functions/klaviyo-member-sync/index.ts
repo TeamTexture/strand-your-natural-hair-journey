@@ -14,6 +14,8 @@ import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser, requireAdminOrService } from "../_shared/auth.ts";
 import {
   pushToKlaviyoList,
+  addToKlaviyoList,
+  logKlaviyoSync,
   KLAVIYO_MEMBER_LIST_ID,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
@@ -59,6 +61,7 @@ Deno.serve(async (req) => {
     const body = await req.json() as { mode?: unknown } | null;
     if (body?.mode === "backfill") mode = "backfill";
     if (body?.mode === "paid-backfill") mode = "paid-backfill";
+    if (body?.mode === "consent") mode = "consent";
   } catch (_e) { /* default mode */ }
 
   const admin = adminClient();
@@ -98,6 +101,63 @@ Deno.serve(async (req) => {
     return json(200, { added: true, list: KLAVIYO_MEMBER_LIST_ID });
   }
 
+  // ---- consent sync for the signed-in member ----
+  // Called when she answers the /home offers card or flips the Profile toggle.
+  // Adds her to the paid list and sets marketing consent ONLY on an explicit yes.
+  if (mode === "consent") {
+    const auth = await requireAuthedUser(req);
+    if (auth instanceof Response) return auth;
+    const { user } = auth;
+
+    const [{ data: profile }, { data: sub }] = await Promise.all([
+      admin
+        .from("profiles")
+        .select("display_name, phone_number, personalised_offers_consent, international_block, deletion_requested_at")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      admin
+        .from("consumer_subscriptions")
+        .select("status, tier, trial_end")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+    if (profile?.international_block) return json(200, { skipped: "international block" });
+    if (profile?.deletion_requested_at) return json(200, { skipped: "deletion requested" });
+
+    const email = (user.email ?? "").toLowerCase();
+    if (!email) return json(200, { skipped: "no email" });
+    const status = (sub?.status as string | null) ?? "none";
+
+    const error = await addToKlaviyoList({
+      listId: KLAVIYO_PAID_MEMBER_LIST_ID,
+      email,
+      name: (profile?.display_name as string | null) ?? null,
+      phone: profile?.phone_number ? String(profile.phone_number) : null,
+      marketingConsent: profile?.personalised_offers_consent === true,
+      properties: {
+        strand_account_type: "member",
+        strand_status: status,
+        strand_tier: (sub?.tier as string | null) ?? "standard",
+        strand_offers_consent: profile?.personalised_offers_consent === true ? "true" : "false",
+        ...(sub?.trial_end ? { strand_trial_end: String(sub.trial_end) } : {}),
+      },
+    });
+    await logKlaviyoSync(admin, {
+      email,
+      user_id: user.id,
+      list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
+      action: "consent_sync",
+      ok: !error,
+      error,
+      context: { consent: profile?.personalised_offers_consent === true, status },
+    });
+    if (error) {
+      console.error("[klaviyo-member-sync] consent sync failed", { user_id: user.id, error });
+      return json(200, { synced: false, error });
+    }
+    return json(200, { synced: true, list: KLAVIYO_PAID_MEMBER_LIST_ID });
+  }
+
   // ---- paid-members backfill (admin only) ----
   if (mode === "paid-backfill") {
     const paidGate = await requireAdminOrService(req);
@@ -105,7 +165,7 @@ Deno.serve(async (req) => {
 
     const { data: subs } = await admin
       .from("consumer_subscriptions")
-      .select("user_id, status, tier")
+      .select("user_id, status, tier, trial_end")
       .in("status", ["active", "trialing"]);
     const rows = subs ?? [];
 
@@ -114,24 +174,42 @@ Deno.serve(async (req) => {
     for (const s of rows) {
       const userId = s.user_id as string;
       const [{ data: prof }, { data: authUser }] = await Promise.all([
-        admin.from("profiles").select("display_name, phone_number").eq("user_id", userId)
+        admin.from("profiles")
+          .select("display_name, phone_number, personalised_offers_consent")
+          .eq("user_id", userId)
           .maybeSingle(),
         admin.auth.admin.getUserById(userId),
       ]);
       const email = (authUser?.user?.email ?? "").toLowerCase();
       if (!email) { failures.push({ user_id: userId, error: "no email" }); continue; }
-      const error = await pushToKlaviyoList({
+      // Audit accounts are internal test users and must never reach Klaviyo.
+      if (/^audit\..*@teamtexture\.co\.uk$/.test(email)) continue;
+      const error = await addToKlaviyoList({
         listId: KLAVIYO_PAID_MEMBER_LIST_ID,
         email,
         name: (prof as { display_name?: string | null } | null)?.display_name ?? null,
         phone: (prof as { phone_number?: unknown } | null)?.phone_number
           ? String((prof as { phone_number?: unknown }).phone_number)
           : null,
+        marketingConsent:
+          (prof as { personalised_offers_consent?: boolean | null } | null)
+            ?.personalised_offers_consent === true,
         properties: {
           strand_account_type: "member",
           strand_paid: "true",
           strand_tier: (s.tier as string | null) ?? "standard",
+          strand_status: (s.status as string | null) ?? "active",
+          ...(s.trial_end ? { strand_trial_end: String(s.trial_end) } : {}),
         },
+      });
+      await logKlaviyoSync(admin, {
+        email,
+        user_id: userId,
+        list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
+        action: "paid_backfill",
+        ok: !error,
+        error,
+        context: { status: s.status, tier: s.tier },
       });
       if (error) failures.push({ user_id: userId, error });
       else added += 1;

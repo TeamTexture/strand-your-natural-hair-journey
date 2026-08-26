@@ -55,8 +55,10 @@ describe("consent gate — brand account", () => {
     renderGate("brand");
     expect(screen.queryByText(/health information/i)).toBeNull();
     expect(screen.queryByText(/Medical Disclaimer/i)).toBeNull();
+    // Marketing consent no longer lives on this screen for anyone — it is asked
+    // once on /home after a subscription exists.
     expect(screen.queryByLabelText(/Personalised brand offers/i)).toBeNull();
-    expect(screen.getByLabelText(/Marketing emails/i)).toBeTruthy();
+    expect(screen.queryByLabelText(/Marketing emails/i)).toBeNull();
   });
 
   it("lets a brand complete with the base acceptance alone, nothing pre-ticked", async () => {
@@ -75,7 +77,6 @@ describe("consent gate — brand account", () => {
       terms: true,
       privacy: true,
       age_18: true,
-      marketing_email: false,
     });
   });
 
