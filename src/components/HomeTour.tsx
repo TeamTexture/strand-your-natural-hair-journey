@@ -523,7 +523,7 @@ const HomeTour = () => {
           {current.body}
         </p>
 
-        {current.action === "add-photo" && (
+        {current.action === "add-photo" && !hasStylePhoto && (
           <Button
             variant="gold"
             size="pill"
@@ -534,6 +534,24 @@ const HomeTour = () => {
           </Button>
         )}
 
+        {current.action === "add-photo" && hasStylePhoto && (
+          <>
+            <div className="flex items-center gap-2 mt-4 text-[12.5px] font-body text-primary">
+              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/15">
+                <Check className="size-3.5" />
+              </span>
+              Photo added
+            </div>
+            <button
+              type="button"
+              onClick={openPhotoPicker}
+              className="mt-2 text-[11px] uppercase tracking-[0.2em] text-foreground/55 hover:text-foreground font-body font-medium"
+            >
+              Change photo
+            </button>
+          </>
+        )}
+
         <div className="flex items-center gap-2 mt-4">
           {step > 0 && (
             <Button variant="goldOutline" size="pill" className="flex-1" onClick={prev}>
@@ -541,14 +559,19 @@ const HomeTour = () => {
             </Button>
           )}
           <Button
-            variant={current.action ? "goldOutline" : "gold"}
+            variant={current.action && !actionDone ? "goldOutline" : "gold"}
             size="pill"
             className="flex-1"
             onClick={next}
           >
-            {step === total - 1 ? "Finish" : current.action ? "Later →" : "Next →"}
+            {step === total - 1
+              ? "Finish"
+              : current.action && !actionDone
+                ? "Later →"
+                : "Next →"}
           </Button>
         </div>
+
 
         <div className="flex justify-center gap-1.5 mt-3">
           {steps.map((_, i) => (
