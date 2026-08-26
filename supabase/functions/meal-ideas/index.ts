@@ -300,7 +300,10 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
         retryReason: retryReasonFromRules(retryRules),
         onRejected: (rules) => rejected.push(...rules),
       }) as { meals?: unknown[] };
-      if (rejected.length === 0) break;
+      if (rejected.length === 0) {
+        retryRules = null;
+        break;
+      }
       retryRules = [...new Set(rejected)];
       lastRejection = retryReasonFromRules(retryRules) ?? "guardrail_rejection";
     }
