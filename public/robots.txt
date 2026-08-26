@@ -10,7 +10,6 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-# AI search crawlers — explicitly allowed so STRAND can be cited in AI answers
 User-agent: GPTBot
 Allow: /
 
@@ -38,4 +37,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://mystrand.co.uk/sitemap.xml
+Sitemap: https://join.mystrand.co.uk/sitemap.xml
