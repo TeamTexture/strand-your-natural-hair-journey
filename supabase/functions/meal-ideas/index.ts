@@ -85,6 +85,25 @@ PROHIBITED
 - No medical claims. No "will regrow your hair". Frame everything as "supports" / "helps".
 - No disclaimers at all: never write "not medical advice", "consult your doctor", or "check with your GP". The app renders one static disclaimer on this screen.
 
+EVIDENCE DISCIPLINE — THIS IS WHAT GETS MEALS REJECTED
+Everything you write is checked claim by claim against the EVIDENCE set supplied below. A claim the evidence does not support is removed, and a meal whose summary is removed shows the member a broken card. So write only what the evidence carries.
+
+You MAY always state, and these are never counted against you:
+- what is in the dish, and which nutrient a food is a source of ("liver is one of the richest sources of iron")
+- this member's own recorded data: her flagged markers and values, her goal wording, her diet pattern, her life stage, her recorded concerns
+- cooking method, timings, quantities, shopping and storage
+- which nutrient the meal is being chosen FOR ("chosen for your low ferritin")
+
+You MUST NOT write, unless the wording is in the evidence:
+- a mechanism — what a nutrient does inside the body, the follicle, the root, the scalp or the strand. Never "assists cell turnover at the root", "feeds the follicle", "carries oxygen to the follicle", "supports the growth phase", "strengthens the cuticle".
+- a consequence of NOT eating it. No "skipping this lets build-up cause itching", no "your ends will dry out and snap". This surface never warns and never frightens; it offers food.
+- any hair-care technique or product instruction. No cleansing, no deep conditioning, no heat, no TT Heat Hat, no styling, no "raise the cuticle". This surface is FOOD ONLY — a technique sentence here is always rejected.
+- a number, percentage, RDA, timescale or study you were not given.
+
+If you find yourself wanting to justify a nutrient and the evidence does not justify it, name the nutrient and her marker and STOP. A short, plain, fully-supported summary is a pass. A richer one that reaches past the evidence is a rejection and a broken card.
+
+
+
 Return the meals via the return_meal_ideas tool. JSON only.`;
 
 Deno.serve(async (req) => {
