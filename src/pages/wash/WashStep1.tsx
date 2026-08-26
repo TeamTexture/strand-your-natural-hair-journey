@@ -289,7 +289,11 @@ const heatChips = (
   tools: Array<{ id: string; name: string; brand?: string | null }>,
 ): string[] => {
   if (choice === "no") return ["No heat"];
+  // Heat happened, but on the treatment step — so this step reads as no heat and
+  // says where it went instead.
+  if (choice === "elsewhere") return ["No heat here · used on treatment"];
   if (choice !== "yes") return [];
+
   return [
     minutes ? `Heat · ${minutes} min` : "Heat treatment",
     ...toolIds
@@ -646,6 +650,27 @@ const WashStep1 = () => {
     void fetchHeatRationale();
   };
 
+  /**
+   * Condition step only — "Not here, I used it for my treatment". The heat is
+   * real, so it's carried forward to the Treatment / Mask step (opened and
+   * pre-answered yes) rather than being lost or double-counted. No "why heat"
+   * explainer here: she isn't skipping heat.
+   */
+  const handleHeatElsewhere = () => {
+    setHeatChoice("elsewhere");
+    setHeatMinutes(null);
+    setHeatToolIds([]);
+    markTouched("treatment");
+    setTreatment("done");
+    setTreatmentHeatChoice("yes");
+    requestAnimationFrame(() => {
+      document
+        .getElementById("washstep-treatment")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
+
   const removeFrom = (setter: (v: string[]) => void, ids: string[], key: StepKey) => (id: string) => {
     markTouched(key);
     setter(ids.filter((x) => x !== id));
@@ -758,6 +783,8 @@ const WashStep1 = () => {
               onOpenWhyDialog={() => setHeatDialogOpen(true)}
               whyDialogOpen={heatDialogOpen}
               level={level}
+              onElsewhere={handleHeatElsewhere}
+
             />
           }
         />
@@ -856,7 +883,10 @@ const WashStep1 = () => {
               ids: string[],
             ): StepHeat | null => {
               if (!choice) return null;
-              if (choice === "no") return { used: false };
+              // "elsewhere" means the heat belongs to the treatment step, so this
+              // step is recorded as no heat — never double-counted.
+              if (choice === "no" || choice === "elsewhere") return { used: false };
+
               return {
                 used: true,
                 ...(minutes ? { duration_min: minutes } : {}),

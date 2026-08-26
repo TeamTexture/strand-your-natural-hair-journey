@@ -8,7 +8,16 @@ import ActionList from "@/components/guidance/ActionList";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { emphasisSplit } from "@/lib/tipsRender";
 
-export type HeatChoice = "yes" | "no" | null;
+/**
+ * The answer to one step's heat question.
+ *
+ * - "yes"       — heat was used on THIS step
+ * - "no"        — heat was not used on this step at all
+ * - "elsewhere" — she used heat, but on her treatment step, not this one. Counts
+ *                 as NO heat here; the treatment step carries the real answer.
+ */
+export type HeatChoice = "yes" | "no" | "elsewhere" | null;
+
 
 export interface HeatRationale {
   headline: string;
@@ -39,6 +48,7 @@ const HeatStepEditor = ({
   onOpenWhyDialog,
   whyDialogOpen,
   level,
+  onElsewhere,
 }: {
   /** Display label of the step this heat answer belongs to. */
   stepLabel: string;
@@ -55,6 +65,12 @@ const HeatStepEditor = ({
   onOpenWhyDialog: () => void;
   whyDialogOpen: boolean;
   level: number;
+  /**
+   * Only passed on the Condition step. "I used it for my treatment instead":
+   * records no heat here and hands the answer to the treatment step, so the
+   * same heat is never entered twice or logged against the wrong step.
+   */
+  onElsewhere?: () => void;
 }) => {
   const [whyOpen, setWhyOpen] = useState(false);
 
@@ -92,6 +108,28 @@ const HeatStepEditor = ({
           No
         </button>
       </div>
+      {onElsewhere && (
+        <button
+          type="button"
+          onClick={onElsewhere}
+          aria-pressed={choice === "elsewhere"}
+          className={cn(
+            "w-full px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors min-h-[36px]",
+            choice === "elsewhere"
+              ? "bg-muted text-foreground border-border"
+              : "bg-card text-muted-foreground border-border",
+          )}
+        >
+          Not here — I used it for my treatment
+        </button>
+      )}
+      {choice === "elsewhere" && (
+        <p className="text-[11px] text-muted-foreground">
+          Nothing logged against {stepLabel}. Your heat question on the Treatment / Mask step is
+          already answered <strong>yes</strong> — add the tool and how long there.
+        </p>
+      )}
+
       {choice === "yes" && (
         <div className="space-y-1.5 pt-1">
           <p className="text-[11px] font-medium text-foreground">How long for?</p>
