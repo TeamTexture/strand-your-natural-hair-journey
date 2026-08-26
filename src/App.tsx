@@ -239,6 +239,8 @@ const PlusTickets = lazyRetry(() => import("./pages/PlusTickets"));
 // Global react-query defaults — Home (and every other screen) relies on
 // queries NOT quietly refetching under the user while they're reading. Any
 // hook that legitimately needs polling or focus-refresh opts in explicitly.
+import TempPhotoSheetHarness from "@/pages/TempPhotoSheetHarness";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -327,6 +329,7 @@ const App = () => (
                 <RouteCrashGuard>
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
+              <Route path="/temp-photo-sheet" element={<TempPhotoSheetHarness />} />
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Onboard><SetupGuide /></Onboard>} />
