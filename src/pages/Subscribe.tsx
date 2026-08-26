@@ -44,67 +44,9 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-type Pillar = {
-  icon: LucideIcon;
-  title: string;
-  benefit: string;
-};
+// Pillars, reassurance rows and STRAND+ extras now live in the shared
+// marketing component so /subscribe and /start-trial cannot drift apart.
 
-const PILLARS: Pillar[] = [
-  {
-    icon: BookOpen,
-    title: "Your personal guide",
-    benefit: "Expert guidance tailored to your hair, health and history.",
-  },
-  {
-    icon: Droplet,
-    title: "Wash days that count",
-    benefit: "Log, schedule and perfect every cleanse, treat and seal.",
-  },
-  {
-    icon: FlaskConical,
-    title: "Product intelligence",
-    benefit: "Scan, analyse and curate a shelf that actually works for you.",
-  },
-  {
-    icon: Stethoscope,
-    title: "Vetted professionals",
-    benefit: "Search the directory, book, and keep every appointment in one place.",
-  },
-  {
-    icon: Camera,
-    title: "Your hair archive",
-    benefit: "Milestones, moodboards, colour and appointment photos in one place.",
-  },
-  {
-    icon: Users,
-    title: "The Client Passport",
-    benefit: "Walk into any chair with your full story ready to share.",
-  },
-  {
-    icon: Calendar,
-    title: "Journaling that listens",
-    benefit: "Track goals, moods and appointments with gentle AI prompts.",
-  },
-  {
-    icon: Leaf,
-    title: "Rooted in the book",
-    benefit: "No fads. Every insight is grounded in How To Love Your Afro.",
-  },
-];
-
-const REASSURANCE = [
-  { icon: Lock, title: "Cancel any time", body: "One tap in the billing portal. No calls, no forms, no guilt." },
-  { icon: ShieldCheck, title: "Your data is yours", body: "Encrypted, private, and never sold. Pause your membership and it waits for you." },
-  { icon: Sparkles, title: "Always improving", body: "New features and refinements every month, included at no extra cost." },
-];
-
-const PLUS_EXTRAS = [
-  "Community forum — for members only",
-  "Member-to-member chat",
-  "Courses, ebooks & videos library",
-  "Members-only events (digital & in person)",
-];
 
 const Subscribe = () => {
   const nav = useNavigate();
