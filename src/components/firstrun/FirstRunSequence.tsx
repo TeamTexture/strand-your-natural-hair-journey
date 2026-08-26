@@ -40,8 +40,14 @@ const FirstRunSequence = () => {
   }, []);
 
   // Tier 3 of the first-run queue: one prompt per session, after the offers card.
-  const photoSlot = useLateFirstRunSlot("photo-prompt");
-  const productSlot = useLateFirstRunSlot("product-prompt");
+  const photoSlot = useLateFirstRunSlot(
+    "photo-prompt",
+    tourDone && !loading && photoNudge.eligible && !photoDismissed,
+  );
+  const productSlot = useLateFirstRunSlot(
+    "product-prompt",
+    tourDone && !loading && productNudge.eligible && !productDismissed,
+  );
 
   const [photoDismissed, setPhotoDismissed] = useState(false);
   const [productDismissed, setProductDismissed] = useState(false);

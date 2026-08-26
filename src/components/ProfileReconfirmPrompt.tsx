@@ -24,7 +24,7 @@ const ProfileReconfirmPrompt = () => {
   const next = sections.find((s) => !s.confirmed) ?? sections[0];
   // Waits behind the tour and the offers card, and only if no other prompt
   // has already used this session's single slot.
-  const slot = useLateFirstRunSlot("profile-reconfirm");
+  const slot = useLateFirstRunSlot("profile-reconfirm", shouldPrompt);
 
   // Never cover the guided first-run tour.
   const [tourOn, setTourOn] = useState(() => isTourActive());

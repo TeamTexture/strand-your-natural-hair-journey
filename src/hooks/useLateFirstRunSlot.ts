@@ -11,7 +11,7 @@ import { claimLateSlot, offersCardDone, OFFERS_DONE_EVENT } from "@/lib/firstRun
  * card is answered/dismissed (or was never eligible), and no other tier-3
  * prompt has already taken the session's single slot.
  */
-export function useLateFirstRunSlot(id: string): boolean {
+export function useLateFirstRunSlot(id: string, wanted = true): boolean {
   const blockedByTour = useFirstRunPromptsBlocked();
   const { eligible: offersEligible } = usePersonalisedOffersCard();
   const [, bump] = useState(0);
@@ -24,7 +24,9 @@ export function useLateFirstRunSlot(id: string): boolean {
   }, []);
 
   const offersPending = offersEligible && !offersCardDone();
-  const ready = !blockedByTour && !offersPending;
+  // Only a prompt that actually wants to show may take the slot, otherwise an
+  // ineligible one would starve the others.
+  const ready = wanted && !blockedByTour && !offersPending;
 
   useEffect(() => {
     if (!ready || granted) return;
