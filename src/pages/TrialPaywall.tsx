@@ -47,7 +47,7 @@ const TrialPaywall = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isViewingAs } = useAuth();
   const { hasAccess, isLoading } = useConsumerSubscription();
   const { standard, plus } = useConsumerPricing();
   const { trialEligible, known: offerKnown } = useTrialOffer();
@@ -285,15 +285,21 @@ const TrialPaywall = () => {
           size="pill"
           className="mt-2.5 w-full"
           onClick={startTrial}
-          disabled={busy}
+          disabled={busy || isViewingAs}
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : copy.cta}
         </Button>
-        <p className="mt-1.5 text-center font-body text-[11px] text-muted-foreground">
-          {offerTrial
-            ? "Card details taken now. Nothing charged today."
-            : "Cancel any time from your profile."}
-        </p>
+        {isViewingAs ? (
+          <p className="mt-1.5 text-center font-body text-[11px] text-muted-foreground">
+            Billing cannot be actioned while viewing as a member.
+          </p>
+        ) : (
+          <p className="mt-1.5 text-center font-body text-[11px] text-muted-foreground">
+            {offerTrial
+              ? "Card details taken now. Nothing charged today."
+              : "Cancel any time from your profile."}
+          </p>
+        )}
 
         {/* Save and sign out is the ONLY other action — a quiet exit, not a
             door. Tapping it signs the member out; her account and trial offer

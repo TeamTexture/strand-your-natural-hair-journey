@@ -27,6 +27,9 @@ export function useTrialOffer() {
     /** False until the answer is known — never wall or unwall on a guess. */
     known: hasAuthoritativeData,
     loading: authLoading || q.isLoading || q.isPlaceholderData,
+    /** True when the query errored after retries. The TrialWall must treat this
+     *  as "hold, don't guess" — a failed read must never fail-open into the app. */
+    isError: q.isError,
     refetch: q.refetch,
   };
 }

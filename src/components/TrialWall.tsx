@@ -28,12 +28,17 @@ import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
  */
 const TrialWall = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
-  const { walled, goalCaptured, known, loading } = useTrialOffer();
+  const { walled, goalCaptured, known, loading, isError } = useTrialOffer();
   const { data: onboarding, isLoading: onboardingLoading } = useOnboardingStatus();
 
   // Hold rather than guess: showing the screen first and redirecting after
   // would let a walled member see a flash of the app.
   if (!known && loading) return <LoadingDot />;
+  // FAIL-CLOSED: a query error must never let a walled member through to the
+  // app. During admin impersonation a transient read failure was silently
+  // passing the member past the paywall — hold the loader so the retry can
+  // resolve instead of rendering the protected screen.
+  if (isError && !known) return <LoadingDot />;
   if (walled && !onboarding?.basicComplete) {
     if (onboardingLoading) return <LoadingDot />;
     if (isPrePaywallPath(location.pathname)) return <>{children}</>;
