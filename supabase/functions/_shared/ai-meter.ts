@@ -140,6 +140,36 @@ export function recordAiOutcome(args: {
   });
 }
 
+/** Attach a POST-MODEL failure (unparsable JSON, truncated output, nothing left
+ *  after normalisation) to the buffered writer row. Without this the gateway
+ *  call logs as `completed` and a parse failure is indistinguishable from a
+ *  genuine success — which is exactly how the wash-day-steps failure of
+ *  2026-08-26 hid itself. */
+export function recordAiFailure(args: {
+  function_name: string;
+  surface?: string | null;
+  user_id?: string | null;
+  error_text: string;
+  rejection_rule?: string | null;
+}): void {
+  const buffered = pending.get(args.function_name);
+  if (buffered) pending.delete(args.function_name);
+  flush({
+    ...(buffered ?? {
+      function_name: args.function_name,
+      stage: 2,
+      provider: "lovable_gateway",
+      model: "unknown",
+      model_called: true,
+    }),
+    surface: buffered?.surface ?? args.surface ?? null,
+    user_id: buffered?.user_id ?? args.user_id ?? null,
+    outcome: "error",
+    rejection_rule: args.rejection_rule ?? "post_model_parse_failure",
+    error_text: args.error_text,
+  });
+}
+
 /** Metadata a call site passes so a row can be attributed. */
 export interface AiCallMeta {
   function_name: string;
