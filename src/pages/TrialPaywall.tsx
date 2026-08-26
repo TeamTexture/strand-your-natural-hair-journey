@@ -47,7 +47,7 @@ const TrialPaywall = () => {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const qc = useQueryClient();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isViewingAs } = useAuth();
   const { hasAccess, isLoading } = useConsumerSubscription();
   const { standard, plus } = useConsumerPricing();
   const { trialEligible, known: offerKnown } = useTrialOffer();
