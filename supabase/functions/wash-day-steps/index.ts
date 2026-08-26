@@ -329,7 +329,9 @@ Deno.serve(async (req) => {
         });
       }
     }
-    return json(503, { error: "guidance_unavailable" });
+    // `reason` is diagnostic only — the client renders its own copy. Nothing is
+    // written to the cache on this path, so the next view retries cleanly.
+    return json(503, { error: "guidance_unavailable", reason });
   };
 
   const requestBody = JSON.stringify({
