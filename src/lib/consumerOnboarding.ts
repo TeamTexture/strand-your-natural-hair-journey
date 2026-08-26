@@ -86,15 +86,16 @@ export async function getConsumerOnboardingStatus(userId: string) {
     health.diet && health.diet_balance && health.smoke && health.alcohol &&
     health.daily_water && health.exercise && health.sleep_quality
   );
-  // The six self-answerable questions. diameter/surface_texture/density are
-  // asked again on the hair step, but "Not sure" writes null — they must never
-  // be required here, or a member who answers "Not sure" to all three is
-  // blocked from completing.
+  // The six self-answerable questions. diameter/surface_texture/density and
+  // elasticity all offer "Not sure", which writes null — none of them may ever
+  // be required here, or a member who honestly answers "Not sure" is blocked
+  // from completing onboarding for good.
   const hairFieldsComplete = !!(
     hair?.porosity &&
-    hair.elasticity && hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
+    hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
     Array.isArray(hair.areas_of_concern) && hair.areas_of_concern.length > 0
   );
+
   const styleFieldsComplete = !!(
     style?.current_colour_status && style.current_hairstyle && style.style_set_at &&
     Array.isArray(style.default_styles) && style.default_styles.length > 0

@@ -46,6 +46,46 @@ const json = (status: number, body: unknown) =>
 
 export const MODEL_VERSION = "wash-steps@v3-manuscript-2026-08-09";
 
+/**
+ * Recover the complete step objects from a JSON body that was cut off mid-write.
+ * Only whole, self-contained objects are kept — no text is repaired or invented.
+ */
+export function salvageSteps(raw: string): unknown[] {
+  const start = raw.indexOf('"steps"');
+  if (start === -1) return [];
+  const arrStart = raw.indexOf("[", start);
+  if (arrStart === -1) return [];
+  const out: unknown[] = [];
+  let depth = 0;
+  let objStart = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = arrStart + 1; i < raw.length; i++) {
+    const c = raw[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') { inString = true; continue; }
+    if (c === "{") { if (depth === 0) objStart = i; depth++; continue; }
+    if (c === "}") {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
+        try {
+          out.push(JSON.parse(raw.slice(objStart, i + 1)));
+        } catch { /* skip a malformed object */ }
+        objStart = -1;
+      }
+      continue;
+    }
+    if (c === "]" && depth === 0) break;
+  }
+  return out;
+}
+
+
 interface StepsPayload {
   steps: WashStep[];
   fingerprint: string;
@@ -294,8 +334,10 @@ Deno.serve(async (req) => {
 
   const requestBody = JSON.stringify({
     model: "google/gemini-3.6-flash",
-    // Output cap — output tokens drive latency on these interactive surfaces.
-    max_tokens: 2200,
+    // Output cap — output tokens drive latency, but too tight a cap truncates
+    // the JSON mid-step and the whole sequence was being thrown away.
+    max_tokens: 4000,
+
     messages: [
       {
         role: "system",
@@ -342,13 +384,25 @@ Deno.serve(async (req) => {
       return { fail: `gateway status ${aiResp.status}` };
     }
     const j = await aiResp.json().catch(() => null);
-    const rawContent = j?.choices?.[0]?.message?.content ?? "{}";
+    const rawContent: string = j?.choices?.[0]?.message?.content ?? "{}";
+    const finishReason = j?.choices?.[0]?.finish_reason ?? "unknown";
     let parsed: { steps?: unknown };
     try {
       parsed = JSON.parse(rawContent);
     } catch {
-      return { fail: "unparsable model output" };
+      // A cut-off response (finish_reason "length") is the common failure: the
+      // JSON is valid up to the last complete step. Salvage those rather than
+      // dead-ending her — nothing is invented, only truncated text dropped.
+      const salvaged = salvageSteps(rawContent);
+      if (salvaged.length === 0) {
+        console.error(
+          `[wash-day-steps] unparsable output (finish_reason=${finishReason}, chars=${rawContent.length})`,
+        );
+        return { fail: `unparsable model output (finish_reason=${finishReason})` };
+      }
+      parsed = { steps: salvaged };
     }
+
     const attemptSteps = normaliseSteps(parsed.steps, level);
     if (attemptSteps.length === 0) return { fail: "no valid steps after normalisation" };
     return { steps: attemptSteps };
