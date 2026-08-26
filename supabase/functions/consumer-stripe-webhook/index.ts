@@ -8,6 +8,10 @@ import {
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
 import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
+import {
+  PAYWALL_STATUSES,
+  syncPaywallStatusMember,
+} from "../_shared/klaviyo-status-lists.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -177,6 +181,15 @@ async function upsertFromSubscription(
     { onConflict: "user_id" },
   );
   if (error) throw error;
+
+  // STRAND_PAYWALL_LIST: she started checkout but the subscription is not
+  // paying. Marketing-consent gated inside the helper, and never blocks the
+  // webhook. Outcome logged to klaviyo_sync_log as paywall_list_webhook.
+  if ((PAYWALL_STATUSES as readonly string[]).includes(sub.status) && sub.id) {
+    await syncPaywallStatusMember(admin as any, userId, "paywall_list_webhook", sub.status);
+  }
+
+
 
   // Paying AND trialing members are mirrored onto the Klaviyo paid-members list.
   // Marketing consent is NOT set here — only list membership — unless the member

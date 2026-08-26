@@ -27,3 +27,7 @@ verify_jwt = false
 [functions.notify-pro-enquiry]
 verify_jwt = false
 
+[functions.klaviyo-status-lists]
+verify_jwt = false
+
+
