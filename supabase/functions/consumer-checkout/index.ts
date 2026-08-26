@@ -119,7 +119,18 @@ Deno.serve(async (req) => {
       },
     });
 
+    // Nurture lists: she has started checkout, so she moves from list 1 to
+    // list 2. Reported at CREATION, not on expiry — Klaviyo's flow holds a
+    // delay of at least an hour before the first email, so a member who
+    // completes payment normally is removed long before anything is sent.
+    // Both helpers swallow their own failures: Klaviyo must never break checkout.
+    await Promise.all([
+      addToAbandonedList(admin, userId),
+      email ? removeFromPaywallList(admin, email, userId, "checkout_started") : Promise.resolve(),
+    ]);
+
     return json({ url: session.url });
+
   } catch (e) {
     console.error("consumer-checkout error", e);
     return json({ error: (e as Error).message }, 500);
