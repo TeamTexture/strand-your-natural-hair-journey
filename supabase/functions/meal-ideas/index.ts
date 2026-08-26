@@ -6,7 +6,9 @@
 // prescribes food *because* of it — heritage is a flavour lens, nutrients
 // remain the reason.
 
-import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
+import { requireAuthedUser } from "../_shared/auth.ts";
+import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
@@ -24,6 +26,9 @@ const corsHeaders = {
 };
 
 interface RequestBody {
+  dryRun?: boolean;
+  impersonatedUserId?: string;
+  impersonation?: { targetUserId?: string; impersonatedBy?: string | null };
   context?: Record<string, unknown>;
   diet?: string;
   dietOther?: string;
@@ -46,7 +51,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch, recordAiOutcome, setAiCallUser } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome, setAiCallImpersonation, setAiCallUser } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "meal-ideas", stage: 2 } as const;
@@ -120,18 +125,23 @@ Deno.serve(async (req) => {
   // Paid AI generation — signed-in members only.
   const auth = await requireAuthedUser(req);
   if (auth instanceof Response) return auth;
-  // Every meter row for this isolate is attributed to her from here on.
-  setAiCallUser(auth.user.id);
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body: RequestBody = await req.json().catch(() => ({}));
+    const mode = await resolveAiRequestMode(auth.user.id, body as Record<string, unknown>, auth.supabase as never);
+    if (mode instanceof Response) return mode;
+    const memberId = mode.userId;
+    // Every meter row for this isolate is attributed to her from here on.
+    setAiCallUser(memberId);
+    setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
+    if (!(await isEntitled(memberId))) return membershipRequired();
 
     // Allergies and intolerances: hard pre-generation filter, decrypted in
     // memory. Post-generation every meal is scanned again below.
-    const sens = await loadSensitivities(auth.supabase, auth.user.id, "dietary");
+    const sens = await loadSensitivities(auth.supabase, memberId, "dietary");
     const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
 
     const buildUserPayload = (retryRules: string[] | null) => `${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}
@@ -179,7 +189,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
       const aiResp = await gatewayFetch(
         {
           ...AI_METER_META,
-          user_id: auth.user.id,
+          user_id: memberId,
           generation_id: generationId,
           attempt_number: attemptNumber,
           max_attempts: MAX_REJECTION_ATTEMPTS,
@@ -293,11 +303,12 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
       sanitised = await sanitiseAndLog(parsed, "meal-ideas", {
         context: body.context,
         surface: "meal-ideas",
-        userId: auth.user.id,
+        userId: memberId,
         generationId,
         attemptNumber,
         maxAttempts: MAX_REJECTION_ATTEMPTS,
         retryReason: retryReasonFromRules(retryRules),
+        dryRun: mode.dryRun,
         onRejected: (rules) => rejected.push(...rules),
       }) as { meals?: unknown[] };
       if (rejected.length === 0) {
@@ -357,7 +368,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
       recordAiOutcome({
         function_name: "meal-ideas",
         surface: "meal-ideas",
-        user_id: auth.user.id,
+        user_id: memberId,
         outcome: "rejected",
         rejection_rule: finalMeals.length === 0 ? "no_meals_survived_guardrails" : lastRejection,
         generation_id: generationId,
@@ -366,7 +377,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
       const { data: lastGood } = await auth.supabase
         .from("ai_summaries")
         .select("payload")
-        .eq("user_id", auth.user.id)
+        .eq("user_id", memberId)
         .eq("kind", "meal_ideas")
         .maybeSingle();
       const priorMeals = (lastGood?.payload as { meals?: unknown[] } | null)?.meals;
@@ -385,14 +396,20 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
     recordAiOutcome({
       function_name: "meal-ideas",
       surface: "meal-ideas",
-      user_id: auth.user.id,
+      user_id: memberId,
       outcome: "completed",
     });
+
+    if (mode.dryRun) {
+      return new Response(JSON.stringify(sanitised), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: priorRow } = await auth.supabase
       .from("ai_summaries")
       .select("id")
-      .eq("user_id", auth.user.id)
+      .eq("user_id", memberId)
       .eq("kind", "meal_ideas")
       .maybeSingle();
     const payload = { meals: finalMeals, _generated_at: new Date().toISOString() };
@@ -404,7 +421,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
     } else {
       await auth.supabase
         .from("ai_summaries")
-        .insert({ user_id: auth.user.id, kind: "meal_ideas", payload });
+        .insert({ user_id: memberId, kind: "meal_ideas", payload });
     }
 
     return new Response(JSON.stringify(sanitised), {
