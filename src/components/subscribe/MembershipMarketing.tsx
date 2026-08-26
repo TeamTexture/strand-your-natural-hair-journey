@@ -1,4 +1,5 @@
 import { CheckCircle2, Sparkles, Droplet, FlaskConical, BookOpen, Camera, Users, Calendar, Leaf, Stethoscope, Heart, ShieldCheck, Lock } from "lucide-react";
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
@@ -200,6 +201,63 @@ export const AdvisoryNotes = () => (
     </div>
   </div>
 );
+
+/**
+ * The gold price card. Shared by /subscribe and /start-trial — the trial page
+ * passes `trial` so the headline reads "£0 today", and omits `children` so the
+ * only call to action stays in its pinned footer.
+ */
+export const PriceCard = ({
+  price,
+  tier,
+  trial = false,
+  children,
+}: {
+  /** Monthly price in pounds, from the live pricing source. */
+  price: number;
+  tier: "standard" | "plus";
+  /** Free-trial framing: "£0 today", then the monthly price beneath. */
+  trial?: boolean;
+  /** Optional CTA rendered inside the card (Subscribe only). */
+  children?: ReactNode;
+}) => {
+  const perDay = (price / 30).toFixed(2);
+  const planName = tier === "plus" ? "STRAND+" : "STRAND";
+  return (
+    <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
+      <div>
+        <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
+          {trial
+            ? `Free for 3 days, then ${planName}`
+            : tier === "plus"
+              ? "STRAND+ membership"
+              : "Monthly membership"}
+        </p>
+        <div className="mt-2 flex items-baseline justify-center gap-1.5">
+          <span className="font-display text-[44px] font-semibold leading-none text-foreground">
+            {trial ? "£0" : `£${price.toFixed(2)}`}
+          </span>
+          <span className="font-body text-sm text-foreground/70">
+            {trial ? "today" : "/ month"}
+          </span>
+        </div>
+        <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
+          {trial ? (
+            <>
+              Then £{price.toFixed(2)} a month — roughly{" "}
+              <span className="font-semibold text-foreground">£{perDay} a day</span>.
+            </>
+          ) : (
+            <>
+              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span>.
+            </>
+          )}
+        </p>
+      </div>
+      {children}
+    </SurfaceCard>
+  );
+};
 
 /** Stripe / data-retention footnote. */
 export const PaymentsNote = () => (

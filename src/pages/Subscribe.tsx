@@ -22,6 +22,7 @@ import MembershipMarketing, {
   AdvisoryNotes,
   PaymentsNote,
   PlusExtrasList,
+  PriceCard,
 } from "@/components/subscribe/MembershipMarketing";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
@@ -348,23 +349,9 @@ const Subscribe = () => {
         )}
 
         {/* Price card */}
-        <SurfaceCard tone="gold" className="!p-5 space-y-4 text-center">
-          <div>
-            <p className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
-              {tier === "plus" ? "STRAND+ membership" : "Monthly membership"}
-            </p>
-            <div className="mt-2 flex items-baseline justify-center gap-1.5">
-              <span className="font-display text-[44px] font-semibold leading-none text-foreground">
-                £{price.toFixed(2)}
-              </span>
-              <span className="font-body text-sm text-foreground/70">/ month</span>
-            </div>
-            <p className="text-[12px] font-body text-foreground/70 mt-1.5 leading-snug">
-              Roughly <span className="font-semibold text-foreground">£{perDay} a day</span>.
-            </p>
-          </div>
+        <PriceCard price={price} tier={tier}>
           <CtaBlock />
-        </SurfaceCard>
+        </PriceCard>
 
         <AdvisoryNotes />
 
