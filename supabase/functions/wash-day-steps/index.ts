@@ -342,13 +342,25 @@ Deno.serve(async (req) => {
       return { fail: `gateway status ${aiResp.status}` };
     }
     const j = await aiResp.json().catch(() => null);
-    const rawContent = j?.choices?.[0]?.message?.content ?? "{}";
+    const rawContent: string = j?.choices?.[0]?.message?.content ?? "{}";
+    const finishReason = j?.choices?.[0]?.finish_reason ?? "unknown";
     let parsed: { steps?: unknown };
     try {
       parsed = JSON.parse(rawContent);
     } catch {
-      return { fail: "unparsable model output" };
+      // A cut-off response (finish_reason "length") is the common failure: the
+      // JSON is valid up to the last complete step. Salvage those rather than
+      // dead-ending her — nothing is invented, only truncated text dropped.
+      const salvaged = salvageSteps(rawContent);
+      if (salvaged.length === 0) {
+        console.error(
+          `[wash-day-steps] unparsable output (finish_reason=${finishReason}, chars=${rawContent.length})`,
+        );
+        return { fail: `unparsable model output (finish_reason=${finishReason})` };
+      }
+      parsed = { steps: salvaged };
     }
+
     const attemptSteps = normaliseSteps(parsed.steps, level);
     if (attemptSteps.length === 0) return { fail: "no valid steps after normalisation" };
     return { steps: attemptSteps };
