@@ -22,7 +22,7 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { STEP_BUDGET, normaliseSteps, type WashStep } from "./normalise.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiFailure } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-steps", stage: 2 } as const;
