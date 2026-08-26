@@ -344,9 +344,13 @@ const ManageSubscriptionSection = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel your membership?</AlertDialogTitle>
             <AlertDialogDescription>
-              {renews
-                ? `You keep full access until ${renews}, the end of the period you have already paid for. Billing then stops and nothing further is taken.`
-                : "You keep full access to the end of the period you have already paid for. Billing then stops and nothing further is taken."}
+              {onTrial
+                ? trialEnds
+                  ? `You are still on your free trial, so no payment has been taken. You keep full access until ${trialEnds} and then nothing is charged.`
+                  : "You are still on your free trial, so no payment has been taken. You keep full access until the trial ends and then nothing is charged."
+                : renews
+                  ? `You keep full access until ${renews}, the end of the period you have already paid for. Billing then stops and nothing further is taken.`
+                  : "You keep full access to the end of the period you have already paid for. Billing then stops and nothing further is taken."}
               {" "}
               Nothing is deleted — your hair record, wash days, journal and blood results are here
               if you come back.
