@@ -4,7 +4,8 @@ import SplashScreen from "@/components/SplashScreen";
 import HairStrandIcon from "@/components/HairStrandIcon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
+import { getTrialOfferState } from "@/lib/trialOffer";
+import { walledDestination } from "@/lib/trialWall";
 import LoadingDot from "@/components/LoadingDot";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -111,11 +112,12 @@ const Index = () => {
       const hasAccess = await getConsumerAccessForUser(user.id, roles);
       // A trial-funnel registration can finish registration details first; after
       // that, it returns to the paywall until the trial is started.
-      const trialPending = !hasAccess && (await trialOfferPending(user.id));
-      const consumerPath = trialPending
-        ? onboardingStatus.basicComplete
-          ? TRIAL_PAYWALL_PATH
-          : "/onboarding/profile-step-1"
+      const trialState = hasAccess ? null : await getTrialOfferState(user.id);
+      const consumerPath = trialState?.walled
+        ? walledDestination({
+            basicComplete: onboardingStatus.basicComplete,
+            goalCaptured: trialState.goalCaptured,
+          })
         : onboardingStatus.completed
         ? hasAccess
           ? "/home"

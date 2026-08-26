@@ -23,6 +23,7 @@ export function useTrialOffer() {
   return {
     walled: hasAuthoritativeData && !!q.data?.walled,
     trialEligible: hasAuthoritativeData && !!q.data?.trialEligible,
+    goalCaptured: hasAuthoritativeData && !!q.data?.goalCaptured,
     /** False until the answer is known — never wall or unwall on a guess. */
     known: hasAuthoritativeData,
     loading: authLoading || q.isLoading || q.isPlaceholderData,

@@ -7106,6 +7106,10 @@ export type Database = {
         Args: { _user: string }
         Returns: boolean
       }
+      can_write_consumer_prepaywall: {
+        Args: { _user: string }
+        Returns: boolean
+      }
       chat_book_appointment: {
         Args: {
           _appointment_date: string

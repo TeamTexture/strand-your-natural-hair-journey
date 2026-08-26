@@ -18,7 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
 import { addMemberToMailingList } from "@/lib/klaviyoMember";
-import { markTrialOffer, trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
+import { markTrialOffer, getTrialOfferState } from "@/lib/trialOffer";
+import { walledDestination } from "@/lib/trialWall";
 
 // Only allow same-origin relative paths for redirect to avoid open-redirect
 // attacks via crafted ?next=https://evil.com links.
@@ -53,8 +54,12 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
   if (proApp) return "/pro/landing";
   // Trial-funnel accounts may complete the registration-details step first;
   // everything after that waits behind the card-confirmation wall.
-  if (await trialOfferPending(userId)) {
-    return onboardingStatus.basicComplete ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-1";
+  const trialState = await getTrialOfferState(userId);
+  if (trialState.walled) {
+    return walledDestination({
+      basicComplete: onboardingStatus.basicComplete,
+      goalCaptured: trialState.goalCaptured,
+    });
   }
   if (!onboardingStatus.completed) return onboardingStatus.entryPath;
   return requestedNext ? safeNext(requestedNext, "/") : "/";
