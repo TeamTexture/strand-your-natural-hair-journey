@@ -135,7 +135,7 @@ const Row = ({
 
 
 
-const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint, stepHint, returnTo: returnToOverride }: Props) => {
+const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onAdd, initialOpenCategory = null, onLinkSubmit, linkHint, stepHint, returnTo: returnToOverride }: Props) => {
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
