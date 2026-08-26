@@ -51,8 +51,13 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
     }
     if (onBack) onBack();
     else if (returnTo) navigate(returnTo, { replace: true });
-    else safeBack(navigate, backFallback);
+    else if (ONBOARDING_PREV[location.pathname]) {
+      // Onboarding screens always step backwards through the flow — never out
+      // to /home, which a member mid-onboarding cannot reach anyway.
+      navigate(onboardingPrevPath(location.pathname), { replace: true });
+    } else safeBack(navigate, backFallback);
   };
+
 
 
   return (
