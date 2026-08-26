@@ -15,6 +15,7 @@ import {
   TOUR_START_EVENT,
   OPEN_MAIN_PHOTO_EVENT,
   MAIN_PHOTO_CLOSED_EVENT,
+  setGuidanceSheetOpen,
 } from "@/lib/firstRunTour";
 
 // Bumped key — tour is refreshed once for every user when new steps are added.
@@ -31,6 +32,9 @@ type Step = {
   /** Optional in-step action, e.g. opening the photo picker. */
   action?: "add-photo";
   actionLabel?: string;
+  /** Panel this step opens while it is on screen, and closes when it leaves. */
+  openPanel?: "guidance";
+
 };
 
 const STEPS: Step[] = [
@@ -122,13 +126,23 @@ const STEPS: Step[] = [
   },
 
   {
-    target: null,
+    target: "guidance-level",
+    route: "/home",
+    eyebrow: "Anywhere",
+    title: "How much guidance you want",
+    body: "Drag this to change how much STRAND explains. Turn it up for step-by-step detail on every screen, or down to just the one thing that matters most. Change it any time — it applies everywhere.",
+    openPanel: "guidance",
+  },
+
+  {
+    target: "take-tour",
     route: "/home",
     eyebrow: "You're set",
-    title: "One thing to do first",
-    body: "You can replay this tour anytime from the ‘Take the tour’ button on your home screen. Next: your goal and your challenge — the two answers STRAND builds every tip around.",
+    title: "That's everything",
+    body: "Replay this tour any time from ‘Take the tour’ on your home screen. Your goal and your challenge are already saved from setup — STRAND builds every tip around them.",
   },
 ];
+
 
 /* ------------------------------------------------------------------ *
  * Anchoring helpers
@@ -237,6 +251,19 @@ const HomeTour = () => {
     if (location.pathname !== stepRoute) navigate(stepRoute);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, stepRoute]);
+
+  // Steps that demonstrate a panel open it while they are on screen and close
+  // it on advance, back, minimise or finish.
+  const wantsGuidance = active && current?.openPanel === "guidance";
+  useEffect(() => {
+    if (!wantsGuidance) return;
+    setGuidanceSheetOpen(true);
+    return () => {
+      setGuidanceSheetOpen(false);
+    };
+  }, [wantsGuidance]);
+
+
 
   // The photo picker sheet sits below the tour overlay, so the tour steps aside
   // while it is open and comes back on the same step once it closes.

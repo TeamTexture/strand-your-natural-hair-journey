@@ -20,6 +20,15 @@ export const TOUR_START_EVENT = "strand:start-tour";
 export const OPEN_MAIN_PHOTO_EVENT = "strand:open-main-photo";
 export const MAIN_PHOTO_CLOSED_EVENT = "strand:main-photo-closed";
 
+/**
+ * The guidance-level tour step opens the guidance sheet so the member can see
+ * the levels, and closes it again when she moves on, leaving the app tidy.
+ */
+export const GUIDANCE_SHEET_EVENT = "strand:guidance-sheet";
+export const setGuidanceSheetOpen = (open: boolean) =>
+  window.dispatchEvent(new CustomEvent(GUIDANCE_SHEET_EVENT, { detail: open }));
+
+
 const read = (key: string) => {
   try {
     return localStorage.getItem(key) === "1";
