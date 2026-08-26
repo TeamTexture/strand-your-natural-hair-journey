@@ -186,14 +186,19 @@ export function useWashDaySteps() {
           tipsLevel: level,
         },
       });
-      if (error) throw new Error(error.message);
+      // Classified before it leaves the queryFn, so React Query's `retry` can
+      // tell "nothing was generated" from "a generation was rejected".
+      if (error) throw await classifyInvokeError(error);
       const res = data as { steps?: WashDayStep[]; stale?: boolean } | null;
       const returned = (res?.steps ?? []) as WashDayStep[];
       // An empty sequence is a failure, not a result: treated as an error so the
       // card offers "Try again" instead of sitting there silently disabled, and
-      // so nothing hollow is ever held as though it were her sequence.
-      if (returned.length === 0) throw new Error("no_steps_returned");
+      // so nothing hollow is ever held as though it were her sequence. It is a
+      // REJECTION — a generation ran and produced nothing usable — so it must
+      // never trigger the transport retry.
+      if (returned.length === 0) throw new AiRejectedError("no_steps_returned");
       return { steps: returned, stale: res?.stale === true };
+
 
 
     },
