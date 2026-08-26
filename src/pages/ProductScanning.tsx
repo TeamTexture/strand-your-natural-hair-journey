@@ -8,7 +8,8 @@ import { buildAiContext } from "@/lib/aiContext";
 import { takePendingAiContext } from "@/hooks/useProductScan";
 import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
-import { currentProfileHash } from "@/lib/profileSnapshot";
+import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
+import { resolveProductKey } from "@/lib/productIdentity";
 import { toast } from "sonner";
 
 /** Nav state shape produced by useProductScan after the dual-photo upload. */
