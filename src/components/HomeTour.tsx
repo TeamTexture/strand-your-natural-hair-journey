@@ -472,9 +472,10 @@ const HomeTour = () => {
         />
       </svg>
 
-      {/* A live copy of the target painted above the dimmer, so small elements
-       *  in dim headers read at full brightness instead of through the scrim. */}
-      {rect && settled && (
+      {/* Small targets (header icons, tab bar icons) get a copy painted above
+       *  the dimmer so they read at full brightness, not through the scrim. */}
+      {rect && settled && Math.min(rect.width, rect.height) < 48 && (
+
         <div
           aria-hidden
           className="absolute pointer-events-none overflow-hidden rounded-[16px]"
