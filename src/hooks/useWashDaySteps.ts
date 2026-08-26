@@ -99,13 +99,18 @@ export function useWashDaySteps() {
     // what produced the 2026-08-26 report where no call was made at all).
     staleTime: (query) => (query.state.error ? 0 : Infinity),
     gcTime: Infinity,
-    // NO client retry. Each invocation is a paid writer call, and retrying here
-    // on top of the server's own attempt multiplied one card into several
-    // generations. A failure shows the error state; a remount re-attempts once.
-    retry: 0,
+    // ONE retry, and ONLY for a transport failure — a dropped request, 502/504,
+    // abort or timeout, where no generation completed and nothing was paid for.
+    // A completed-but-rejected generation (503 guidance_unavailable, or an empty
+    // sequence) is never retried: the expensive work already happened, so the
+    // card falls through to her last good sequence or the honest error state.
+    retry: retryTransportOnce,
+    retryDelay: aiRetryDelay,
     // Failures are transient — every remount re-attempts.
     refetchOnMount: (query) => (query.state.error ? "always" : false),
+    // Stays OFF. Switching apps and back must never buy a new generation.
     refetchOnWindowFocus: false,
+
 
     queryFn: async (): Promise<WashDayStepsResult> => {
       if (!user?.id) return { steps: [], stale: false };
