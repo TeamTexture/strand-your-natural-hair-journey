@@ -11,7 +11,8 @@
 //     and has NO consumer_subscriptions row at all.
 //
 // CONSENT: both lists are marketing, so both require
-// email_preferences.marketing_consent = true. No consent row, or false → skip.
+// profiles.personalised_offers_consent = true (same gate as the paid list).
+// Not true → skip.
 // A push never sets or changes anyone's Klaviyo consent.
 //
 // Every push is wrapped so a Klaviyo failure can never break a webhook, a cron
@@ -48,18 +49,16 @@ export async function loadStatusMember(
   admin: Admin,
   userId: string,
 ): Promise<StatusMember | null> {
-  const [profileRes, prefsRes, authRes] = await Promise.all([
+  const [profileRes, authRes] = await Promise.all([
     admin.from("profiles")
-      .select("display_name, phone_number, international_block, deletion_requested_at")
-      .eq("user_id", userId).maybeSingle(),
-    admin.from("email_preferences").select("marketing_consent")
+      .select("display_name, phone_number, international_block, deletion_requested_at, personalised_offers_consent")
       .eq("user_id", userId).maybeSingle(),
     admin.auth.admin.getUserById(userId),
   ]);
 
   const profile = profileRes.data as Record<string, unknown> | null;
   if (profile?.international_block || profile?.deletion_requested_at) return null;
-  if (prefsRes.data?.marketing_consent !== true) return null;
+  if (profile?.personalised_offers_consent !== true) return null;
 
   const email = String(authRes?.data?.user?.email ?? "").toLowerCase();
   if (!email) return null;
