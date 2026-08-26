@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles, Minus } from "lucide-react";
+import { X, Sparkles, Minus, Check } from "lucide-react";
+import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
+
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import {
@@ -172,6 +174,11 @@ const HomeTour = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const view = useActiveRoleView();
+  // Live read of "does she have a photo" — shared query key, so an upload from
+  // the picker invalidates it and this step re-renders without reopening.
+  const { photos: stylePhotos, refresh: refreshStylePhotos } = useStyleCardPhoto();
+  const hasStylePhoto = stylePhotos.length > 0;
+
   const [active, setActive] = useState(false);
   const [steps, setSteps] = useState<Step[]>(STEPS);
   const [step, setStep] = useState(0);
@@ -238,12 +245,15 @@ const HomeTour = () => {
     const onClosed = () => {
       if (!pausedRef.current) return;
       pausedRef.current = false;
+      void refreshStylePhotos();
       setActive(true);
     };
     window.addEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
     return () =>
       window.removeEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const openPhotoPicker = () => {
     pausedRef.current = true;
@@ -373,6 +383,9 @@ const HomeTour = () => {
   };
 
   const total = steps.length;
+  // Only detectable actions count as done. add-photo is the one actionable step.
+  const actionDone = current.action === "add-photo" ? hasStylePhoto : false;
+
   const next = () => {
     if (step >= total - 1) finish(false);
     else setStep((s) => s + 1);
@@ -513,7 +526,7 @@ const HomeTour = () => {
           {current.body}
         </p>
 
-        {current.action === "add-photo" && (
+        {current.action === "add-photo" && !hasStylePhoto && (
           <Button
             variant="gold"
             size="pill"
@@ -524,6 +537,24 @@ const HomeTour = () => {
           </Button>
         )}
 
+        {current.action === "add-photo" && hasStylePhoto && (
+          <>
+            <div className="flex items-center gap-2 mt-4 text-[12.5px] font-body text-primary">
+              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/15">
+                <Check className="size-3.5" />
+              </span>
+              Photo added
+            </div>
+            <button
+              type="button"
+              onClick={openPhotoPicker}
+              className="mt-2 text-[11px] uppercase tracking-[0.2em] text-foreground/55 hover:text-foreground font-body font-medium"
+            >
+              Change photo
+            </button>
+          </>
+        )}
+
         <div className="flex items-center gap-2 mt-4">
           {step > 0 && (
             <Button variant="goldOutline" size="pill" className="flex-1" onClick={prev}>
@@ -531,14 +562,19 @@ const HomeTour = () => {
             </Button>
           )}
           <Button
-            variant={current.action ? "goldOutline" : "gold"}
+            variant={current.action && !actionDone ? "goldOutline" : "gold"}
             size="pill"
             className="flex-1"
             onClick={next}
           >
-            {step === total - 1 ? "Finish" : current.action ? "Later →" : "Next →"}
+            {step === total - 1
+              ? "Finish"
+              : current.action && !actionDone
+                ? "Later →"
+                : "Next →"}
           </Button>
         </div>
+
 
         <div className="flex justify-center gap-1.5 mt-3">
           {steps.map((_, i) => (
