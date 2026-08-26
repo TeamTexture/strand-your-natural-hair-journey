@@ -92,6 +92,14 @@ Deno.serve(async (req) => {
         console.log("trial_will_end", sub.id, "trial_end", sub.trial_end);
         break;
       }
+      // Checkout abandoned. She is ALREADY on the abandoned-checkout Klaviyo
+      // list (added when the session was created), so there is nothing to push
+      // here — Klaviyo owns the timing. Logged so the event is visible.
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log("checkout.session.expired", session.id, session.customer);
+        break;
+      }
       default: break;
     }
 
