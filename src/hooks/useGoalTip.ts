@@ -6,6 +6,8 @@ import type { UserGoal } from "@/hooks/useGoals";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_AI_DIRECTIVE } from "@/lib/tipsLevel";
+import { aiRetryDelay, retryTransportOnce } from "@/lib/aiRetry";
+
 import {
   hashString,
   strandTipSignatureParts,
@@ -208,7 +210,10 @@ export const useGoalTip = (
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: 1,
+    // Transport failures only — a rejected generation is never re-bought.
+    retry: retryTransportOnce,
+    retryDelay: aiRetryDelay,
+
     initialData: () => readCachedTip(signature ?? "", goal?.id, level, variantKey),
     // Stale-while-revalidate: show the last good tip for this goal while a new
     // signature (style change, goal edit) is being generated.

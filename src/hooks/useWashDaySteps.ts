@@ -9,10 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import {
+  aiRetryDelay,
+  AiRejectedError,
+  classifyInvokeError,
+  retryTransportOnce,
+} from "@/lib/aiRetry";
+import {
   loadResponsiveSignals,
   responsiveSignatureParts,
   styleSignatureParts,
 } from "@/lib/tipSignature";
+
 
 
 export interface WashDayStep {
@@ -99,13 +106,18 @@ export function useWashDaySteps() {
     // what produced the 2026-08-26 report where no call was made at all).
     staleTime: (query) => (query.state.error ? 0 : Infinity),
     gcTime: Infinity,
-    // NO client retry. Each invocation is a paid writer call, and retrying here
-    // on top of the server's own attempt multiplied one card into several
-    // generations. A failure shows the error state; a remount re-attempts once.
-    retry: 0,
+    // ONE retry, and ONLY for a transport failure — a dropped request, 502/504,
+    // abort or timeout, where no generation completed and nothing was paid for.
+    // A completed-but-rejected generation (503 guidance_unavailable, or an empty
+    // sequence) is never retried: the expensive work already happened, so the
+    // card falls through to her last good sequence or the honest error state.
+    retry: retryTransportOnce,
+    retryDelay: aiRetryDelay,
     // Failures are transient — every remount re-attempts.
     refetchOnMount: (query) => (query.state.error ? "always" : false),
+    // Stays OFF. Switching apps and back must never buy a new generation.
     refetchOnWindowFocus: false,
+
 
     queryFn: async (): Promise<WashDayStepsResult> => {
       if (!user?.id) return { steps: [], stale: false };
@@ -174,14 +186,19 @@ export function useWashDaySteps() {
           tipsLevel: level,
         },
       });
-      if (error) throw new Error(error.message);
+      // Classified before it leaves the queryFn, so React Query's `retry` can
+      // tell "nothing was generated" from "a generation was rejected".
+      if (error) throw await classifyInvokeError(error);
       const res = data as { steps?: WashDayStep[]; stale?: boolean } | null;
       const returned = (res?.steps ?? []) as WashDayStep[];
       // An empty sequence is a failure, not a result: treated as an error so the
       // card offers "Try again" instead of sitting there silently disabled, and
-      // so nothing hollow is ever held as though it were her sequence.
-      if (returned.length === 0) throw new Error("no_steps_returned");
+      // so nothing hollow is ever held as though it were her sequence. It is a
+      // REJECTION — a generation ran and produced nothing usable — so it must
+      // never trigger the transport retry.
+      if (returned.length === 0) throw new AiRejectedError("no_steps_returned");
       return { steps: returned, stale: res?.stale === true };
+
 
 
     },
