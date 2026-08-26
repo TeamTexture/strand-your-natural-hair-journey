@@ -75,11 +75,11 @@ const GoalsChallengesPrompt = ({
             <X className="size-4" />
           </button>
         </div>
-        <div className="flex gap-2 mt-3">
+        <div className="grid grid-cols-2 gap-2 mt-3">
           <Button
             variant="gold"
             size="pill"
-            className="flex-1"
+            className="min-w-0 px-2 text-[12px] tracking-tight whitespace-nowrap"
             onClick={() => {
               dismiss();
               onAddGoal();
@@ -90,7 +90,8 @@ const GoalsChallengesPrompt = ({
           <Button
             variant="goldOutline"
             size="pill"
-            className="flex-1"
+            className="min-w-0 px-2 text-[12px] tracking-tight whitespace-nowrap"
+
             onClick={() => {
               dismiss();
               onAddChallenges();
