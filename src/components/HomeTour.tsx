@@ -383,6 +383,9 @@ const HomeTour = () => {
   };
 
   const total = steps.length;
+  // Only detectable actions count as done. add-photo is the one actionable step.
+  const actionDone = current.action === "add-photo" ? hasStylePhoto : false;
+
   const next = () => {
     if (step >= total - 1) finish(false);
     else setStep((s) => s + 1);
