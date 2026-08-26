@@ -12,6 +12,7 @@ import MembershipMarketing, {
   AdvisoryNotes,
   PaymentsNote,
   PlusExtrasList,
+  PriceCard,
 } from "@/components/subscribe/MembershipMarketing";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
@@ -232,6 +233,10 @@ const TrialPaywall = () => {
         <AdvisoryNotes />
 
         <PaymentsNote />
+
+        {/* Price card — last thing before the pinned footer. No CTA inside it:
+            the only call to action is in the footer. */}
+        <PriceCard price={price} tier={tier} trial={offerTrial} />
       </main>
 
 

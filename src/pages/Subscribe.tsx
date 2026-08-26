@@ -22,6 +22,7 @@ import MembershipMarketing, {
   AdvisoryNotes,
   PaymentsNote,
   PlusExtrasList,
+  PriceCard,
 } from "@/components/subscribe/MembershipMarketing";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
