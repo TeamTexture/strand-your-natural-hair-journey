@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles, Minus } from "lucide-react";
+import { X, Sparkles, Minus, Check } from "lucide-react";
+import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
+
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import {
