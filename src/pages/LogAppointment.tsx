@@ -292,7 +292,12 @@ const LogAppointment = () => {
       if (error || !inserted) {
         setSaving(false);
         console.error("Appointment save failed:", error);
-        toast.error("Could not save appointment");
+        toast.error(
+          (error?.message ?? "").includes("duplicate_appointment")
+            ? "You already have an appointment with this professional at that date and time."
+            : "Could not save appointment",
+        );
+
         return;
       }
       savedId = inserted.id;
