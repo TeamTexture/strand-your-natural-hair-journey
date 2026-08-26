@@ -595,13 +595,27 @@ const HomeTour = () => {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => finish(true)}
-          className="mt-3 w-full text-center text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
-        >
-          Skip the tour
-        </button>
+        <div className="mt-3 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => setActive(false)}
+            aria-label="Minimise tour"
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+          >
+            Minimise
+            <Minus className="size-3" />
+          </button>
+          <span aria-hidden className="h-3 w-px bg-foreground/20" />
+          <button
+            type="button"
+            onClick={() => finish(true)}
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+          >
+            Skip the tour
+            <X className="size-3" />
+          </button>
+        </div>
+
       </div>
     </div>
   );
