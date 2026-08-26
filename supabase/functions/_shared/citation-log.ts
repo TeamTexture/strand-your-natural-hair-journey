@@ -148,6 +148,13 @@ export async function sanitiseAndLog<T>(
     policy?: "A" | "B";
     /** Policy B only: the product facts the sponsored gates need. */
     product?: PolicyBProduct;
+    /** Cost-meter retry grouping for bounded guardrail-rejection retries. */
+    generationId?: string | null;
+    attemptNumber?: number | null;
+    maxAttempts?: number | null;
+    retryReason?: string | null;
+    /** Called when this pass removed/rejected output, so callers can retry. */
+    onRejected?: (rules: string[]) => void;
   },
 ): Promise<T> {
 
@@ -221,13 +228,22 @@ export async function sanitiseAndLog<T>(
     // COST METER (Phase 2) — observation only. Attaches the guardrail outcome
     // to the buffered writer row, or logs a `model_called = false` row when
     // this path ran without any model call (a cached read).
+    const rejectionRules = [
+      ...clarRejections.map((v) => v.rule),
+      ...(stripped.length > 0 ? ["citation_strip"] : []),
+    ];
+    if (rejectionRules.length > 0) opts?.onRejected?.(rejectionRules);
     recordAiOutcome({
       function_name: functionName,
       surface: opts?.surface ?? null,
       user_id: opts?.userId ?? null,
-      outcome: clarRejections.length > 0 || stripped.length > 0 ? "rejected" : "completed",
+      outcome: rejectionRules.length > 0 ? "rejected" : "completed",
       rejection_rule:
         clarRejections[0]?.rule ?? (stripped.length > 0 ? "citation_strip" : null),
+      generation_id: opts?.generationId ?? null,
+      attempt_number: opts?.attemptNumber ?? null,
+      max_attempts: opts?.maxAttempts ?? null,
+      retry_reason: opts?.retryReason ?? null,
     });
     if (clarRejections.length > 0) {
       await logGenerationRejections(
@@ -284,6 +300,11 @@ async function verifyStage3<T>(
     userId?: string | null;
     policy?: "A" | "B";
     product?: PolicyBProduct;
+    generationId?: string | null;
+    attemptNumber?: number | null;
+    maxAttempts?: number | null;
+    retryReason?: string | null;
+    onRejected?: (rules: string[]) => void;
   },
   clar: { rejections: ClarificationViolation[]; governed: string[] } = {
     rejections: [],
@@ -342,13 +363,22 @@ async function verifyStage3<T>(
   // so the evidence-set audit row can carry the real stage-2 token cost instead
   // of the hardcoded 0 that hid 78% of spend.
   const stage2Usage = getBufferedUsage(functionName);
+  const rejectionRules = [
+    ...violations.map((v) => v.rule),
+    ...clar.rejections.map((v) => v.rule),
+  ];
+  if (rejectionRules.length > 0) opts?.onRejected?.(rejectionRules);
   recordAiOutcome({
 
     function_name: functionName,
     surface: opts?.surface ?? null,
     user_id: opts?.userId ?? null,
-    outcome: violations.length > 0 || clar.rejections.length > 0 ? "rejected" : "completed",
+    outcome: rejectionRules.length > 0 ? "rejected" : "completed",
     rejection_rule: violations[0]?.rule ?? clar.rejections[0]?.rule ?? null,
+    generation_id: opts?.generationId ?? null,
+    attempt_number: opts?.attemptNumber ?? null,
+    max_attempts: opts?.maxAttempts ?? null,
+    retry_reason: opts?.retryReason ?? null,
   });
 
   if (violations.length > 0) {

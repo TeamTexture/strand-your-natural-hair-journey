@@ -23,6 +23,12 @@ import {
 import { STEP_BUDGET, normaliseSteps, type WashStep } from "./normalise.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { gatewayFetch, recordAiFailure, setAiCallUser } from "../_shared/ai-meter.ts";
+import {
+  MAX_REJECTION_ATTEMPTS,
+  buildRejectionRetryInstruction,
+  makeGenerationId,
+  retryReasonFromRules,
+} from "../_shared/guardrail-retry.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-steps", stage: 2 } as const;
@@ -354,7 +360,8 @@ Deno.serve(async (req) => {
     return json(503, { error: "guidance_unavailable", reason });
   };
 
-  const requestBody = JSON.stringify({
+  const generationId = makeGenerationId();
+  const requestBodyFor = (retryRules: string[] | null) => JSON.stringify({
     model: "google/gemini-3.6-flash",
     // Output cap — output tokens drive latency, but too tight a cap truncates
     // the JSON mid-step and the whole sequence was being thrown away. Real
@@ -369,20 +376,29 @@ Deno.serve(async (req) => {
       },
       {
         role: "user",
-        content: `${styleHeader}\n\nHer data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn her wash day steps JSON now.`,
+        content: `${styleHeader}\n\nHer data (JSON):\n${JSON.stringify(contextBlock)}\n\nReturn her wash day steps JSON now.${
+          retryRules?.length ? `\n\n${buildRejectionRetryInstruction(retryRules, "wash day steps")}` : ""
+        }`,
       },
     ],
     response_format: { type: "json_object" },
   });
 
   /** One writer attempt. Returns the steps, or a reason it produced none. */
-  const attempt = async (): Promise<
+  const attempt = async (attemptNumber: number, retryRules: string[] | null): Promise<
     { steps: WashStep[] } | { fail: string } | { passthrough: Response }
   > => {
     let aiResp: Response;
     try {
       aiResp = await gatewayFetch(
-        AI_METER_META,
+        {
+          ...AI_METER_META,
+          user_id: user.id,
+          generation_id: generationId,
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+          retry_reason: retryReasonFromRules(retryRules),
+        },
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
           method: "POST",
@@ -390,7 +406,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             "Lovable-API-Key": LOVABLE_API_KEY,
           },
-          body: requestBody,
+          body: requestBodyFor(retryRules),
         },
       );
     } catch (err) {
@@ -430,6 +446,10 @@ Deno.serve(async (req) => {
           user_id: user.id,
           error_text: detail,
           rejection_rule: finishReason === "length" ? "truncated_output" : "unparsable_output",
+          generation_id: generationId,
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+          retry_reason: retryReasonFromRules(retryRules),
         });
         return { fail: detail };
       }
@@ -449,56 +469,72 @@ Deno.serve(async (req) => {
         user_id: user.id,
         error_text: detail,
         rejection_rule: "empty_after_normalisation",
+        generation_id: generationId,
+        attempt_number: attemptNumber,
+        max_attempts: MAX_REJECTION_ATTEMPTS,
+        retry_reason: retryReasonFromRules(retryRules),
       });
       return { fail: detail };
     }
     return { steps: attemptSteps };
   };
 
-  // ONE writer call per invocation. The old "one silent retry" loop doubled the
-  // paid writer spend on every failing view, and the client retried on top of
-  // it — up to six writer calls for one card. A failure now falls straight
-  // through to her last good sequence (or an honest 503) and is logged.
-  let steps: WashStep[] = [];
   let lastFail = "unknown";
-  {
-    const res = await attempt();
+  let safePayload: StepsPayload | null = null;
+  let retryRules: string[] | null = null;
+  for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+    const res = await attempt(attemptNumber, retryRules);
     if ("passthrough" in res) return res.passthrough;
-    if ("steps" in res) steps = res.steps;
-    else lastFail = res.fail;
+    if (!("steps" in res)) {
+      lastFail = res.fail;
+      break;
+    }
+
+    const payload: StepsPayload = {
+      steps: res.steps,
+      fingerprint: body.fingerprint,
+      _model_version: MODEL_VERSION,
+      tipsLevel: level,
+      _manuscript_grounded: grounding.grounded,
+      _rag_passages: grounding.passages,
+    };
+
+    const rejected: string[] = [];
+    const candidate = await sanitiseAndLog(payload, "wash-day-steps", {
+      context: body,
+      grounding: grounding.block,
+      surface: "wash-day-steps",
+      userId: user.id,
+      generationId,
+      attemptNumber,
+      maxAttempts: MAX_REJECTION_ATTEMPTS,
+      retryReason: retryReasonFromRules(retryRules),
+      onRejected: (rules) => rejected.push(...rules),
+    });
+    if (rejected.length === 0) {
+      safePayload = candidate;
+      break;
+    }
+    retryRules = [...new Set(rejected)];
+    lastFail = `guardrail rejected: ${retryRules.join(",")}`;
   }
-  if (steps.length === 0) return await lastGoodOr503(lastFail);
-
-
-
-  const payload: StepsPayload = {
-    steps,
-    fingerprint: body.fingerprint,
-    _model_version: MODEL_VERSION,
-    tipsLevel: level,
-    _manuscript_grounded: grounding.grounded,
-    _rag_passages: grounding.passages,
-  };
+  if (!safePayload || !stepsHaveSubstance(safePayload.steps)) return await lastGoodOr503(lastFail);
 
   // WRITE-TIME GUARD + no diagnostic pollution.
-  if (stepsHaveSubstance(payload.steps) && !isDiagnostic) {
+  if (!isDiagnostic) {
     await admin
       .from("ai_summaries")
-      .upsert({ user_id: user.id, kind, payload }, { onConflict: "user_id,kind" });
+      .upsert({ user_id: user.id, kind, payload: safePayload }, { onConflict: "user_id,kind" });
   }
 
   if (!isDiagnostic) {
     await recordAdvice(
       user.id,
       "wash-day-steps",
-      steps.map((s) => `${s.headline}. ${s.body}`),
+      safePayload.steps.map((s) => `${s.headline}. ${s.body}`),
     );
   }
 
 
-  const safePayload = await sanitiseAndLog(payload, "wash-day-steps", {
-    context: body,
-    grounding: grounding.block,
-  });
   return json(200, { steps: safePayload.steps, payload: safePayload, cached: false });
 });

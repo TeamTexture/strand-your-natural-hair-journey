@@ -349,61 +349,73 @@ export type Database = {
       }
       ai_call_log: {
         Row: {
+          attempt_number: number | null
           cache_read_tokens: number | null
           cache_write_tokens: number | null
           created_at: string
           duration_ms: number | null
           error_text: string | null
           function_name: string
+          generation_id: string | null
           http_status: number | null
           id: string
           input_tokens: number | null
+          max_attempts: number | null
           model: string
           model_called: boolean
           outcome: string
           output_tokens: number | null
           provider: string
           rejection_rule: string | null
+          retry_reason: string | null
           stage: number
           surface: string | null
           user_id: string | null
         }
         Insert: {
+          attempt_number?: number | null
           cache_read_tokens?: number | null
           cache_write_tokens?: number | null
           created_at?: string
           duration_ms?: number | null
           error_text?: string | null
           function_name: string
+          generation_id?: string | null
           http_status?: number | null
           id?: string
           input_tokens?: number | null
+          max_attempts?: number | null
           model: string
           model_called?: boolean
           outcome?: string
           output_tokens?: number | null
           provider: string
           rejection_rule?: string | null
+          retry_reason?: string | null
           stage?: number
           surface?: string | null
           user_id?: string | null
         }
         Update: {
+          attempt_number?: number | null
           cache_read_tokens?: number | null
           cache_write_tokens?: number | null
           created_at?: string
           duration_ms?: number | null
           error_text?: string | null
           function_name?: string
+          generation_id?: string | null
           http_status?: number | null
           id?: string
           input_tokens?: number | null
+          max_attempts?: number | null
           model?: string
           model_called?: boolean
           outcome?: string
           output_tokens?: number | null
           provider?: string
           rejection_rule?: string | null
+          retry_reason?: string | null
           stage?: number
           surface?: string | null
           user_id?: string | null
@@ -6676,6 +6688,7 @@ export type Database = {
       }
       ai_call_costs: {
         Row: {
+          attempt_number: number | null
           cache_read_tokens: number | null
           cache_write_tokens: number | null
           cost_usd: number | null
@@ -6683,15 +6696,18 @@ export type Database = {
           duration_ms: number | null
           error_text: string | null
           function_name: string | null
+          generation_id: string | null
           http_status: number | null
           id: string | null
           input_tokens: number | null
+          max_attempts: number | null
           model: string | null
           model_called: boolean | null
           outcome: string | null
           output_tokens: number | null
           provider: string | null
           rejection_rule: string | null
+          retry_reason: string | null
           stage: number | null
           surface: string | null
           user_id: string | null

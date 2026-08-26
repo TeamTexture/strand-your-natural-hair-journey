@@ -70,15 +70,7 @@ export function decryptEntries(
 }
 
 interface MinimalClient {
-  from: (t: string) => {
-    select: (c: string) => {
-      eq: (c: string, v: string) => {
-        eq: (c: string, v: string) => {
-          maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
-        };
-      };
-    };
-  };
+  from: (t: string) => any;
 }
 
 export interface LoadedSensitivities {

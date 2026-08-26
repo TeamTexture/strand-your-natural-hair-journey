@@ -124,6 +124,11 @@ export interface BuildPromptInput {
    *  that need to interleave image + text content blocks. The composer
    *  still owns the system blocks (persona, KB, RAG, task instructions). */
   user_content?: string | ContentBlockInput[];
+  /** Cost-meter retry grouping for bounded guardrail-rejection retries. */
+  generation_id?: string | null;
+  attempt_number?: number | null;
+  max_attempts?: number | null;
+  retry_reason?: string | null;
 }
 
 /** Build a fully-formed ClaudeCallInput. The caller passes the result to
@@ -408,6 +413,13 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     toolChoice: input.toolChoice,
     max_tokens: input.max_tokens,
     // Cost meter attribution (Phase 2) — the writer call is stage 2.
-    meta: { function_name: input.function_kind, stage: 2 },
+    meta: {
+      function_name: input.function_kind,
+      stage: 2,
+      generation_id: input.generation_id ?? null,
+      attempt_number: input.attempt_number ?? null,
+      max_attempts: input.max_attempts ?? null,
+      retry_reason: input.retry_reason ?? null,
+    },
   };
 }
