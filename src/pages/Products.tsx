@@ -248,17 +248,25 @@ const Products = () => {
             hint="Try a different search or clear your filters."
           />
         ) : (
-          groups.map((group) => (
-            <div key={group.key} id={`section-products-${group.key}`} data-scroll-section className="space-y-2">
-              <SectionHeader className="pt-1">
-                {group.label} ({group.items.length})
-              </SectionHeader>
-              {group.items.map((p) => {
-                const isOpen = expanded === p.product_key;
-                const noteCount = counts[p.product_key] ?? 0;
-                const isSelected = batch.selected.has(p.id);
+          <CategoryProductPanels
+            products={filteredProducts}
+            sections={groups.map((g) => ({ slug: g.key, label: g.label, products: g.items }))}
+            // Her own shelf: everything OPEN on arrival, collapsing is opt-in.
+            defaultOpen="all"
+            flatBelow={0}
+            countStyle="parens"
+            collapsedSlugs={collapsedCategories}
+            onToggleCollapsed={toggleCategoryCollapsed}
+            // A search or filter must never be defeated by a fold: while either
+            // is active every panel is forced open, so a match is always visible.
+            forceOpen={filtersActive}
+            sectionId={(slug) => `section-products-${slug}`}
+            renderRow={(p) => {
+              const isOpen = expanded === p.product_key;
+              const noteCount = counts[p.product_key] ?? 0;
+              const isSelected = batch.selected.has(p.id);
 
-                return (
+              return (
                   <ShelfProductCard
                     key={p.id}
                     anchor={anchorProps(p.id)}
@@ -396,12 +404,11 @@ const Products = () => {
                       </div>
                     )}
                   </ShelfProductCard>
-
-                );
-              })}
-            </div>
-          ))
+              );
+            }}
+          />
         )}
+
       </div>
 
       {!batch.selectMode && <MyToolsSection />}
