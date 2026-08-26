@@ -219,6 +219,14 @@ async function upsertFromSubscription(
           error: err,
           context: { status: sub.status, tier },
         });
+        // CONVERSION: she is off both nurture lists the moment she reaches
+        // trialing or active. Failures are logged loudly — a paying member
+        // receiving "you never subscribed" emails is the worst outcome here.
+        await removeFromNurtureLists(admin as any, {
+          userId,
+          email,
+          reason: `subscription_${sub.status}`,
+        });
       }
     } catch (e) {
       console.error("[consumer-stripe-webhook] klaviyo paid push threw", e);
