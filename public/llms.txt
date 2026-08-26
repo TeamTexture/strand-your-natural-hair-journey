@@ -1,0 +1,44 @@
+# STRAND
+
+> STRAND is an AI-driven hair health platform for Afro and textured hair. Members answer six questions about their hair when they join, and STRAND keeps a dated record of how their hair changes over time — what they used, what they wore, and how it responded. Guidance is drawn from the science in *How To Love Your Afro* by founder Paige Lewin, published by Bloomsbury.
+
+STRAND does not use curl typing systems. Curl pattern describes what hair looks like, not how it behaves — two people with visually similar curls can have completely different porosity, density and elasticity. STRAND records the measurable characteristics instead: diameter, surface texture, density, porosity, elasticity, scalp condition, diagnosed conditions, areas of concern and length.
+
+Based in the United Kingdom. Contact: info@teamtexture.co.uk
+
+## Who it is for
+
+- **Members** with Afro and textured hair who want to stop guessing which products and routines work for them.
+- **Hair professionals** who want a real record of a client's hair and health before the client sits down, visible only with that client's explicit consent.
+- **Hair care brands** who want their products in front of people whose hair characteristics actually suit them.
+
+## How access works
+
+1. **Register** — free, two minutes, no card. Registering opens the vetted professional directory immediately, so members can browse and book before paying STRAND anything.
+2. **Six hair questions** — required, and answered by the member themselves in the app: diameter, surface texture, density, porosity, elasticity and scalp condition. There is no consultation gate and no appointment needed. Each question carries a plain-English explainer and a "not sure" option, and answers can be updated at any time.
+3. **Blood test** — optional and skippable. It unlocks nutrition and diet plans and blood-linked insights, but STRAND works without it. The app's guidance runs primarily on hair characteristics.
+4. **Subscribe** — the first and only point a member pays STRAND.
+
+Seeing a professional is optional throughout, never a requirement. It is useful for confirming porosity and elasticity, which are the two characteristics members find hardest to judge on their own hair.
+
+## Pricing
+
+- **STRAND** — £9.99/month. Product scanning with ingredient flagging against your own profile, allergy and sensitivity checks, vetted professional directory with in-app booking and messaging, wash day and style journal with dated photos, blood work stored and tracked with retest reminders.
+- **STRAND+** — £14.99/month. Everything in STRAND, plus ongoing in-app access to your practitioner during an active treatment plan, a treatment plan built to encourage rather than read like a clinical checklist, community forum, live events, vetted resource library, brand directory offers, and priority access to new features.
+- **STRAND Pro** — £12.99/month. For hair professionals. The client hair passport, in-app booking and messaging, one thread per client.
+- **STRAND Brands** — £99/year platform access, with promotion days booked as needed and no minimum commitment.
+
+## Data and consent
+
+A member's hair passport is never visible by default. It is shared only with explicit consent, every view is logged so the member can see who accessed what and when, and consent can be withdrawn at any time.
+
+## Key pages
+
+- [STRAND](https://mystrand.co.uk/): what the app does, how access works, pricing for all four tiers, and the founder's background.
+- [Sign up](https://mystrand.co.uk/auth): free registration.
+- [Professional directory](https://mystrand.co.uk/directory): vetted hair professionals available to book.
+- [Afro hair myths, answered](https://mystrand.co.uk/myths/): sixteen persistent myths about Afro and textured hair care, corrected from the science in *How To Love Your Afro*. Covers growth versus length retention, what oils actually do, curl typing, porosity, silicones, parabens, scalp greasing, protein overload, wash frequency and shed-hair expectations.
+
+## Optional
+
+- *How To Love Your Afro* (Bloomsbury) by Paige Lewin — the book underpinning STRAND's educational guidance.
