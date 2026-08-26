@@ -19,6 +19,7 @@ import Stripe from "npm:stripe@17";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
+import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
 
 const ACTIVE = new Set(["active", "trialing"]);
 
