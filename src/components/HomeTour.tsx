@@ -47,7 +47,9 @@ const STEPS: Step[] = [
     target: "style-photo",
     eyebrow: "Home",
     title: "Add a photo of your hair",
-    body: "Tap the photo frame (or the image icon top-right of this card) to add a picture of your hair as it looks today. Do this now — it's how you'll see your progress month to month.",
+    body: "Add a picture of your hair as it looks today — it's how you'll see your progress month to month. Tap ‘Add a photo now’ and the picker opens; the tour waits and picks up right here.",
+    action: "add-photo",
+    actionLabel: "Add a photo now",
   },
 
   {
