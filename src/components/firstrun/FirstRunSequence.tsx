@@ -6,6 +6,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useChallenges } from "@/hooks/useChallenges";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 import { setTourActive, TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
+import { useLateFirstRunSlot } from "@/hooks/useLateFirstRunSlot";
 
 /**
  * FIRST-RUN SEQUENCE — runs immediately after the guided tour, in this order:
@@ -38,6 +39,10 @@ const FirstRunSequence = () => {
     return () => window.removeEventListener(TOUR_DONE_EVENT, on as EventListener);
   }, []);
 
+  // Tier 3 of the first-run queue: one prompt per session, after the offers card.
+  const photoSlot = useLateFirstRunSlot("photo-prompt");
+  const productSlot = useLateFirstRunSlot("product-prompt");
+
   const [photoDismissed, setPhotoDismissed] = useState(false);
   const [productDismissed, setProductDismissed] = useState(false);
 
@@ -51,10 +56,11 @@ const FirstRunSequence = () => {
   }, [tourDone, loading, goalsNudge, goalsComplete]);
 
   const showPhoto =
-    tourDone && !loading && photoNudge.eligible && !photoDismissed;
+    tourDone && !loading && photoSlot && photoNudge.eligible && !photoDismissed;
   const showProduct =
     tourDone &&
     !loading &&
+    productSlot &&
     !showPhoto &&
     (photoDismissed || !photoNudge.eligible) &&
     productNudge.eligible &&

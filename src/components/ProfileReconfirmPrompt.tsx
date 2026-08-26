@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useProfileConfirmation } from "@/hooks/useProfileConfirmation";
 import { isTourActive, TOUR_ACTIVE_EVENT } from "@/lib/firstRunTour";
+import { useLateFirstRunSlot } from "@/hooks/useLateFirstRunSlot";
 
 /**
  * Reconfirmation prompt. Shown once per sign-in to members who finished
@@ -21,6 +22,9 @@ const ProfileReconfirmPrompt = () => {
   const navigate = useNavigate();
   const { shouldPrompt, sections, snooze } = useProfileConfirmation();
   const next = sections.find((s) => !s.confirmed) ?? sections[0];
+  // Waits behind the tour and the offers card, and only if no other prompt
+  // has already used this session's single slot.
+  const slot = useLateFirstRunSlot("profile-reconfirm");
 
   // Never cover the guided first-run tour.
   const [tourOn, setTourOn] = useState(() => isTourActive());
@@ -36,7 +40,7 @@ const ProfileReconfirmPrompt = () => {
   };
 
   return (
-    <Dialog open={shouldPrompt && !tourOn} onOpenChange={(o) => { if (!o) snooze(); }}>
+    <Dialog open={shouldPrompt && slot && !tourOn} onOpenChange={(o) => { if (!o) snooze(); }}>
       <DialogContent className="w-[calc(100%-32px)] max-w-[320px] max-h-[calc(100dvh-32px)] overflow-y-auto overflow-x-hidden rounded-[20px] p-5">
         <DialogHeader className="text-left">
           <DialogTitle className="font-display text-[20px] leading-tight">
