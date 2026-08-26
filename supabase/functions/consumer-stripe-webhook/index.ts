@@ -7,6 +7,7 @@ import {
   logKlaviyoSync,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
+import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
