@@ -1,30 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2,
-  Check,
-  CheckCircle2,
-  Sparkles,
-  Droplet,
-  FlaskConical,
-  BookOpen,
-  Camera,
-  Users,
-  Calendar,
-  Leaf,
-  Stethoscope,
-  Heart,
-  ShieldCheck,
-  Lock,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { LucideIcon } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import StatusBar from "@/components/StatusBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
+import MembershipMarketing, {
+  AdvisoryNotes,
+  PaymentsNote,
+  PlusExtrasList,
+} from "@/components/subscribe/MembershipMarketing";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
 import { cn } from "@/lib/utils";
@@ -40,35 +28,8 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AFTER_TRIAL_PATH = "/onboarding/goal";
 
-/**
- * All sales copy below is lifted verbatim from src/pages/Subscribe.tsx — the
- * approved membership wording. No new hair claims, mechanisms or benefits.
- */
-const PILLARS: { icon: LucideIcon; title: string; benefit: string }[] = [
-  { icon: BookOpen, title: "Your personal guide", benefit: "Expert guidance tailored to your hair, health and history." },
-  { icon: Droplet, title: "Wash days that count", benefit: "Log, schedule and perfect every cleanse, treat and seal." },
-  { icon: FlaskConical, title: "Product intelligence", benefit: "Scan, analyse and curate a shelf that actually works for you." },
-  { icon: Stethoscope, title: "Vetted professionals", benefit: "Search the directory, book, and keep every appointment in one place." },
-  { icon: Camera, title: "Your hair archive", benefit: "Milestones, moodboards, colour and appointment photos in one place." },
-  { icon: Users, title: "The Client Passport", benefit: "Walk into any chair with your full story ready to share." },
-  { icon: Calendar, title: "Journaling that listens", benefit: "Track goals, moods and appointments with gentle AI prompts." },
-  { icon: Leaf, title: "Rooted in the book", benefit: "No fads. Every insight is grounded in How To Love Your Afro." },
-];
-
-const PLUS_EXTRAS = [
-  "Community forum — for members only",
-  "Member-to-member chat",
-  "Courses, ebooks & videos library",
-  "Members-only events (digital & in person)",
-];
-
-const REASSURANCE = [
-  { icon: Lock, title: "Cancel any time", body: "One tap in the billing portal. No calls, no forms, no guilt." },
-  { icon: ShieldCheck, title: "Your data is yours", body: "Encrypted, private, and never sold. Pause your membership and it waits for you." },
-  { icon: Sparkles, title: "Always improving", body: "New features and refinements every month, included at no extra cost." },
-];
-
 type Tier = "standard" | "plus";
+
 
 /**
  * The 3-day free trial paywall — shown after registration details are saved.
@@ -239,53 +200,40 @@ const TrialPaywall = () => {
   return (
     <div className="flex flex-col h-full bg-background">
       <StatusBar />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-5 pt-3 pb-4">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-body font-medium">
-          {copy.eyebrow}
-        </p>
-        <h1 className="mt-2 font-display text-[28px] leading-[1.15] text-foreground">
-          {copy.heading}
-        </h1>
-        <p className="mt-2 font-body text-[13px] leading-relaxed text-muted-foreground">
-          {copy.sub}
-        </p>
-
-        <div className="mt-4 flex items-stretch gap-2.5">
-          <PlanCard value="standard" name="STRAND" amount={standard} />
-          <PlanCard value="plus" name="STRAND+" amount={plus} chosen />
-        </div>
-
-        <SurfaceCard className="mt-4 p-4">
-          <p className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[0.16em] text-primary">
-            <Sparkles className="size-3.5" aria-hidden /> What you get
-          </p>
-          <ul className="mt-2.5 space-y-2">
-            {WHAT_YOU_GET.map((line) => (
-              <li key={line} className="flex items-start gap-2">
-                <Check className="mt-[3px] size-3.5 shrink-0 text-primary" aria-hidden />
-                <span className="font-body text-[12.5px] leading-snug text-foreground">{line}</span>
-              </li>
-            ))}
-          </ul>
-        </SurfaceCard>
-
-        {/* Save and sign out is the ONLY other action — a quiet exit, not a
-            door. Tapping it signs the member out; her account and trial offer
-            stay intact so she lands back on this screen next sign-in. There is
-            deliberately no way to continue into onboarding or the app. */}
-        <div className="mt-5 flex flex-col items-center gap-0.5">
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="font-body text-[12px] text-muted-foreground/80"
-          >
-            Save and sign out
-          </button>
-          <p className="font-body text-[10.5px] text-muted-foreground/55">
-            Your account is saved. You&apos;ll come back to this screen.
+      <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-5 pt-3 pb-6 space-y-6">
+        {/* Hero — the only copy that varies between the three variants. */}
+        <div className="text-center pt-1 space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/25">
+            <HairStrandIcon className="h-4 w-auto text-primary" />
+            <span className="text-[10px] font-body font-bold uppercase tracking-[0.22em] text-primary">
+              {offerTrial ? `${TRIAL_DAYS} days free` : "The STRAND Membership"}
+            </span>
+          </div>
+          <h1 className="font-display text-[28px] font-semibold leading-[1.15] text-foreground">
+            {copy.heading}
+          </h1>
+          <p className="font-body text-[13.5px] text-foreground/75 leading-relaxed max-w-[320px] mx-auto">
+            {copy.sub}
           </p>
         </div>
+
+        {/* Plan cards — compact, STRAND+ pre-selected. */}
+        <div className="space-y-2">
+          <div className="flex items-stretch gap-2.5">
+            <PlanCard value="standard" name="STRAND" amount={standard} />
+            <PlanCard value="plus" name="STRAND+" amount={plus} chosen />
+          </div>
+          {tier === "plus" && <PlusExtrasList />}
+        </div>
+
+        {/* Subscribe's full marketing content, unabridged and shared. */}
+        <MembershipMarketing />
+
+        <AdvisoryNotes />
+
+        <PaymentsNote />
       </main>
+
 
       {/* Charge terms and CTA are pinned together — always both in view. */}
       <div className="shrink-0 border-t border-border bg-background px-5 pt-3 pb-[max(env(safe-area-inset-bottom),14px)]">
@@ -319,7 +267,25 @@ const TrialPaywall = () => {
             ? "Card details taken now. Nothing charged today."
             : "Cancel any time from your profile."}
         </p>
+
+        {/* Save and sign out is the ONLY other action — a quiet exit, not a
+            door. Tapping it signs the member out; her account and trial offer
+            stay intact so she lands back on this screen next sign-in. There is
+            deliberately no way to continue into onboarding or the app. */}
+        <div className="mt-2 flex flex-col items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="font-body text-[12px] text-muted-foreground/80"
+          >
+            Save and sign out
+          </button>
+          <p className="font-body text-[10.5px] text-muted-foreground/55">
+            Your account is saved. You&apos;ll come back to this screen.
+          </p>
+        </div>
       </div>
+
     </div>
   );
 };
