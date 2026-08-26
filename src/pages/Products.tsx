@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart, Tag } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -34,6 +34,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { anchorProps } from "@/lib/scrollMemory";
+import CategoryProductPanels from "@/components/CategoryProductPanels";
+import { readViewPref, writeViewPref } from "@/lib/viewPrefs";
+import { useAuth } from "@/hooks/useAuth";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
@@ -70,6 +73,7 @@ const Products = () => {
   const { startScan, busy } = useProductScan();
   const { startUrlScan, busy: urlBusy } = useProductUrlScan();
   const batch = useBatchSelection();
+  const { user } = useAuth();
 
   const filterState = useProductsFilterState();
 
