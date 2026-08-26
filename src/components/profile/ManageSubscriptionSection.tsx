@@ -200,6 +200,24 @@ const ManageSubscriptionSection = () => {
           </span>
         </div>
 
+        {onTrial && !cancelling && (
+          <div className="mt-3 rounded-[12px] border border-primary/30 bg-primary/5 px-3.5 py-3">
+            <p className="font-body text-[12.5px] font-semibold leading-tight text-foreground">
+              {trialDaysLeft === 0
+                ? "Your free trial ends today"
+                : trialDaysLeft != null
+                  ? `${trialDaysLeft} ${trialDaysLeft === 1 ? "day" : "days"} left of your free trial`
+                  : "You're on your free trial"}
+            </p>
+            <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1">
+              {trialEnds
+                ? `You have full access now. Your first payment of £${price.toFixed(2)} is taken on ${trialEnds} unless you cancel before then.`
+                : `You have full access now. Your first payment of £${price.toFixed(2)} is taken when the trial ends unless you cancel before then.`}
+            </p>
+          </div>
+        )}
+
+
         {isViewingAs ? (
           <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-3">
             Billing cannot be managed while viewing as another member.
