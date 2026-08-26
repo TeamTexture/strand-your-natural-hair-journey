@@ -277,7 +277,11 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
       });
     }
 
-    const sanitised = await sanitiseAndLog(parsed, "meal-ideas") as { meals?: unknown[] };
+    const sanitised = await sanitiseAndLog(parsed, "meal-ideas", {
+      context: body.context,
+      surface: "meal-ideas",
+      userId: auth.user.id,
+    }) as { meals?: unknown[] };
 
     // The fidelity filter can strip a meal's summary sentence. A blank summary
     // renders as an empty card, so fall back to a plain factual line built from
