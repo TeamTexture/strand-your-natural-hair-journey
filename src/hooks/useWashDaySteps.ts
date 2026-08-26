@@ -9,10 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import {
+  aiRetryDelay,
+  AiRejectedError,
+  classifyInvokeError,
+  retryTransportOnce,
+} from "@/lib/aiRetry";
+import {
   loadResponsiveSignals,
   responsiveSignatureParts,
   styleSignatureParts,
 } from "@/lib/tipSignature";
+
 
 
 export interface WashDayStep {
