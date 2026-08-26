@@ -122,13 +122,23 @@ const STEPS: Step[] = [
   },
 
   {
-    target: null,
+    target: "guidance-level",
+    route: "/home",
+    eyebrow: "Anywhere",
+    title: "How much guidance you want",
+    body: "Drag this to change how much STRAND explains. Turn it up for step-by-step detail on every screen, or down to just the one thing that matters most. Change it any time — it applies everywhere.",
+    openPanel: "guidance",
+  },
+
+  {
+    target: "take-tour",
     route: "/home",
     eyebrow: "You're set",
-    title: "One thing to do first",
-    body: "You can replay this tour anytime from the ‘Take the tour’ button on your home screen. Next: your goal and your challenge — the two answers STRAND builds every tip around.",
+    title: "That's everything",
+    body: "Replay this tour any time from ‘Take the tour’ on your home screen. Your goal and your challenge are already saved from setup — STRAND builds every tip around them.",
   },
 ];
+
 
 /* ------------------------------------------------------------------ *
  * Anchoring helpers
