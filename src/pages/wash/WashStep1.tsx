@@ -783,6 +783,8 @@ const WashStep1 = () => {
               onOpenWhyDialog={() => setHeatDialogOpen(true)}
               whyDialogOpen={heatDialogOpen}
               level={level}
+              onElsewhere={handleHeatElsewhere}
+
             />
           }
         />
