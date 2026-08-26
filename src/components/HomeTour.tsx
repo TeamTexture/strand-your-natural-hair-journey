@@ -395,23 +395,40 @@ const HomeTour = () => {
   /* ---- tooltip placement: above or below the target, never over it ---- */
   const bounds = frameBox();
   const GAP = 14;
+  // Small icons need more breathing room than large cards so the ring does not
+  // crowd them.
+  const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
+  const spotTop = rect ? rect.top - pad : 0;
+  const spotBottom = rect ? rect.bottom + pad : 0;
   const placement: "below" | "above" | "float" = (() => {
     if (!rect) return "float";
-    if (bounds.bottom - rect.bottom - GAP >= cardH + 8) return "below";
-    if (rect.top - bounds.top - GAP >= cardH + 8) return "above";
+    if (bounds.bottom - spotBottom - GAP >= cardH + 8) return "below";
+    if (spotTop - bounds.top - GAP >= cardH + 8) return "above";
     // Neither side fits cleanly — take the roomier side and clamp.
-    return bounds.bottom - rect.bottom >= rect.top - bounds.top ? "below" : "above";
+    return bounds.bottom - spotBottom >= spotTop - bounds.top ? "below" : "above";
   })();
 
   const clamp = (v: number) =>
     Math.max(bounds.top + 12, Math.min(v, bounds.bottom - cardH - 12));
 
-  const tooltipTop =
-    rect == null
-      ? null
-      : placement === "below"
-        ? clamp(rect.bottom + GAP)
-        : clamp(rect.top - GAP - cardH);
+  const tooltipTop = (() => {
+    if (rect == null) return null;
+    const below = clamp(spotBottom + GAP);
+    const above = clamp(spotTop - GAP - cardH);
+    const overlaps = (top: number) => top < spotBottom && top + cardH > spotTop;
+    const first = placement === "below" ? below : above;
+    if (!overlaps(first)) return first;
+    const other = placement === "below" ? above : below;
+    // Never sit over the very thing being highlighted — flip if clamping
+    // would have pushed the card onto the target.
+    if (!overlaps(other)) return other;
+    // Both sides collide (very tall card, very tall target): hug the roomier
+    // edge of the frame so at least the target stays clear.
+    return placement === "below"
+      ? Math.max(spotBottom + GAP, bounds.bottom - cardH - 12)
+      : Math.min(spotTop - GAP - cardH, bounds.top + 12);
+  })();
+
 
   // Arrow points at the target from whichever edge faces it.
   const arrowLeft = rect
