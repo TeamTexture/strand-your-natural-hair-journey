@@ -57,12 +57,24 @@ const dayDiff = (a: string, b: string) =>
 
 const usedHeatInLog = (wd: AggregatableWashDay): boolean => {
   const steps = Array.isArray(wd.steps) ? wd.steps : [];
-  if (steps.some((s) => Boolean((s as { heat?: unknown } | null)?.heat))) return true;
+  // A step's heat object exists whenever the question was ANSWERED — including
+  // an explicit "no" ({ used: false }). Only used === true (or a real duration)
+  // counts as heat, otherwise answering "no" would read as heat used.
+  const stepUsed = steps.some((s) => {
+    const heat = (s as { heat?: { used?: boolean; duration_min?: number } | null } | null)?.heat;
+    if (!heat) return false;
+    if (heat.used === true) return true;
+    if (heat.used === false) return false;
+    return typeof heat.duration_min === "number" && heat.duration_min > 0;
+  });
+  if (stepUsed) return true;
   const roll = wd.heat_treatment as { used?: boolean; duration_min?: number } | null;
   if (!roll) return false;
   if (roll.used === true) return true;
+  if (roll.used === false) return false;
   return typeof roll.duration_min === "number" && roll.duration_min > 0;
 };
+
 
 const usedThermalStyling = (wd: AggregatableWashDay): boolean => {
   const styling = wd.styling as { heat?: Record<string, unknown> } | null;
