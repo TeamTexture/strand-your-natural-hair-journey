@@ -110,6 +110,17 @@ const ManageSubscriptionSection = () => {
   const renews = formatLong(subscription?.current_period_end);
   const resumesOn = formatLong(pauseResumesAt);
   const status = (subscription?.status ?? "none").toLowerCase();
+  // Trial state is shown plainly: what it is, when it ends, and what happens
+  // then — so nobody is surprised by the first payment.
+  const onTrial = status === "trialing" && !paused && !complimentary;
+  const trialEndIso = subscription?.trial_end ?? subscription?.current_period_end ?? null;
+  const trialEnds = formatLong(trialEndIso);
+  const trialDaysLeft = (() => {
+    if (!onTrial || !trialEndIso) return null;
+    const ms = new Date(trialEndIso).getTime() - Date.now();
+    if (Number.isNaN(ms)) return null;
+    return Math.max(0, Math.ceil(ms / 86_400_000));
+  })();
   // An admin viewing as a member must never be able to open that member's
   // Stripe portal — the edge function authenticates as the ADMIN, so the
   // portal would be the admin's own billing under the member's name.
@@ -122,8 +133,8 @@ const ManageSubscriptionSection = () => {
       ? { label: "Paused", tone: "bg-warn/15 text-warn border-warn/40" }
       : cancelling
         ? { label: "Cancelling", tone: "bg-warn/15 text-warn border-warn/40" }
-        : status === "trialing"
-          ? { label: "Trialing", tone: "bg-primary/15 text-primary border-primary/30" }
+        : onTrial
+          ? { label: "Free trial", tone: "bg-primary/15 text-primary border-primary/30" }
           : status === "active"
             ? { label: "Active", tone: "bg-good/15 text-good border-good/40" }
             : { label: "Cancelled", tone: "bg-muted text-muted-foreground border-border" };
@@ -135,10 +146,18 @@ const ManageSubscriptionSection = () => {
         ? `Paused · billing resumes ${resumesOn}`
         : "Paused · billing stopped until you resume"
       : cancelling
-        ? renews
-          ? `£${price.toFixed(2)} a month · access runs to ${renews}`
-          : `£${price.toFixed(2)} a month · cancelling at the end of this period`
-        : renews
+        ? onTrial
+          ? trialEnds
+            ? `Free trial · ends ${trialEnds} and nothing is charged`
+            : "Free trial · ends without a payment"
+          : renews
+            ? `£${price.toFixed(2)} a month · access runs to ${renews}`
+            : `£${price.toFixed(2)} a month · cancelling at the end of this period`
+        : onTrial
+          ? trialEnds
+            ? `Free trial · £${price.toFixed(2)} a month starts ${trialEnds}`
+            : `Free trial · then £${price.toFixed(2)} a month`
+          : renews
           ? `£${price.toFixed(2)} a month · renews ${renews}`
           : `£${price.toFixed(2)} a month`;
 
@@ -180,6 +199,24 @@ const ManageSubscriptionSection = () => {
             {pill.label}
           </span>
         </div>
+
+        {onTrial && !cancelling && (
+          <div className="mt-3 rounded-[12px] border border-primary/30 bg-primary/5 px-3.5 py-3">
+            <p className="font-body text-[12.5px] font-semibold leading-tight text-foreground">
+              {trialDaysLeft === 0
+                ? "Your free trial ends today"
+                : trialDaysLeft != null
+                  ? `${trialDaysLeft} ${trialDaysLeft === 1 ? "day" : "days"} left of your free trial`
+                  : "You're on your free trial"}
+            </p>
+            <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1">
+              {trialEnds
+                ? `You have full access now. Your first payment of £${price.toFixed(2)} is taken on ${trialEnds} unless you cancel before then.`
+                : `You have full access now. Your first payment of £${price.toFixed(2)} is taken when the trial ends unless you cancel before then.`}
+            </p>
+          </div>
+        )}
+
 
         {isViewingAs ? (
           <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-3">
@@ -243,8 +280,16 @@ const ManageSubscriptionSection = () => {
               ) : (
                 <ActionRow
                   icon={XCircle}
-                  title="Cancel your membership"
-                  description={renews ? `Runs to ${renews}, then stops` : "Runs to the end of your paid period, then stops"}
+                  title={onTrial ? "Cancel before you're charged" : "Cancel your membership"}
+                  description={
+                    onTrial
+                      ? trialEnds
+                        ? `Cancel before ${trialEnds} and nothing is taken`
+                        : "Cancel before the trial ends and nothing is taken"
+                      : renews
+                        ? `Runs to ${renews}, then stops`
+                        : "Runs to the end of your paid period, then stops"
+                  }
                   onClick={() => setCancelOpen(true)}
                   disabled={portal.isPending}
                 />
@@ -299,9 +344,13 @@ const ManageSubscriptionSection = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel your membership?</AlertDialogTitle>
             <AlertDialogDescription>
-              {renews
-                ? `You keep full access until ${renews}, the end of the period you have already paid for. Billing then stops and nothing further is taken.`
-                : "You keep full access to the end of the period you have already paid for. Billing then stops and nothing further is taken."}
+              {onTrial
+                ? trialEnds
+                  ? `You are still on your free trial, so no payment has been taken. You keep full access until ${trialEnds} and then nothing is charged.`
+                  : "You are still on your free trial, so no payment has been taken. You keep full access until the trial ends and then nothing is charged."
+                : renews
+                  ? `You keep full access until ${renews}, the end of the period you have already paid for. Billing then stops and nothing further is taken.`
+                  : "You keep full access to the end of the period you have already paid for. Billing then stops and nothing further is taken."}
               {" "}
               Nothing is deleted — your hair record, wash days, journal and blood results are here
               if you come back.
