@@ -133,8 +133,8 @@ const ManageSubscriptionSection = () => {
       ? { label: "Paused", tone: "bg-warn/15 text-warn border-warn/40" }
       : cancelling
         ? { label: "Cancelling", tone: "bg-warn/15 text-warn border-warn/40" }
-        : status === "trialing"
-          ? { label: "Trialing", tone: "bg-primary/15 text-primary border-primary/30" }
+        : onTrial
+          ? { label: "Free trial", tone: "bg-primary/15 text-primary border-primary/30" }
           : status === "active"
             ? { label: "Active", tone: "bg-good/15 text-good border-good/40" }
             : { label: "Cancelled", tone: "bg-muted text-muted-foreground border-border" };
