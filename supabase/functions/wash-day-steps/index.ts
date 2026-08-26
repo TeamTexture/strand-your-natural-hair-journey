@@ -46,6 +46,46 @@ const json = (status: number, body: unknown) =>
 
 export const MODEL_VERSION = "wash-steps@v3-manuscript-2026-08-09";
 
+/**
+ * Recover the complete step objects from a JSON body that was cut off mid-write.
+ * Only whole, self-contained objects are kept — no text is repaired or invented.
+ */
+export function salvageSteps(raw: string): unknown[] {
+  const start = raw.indexOf('"steps"');
+  if (start === -1) return [];
+  const arrStart = raw.indexOf("[", start);
+  if (arrStart === -1) return [];
+  const out: unknown[] = [];
+  let depth = 0;
+  let objStart = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = arrStart + 1; i < raw.length; i++) {
+    const c = raw[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') { inString = true; continue; }
+    if (c === "{") { if (depth === 0) objStart = i; depth++; continue; }
+    if (c === "}") {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
+        try {
+          out.push(JSON.parse(raw.slice(objStart, i + 1)));
+        } catch { /* skip a malformed object */ }
+        objStart = -1;
+      }
+      continue;
+    }
+    if (c === "]" && depth === 0) break;
+  }
+  return out;
+}
+
+
 interface StepsPayload {
   steps: WashStep[];
   fingerprint: string;
