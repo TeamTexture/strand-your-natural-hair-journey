@@ -65,6 +65,12 @@ import {
   validateTipAction,
   validateTipReason,
 } from "../_shared/tip-action.ts";
+import {
+  MAX_REJECTION_ATTEMPTS,
+  buildRejectionRetryInstruction,
+  makeGenerationId,
+  retryReasonFromRules,
+} from "../_shared/guardrail-retry.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -430,6 +436,10 @@ async function runClaude(args: {
   avoidList: string[];
   level: TipsLevel;
   sensitivityBlock?: string;
+  generationId?: string | null;
+  attemptNumber?: number | null;
+  maxAttempts?: number | null;
+  retryReason?: string | null;
 }): Promise<AnalysisPayload> {
   const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList, level } = args;
   const ingredientCount = ingredients.length;
@@ -452,6 +462,10 @@ async function runClaude(args: {
     },
     toolChoice: { type: "tool", name: "return_analysis" },
     max_tokens: 2400,
+    generation_id: args.generationId ?? null,
+    attempt_number: args.attemptNumber ?? null,
+    max_attempts: args.maxAttempts ?? null,
+    retry_reason: args.retryReason ?? null,
   });
 
   const result = await callClaude<AnalysisPayload>(req);
@@ -491,6 +505,10 @@ async function runLovable(args: {
   userPayload: Record<string, unknown>;
   ingredientCount: number;
   level: TipsLevel;
+  generationId?: string | null;
+  attemptNumber?: number | null;
+  maxAttempts?: number | null;
+  retryReason?: string | null;
 }): Promise<AnalysisPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -506,7 +524,13 @@ async function runLovable(args: {
     ragK: 4,
   });
 
-  const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
+  const aiResp = await gatewayFetch({
+    ...AI_METER_META,
+    generation_id: args.generationId ?? null,
+    attempt_number: args.attemptNumber ?? null,
+    max_attempts: args.maxAttempts ?? null,
+    retry_reason: args.retryReason ?? null,
+  }, "https://ai.gateway.lovable.dev/v1/chat/completions",
     {
       method: "POST",
       headers: {
@@ -704,107 +728,123 @@ Deno.serve(async (req) => {
       ? body.context!.flagged_ingredients as string[]
       : [];
 
-    let analysis: AnalysisPayload;
-    if (provider === "claude") {
-      analysis = await runClaude({
-        productName,
-        productBrand,
-        ingredients: rawIngredients,
-        hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
-        userPayload,
-        selectorContext: buildSelectorContext(body),
-        avoidList,
-        level: tipsLevel,
-        sensitivityBlock,
-      });
-      // Guard: if the tip references another product/step, or fails the shared
-      // action/reason floors, retry once with the failures echoed back.
-      const claudeProblems = [
-        ...(guidanceReferencesOtherProduct(analysis)
-          ? [
-            "the tip referenced another product, product type, brand, accessory, or wash-day step. Describe ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution).",
-          ]
-          : []),
-        ...guidanceFloorProblems(analysis, guidanceTokens),
-      ];
-      if (claudeProblems.length) {
-        console.log(JSON.stringify({
-          function: "ingredient-analysis",
-          violation: "guidance_floor",
-          problems: claudeProblems,
-          retry: true,
-        }));
-        const retryPayload = {
+    const generationId = makeGenerationId();
+    let analysis: AnalysisPayload | null = null;
+    let retryRules: string[] | null = null;
+    for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+      const baseRetryPayload = retryRules?.length
+        ? {
           ...userPayload,
-          _retry_reason:
-            `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${claudeProblems.join("\n- ")}`,
-        };
+          _guardrail_retry:
+            buildRejectionRetryInstruction(retryRules, "ingredient analysis"),
+        }
+        : userPayload;
+      const retryReason = retryReasonFromRules(retryRules);
+
+      if (provider === "claude") {
         analysis = await runClaude({
           productName,
           productBrand,
           ingredients: rawIngredients,
           hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
-          userPayload: retryPayload,
+          userPayload: baseRetryPayload,
           selectorContext: buildSelectorContext(body),
           avoidList,
           level: tipsLevel,
           sensitivityBlock,
+          generationId,
+          attemptNumber,
+          maxAttempts: MAX_REJECTION_ATTEMPTS,
+          retryReason,
         });
-
-      }
-      // Last line of defence: scrub any lingering forbidden phrases from
-      // the tip so a stubborn model can't leak them into the UI.
-      analysis = scrubGuidance(analysis);
-      auditGuidanceActionFloor(analysis, productKey);
-      const remaining = guidanceFloorProblems(analysis, guidanceTokens);
-      if (remaining.length)
-        console.warn("[ingredient-analysis] guidance served below floor after retry", { productKey, remaining });
-      // Stamp provenance — required for cache_version invalidation.
-      analysis._model_version = MODEL_VERSION;
-      analysis._generated_at = new Date().toISOString();
-      analysis._provider = "claude";
-    } else {
-      const systemPrompt = `${STRAND_PERSONA_INLINE}
+        const claudeProblems = [
+          ...(guidanceReferencesOtherProduct(analysis)
+            ? [
+              "the tip referenced another product, product type, brand, accessory, or wash-day step. Describe ONLY how to use THIS product itself (technique, amount, sectioning, water temperature, dwell time, rinse, frequency, distribution).",
+            ]
+            : []),
+          ...guidanceFloorProblems(analysis, guidanceTokens),
+        ];
+        if (claudeProblems.length) {
+          console.log(JSON.stringify({
+            function: "ingredient-analysis",
+            violation: "guidance_floor",
+            problems: claudeProblems,
+            retry: true,
+          }));
+          analysis = await runClaude({
+            productName,
+            productBrand,
+            ingredients: rawIngredients,
+            hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
+            userPayload: {
+              ...baseRetryPayload,
+              _retry_reason:
+                `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${claudeProblems.join("\n- ")}`,
+            },
+            selectorContext: buildSelectorContext(body),
+            avoidList,
+            level: tipsLevel,
+            sensitivityBlock,
+            generationId,
+            attemptNumber,
+            maxAttempts: MAX_REJECTION_ATTEMPTS,
+            retryReason: retryReason ?? "guidance_floor_retry",
+          });
+        }
+        analysis = scrubGuidance(analysis);
+        auditGuidanceActionFloor(analysis, productKey);
+        const remaining = guidanceFloorProblems(analysis, guidanceTokens);
+        if (remaining.length)
+          console.warn("[ingredient-analysis] guidance served below floor after retry", { productKey, remaining });
+        analysis._model_version = MODEL_VERSION;
+        analysis._generated_at = new Date().toISOString();
+        analysis._provider = "claude";
+      } else {
+        const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
 ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}${sensitivityBlock}`;
-      analysis = await runLovable({
-        systemPrompt,
-        userPayload,
-        ingredientCount,
-        level: tipsLevel,
-      });
-      analysis = scrubGuidance(analysis);
-      const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
-      if (lovableProblems.length) {
-        console.log(JSON.stringify({
-          function: "ingredient-analysis",
-          violation: "guidance_floor",
-          problems: lovableProblems,
-          retry: true,
-        }));
         analysis = await runLovable({
           systemPrompt,
-          userPayload: {
-            ...userPayload,
-            _retry_reason:
-              `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${lovableProblems.join("\n- ")}`,
-          },
+          userPayload: baseRetryPayload,
           ingredientCount,
           level: tipsLevel,
+          generationId,
+          attemptNumber,
+          maxAttempts: MAX_REJECTION_ATTEMPTS,
+          retryReason,
         });
         analysis = scrubGuidance(analysis);
+        const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
+        if (lovableProblems.length) {
+          console.log(JSON.stringify({
+            function: "ingredient-analysis",
+            violation: "guidance_floor",
+            problems: lovableProblems,
+            retry: true,
+          }));
+          analysis = await runLovable({
+            systemPrompt,
+            userPayload: {
+              ...baseRetryPayload,
+              _retry_reason:
+                `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${lovableProblems.join("\n- ")}`,
+            },
+            ingredientCount,
+            level: tipsLevel,
+            generationId,
+            attemptNumber,
+            maxAttempts: MAX_REJECTION_ATTEMPTS,
+            retryReason: retryReason ?? "guidance_floor_retry",
+          });
+          analysis = scrubGuidance(analysis);
+        }
+        auditGuidanceActionFloor(analysis, productKey);
+        analysis._provider = "lovable";
+        analysis._generated_at = new Date().toISOString();
       }
-      auditGuidanceActionFloor(analysis, productKey);
-      analysis._provider = "lovable";
-      analysis._generated_at = new Date().toISOString();
-      // Note: no _model_version stamp on Lovable path — back-compat.
 
-    }
-
-    // ── Score reasons: normalise + keep match_score honest, and reduce the
-    // verdict sentence to the single overall call.
-    {
       analysis.insight = sanitisePurposeInsight(analysis.insight) ?? undefined;
       const reasons = sanitiseScoreReasons(analysis.score_reasons);
       analysis.score_reasons = reasons;
@@ -815,20 +855,29 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
         const one = firstSentence(analysis.summary);
         if (one) analysis.summary = one;
       }
+
+      enforceIngredientCardSensitivities(
+        analysis as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+        sens,
+        rawIngredients,
+        "ingredient-analysis",
+      );
+
+      const rejected: string[] = [];
+      analysis = await sanitiseAndLog(analysis, "ingredient-analysis", {
+        surface: "ingredient-analysis",
+        userId: user.id,
+        generationId,
+        attemptNumber,
+        maxAttempts: MAX_REJECTION_ATTEMPTS,
+        retryReason,
+        onRejected: (rules) => rejected.push(...rules),
+      }) as AnalysisPayload;
+      if (rejected.length === 0) break;
+      retryRules = [...new Set(rejected)];
     }
 
-
-    // ── Declared topical sensitivities: deterministic enforcement.
-    // Warning system, not a filter — the ingredient list is left intact, but
-    // any declared hard exclusion present in the STORED INCI list is forced to
-    // "bad" and named in its body, with the score reduced accordingly. The raw
-    // list is authoritative: the model's own cards can omit or reword it.
-    enforceIngredientCardSensitivities(
-      analysis as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
-      sens,
-      rawIngredients,
-      "ingredient-analysis",
-    );
+    if (!analysis) throw new Error("Ingredient analysis generation returned no payload");
 
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
@@ -849,7 +898,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
       });
     }
 
-    return json(200, { cached: false, analysis: await sanitiseAndLog(analysis, "ingredient-analysis") });
+    return json(200, { cached: false, analysis });
   } catch (e) {
     return aiErrorResponse(e, "ingredient-analysis");
   }
