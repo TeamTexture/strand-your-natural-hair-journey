@@ -280,8 +280,16 @@ const ManageSubscriptionSection = () => {
               ) : (
                 <ActionRow
                   icon={XCircle}
-                  title="Cancel your membership"
-                  description={renews ? `Runs to ${renews}, then stops` : "Runs to the end of your paid period, then stops"}
+                  title={onTrial ? "Cancel before you're charged" : "Cancel your membership"}
+                  description={
+                    onTrial
+                      ? trialEnds
+                        ? `Cancel before ${trialEnds} and nothing is taken`
+                        : "Cancel before the trial ends and nothing is taken"
+                      : renews
+                        ? `Runs to ${renews}, then stops`
+                        : "Runs to the end of your paid period, then stops"
+                  }
                   onClick={() => setCancelOpen(true)}
                   disabled={portal.isPending}
                 />
