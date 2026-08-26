@@ -942,13 +942,7 @@ const Profile = () => {
         </div>
       )}
 
-      <div className="px-5 pb-6 space-y-3 mt-4">
-        <Button variant="gold" size="pill" onClick={() => handleExportPdf()} disabled={exportingPdf}>
-          {exportingPdf ? "Generating PDF…" : "Download full profile (PDF)"}
-        </Button>
-        <Button variant="outline" size="pill" onClick={() => handleExportSnapshot()} disabled={exportingSnapshot}>
-          {exportingSnapshot ? "Preparing snapshot…" : "Export for my Professional"}
-        </Button>
+      <div className="px-5 pb-6 mt-4">
         <button
           onClick={async () => { await signOut(); navigate("/", { replace: true }); }}
           className="w-full flex items-center justify-center gap-2 text-sm uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground py-3 min-h-[44px]"
