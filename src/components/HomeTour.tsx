@@ -258,7 +258,9 @@ const HomeTour = () => {
   useEffect(() => {
     if (!wantsGuidance) return;
     setGuidanceSheetOpen(true);
-    return () => setGuidanceSheetOpen(false);
+    return () => {
+      setGuidanceSheetOpen(false);
+    };
   }, [wantsGuidance]);
 
 
