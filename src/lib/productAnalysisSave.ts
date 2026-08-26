@@ -1,4 +1,7 @@
+import { isMarketedPurpose } from "@/lib/marketedPurpose";
+
 interface ProductAnalysisLike {
+
   product_name?: unknown;
   brand?: unknown;
   category?: unknown;
