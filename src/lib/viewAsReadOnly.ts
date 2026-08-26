@@ -70,7 +70,44 @@ const READ_ONLY_FUNCTIONS = new Set([
   "hard-water-lookup",
 ]);
 
-const isBlocked = (url: string, method: string): { blocked: boolean; what: string } => {
+const DRY_RUN_AI_FUNCTIONS = new Set([
+  "ingredient-analysis",
+  "meal-ideas",
+  "nutrition-plan",
+  "wash-day-steps",
+  "wash-day-tip",
+]);
+
+async function requestBodyText(input: RequestInfo | URL, init?: RequestInit): Promise<string> {
+  const body = init?.body;
+  if (typeof body === "string") return body;
+  if (body instanceof URLSearchParams) return body.toString();
+  if (input instanceof Request) {
+    try { return await input.clone().text(); } catch { return ""; }
+  }
+  return "";
+}
+
+async function isDryRunAiRequest(input: RequestInfo | URL, init?: RequestInit): Promise<boolean> {
+  try {
+    const raw = await requestBodyText(input, init);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as { dryRun?: unknown; impersonatedUserId?: unknown; impersonation?: { targetUserId?: unknown } };
+    return parsed.dryRun === true && (
+      typeof parsed.impersonatedUserId === "string" ||
+      typeof parsed.impersonation?.targetUserId === "string"
+    );
+  } catch {
+    return false;
+  }
+}
+
+const isBlocked = async (
+  url: string,
+  method: string,
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<{ blocked: boolean; what: string }> => {
   const m = method.toUpperCase();
   const safe = m === "GET" || m === "HEAD" || m === "OPTIONS";
 
@@ -88,6 +125,9 @@ const isBlocked = (url: string, method: string): { blocked: boolean; what: strin
   const fnMatch = url.match(/\/functions\/v1\/([^?/]+)/);
   if (fnMatch) {
     if (READ_ONLY_FUNCTIONS.has(fnMatch[1])) return { blocked: false, what: "" };
+    if (DRY_RUN_AI_FUNCTIONS.has(fnMatch[1]) && await isDryRunAiRequest(input, init)) {
+      return { blocked: false, what: "" };
+    }
     return { blocked: true, what: "That action" };
   }
 
@@ -115,7 +155,7 @@ export function installViewAsReadOnlyGuard(): void {
             ? input.toString()
             : input.url;
       const method = init?.method ?? (input instanceof Request ? input.method : "GET");
-      const { blocked, what } = isBlocked(url, method);
+      const { blocked, what } = await isBlocked(url, method, input, init);
       if (blocked) {
         if (Date.now() - warnedAt > 3000) {
           warnedAt = Date.now();

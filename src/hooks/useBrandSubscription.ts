@@ -17,13 +17,12 @@ export type BrandSubscription = {
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
 export function useBrandSubscription() {
-  // Brand billing belongs to the real signed-in account, not any view-as
-  // target the admin may be inspecting.
-  const { actualUser } = useAuth();
+  // Keyed to the effective identity so admin View As reflects the account being inspected.
+  const { user } = useAuth();
   const { isAdmin } = useRoles();
   const q = useQuery({
-    queryKey: ["brand_subscription", actualUser?.id],
-    enabled: !!actualUser?.id,
+    queryKey: ["brand_subscription", user?.id],
+    enabled: !!user?.id,
     queryFn: async (): Promise<BrandSubscription | null> => {
       const { data, error } = await (supabase as unknown as {
         from: (t: string) => {
@@ -36,7 +35,7 @@ export function useBrandSubscription() {
       })
         .from("brand_subscriptions")
         .select("*")
-        .eq("brand_user_id", actualUser!.id)
+        .eq("brand_user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       return data ?? null;
