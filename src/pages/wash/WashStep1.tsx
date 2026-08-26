@@ -650,6 +650,27 @@ const WashStep1 = () => {
     void fetchHeatRationale();
   };
 
+  /**
+   * Condition step only — "Not here, I used it for my treatment". The heat is
+   * real, so it's carried forward to the Treatment / Mask step (opened and
+   * pre-answered yes) rather than being lost or double-counted. No "why heat"
+   * explainer here: she isn't skipping heat.
+   */
+  const handleHeatElsewhere = () => {
+    setHeatChoice("elsewhere");
+    setHeatMinutes(null);
+    setHeatToolIds([]);
+    markTouched("treatment");
+    setTreatment("done");
+    setTreatmentHeatChoice("yes");
+    requestAnimationFrame(() => {
+      document
+        .getElementById("washstep-treatment")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
+
   const removeFrom = (setter: (v: string[]) => void, ids: string[], key: StepKey) => (id: string) => {
     markTouched(key);
     setter(ids.filter((x) => x !== id));
