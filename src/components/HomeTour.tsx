@@ -247,12 +247,13 @@ const HomeTour = () => {
       pausedRef.current = false;
       void refreshStylePhotos();
       setActive(true);
-
     };
     window.addEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
     return () =>
       window.removeEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const openPhotoPicker = () => {
     pausedRef.current = true;
