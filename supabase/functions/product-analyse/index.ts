@@ -53,7 +53,7 @@ import {
   RETURN_PRODUCT_ANALYSIS_SCHEMA,
   type ProductAnalysisPayload,
 } from "../_shared/schemas.ts";
-import { MARKETED_PURPOSE_RULES } from "../_shared/marketed-purpose.ts";
+import { SURFACTANT_STRENGTH_RULES } from "../_shared/surfactant-strength.ts";
 import {
   SCORE_REASONS_RULES,
   sanitiseScoreReasons,
@@ -198,7 +198,7 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
    - use_cases: up to ${cap} concrete tips for how THIS user gets the MOST out of this product for their own hair characteristics specifically. EVERY item must name the actual trait it is written for — their porosity, density, strand width, scalp condition, length or a stated goal — in the sentence itself (e.g. "On low-porosity strands, …"). A tip that would read the same for any hair type is INVALID; rewrite it or drop it. Do NOT repeat manufacturer directions.
    - tips: up to ${cap} personalised reasoning tips about fit/usage that go beyond use_cases. Anchor each in the user's data.
 
-${MARKETED_PURPOSE_RULES}
+${SURFACTANT_STRENGTH_RULES}
 
 MOISTURE — NON-NEGOTIABLE LANGUAGE RULE:
 Moisture comes from water. Products do NOT add, restore, replace, infuse, replenish, deliver, hydrate-from-scratch, or otherwise create moisture. They seal it in, lock it in, help it stay, slow water loss, or improve absorption of the water already there. Use this phrasing only.
@@ -281,7 +281,7 @@ OUTPUT ECONOMY — HARD RULES (latency: the member is watching a spinner):
 - key_ingredients: 4–6 entries only, the ones that actually decide the score. benefit ≤12 words. reason ≤20 words, one sentence.
 - score_reasons: at most 4 entries, each reason one sentence ≤25 words.
 - ai_summary: exactly ONE sentence.
-- marketed_purpose_note and routine_suggestion: at most 2 short sentences each.
+- routine_suggestion: at most 2 short sentences.
 - Never restate the same point in two fields, and never re-list the full ingredient panel in prose.
 - Brevity is a formatting rule only: it must NEVER reduce the number of ingredients you transcribe into "ingredients", change a flag, or soften a warning.`;
 
@@ -431,7 +431,7 @@ LANGUAGE RULE — NEVER use the phrase "avoid list", "avoid ingredients", "your 
 8d. MATCH SCORE — re-derive match_score from scratch every time from THIS user's goals, porosity, hair characteristics and flagged blood markers weighed against the product's actual ingredients. NEVER anchor the score to marketing claims, brand reputation, or a generic "good product" judgement — a mismatched premium product scores LOW, a well-matched plain product scores HIGH.
 9. Output STRICT JSON only. No prose, no code fences.
 
-${MARKETED_PURPOSE_RULES}
+${SURFACTANT_STRENGTH_RULES}
 
 SCHEMA
 {
@@ -440,9 +440,6 @@ SCHEMA
   "category": "shampoo"|"conditioner"|"treatment"|"styler"|"oil"|"mask"|"leave-in"|"other",
   "ingredients": string[],
   "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
-  "marketed_purpose": "dry_hair"|"damaged_hair"|"colour_treated"|"greasy_oily"|"general_all_hair_types"|"moisture"|"repair"|"clarifying",
-  "marketed_purpose_confidence": "high"|"low",
-  "marketed_purpose_note": "one or two plain sentences telling the user what this product is sold to do and what that means for THEIR hair",
   "match_score": number,
   "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
   "ai_summary": string,

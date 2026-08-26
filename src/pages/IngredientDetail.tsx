@@ -21,20 +21,14 @@ import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRen
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
 import {
   classifySurfactant,
-
-  isMarketedPurpose,
-  MARKETED_PURPOSE_SURFACTANT_NOTE,
-  MARKETED_PURPOSE_LABEL,
   SURFACTANT_ROLE_LABEL,
   SURFACTANT_ROLE_NOTE,
-  type MarketedPurpose,
-} from "@/lib/marketedPurpose";
+} from "@/lib/surfactants";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import ProductPhotoTile from "@/components/ProductPhotoTile";
 import ProductThumb from "@/components/ProductThumb";
 import OffShelfReasonSheet from "@/components/OffShelfReasonSheet";
 import AnalyseAnotherCard from "@/components/product/AnalyseAnotherCard";
-import ProductPrimerCard from "@/components/products/ProductPrimerCard";
 import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import {
@@ -292,55 +286,6 @@ const IngredientDetail = () => {
   const [shelfBusy, setShelfBusy] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [tipsExpanded, setTipsExpanded] = useState(false);
-
-  // Marketed purpose — what the product is SOLD for, plus the one or two
-  // grounded sentences explaining what it is. BOTH are read from the stored
-  // analysis (the `user_products` columns the scan writes), never re-derived
-  // from the product title at render time. When the analysis produced nothing
-  // usable — e.g. the grounding guardrail stripped the prose — the card shows
-  // the badge alone rather than an ungrounded sentence.
-  const detected = (freshAnalysis ?? analysis) as
-    | { marketed_purpose?: unknown; marketed_purpose_note?: unknown; marketed_purpose_confidence?: unknown }
-    | null;
-  const row = productRow as
-    | {
-        marketed_purpose?: unknown;
-        marketed_purpose_note?: unknown;
-        marketed_purpose_confidence?: unknown;
-      }
-    | null;
-  const storedPurpose = isMarketedPurpose(row?.marketed_purpose) ? row!.marketed_purpose : null;
-  const scanPurpose = isMarketedPurpose(detected?.marketed_purpose)
-    ? (detected!.marketed_purpose as MarketedPurpose)
-    : null;
-  const purpose: MarketedPurpose | null = storedPurpose ?? scanPurpose;
-
-  const firstSentences = (value: unknown): string | null =>
-    typeof value === "string" && value.trim() ? value.trim() : null;
-  const purposeNote =
-    firstSentences(row?.marketed_purpose_note) ?? firstSentences(detected?.marketed_purpose_note);
-  const purposeLowConfidence =
-    (row?.marketed_purpose_confidence ?? detected?.marketed_purpose_confidence) === "low";
-
-  // Backfill the stored columns from a fresh scan payload when the row predates
-  // them. Only ever writes values the analysis itself produced — never a guess.
-  useEffect(() => {
-    if (!productRow?.id) return;
-    const patch: {
-      marketed_purpose?: MarketedPurpose;
-      marketed_purpose_note?: string;
-    } = {};
-    if (!storedPurpose && scanPurpose) patch.marketed_purpose = scanPurpose;
-    if (!firstSentences(row?.marketed_purpose_note)) {
-      const note = firstSentences(detected?.marketed_purpose_note);
-      if (note) patch.marketed_purpose_note = note;
-    }
-    if (Object.keys(patch).length === 0) return;
-    void supabase.from("user_products").update(patch).eq("id", productRow.id);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productRow?.id, storedPurpose, scanPurpose, detected]);
-
 
   const { flags } = useIngredientLists();
   // Single unified "flagged" set — appears in 3+ of the user's products.
@@ -1158,14 +1103,6 @@ const IngredientDetail = () => {
 
         {analysis && !loading && (
           <>
-            {/* Orientation first: what this is, what it does, how to use it. */}
-            <ProductPrimerCard
-              title={(analysis as { product_name?: string }).product_name}
-              purpose={purpose}
-              note={purposeNote}
-              usage={analysis.usage_instructions}
-            />
-
             {/* AI Summary — the single verdict callout, bold lead-in only */}
 
             {(() => {
@@ -1633,11 +1570,6 @@ const IngredientDetail = () => {
                           {SURFACTANT_ROLE_LABEL[role]}
                         </p>
                         <AiProse text={SURFACTANT_ROLE_NOTE[role]} />
-                        {purpose && (
-                          <div className="mt-1.5">
-                            <AiProse text={MARKETED_PURPOSE_SURFACTANT_NOTE[purpose]} />
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
