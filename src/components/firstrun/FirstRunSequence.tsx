@@ -39,6 +39,12 @@ const FirstRunSequence = () => {
     return () => window.removeEventListener(TOUR_DONE_EVENT, on as EventListener);
   }, []);
 
+  const [photoDismissed, setPhotoDismissed] = useState(false);
+  const [productDismissed, setProductDismissed] = useState(false);
+
+  const loading = goalsLoading || challengesLoading;
+  const goalsComplete = !!goal && challenges.length > 0;
+
   // Tier 3 of the first-run queue: one prompt per session, after the offers card.
   const photoSlot = useLateFirstRunSlot(
     "photo-prompt",
@@ -49,11 +55,6 @@ const FirstRunSequence = () => {
     tourDone && !loading && productNudge.eligible && !productDismissed,
   );
 
-  const [photoDismissed, setPhotoDismissed] = useState(false);
-  const [productDismissed, setProductDismissed] = useState(false);
-
-  const loading = goalsLoading || challengesLoading;
-  const goalsComplete = !!goal && challenges.length > 0;
 
   // Goal and challenge are captured in onboarding step one, so the old blocking
   // gate is gone. The flag is simply recorded as seen once both are on file.
