@@ -508,49 +508,8 @@ const Profile = () => {
     return out;
   }, [flaggedBlood, washAlert, bloodTestAlert, appts, navigate]);
 
-  const handleExportPdf = async () => {
-    if (exportingPdf) return;
-    setExportingPdf(true);
-    try {
-      const { blob, fileName } = await generateFullProfilePdf();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("Profile PDF downloaded");
-    } catch (e) {
-      console.error("Profile PDF export failed", e);
-      toast.error("Could not export PDF");
-    } finally {
-      setExportingPdf(false);
-    }
-  };
 
-  const handleExportSnapshot = async () => {
-    if (exportingSnapshot) return;
-    setExportingSnapshot(true);
-    try {
-      const { blob, fileName } = await generateProfessionalSnapshotPdf();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("Professional snapshot downloaded");
-    } catch (e) {
-      console.error("Snapshot export failed", e);
-      toast.error("Could not export snapshot");
-    } finally {
-      setExportingSnapshot(false);
-    }
-  };
+
 
   const hasAnyProfileData = displayName || hair.diameter || flaggedBlood.length > 0 || health.medications;
 
