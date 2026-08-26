@@ -44,6 +44,10 @@ export interface AiCallRow {
   duration_ms?: number | null;
   http_status?: number | null;
   error_text?: string | null;
+  generation_id?: string | null;
+  attempt_number?: number | null;
+  max_attempts?: number | null;
+  retry_reason?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +110,10 @@ async function insertRows(rows: AiCallRow[]): Promise<void> {
         duration_ms: r.duration_ms ?? null,
         http_status: r.http_status ?? null,
         error_text: r.error_text ? String(r.error_text).slice(0, 500) : null,
+        generation_id: r.generation_id ?? null,
+        attempt_number: r.attempt_number ?? null,
+        max_attempts: r.max_attempts ?? null,
+        retry_reason: r.retry_reason ? String(r.retry_reason).slice(0, 300) : null,
       })),
     );
   } catch (e) {
@@ -114,9 +122,15 @@ async function insertRows(rows: AiCallRow[]): Promise<void> {
   }
 }
 
-/** Buffered stage-2 writer calls awaiting their guardrail outcome, keyed by
- *  function name so two surfaces in the same isolate don't collide. */
-const pending = new Map<string, AiCallRow>();
+/** Buffered stage-2 writer calls awaiting their guardrail outcome.
+ *  Keyed by function + generation id so bounded retries can log every attempt
+ *  separately, while parallel split calls within one attempt share an outcome. */
+const pending = new Map<string, AiCallRow[]>();
+
+const pendingKey = (functionName: string, generationId?: string | null) =>
+  `${functionName}:${generationId ?? "legacy"}`;
+
+const rowKey = (row: AiCallRow) => pendingKey(row.function_name, row.generation_id);
 
 /** Token usage of the writer call still buffered for `functionName`, so the
  *  evidence-set audit row can record what stage 2 actually cost. Read-only —
@@ -124,10 +138,12 @@ const pending = new Map<string, AiCallRow>();
 export function getBufferedUsage(
   functionName: string,
 ): { input: number; output: number; total: number } | null {
-  const row = pending.get(functionName);
-  if (!row) return null;
-  const input = row.input_tokens ?? 0;
-  const output = row.output_tokens ?? 0;
+  const rows = [...pending.entries()]
+    .filter(([key]) => key.startsWith(`${functionName}:`))
+    .flatMap(([, value]) => value);
+  if (rows.length === 0) return null;
+  const input = rows.reduce((sum, row) => sum + (row.input_tokens ?? 0), 0);
+  const output = rows.reduce((sum, row) => sum + (row.output_tokens ?? 0), 0);
   return { input, output, total: input + output };
 }
 
@@ -144,9 +160,16 @@ export function logAiCall(row: AiCallRow): void {
     flush({ ...row, stage });
     return;
   }
-  const stale = pending.get(row.function_name);
-  if (stale) flush({ ...stale, outcome: "unflushed" });
-  pending.set(row.function_name, { ...row, stage: 2 });
+  const key = rowKey(row);
+  for (const [existingKey, rows] of pending.entries()) {
+    if (existingKey.startsWith(`${row.function_name}:`) && existingKey !== key) {
+      rows.forEach((stale) => flush({ ...stale, outcome: "unflushed" }));
+      pending.delete(existingKey);
+    }
+  }
+  const rows = pending.get(key) ?? [];
+  rows.push({ ...row, stage: 2 });
+  pending.set(key, rows);
 }
 
 /** Called by sanitiseAndLog once the guardrails have run. Attaches the outcome
@@ -159,17 +182,26 @@ export function recordAiOutcome(args: {
   user_id?: string | null;
   outcome: "completed" | "rejected";
   rejection_rule?: string | null;
+  generation_id?: string | null;
+  attempt_number?: number | null;
+  max_attempts?: number | null;
+  retry_reason?: string | null;
 }): void {
-  const buffered = pending.get(args.function_name);
-  if (buffered) {
-    pending.delete(args.function_name);
-    flush({
-      ...buffered,
-      surface: buffered.surface ?? args.surface ?? null,
-      user_id: buffered.user_id ?? args.user_id ?? ambientUserId ?? null,
+  const key = pendingKey(args.function_name, args.generation_id);
+  const buffered = pending.get(key);
+  if (buffered && buffered.length > 0) {
+    pending.delete(key);
+    buffered.forEach((row) => flush({
+      ...row,
+      surface: row.surface ?? args.surface ?? null,
+      user_id: row.user_id ?? args.user_id ?? ambientUserId ?? null,
       outcome: args.outcome,
       rejection_rule: args.rejection_rule ?? null,
-    });
+      generation_id: row.generation_id ?? args.generation_id ?? null,
+      attempt_number: row.attempt_number ?? args.attempt_number ?? null,
+      max_attempts: row.max_attempts ?? args.max_attempts ?? null,
+      retry_reason: row.retry_reason ?? args.retry_reason ?? null,
+    }));
     return;
   }
   flush({
@@ -182,6 +214,10 @@ export function recordAiOutcome(args: {
     outcome: args.outcome,
     rejection_rule: args.rejection_rule ?? null,
     user_id: args.user_id ?? ambientUserId ?? null,
+    generation_id: args.generation_id ?? null,
+    attempt_number: args.attempt_number ?? null,
+    max_attempts: args.max_attempts ?? null,
+    retry_reason: args.retry_reason ?? null,
   });
 }
 
@@ -196,23 +232,35 @@ export function recordAiFailure(args: {
   user_id?: string | null;
   error_text: string;
   rejection_rule?: string | null;
+  generation_id?: string | null;
+  attempt_number?: number | null;
+  max_attempts?: number | null;
+  retry_reason?: string | null;
 }): void {
-  const buffered = pending.get(args.function_name);
-  if (buffered) pending.delete(args.function_name);
-  flush({
-    ...(buffered ?? {
+  const key = pendingKey(args.function_name, args.generation_id);
+  const buffered = pending.get(key);
+  if (buffered) pending.delete(key);
+  const rows = buffered && buffered.length > 0
+    ? buffered
+    : [{
       function_name: args.function_name,
       stage: 2,
       provider: "lovable_gateway",
       model: "unknown",
       model_called: true,
-    }),
-    surface: buffered?.surface ?? args.surface ?? null,
-    user_id: buffered?.user_id ?? args.user_id ?? ambientUserId ?? null,
+    } as AiCallRow];
+  rows.forEach((row) => flush({
+    ...row,
+    surface: row.surface ?? args.surface ?? null,
+    user_id: row.user_id ?? args.user_id ?? ambientUserId ?? null,
     outcome: "error",
     rejection_rule: args.rejection_rule ?? "post_model_parse_failure",
     error_text: args.error_text,
-  });
+    generation_id: row.generation_id ?? args.generation_id ?? null,
+    attempt_number: row.attempt_number ?? args.attempt_number ?? null,
+    max_attempts: row.max_attempts ?? args.max_attempts ?? null,
+    retry_reason: row.retry_reason ?? args.retry_reason ?? null,
+  }));
 }
 
 /** Metadata a call site passes so a row can be attributed. */
@@ -221,6 +269,10 @@ export interface AiCallMeta {
   stage?: 1 | 2;
   surface?: string | null;
   user_id?: string | null;
+  generation_id?: string | null;
+  attempt_number?: number | null;
+  max_attempts?: number | null;
+  retry_reason?: string | null;
 }
 
 interface GatewayUsage {
