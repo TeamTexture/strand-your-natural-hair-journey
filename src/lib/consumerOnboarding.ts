@@ -20,7 +20,28 @@ export const getSubscribePath = (next: string) =>
 export const isSafeInternalPath = (path: string | null | undefined): path is string =>
   !!path && path.startsWith("/") && !path.startsWith("//");
 
+export type ConsumerOnboardingStatus = Awaited<ReturnType<typeof getConsumerOnboardingStatus>>;
+
+/**
+ * Where a member goes the moment her trial/membership is confirmed.
+ *
+ * This is deliberately derived from the SAME status object every other gate
+ * reads — there is no second resume calculation anywhere. It is computed when
+ * she returns from Stripe, never baked into the checkout session, so a member
+ * four steps in resumes at her next incomplete step instead of question one.
+ */
+export const getPostTrialPath = (status: ConsumerOnboardingStatus): string => {
+  if (status.dataComplete) return "/home";
+  // Nothing captured at all — the flow starts at goals & challenges, exactly as
+  // it does for a brand-new member.
+  if (!status.basicComplete) return "/onboarding/goal";
+  // Her NEXT INCOMPLETE STEP, not the returning-member hub: she has just paid
+  // and should continue the flow rather than be asked to choose again.
+  return status.resumePath;
+};
+
 export async function getConsumerOnboardingStatus(userId: string) {
+
   const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes, proRes] = await Promise.all([
     supabase
       .from("profiles")

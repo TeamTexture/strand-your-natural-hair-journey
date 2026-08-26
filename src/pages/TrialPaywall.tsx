@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -23,7 +23,11 @@ import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useConsumerPricing, formatGbp } from "@/hooks/useConsumerPricing";
 import { verifyConsumerMembership } from "@/lib/membershipVerify";
 import { formatTrialEnd, TRIAL_DAYS } from "@/lib/trialOffer";
-import { isSafeInternalPath } from "@/lib/consumerOnboarding";
+import {
+  getConsumerOnboardingStatus,
+  getPostTrialPath,
+  isSafeInternalPath,
+} from "@/lib/consumerOnboarding";
 import { useTrialOffer } from "@/hooks/useTrialOffer";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
@@ -111,9 +115,27 @@ const TrialPaywall = () => {
 
   // Stripe returns before the webhook lands, so ask Stripe directly and hold
   // here until the membership is confirmed — never drop her back on the paywall.
+  // Destination is resolved AFTER entitlement is confirmed, from the single
+  // source of truth. Never a hardcoded step, so nothing already answered is
+  // re-asked and nothing is overwritten.
+  const leaving = useRef(false);
+  const resumeAfterTrial = async () => {
+    if (leaving.current) return;
+    leaving.current = true;
+    let target = nextPath;
+    try {
+      if (user?.id) target = getPostTrialPath(await getConsumerOnboardingStatus(user.id));
+    } catch {
+      // A failed read is not an empty profile: fall back to the requested path
+      // rather than risk restarting her at step one.
+      target = nextPath;
+    }
+    nav(target, { replace: true });
+  };
+
   useEffect(() => {
     if (hasAccess) {
-      nav(nextPath, { replace: true });
+      void resumeAfterTrial();
       return;
     }
     if (!confirming) return;
@@ -131,7 +153,7 @@ const TrialPaywall = () => {
         }
         return;
       }
-      nav(nextPath, { replace: true });
+      await resumeAfterTrial();
     };
     void verify();
     const poll = window.setInterval(() => void verify(), 2500);
