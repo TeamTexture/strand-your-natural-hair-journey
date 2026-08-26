@@ -251,6 +251,17 @@ const HomeTour = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, stepRoute]);
 
+  // Steps that demonstrate a panel open it while they are on screen and close
+  // it on advance, back, minimise or finish.
+  const wantsGuidance = active && current?.openPanel === "guidance";
+  useEffect(() => {
+    if (!wantsGuidance) return;
+    setGuidanceSheetOpen(true);
+    return () => setGuidanceSheetOpen(false);
+  }, [wantsGuidance]);
+
+
+
   // The photo picker sheet sits below the tour overlay, so the tour steps aside
   // while it is open and comes back on the same step once it closes.
   const pausedRef = useRef(false);
