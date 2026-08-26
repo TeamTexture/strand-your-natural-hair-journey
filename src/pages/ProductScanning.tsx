@@ -171,9 +171,17 @@ const ProductScanning = () => {
         // (/products/ingredient) — which loads from user_products by
         // product_key — has a row to display. Without this insert, the
         // redirect would land on an empty product page and bounce back.
-        const product_key = `scan-${Date.now()}`;
         const intent = state.intent ?? "shelf";
         const saveFields = buildProductSaveFields(data ?? {});
+        // ONE PRODUCT, ONE ROW. The key is derived from the normalised brand +
+        // name, and an existing row for the same product is reused even when
+        // the scan spelled it differently — see src/lib/productIdentity.ts.
+        const { product_key, reused_row_id } = await resolveProductKey(
+          user.id,
+          saveFields.name,
+          saveFields.brand ?? null,
+        );
+        console.log("[scan-dedupe] key", { product_key, reused_row_id });
         // Deterministic link to an approved brand catalogue product, if one
         // matches exactly. Never a guess — see src/lib/brandProductResolve.ts.
         const brandLink = await resolveBrandProductLink({
@@ -189,6 +197,7 @@ const ProductScanning = () => {
           linked_brand_product_id: brandLink?.brand_product_id ?? null,
           storage_path: state.storage_path,
           analysis_profile_snapshot_hash: currentHash,
+          analysis_ingredients_hash: ingredientsFingerprint(saveFields.ingredients),
           analysis_generated_at: new Date().toISOString(),
           // Neutral state by default — the user picks the destination from
           // the 3-CTA decision block on IngredientDetail. Only auto-route
