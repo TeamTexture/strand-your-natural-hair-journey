@@ -419,20 +419,47 @@ const VOLATILE_KEY_FRAGMENTS: RegExp[] = [
   /\bas of\b/g,
 ];
 
-/** Deterministic, order-free representation of the member context. */
+/**
+ * Deterministic, order-free representation of the member context.
+ *
+ * Two levels, because the volatile ordering is WITHIN a labelled line ("Goals:
+ * a, b, c") as well as between lines:
+ *   line level  — sentences/lines are sorted.
+ *   list level  — a line's label is kept, and only its comma/semicolon-separated
+ *                 items are sorted, so "Goals: a, b" and "Goals: b, a" collapse.
+ * Decimal points are never used as separators, so 12.30 and 12.3 still normalise
+ * to the same value rather than being split apart.
+ */
 export const canonicalContextKey = (ctx: string): string => {
   let s = norm(ctx);
   for (const re of VOLATILE_KEY_FRAGMENTS) s = s.replace(re, " ");
   // Normalise decimal formatting: 12.30 -> 12.3, 12.0 -> 12
   s = s.replace(/(\d+)\.(\d*?)0+(?![\d])/g, (_m, a, b) => (b ? `${a}.${b}` : a));
   s = s.replace(/(\d+)\.(?![\d])/g, "$1");
+
+  const tidy = (v: string) => v.replace(/\s+/g, " ").trim();
+  const canonLine = (line: string) => {
+    const at = line.indexOf(":");
+    const label = at > -1 ? tidy(line.slice(0, at)) : "";
+    const body = at > -1 ? line.slice(at + 1) : line;
+    const items = body
+      .split(/[;,|•]+/)
+      .map(tidy)
+      .filter(Boolean)
+      .sort()
+      .join(",");
+    return label ? `${label}:${items}` : items;
+  };
+
   return s
-    .split(/[\n\r;,.|•\-–]+/)
-    .map((seg) => seg.replace(/\s+/g, " ").trim())
+    // Sentence/line boundaries only — a full stop followed by whitespace.
+    .split(/[\n\r]+|(?<=\D)\.(?=\s|$)|\.(?=\s+\D)/)
+    .map(canonLine)
     .filter(Boolean)
     .sort()
     .join("|");
 };
+
 
 const cacheKey = (surface: string, ctx: string, chapters: number[] = []) =>
   `${surface}::${[...new Set(chapters)].sort((a, b) => a - b).join(",")}::${
