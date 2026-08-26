@@ -182,6 +182,15 @@ async function upsertFromSubscription(
   );
   if (error) throw error;
 
+  // STRAND_PAYWALL_LIST: she started checkout but the subscription is not
+  // paying. Marketing-consent gated inside the helper, and never blocks the
+  // webhook. Outcome logged to klaviyo_sync_log as paywall_list_webhook.
+  if ((PAYWALL_STATUSES as readonly string[]).includes(sub.status) && sub.id) {
+    await syncPaywallStatusMember(admin as any, userId, "paywall_list_webhook", sub.status);
+  }
+
+
+
   // Paying AND trialing members are mirrored onto the Klaviyo paid-members list.
   // Marketing consent is NOT set here — only list membership — unless the member
   // has explicitly said yes on her profile. Never blocks the webhook: a Klaviyo
