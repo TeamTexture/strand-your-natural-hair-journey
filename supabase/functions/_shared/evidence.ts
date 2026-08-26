@@ -388,8 +388,57 @@ export async function gatherEvidence(input: {
 
 /** Cheap in-instance cache: the same member signature re-asks the same question. */
 const stage1Cache = new Map<string, EvidenceSet>();
+
+// CACHE KEY STABILITY (C1, 2026-08-26).
+// -------------------------------------
+// The key used to be `norm(ctx).slice(0, 400)`. `memberContext` is assembled by
+// each caller from arrays whose row order is NOT pinned (goals, blood flags,
+// sensitivities, shelf products), so an unchanged member produced a DIFFERENT
+// key on every call — measured 53% brand-new keys across 142 gathers, and zero
+// reuse on wash-day-tip. Every miss paid for a whole-chapter stage 1.
+//
+// The fix is purely mechanical: canonicalise the string before it becomes a key.
+// Nothing here changes what any writer receives — `input.memberContext` is
+// passed to stage 1 verbatim, exactly as before. This only decides whether two
+// calls are recognised as the same call.
+//
+//   1. Volatile fragments that describe WHEN rather than WHAT are dropped:
+//      ISO dates/timestamps, "today"/"yesterday", and days-in-style (the
+//      author's rule: days_in_style must never move a score or a cache key).
+//   2. Numbers are normalised so 12.30 and 12.3 are the same value.
+//   3. The context is split into segments, sorted, and rejoined — so array
+//      order upstream can no longer change the key.
+//   4. No truncation. The old 400-char slice meant anything after the cut was
+//      invisible to the key, which is a collision risk once segments are
+//      sorted; the raw key is hashed for persistence anyway.
+const VOLATILE_KEY_FRAGMENTS: RegExp[] = [
+  /\b\d{4}-\d{2}-\d{2}(?:t[\d:.]+z?)?\b/g,
+  /\b\d{1,4}\s*(?:day|days|week|weeks)\s+in\s+(?:this\s+)?style\b/g,
+  /\bday\s*\d{1,4}\s+in\s+style\b/g,
+  /\b(?:today|yesterday|tomorrow)\b/g,
+  /\bas of\b/g,
+];
+
+/** Deterministic, order-free representation of the member context. */
+export const canonicalContextKey = (ctx: string): string => {
+  let s = norm(ctx);
+  for (const re of VOLATILE_KEY_FRAGMENTS) s = s.replace(re, " ");
+  // Normalise decimal formatting: 12.30 -> 12.3, 12.0 -> 12
+  s = s.replace(/(\d+)\.(\d*?)0+(?![\d])/g, (_m, a, b) => (b ? `${a}.${b}` : a));
+  s = s.replace(/(\d+)\.(?![\d])/g, "$1");
+  return s
+    .split(/[\n\r;,.|•\-–]+/)
+    .map((seg) => seg.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .sort()
+    .join("|");
+};
+
 const cacheKey = (surface: string, ctx: string, chapters: number[] = []) =>
-  `${surface}::${chapters.join(",")}::${norm(ctx).slice(0, 400)}`;
+  `${surface}::${[...new Set(chapters)].sort((a, b) => a - b).join(",")}::${
+    canonicalContextKey(ctx)
+  }`;
+
 
 // ---------------------------------------------------------------------------
 // PERSISTED STAGE 1 CACHE
