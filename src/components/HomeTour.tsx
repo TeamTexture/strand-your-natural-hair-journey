@@ -395,23 +395,40 @@ const HomeTour = () => {
   /* ---- tooltip placement: above or below the target, never over it ---- */
   const bounds = frameBox();
   const GAP = 14;
+  // Small icons need more breathing room than large cards so the ring does not
+  // crowd them.
+  const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
+  const spotTop = rect ? rect.top - pad : 0;
+  const spotBottom = rect ? rect.bottom + pad : 0;
   const placement: "below" | "above" | "float" = (() => {
     if (!rect) return "float";
-    if (bounds.bottom - rect.bottom - GAP >= cardH + 8) return "below";
-    if (rect.top - bounds.top - GAP >= cardH + 8) return "above";
+    if (bounds.bottom - spotBottom - GAP >= cardH + 8) return "below";
+    if (spotTop - bounds.top - GAP >= cardH + 8) return "above";
     // Neither side fits cleanly — take the roomier side and clamp.
-    return bounds.bottom - rect.bottom >= rect.top - bounds.top ? "below" : "above";
+    return bounds.bottom - spotBottom >= spotTop - bounds.top ? "below" : "above";
   })();
 
   const clamp = (v: number) =>
     Math.max(bounds.top + 12, Math.min(v, bounds.bottom - cardH - 12));
 
-  const tooltipTop =
-    rect == null
-      ? null
-      : placement === "below"
-        ? clamp(rect.bottom + GAP)
-        : clamp(rect.top - GAP - cardH);
+  const tooltipTop = (() => {
+    if (rect == null) return null;
+    const below = clamp(spotBottom + GAP);
+    const above = clamp(spotTop - GAP - cardH);
+    const overlaps = (top: number) => top < spotBottom && top + cardH > spotTop;
+    const first = placement === "below" ? below : above;
+    if (!overlaps(first)) return first;
+    const other = placement === "below" ? above : below;
+    // Never sit over the very thing being highlighted — flip if clamping
+    // would have pushed the card onto the target.
+    if (!overlaps(other)) return other;
+    // Both sides collide (very tall card, very tall target): hug the roomier
+    // edge of the frame so at least the target stays clear.
+    return placement === "below"
+      ? Math.max(spotBottom + GAP, bounds.bottom - cardH - 12)
+      : Math.min(spotTop - GAP - cardH, bounds.top + 12);
+  })();
+
 
   // Arrow points at the target from whichever edge faces it.
   const arrowLeft = rect
@@ -424,6 +441,9 @@ const HomeTour = () => {
       )
     : null;
 
+
+
+
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
       {/* Dimmed backdrop with a cutout around the spotlit element */}
@@ -433,10 +453,10 @@ const HomeTour = () => {
             <rect width="100%" height="100%" fill="white" />
             {rect && settled && (
               <rect
-                x={rect.left - 8}
-                y={rect.top - 8}
-                width={rect.width + 16}
-                height={rect.height + 16}
+                x={rect.left - pad}
+                y={rect.top - pad}
+                width={rect.width + pad * 2}
+                height={rect.height + pad * 2}
                 rx={20}
                 ry={20}
                 fill="black"
@@ -452,36 +472,41 @@ const HomeTour = () => {
         />
       </svg>
 
-      {rect && settled && (
+      {/* Small targets (header icons, tab bar icons) get a copy painted above
+       *  the dimmer so they read at full brightness, not through the scrim. */}
+      {rect && settled && Math.min(rect.width, rect.height) < 48 && (
+
         <div
-          className="absolute rounded-[24px] border-2 border-primary shadow-[0_0_0_6px_rgba(197,160,89,0.22)] pointer-events-none transition-all duration-200"
-          style={{
-            left: rect.left - 8,
-            top: rect.top - 8,
-            width: rect.width + 16,
-            height: rect.height + 16,
+          aria-hidden
+          className="absolute pointer-events-none overflow-hidden rounded-[16px]"
+          style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+          ref={(node) => {
+            if (!node) return;
+            const src = findTarget(current.target);
+            if (!src) return;
+            const clone = src.cloneNode(true) as HTMLElement;
+            clone.style.margin = "0";
+            clone.style.position = "static";
+            clone.style.width = `${rect.width}px`;
+            clone.style.height = `${rect.height}px`;
+            node.replaceChildren(clone);
           }}
         />
       )}
 
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <button
-          onClick={() => setActive(false)}
-          aria-label="Minimise tour"
-          className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
-        >
-          Minimise
-          <Minus className="size-3.5" />
-        </button>
-        <button
-          onClick={() => finish(true)}
-          aria-label="Skip tour"
-          className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
-        >
-          Skip tour
-          <X className="size-3.5" />
-        </button>
-      </div>
+      {rect && settled && (
+        <div
+          className="absolute rounded-[24px] border-2 border-primary shadow-[0_0_0_6px_rgba(197,160,89,0.22)] pointer-events-none transition-all duration-200"
+          style={{
+            left: rect.left - pad,
+            top: rect.top - pad,
+            width: rect.width + pad * 2,
+            height: rect.height + pad * 2,
+          }}
+        />
+      )}
+
+
 
       <div
         ref={(node) => {
@@ -587,13 +612,27 @@ const HomeTour = () => {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => finish(true)}
-          className="mt-3 w-full text-center text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
-        >
-          Skip the tour
-        </button>
+        <div className="mt-3 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => setActive(false)}
+            aria-label="Minimise tour"
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+          >
+            Minimise
+            <Minus className="size-3" />
+          </button>
+          <span aria-hidden className="h-3 w-px bg-foreground/20" />
+          <button
+            type="button"
+            onClick={() => finish(true)}
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+          >
+            Skip the tour
+            <X className="size-3" />
+          </button>
+        </div>
+
       </div>
     </div>
   );
