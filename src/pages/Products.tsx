@@ -95,6 +95,36 @@ const Products = () => {
     return ordered;
   }, [filteredProducts]);
 
+  // Which shelf categories she has folded away. A view preference, so it lives
+  // in namespaced browser storage (per user id, cleared on sign-out) rather than
+  // a database column. Everything starts OPEN — collapsing is opt-in.
+  const [collapsedCategories, setCollapsedCategories] = useState<string[]>(() =>
+    readViewPref<string[]>(user?.id, "shelfCollapsedCategories", []),
+  );
+  // Re-read once the signed-in user is known (auth resolves after first paint).
+  useEffect(() => {
+    setCollapsedCategories(readViewPref<string[]>(user?.id, "shelfCollapsedCategories", []));
+  }, [user?.id]);
+
+  const toggleCategoryCollapsed = (slug: string) => {
+    setCollapsedCategories((prev) => {
+      const next = prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug];
+      writeViewPref(user?.id, "shelfCollapsedCategories", next);
+      return next;
+    });
+  };
+
+  // Search / filters run across EVERY product regardless of fold state; while
+  // either is active the panels are forced open so a match in a collapsed group
+  // still shows. Counts (tab total, filter counts) never look at fold state.
+  const filtersActive = Boolean(
+    filterState.search.trim() ||
+      filterState.categoryFilter ||
+      filterState.brandFilter ||
+      filterState.ratingFilter,
+  );
+
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     await remove(deleteTarget.id);
