@@ -236,7 +236,7 @@ const TrialPaywall = () => {
 
         {/* Price card — last thing before the pinned footer. No CTA inside it:
             the only call to action is in the footer. */}
-        <PriceCard price={price} tier={tier} trial={offerTrial} />
+        <PriceCard price={price} tier={tier} trial={offerTrial && !window.location.search.includes("noTrial")} />
       </main>
 
 
