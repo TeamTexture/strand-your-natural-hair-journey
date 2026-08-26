@@ -487,16 +487,8 @@ const Subscribe = () => {
                 <Sparkles className="size-3" /> {`STRAND+ · £${pricing.plus.toFixed(2)}`}
               </button>
             </div>
-            {tier === "plus" && (
-              <ul className="rounded-[14px] border border-primary/30 bg-primary/5 p-3 space-y-1.5">
-                {PLUS_EXTRAS.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[12px] font-body text-foreground/85">
-                    <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {tier === "plus" && <PlusExtrasList />}
+
           </div>
         )}
 
