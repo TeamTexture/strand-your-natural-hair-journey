@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
-import { addMemberToMailingList } from "@/lib/klaviyoMember";
+import { addMemberToMailingList, reportPaywallReached } from "@/lib/klaviyoMember";
 import { markTrialOffer, getTrialOfferState } from "@/lib/trialOffer";
 import { walledDestination } from "@/lib/trialWall";
 
@@ -213,6 +213,9 @@ const Auth = () => {
         // 3-day free trial paywall before the rest of onboarding.
         if (data.session && uid) {
           await markTrialOffer(uid);
+          // The stamp happens here and nowhere else, so this is the one place
+          // the paywall nurture list is reported from. Never awaited.
+          void reportPaywallReached();
           navigate("/onboarding/profile-step-1", { replace: true });
           return;
         }
