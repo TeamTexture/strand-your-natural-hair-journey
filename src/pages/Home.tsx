@@ -7,6 +7,10 @@ import { Compass, HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-re
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
+import {
+  OPEN_MAIN_PHOTO_EVENT,
+  MAIN_PHOTO_CLOSED_EVENT,
+} from "@/lib/firstRunTour";
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
