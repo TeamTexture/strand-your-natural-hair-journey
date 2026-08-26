@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useBackButtonContext } from "@/components/BackButtonContext";
 import { safeBack } from "@/lib/smartBack";
 import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
+import { ONBOARDING_PREV, onboardingPrevPath } from "@/lib/onboardingFlow";
+
 import NotificationsBell from "@/components/NotificationsBell";
 import { onboardingStepLabel } from "@/components/onboarding/OnboardingGuide";
 
@@ -51,8 +53,13 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
     }
     if (onBack) onBack();
     else if (returnTo) navigate(returnTo, { replace: true });
-    else safeBack(navigate, backFallback);
+    else if (ONBOARDING_PREV[location.pathname]) {
+      // Onboarding screens always step backwards through the flow — never out
+      // to /home, which a member mid-onboarding cannot reach anyway.
+      navigate(onboardingPrevPath(location.pathname), { replace: true });
+    } else safeBack(navigate, backFallback);
   };
+
 
 
   return (

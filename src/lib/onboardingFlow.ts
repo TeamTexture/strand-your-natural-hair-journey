@@ -23,7 +23,9 @@ export const ONBOARDING_PREV: Record<string, string> = {
   "/onboarding/blood-minerals": "/onboarding/blood-iron-vitamins",
   "/onboarding/blood-thyroid": "/onboarding/blood-minerals",
   "/onboarding/blood-hormones": "/onboarding/blood-thyroid",
+  "/onboarding/blood-ai-summary": "/onboarding/blood-hormones",
 };
+
 
 /** First step of the flow — used when we have nowhere sensible to go back to. */
 export const ONBOARDING_FIRST_STEP = "/onboarding/goal";
