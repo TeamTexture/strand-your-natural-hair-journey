@@ -31,6 +31,9 @@ type Step = {
   /** Optional in-step action, e.g. opening the photo picker. */
   action?: "add-photo";
   actionLabel?: string;
+  /** Panel this step opens while it is on screen, and closes when it leaves. */
+  openPanel?: "guidance";
+
 };
 
 const STEPS: Step[] = [
