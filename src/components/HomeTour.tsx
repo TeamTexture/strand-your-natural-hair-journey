@@ -424,6 +424,10 @@ const HomeTour = () => {
       )
     : null;
 
+  // Small icons need more breathing room than large cards so the ring does not
+  // crowd them.
+  const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
+
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
       {/* Dimmed backdrop with a cutout around the spotlit element */}
@@ -433,10 +437,10 @@ const HomeTour = () => {
             <rect width="100%" height="100%" fill="white" />
             {rect && settled && (
               <rect
-                x={rect.left - 8}
-                y={rect.top - 8}
-                width={rect.width + 16}
-                height={rect.height + 16}
+                x={rect.left - pad}
+                y={rect.top - pad}
+                width={rect.width + pad * 2}
+                height={rect.height + pad * 2}
                 rx={20}
                 ry={20}
                 fill="black"
@@ -452,36 +456,40 @@ const HomeTour = () => {
         />
       </svg>
 
+      {/* A live copy of the target painted above the dimmer, so small elements
+       *  in dim headers read at full brightness instead of through the scrim. */}
       {rect && settled && (
         <div
-          className="absolute rounded-[24px] border-2 border-primary shadow-[0_0_0_6px_rgba(197,160,89,0.22)] pointer-events-none transition-all duration-200"
-          style={{
-            left: rect.left - 8,
-            top: rect.top - 8,
-            width: rect.width + 16,
-            height: rect.height + 16,
+          aria-hidden
+          className="absolute pointer-events-none overflow-hidden rounded-[16px]"
+          style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+          ref={(node) => {
+            if (!node) return;
+            const src = findTarget(current.target);
+            if (!src) return;
+            const clone = src.cloneNode(true) as HTMLElement;
+            clone.style.margin = "0";
+            clone.style.position = "static";
+            clone.style.width = `${rect.width}px`;
+            clone.style.height = `${rect.height}px`;
+            node.replaceChildren(clone);
           }}
         />
       )}
 
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <button
-          onClick={() => setActive(false)}
-          aria-label="Minimise tour"
-          className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
-        >
-          Minimise
-          <Minus className="size-3.5" />
-        </button>
-        <button
-          onClick={() => finish(true)}
-          aria-label="Skip tour"
-          className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] text-white/85 hover:text-white bg-black/50 backdrop-blur px-3 py-2 rounded-full"
-        >
-          Skip tour
-          <X className="size-3.5" />
-        </button>
-      </div>
+      {rect && settled && (
+        <div
+          className="absolute rounded-[24px] border-2 border-primary shadow-[0_0_0_6px_rgba(197,160,89,0.22)] pointer-events-none transition-all duration-200"
+          style={{
+            left: rect.left - pad,
+            top: rect.top - pad,
+            width: rect.width + pad * 2,
+            height: rect.height + pad * 2,
+          }}
+        />
+      )}
+
+
 
       <div
         ref={(node) => {
