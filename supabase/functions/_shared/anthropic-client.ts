@@ -86,6 +86,16 @@ export interface ClaudeCallInput {
   /** Cost-meter attribution (Phase 2). Observation only — never affects the
    *  request sent to Anthropic. Populated by buildClaudeRequest. */
   meta?: AiCallMeta;
+  /**
+   * SPEED (2026-08): when provided, the request is made with `stream: true`
+   * and this callback receives the accumulated tool-input JSON string as it
+   * arrives, so the caller can surface partial results (product name, brand,
+   * ingredients) to the member seconds before the full verdict finishes.
+   * Everything else — parsing, guardrails, the returned result shape — is
+   * identical to the non-streaming path.
+   */
+  onPartialJson?: (accumulatedJson: string) => void;
+
 }
 
 export interface ClaudeUsage {
@@ -175,6 +185,143 @@ async function postOnce(
 }
 
 /**
+ * Streaming variant of postOnce. Reads Anthropic's SSE stream, reassembles
+ * exactly the same ClaudeApiResponse shape the non-streaming call returns, and
+ * calls `onPartialJson` with the accumulated tool-input JSON as deltas land.
+ * Nothing downstream changes — the caller still receives a fully parsed result.
+ */
+async function postStream(
+  apiKey: string,
+  body: Record<string, unknown>,
+  onPartialJson: (accumulatedJson: string) => void,
+): Promise<ClaudeApiResponse> {
+  const resp = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ ...body, stream: true }),
+  });
+  if (!resp.ok || !resp.body) {
+    const errBody = resp.body ? await resp.text() : "no stream body";
+    throw new ClaudeError(resp.status, errBody);
+  }
+
+  const out: ClaudeApiResponse = {
+    id: "",
+    type: "message",
+    role: "assistant",
+    content: [],
+    model: String(body.model ?? ""),
+    stop_reason: "",
+    usage: {},
+  };
+  // Per-index accumulators for the blocks that arrive as deltas.
+  const partialJson = new Map<number, string>();
+  const partialText = new Map<number, string>();
+
+  const handleEvent = (payload: string) => {
+    let ev: Record<string, unknown>;
+    try {
+      ev = JSON.parse(payload) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    const type = ev.type as string;
+    if (type === "message_start") {
+      const msg = ev.message as ClaudeApiResponse | undefined;
+      if (msg) {
+        out.id = msg.id ?? "";
+        out.model = msg.model ?? out.model;
+        out.usage = { ...(msg.usage ?? {}) };
+      }
+      return;
+    }
+    if (type === "content_block_start") {
+      const index = ev.index as number;
+      const block = { ...(ev.content_block as ClaudeApiContentBlock) };
+      out.content[index] = block;
+      if (block.type === "tool_use" || block.type === "server_tool_use") {
+        partialJson.set(index, "");
+      } else if (block.type === "text") {
+        partialText.set(index, block.text ?? "");
+      }
+      return;
+    }
+    if (type === "content_block_delta") {
+      const index = ev.index as number;
+      const delta = ev.delta as { type?: string; partial_json?: string; text?: string };
+      if (delta?.type === "input_json_delta" && typeof delta.partial_json === "string") {
+        const next = (partialJson.get(index) ?? "") + delta.partial_json;
+        partialJson.set(index, next);
+        // Only the caller-defined tool is worth surfacing; server tools
+        // (web_search) emit query JSON the member never sees.
+        if (out.content[index]?.type === "tool_use") {
+          try {
+            onPartialJson(next);
+          } catch {
+            // A failing consumer must never break the model call.
+          }
+        }
+      } else if (delta?.type === "text_delta" && typeof delta.text === "string") {
+        partialText.set(index, (partialText.get(index) ?? "") + delta.text);
+      }
+      return;
+    }
+    if (type === "content_block_stop") {
+      const index = ev.index as number;
+      const block = out.content[index];
+      if (!block) return;
+      const raw = partialJson.get(index);
+      if (raw !== undefined && (block.type === "tool_use" || block.type === "server_tool_use")) {
+        try {
+          block.input = raw.trim() ? JSON.parse(raw) : {};
+        } catch {
+          block.input = undefined;
+        }
+      }
+      const text = partialText.get(index);
+      if (text !== undefined && block.type === "text") block.text = text;
+      return;
+    }
+    if (type === "message_delta") {
+      const delta = ev.delta as { stop_reason?: string } | undefined;
+      if (delta?.stop_reason) out.stop_reason = delta.stop_reason;
+      const usage = ev.usage as Partial<ClaudeUsage> | undefined;
+      if (usage) out.usage = { ...(out.usage ?? {}), ...usage };
+      return;
+    }
+    if (type === "error") {
+      const err = ev.error as { message?: string } | undefined;
+      throw new ClaudeError(500, err?.message ?? "anthropic stream error");
+    }
+  };
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl = buffer.indexOf("\n");
+    while (nl !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (line.startsWith("data:")) handleEvent(line.slice(5).trim());
+      nl = buffer.indexOf("\n");
+    }
+  }
+
+  out.content = out.content.filter(Boolean);
+  return out;
+}
+
+
+
+/**
  * Call Claude. Returns either the parsed tool input (when toolChoice was
  * provided) or the free-text response. Single retry on 529 only.
  */
@@ -199,17 +346,21 @@ export async function callClaude<T = unknown>(
 
   const meterT0 = Date.now();
   let resp: ClaudeApiResponse;
+  const post = input.onPartialJson
+    ? (b: Record<string, unknown>) => postStream(apiKey, b, input.onPartialJson!)
+    : (b: Record<string, unknown>) => postOnce(apiKey, b);
   try {
     try {
-      resp = await postOnce(apiKey, body);
+      resp = await post(body);
     } catch (err) {
       if (err instanceof ClaudeError && err.status === 529) {
         await sleep(750);
-        resp = await postOnce(apiKey, body);
+        resp = await post(body);
       } else {
         throw err;
       }
     }
+
   } catch (err) {
     // Cost meter (Phase 2): record the failed attempt, then rethrow unchanged.
     if (input.meta) {
