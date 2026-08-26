@@ -245,7 +245,9 @@ const HomeTour = () => {
     const onClosed = () => {
       if (!pausedRef.current) return;
       pausedRef.current = false;
+      void refreshStylePhotos();
       setActive(true);
+
     };
     window.addEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
     return () =>
