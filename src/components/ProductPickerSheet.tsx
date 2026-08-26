@@ -57,7 +57,7 @@ const Row = ({
   p: UserProduct;
   selected: boolean;
   onClick: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) => (
   <div
     className={cn(
@@ -87,20 +87,33 @@ const Row = ({
           <MatchStars item={p} />
         </div>
       </div>
-      {selected && (
-        <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-          <Check className="size-3" />
-        </span>
-      )}
     </button>
+    {/* The one visible, labelled affordance. The row stays tappable too, but
+        nothing about "tap the row" was discoverable on its own. */}
     <button
       type="button"
-      aria-label={`Remove ${p.name}`}
-      onClick={onRemove}
-      className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-destructive"
+      onClick={onClick}
+      aria-label={selected ? `${p.name} already added` : `Add ${p.name}`}
+      className={cn(
+        "shrink-0 min-h-[32px] px-3 rounded-full text-[11px] font-medium border transition-colors inline-flex items-center gap-1",
+        selected
+          ? "bg-primary/15 text-primary border-primary/40"
+          : "bg-primary text-primary-foreground border-primary",
+      )}
     >
-      <Trash2 className="size-4" />
+      {selected && <Check className="size-3" />}
+      {selected ? "Added" : "Add"}
     </button>
+    {onRemove && (
+      <button
+        type="button"
+        aria-label={`Remove ${p.name}`}
+        onClick={onRemove}
+        className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="size-4" />
+      </button>
+    )}
   </div>
 );
 
