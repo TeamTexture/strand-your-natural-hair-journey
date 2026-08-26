@@ -62,3 +62,15 @@ export const setTourActive = (on: boolean) => {
   tourActive = on;
   window.dispatchEvent(new CustomEvent(TOUR_ACTIVE_EVENT, { detail: on }));
 };
+
+/**
+ * "The tour has been opened at least once in this session." Together with
+ * tourFinished() this lets other first-run prompts (e.g. the personalised
+ * offers ask) wait until the tour is completed or skipped instead of stacking
+ * up underneath it.
+ */
+let tourStarted = false;
+export const isTourStarted = () => tourStarted;
+export const markTourStarted = () => {
+  tourStarted = true;
+};

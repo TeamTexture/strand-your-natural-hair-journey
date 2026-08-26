@@ -10,13 +10,16 @@ import { Megaphone, X } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import { usePersonalisedOffersCard } from "@/hooks/usePersonalisedOffersCard";
+import { useFirstRunPromptsBlocked } from "@/hooks/useFirstRunPromptsBlocked";
 
 const PersonalisedOffersCard = () => {
   const { eligible, answer, dismiss } = usePersonalisedOffersCard();
   const [gone, setGone] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The guided tour owns the first-run moment; this ask waits its turn.
+  const blockedByTour = useFirstRunPromptsBlocked();
 
-  if (!eligible || gone) return null;
+  if (!eligible || gone || blockedByTour) return null;
 
   const choose = async (on: boolean) => {
     setBusy(true);
