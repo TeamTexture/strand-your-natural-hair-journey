@@ -37,7 +37,13 @@ const TrialWall = ({ children }: { children: ReactNode }) => {
   if (walled && !onboarding?.basicComplete) {
     if (onboardingLoading) return <LoadingDot />;
     if (isPrePaywallPath(location.pathname)) return <>{children}</>;
+    // The paywall itself comes AFTER About You — her postcode is what the whole
+    // trial is worth. Reaching it early sends her back to finish those two steps.
+    if (location.pathname === TRIAL_PAYWALL_PATH) {
+      return <Navigate to={walledDestination({ basicComplete: false, goalCaptured })} replace />;
+    }
     if (isTrialWallAllowedPath(location.pathname)) return <>{children}</>;
+
     return (
       <Navigate
         to={walledDestination({ basicComplete: false, goalCaptured })}
