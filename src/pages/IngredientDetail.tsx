@@ -64,6 +64,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
+import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
