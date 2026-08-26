@@ -146,10 +146,18 @@ const ManageSubscriptionSection = () => {
         ? `Paused · billing resumes ${resumesOn}`
         : "Paused · billing stopped until you resume"
       : cancelling
-        ? renews
-          ? `£${price.toFixed(2)} a month · access runs to ${renews}`
-          : `£${price.toFixed(2)} a month · cancelling at the end of this period`
-        : renews
+        ? onTrial
+          ? trialEnds
+            ? `Free trial · ends ${trialEnds} and nothing is charged`
+            : "Free trial · ends without a payment"
+          : renews
+            ? `£${price.toFixed(2)} a month · access runs to ${renews}`
+            : `£${price.toFixed(2)} a month · cancelling at the end of this period`
+        : onTrial
+          ? trialEnds
+            ? `Free trial · £${price.toFixed(2)} a month starts ${trialEnds}`
+            : `Free trial · then £${price.toFixed(2)} a month`
+          : renews
           ? `£${price.toFixed(2)} a month · renews ${renews}`
           : `£${price.toFixed(2)} a month`;
 
