@@ -6003,6 +6003,7 @@ export type Database = {
           added_to_shelf_at: string | null
           ai_summary: string | null
           analysis_generated_at: string | null
+          analysis_ingredients_hash: string | null
           analysis_profile_snapshot_hash: string | null
           brand: string | null
           category: string | null
@@ -6040,6 +6041,7 @@ export type Database = {
           added_to_shelf_at?: string | null
           ai_summary?: string | null
           analysis_generated_at?: string | null
+          analysis_ingredients_hash?: string | null
           analysis_profile_snapshot_hash?: string | null
           brand?: string | null
           category?: string | null
@@ -6077,6 +6079,7 @@ export type Database = {
           added_to_shelf_at?: string | null
           ai_summary?: string | null
           analysis_generated_at?: string | null
+          analysis_ingredients_hash?: string | null
           analysis_profile_snapshot_hash?: string | null
           brand?: string | null
           category?: string | null

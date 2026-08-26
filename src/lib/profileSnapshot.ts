@@ -107,3 +107,17 @@ export function currentProfileHash(ctx: SnapshotInput | null | undefined): strin
   const tl = level >= 1 && level <= 4 ? Math.round(level) : 2;
   return `${djb2Hex(canonicalStringify(snap))}:tl${tl}`;
 }
+
+// ── INGREDIENT FINGERPRINT ────────────────────────────────────────────────
+// A stored analysis is only valid for the INCI list it was computed against.
+// Order-insensitive and case-insensitive so a re-read of the same pack (which
+// can reorder or re-case names) does NOT invalidate a valid stored analysis.
+export function ingredientsFingerprint(list: unknown): string | null {
+  if (!Array.isArray(list)) return null;
+  const names = list
+    .map((v) => String(v ?? "").toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .sort();
+  if (names.length === 0) return null;
+  return djb2Hex(names.join("|"));
+}

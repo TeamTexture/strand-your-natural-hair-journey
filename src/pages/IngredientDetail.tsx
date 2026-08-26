@@ -64,6 +64,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
 import { useIngredientProfile } from "@/hooks/useIngredientProfile";
 import { buildAiContext } from "@/lib/aiContext";
+import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
@@ -594,7 +595,17 @@ const IngredientDetail = () => {
           try {
             await supabase
               .from("user_products")
-              .update({ match_score: freshScore, match_score_computed_at: new Date().toISOString() })
+              .update({
+                match_score: freshScore,
+                match_score_computed_at: new Date().toISOString(),
+                // Stamp the provenance the cache gate below reads, so this
+                // result is served from storage on every later open.
+                analysis_generated_at: new Date().toISOString(),
+                analysis_profile_snapshot_hash: currentProfileHash(context),
+                analysis_ingredients_hash: ingredientsFingerprint(
+                  (row as { ingredients?: unknown }).ingredients,
+                ),
+              })
               .eq("id", row.id);
             await reload();
             window.dispatchEvent(new CustomEvent("user-products-updated"));
@@ -613,18 +624,75 @@ const IngredientDetail = () => {
     [productKey, productName, productBrand, freshAnalysis, reload],
   );
 
-  // One analysis request per product, once the profile check has resolved.
+  // ── CACHE GATE — opening a product NEVER calls the AI ────────────────────
+  // A stored analysis is valid when the row carries one (score + generated_at),
+  // its stored profile snapshot hash equals the current one, and its stored INCI
+  // fingerprint equals the current one. When it is valid the saved payload is
+  // read straight out of ai_summaries — a plain table read, no edge function
+  // invocation, so no model call can happen — and rendered immediately.
+  // Re-analysis happens only when that check fails, or when the member asks for
+  // it explicitly ("Re-analyse").
   const ranForRef = useRef<string | null>(null);
   useEffect(() => {
     // Fresh-scan path: analysis is already in state, no need to re-fetch.
     if (freshAnalysis && !needsAnalysis) return;
     if (!productKey || !profileChecked) return;
     // Support level is part of the identity: guidance depth is level-specific,
-    // so changing level re-runs the analysis instead of showing stale depth.
+    // so a level change looks for that level's stored analysis.
     const runKey = `${productKey}:L${tipsLevel}`;
     if (ranForRef.current === runKey) return;
     ranForRef.current = runKey;
-    runAnalysis(false);
+    let cancelled = false;
+    (async () => {
+      const row = savedRowRef.current as
+        | (typeof savedRowRef.current & {
+            user_id?: string;
+            analysis_generated_at?: string | null;
+            analysis_profile_snapshot_hash?: string | null;
+            analysis_ingredients_hash?: string | null;
+          })
+        | null;
+      let reason = "";
+      const cached = await (async (): Promise<Analysis | null> => {
+        if (!row) { reason = "no_saved_row"; return null; }
+        if (matchScoreOf(row) == null || !row.analysis_generated_at) {
+          reason = "no_stored_analysis";
+          return null;
+        }
+        const storedIng = row.analysis_ingredients_hash ?? null;
+        const currentIng = ingredientsFingerprint(row.ingredients);
+        if (storedIng && currentIng && storedIng !== currentIng) {
+          reason = "ingredients_changed";
+          return null;
+        }
+        const storedHash = row.analysis_profile_snapshot_hash ?? null;
+        if (storedHash) {
+          const currentHash = currentProfileHash(await buildAiContext());
+          if (currentHash !== storedHash) { reason = "profile_changed"; return null; }
+        }
+        const { data } = await supabase
+          .from("ai_summaries")
+          .select("payload")
+          .eq("kind", `ingredient_analysis:${productKey}:L${tipsLevel}`)
+          .maybeSingle();
+        if (!data?.payload) { reason = "stored_payload_missing"; return null; }
+        return data.payload as unknown as Analysis;
+      })();
+      if (cancelled) return;
+      console.log("[analysis-cache] decision", {
+        product_key: productKey,
+        decision: cached ? "use_stored" : "analyse",
+        reason: cached ? "valid_stored_analysis" : reason,
+      });
+      if (cached) {
+        setAnalysis(cached);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+      runAnalysis(false);
+    })();
+    return () => { cancelled = true; };
   }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel]);
 
   // Save the freshly-scanned product into user_products. The scanning flow
@@ -1056,6 +1124,19 @@ const IngredientDetail = () => {
                 </div>
               );
             })()}
+            {/* The ONLY way a score is recomputed on demand. Opening this page
+                never re-analyses on its own. */}
+            {productRow && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => runAnalysis(true)}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground underline underline-offset-2 disabled:opacity-50"
+              >
+                <RefreshCw className="size-3" />
+                {loading ? "Re-analysing…" : "Re-analyse this product"}
+              </button>
+            )}
           </div>
 
         </SurfaceCard>
