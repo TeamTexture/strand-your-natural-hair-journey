@@ -2,7 +2,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
-import { pushToKlaviyoList, KLAVIYO_PAID_MEMBER_LIST_ID } from "../_shared/klaviyo.ts";
+import {
+  addToKlaviyoList,
+  logKlaviyoSync,
+  KLAVIYO_PAID_MEMBER_LIST_ID,
+} from "../_shared/klaviyo.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -165,33 +169,57 @@ async function upsertFromSubscription(
   );
   if (error) throw error;
 
-  // Paying members are mirrored onto the Klaviyo paid-members list. Never blocks
-  // the webhook — a Klaviyo outage must not cause Stripe retries.
+  // Paying AND trialing members are mirrored onto the Klaviyo paid-members list.
+  // Marketing consent is NOT set here — only list membership — unless the member
+  // has explicitly said yes on her profile. Never blocks the webhook: a Klaviyo
+  // outage must not cause Stripe retries, but the failure is logged to
+  // klaviyo_sync_log so it is queryable.
   if (sub.status === "active" || sub.status === "trialing") {
     try {
       const { data: prof } = await admin
         .from("profiles")
-        .select("display_name, phone_number")
+        .select("display_name, phone_number, personalised_offers_consent")
         .eq("user_id", userId)
         .maybeSingle();
       const { data: authUser } = await admin.auth.admin.getUserById(userId);
       const email = (authUser?.user?.email ?? "").toLowerCase();
       if (email) {
-        const err = await pushToKlaviyoList({
+        const err = await addToKlaviyoList({
           listId: KLAVIYO_PAID_MEMBER_LIST_ID,
           email,
           name: (prof as any)?.display_name ?? null,
           phone: (prof as any)?.phone_number ? String((prof as any).phone_number) : null,
+          marketingConsent: (prof as any)?.personalised_offers_consent === true,
           properties: {
             strand_account_type: "member",
             strand_paid: "true",
             strand_tier: tier,
+            strand_status: sub.status,
+            ...(sub.trial_end
+              ? { strand_trial_end: new Date(sub.trial_end * 1000).toISOString() }
+              : {}),
           },
         });
         if (err) console.error("[consumer-stripe-webhook] klaviyo paid push failed", err);
+        await logKlaviyoSync(admin as any, {
+          email,
+          user_id: userId,
+          list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
+          action: "paid_list_webhook",
+          ok: !err,
+          error: err,
+          context: { status: sub.status, tier },
+        });
       }
     } catch (e) {
       console.error("[consumer-stripe-webhook] klaviyo paid push threw", e);
+      await logKlaviyoSync(admin as any, {
+        user_id: userId,
+        list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
+        action: "paid_list_webhook",
+        ok: false,
+        error: e instanceof Error ? e.message : "threw",
+      });
     }
   }
 }
