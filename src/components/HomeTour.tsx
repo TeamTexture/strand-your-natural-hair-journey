@@ -389,6 +389,17 @@ const HomeTour = () => {
               {current.body}
             </p>
 
+            {current.action === "add-photo" && (
+              <Button
+                variant="gold"
+                size="pill"
+                className="w-full mt-4"
+                onClick={openPhotoPicker}
+              >
+                {current.actionLabel ?? "Add a photo now"}
+              </Button>
+            )}
+
             <div className="flex items-center gap-2 mt-4">
               {step > 0 && (
                 <Button variant="goldOutline" size="pill" className="flex-1" onClick={prev}>
