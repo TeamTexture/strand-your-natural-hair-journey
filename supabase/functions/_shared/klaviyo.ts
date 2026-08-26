@@ -22,6 +22,66 @@ export const KLAVIYO_MEMBER_LIST_ID = "VUuiA7";
 export const KLAVIYO_PAID_MEMBER_LIST_ID =
   Deno.env.get("KLAVIYO_PAID_LIST_ID") || "UehA5B";
 
+// ---- Nurture lists (created by hand in Klaviyo, ids supplied by Paige) ----
+// Deliberately env-only with NO fallback id: if the variable is missing the
+// push is skipped, logged once and the calling operation carries on. Never
+// hardcode a nurture list id here.
+export const paywallListId = (): string | null =>
+  (Deno.env.get("KLAVIYO_PAYWALL_LIST_ID") || "").trim() || null;
+export const abandonedListId = (): string | null =>
+  (Deno.env.get("KLAVIYO_ABANDONED_LIST_ID") || "").trim() || null;
+
+/** Looks up a Klaviyo profile id by email. Returns null when unknown. */
+export async function klaviyoProfileId(
+  key: string,
+  email: string,
+): Promise<string | null> {
+  const url =
+    `https://a.klaviyo.com/api/profiles/?filter=${encodeURIComponent(`equals(email,"${email}")`)}`;
+  const res = await fetch(url, { headers: headers(key) });
+  if (!res.ok) return null;
+  try {
+    const body = await res.json() as { data?: { id?: string }[] };
+    return body.data?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Removes a profile from a list. Membership only — marketing consent is never
+ * touched, so a member removed from a nurture list keeps her subscription state.
+ * Returns null on success (including "was not on the list") or an error string.
+ */
+export async function removeFromKlaviyoList(opts: {
+  listId: string;
+  email: string;
+}): Promise<string | null> {
+  const key = Deno.env.get("KLAVIYO_API_KEY");
+  if (!key) return "KLAVIYO_API_KEY missing";
+  const email = (opts.email ?? "").trim().toLowerCase();
+  if (!email) return "no email";
+  try {
+    const id = await klaviyoProfileId(key, email);
+    if (!id) return null; // no Klaviyo profile at all → nothing to remove
+    const res = await fetch(
+      `https://a.klaviyo.com/api/lists/${opts.listId}/relationships/profiles`,
+      {
+        method: "DELETE",
+        headers: headers(key),
+        body: JSON.stringify({ data: [{ type: "profile", id }] }),
+      },
+    );
+    if (!res.ok && res.status !== 404) {
+      return `klaviyo list removal ${res.status}: ${(await res.text()).slice(0, 400)}`;
+    }
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : "klaviyo removal failed";
+  }
+}
+
+
 function headers(key: string) {
   return {
     Authorization: `Klaviyo-API-Key ${key}`,
