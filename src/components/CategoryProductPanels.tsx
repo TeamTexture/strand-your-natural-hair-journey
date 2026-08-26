@@ -10,7 +10,7 @@
 // the panel header (chosen over hoisting a duplicate selected list, which would
 // render the same row twice and make the add/remove controls ambiguous).
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserProduct } from "@/hooks/useUserProducts";
@@ -27,6 +27,12 @@ interface Props {
   selectedIds?: string[];
   /** Short lists read better flat — below this many products, no panels. */
   flatBelow?: number;
+  /**
+   * Category to open on mount. Used by the picker sheet so a member coming back
+   * for a second product on the same step lands on the panel she just used
+   * instead of re-hunting for it. Session-only — the caller holds it.
+   */
+  initialOpenCategory?: ProductCategorySlug | null;
   renderRow: (p: UserProduct) => ReactNode;
   className?: string;
 }
@@ -36,6 +42,7 @@ const CategoryProductPanels = ({
   stepHint,
   selectedIds = [],
   flatBelow = 6,
+  initialOpenCategory = null,
   renderRow,
   className,
 }: Props) => {
@@ -43,7 +50,17 @@ const CategoryProductPanels = ({
     () => groupProductsByCategory(products, stepHint),
     [products, stepHint],
   );
-  const [open, setOpen] = useState<ProductCategorySlug[]>([]);
+  const [open, setOpen] = useState<ProductCategorySlug[]>(
+    initialOpenCategory ? [initialOpenCategory] : [],
+  );
+
+  // Re-seed when the caller hands over a different remembered category (the
+  // sheet is reopened for another step). Never collapses what she opened by
+  // hand within a single viewing — only reacts to the prop changing.
+  useEffect(() => {
+    if (initialOpenCategory) setOpen([initialOpenCategory]);
+  }, [initialOpenCategory]);
+
 
   if (products.length < flatBelow) {
     return (

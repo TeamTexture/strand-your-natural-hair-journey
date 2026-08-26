@@ -17,7 +17,11 @@ import CategoryProductPanels from "@/components/CategoryProductPanels";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { type StepProductHint } from "@/lib/productCategories";
+import {
+  normaliseProductCategory,
+  type ProductCategorySlug,
+  type StepProductHint,
+} from "@/lib/productCategories";
 
 
 interface Props {
@@ -27,6 +31,18 @@ interface Props {
   selectedIds: string[];
   /** Called when the user toggles a product on/off */
   onToggle: (productId: string) => void;
+  /**
+   * ADD-AND-RETURN commit. When provided, a row's "Add" attaches the product and
+   * hands the caller the category it came from, so the caller can close the
+   * sheet and return the member to the step she was filling in. Without it the
+   * sheet keeps its original toggle-and-stay behaviour.
+   */
+  onAdd?: (productId: string, category: ProductCategorySlug) => void;
+  /**
+   * Category to open on mount — the one she last added from on this step, so a
+   * second product is two taps rather than six. Session-only; the caller holds it.
+   */
+  initialOpenCategory?: ProductCategorySlug | null;
   /**
    * When provided, a pasted link is handed to the caller instead of taking the
    * member off to the analysis screen — used by style record steps, which
@@ -57,7 +73,7 @@ const Row = ({
   p: UserProduct;
   selected: boolean;
   onClick: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) => (
   <div
     className={cn(
@@ -87,26 +103,39 @@ const Row = ({
           <MatchStars item={p} />
         </div>
       </div>
-      {selected && (
-        <span className="size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-          <Check className="size-3" />
-        </span>
-      )}
     </button>
+    {/* The one visible, labelled affordance. The row stays tappable too, but
+        nothing about "tap the row" was discoverable on its own. */}
     <button
       type="button"
-      aria-label={`Remove ${p.name}`}
-      onClick={onRemove}
-      className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-destructive"
+      onClick={onClick}
+      aria-label={selected ? `${p.name} already added` : `Add ${p.name}`}
+      className={cn(
+        "shrink-0 min-h-[32px] px-3 rounded-full text-[11px] font-medium border transition-colors inline-flex items-center gap-1",
+        selected
+          ? "bg-primary/15 text-primary border-primary/40"
+          : "bg-primary text-primary-foreground border-primary",
+      )}
     >
-      <Trash2 className="size-4" />
+      {selected && <Check className="size-3" />}
+      {selected ? "Added" : "Add"}
     </button>
+    {onRemove && (
+      <button
+        type="button"
+        aria-label={`Remove ${p.name}`}
+        onClick={onRemove}
+        className="shrink-0 p-1.5 rounded-full text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="size-4" />
+      </button>
+    )}
   </div>
 );
 
 
 
-const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkSubmit, linkHint, stepHint, returnTo: returnToOverride }: Props) => {
+const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onAdd, initialOpenCategory = null, onLinkSubmit, linkHint, stepHint, returnTo: returnToOverride }: Props) => {
   const [tab, setTab] = useState<"shelf" | "wishlist">("shelf");
   const [showAdd, setShowAdd] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
@@ -295,15 +324,28 @@ const ProductPickerSheet = ({ open, onOpenChange, selectedIds, onToggle, onLinkS
               stepHint={stepHint}
               selectedIds={selectedIds}
               flatBelow={SECTION_THRESHOLD}
+              initialOpenCategory={initialOpenCategory}
               renderRow={(p) => (
                 <Row
                   p={p}
                   selected={isSelected(p.id)}
-                  onClick={() => onToggle(p.id)}
-                  onRemove={() => setPendingRemove(p)}
+                  onClick={() => {
+                    if (onAdd) {
+                      onAdd(p.id, normaliseProductCategory(p.category));
+                      return;
+                    }
+                    onToggle(p.id);
+                  }}
+
+                  // In an add-and-return picker the bin is a shelf-management
+                  // action wearing a picker's clothes — it deletes the product
+                  // from the app, not from the step. Hidden here; still on the
+                  // Products screen where it belongs.
+                  onRemove={onAdd ? undefined : () => setPendingRemove(p)}
                 />
               )}
             />
+
           )}
 
         </div>

@@ -1,5 +1,5 @@
 import { smartBack } from "@/lib/smartBack";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, X, Flame, Loader2, Plus } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -37,6 +37,8 @@ import GuidanceCard from "@/components/guidance/GuidanceCard";
 import ActionList from "@/components/guidance/ActionList";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import { emphasisSplit } from "@/lib/tipsRender";
+import { anchorProps, applyScrollMark } from "@/lib/scrollMemory";
+import type { ProductCategorySlug } from "@/lib/productCategories";
 
 /** Format a user product as a single chip label, e.g. "Honey & Turmeric Deep Cond — TGIN". */
 const formatProduct = (p: UserProduct): string =>
@@ -109,6 +111,8 @@ const StepCard = ({
   summaryChips,
   /** Show a "from your last wash day" hint above the picked list. */
   showLastWashHint = false,
+  /** Stable scroll anchor so add-and-return lands on this exact step. */
+  anchorId,
 }: {
   step: Step;
   state: StepState;
@@ -119,6 +123,7 @@ const StepCard = ({
   editor?: React.ReactNode;
   summaryChips?: string[];
   showLastWashHint?: boolean;
+  anchorId?: string;
 }) => {
 
   const isEditing = state === "editing";
@@ -127,7 +132,7 @@ const StepCard = ({
   const productLabels = selectedProducts.map(formatProduct);
   const chips = summaryChips ?? productLabels;
   return (
-    <SurfaceCard className={cn(isSkipped && "opacity-70")}>
+    <SurfaceCard className={cn(isSkipped && "opacity-70")} {...anchorProps(anchorId)}>
       <div className="flex items-center gap-3">
         <div
           className={cn(
@@ -491,10 +496,39 @@ const WashStep1 = () => {
     },
     [setStepState],
   );
+  /**
+   * Add-and-return: adding closes the sheet, so we remember where she was so
+   * she comes back looking at the step she was filling in, and which category
+   * she added from so a second product on that step is two taps. Session-only
+   * (component state) — nothing persisted.
+   */
+  const returnMarkRef = useRef<{ offset: number; anchorId?: string } | null>(null);
+  const [lastCategory, setLastCategory] = useState<
+    Partial<Record<Exclude<PickerTarget, null>, ProductCategorySlug>>
+  >({});
+  const scrollContainer = () =>
+    (document.querySelector("main.overflow-y-auto") as HTMLElement | null) ?? null;
   const openPicker = (target: Exclude<PickerTarget, null>) => {
+    const container = scrollContainer();
+    returnMarkRef.current = {
+      offset: container?.scrollTop ?? 0,
+      anchorId: `anchor-washstep-${target}`,
+    };
     restorePickerTarget(target);
     setPickerOpen(true);
   };
+  /** Restore the remembered position once the sheet has unmounted and the step re-rendered. */
+  const returnToStep = useCallback(() => {
+    const mark = returnMarkRef.current;
+    if (!mark) return;
+    let tries = 0;
+    const tick = () => {
+      const container = scrollContainer();
+      if (container && applyScrollMark(container, mark)) return;
+      if (tries++ < 20) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, []);
   const pickerReturnTo = useMemo(() => {
     if (!pickerTarget) return undefined;
     const next = new URLSearchParams(searchParams);
@@ -524,6 +558,19 @@ const WashStep1 = () => {
       current.includes(productId) ? current.filter((id) => id !== productId) : [...current, productId],
     );
   };
+  /** The sheet's explicit "Add" — attach, remember, close, return to the step. */
+  const handleAddPicked = (productId: string, category: ProductCategorySlug) => {
+    const target = pickerTarget;
+    if (!target) return;
+    markTouched(target);
+    const current = targetIds[target];
+    if (!current.includes(productId)) targetSetters[target]([...current, productId]);
+    setLastCategory((prev) => ({ ...prev, [target]: category }));
+    setPickerOpen(false);
+    setPickerTarget(null);
+    returnToStep();
+  };
+
 
 
   // When the user adds a brand new product via the picker (auto_save) they
@@ -625,6 +672,7 @@ const WashStep1 = () => {
           onRemoveProduct={removeFrom(setPrePooIds, prePooIds, "prepoo")}
           showLastWashHint={hintFor("prepoo", prePooSelected.length)}
           onOpenPicker={() => openPicker("prepoo")}
+          anchorId={`washstep-prepoo`}
         />
         <StepCard
           step={{ id: "2", emoji: "💧", name: "Cleanse", sub: "Shampoo — clarifying or gentle" }}
@@ -634,6 +682,7 @@ const WashStep1 = () => {
           onRemoveProduct={removeFrom(setCleanseIds, cleanseIds, "cleanse")}
           showLastWashHint={hintFor("cleanse", cleanseSelected.length)}
           onOpenPicker={() => openPicker("cleanse")}
+          anchorId={`washstep-cleanse`}
         />
         <StepCard
           step={{ id: "2b", emoji: "🧴", name: "Co-wash", sub: "Conditioning wash (between shampoos)" }}
@@ -643,6 +692,7 @@ const WashStep1 = () => {
           onRemoveProduct={removeFrom(setCoWashIds, coWashIds, "cowash")}
           showLastWashHint={hintFor("cowash", coWashSelected.length)}
           onOpenPicker={() => openPicker("cowash")}
+          anchorId={`washstep-cowash`}
         />
         {/* Science-grounded caution: cationic surfactants in co-washes (e.g.
             behentrimonium methosulfate / cetrimonium chloride) condition and
@@ -681,6 +731,7 @@ const WashStep1 = () => {
           onRemoveProduct={removeFrom(setConditionIds, conditionIds, "condition")}
           showLastWashHint={hintFor("condition", conditionSelected.length)}
           onOpenPicker={() => openPicker("condition")}
+          anchorId={`washstep-condition`}
           // Once Done, surface the conditioner(s) the user picked + the heat-treatment answer
           // as chips so they can see at a glance what they captured for this step.
           summaryChips={[
@@ -718,6 +769,7 @@ const WashStep1 = () => {
           onRemoveProduct={removeFrom(setTreatmentIds, treatmentIds, "treatment")}
           showLastWashHint={hintFor("treatment", treatmentSelected.length)}
           onOpenPicker={() => openPicker("treatment")}
+          anchorId={`washstep-treatment`}
           // Show the treatment type tags the user picked, plus the products they selected
           // and the treatment-step heat answer — independent of the conditioner's.
           summaryChips={[
@@ -956,6 +1008,8 @@ const WashStep1 = () => {
         stepHint={pickerTarget}
         returnTo={pickerReturnTo}
         onToggle={handleTogglePicked}
+        onAdd={handleAddPicked}
+        initialOpenCategory={pickerTarget ? lastCategory[pickerTarget] ?? null : null}
 
       />
     </ScreenLayout>
