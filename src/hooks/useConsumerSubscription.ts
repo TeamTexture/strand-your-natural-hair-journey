@@ -16,6 +16,7 @@ export type ConsumerSubscription = {
   tier?: "standard" | "plus" | null;
   paused?: boolean | null;
   pause_resumes_at?: string | null;
+  trial_end?: string | null;
 };
 
 /**
