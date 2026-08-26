@@ -22,6 +22,7 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { bloodFingerprint, readSurfaceCache, sha } from "../_shared/surface-cache.ts";
 
 declare const Deno: {
@@ -32,6 +33,9 @@ declare const Deno: {
 const MODEL_VERSION = "claude-opus-4-7@v3-manuscript-2026-08-09";
 
 interface RequestBody {
+  dryRun?: boolean;
+  impersonatedUserId?: string;
+  impersonation?: { targetUserId?: string; impersonatedBy?: string | null };
   force?: boolean;
   context?: Record<string, unknown>;
   diet?: string;
@@ -76,7 +80,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch, setAiCallUser } from "../_shared/ai-meter.ts";
+import { gatewayFetch, setAiCallImpersonation, setAiCallUser } from "../_shared/ai-meter.ts";
 import {
   MAX_REJECTION_ATTEMPTS,
   buildRejectionRetryInstruction,
@@ -667,25 +671,32 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData } = await supabase.auth.getUser();
-    const user = userData?.user;
-    if (!user) return json(401, { error: "Unauthorized" });
-    // Attribute every ai_call_log row from this request to this member, so a
-    // guardrail rejection is traceable to the person it broke (2026-08-26).
-    setAiCallUser(user.id);
-    // Paid feature: a lapsed membership loses AI guidance.
-    if (!(await isEntitled(user.id))) return membershipRequired();
+    const authUser = userData?.user;
+    if (!authUser) return json(401, { error: "Unauthorized" });
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
+    const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, supabase as never);
+    if (mode instanceof Response) return mode;
+    const memberId = mode.userId;
+    const dataClient = mode.dryRun
+      ? createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+      : supabase;
+    // Attribute every ai_call_log row from this request to this member, so a
+    // guardrail rejection is traceable to the person it broke (2026-08-26).
+    setAiCallUser(memberId);
+    setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
+    // Paid feature: a lapsed membership loses AI guidance.
+    if (!(await isEntitled(memberId))) return membershipRequired();
     const { force, context, diet, dietOther, alcohol, flaggedMarkers } = body;
 
     // Allergies and intolerances are a hard pre-generation filter. Decrypted
     // in memory here — never matched in SQL.
-    const sens = await loadSensitivities(supabase, user.id, "dietary");
+    const sens = await loadSensitivities(dataClient, memberId, "dietary");
     const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
 
     const provider = readAiProvider("STRAND_AI_PROVIDER_NUTRITION");
     console.log("[nutrition-debug] start", {
-      user_id: user.id,
+      user_id: memberId,
       provider,
       hasBloodResults: Array.isArray((context as { bloodResults?: unknown[] } | undefined)?.bloodResults)
         && ((context as { bloodResults?: unknown[] }).bloodResults?.length ?? 0) > 0,
@@ -703,7 +714,7 @@ Deno.serve(async (req: Request) => {
     // with every render and made each page view pay for a cold generation.
     // An explicit `force` (the member tapped "Generate a new plan") still
     // regenerates once.
-    const bloodFp = await bloodFingerprint(supabase, user.id);
+    const bloodFp = await bloodFingerprint(dataClient, memberId);
     const sig = await sha(JSON.stringify({
       schema_version: "v7-full-detail-2026-08-15",
       model_version: MODEL_VERSION,
@@ -723,7 +734,7 @@ Deno.serve(async (req: Request) => {
     }));
 
     if (!force) {
-      const cached = await readSurfaceCache(supabase, user.id, "nutrition_plan", sig);
+      const cached = await readSurfaceCache(dataClient, memberId, "nutrition_plan", sig);
       if (cached) {
         console.log("[nutrition-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
@@ -739,7 +750,7 @@ Deno.serve(async (req: Request) => {
     const ceiling = await checkGlobalCeiling("nutrition-plan");
     if (ceiling) return ceiling;
 
-    const capped = await checkDailyCap(user.id, "nutrition-plan", 8);
+    const capped = await checkDailyCap(memberId, "nutrition-plan", 8);
     if (capped) return capped;
 
     let payload: NutritionPlanPayload | null = null;
@@ -752,10 +763,10 @@ Deno.serve(async (req: Request) => {
       ...p.avoid.flatMap((x) => Object.values(x ?? {}).map(String)),
     ];
     const lastGoodPlan = async () => {
-      const { data: prior } = await supabase
+      const { data: prior } = await dataClient
         .from("ai_summaries")
         .select("payload")
-        .eq("user_id", user.id)
+        .eq("user_id", memberId)
         .eq("kind", "nutrition_plan")
         .maybeSingle();
       const priorPayload = prior?.payload as Record<string, unknown> | null;
@@ -771,10 +782,10 @@ Deno.serve(async (req: Request) => {
         : "";
       if (provider === "claude") {
         // Pull last 5 wash days where the user reported a hair-feel signal.
-        const { data: recentRaw } = await supabase
+        const { data: recentRaw } = await dataClient
           .from("wash_days")
           .select("wash_date, scalp_feel, breakage, hair_feel_note")
-          .eq("user_id", user.id)
+          .eq("user_id", memberId)
           .order("wash_date", { ascending: false })
           .limit(15);
         const recentSignals = (recentRaw ?? [])
@@ -855,11 +866,12 @@ Deno.serve(async (req: Request) => {
       payload = await sanitiseAndLog(payload, "nutrition-plan", {
         context: body.context,
         surface: "nutrition-plan",
-        userId: user.id,
+        userId: memberId,
         generationId,
         attemptNumber,
         maxAttempts: MAX_REJECTION_ATTEMPTS,
         retryReason: retryReasonFromRules(retryRules),
+        dryRun: mode.dryRun,
         onRejected: (rules) => rejected.push(...rules),
       }) as NutritionPlanPayload;
       if (rejected.length === 0) break;
@@ -883,22 +895,24 @@ Deno.serve(async (req: Request) => {
       ...(providerStamp === "claude" ? { _model_version: MODEL_VERSION } : {}),
     } as Record<string, unknown>;
 
-    const { data: prior } = await supabase
-      .from("ai_summaries")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("kind", "nutrition_plan")
-      .maybeSingle();
+    if (!mode.dryRun) {
+      const { data: prior } = await dataClient
+        .from("ai_summaries")
+        .select("id")
+        .eq("user_id", memberId)
+        .eq("kind", "nutrition_plan")
+        .maybeSingle();
 
-    if (prior?.id) {
-      await supabase
-        .from("ai_summaries")
-        .update({ payload: stamped, updated_at: new Date().toISOString() })
-        .eq("id", prior.id);
-    } else {
-      await supabase
-        .from("ai_summaries")
-        .insert({ user_id: user.id, kind: "nutrition_plan", payload: stamped });
+      if (prior?.id) {
+        await dataClient
+          .from("ai_summaries")
+          .update({ payload: stamped, updated_at: new Date().toISOString() })
+          .eq("id", prior.id);
+      } else {
+        await dataClient
+          .from("ai_summaries")
+          .insert({ user_id: memberId, kind: "nutrition_plan", payload: stamped });
+      }
     }
 
     console.log("[nutrition-debug] all done", {

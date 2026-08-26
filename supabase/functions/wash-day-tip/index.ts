@@ -42,7 +42,8 @@ import {
   userIdFromRequest,
 } from "../_shared/advice-ledger.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch, recordAiOutcome, setAiCallUser } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome, setAiCallImpersonation, setAiCallUser } from "../_shared/ai-meter.ts";
+import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import {
   MAX_REJECTION_ATTEMPTS,
   buildRejectionRetryInstruction,
@@ -94,6 +95,9 @@ interface TipPayload {
 
 interface Body {
   fingerprint: string;
+  dryRun?: boolean;
+  impersonatedUserId?: string;
+  impersonation?: { targetUserId?: string; impersonatedBy?: string | null };
   hairProfile?: Record<string, unknown> | null;
   healthProfile?: Record<string, unknown> | null;
   goals?: Array<{ title?: string; category?: string }>;
@@ -205,13 +209,8 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: userData } = await userClient.auth.getUser();
-  const user = userData?.user;
-  if (!user) return json(401, { error: "unauthenticated" });
-  // Attribute every ai_call_log row from this request to this member, so a
-  // guardrail rejection is traceable to the person it broke (2026-08-26).
-  setAiCallUser(user.id);
-  // Paid feature: a lapsed membership loses AI guidance.
-  if (!(await isEntitled(user.id))) return membershipRequired();
+  const authUser = userData?.user;
+  if (!authUser) return json(401, { error: "unauthenticated" });
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   let body: Body;
@@ -221,6 +220,13 @@ Deno.serve(async (req) => {
     return json(400, { error: "invalid json" });
   }
   if (!body?.fingerprint) return json(400, { error: "fingerprint required" });
+
+  const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, userClient as never);
+  if (mode instanceof Response) return mode;
+  const memberId = mode.userId;
+  setAiCallUser(memberId);
+  setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
+  if (!(await isEntitled(memberId))) return membershipRequired();
 
   const isStyle = body.surface === "style";
   const kind = isStyle ? "style_tip" : "wash_day_tip";
@@ -234,7 +240,7 @@ Deno.serve(async (req) => {
       recordAiOutcome({
         function_name: "wash-day-tip",
         surface: isStyle ? "style" : "wash_day",
-        user_id: user.id,
+        user_id: memberId,
         outcome: "rejected",
         rejection_rule: rule,
       });
@@ -263,7 +269,7 @@ Deno.serve(async (req) => {
     : await admin
       .from("ai_summaries")
       .select("payload")
-      .eq("user_id", user.id)
+      .eq("user_id", memberId)
       .eq("kind", kind)
       .maybeSingle();
   const cachedPayload = cached?.payload as TipPayload | null;
@@ -399,7 +405,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     : "";
 
 
-  const ledger = await fetchAdviceLedger(user.id);
+  const ledger = await fetchAdviceLedger(memberId);
   const ledgerBlock = buildAdviceLedgerBlock(ledger);
 
   const grounding = await buildGroundingBlock({
@@ -417,7 +423,7 @@ Do not substitute other cleansing or sealing methods for these two.`
 
   // NO PRODUCT NAMES + minimal caps. The forbidden-name index is resolved from
   // the database with the service client — never from anything the client sent.
-  const wall = await buildProductNameWall(admin as never, user.id, body.shelfProducts ?? []);
+  const wall = await buildProductNameWall(admin as never, memberId, body.shelfProducts ?? []);
   // ONE spec + grounding + the mandatory cornrow guidance + the validated level
   // caps + the anti-repetition ledger. The generic app-wide verbosity block and
   // the separate no-product-names block are NOT appended any more: both are now
@@ -431,7 +437,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   try {
     aiResp = await gatewayFetch({
       ...AI_METER_META,
-      user_id: user.id,
+      user_id: memberId,
       generation_id: generationId,
       attempt_number: 1,
       max_attempts: MAX_REJECTION_ATTEMPTS,
@@ -566,13 +572,13 @@ Do not substitute other cleansing or sealing methods for these two.`
     : { ok: false, reasons: ["output_unparseable_or_incomplete"] };
 
   if (!verdict.ok) {
-    await logTipRejection(isStyle ? "style-tip" : "wash-day-tip", verdict.reasons, raw.slice(0, 4000));
+    await logTipRejection(isStyle ? "style-tip" : "wash-day-tip", verdict.reasons, raw.slice(0, 4000), mode.dryRun);
     // One regeneration pass with the corrective directive. Grounding block is
     // resent unchanged — the retry never relaxes it.
     try {
       const retryResp = await gatewayFetch({
         ...AI_METER_META,
-        user_id: user.id,
+          user_id: memberId,
         generation_id: generationId,
         attempt_number: 1,
         max_attempts: MAX_REJECTION_ATTEMPTS,
@@ -613,6 +619,7 @@ Do not substitute other cleansing or sealing methods for these two.`
               isStyle ? "style-tip" : "wash-day-tip",
               ["retry_failed", ...retryVerdict.reasons],
               raw.slice(0, 4000),
+              mode.dryRun,
             );
           }
         }
@@ -630,7 +637,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     try {
       const salvage = await gatewayFetch({
         ...AI_METER_META,
-        user_id: user.id,
+        user_id: memberId,
         generation_id: generationId,
         attempt_number: 1,
         max_attempts: MAX_REJECTION_ATTEMPTS,
@@ -697,6 +704,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["served_degraded", ...verdict.reasons],
       raw.slice(0, 4000),
+      mode.dryRun,
     );
   }
 
@@ -748,6 +756,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["redacted_product_name", ...stillNamed.map((n) => n.slice(0, 60))],
       raw.slice(0, 4000),
+      mode.dryRun,
     );
   }
 
@@ -761,10 +770,11 @@ Do not substitute other cleansing or sealing methods for these two.`
     context: body,
     grounding: grounding.block,
     surface: isStyle ? "style-tip" : "wash-day-tip",
-    userId: user.id,
+    userId: memberId,
     generationId,
     attemptNumber: 1,
     maxAttempts: MAX_REJECTION_ATTEMPTS,
+    dryRun: mode.dryRun,
     onRejected: (rules) => guardrailRejected.push(...rules),
   });
 
@@ -774,10 +784,11 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["guardrail_retry", ...retryRules],
       JSON.stringify(finalPayload).slice(0, 3000),
+      mode.dryRun,
     );
     const retryResp = await gatewayFetch({
       ...AI_METER_META,
-      user_id: user.id,
+      user_id: memberId,
       generation_id: generationId,
       attempt_number: attemptNumber,
       max_attempts: MAX_REJECTION_ATTEMPTS,
@@ -833,11 +844,12 @@ Do not substitute other cleansing or sealing methods for these two.`
       context: body,
       grounding: grounding.block,
       surface: isStyle ? "style-tip" : "wash-day-tip",
-      userId: user.id,
+      userId: memberId,
       generationId,
       attemptNumber,
       maxAttempts: MAX_REJECTION_ATTEMPTS,
       retryReason: retryReasonFromRules(retryRules),
+      dryRun: mode.dryRun,
       onRejected: (rules) => guardrailRejected.push(...rules),
     });
   }
@@ -850,6 +862,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["reason_removed_by_guardrail", "repair_attempted"],
       String(capped.reason ?? "").slice(0, 1000),
+      mode.dryRun,
     );
     try {
       const repairResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -906,6 +919,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         isStyle ? "style-tip" : "wash-day-tip",
         ["reason_unrecoverable_after_repair"],
         raw.slice(0, 2000),
+        mode.dryRun,
       );
     }
   }
@@ -919,6 +933,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["not_cached_empty_action_or_reason"],
       JSON.stringify(finalPayload).slice(0, 2000),
+      mode.dryRun,
     );
     // AND IT IS NEVER SERVED EITHER. A headline with no action is not a tip:
     // returning it rendered an empty gold card. Fail explicitly so the client
@@ -944,20 +959,20 @@ Do not substitute other cleansing or sealing methods for these two.`
     });
   }
 
-  if (cacheable && !isDiagnostic) {
+  if (cacheable && !isDiagnostic && !mode.dryRun) {
     await admin
       .from("ai_summaries")
       .upsert(
-        { user_id: user.id, kind, payload: finalPayload },
+        { user_id: memberId, kind, payload: finalPayload },
         { onConflict: "user_id,kind" },
       );
   }
 
-  if (!isDiagnostic) {
-    await recordAdvice(user.id, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.next_time ?? ""]);
+  if (!isDiagnostic && !mode.dryRun) {
+    await recordAdvice(memberId, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.next_time ?? ""]);
   }
 
-  return json(200, { tip: finalPayload, cached: false, persisted: cacheable && !isDiagnostic });
+  return json(200, { tip: finalPayload, cached: false, persisted: cacheable && !isDiagnostic && !mode.dryRun });
 
 });
 

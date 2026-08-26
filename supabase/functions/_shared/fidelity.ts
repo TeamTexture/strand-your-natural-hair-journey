@@ -376,6 +376,8 @@ export interface VerifyOptions {
   attempt?: number;
   /** Skip the model pass (deterministic rules always run). */
   skipTraceability?: boolean;
+  /** Dry-run generation for admin impersonation: enforce but do not write rejection rows. */
+  dryRun?: boolean;
 }
 
 /**
@@ -406,11 +408,13 @@ export async function verifyFidelity<T>(
         violations: violations.map((v) => v.rule),
       }),
     );
-    await logRejections(opts.functionName, violations, {
-      attempt,
-      regenerated: attempt > 1,
-      chapters: opts.chapters,
-    });
+    if (!opts.dryRun) {
+      await logRejections(opts.functionName, violations, {
+        attempt,
+        regenerated: attempt > 1,
+        chapters: opts.chapters,
+      });
+    }
   }
   return { ok: violations.length === 0, violations };
 }
@@ -576,12 +580,14 @@ export async function enforceFidelity<T>(
   sourceText: string,
   chapters: number[] = [],
   opts: { skipTraceability?: boolean } = {},
+  dryRun = false,
 ): Promise<T> {
   const result = await verifyFidelity(payload, {
     functionName,
     sourceText,
     chapters,
     skipTraceability: opts.skipTraceability || !sourceText.trim(),
+    dryRun,
   });
   if (result.ok) return payload;
   return stripDeep(payload, result.violations.map((v) => v.claim));

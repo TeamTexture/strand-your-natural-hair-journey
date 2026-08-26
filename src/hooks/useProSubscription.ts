@@ -18,15 +18,15 @@ const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 export function useProSubscription() {
   // Keyed to the effective identity so admin Shadow View reflects the
   // impersonated professional rather than the admin's own billing state.
-  const { actualUser, user } = useAuth();
+  const { user } = useAuth();
   const q = useQuery({
-    queryKey: ["pro_subscription", user?.id ?? actualUser?.id],
-    enabled: !!(user?.id ?? actualUser?.id),
+    queryKey: ["pro_subscription", user?.id],
+    enabled: !!user?.id,
     queryFn: async (): Promise<ProSubscription | null> => {
       const { data, error } = await supabase
         .from("pro_subscriptions")
         .select("*")
-        .eq("pro_user_id", (user?.id ?? actualUser!.id) as string)
+        .eq("pro_user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       return (data as ProSubscription | null) ?? null;

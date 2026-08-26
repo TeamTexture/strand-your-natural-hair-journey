@@ -251,13 +251,14 @@ export async function enforceBloodSafety<T>(
   value: T,
   fn: string,
   grounding: Grounding = "",
+  opts: { dryRun?: boolean } = {},
 ): Promise<T> {
   try {
     const dropped: GuardResult<unknown>["dropped"] = [];
     const cleaned = walk(value, grounding, dropped);
     if (dropped.length > 0) {
       console.warn(`[blood-guardrail] ${fn}: rejected ${dropped.length} sentence(s)`);
-      await logDrops(fn, dropped);
+      if (!opts.dryRun) await logDrops(fn, dropped);
     }
     return cleaned;
   } catch (e) {

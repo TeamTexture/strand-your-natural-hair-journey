@@ -6,11 +6,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { loadStyleTipContext } from "@/hooks/useDynamicWashTip";
 import type { GuidanceTip } from "@/lib/tipsRender";
+import { aiInvoke } from "@/lib/aiInvoke";
 import {
   hashString,
   loadResponsiveSignals,
@@ -26,6 +26,13 @@ interface StyleTipPayload {
   why: string;
   technique: string;
 }
+
+interface StyleTipResponse {
+  tip?: StyleTipPayload;
+}
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error ?? "Unknown error");
 
 export function useStyleTip() {
   const { user } = useAuth();
@@ -65,8 +72,7 @@ export function useStyleTip() {
         ].join("::"),
       );
 
-      const { data, error } = await supabase.functions.invoke("wash-day-tip", {
-        body: {
+      const { data, error } = await aiInvoke<StyleTipResponse>("wash-day-tip", {
           surface: "style",
           fingerprint,
           hairProfile: h,
@@ -89,14 +95,13 @@ export function useStyleTip() {
           recentWashDay: signals.recentWashDay,
           recentAppointment: signals.recentAppointment,
           tipsLevel: level,
-        },
       });
 
       if (error) {
-        console.warn("[useStyleTip] invoke failed", error.message);
+        console.warn("[useStyleTip] invoke failed", errorMessage(error));
         return [];
       }
-      const tip = (data as { tip?: StyleTipPayload } | null)?.tip;
+      const tip = data?.tip;
       if (!tip?.headline) return [];
 
       const tips: GuidanceTip[] = [

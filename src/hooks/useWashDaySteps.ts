@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { aiInvoke } from "@/lib/aiInvoke";
 import {
   aiRetryDelay,
   AiRejectedError,
@@ -149,8 +150,7 @@ export function useWashDaySteps() {
         ].join("::"),
       );
 
-      const { data, error } = await supabase.functions.invoke("wash-day-steps", {
-        body: {
+      const { data, error } = await aiInvoke("wash-day-steps", {
           fingerprint,
           hairProfile: h,
           currentStyle: s
@@ -184,7 +184,6 @@ export function useWashDaySteps() {
             category: t.category,
           })),
           tipsLevel: level,
-        },
       });
       // Classified before it leaves the queryFn, so React Query's `retry` can
       // tell "nothing was generated" from "a generation was rejected".

@@ -33,6 +33,7 @@ import MatchStars from "@/components/MatchStars";
 import { matchScoreOf, scoreTone as toneForScore } from "@/lib/matchStars";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
 import { buildAiContext } from "@/lib/aiContext";
+import { aiInvoke } from "@/lib/aiInvoke";
 import BrandLink from "@/components/BrandLink";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
@@ -54,6 +55,16 @@ interface IngredientFlag {
   body: string;
   /** Server-set when the ingredient matches a declared topical sensitivity. */
   sensitivity?: boolean;
+}
+
+interface IngredientAnalysisResponse {
+  error?: string;
+  analysis?: {
+    ingredients?: IngredientFlag[];
+    summary?: string;
+    match_score?: number;
+    score_reasons?: unknown;
+  };
 }
 
 const formatDate = (iso: string) => {
@@ -81,7 +92,7 @@ const ProductProfile = () => {
   const navigate = useNavigate();
   const { level: tipsLevel } = useTipsLevel();
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, isViewingAs } = useAuth();
   const { allProducts, loading, setShelf, setWishlist, remove, reload } = useUserProducts("all");
   const { washDays } = useWashDays();
   const { flags } = useIngredientLists();
@@ -221,8 +232,7 @@ const ProductProfile = () => {
           catch { return null; }
         })();
         const challenges = allChallenges(goals);
-        const { data, error } = await supabase.functions.invoke("ingredient-analysis", {
-          body: {
+        const { data, error } = await aiInvoke<IngredientAnalysisResponse>("ingredient-analysis", {
             productKey: product.product_key,
             productName: product.name,
             productBrand: product.brand,
@@ -244,7 +254,6 @@ const ProductProfile = () => {
             currentStyle: styleLocal,
             challenges,
             context,
-          },
         });
         if (cancelled) return;
         if (error) throw error;
@@ -280,7 +289,7 @@ const ProductProfile = () => {
             flag: flag ? flagToneToSeverity(flag.tone) : base?.flag,
           };
         });
-        if (summary || score != null || mergedKeyIngredients.length > 0) {
+        if (!isViewingAs && (summary || score != null || mergedKeyIngredients.length > 0)) {
           await supabase
             .from("user_products")
             .update({
@@ -302,7 +311,7 @@ const ProductProfile = () => {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, user?.id]);
+  }, [product?.id, user?.id, isViewingAs]);
 
   if (loading) {
     return (

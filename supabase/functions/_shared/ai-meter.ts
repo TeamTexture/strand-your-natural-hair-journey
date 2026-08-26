@@ -48,6 +48,8 @@ export interface AiCallRow {
   attempt_number?: number | null;
   max_attempts?: number | null;
   retry_reason?: string | null;
+  is_impersonated?: boolean | null;
+  impersonated_by?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +70,8 @@ export interface AiCallRow {
 // precedence. Never use the ambient id for an authorisation decision — it is a
 // logging convenience only.
 let ambientUserId: string | null = null;
+let ambientIsImpersonated = false;
+let ambientImpersonatedBy: string | null = null;
 
 /** Set the member the current request belongs to. Called from requireAuthedUser. */
 export function setAiCallUser(userId: string | null | undefined): void {
@@ -77,6 +81,15 @@ export function setAiCallUser(userId: string | null | undefined): void {
 /** The ambient member id, where one has been established for this request. */
 export function getAiCallUser(): string | null {
   return ambientUserId;
+}
+
+/** Mark all meter rows from this request as admin impersonation telemetry. */
+export function setAiCallImpersonation(args: {
+  isImpersonated?: boolean | null;
+  impersonatedBy?: string | null;
+} | null | undefined): void {
+  ambientIsImpersonated = !!args?.isImpersonated;
+  ambientImpersonatedBy = args?.impersonatedBy ?? null;
 }
 
 
@@ -114,6 +127,8 @@ async function insertRows(rows: AiCallRow[]): Promise<void> {
         attempt_number: r.attempt_number ?? null,
         max_attempts: r.max_attempts ?? null,
         retry_reason: r.retry_reason ? String(r.retry_reason).slice(0, 300) : null,
+        is_impersonated: r.is_impersonated ?? ambientIsImpersonated,
+        impersonated_by: r.impersonated_by ?? ambientImpersonatedBy,
       })),
     );
   } catch (e) {
@@ -186,6 +201,8 @@ export function recordAiOutcome(args: {
   attempt_number?: number | null;
   max_attempts?: number | null;
   retry_reason?: string | null;
+  is_impersonated?: boolean | null;
+  impersonated_by?: string | null;
 }): void {
   const key = pendingKey(args.function_name, args.generation_id);
   const buffered = pending.get(key);
@@ -201,6 +218,8 @@ export function recordAiOutcome(args: {
       attempt_number: row.attempt_number ?? args.attempt_number ?? null,
       max_attempts: row.max_attempts ?? args.max_attempts ?? null,
       retry_reason: row.retry_reason ?? args.retry_reason ?? null,
+      is_impersonated: row.is_impersonated ?? args.is_impersonated ?? ambientIsImpersonated,
+      impersonated_by: row.impersonated_by ?? args.impersonated_by ?? ambientImpersonatedBy,
     }));
     return;
   }
@@ -218,6 +237,8 @@ export function recordAiOutcome(args: {
     attempt_number: args.attempt_number ?? null,
     max_attempts: args.max_attempts ?? null,
     retry_reason: args.retry_reason ?? null,
+    is_impersonated: args.is_impersonated ?? ambientIsImpersonated,
+    impersonated_by: args.impersonated_by ?? ambientImpersonatedBy,
   });
 }
 
@@ -236,6 +257,8 @@ export function recordAiFailure(args: {
   attempt_number?: number | null;
   max_attempts?: number | null;
   retry_reason?: string | null;
+  is_impersonated?: boolean | null;
+  impersonated_by?: string | null;
 }): void {
   const key = pendingKey(args.function_name, args.generation_id);
   const buffered = pending.get(key);
@@ -260,6 +283,8 @@ export function recordAiFailure(args: {
     attempt_number: row.attempt_number ?? args.attempt_number ?? null,
     max_attempts: row.max_attempts ?? args.max_attempts ?? null,
     retry_reason: row.retry_reason ?? args.retry_reason ?? null,
+    is_impersonated: row.is_impersonated ?? args.is_impersonated ?? ambientIsImpersonated,
+    impersonated_by: row.impersonated_by ?? args.impersonated_by ?? ambientImpersonatedBy,
   }));
 }
 
@@ -273,6 +298,8 @@ export interface AiCallMeta {
   attempt_number?: number | null;
   max_attempts?: number | null;
   retry_reason?: string | null;
+  is_impersonated?: boolean | null;
+  impersonated_by?: string | null;
 }
 
 interface GatewayUsage {

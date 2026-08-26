@@ -93,7 +93,7 @@ const WashStep4 = () => {
   const step2 = safeParse<Step2Saved>("strand_wash_step2", {});
   const step3 = safeParse<{ note?: string; audioPath?: string | null }>("strand_wash_step3", {});
   const styling = safeParse<StylingSaved>("strand_wash_styling", {});
-  const { user } = useAuth();
+  const { user, isViewingAs } = useAuth();
   const [saving, setSaving] = useState(false);
 
   const stepsSummary = useMemo(() => {
@@ -214,6 +214,10 @@ const WashStep4 = () => {
     if (saving) return;
     if (!user) {
       toast.error("Please sign in to save your wash day.");
+      return;
+    }
+    if (isViewingAs) {
+      toast.error("Cannot save while viewing as a member.");
       return;
     }
     setSaving(true);
@@ -420,8 +424,13 @@ const WashStep4 = () => {
 
 
 
-        <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving}>
-          {saving ? "Saving…" : "Save Wash Day"}
+        {isViewingAs && (
+          <p className="text-center font-body text-[11.5px] text-muted-foreground">
+            Cannot save while viewing as a member.
+          </p>
+        )}
+        <Button variant="gold" size="pill" className="mt-4" onClick={save} disabled={saving || isViewingAs}>
+          {saving ? "Saving…" : isViewingAs ? "Cannot save" : "Save Wash Day"}
         </Button>
         <Button variant="goldGhost" size="pill" onClick={() => navigate("/home")} disabled={saving}>
           Save & Exit

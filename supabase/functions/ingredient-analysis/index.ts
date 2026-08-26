@@ -19,7 +19,10 @@
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
-import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { requireAuthedUser as requireSignedInUser } from "../_shared/auth.ts";
+import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
+import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
@@ -224,6 +227,9 @@ function scrubGuidance(analysis: AnalysisPayload): AnalysisPayload {
 
 interface RequestBody {
   productKey: string;
+  dryRun?: boolean;
+  impersonatedUserId?: string;
+  impersonation?: { targetUserId?: string; impersonatedBy?: string | null };
   productName: string;
   productBrand: string;
   ingredients?: string[];
@@ -493,7 +499,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch, recordAiOutcome } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome, setAiCallImpersonation, setAiCallUser } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "ingredient-analysis", stage: 2 } as const;
@@ -586,16 +592,26 @@ Deno.serve(async (req) => {
 
 
   try {
-    const auth = await requireAuthedUser(req);
+    const auth = await requireSignedInUser(req);
     if (auth instanceof Response) return auth;
-    const { user, supabase } = auth;
+    const { user: authUser, supabase } = auth;
+
+    const body: RequestBody = await req.json();
+    const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, supabase as never);
+    if (mode instanceof Response) return mode;
+    const memberId = mode.userId;
+    const dataClient = mode.dryRun
+      ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+      : supabase;
+    setAiCallUser(memberId);
+    setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
+    if (!(await isEntitled(memberId))) return membershipRequired();
 
     // Declared topical (skin/scalp) sensitivities — structured, encrypted
     // data that outranks free-text healthProfile mentions.
-    const sens: LoadedSensitivities = await loadSensitivities(supabase, user.id, "topical");
+    const sens: LoadedSensitivities = await loadSensitivities(dataClient, memberId, "topical");
     const sensitivityBlock = topicalSensitivityBlock(sens);
 
-    const body: RequestBody = await req.json();
     const {
       productKey, productName, productBrand,
       ingredients, hairProfile, healthProfile, heritage,
@@ -617,10 +633,10 @@ Deno.serve(async (req) => {
       ? ingredients.filter((x) => typeof x === "string" && x.trim().length > 0)
       : [];
     if (rawIngredients.length === 0) {
-      const { data: storedRow } = await supabase
+      const { data: storedRow } = await dataClient
         .from("user_products")
         .select("ingredients")
-        .eq("user_id", user.id)
+        .eq("user_id", memberId)
         .eq("product_key", productKey)
         .maybeSingle();
       const stored = storedRow?.ingredients;
@@ -641,10 +657,10 @@ Deno.serve(async (req) => {
 
     // ── Cache check (model_version-aware) ─────────────────────────────
     if (!force) {
-      const { data: existing } = await supabase
+      const { data: existing } = await dataClient
         .from("ai_summaries")
         .select("payload, updated_at")
-        .eq("user_id", user.id)
+        .eq("user_id", memberId)
         .eq("kind", cacheKind)
         .maybeSingle();
       if (existing?.payload) {
@@ -677,16 +693,16 @@ Deno.serve(async (req) => {
     const ceiling = await checkGlobalCeiling("ingredient-analysis");
     if (ceiling) return ceiling;
 
-    const capped = await checkDailyCap(user.id, "ingredient-analysis", 60);
+    const capped = await checkDailyCap(memberId, "ingredient-analysis", 60);
     if (capped) return capped;
 
     // ── Pull personalisation server-side ─────────────────────────────
     const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([
-      supabase.from("blood_results").select("marker, value, unit, status, category").eq("user_id", user.id),
-      supabase.from("user_medications").select("name, category").eq("user_id", user.id),
-      supabase.from("user_goals")
+      dataClient.from("blood_results").select("marker, value, unit, status, category").eq("user_id", memberId),
+      dataClient.from("user_medications").select("name, category").eq("user_id", memberId),
+      dataClient.from("user_goals")
         .select("kind, title, target_text, target_value, unit, current_value, target_date, challenges, challenge, notes, status")
-        .eq("user_id", user.id).neq("status", "complete"),
+        .eq("user_id", memberId).neq("status", "complete"),
     ]);
     const bloodRows = bloodRowsRes.data ?? [];
     const medRows = medRowsRes.data ?? [];
@@ -866,11 +882,12 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
       const rejected: string[] = [];
       analysis = await sanitiseAndLog(analysis, "ingredient-analysis", {
         surface: "ingredient-analysis",
-        userId: user.id,
+        userId: memberId,
         generationId,
         attemptNumber,
         maxAttempts: MAX_REJECTION_ATTEMPTS,
         retryReason,
+        dryRun: mode.dryRun,
         onRejected: (rules) => rejected.push(...rules),
       }) as AnalysisPayload;
       if (rejected.length === 0) break;
@@ -883,16 +900,16 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
       recordAiOutcome({
         function_name: "ingredient-analysis",
         surface: "ingredient-analysis",
-        user_id: user.id,
+        user_id: memberId,
         outcome: "rejected",
         rejection_rule: retryReasonFromRules(retryRules) ?? "guardrail_rejection",
         generation_id: generationId,
         max_attempts: MAX_REJECTION_ATTEMPTS,
       });
-      const { data: lastGood } = await supabase
+      const { data: lastGood } = await dataClient
         .from("ai_summaries")
         .select("payload")
-        .eq("user_id", user.id)
+        .eq("user_id", memberId)
         .eq("kind", cacheKind)
         .maybeSingle();
       const priorPayload = lastGood?.payload as AnalysisPayload | null | undefined;
@@ -908,20 +925,22 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
       return json(503, { error: "ingredient_analysis_unavailable" });
     }
 
+    if (mode.dryRun) return json(200, { cached: false, analysis });
+
     // ── Upsert cache ────────────────────────────────────────────────
-    const { data: prior } = await supabase
+    const { data: prior } = await dataClient
       .from("ai_summaries")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", memberId)
       .eq("kind", cacheKind)
       .maybeSingle();
     if (prior?.id) {
-      await supabase.from("ai_summaries")
+      await dataClient.from("ai_summaries")
         .update({ payload: analysis as object, updated_at: new Date().toISOString() })
         .eq("id", prior.id);
     } else {
-      await supabase.from("ai_summaries").insert({
-        user_id: user.id,
+      await dataClient.from("ai_summaries").insert({
+        user_id: memberId,
         kind: cacheKind,
         payload: analysis as object,
       });

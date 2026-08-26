@@ -153,6 +153,8 @@ export async function sanitiseAndLog<T>(
     attemptNumber?: number | null;
     maxAttempts?: number | null;
     retryReason?: string | null;
+    /** Dry-run generation for admin impersonation: enforce, meter, but persist nothing except ai_call_log. */
+    dryRun?: boolean;
     /** Called when this pass removed/rejected output, so callers can retry. */
     onRejected?: (rules: string[]) => void;
   },
@@ -161,7 +163,7 @@ export async function sanitiseAndLog<T>(
   const cleaned = sanitiseChapterCitationsDeep(value);
   const stripped: string[] = [];
   collectStripped(value, cleaned, stripped);
-  if (stripped.length > 0) {
+  if (stripped.length > 0 && !opts?.dryRun) {
     await logViolation(functionName, stripped);
   }
   // Copy fix runs after the audit diff so it is never logged as a violation.
@@ -182,7 +184,7 @@ export async function sanitiseAndLog<T>(
   // blood/hair causal link or an invented mechanism. `grounding` is the
   // retrieved manuscript text, so mechanism wording that IS in the manuscript
   // survives. See _shared/blood-guardrail.ts.
-  out = await enforceBloodSafety(out, functionName, opts?.grounding ?? "");
+  out = await enforceBloodSafety(out, functionName, opts?.grounding ?? "", { dryRun: opts?.dryRun });
 
   // MANUSCRIPT FIDELITY FAIL-SAFE (2026-08-09). Last gate before the user:
   // author-verified deterministic rules always run, and when the surface
@@ -201,6 +203,7 @@ export async function sanitiseAndLog<T>(
     // On the two-stage path the generic traceability audit is replaced by the
     // stage 3 claim-to-evidence mapping below — one verifier call, not two.
     { skipTraceability: onEvidencePath },
+    opts?.dryRun ?? false,
   );
 
   // AUTHOR CLARIFICATIONS — prescriptive positions enforced as HARD rules, on
@@ -245,7 +248,7 @@ export async function sanitiseAndLog<T>(
       max_attempts: opts?.maxAttempts ?? null,
       retry_reason: opts?.retryReason ?? null,
     });
-    if (clarRejections.length > 0) {
+    if (clarRejections.length > 0 && !opts?.dryRun) {
       await logGenerationRejections(
         functionName,
         clarRejections.map((v) => ({
@@ -304,6 +307,7 @@ async function verifyStage3<T>(
     attemptNumber?: number | null;
     maxAttempts?: number | null;
     retryReason?: string | null;
+    dryRun?: boolean;
     onRejected?: (rules: string[]) => void;
   },
   clar: { rejections: ClarificationViolation[]; governed: string[] } = {
@@ -438,6 +442,8 @@ async function verifyStage3<T>(
       industry_claims: claimSources.filter((c) => c.source === "industry").length,
     }),
   );
+
+  if (opts?.dryRun) return out;
 
   const evidenceSetId = await storeEvidenceSet({
     surface: opts?.surface ?? functionName,

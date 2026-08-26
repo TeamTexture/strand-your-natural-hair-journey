@@ -22,7 +22,8 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { STEP_BUDGET, normaliseSteps, type WashStep } from "./normalise.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch, recordAiFailure, setAiCallUser } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiFailure, setAiCallImpersonation, setAiCallUser } from "../_shared/ai-meter.ts";
+import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import {
   MAX_REJECTION_ATTEMPTS,
   buildRejectionRetryInstruction,
@@ -115,6 +116,9 @@ interface RecentEvent {
 
 interface Body {
   fingerprint: string;
+  dryRun?: boolean;
+  impersonatedUserId?: string;
+  impersonation?: { targetUserId?: string; impersonatedBy?: string | null };
   hairProfile?: Record<string, unknown> | null;
   currentStyle?: Record<string, unknown> | null;
   goals?: Array<{ title?: string; category?: string }>;
@@ -199,13 +203,8 @@ Deno.serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: userData } = await userClient.auth.getUser();
-  const user = userData?.user;
-  if (!user) return json(401, { error: "unauthenticated" });
-  // Attribute every ai_call_log row from this request to this member, so a
-  // guardrail rejection is traceable to the person it broke (2026-08-26).
-  setAiCallUser(user.id);
-  // Paid feature: a lapsed membership loses AI guidance.
-  if (!(await isEntitled(user.id))) return membershipRequired();
+  const authUser = userData?.user;
+  if (!authUser) return json(401, { error: "unauthenticated" });
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   let body: Body;
@@ -215,6 +214,13 @@ Deno.serve(async (req) => {
     return json(400, { error: "invalid json" });
   }
   if (!body?.fingerprint) return json(400, { error: "fingerprint required" });
+
+  const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, userClient as never);
+  if (mode instanceof Response) return mode;
+  const memberId = mode.userId;
+  setAiCallUser(memberId);
+  setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
+  if (!(await isEntitled(memberId))) return membershipRequired();
 
   const level = coerceTipsLevel(body.tipsLevel);
   const budget = STEP_BUDGET[level];
@@ -237,7 +243,7 @@ Deno.serve(async (req) => {
     : await admin
       .from("ai_summaries")
       .select("payload")
-      .eq("user_id", user.id)
+      .eq("user_id", memberId)
       .eq("kind", kind)
       .maybeSingle();
   const cachedPayload = cached?.payload as StepsPayload | null;
@@ -295,7 +301,7 @@ Deno.serve(async (req) => {
     ragK: 10,
   });
 
-  const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(user.id));
+  const ledgerBlock = buildAdviceLedgerBlock(await fetchAdviceLedger(memberId));
 
   const styleNow = (body.currentStyle ?? {}) as Record<string, unknown>;
   const styleHeader = [
@@ -393,7 +399,7 @@ Deno.serve(async (req) => {
       aiResp = await gatewayFetch(
         {
           ...AI_METER_META,
-          user_id: user.id,
+          user_id: memberId,
           generation_id: generationId,
           attempt_number: attemptNumber,
           max_attempts: MAX_REJECTION_ATTEMPTS,
@@ -443,7 +449,7 @@ Deno.serve(async (req) => {
         recordAiFailure({
           function_name: "wash-day-steps",
           surface: "wash-day-steps",
-          user_id: user.id,
+          user_id: memberId,
           error_text: detail,
           rejection_rule: finishReason === "length" ? "truncated_output" : "unparsable_output",
           generation_id: generationId,
@@ -466,7 +472,7 @@ Deno.serve(async (req) => {
       recordAiFailure({
         function_name: "wash-day-steps",
         surface: "wash-day-steps",
-        user_id: user.id,
+        user_id: memberId,
         error_text: detail,
         rejection_rule: "empty_after_normalisation",
         generation_id: generationId,
@@ -504,11 +510,12 @@ Deno.serve(async (req) => {
       context: body,
       grounding: grounding.block,
       surface: "wash-day-steps",
-      userId: user.id,
+      userId: memberId,
       generationId,
       attemptNumber,
       maxAttempts: MAX_REJECTION_ATTEMPTS,
       retryReason: retryReasonFromRules(retryRules),
+      dryRun: mode.dryRun,
       onRejected: (rules) => rejected.push(...rules),
     });
     if (rejected.length === 0) {
@@ -521,15 +528,15 @@ Deno.serve(async (req) => {
   if (!safePayload || !stepsHaveSubstance(safePayload.steps)) return await lastGoodOr503(lastFail);
 
   // WRITE-TIME GUARD + no diagnostic pollution.
-  if (!isDiagnostic) {
+  if (!isDiagnostic && !mode.dryRun) {
     await admin
       .from("ai_summaries")
-      .upsert({ user_id: user.id, kind, payload: safePayload }, { onConflict: "user_id,kind" });
+      .upsert({ user_id: memberId, kind, payload: safePayload }, { onConflict: "user_id,kind" });
   }
 
-  if (!isDiagnostic) {
+  if (!isDiagnostic && !mode.dryRun) {
     await recordAdvice(
-      user.id,
+      memberId,
       "wash-day-steps",
       safePayload.steps.map((s) => `${s.headline}. ${s.body}`),
     );

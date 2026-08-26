@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { loadDecryptedContext } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
+import { aiInvoke } from "@/lib/aiInvoke";
 import {
   loadResponsiveSignals,
   responsiveSignatureParts,
@@ -42,6 +43,13 @@ export interface DynamicWashTip {
    */
   next_time?: string | null;
 }
+
+interface DynamicWashTipResponse {
+  tip?: DynamicWashTip;
+}
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error ?? "Unknown error");
 
 const hashString = (input: string): string => {
   let h = 0;
@@ -220,8 +228,7 @@ export function useDynamicWashTip() {
         ].join("::"),
       );
 
-      const { data, error } = await supabase.functions.invoke("wash-day-tip", {
-        body: {
+      const { data, error } = await aiInvoke<DynamicWashTipResponse>("wash-day-tip", {
           fingerprint,
           hairProfile: h,
           healthProfile: he,
@@ -249,11 +256,10 @@ export function useDynamicWashTip() {
           hairFeelNotes: history.aggregate.hairFeelNotes,
           shelfProducts: history.shelfProducts,
           tipsLevel: level,
-        },
       });
 
       if (error) {
-        console.warn("[useDynamicWashTip] invoke failed", error.message);
+        console.warn("[useDynamicWashTip] invoke failed", errorMessage(error));
         // NEVER A BLANK CARD ON A TRANSIENT FAILURE. Serve the last tip that
         // passed the guardrails rather than the "we couldn't finish" state.
         // Nothing new is invented — this is her own previously served tip.
@@ -263,7 +269,7 @@ export function useDynamicWashTip() {
         );
       }
 
-      const tip = (data as { tip?: DynamicWashTip } | null)?.tip ?? null;
+      const tip = data?.tip ?? null;
       writeLastGood<DynamicWashTip>("wash-day-tip", tip, level, undefined, (t) =>
         !!t?.action && !!(t?.reason ?? t?.why));
       return tip;
