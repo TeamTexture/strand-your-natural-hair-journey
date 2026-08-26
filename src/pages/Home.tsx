@@ -649,7 +649,6 @@ const Home = () => {
                 </svg>
               </button>
             </div>
-            <MainPhotoPicker open={photoPickerOpen} onOpenChange={setPhotoPickerOpen} />
           </div>
         ) : (
           <SurfaceCard data-tour="current-style">
