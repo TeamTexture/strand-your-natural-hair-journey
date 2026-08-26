@@ -435,20 +435,20 @@ Deno.serve(async (req) => {
     return { steps: attemptSteps };
   };
 
-  // One silent retry: the failures seen in production are transient output-shape
-  // problems, not model outages, and a second attempt usually lands.
+  // ONE writer call per invocation. The old "one silent retry" loop doubled the
+  // paid writer spend on every failing view, and the client retried on top of
+  // it — up to six writer calls for one card. A failure now falls straight
+  // through to her last good sequence (or an honest 503) and is logged.
   let steps: WashStep[] = [];
   let lastFail = "unknown";
-  for (let i = 0; i < 2; i++) {
+  {
     const res = await attempt();
     if ("passthrough" in res) return res.passthrough;
-    if ("steps" in res) {
-      steps = res.steps;
-      break;
-    }
-    lastFail = res.fail;
+    if ("steps" in res) steps = res.steps;
+    else lastFail = res.fail;
   }
   if (steps.length === 0) return await lastGoodOr503(lastFail);
+
 
 
   const payload: StepsPayload = {

@@ -11,7 +11,7 @@
 // user must never see raw citations because logging broke.
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
-import { recordAiOutcome } from "./ai-meter.ts";
+import { getBufferedUsage, recordAiOutcome } from "./ai-meter.ts";
 import { collectText, enforceFidelity, stripDeep } from "./fidelity.ts";
 import { lastSourceText } from "./chapter-context.ts";
 import {
@@ -338,7 +338,12 @@ async function verifyStage3<T>(
   external = external.filter((e) => !stripped.has(e.claim));
 
   // COST METER (Phase 2) — observation only; does not alter the payload.
+  // Read the buffered writer usage BEFORE recordAiOutcome flushes and clears it,
+  // so the evidence-set audit row can carry the real stage-2 token cost instead
+  // of the hardcoded 0 that hid 78% of spend.
+  const stage2Usage = getBufferedUsage(functionName);
   recordAiOutcome({
+
     function_name: functionName,
     surface: opts?.surface ?? null,
     user_id: opts?.userId ?? null,
@@ -411,6 +416,7 @@ async function verifyStage3<T>(
     set: evidenceSet,
     tip: out,
     verified: violations.length === 0 && clar.rejections.length === 0,
+    stage2Tokens: stage2Usage?.total ?? 0,
     verifyTokens,
     externalClaims: external,
     policy,
