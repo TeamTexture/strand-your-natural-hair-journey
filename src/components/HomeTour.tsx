@@ -187,6 +187,26 @@ const HomeTour = () => {
   }, [active, step, stepRoute]);
 
 
+  // The photo picker sheet sits below the tour overlay, so the tour steps aside
+  // while it is open and comes back on the same step once it closes.
+  const pausedRef = useRef(false);
+  useEffect(() => {
+    const onClosed = () => {
+      if (!pausedRef.current) return;
+      pausedRef.current = false;
+      setActive(true);
+    };
+    window.addEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
+    return () =>
+      window.removeEventListener(MAIN_PHOTO_CLOSED_EVENT, onClosed as EventListener);
+  }, []);
+
+  const openPhotoPicker = () => {
+    pausedRef.current = true;
+    setActive(false);
+    window.dispatchEvent(new Event(OPEN_MAIN_PHOTO_EVENT));
+  };
+
   // Allow the pinned Home button (or any caller) to replay the tour on demand.
   useEffect(() => {
     const onStart = () => {
