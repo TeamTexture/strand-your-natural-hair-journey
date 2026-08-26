@@ -76,7 +76,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, setAiCallUser } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "nutrition-plan", stage: 2 } as const;
@@ -642,6 +642,9 @@ Deno.serve(async (req: Request) => {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
     if (!user) return json(401, { error: "Unauthorized" });
+    // Attribute every ai_call_log row from this request to this member, so a
+    // guardrail rejection is traceable to the person it broke (2026-08-26).
+    setAiCallUser(user.id);
     // Paid feature: a lapsed membership loses AI guidance.
     if (!(await isEntitled(user.id))) return membershipRequired();
 

@@ -12,6 +12,7 @@ import {
   type User,
 } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { json } from "./cors.ts";
+import { setAiCallUser } from "./ai-meter.ts";
 
 export interface AuthSuccess {
   user: User;
@@ -45,6 +46,10 @@ export async function requireAuthedUser(
   });
   const { data } = await supabase.auth.getUser();
   if (!data?.user) return json(401, { error: "unauthorized" });
+  // Attribute every ai_call_log row written during this request to this member,
+  // so a guardrail rejection can be traced to the person it broke. Logging
+  // only — never read this back for an authorisation decision.
+  setAiCallUser(data.user.id);
   return { user: data.user, supabase };
 }
 

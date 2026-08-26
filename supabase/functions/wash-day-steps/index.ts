@@ -22,7 +22,7 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { STEP_BUDGET, normaliseSteps, type WashStep } from "./normalise.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
-import { gatewayFetch, recordAiFailure } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiFailure, setAiCallUser } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "wash-day-steps", stage: 2 } as const;
@@ -159,6 +159,23 @@ STRUCTURE:
 - ONE IDEA, ONCE: no step may repeat another step's instruction in different words.
 - Never prescribe pre-poo as a scheduled ritual. Never say to use protein weekly.
 - No emojis, no pleasantries, no headings inside body text.
+
+PHRASING THAT KEEPS YOUR STEPS INTACT
+A downstream checker reads each step's headline and body together as one block and removes any step that reads as if it mixes up where a product goes. Correct advice gets removed when it is worded loosely, so word these three things exactly as described.
+
+1. THE TWO CLEANSES — never number them, and never let one step mention both areas.
+   - Give the scalp cleanse its own step. Headline it "Cleanse your scalp" (never "First cleanse", never "First shampoo"). Its body speaks ONLY about the scalp, roots and partings. Do not use the words "lengths", "the hair" or "mid-lengths" anywhere in that step.
+   - Give the lengths cleanse its own separate step. Headline it "Cleanse through your lengths" (never "Second cleanse"). Its body speaks ONLY about the lengths and ends. Do not use the words "scalp", "roots" or "partings" anywhere in that step.
+   - Never write the words "first" or "second" next to "cleanse", "shampoo" or "wash" in any headline or body. Order is carried by the step numbers already.
+
+2. THE ENDS — an ends step never mentions the scalp.
+   - When a step is about her ends, do not use the word "scalp" in it at all, not even as a direction. Never write "tuck your ends toward the scalp" or "down toward the scalp": write "tuck your ends under", "fold your ends downward" or "tuck your ends into the style".
+   - Never put an instruction to apply something to her ends and any mention of her scalp in the same step. Product on the ends and anything to do with the scalp are always separate steps.
+
+3. ONE AREA PER STEP. Each step names exactly one area — scalp, or lengths, or ends. If a step is drifting into a second area, split it into two steps.
+
+SCALP CLEANLINESS AND HER GOAL (protective styles)
+When she is wearing braids, cornrows, locs or another protective style, one step about keeping her scalp clean must state, in its why-line, the reason it matters using the word "because" and naming her own recorded goal in her goal's words (as given in her context). Example shape: "Because your goal is length retention, a clean scalp keeps the partings comfortable." Keep it within the why-line cap and only if the passages support the reason.
 `;
 
 Deno.serve(async (req) => {
@@ -178,6 +195,9 @@ Deno.serve(async (req) => {
   const { data: userData } = await userClient.auth.getUser();
   const user = userData?.user;
   if (!user) return json(401, { error: "unauthenticated" });
+  // Attribute every ai_call_log row from this request to this member, so a
+  // guardrail rejection is traceable to the person it broke (2026-08-26).
+  setAiCallUser(user.id);
   // Paid feature: a lapsed membership loses AI guidance.
   if (!(await isEntitled(user.id))) return membershipRequired();
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);

@@ -40,7 +40,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome, setAiCallUser } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "meal-ideas", stage: 2 } as const;
@@ -52,7 +52,7 @@ TASK
 You write 6 personalised, easy-to-cook meal ideas for a textured-hair-tracking app. Each meal must be:
 - Directly aligned with this user's flagged blood markers, life stage, medications, dietary pattern and hair goals. The DIETARY PATTERN block in the user message is binding and overrides everything else: every ingredient in every meal must be permitted for it. Substitute, never subtract — if a meal would normally rely on an excluded food, build the same nutrient from a permitted one, and still return six full meals.
 - SIMPLE. Everyday ingredients you'd find in a normal UK supermarket. No obscure specialty items. No sous-vide. No 90-minute recipes.
-- Grounded in nutrients — every meal explains in plain English WHICH nutrients it delivers and WHY they matter to this user.
+- Grounded in nutrients — every meal names in plain English WHICH nutrients it delivers, and which of THIS user's recorded markers or goals that nutrient is being chosen for. Naming the nutrient and the marker is the whole job. Do not explain what the nutrient then does inside the hair or the body unless the EVIDENCE below states it (see EVIDENCE DISCIPLINE).
 - Culturally aware. Use the user's heritage / cultural background (from context.hairProfile, context.healthProfile, professional notes, location) as a flavour lens where relevant — e.g. jollof-style rice, ackee & callaloo, plantain, Nigerian pepper soup, jerk seasoning, Caribbean rice and peas, Ethiopian lentil stew — mixed with general easy meals. Never say "because you're X ethnicity" — the cuisine is a familiar frame, the nutrient is the reason.
 - Written in plain, warm, direct English. No jargon. No "essential for follicular mitosis". Say "helps your follicles build new hair" instead.
 
@@ -68,7 +68,7 @@ FIELDS PER MEAL
 - name: short recipe name (max 5 words). Title-case.
 - cuisine: short tag (e.g. "West African", "Caribbean", "British", "Mediterranean", "Plant-based").
 - time_minutes: realistic total cook + prep time as an integer.
-- summary: ONE sentence, plain English, naming the 1-2 nutrients this meal delivers and WHY they matter to THIS user. Never invent user data.
+- summary: ONE sentence, plain English. Name the 1-2 nutrients this meal delivers and the recorded marker, concern or goal of HERS it was chosen for — e.g. "A big hit of iron from the liver and spinach, chosen for your low ferritin." Never invent user data. Do NOT append a mechanism ("to assist cell turnover at the root", "to feed the follicle", "to strengthen the cuticle") — that is the shape that gets this meal rejected. Stop at the nutrient and the marker.
 - targets: array of 1-3 short tags of what the meal supports (e.g. "Ferritin", "Vitamin D", "Scalp barrier", "Postpartum recovery").
 - ingredients: array of strings, format above.
 - steps: array of strings, format above.
@@ -85,6 +85,25 @@ PROHIBITED
 - No medical claims. No "will regrow your hair". Frame everything as "supports" / "helps".
 - No disclaimers at all: never write "not medical advice", "consult your doctor", or "check with your GP". The app renders one static disclaimer on this screen.
 
+EVIDENCE DISCIPLINE — THIS IS WHAT GETS MEALS REJECTED
+Everything you write is checked claim by claim against the EVIDENCE set supplied below. A claim the evidence does not support is removed, and a meal whose summary is removed shows the member a broken card. So write only what the evidence carries.
+
+You MAY always state, and these are never counted against you:
+- what is in the dish, and which nutrient a food is a source of ("liver is one of the richest sources of iron")
+- this member's own recorded data: her flagged markers and values, her goal wording, her diet pattern, her life stage, her recorded concerns
+- cooking method, timings, quantities, shopping and storage
+- which nutrient the meal is being chosen FOR ("chosen for your low ferritin")
+
+You MUST NOT write, unless the wording is in the evidence:
+- a mechanism — what a nutrient does inside the body, the follicle, the root, the scalp or the strand. Never "assists cell turnover at the root", "feeds the follicle", "carries oxygen to the follicle", "supports the growth phase", "strengthens the cuticle".
+- a consequence of NOT eating it. No "skipping this lets build-up cause itching", no "your ends will dry out and snap". This surface never warns and never frightens; it offers food.
+- any hair-care technique or product instruction. No cleansing, no deep conditioning, no heat, no TT Heat Hat, no styling, no "raise the cuticle". This surface is FOOD ONLY — a technique sentence here is always rejected.
+- a number, percentage, RDA, timescale or study you were not given.
+
+If you find yourself wanting to justify a nutrient and the evidence does not justify it, name the nutrient and her marker and STOP. A short, plain, fully-supported summary is a pass. A richer one that reaches past the evidence is a rejection and a broken card.
+
+
+
 Return the meals via the return_meal_ideas tool. JSON only.`;
 
 Deno.serve(async (req) => {
@@ -95,6 +114,8 @@ Deno.serve(async (req) => {
   // Paid AI generation — signed-in members only.
   const auth = await requireAuthedUser(req);
   if (auth instanceof Response) return auth;
+  // Every meter row for this isolate is attributed to her from here on.
+  setAiCallUser(auth.user.id);
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -258,7 +279,11 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
       });
     }
 
-    const sanitised = await sanitiseAndLog(parsed, "meal-ideas") as { meals?: unknown[] };
+    const sanitised = await sanitiseAndLog(parsed, "meal-ideas", {
+      context: body.context,
+      surface: "meal-ideas",
+      userId: auth.user.id,
+    }) as { meals?: unknown[] };
 
     // The fidelity filter can strip a meal's summary sentence. A blank summary
     // renders as an empty card, so fall back to a plain factual line built from
@@ -297,6 +322,64 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.`;
           after: sanitised.meals.length,
         });
       }
+    }
+
+    // LAST-GOOD FALLBACK. A batch can be emptied entirely by the guardrails or
+    // the sensitivity scan. An empty meals tab is never served: she gets the
+    // last batch that passed, marked stale, and the failure is logged against
+    // her in `ai_call_log` so it is diagnosable. Only a non-empty, fully
+    // sanitised batch is ever written as the new last-good.
+    const finalMeals = Array.isArray(sanitised?.meals) ? sanitised.meals : [];
+    if (finalMeals.length === 0) {
+      recordAiOutcome({
+        function_name: "meal-ideas",
+        surface: "meal-ideas",
+        user_id: auth.user.id,
+        outcome: "rejected",
+        rejection_rule: "no_meals_survived_guardrails",
+      });
+      const { data: lastGood } = await auth.supabase
+        .from("ai_summaries")
+        .select("payload")
+        .eq("user_id", auth.user.id)
+        .eq("kind", "meal_ideas")
+        .maybeSingle();
+      const priorMeals = (lastGood?.payload as { meals?: unknown[] } | null)?.meals;
+      if (Array.isArray(priorMeals) && priorMeals.length > 0) {
+        return new Response(
+          JSON.stringify({ meals: priorMeals, stale: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ error: "meals_unavailable" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    recordAiOutcome({
+      function_name: "meal-ideas",
+      surface: "meal-ideas",
+      user_id: auth.user.id,
+      outcome: "completed",
+    });
+
+    const { data: priorRow } = await auth.supabase
+      .from("ai_summaries")
+      .select("id")
+      .eq("user_id", auth.user.id)
+      .eq("kind", "meal_ideas")
+      .maybeSingle();
+    const payload = { meals: finalMeals, _generated_at: new Date().toISOString() };
+    if (priorRow?.id) {
+      await auth.supabase
+        .from("ai_summaries")
+        .update({ payload, updated_at: new Date().toISOString() })
+        .eq("id", priorRow.id);
+    } else {
+      await auth.supabase
+        .from("ai_summaries")
+        .insert({ user_id: auth.user.id, kind: "meal_ideas", payload });
     }
 
     return new Response(JSON.stringify(sanitised), {
