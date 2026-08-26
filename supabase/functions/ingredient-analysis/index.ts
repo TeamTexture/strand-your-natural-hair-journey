@@ -493,7 +493,7 @@ import {
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
-import { gatewayFetch } from "../_shared/ai-meter.ts";
+import { gatewayFetch, recordAiOutcome } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "ingredient-analysis", stage: 2 } as const;
@@ -878,6 +878,35 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
     }
 
     if (!analysis) throw new Error("Ingredient analysis generation returned no payload");
+
+    if (retryRules?.length) {
+      recordAiOutcome({
+        function_name: "ingredient-analysis",
+        surface: "ingredient-analysis",
+        user_id: user.id,
+        outcome: "rejected",
+        rejection_rule: retryReasonFromRules(retryRules) ?? "guardrail_rejection",
+        generation_id: generationId,
+        max_attempts: MAX_REJECTION_ATTEMPTS,
+      });
+      const { data: lastGood } = await supabase
+        .from("ai_summaries")
+        .select("payload")
+        .eq("user_id", user.id)
+        .eq("kind", cacheKind)
+        .maybeSingle();
+      const priorPayload = lastGood?.payload as AnalysisPayload | null | undefined;
+      if (priorPayload) {
+        const guarded = enforceIngredientCardSensitivities(
+          priorPayload as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+          sens,
+          rawIngredients,
+          "ingredient-analysis",
+        ) as unknown as AnalysisPayload;
+        return json(200, { cached: true, stale: true, analysis: guarded });
+      }
+      return json(503, { error: "ingredient_analysis_unavailable" });
+    }
 
     // ── Upsert cache ────────────────────────────────────────────────
     const { data: prior } = await supabase
