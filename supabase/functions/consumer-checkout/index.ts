@@ -2,6 +2,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { resolveStrandPlusPriceId } from "../_shared/stripe-prices.ts";
+import {
+  addToAbandonedList,
+  removeFromPaywallList,
+} from "../_shared/klaviyo-nurture.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
