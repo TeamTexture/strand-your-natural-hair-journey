@@ -13,7 +13,8 @@ import {
   getConsumerOnboardingStatus,
   getSubscribePath,
 } from "@/lib/consumerOnboarding";
-import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
+import { getTrialOfferState } from "@/lib/trialOffer";
+import { walledDestination } from "@/lib/trialWall";
 
 const safeNext = (raw: string | null, fallback: string) => {
   if (!raw) return fallback;
@@ -58,8 +59,12 @@ const SplashScreen = () => {
     }
     if (proApp) return "/pro/landing";
     if (!onboardingStatus.completed) return onboardingStatus.entryPath;
-    if (await trialOfferPending(userId)) {
-      return onboardingStatus.basicComplete ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-1";
+    const trialState = await getTrialOfferState(userId);
+    if (trialState.walled) {
+      return walledDestination({
+        basicComplete: onboardingStatus.basicComplete,
+        goalCaptured: trialState.goalCaptured,
+      });
     }
     const hasAccess = await getConsumerAccessForUser(userId, roles);
     if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);

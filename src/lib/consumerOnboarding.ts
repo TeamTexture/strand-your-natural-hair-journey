@@ -30,7 +30,13 @@ export type ConsumerOnboardingStatus = Awaited<ReturnType<typeof getConsumerOnbo
  * she returns from Stripe, never baked into the checkout session, so a member
  * four steps in resumes at her next incomplete step instead of question one.
  */
+export const NUTRITION_PATH = "/nutrition-plan";
+
 export const getPostTrialPath = (status: ConsumerOnboardingStatus): string => {
+  // Blood work already on file and onboarding finished: the nutrition and diet
+  // page is the thing she was waiting for. Marker count is irrelevant — one
+  // reading is a complete answer.
+  if (status.dataComplete && status.bloodOnFile) return NUTRITION_PATH;
   if (status.dataComplete) return "/home";
   // Nothing captured at all — the flow starts at goals & challenges, exactly as
   // it does for a brand-new member.

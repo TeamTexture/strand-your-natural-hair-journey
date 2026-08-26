@@ -53,6 +53,8 @@ export type TrialOfferState = {
   walled: boolean;
   /** True when a 3-day trial may still be offered — mirrors consumer-checkout. */
   trialEligible: boolean;
+  /** True when step 1 (goal & challenges) is already answered. */
+  goalCaptured: boolean;
 };
 
 /**
@@ -68,8 +70,8 @@ export type TrialOfferState = {
  * all). A member must never tap "Start my 3 days free" and be charged today.
  */
 export async function getTrialOfferState(userId: string): Promise<TrialOfferState> {
-  const none: TrialOfferState = { walled: false, trialEligible: false };
-  const [{ data: profile }, { data: sub }, { data: roleRows }] = await Promise.all([
+  const none: TrialOfferState = { walled: false, trialEligible: false, goalCaptured: false };
+  const [{ data: profile }, { data: sub }, { data: roleRows }, goalRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("trial_offer_at, complimentary_access")
@@ -81,7 +83,12 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
       .eq("user_id", userId)
       .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
+    supabase
+      .from("user_goals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
   ]);
+  const goalCaptured = (goalRes.count ?? 0) > 0;
   const row = profile as
     | { trial_offer_at?: string | null; complimentary_access?: boolean | null }
     | null;
@@ -103,7 +110,7 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
 
   const trialEligible =
     !s?.stripe_subscription_id && !s?.trial_end && (!s?.status || s.status === "none");
-  return { walled: true, trialEligible };
+  return { walled: true, trialEligible, goalCaptured };
 }
 
 /**

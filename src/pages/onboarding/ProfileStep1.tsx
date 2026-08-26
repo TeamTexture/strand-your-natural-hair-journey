@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
-import { trialOfferPending, TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
+import { getTrialOfferState } from "@/lib/trialOffer";
+import { walledDestination } from "@/lib/trialWall";
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -395,8 +396,14 @@ const ProfileStep1 = () => {
       .catch((err) => console.error("[gate] declared-country check failed", err));
 
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
-    const needsTrial = user ? await trialOfferPending(user.id) : false;
-    navigate(needsTrial ? TRIAL_PAYWALL_PATH : "/onboarding/profile-step-2");
+    // About You is in: the paywall is the very next screen for a stamped member
+    // with no membership. Never step 3.
+    const trialState = user ? await getTrialOfferState(user.id) : null;
+    navigate(
+      trialState?.walled
+        ? walledDestination({ basicComplete: true, goalCaptured: true })
+        : "/onboarding/profile-step-2",
+    );
 
   };
 
