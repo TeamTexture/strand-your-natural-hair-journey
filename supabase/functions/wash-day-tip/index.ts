@@ -572,7 +572,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     : { ok: false, reasons: ["output_unparseable_or_incomplete"] };
 
   if (!verdict.ok) {
-    await logTipRejection(isStyle ? "style-tip" : "wash-day-tip", verdict.reasons, raw.slice(0, 4000));
+    await logTipRejection(isStyle ? "style-tip" : "wash-day-tip", verdict.reasons, raw.slice(0, 4000), mode.dryRun);
     // One regeneration pass with the corrective directive. Grounding block is
     // resent unchanged — the retry never relaxes it.
     try {
@@ -619,6 +619,7 @@ Do not substitute other cleansing or sealing methods for these two.`
               isStyle ? "style-tip" : "wash-day-tip",
               ["retry_failed", ...retryVerdict.reasons],
               raw.slice(0, 4000),
+              mode.dryRun,
             );
           }
         }
@@ -703,6 +704,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["served_degraded", ...verdict.reasons],
       raw.slice(0, 4000),
+      mode.dryRun,
     );
   }
 
@@ -754,6 +756,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["redacted_product_name", ...stillNamed.map((n) => n.slice(0, 60))],
       raw.slice(0, 4000),
+      mode.dryRun,
     );
   }
 
@@ -781,6 +784,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["guardrail_retry", ...retryRules],
       JSON.stringify(finalPayload).slice(0, 3000),
+      mode.dryRun,
     );
     const retryResp = await gatewayFetch({
       ...AI_METER_META,
@@ -858,6 +862,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["reason_removed_by_guardrail", "repair_attempted"],
       String(capped.reason ?? "").slice(0, 1000),
+      mode.dryRun,
     );
     try {
       const repairResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -914,6 +919,7 @@ Do not substitute other cleansing or sealing methods for these two.`
         isStyle ? "style-tip" : "wash-day-tip",
         ["reason_unrecoverable_after_repair"],
         raw.slice(0, 2000),
+        mode.dryRun,
       );
     }
   }
@@ -927,6 +933,7 @@ Do not substitute other cleansing or sealing methods for these two.`
       isStyle ? "style-tip" : "wash-day-tip",
       ["not_cached_empty_action_or_reason"],
       JSON.stringify(finalPayload).slice(0, 2000),
+      mode.dryRun,
     );
     // AND IT IS NEVER SERVED EITHER. A headline with no action is not a tip:
     // returning it rendered an empty gold card. Fail explicitly so the client
@@ -965,7 +972,7 @@ Do not substitute other cleansing or sealing methods for these two.`
     await recordAdvice(memberId, isStyle ? "style-tip" : "wash-day-tip", [finalPayload.headline, finalPayload.action, finalPayload.reason, finalPayload.next_time ?? ""]);
   }
 
-  return json(200, { tip: finalPayload, cached: false, persisted: cacheable && !isDiagnostic });
+  return json(200, { tip: finalPayload, cached: false, persisted: cacheable && !isDiagnostic && !mode.dryRun });
 
 });
 

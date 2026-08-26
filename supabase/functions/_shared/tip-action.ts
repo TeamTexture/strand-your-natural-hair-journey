@@ -276,7 +276,9 @@ export async function logTipRejection(
   functionName: string,
   reasons: string[],
   rejectedText: string,
+  dryRun = false,
 ): Promise<void> {
+  if (dryRun) return;
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

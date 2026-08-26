@@ -184,7 +184,7 @@ export async function sanitiseAndLog<T>(
   // blood/hair causal link or an invented mechanism. `grounding` is the
   // retrieved manuscript text, so mechanism wording that IS in the manuscript
   // survives. See _shared/blood-guardrail.ts.
-  out = await enforceBloodSafety(out, functionName, opts?.grounding ?? "");
+  out = await enforceBloodSafety(out, functionName, opts?.grounding ?? "", { dryRun: opts?.dryRun });
 
   // MANUSCRIPT FIDELITY FAIL-SAFE (2026-08-09). Last gate before the user:
   // author-verified deterministic rules always run, and when the surface
@@ -203,6 +203,7 @@ export async function sanitiseAndLog<T>(
     // On the two-stage path the generic traceability audit is replaced by the
     // stage 3 claim-to-evidence mapping below — one verifier call, not two.
     { skipTraceability: onEvidencePath },
+    opts?.dryRun ?? false,
   );
 
   // AUTHOR CLARIFICATIONS — prescriptive positions enforced as HARD rules, on

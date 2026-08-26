@@ -678,6 +678,9 @@ Deno.serve(async (req: Request) => {
     const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, supabase as never);
     if (mode instanceof Response) return mode;
     const memberId = mode.userId;
+    const dataClient = mode.dryRun
+      ? createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+      : supabase;
     // Attribute every ai_call_log row from this request to this member, so a
     // guardrail rejection is traceable to the person it broke (2026-08-26).
     setAiCallUser(memberId);
@@ -688,7 +691,7 @@ Deno.serve(async (req: Request) => {
 
     // Allergies and intolerances are a hard pre-generation filter. Decrypted
     // in memory here — never matched in SQL.
-    const sens = await loadSensitivities(supabase, memberId, "dietary");
+    const sens = await loadSensitivities(dataClient, memberId, "dietary");
     const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
 
     const provider = readAiProvider("STRAND_AI_PROVIDER_NUTRITION");
@@ -711,7 +714,7 @@ Deno.serve(async (req: Request) => {
     // with every render and made each page view pay for a cold generation.
     // An explicit `force` (the member tapped "Generate a new plan") still
     // regenerates once.
-    const bloodFp = await bloodFingerprint(supabase, memberId);
+    const bloodFp = await bloodFingerprint(dataClient, memberId);
     const sig = await sha(JSON.stringify({
       schema_version: "v7-full-detail-2026-08-15",
       model_version: MODEL_VERSION,
@@ -731,7 +734,7 @@ Deno.serve(async (req: Request) => {
     }));
 
     if (!force) {
-      const cached = await readSurfaceCache(supabase, memberId, "nutrition_plan", sig);
+      const cached = await readSurfaceCache(dataClient, memberId, "nutrition_plan", sig);
       if (cached) {
         console.log("[nutrition-debug] cache hit", { total_ms: Date.now() - t0 });
         return json(200, {
@@ -779,7 +782,7 @@ Deno.serve(async (req: Request) => {
         : "";
       if (provider === "claude") {
         // Pull last 5 wash days where the user reported a hair-feel signal.
-        const { data: recentRaw } = await supabase
+        const { data: recentRaw } = await dataClient
           .from("wash_days")
           .select("wash_date, scalp_feel, breakage, hair_feel_note")
           .eq("user_id", memberId)
@@ -893,7 +896,7 @@ Deno.serve(async (req: Request) => {
     } as Record<string, unknown>;
 
     if (!mode.dryRun) {
-      const { data: prior } = await supabase
+      const { data: prior } = await dataClient
         .from("ai_summaries")
         .select("id")
         .eq("user_id", memberId)
@@ -901,12 +904,12 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (prior?.id) {
-        await supabase
+        await dataClient
           .from("ai_summaries")
           .update({ payload: stamped, updated_at: new Date().toISOString() })
           .eq("id", prior.id);
       } else {
-        await supabase
+        await dataClient
           .from("ai_summaries")
           .insert({ user_id: memberId, kind: "nutrition_plan", payload: stamped });
       }

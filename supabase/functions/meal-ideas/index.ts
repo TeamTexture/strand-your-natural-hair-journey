@@ -9,6 +9,7 @@
 import { requireAuthedUser } from "../_shared/auth.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
@@ -134,6 +135,9 @@ Deno.serve(async (req) => {
     const mode = await resolveAiRequestMode(auth.user.id, body as Record<string, unknown>, auth.supabase as never);
     if (mode instanceof Response) return mode;
     const memberId = mode.userId;
+    const dataClient = mode.dryRun
+      ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+      : auth.supabase;
     // Every meter row for this isolate is attributed to her from here on.
     setAiCallUser(memberId);
     setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
@@ -141,7 +145,7 @@ Deno.serve(async (req) => {
 
     // Allergies and intolerances: hard pre-generation filter, decrypted in
     // memory. Post-generation every meal is scanned again below.
-    const sens = await loadSensitivities(auth.supabase, memberId, "dietary");
+    const sens = await loadSensitivities(dataClient, memberId, "dietary");
     const sensitivityBlock = sensitivityConstraintBlock(sens, "dietary");
 
     const buildUserPayload = (retryRules: string[] | null) => `${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}
@@ -374,7 +378,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
         generation_id: generationId,
         max_attempts: MAX_REJECTION_ATTEMPTS,
       });
-      const { data: lastGood } = await auth.supabase
+      const { data: lastGood } = await dataClient
         .from("ai_summaries")
         .select("payload")
         .eq("user_id", memberId)
@@ -406,7 +410,7 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
       });
     }
 
-    const { data: priorRow } = await auth.supabase
+    const { data: priorRow } = await dataClient
       .from("ai_summaries")
       .select("id")
       .eq("user_id", memberId)
@@ -414,12 +418,12 @@ Return 6 meal ideas via the return_meal_ideas tool. JSON only.${
       .maybeSingle();
     const payload = { meals: finalMeals, _generated_at: new Date().toISOString() };
     if (priorRow?.id) {
-      await auth.supabase
+      await dataClient
         .from("ai_summaries")
         .update({ payload, updated_at: new Date().toISOString() })
         .eq("id", priorRow.id);
     } else {
-      await auth.supabase
+      await dataClient
         .from("ai_summaries")
         .insert({ user_id: memberId, kind: "meal_ideas", payload });
     }

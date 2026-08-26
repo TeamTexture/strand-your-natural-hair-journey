@@ -19,7 +19,7 @@
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
-import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { requireAuthedUser as requireSignedInUser } from "../_shared/auth.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
@@ -600,13 +600,16 @@ Deno.serve(async (req) => {
     const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, supabase as never);
     if (mode instanceof Response) return mode;
     const memberId = mode.userId;
+    const dataClient = mode.dryRun
+      ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+      : supabase;
     setAiCallUser(memberId);
     setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
     if (!(await isEntitled(memberId))) return membershipRequired();
 
     // Declared topical (skin/scalp) sensitivities — structured, encrypted
     // data that outranks free-text healthProfile mentions.
-    const sens: LoadedSensitivities = await loadSensitivities(supabase, memberId, "topical");
+    const sens: LoadedSensitivities = await loadSensitivities(dataClient, memberId, "topical");
     const sensitivityBlock = topicalSensitivityBlock(sens);
 
     const {
@@ -630,7 +633,7 @@ Deno.serve(async (req) => {
       ? ingredients.filter((x) => typeof x === "string" && x.trim().length > 0)
       : [];
     if (rawIngredients.length === 0) {
-      const { data: storedRow } = await supabase
+      const { data: storedRow } = await dataClient
         .from("user_products")
         .select("ingredients")
         .eq("user_id", memberId)
@@ -654,7 +657,7 @@ Deno.serve(async (req) => {
 
     // ── Cache check (model_version-aware) ─────────────────────────────
     if (!force) {
-      const { data: existing } = await supabase
+      const { data: existing } = await dataClient
         .from("ai_summaries")
         .select("payload, updated_at")
         .eq("user_id", memberId)
@@ -695,9 +698,9 @@ Deno.serve(async (req) => {
 
     // ── Pull personalisation server-side ─────────────────────────────
     const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([
-      supabase.from("blood_results").select("marker, value, unit, status, category").eq("user_id", memberId),
-      supabase.from("user_medications").select("name, category").eq("user_id", memberId),
-      supabase.from("user_goals")
+      dataClient.from("blood_results").select("marker, value, unit, status, category").eq("user_id", memberId),
+      dataClient.from("user_medications").select("name, category").eq("user_id", memberId),
+      dataClient.from("user_goals")
         .select("kind, title, target_text, target_value, unit, current_value, target_date, challenges, challenge, notes, status")
         .eq("user_id", memberId).neq("status", "complete"),
     ]);
@@ -903,7 +906,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
         generation_id: generationId,
         max_attempts: MAX_REJECTION_ATTEMPTS,
       });
-      const { data: lastGood } = await supabase
+      const { data: lastGood } = await dataClient
         .from("ai_summaries")
         .select("payload")
         .eq("user_id", memberId)
@@ -925,19 +928,19 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
     if (mode.dryRun) return json(200, { cached: false, analysis });
 
     // ── Upsert cache ────────────────────────────────────────────────
-    const { data: prior } = await supabase
+    const { data: prior } = await dataClient
       .from("ai_summaries")
       .select("id")
       .eq("user_id", memberId)
       .eq("kind", cacheKind)
       .maybeSingle();
     if (prior?.id) {
-      await supabase.from("ai_summaries")
+      await dataClient.from("ai_summaries")
         .update({ payload: analysis as object, updated_at: new Date().toISOString() })
         .eq("id", prior.id);
     } else {
-      await supabase.from("ai_summaries").insert({
-        user_id: user.id,
+      await dataClient.from("ai_summaries").insert({
+        user_id: memberId,
         kind: cacheKind,
         payload: analysis as object,
       });
