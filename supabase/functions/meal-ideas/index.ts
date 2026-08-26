@@ -68,7 +68,7 @@ FIELDS PER MEAL
 - name: short recipe name (max 5 words). Title-case.
 - cuisine: short tag (e.g. "West African", "Caribbean", "British", "Mediterranean", "Plant-based").
 - time_minutes: realistic total cook + prep time as an integer.
-- summary: ONE sentence, plain English, naming the 1-2 nutrients this meal delivers and WHY they matter to THIS user. Never invent user data.
+- summary: ONE sentence, plain English. Name the 1-2 nutrients this meal delivers and the recorded marker, concern or goal of HERS it was chosen for — e.g. "A big hit of iron from the liver and spinach, chosen for your low ferritin." Never invent user data. Do NOT append a mechanism ("to assist cell turnover at the root", "to feed the follicle", "to strengthen the cuticle") — that is the shape that gets this meal rejected. Stop at the nutrient and the marker.
 - targets: array of 1-3 short tags of what the meal supports (e.g. "Ferritin", "Vitamin D", "Scalp barrier", "Postpartum recovery").
 - ingredients: array of strings, format above.
 - steps: array of strings, format above.
