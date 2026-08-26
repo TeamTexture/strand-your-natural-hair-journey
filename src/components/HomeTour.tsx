@@ -174,6 +174,11 @@ const HomeTour = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const view = useActiveRoleView();
+  // Live read of "does she have a photo" — shared query key, so an upload from
+  // the picker invalidates it and this step re-renders without reopening.
+  const { photos: stylePhotos, refresh: refreshStylePhotos } = useStyleCardPhoto();
+  const hasStylePhoto = stylePhotos.length > 0;
+
   const [active, setActive] = useState(false);
   const [steps, setSteps] = useState<Step[]>(STEPS);
   const [step, setStep] = useState(0);
