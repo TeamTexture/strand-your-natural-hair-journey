@@ -129,6 +129,21 @@ const Home = () => {
 
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
 
+  // The guided tour prompts for a style-card photo and hands over to this sheet,
+  // then waits for it to close before carrying on.
+  useEffect(() => {
+    const open = () => setPhotoPickerOpen(true);
+    window.addEventListener(OPEN_MAIN_PHOTO_EVENT, open as EventListener);
+    return () =>
+      window.removeEventListener(OPEN_MAIN_PHOTO_EVENT, open as EventListener);
+  }, []);
+
+  const handlePhotoPickerOpenChange = (open: boolean) => {
+    setPhotoPickerOpen(open);
+    if (!open) window.dispatchEvent(new Event(MAIN_PHOTO_CLOSED_EVENT));
+  };
+
+
   // First-run sequence hand-offs: the mandatory goals gate and the optional
   // photo prompt ask Home to open the relevant editor.
   useEffect(() => {
