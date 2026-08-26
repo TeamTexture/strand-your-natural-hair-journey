@@ -1,4 +1,5 @@
 import { CheckCircle2, Sparkles, Droplet, FlaskConical, BookOpen, Camera, Users, Calendar, Leaf, Stethoscope, Heart, ShieldCheck, Lock } from "lucide-react";
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
@@ -218,7 +219,7 @@ export const PriceCard = ({
   /** Free-trial framing: "£0 today", then the monthly price beneath. */
   trial?: boolean;
   /** Optional CTA rendered inside the card (Subscribe only). */
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) => {
   const perDay = (price / 30).toFixed(2);
   const planName = tier === "plus" ? "STRAND+" : "STRAND";
