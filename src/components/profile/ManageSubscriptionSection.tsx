@@ -110,6 +110,17 @@ const ManageSubscriptionSection = () => {
   const renews = formatLong(subscription?.current_period_end);
   const resumesOn = formatLong(pauseResumesAt);
   const status = (subscription?.status ?? "none").toLowerCase();
+  // Trial state is shown plainly: what it is, when it ends, and what happens
+  // then — so nobody is surprised by the first payment.
+  const onTrial = status === "trialing" && !paused && !complimentary;
+  const trialEndIso = subscription?.trial_end ?? subscription?.current_period_end ?? null;
+  const trialEnds = formatLong(trialEndIso);
+  const trialDaysLeft = (() => {
+    if (!onTrial || !trialEndIso) return null;
+    const ms = new Date(trialEndIso).getTime() - Date.now();
+    if (Number.isNaN(ms)) return null;
+    return Math.max(0, Math.ceil(ms / 86_400_000));
+  })();
   // An admin viewing as a member must never be able to open that member's
   // Stripe portal — the edge function authenticates as the ADMIN, so the
   // portal would be the admin's own billing under the member's name.
