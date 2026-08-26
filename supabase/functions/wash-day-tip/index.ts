@@ -497,7 +497,7 @@ Do not substitute other cleansing or sealing methods for these two.`
   /** A tip is usable when it has a headline plus at least one body field.
    *  `why` is HAND-HOLDING ONLY, so requiring it 502'd every minimal/essential
    *  request where the model correctly omitted it. */
-  const isUsable = (p: Parsed | null) =>
+  const isUsable = (p: Parsed | null): p is Parsed =>
     Boolean(
       String(p?.headline ?? "").trim() &&
         (String(p?.action ?? "").trim() || String(p?.reason ?? "").trim() ||

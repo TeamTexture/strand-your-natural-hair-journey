@@ -31,6 +31,7 @@ export interface BookRef {
  *  cycle-free. */
 export type FunctionKind =
   | "ingredient-analysis"
+  | "ingredient-explainer"
   | "product-analyse"
   | "product-analyse-url"
   | "tool-analyse-url"

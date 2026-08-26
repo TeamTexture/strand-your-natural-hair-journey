@@ -208,8 +208,12 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
       contraception: arr(hl.contraception),
       conditions: arr(hl.medical_conditions),
     },
-    bloodResults: Array.isArray(ctx.bloodResults) ? (ctx.bloodResults as unknown[]) : [],
-    location: (ctx.location as Record<string, unknown>) ?? {},
+    bloodResults: Array.isArray(ctx.bloodResults)
+      ? (ctx.bloodResults as Array<Record<string, unknown>>).map((row) => ({
+        marker: typeof row.marker === "string" ? row.marker : undefined,
+        status: typeof row.status === "string" ? row.status : null,
+      }))
+      : [],
   };
 }
 
@@ -361,7 +365,7 @@ Return JSON only via the return_nutrition_plan tool.`;
     ],
     rag_query: `nutrition food hair growth iron ferritin vitamin D B12 zinc thyroid ${
       (Array.isArray(args.body.flaggedMarkers)
-        ? (args.body.flaggedMarkers as Array<Record<string, unknown>>)
+        ? (args.body.flaggedMarkers as unknown as Array<Record<string, unknown>>)
             .map((m) => m.marker ?? m.name ?? "")
             .filter(Boolean)
             .join(" ")
@@ -739,7 +743,7 @@ Deno.serve(async (req: Request) => {
     if (capped) return capped;
 
     let payload: NutritionPlanPayload | null = null;
-    let providerStamp: "claude" | "lovable";
+    let providerStamp: "claude" | "lovable" = provider === "claude" ? "claude" : "lovable";
     const generationId = makeGenerationId();
     const collect = (p: NutritionPlanPayload): string[] => [
       p.summary,
