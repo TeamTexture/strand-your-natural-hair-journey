@@ -660,6 +660,11 @@ const Home = () => {
             </button>
           </SurfaceCard>
         )}
+        <MainPhotoPicker
+          open={photoPickerOpen}
+          onOpenChange={handlePhotoPickerOpenChange}
+        />
+
 
         {hasPlus && (() => {
           const totalCount = plusCounts.forum + plusCounts.events + plusCounts.messages + plusCounts.library;
