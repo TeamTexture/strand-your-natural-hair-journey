@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
@@ -9,6 +9,7 @@ import {
   type TipsLevel,
 } from "@/lib/tipsLevel";
 import { cn } from "@/lib/utils";
+import { GUIDANCE_SHEET_EVENT } from "@/lib/firstRunTour";
 
 /** Four ascending bars, filled up to the current level. */
 const LevelBars = ({ level }: { level: TipsLevel }) => (
@@ -36,12 +37,21 @@ const TipsLevelButton = ({ className }: { className?: string }) => {
   const { level, setLevel } = useTipsLevel();
   const [open, setOpen] = useState(false);
 
+  // The first-run tour opens this sheet on its guidance step and closes it again
+  // when she advances or goes back, so the app is never left in an odd state.
+  useEffect(() => {
+    const onEvent = (e: Event) => setOpen(!!(e as CustomEvent<boolean>).detail);
+    window.addEventListener(GUIDANCE_SHEET_EVENT, onEvent as EventListener);
+    return () => window.removeEventListener(GUIDANCE_SHEET_EVENT, onEvent as EventListener);
+  }, []);
+
   return (
     <>
       <div className={cn("relative", className)}>
         <button
           type="button"
           onClick={() => setOpen(true)}
+          data-tour="guidance-level"
           aria-label={`Guidance level: ${TIPS_LEVEL_LABEL[level]}. Tap to change.`}
           className="size-8 shrink-0 inline-flex items-center justify-center rounded-pill border border-border bg-card text-foreground/80 hover:border-primary/50 hover:text-primary transition-colors"
         >

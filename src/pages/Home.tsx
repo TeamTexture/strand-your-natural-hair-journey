@@ -474,6 +474,7 @@ const Home = () => {
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent("strand:start-tour"))}
             aria-label="Take the tour"
+            data-tour="take-tour"
             className="inline-flex items-center gap-1.5 rounded-pill border border-primary/40 bg-primary/10 px-3 h-9 text-[11px] font-semibold font-body text-primary hover:bg-primary/20 transition-colors shrink-0"
           >
             <Compass className="size-3.5" />
