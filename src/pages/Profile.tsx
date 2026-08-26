@@ -37,8 +37,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBloodValues } from "@/hooks/useBloodValues";
 import { BLOOD_RANGES, evaluate, statusLabel, type BloodStatus } from "@/data/bloodRanges";
 
-import { generateFullProfilePdf } from "@/lib/fullProfilePdf";
-import { generateProfessionalSnapshotPdf } from "@/lib/professionalSnapshotPdf";
 import { loadClinicalContext, loadClinicalContextLocal } from "@/lib/clinicalContext";
 
 // ---------- Types ----------
@@ -160,8 +158,6 @@ const Profile = () => {
 
   const [editPickerOpen, setEditPickerOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [exportingPdf, setExportingPdf] = useState(false);
-  const [exportingSnapshot, setExportingSnapshot] = useState(false);
 
   // Quick-jump destinations for the edit picker.
   const editTargets = useMemo(
