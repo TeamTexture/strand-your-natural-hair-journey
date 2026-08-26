@@ -881,7 +881,10 @@ const WashStep1 = () => {
               ids: string[],
             ): StepHeat | null => {
               if (!choice) return null;
-              if (choice === "no") return { used: false };
+              // "elsewhere" means the heat belongs to the treatment step, so this
+              // step is recorded as no heat — never double-counted.
+              if (choice === "no" || choice === "elsewhere") return { used: false };
+
               return {
                 used: true,
                 ...(minutes ? { duration_min: minutes } : {}),
