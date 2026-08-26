@@ -289,7 +289,11 @@ const heatChips = (
   tools: Array<{ id: string; name: string; brand?: string | null }>,
 ): string[] => {
   if (choice === "no") return ["No heat"];
+  // Heat happened, but on the treatment step — so this step reads as no heat and
+  // says where it went instead.
+  if (choice === "elsewhere") return ["No heat here · used on treatment"];
   if (choice !== "yes") return [];
+
   return [
     minutes ? `Heat · ${minutes} min` : "Heat treatment",
     ...toolIds
