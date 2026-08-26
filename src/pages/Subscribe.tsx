@@ -12,27 +12,20 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  Droplet,
-  FlaskConical,
-  BookOpen,
-  Camera,
-  Users,
-  Calendar,
-  Leaf,
-  Stethoscope,
-  Heart,
-  ShieldCheck,
-  Lock,
 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import { Button } from "@/components/ui/button";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
+import MembershipMarketing, {
+  AdvisoryNotes,
+  PaymentsNote,
+  PlusExtrasList,
+} from "@/components/subscribe/MembershipMarketing";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { toast } from "sonner";
-import type { LucideIcon } from "lucide-react";
 import { isSafeInternalPath } from "@/lib/consumerOnboarding";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import { useConsumerPricing } from "@/hooks/useConsumerPricing";
