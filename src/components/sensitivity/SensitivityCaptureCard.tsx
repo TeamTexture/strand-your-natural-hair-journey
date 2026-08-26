@@ -42,14 +42,27 @@ const SensitivityCaptureCard = ({
           </p>
         </div>
       </div>
-      <div className="mt-3 flex gap-2">
-        <Button variant="gold" size="pill" className="flex-1" onClick={onOpen}>
+      {/* Equal-width columns so neither pill can push past the card padding
+          at 375px — flex-1 let the wider uppercase label overflow. */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button
+          variant="gold"
+          size="pill"
+          className="w-full min-w-0 px-2 text-[11px] tracking-[0.08em]"
+          onClick={onOpen}
+        >
           Tell STRAND
         </Button>
-        <Button variant="goldOutline" size="pill" className="flex-1" onClick={onLater}>
+        <Button
+          variant="goldOutline"
+          size="pill"
+          className="w-full min-w-0 px-2 text-[11px] tracking-[0.08em]"
+          onClick={onLater}
+        >
           Not now
         </Button>
       </div>
+
     </SurfaceCard>
   );
 };

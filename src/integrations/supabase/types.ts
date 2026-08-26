@@ -6019,6 +6019,8 @@ export type Database = {
           marketed_purpose:
             | Database["public"]["Enums"]["product_marketed_purpose"]
             | null
+          marketed_purpose_confidence: string | null
+          marketed_purpose_note: string | null
           match_score: number | null
           match_score_computed_at: string | null
           name: string
@@ -6057,6 +6059,8 @@ export type Database = {
           marketed_purpose?:
             | Database["public"]["Enums"]["product_marketed_purpose"]
             | null
+          marketed_purpose_confidence?: string | null
+          marketed_purpose_note?: string | null
           match_score?: number | null
           match_score_computed_at?: string | null
           name: string
@@ -6095,6 +6099,8 @@ export type Database = {
           marketed_purpose?:
             | Database["public"]["Enums"]["product_marketed_purpose"]
             | null
+          marketed_purpose_confidence?: string | null
+          marketed_purpose_note?: string | null
           match_score?: number | null
           match_score_computed_at?: string | null
           name?: string

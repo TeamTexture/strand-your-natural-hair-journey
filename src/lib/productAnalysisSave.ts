@@ -1,4 +1,7 @@
+import { isMarketedPurpose } from "@/lib/marketedPurpose";
+
 interface ProductAnalysisLike {
+
   product_name?: unknown;
   brand?: unknown;
   category?: unknown;
@@ -7,7 +10,11 @@ interface ProductAnalysisLike {
   ai_summary?: unknown;
   match_score?: unknown;
   score_reasons?: unknown;
+  marketed_purpose?: unknown;
+  marketed_purpose_note?: unknown;
+  marketed_purpose_confidence?: unknown;
 }
+
 
 type SavedScoreReason = {
   direction: "plus" | "minus";
@@ -91,6 +98,8 @@ const cleanScoreReasons = (value: unknown): SavedScoreReason[] => {
 };
 
 export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName = "Untitled product") {
+  const purpose = cleanText(data.marketed_purpose);
+  const confidence = cleanText(data.marketed_purpose_confidence);
   return {
     name: cleanText(data.product_name) ?? fallbackName,
     brand: cleanText(data.brand),
@@ -100,5 +109,11 @@ export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName =
     ai_summary: cleanText(data.ai_summary),
     match_score: cleanScore(data.match_score),
     score_reasons: cleanScoreReasons(data.score_reasons),
+    // SINGLE SOURCE OF TRUTH: what the product is sold for, and the one or two
+    // grounded sentences explaining it, come from the analysis and are STORED —
+    // never re-derived at render time from the product title.
+    marketed_purpose: isMarketedPurpose(purpose) ? purpose : null,
+    marketed_purpose_note: cleanText(data.marketed_purpose_note),
+    marketed_purpose_confidence: confidence === "high" || confidence === "low" ? confidence : null,
   };
 }
