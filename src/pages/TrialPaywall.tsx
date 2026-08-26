@@ -1,30 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2,
-  Check,
-  CheckCircle2,
-  Sparkles,
-  Droplet,
-  FlaskConical,
-  BookOpen,
-  Camera,
-  Users,
-  Calendar,
-  Leaf,
-  Stethoscope,
-  Heart,
-  ShieldCheck,
-  Lock,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { LucideIcon } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
 import StatusBar from "@/components/StatusBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
+import MembershipMarketing, {
+  AdvisoryNotes,
+  PaymentsNote,
+  PlusExtrasList,
+} from "@/components/subscribe/MembershipMarketing";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
 import { cn } from "@/lib/utils";
@@ -40,35 +28,8 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AFTER_TRIAL_PATH = "/onboarding/goal";
 
-/**
- * All sales copy below is lifted verbatim from src/pages/Subscribe.tsx — the
- * approved membership wording. No new hair claims, mechanisms or benefits.
- */
-const PILLARS: { icon: LucideIcon; title: string; benefit: string }[] = [
-  { icon: BookOpen, title: "Your personal guide", benefit: "Expert guidance tailored to your hair, health and history." },
-  { icon: Droplet, title: "Wash days that count", benefit: "Log, schedule and perfect every cleanse, treat and seal." },
-  { icon: FlaskConical, title: "Product intelligence", benefit: "Scan, analyse and curate a shelf that actually works for you." },
-  { icon: Stethoscope, title: "Vetted professionals", benefit: "Search the directory, book, and keep every appointment in one place." },
-  { icon: Camera, title: "Your hair archive", benefit: "Milestones, moodboards, colour and appointment photos in one place." },
-  { icon: Users, title: "The Client Passport", benefit: "Walk into any chair with your full story ready to share." },
-  { icon: Calendar, title: "Journaling that listens", benefit: "Track goals, moods and appointments with gentle AI prompts." },
-  { icon: Leaf, title: "Rooted in the book", benefit: "No fads. Every insight is grounded in How To Love Your Afro." },
-];
-
-const PLUS_EXTRAS = [
-  "Community forum — for members only",
-  "Member-to-member chat",
-  "Courses, ebooks & videos library",
-  "Members-only events (digital & in person)",
-];
-
-const REASSURANCE = [
-  { icon: Lock, title: "Cancel any time", body: "One tap in the billing portal. No calls, no forms, no guilt." },
-  { icon: ShieldCheck, title: "Your data is yours", body: "Encrypted, private, and never sold. Pause your membership and it waits for you." },
-  { icon: Sparkles, title: "Always improving", body: "New features and refinements every month, included at no extra cost." },
-];
-
 type Tier = "standard" | "plus";
+
 
 /**
  * The 3-day free trial paywall — shown after registration details are saved.
