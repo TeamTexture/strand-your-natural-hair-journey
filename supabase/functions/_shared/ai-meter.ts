@@ -98,7 +98,7 @@ async function insertRows(rows: AiCallRow[]): Promise<void> {
         model_called: r.model_called ?? true,
         outcome: r.outcome ?? "completed",
         rejection_rule: r.rejection_rule ?? null,
-        user_id: r.user_id ?? null,
+        user_id: r.user_id ?? ambientUserId ?? null,
         input_tokens: r.input_tokens ?? null,
         output_tokens: r.output_tokens ?? null,
         cache_read_tokens: r.cache_read_tokens ?? null,
@@ -166,7 +166,7 @@ export function recordAiOutcome(args: {
     flush({
       ...buffered,
       surface: buffered.surface ?? args.surface ?? null,
-      user_id: buffered.user_id ?? args.user_id ?? null,
+      user_id: buffered.user_id ?? args.user_id ?? ambientUserId ?? null,
       outcome: args.outcome,
       rejection_rule: args.rejection_rule ?? null,
     });
@@ -181,7 +181,7 @@ export function recordAiOutcome(args: {
     model_called: false,
     outcome: args.outcome,
     rejection_rule: args.rejection_rule ?? null,
-    user_id: args.user_id ?? null,
+    user_id: args.user_id ?? ambientUserId ?? null,
   });
 }
 
@@ -208,7 +208,7 @@ export function recordAiFailure(args: {
       model_called: true,
     }),
     surface: buffered?.surface ?? args.surface ?? null,
-    user_id: buffered?.user_id ?? args.user_id ?? null,
+    user_id: buffered?.user_id ?? args.user_id ?? ambientUserId ?? null,
     outcome: "error",
     rejection_rule: args.rejection_rule ?? "post_model_parse_failure",
     error_text: args.error_text,
