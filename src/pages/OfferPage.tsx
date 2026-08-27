@@ -101,16 +101,29 @@ const OfferPage = () => {
     queryKey: ["brand-offer-public", id],
     enabled: !!id,
     queryFn: async () => {
+      // There is NO foreign key from brand_offers to brand_profiles, so an
+      // embedded select is a PostgREST 400 and leaves this page loading for
+      // ever. The brand name is read separately by owner id.
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(*)), brand_profiles!inner(brand_name)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(*))")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
+      let brand: { brand_name: string | null } | null = null;
+      if (data.brand_user_id) {
+        const { data: bp } = await supabase
+          .from("brand_profiles")
+          .select("brand_name")
+          .eq("user_id", data.brand_user_id)
+          .maybeSingle();
+        brand = bp ?? null;
+      }
       // Products come through the join table (no direct offer->product FK), so
       // flatten them back to `brand_products` in the brand's chosen order.
-      return flattenOfferProducts(data);
+      return { ...flattenOfferProducts({ ...data, brand_profiles: brand }), brand_profiles: brand };
+
     },
   });
 
