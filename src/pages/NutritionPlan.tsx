@@ -676,6 +676,7 @@ const NutritionPlan = () => {
    */
   const inFlightRef = useRef(false);
 
+
   const fetchPlan = async (force = false, currentProfile = profile) => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
