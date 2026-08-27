@@ -134,7 +134,7 @@ export function useAdminSupportThreads() {
         new Set(rows.map((t) => t.subject_user_id).filter((v): v is string => !!v)),
       );
 
-      const [msgRes, profRes] = await Promise.all([
+      const [msgRes, profRes, emailRes] = await Promise.all([
         supabase
           .from("chat_messages")
           .select("thread_id, body, kind, sender_id, read_at, created_at")
@@ -142,11 +142,10 @@ export function useAdminSupportThreads() {
           .order("created_at", { ascending: false })
           .limit(Math.min(600, ids.length * 20)),
         subjectIds.length
-          ? supabase
-              .from("profiles")
-              .select("user_id, display_name, email")
-              .in("user_id", subjectIds)
-          : Promise.resolve({ data: [] as { user_id: string; display_name: string | null; email: string | null }[] }),
+          ? supabase.from("profiles").select("user_id, display_name").in("user_id", subjectIds)
+          : Promise.resolve({ data: [] as { user_id: string; display_name: string | null }[] }),
+        // Emails only ever come from the existing admin-gated RPC.
+        supabase.rpc("admin_list_member_emails"),
       ]);
 
       const preview = new Map<string, { body: string; at: string }>();
@@ -166,10 +165,12 @@ export function useAdminSupportThreads() {
       }
 
       const profiles = new Map(
-        ((profRes.data ?? []) as { user_id: string; display_name: string | null; email: string | null }[]).map(
-          (p) => [p.user_id, p],
-        ),
+        ((profRes.data ?? []) as { user_id: string; display_name: string | null }[]).map((p) => [p.user_id, p]),
       );
+      const emailBy = new Map<string, string>();
+      for (const r of ((emailRes.data ?? []) as { user_id: string; email: string | null }[])) {
+        if (r.email) emailBy.set(r.user_id, r.email);
+      }
 
       return rows
         .map((t) => {
@@ -177,8 +178,11 @@ export function useAdminSupportThreads() {
           const pv = preview.get(t.id);
           return {
             thread: t,
-            name: p?.display_name?.trim() || "Member",
-            email: p?.email ?? null,
+            name:
+              p?.display_name?.trim() ||
+              (t.subject_user_id ? emailBy.get(t.subject_user_id) : undefined) ||
+              "Member",
+            email: t.subject_user_id ? emailBy.get(t.subject_user_id) ?? null : null,
             preview: pv?.body ?? "No messages yet",
             lastAt: pv?.at ?? t.last_message_at ?? t.created_at,
             unread: unread.get(t.id) ?? 0,
