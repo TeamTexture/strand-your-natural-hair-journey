@@ -134,10 +134,14 @@ const AddHomemadeProduct = () => {
       });
 
 
+      // She may skip the photo step entirely — in that case the recipe photo
+      // she already scanned becomes the product image, so the shelf card and
+      // product page are never blank when a photo does exist.
+      const imageFile = photo ?? scanPhoto;
       let storagePath: string | null = null;
-      if (photo) {
+      if (imageFile) {
         try {
-          const prepared = await prepareImageForAi(photo);
+          const prepared = await prepareImageForAi(imageFile);
           const path = `${user.id}/homemade-${Date.now()}.jpg`;
           const { error } = await supabase.storage
             .from("product-photos")
