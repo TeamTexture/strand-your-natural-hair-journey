@@ -838,7 +838,14 @@ Deno.serve(async (req) => {
           'part of your advert tip was removed by the blood-claim guardrail, leaving it without a reason. Rewrite "fit_line_reason" so it explains the hair-care mechanism only — never bridge a blood marker, medication or health value to a hair outcome.',
         ];
       } else {
-        lastProblems = parsed === null ? ["Output was not valid JSON."] : result.problems;
+        lastProblems = parsed === null
+          ? [
+              truncated
+                ? "Your previous output ran out of room before the JSON closed. Think briefly, then return ONLY the compact JSON object — no preamble, no commentary, shortest wording that still satisfies the rules."
+                : "Output was not valid JSON.",
+            ]
+          : result.problems;
+
       }
       if (attempt + 1 >= MAX_ATTEMPTS) break;
       messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
