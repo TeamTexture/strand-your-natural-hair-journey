@@ -56,6 +56,30 @@ const OfferProductFit = ({
   return <AdFitLine text={fitLine} loading={loading} className="mt-1.5" />;
 };
 
+/** The FULL personalised read for one product in this offer — headline, intro,
+ *  benefits, numbered steps and watch-outs, all grounded in her recorded hair
+ *  characteristics and goals. Shares the same cached payload as the fit line
+ *  above and the standalone product page, so nothing is generated twice.
+ *  Renders nothing at all if generation fails or times out. */
+const OfferProductPlaybook = ({
+  product,
+  showName,
+}: {
+  product: BrandItemRow;
+  showName: boolean;
+}) => {
+  const { guidance, loading, timedOut } = useBrandProductGuidance(product);
+  return (
+    <BrandPlaybookCard
+      guidance={guidance}
+      loading={loading}
+      timedOut={timedOut}
+      productName={showName ? product.name : undefined}
+    />
+  );
+};
+
+
 const OfferPage = () => {
   const { id } = useParams();
   const [params] = useSearchParams();
