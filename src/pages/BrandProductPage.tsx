@@ -7,7 +7,7 @@ import BenefitRows from "@/components/guidance/BenefitRows";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import { validFitLine } from "@/components/guidance/AdFitLine";
-import NumberedSteps from "@/components/guidance/NumberedSteps";
+import BrandPlaybookCard from "@/components/guidance/BrandPlaybookCard";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -181,7 +181,7 @@ const BrandProductPage = () => {
   // ── Personalised guidance: benefits for THIS member's hair + how to get the
   //    most out of it. Shared with the banner and offer-page surfaces so the
   //    same reasoning shows wherever this advert appears. ──
-  const { guidance, loading: guidanceLoading, needsFallback } = useBrandProductGuidance(
+  const { guidance, loading: guidanceLoading, timedOut: guidanceTimedOut, needsFallback } = useBrandProductGuidance(
     product ? { ...(product as unknown as BrandGuidanceProduct), brand: brandName } : null,
   );
   // Never an empty slot on an ad surface: generic (brand-declared) usage copy
@@ -319,50 +319,13 @@ const BrandProductPage = () => {
         {/* AI suitability section removed — personalised playbook below covers this */}
 
 
-        {/* Personalised usage playbook */}
-        {(guidanceLoading || guidance) && (
-          <GuidanceCard
-            eyebrow="Get the most out of this"
-            icon={Sparkles}
-            tone="gold"
-            headline={guidance?.headline || undefined}
-            className="px-5 py-[22px]"
-          >
-            {guidanceLoading && !guidance && (
-              <div className="flex items-center gap-2 text-[12px] text-muted-foreground font-body">
-                <Loader2 className="size-3.5 animate-spin" /> Building your usage playbook…
-              </div>
-            )}
-            {guidance && (
-              <div className="space-y-4">
-                {guidance.intro && (
-                  <p className="text-[13.5px] leading-relaxed font-body text-foreground/85">
-                    {guidance.intro}
-                  </p>
-                )}
-                {guidance.benefits.length > 0 && (
-                  <div className="pt-1">
-                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold font-body text-primary mb-2.5">
-                      What it does for your hair
-                    </p>
-                    <BenefitRows benefits={guidance.benefits} idPrefix="brand-benefit" />
-                  </div>
-                )}
-                {guidance.steps.length > 0 && (
-                  <div className="pt-1">
-                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold font-body text-primary mb-2.5">
-                      How to use it
-                    </p>
-                    <NumberedSteps steps={guidance.steps} idPrefix="brand-step" />
-                  </div>
-                )}
-              </div>
-            )}
-          </GuidanceCard>
-        )}
-
-
-
+        {/* Personalised usage playbook — shared component, identical depth to
+            the offer page. */}
+        <BrandPlaybookCard
+          guidance={guidance}
+          loading={guidanceLoading}
+          timedOut={guidanceTimedOut}
+        />
 
         {/* Actions */}
         <div className="space-y-2">
