@@ -38,7 +38,24 @@ Deno.serve(async (req) => {
     if (!thread) return json({ ok: false, reason: "thread_not_found" });
     if (thread.thread_type !== "admin_support") return json({ ok: true, skipped: "not_support" });
 
-    const fromAdmin = msg.sender_role === "admin" || msg.sender_id === thread.admin_user_id;
+    // Direction is decided by who the sender ACTUALLY is, not by the
+    // `sender_role` tag on the row: that tag is written from whichever role view
+    // the sender happened to be in, so an admin replying while viewing STRAND as
+    // a member was being mistaken for an inbound reply — the member never got her
+    // email and the admin team got one instead. The role table is the truth, and
+    // it also covers a second admin answering a thread another admin opened.
+    let senderIsAdmin =
+      msg.sender_role === "admin" || msg.sender_id === thread.admin_user_id;
+    if (!senderIsAdmin && msg.sender_id) {
+      const { data: adminRole } = await admin
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", msg.sender_id)
+        .eq("role", "admin")
+        .maybeSingle();
+      senderIsAdmin = Boolean(adminRole);
+    }
+    const fromAdmin = senderIsAdmin;
 
     // Inbound reply (member / pro / brand → STRAND): email the admin team.
     if (!fromAdmin) {
