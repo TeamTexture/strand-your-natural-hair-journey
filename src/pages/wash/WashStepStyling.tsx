@@ -28,6 +28,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import CategoryProductPanels from "@/components/CategoryProductPanels";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
+import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
+import LoadingDot from "@/components/LoadingDot";
 import {
   CANONICAL_STYLE_OPTIONS,
   OTHER_STYLE,
@@ -240,7 +243,7 @@ const WashStepStylingForm = () => {
         protectant_used: heatUsed ? heatProtectant : null,
       },
     };
-    localStorage.setItem("strand_wash_styling", JSON.stringify(payload));
+    writeWashDraft("strand_wash_styling", payload);
     navigate("/wash/step-4");
   };
 
@@ -523,6 +526,14 @@ const WashStepStylingForm = () => {
       </div>
     </ScreenLayout>
   );
+};
+
+// Hold the form back until the durable copy of the unsaved wash day has been
+// pulled onto this device — the form seeds its fields once, synchronously.
+const WashStepStyling = () => {
+  const { ready } = useWashDraftHydration();
+  if (!ready) return <LoadingDot />;
+  return <WashStepStylingForm />;
 };
 
 export default WashStepStyling;
