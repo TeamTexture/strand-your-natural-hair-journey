@@ -1,80 +1,121 @@
-# Streaming the two slow analyses — findings first, then the build
+# Live-app audit sweep — 27 Aug 2026 (report only, nothing changed)
 
-Parts 2 and 3 are answered below from `ai_call_log`, `tip_generation_rejections` and the code. Nothing has been changed yet. Part 1 has one hard architectural constraint that changes the shape of the answer, so it needs a decision from you before I build.
+Docs reviewed first: `AUDIT.md` (26 Apr, largely superseded), `docs/AUDIT_FLOW_INVENTORY.md`,
+`docs/CURRENT_STATE.md` (the live tracker, 21 Aug), `docs/KNOWN_ISSUES.md` (redirects to CURRENT_STATE),
+`docs/PHASE_1_PLAN.md`, `docs/PHASE_2_AUDIT.md`. Findings below are marked **NEW** or **TRACKED**.
+Live evidence: `email_log`, `ai_call_log`, `ad_events`, `klaviyo_sync_log`, policy/function definitions,
+edge-function logs, and last 10 days of commits. Build is currently clean ("build OK").
 
-## Part 2 — what `unflushed` actually is
+Population context: 323 profiles, 26 subscription rows (5 active, 8 trialing, 2 cancelled, 11 none).
 
-**It is a metering bug, not a member abandoning a wait, and not a timeout.**
+---
 
-`_shared/ai-meter.ts` buffers every stage-2 row in a `Map` keyed **only by function name**, so one function can hold exactly one pending row. When a second stage-2 call for the same function starts before the first has been flushed by the guardrails, the first is force-flushed with `outcome: 'unflushed'`.
+## P0 — silent failures with real member/brand impact
 
-`nutrition-plan` fires **three concurrent Claude calls** (`runClaudeSplit` — supplements, diet, avoid). Two of the three always collide on that single map slot. That is exactly what the numbers say:
+1. **NEW — 31 real emails were permanently lost to a Resend daily quota, with no retry queue.**
+   `email_log` (24 Aug): 21 `admin-signup-received`, 8 `onboarding-next-steps`, 3 `international-waitlist`
+   failed with `429 daily_quota_exceeded`. `supabase/functions/_shared/app-email/core.ts:103-136` retries
+   only 3 times inside the same request (~2s of backoff) and then gives up; nothing re-drives a `failed` row.
+   Worse, the idempotency check (`core.ts:169-178`) returns "deduped" for an existing row of **any** status,
+   so a failed send can never be re-sent under the same key. Affected: 8 real members got no onboarding
+   email, plus admin signup alerts for that day. Will recur at every quota ceiling or Resend outage.
 
-| | rows | model_called | avg output tokens | avg duration |
-|---|---|---|---|---|
-| completed | 49 | 27 | 2,845 | 61.8s |
-| unflushed | 51 | 51 | 1,528 | 34.0s |
+2. **NEW — the two Klaviyo nurture lists never receive anyone: the secrets don't exist.**
+   Secret store has `KLAVIYO_PAID_LIST_ID` only; `KLAVIYO_PAYWALL_LIST_ID` (XcgcdA) and
+   `KLAVIYO_ABANDONED_LIST_ID` (WzQpDj) are unset, and the live edge log confirms the silent skip:
+   `[klaviyo-nurture] paywall list id not configured — skipping pushes`. `klaviyo_sync_log` for the last
+   7 days shows only `paid_list_webhook`, `paid_backfill`, `consent_sync` — zero paywall/abandoned pushes.
+   Affected: every member who reaches the paywall and doesn't convert (the majority of the 11 `none` +
+   drop-offs) gets no nurture at all. Fails silently by design, so it looks "built" but isn't running.
 
-51 unflushed ≈ 2 per generation, at one-part output size (1,528 vs 2,845) and one-part duration (34s vs 62s). Same cause for `wash-day-steps` (8), `ingredient-explainer` (17), `ingredient-analysis` (4), `goal-tip` (2).
+3. **NEW — a brand can be charged for a targeting revision that is then discarded with no effect and no refund.**
+   `submit_brand_offer_revision` supersedes any revision in `approved_pending_payment` with no check for an
+   in-flight Stripe session; `confirm_brand_offer_revision_payment` then returns `false` and
+   `supabase/functions/brand-stripe-webhook/index.ts:121-134` treats the no-op as success — money captured,
+   uplift never applied, no admin alert. Affected: any brand who edits a pending revision with a checkout tab
+   open. Low frequency, money-touching, so P0 by severity not volume.
 
-Consequence: **`nutrition-plan` cost per plan is understated in reporting and the completed-row duration is the slowest of three parts, not the plan's total.** No member impact.
+4. **NEW — Wash Day logging has no server-side draft; four screens hold the entry in `localStorage` only.**
+   `WashStep1.tsx:396-422`, `WashStep2.tsx:89-93`, `WashStep3.tsx:151`, `WashStepStyling.tsx:243`; only
+   `WashStep4.save()` writes to `wash_days`. Cleared/evicted storage (Safari private mode, storage pressure)
+   or starting on phone and finishing on desktop loses everything typed — scalp/breakage answers, hair-feel
+   voicenote, styling choices — with no toast and no warning. The blood flow already solves exactly this via
+   `onboarding_drafts`; Wash Day does not. Affected: anyone who doesn't finish the logger in one sitting on
+   one device.
 
-Fix (small and safe, observation-only): key the pending buffer by a unique call id and let `recordAiOutcome` attach the outcome to **all** rows pending for that function. `unflushed` then means what it was meant to mean — a call that genuinely died before the guardrails ran.
+## P1 — wrong data shown, or wrong gate decision
 
-## Part 3 — what each rejection rule checks
+5. **NEW — brand `interactors` silently under-counts once raw events are archived.**
+   `brand_offer_metrics` sums archived `ad_stats_daily` into reach/clicks/expands but **not** interactors
+   (no per-day distinct figure is stored), so after the monthly `purge_ad_events()` rollup an offer can show
+   more `link_clicks` than `interactors` — an obviously wrong number in front of a paying brand.
+   Related, lower: `reach` counts `session_id` for signed-out impressions, so repeat anonymous visits inflate it.
 
-First, an important correction to the premise: **a `rejected` row does not mean the output was thrown away.** In `citation-log.ts`, `rejected` is recorded when *any sentence was stripped* or an omission was logged. The member still receives the full analysis minus the offending sentence. The one exception is `hollow_after_guardrail`.
+6. **NEW — chat send gate disagrees with itself on cancelled appointments.**
+   Verified live: the `chat_messages` INSERT policy *does* call `can_send_chat_message` (a subagent claim that
+   it was orphaned SQL is **wrong** — do not act on that). But the server function keys off
+   `appointments.cancelled_at is null`, while member self-cancel (`src/pages/LogAppointment.tsx:200-208`)
+   writes only `status='cancelled'` and never `cancelled_at`. So a member who cancels her own first appointment
+   is still treated server-side as having had it, and the STRAND+ chat wall can close on her while the UI
+   (`useCanSendChatMessage.ts:42-49`, which filters on `status`) says she may write. Latent today — 0 cancelled
+   appointments in the table — but it will bite the first self-cancellation.
 
-| rule | what it checks | why it fires | verdict |
-|---|---|---|---|
-| `clarification-cleanse-area-focus` (product-analyse 6, ingredient-analysis 9) | Sentence must not reverse the two-cleanse order (first cleanse = scalp with a cleansing shampoo, second = hair with a moisturising shampoo) | The regex is order-blind inside a long sentence. Real stripped text: *"…massage into soaking-wet hair as your second moisturising cleanse **after washing your scalp**"* — correct sequence, flagged because "scalp" sits within 50 chars of "cleanse". Same for the product-analyse sample, where "first" belongs to the scalp step but a "lengths" mention later in the same sentence trips `firstOnHair`. | **Rule too strict — leave it alone (your call).** The output was right. Prompt-side fix: force one cleanse step per short sentence, never scalp and lengths in one cleansing sentence. That stops the shape without touching the rule. |
-| `clarification-ends-own-tip` (product-analyse 5, wash-day-tip 1) | One sentence may not carry both a scalp instruction and an ends instruction — ends protection must stand as its own tip | Genuine breach. Real text: *"apply it only to the scalp and rinse before it runs down the length — the dual-surfactant load will strip moisture from ends…"* | **Rule correct.** Prompt-side fix: never combine a scalp instruction and an ends instruction in one item; ends gets its own item with its own reason. |
-| `clarification-scalp-cleanliness-why` (goal-tip 6, wash-day-tip 5, nutrition-plan 1) | Omission check (log-only, nothing removed): when the member is in a protective style and the text mentions the scalp plus clean/oil/build-up, it must name the goal *and* carry a why-connective | Over-broad on non-hair-care surfaces. The nutrition-plan hit is *"take it with … **oily fish**…"* on a member in twists. On wash-day-tip and goal-tip the hits are real omissions. | **Too strict for nutrition-plan/blood surfaces — leave the rule alone.** Prompt-side fix on wash-day-tip and goal-tip only: when in a protective style and mentioning scalp cleanliness, name the goal and use a because/so-that bridge. |
-| `hollow_after_guardrail` (wash-day-tip 15 total rejections, most on this) | After the product-name wall and guardrails strip content, `action`/`reason` are empty | This is the **only** genuine full-throwaway. The member is served their last good tip, not an error. | Real, and separate from latency. Report only unless you want it in scope. |
+7. **NEW — no email at all for member↔pro chat replies.**
+   `supabase/functions/notify-message-recipient/index.ts:38-39` returns early unless
+   `thread_type = 'admin_support'`. Members and pros only get in-app/push, and 16 `chat_message`
+   notifications are currently unread. Affects every client↔pro conversation.
 
-No guardrail is weakened, loosened or bypassed in any of the above.
+8. **NEW — the notifications feed is hard-capped at 30 rows.**
+   `src/hooks/useNotifications.ts:37-45,70-101`: unread count and "mark all read" only ever see the newest 30,
+   so anything older can never be cleared and the OS badge (`useAppBadge`) drifts. Affects heavy accounts
+   (active pros, admins) first.
 
-## Part 1 — streaming: the constraint, and what I propose
+9. **NEW — `past_due` members are told "Cancelled" on their own billing screen.**
+   `ManageSubscriptionSection.tsx:130-140` falls through to a "Cancelled" pill for every status outside
+   active/trialing/paused/cancelling, while `entitlement.ts:20-38` still grants them access. Display-only,
+   but alarming for a member whose card just bounced once.
 
-**The constraint:** neither function's output can be streamed raw to the member. Everything the model produces passes through blood guardrail → manuscript fidelity → author clarifications → sensitivity validation → score alignment *before* display, and those gates operate on the assembled payload. Streaming model tokens straight to the UI would put unguarded hair-care claims in front of a member. That is not negotiable, so "stream the model to the screen" is off the table. What *can* stream is **guardrail-validated units, emitted as each one clears.**
+10. **NEW — `ai_call_log` has 185 rows in 7 days with `outcome='unflushed'`** (nutrition-plan 73,
+    wash-day-steps 59, ingredient-explainer 29). Duration and tokens are present, so these are completed
+    calls whose finaliser never stamped the outcome — cost/rejection reporting under-counts. Telemetry only,
+    no member impact.
 
-### nutrition-plan — SSE, four parts instead of three
+## P2 — cosmetic / hygiene
 
-- Add a fourth tiny concurrent call for `summary` only (~120 output tokens), splitting it off the supplements call. Same model, same prompt, same rules.
-- Convert the function to an SSE response. Each part runs its own guardrail pass and is emitted the moment it clears: `summary` → `supplements` → `diet` → `avoid` (whichever order they land).
-- The page already renders the deterministic food-first scaffold at ~0s, so the member is reading immediately; the first AI block lands at ~4-6s (summary), remaining blocks 30-40s.
-- Cache write unchanged: the assembled plan is persisted only after all four parts clear, so a dropped stream never leaves a half-saved record.
-- Dropped stream: the client keeps whatever parts arrived, shows them, and offers a retry that re-requests only the missing parts.
+11. **NEW — signup skips `/onboarding/goal`.** `src/pages/Auth.tsx:219` navigates straight to
+    `profile-step-1`, and `ProfileStep1.tsx:404` hardcodes `goalCaptured: true`, so the goal/challenge capture
+    and its whole `trialWall` plumbing is unreachable on the primary route. Affects 100% of new signups
+    (data-capture gap, not a blocker).
+12. **NEW — storage leaks:** wash-day delete (`WashDayDetail.tsx:326-344`) never removes voicenotes or
+    styling photos; `WashStepStyling.tsx:171-199` uploads photos before the entry exists, orphaning them if
+    she backs out; journal step media isn't cleaned on entry delete.
+13. **NEW — `expand` ad events have no dedupe** while `view` is hour-deduped server-side, so remount/back-nav
+    inflates the expand count brands see (47 expands vs 38 views in the last 7 days is consistent with this).
+14. **NEW — every product open does a pointless round trip** through `ProductProfileRedirect` (uuid →
+    `product_key`) from Shelf, Wishlist, Favourites and Repository — wider than tracked item 2.
+15. **NEW — `OnboardingGate` capture-path bounce omits `/onboarding/photos` and `/onboarding/success`**, so a
+    finished member can replay both; `SuccessScreen` re-stamps `onboarding_completed_at` on each visit.
+16. **NEW — `wash_days.steps` is typed non-nullable but can be null on legacy rows** (`useWashDays.ts:10,47`);
+    current consumers guard with `?.`, so it's one unguarded future call from a crash.
 
-Honest expectation: **first AI content ~4-6s (from ~62s), full plan ~35-45s.** Not 1-2s — the summary call itself cannot return faster than ~3s. If you want a true 1-2s first paint I can render the deterministic scaffold plus a per-part skeleton, which is what makes the page feel instant.
+## Already tracked in docs/CURRENT_STATE.md — re-confirmed, not new
 
-### product-analyse — SSE, transcription first, guarded prose second
+Two-scorer product match split and the dead `ProductProfile.tsx` on the live route (items 3/3b), verdict-vs-stars
+(4), length goal not on Home (1), wishlist detail parity (2), onboarding step counters disagreeing,
+consent-accept landing on `/`, `journal-encouragement` ignoring its provider flag (12), provider-flag
+case-sensitivity (14), nutrition-plan model label (15), `useHomeAlerts` serial decrypt (8), regex rebuild per
+shelf card (9). Guardrail rejections are working as designed (`tip_generation_rejections`: 11
+`clarification-cleanse-area-focus` on ingredient-analysis, 6 `unmapped_claim`) — retries absorb them.
 
-- Enable Anthropic streaming in `_shared/anthropic-client.ts` (`stream: true`, accumulate `input_json_delta`), keeping the existing non-streaming `callClaude` for every other caller.
-- Reorder the tool schema so the **transcription** fields come first: `product_name`, `brand`, `category`, `ingredients`, `usage_instructions`. These are verbatim reads off the photos, need no claim guardrail, and can be emitted as soon as they close — roughly **8-12s**, replacing a 52s blank spinner with the product identified and its INCI list on screen.
-- The guarded fields (`ai_summary`, `key_ingredients`, `match_score`, `use_cases`, `tips`, `score_reasons`) are held until the single existing guardrail pass completes, then emitted as one block at ~52s. Splitting the guardrail pass per field would multiply the stage-1 verifier calls, which would make it slower and more expensive.
-- Nothing is written to `user_products` / `ai_summaries` until the full payload has cleared, so a dropped stream cannot half-save a product.
-- Dropped stream: the scanning screen keeps the identified product visible and offers retry; it never lands on a blank screen or a partial record.
+## Checked and found sound
 
-Honest expectation: **first visible content ~8-12s (from ~53s), full analysis ~53s unchanged.** A 1-2s first paint here would need a second small extraction call, which adds ~30k input tokens and cost per scan — say the word and I'll add it.
+`ad_delivery_for_slot` (status + `hidden_at` + date window + dismissals all filtered — no live offer past
+`ends_on`; the single live offer ends 31 Aug), `BrandPaywallGate`/`useBrandLockout`, `PaidGate`/`PlusGate`/
+`TrialWall` (fail closed, trialing/complimentary/admin honoured), impersonation dry-run and `aiInvoke` dedup
+keys, `ai_summaries` per-user scoping, `parseRecipe`/homemade safety degradation on malformed rows,
+booking-click single insert, blood-extract marker validation, `useOnboardingDraft` race guard, onboarding save
+paths (all surface errors and stop).
 
-### Telemetry
+## Suggested fix order if you want a build pass next
 
-`ai_call_log` keeps recording `duration_ms` and token counts per call. **Time-to-first-token needs a column** (`ttft_ms`); you said not to add one, so I will log it to the function console (`[stream] ttft_ms=…`) and read it from the edge logs to report numbers. Say the word if you want the column.
-
-## Files touched
-
-- `supabase/functions/_shared/ai-meter.ts` — unique-key pending buffer (Part 2 fix)
-- `supabase/functions/_shared/anthropic-client.ts` — add `streamClaude`, existing `callClaude` untouched
-- `supabase/functions/nutrition-plan/index.ts` — four-part split + SSE
-- `supabase/functions/product-analyse/index.ts` — schema field order + SSE, prompt clarifications
-- `supabase/functions/ingredient-analysis/index.ts` — prompt clarification (cleanse sentence shape)
-- `src/pages/NutritionPlan.tsx`, `src/pages/ProductScanning.tsx` (+ the scan hooks) — SSE consumption, per-part rendering, retry-on-drop
-- Both functions deployed and boot-verified in the same task, per the deployment rule
-
-## Decisions I need
-
-1. Accept the guardrail constraint and the honest first-paint numbers above (4-6s / 8-12s), or add the extra fast call to product-analyse for a ~2s identify?
-2. Add the `ttft_ms` column, or console-log only?
-3. Leave `clarification-cleanse-area-focus` and `clarification-scalp-cleanliness-why` alone as too-strict (my recommendation), fixing only the prompts?
-4. `hollow_after_guardrail` on wash-day-tip — in scope or report only?
+1 and 2 first (silent, ongoing, affects real members), then 3 (money), 4 (data loss), then 5-9.
