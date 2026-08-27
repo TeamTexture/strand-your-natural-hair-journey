@@ -677,9 +677,22 @@ Deno.serve(async (req) => {
     brandCopy,
   })}`;
 
-  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
+  // THE PERSONALISATION FLOOR, STATED UP FRONT. The validator rejects a
+  // fit_line_action that references none of the member's recorded details, and
+  // the model was being asked to hit that bar without being told which words
+  // satisfy it — a rejection that cost a whole extra generation. Naming the
+  // exact tokens turns a guessing game into an instruction.
+  const recordedWords = attributeTokensFor(body.context as Record<string, unknown> | null);
+  const recordedBlock = recordedWords.length
+    ? `\n\nTHIS MEMBER'S RECORDED DETAILS — "fit_line_action" MUST REFERENCE AT LEAST ONE OF THESE\n${recordedWords
+        .slice(0, 16)
+        .join(", ")}\nUse the member's own wording where it reads naturally. Referencing none of them is rejected. Do not invent a detail that is not listed here.`
+    : "";
+
+  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}${recordedBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
+
 
 
   try {
