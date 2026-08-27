@@ -38,6 +38,15 @@ import {
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import { normaliseInciKey } from "../_shared/ingredient-copy.ts";
+import {
+  applyHomemadeSafety,
+  buildHomemadeSafety,
+  detectHomemadeHazards,
+  homemadeRecipeBlock,
+  parseRecipe,
+  type HomemadeSafety,
+  type RecipeItem,
+} from "../_shared/homemade-safety.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
@@ -78,6 +87,12 @@ import {
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
+/** Short stable digest, used only for cache identity. */
+async function shortHash(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(input));
+  return [...new Uint8Array(buf)].slice(0, 6).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 const MODEL_VERSION = "claude-sonnet-4-6@v14-manuscript-2026-08-09";
 
 
@@ -113,6 +128,8 @@ interface AnalysisPayload {
   _model_version?: string;
   _generated_at?: string;
   _provider?: "claude" | "lovable";
+  /** Standalone concentration-aware caution, homemade products only. */
+  homemade_safety?: HomemadeSafety;
 }
 
 // ── Guidance validators ─────────────────────────────────────────────────
@@ -234,6 +251,9 @@ interface RequestBody {
   productName: string;
   productBrand: string;
   ingredients?: string[];
+  /** Member-made recipe: ingredient + free-text amount pairs. */
+  isHomemade?: boolean;
+  homemadeRecipe?: Array<{ ingredient?: unknown; amount?: unknown }>;
   hairProfile?: Record<string, unknown>;
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
@@ -773,12 +793,41 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Homemade (DIY) recipe ─────────────────────────────────────────
+    // Amounts matter here in a way they never do for a commercial product, so
+    // the recipe is resolved the same defensive way the ingredient list is:
+    // caller first, stored row second. `ingredients` stays the flat name list
+    // every other surface reads.
+    let isHomemade = body.isHomemade === true;
+    let recipe: RecipeItem[] = parseRecipe(body.homemadeRecipe);
+    if (!isHomemade || recipe.length === 0) {
+      const { data: hmRow } = await dataClient
+        .from("user_products")
+        .select("is_homemade, homemade_recipe")
+        .eq("user_id", memberId)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      if (hmRow?.is_homemade) isHomemade = true;
+      if (recipe.length === 0) recipe = parseRecipe(hmRow?.homemade_recipe);
+    }
+    if (isHomemade && recipe.length === 0) {
+      // No amounts on file (older row): still route it as homemade, with the
+      // amount explicitly unknown rather than silently assumed safe.
+      recipe = rawIngredients.map((n) => ({ ingredient: n, amount: "" }));
+    }
+
     const tipsLevel = coerceTipsLevel(
       (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
     );
     // Level is part of the key: guidance depth differs per support level, so a
     // level-3 payload must never be served to a level-4 reader.
-    const cacheKind = `ingredient_analysis:${productKey}:L${tipsLevel}`;
+    // Homemade payloads carry the concentration reasoning for a SPECIFIC set
+    // of amounts — editing "10 drops" to "2 drops" is a different product, so
+    // the recipe is part of the cache identity.
+    const recipeSig = isHomemade
+      ? `:hm${await shortHash(recipe.map((r) => `${r.ingredient.toLowerCase()}=${r.amount.toLowerCase()}`).sort().join("|"))}`
+      : "";
+    const cacheKind = `ingredient_analysis:${productKey}:L${tipsLevel}${recipeSig}`;
     const provider = readAiProvider("STRAND_AI_PROVIDER_INGREDIENT");
 
     // ── Cache check (model_version-aware) ─────────────────────────────
@@ -809,7 +858,11 @@ Deno.serve(async (req) => {
             rawIngredients,
             "ingredient-analysis",
           ) as unknown as AnalysisPayload;
-          return json(200, { cached: true, analysis: await sanitiseAndLog(guarded, "ingredient-analysis") });
+          const served = await sanitiseAndLog(guarded, "ingredient-analysis") as AnalysisPayload;
+          // Deterministic and free — re-derived on every hit so a cached row can
+          // never serve a homemade recipe without its safety caution.
+          if (homemadeSafety) applyHomemadeSafety(served, homemadeSafety);
+          return json(200, { cached: true, analysis: served });
         }
       }
     }
@@ -836,7 +889,29 @@ Deno.serve(async (req) => {
     const bloodRows = bloodRowsRes.data ?? [];
     const medRows = medRowsRes.data ?? [];
     const dbGoals = goalRowsRes.data ?? [];
-    const factsBlock = knownFactsBlock(knownFacts);
+    let factsBlock = knownFactsBlock(knownFacts);
+    // Kitchen language ("shea butter") is matched through the SAME glossary
+    // lookup the scan pipeline uses. Anything it cannot verify is named to the
+    // model as unverified so its card comes back hedged, not stated as fact.
+    const unverified = isHomemade
+      ? recipe
+        .map((r) => r.ingredient)
+        .filter((n) => !knownFacts.has(normaliseInciKey(n)))
+      : [];
+    const homemadeSafety: HomemadeSafety | null = isHomemade
+      ? buildHomemadeSafety(recipe, unverified)
+      : null;
+    if (isHomemade) {
+      factsBlock += homemadeRecipeBlock(recipe, detectHomemadeHazards(recipe), unverified);
+      console.log(JSON.stringify({
+        function: "ingredient-analysis",
+        homemade: true,
+        recipe_items: recipe.length,
+        unverified: unverified.length,
+        safety: homemadeSafety?.severity,
+        hazards: homemadeSafety?.hazards.map((h) => h.id),
+      }));
+    }
     console.log(JSON.stringify({
       function: "ingredient-analysis",
       known_facts: knownFacts.size,
@@ -1031,6 +1106,11 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
 
     if (!analysis) throw new Error("Ingredient analysis generation returned no payload");
 
+    // The safety floor is applied AFTER the model, never delegated to it: a
+    // hard DIY hazard caps the score and shows as its own caution whatever the
+    // model wrote about the rest of the recipe.
+    if (analysis && homemadeSafety) applyHomemadeSafety(analysis, homemadeSafety);
+
     if (retryRules?.length) {
       recordAiOutcome({
         function_name: "ingredient-analysis",
@@ -1055,6 +1135,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
           rawIngredients,
           "ingredient-analysis",
         ) as unknown as AnalysisPayload;
+        if (homemadeSafety) applyHomemadeSafety(guarded, homemadeSafety);
         return json(200, { cached: true, stale: true, analysis: guarded });
       }
       return json(503, { error: "ingredient_analysis_unavailable" });
