@@ -59,6 +59,13 @@ const HomemadeSafetyCard = ({ safety }: { safety: HomemadeSafetyPayload }) => {
         </ul>
       )}
 
+      {safety.preservation && (
+        <p className="text-[12px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
+          <span className="font-semibold text-foreground">Shelf life: </span>
+          {safety.preservation.note}
+        </p>
+      )}
+
       {safety.unverified.length > 0 && (
         <p className="text-[11.5px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
           <span className="font-semibold text-foreground">Lower confidence: </span>
