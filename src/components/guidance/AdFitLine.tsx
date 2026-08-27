@@ -29,16 +29,16 @@ const AdFitLine = ({ text: rawText, loading, className }: Props) => {
   if (!text && !loading) return null;
   return (
     <p
-      className={`flex items-start gap-1.5 text-[11.5px] leading-snug font-body text-primary ${className ?? ""}`}
+      className={`flex items-start gap-1.5 text-[13px] leading-relaxed font-body font-medium text-foreground ${className ?? ""}`}
     >
       {loading && !text ? (
         <>
-          <Loader2 className="size-3 mt-[2px] shrink-0 animate-spin" />
-          <span className="text-muted-foreground">Reading this against your hair…</span>
+          <Loader2 className="size-3.5 mt-[3px] shrink-0 animate-spin text-primary" />
+          <span className="text-muted-foreground font-normal">Reading this against your hair…</span>
         </>
       ) : (
         <>
-          <Sparkles className="size-3 mt-[2px] shrink-0" />
+          <Sparkles className="size-3.5 mt-[3px] shrink-0 text-primary" />
           <span>{text}</span>
         </>
       )}
