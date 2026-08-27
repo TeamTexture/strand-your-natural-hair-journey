@@ -494,6 +494,7 @@ export function useAllLiveBrandOffers() {
       const { data, error } = await supabase
         .from("brand_offers")
         .select("id, headline, body_copy, hero_image_path, external_url, discount_code, brand_user_id, starts_on, ends_on")
+        .is("hidden_at", null)
         .in("status", ["live", "paid_scheduled"])
         .lte("starts_on", today)
         .gte("ends_on", today);
@@ -954,6 +955,36 @@ export function useOfferMetrics(offerId: string | undefined) {
 export const STATS_METHOD_NOTE =
   "Data before 6 August 2026 was measured differently and is directional only.";
 
+
+/** Hide / unhide an offer from member-facing surfaces. Orthogonal to `status`:
+ *  the lifecycle state is untouched, so stats, revisions and the discount code
+ *  all stay intact and the brand keeps seeing it in its own dashboard. Either
+ *  the brand or a STRAND admin can toggle it; `hidden_by` records whoever did
+ *  it last. */
+export function useSetBrandOfferHidden() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ id, hidden }: { id: string; hidden: boolean }) => {
+      const { error } = await supabase
+        .from("brand_offers")
+        .update({
+          hidden_at: hidden ? new Date().toISOString() : null,
+          hidden_by: hidden ? user?.id ?? null : null,
+        } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["brand-offer", vars.id] });
+      qc.invalidateQueries({ queryKey: ["admin", "brand-offers"] });
+      qc.invalidateQueries({ queryKey: ["brand-detail"] });
+      qc.invalidateQueries({ queryKey: ["consumer", "brands-directory"] });
+      qc.invalidateQueries({ queryKey: ["all-live-brand-offers"] });
+    },
+  });
+}
 
 export function useDeleteBrandOffer() {
   const qc = useQueryClient();

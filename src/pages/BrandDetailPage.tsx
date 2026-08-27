@@ -200,6 +200,8 @@ const BrandDetailPage = () => {
           .from("brand_offers")
           .select("id, headline, body_copy, hero_image_path, external_url, discount_code, starts_on, ends_on, status, brand_user_id, brand_offer_products(position, created_at, brand_products(id, name, description, kind, tool_kind, ingredients, key_features, materials, image_urls, external_url))")
           .eq("brand_user_id", brandUserId!)
+          // Hidden offers are excluded from both public sections entirely.
+          .is("hidden_at", null)
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
           .gte("ends_on", today)
@@ -210,6 +212,7 @@ const BrandDetailPage = () => {
           .from("brand_offers")
           .select("id, headline, body_copy, hero_image_path, external_url, starts_on, ends_on, brand_offer_products(position, brand_products(name))")
           .eq("brand_user_id", brandUserId!)
+          .is("hidden_at", null)
           .eq("status", "ended")
           .order("ends_on", { ascending: false })
           .limit(10),
