@@ -34,6 +34,12 @@ import {
   hasInstructingVerb,
 } from "../_shared/tip-action.ts";
 import { gatewayFetch } from "../_shared/ai-meter.ts";
+import {
+  ungroundedStylePhrases,
+  recordedStyleLabels,
+  styleGroundingBlock,
+} from "../_shared/style-grounding.ts";
+
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "brand-product-guidance", stage: 2 } as const;
@@ -544,7 +550,27 @@ function validate(
         ]
   ).join(" ");
 
+  // HAIRSTYLE GROUNDING — FATAL. The personalisation floor above only asks
+  // whether the copy references at least ONE recorded detail, so a line could
+  // cite a real characteristic and invent a hairstyle in the same sentence
+  // ("after taking down your knotless braids" for a member whose recorded style
+  // is an Afro Mohawk). Every style NAMED must be one she actually has on file;
+  // on the wash day surface her style is withheld from the prompt, so naming
+  // any style at all is invented.
+  const ungroundedStyles = ungroundedStylePhrases(assembled, context, {
+    styleWithheld: isWashDay,
+  });
+  if (ungroundedStyles.length) {
+    const recordedStyles = recordedStyleLabels(context);
+    problems.push(
+      isWashDay
+        ? `the copy names a hairstyle (${ungroundedStyles.join(", ")}) — this member's style is NOT supplied on this surface, so remove every hairstyle reference, take-down and install.`
+        : `the copy references a hairstyle this member does not have on file (${ungroundedStyles.join(", ")}). The ONLY styles on file are: ${recordedStyles.join(", ") || "none"}. Reference one of those or no style at all — never invent a style, take-down or install.`,
+    );
+  }
+
   for (const term of characteristicTerms(context)) {
+
     const n = countTerm(assembled, term);
     if (n > 1) {
       (isWashDay ? soft : cosmetic).push(
@@ -703,9 +729,15 @@ Deno.serve(async (req) => {
         .join(", ")}\nUse the member's own wording where it reads naturally. Referencing none of them is rejected. Do not invent a detail that is not listed here.`
     : "";
 
-  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}${recordedBlock}\n\n${buildTipsLevelBlock(
+  // HARD GROUNDING. Names the exact styles on file (or states there are none)
+  // and forbids inventing any other style, product, characteristic or event.
+  // Validated in `validate` via ungroundedStylePhrases — not merely requested.
+  const styleBlock = styleGroundingBlock(promptContext, { styleWithheld: surface === "wash_day" });
+
+  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}${recordedBlock}${styleBlock}\n\nNEVER INVENT. Every hairstyle, characteristic, goal, challenge, product, appointment or past event you reference must be present in the supplied user_context. If it is not there, do not mention it, do not assume it and do not imply it — write the line without it.\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
+
 
 
 
