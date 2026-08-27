@@ -281,12 +281,20 @@ export function detectHomemadeHazards(
   return hazards;
 }
 
-/** The safety object stitched onto the analysis payload. */
+/**
+ * The safety object stitched onto the analysis payload.
+ *
+ * `glossaryPreservatives` — ingredient names the shared glossary classifies as
+ * `Preservative`. Pass them so preservation is judged from the actual
+ * ingredient list rather than from which flow the product was entered through.
+ */
 export function buildHomemadeSafety(
   recipe: RecipeItem[],
   unverified: string[],
+  glossaryPreservatives: Iterable<string> = [],
 ): HomemadeSafety {
-  const hazards = detectHomemadeHazards(recipe);
+  const preservatives = findPreservatives(recipe, glossaryPreservatives);
+  const hazards = detectHomemadeHazards(recipe, preservatives);
   const worst: HomemadeSafety["severity"] = hazards.some((h) => h.severity === "hazard")
     ? "hazard"
     : hazards.length
