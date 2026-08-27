@@ -102,6 +102,7 @@ const AddHomemadeProduct = () => {
         : "";
       if (scannedName && !name.trim()) setName(scannedName);
       setScanUsed(true);
+      setScanPhoto(file);
       toast.success(`Added ${scanned.length} ingredient${scanned.length === 1 ? "" : "s"} — check them over`);
     } catch (e) {
       console.error("recipe scan failed", e);
