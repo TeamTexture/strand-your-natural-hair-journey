@@ -99,7 +99,12 @@ const BrandDashboard = () => {
   if (profileLoading || isLoading) return <LoadingDot />;
 
   // Derive display status once so dashboard sections match what consumers see.
-  const withDerived = offers.map((o) => ({ ...o, _derived: deriveBrandOfferStatus(o) }));
+  const allWithDerived = offers.map((o) => ({ ...o, _derived: deriveBrandOfferStatus(o) }));
+  // Hidden offers are pulled out of the normal sections and shown in their own
+  // collapsed "Hidden" group — they still open, so stats and revision history
+  // stay reachable.
+  const hiddenOffers = allWithDerived.filter((o) => !!(o as { hidden_at?: string | null }).hidden_at);
+  const withDerived = allWithDerived.filter((o) => !(o as { hidden_at?: string | null }).hidden_at);
   const drafts = withDerived.filter((o) => o._derived === "draft");
   const underReview = withDerived.filter((o) => o._derived === "under_review");
   const awaitingPayment = withDerived.filter((o) => o._derived === "approved_unpaid");
@@ -426,6 +431,29 @@ const BrandDashboard = () => {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {hiddenOffers.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setHiddenOpen((v) => !v)}
+              className="w-full flex items-center justify-between gap-2 py-1"
+            >
+              <SectionLabel className="!px-0 !mt-0">Hidden ({hiddenOffers.length})</SectionLabel>
+              <span className="text-[11px] font-body text-primary">
+                {hiddenOpen ? "Hide" : "Show"}
+              </span>
+            </button>
+            {hiddenOpen && (
+              <>
+                <p className="text-[11px] text-muted-foreground font-body -mt-1 mb-1.5 leading-snug">
+                  Off your public page but not deleted — open one to see its stats, revision history and discount code.
+                </p>
+                <div className="space-y-2">{hiddenOffers.map(renderOffer)}</div>
+              </>
+            )}
           </div>
         )}
 
