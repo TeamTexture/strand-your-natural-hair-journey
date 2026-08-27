@@ -17,6 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
 import type { BenefitRow } from "@/components/guidance/BenefitRows";
 import { hasFitContent } from "@/components/guidance/AdFitLine";
+import { ungroundedStylePhrases } from "@/lib/styleGrounding";
+
 
 export interface BrandGuidance {
   headline: string;
@@ -105,10 +107,43 @@ const stalePrefix = (productId: string, surface: string) =>
     ? `brand_wash_tip_v1:${productId}`
     : `brand_product_guidance_v10:${surface}:${productId}:`;
 
+/** Every string the member actually reads out of a payload. */
+function payloadCopy(p: BrandGuidance): string {
+  return [
+    p.headline,
+    p.fit_line,
+    p.intro,
+    p.wash_day_tip,
+    ...(p.benefits ?? []).map((b) => `${b?.label ?? ""} ${b?.text ?? ""}`),
+    ...(p.steps ?? []),
+    ...(p.watch_outs ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** HALLUCINATED-STYLE GATE. Cached guidance may have been written against an
+ *  older profile state (or, on the wash day surface, a key that carries no
+ *  profile fingerprint at all). Any payload naming a hairstyle this member does
+ *  not currently have on file is discarded rather than shown — a member wearing
+ *  an Afro Mohawk must never be told to take down her knotless braids. */
+function groundedPayload(
+  p: BrandGuidance | null,
+  context: Record<string, unknown> | null,
+  surface: string,
+): BrandGuidance | null {
+  if (!p) return null;
+  const ungrounded = ungroundedStylePhrases(payloadCopy(p), context, {
+    styleWithheld: surface === "wash_day",
+  });
+  return ungrounded.length ? null : p;
+}
+
 async function readStaleGuidance(
   userId: string,
   productId: string,
   surface: string,
+  context: Record<string, unknown> | null,
 ): Promise<BrandGuidance | null> {
   const { data } = await supabase
     .from("ai_summaries")
@@ -116,12 +151,18 @@ async function readStaleGuidance(
     .eq("user_id", userId)
     .like("kind", `${stalePrefix(productId, surface)}%`)
     .order("updated_at", { ascending: false })
-    .limit(1);
-  const p = data?.[0]?.payload as unknown as BrandGuidance | null;
-  if (!p) return null;
-  if (surface === "wash_day") return p.wash_day_tip ? p : null;
-  return Array.isArray(p.benefits) || p.wash_day_tip ? p : null;
+    .limit(3);
+  for (const row of data ?? []) {
+    const p = row?.payload as unknown as BrandGuidance | null;
+    if (!p) continue;
+    const shapeOk = surface === "wash_day" ? !!p.wash_day_tip : Array.isArray(p.benefits) || !!p.wash_day_tip;
+    if (!shapeOk) continue;
+    const grounded = groundedPayload(p, context, surface);
+    if (grounded) return grounded;
+  }
+  return null;
 }
+
 
 /** In-memory guard so two surfaces mounting at once don't both generate. */
 const inflight = new Map<string, Promise<BrandGuidance | null>>();
@@ -142,7 +183,12 @@ async function loadGuidance(
       .eq("kind", kind)
       .maybeSingle();
     const p = pre?.payload as unknown as BrandGuidance | null;
-    if (p?.wash_day_tip) return p;
+    // The wash day key carries no profile fingerprint, so a pre-generated tip
+    // can outlive the profile it was written for. That surface is generated
+    // WITHOUT her style, so any style reference in it is invented — discard it
+    // and regenerate rather than show it.
+    const groundedPre = groundedPayload(p, null, surface);
+    if (groundedPre?.wash_day_tip) return groundedPre;
   }
 
   const context = (await sharedContext(userId)) as unknown as Record<string, unknown>;
@@ -158,11 +204,16 @@ async function loadGuidance(
       .eq("user_id", userId)
       .eq("kind", kind)
       .maybeSingle();
-    const cachedPayload = cached?.payload as unknown as BrandGuidance | null;
+    const cachedPayload = groundedPayload(
+      cached?.payload as unknown as BrandGuidance | null,
+      context,
+      surface,
+    );
     // The wash day surface returns a single tip body and no benefit rows, so a
     // cached payload is valid if it carries either shape.
     if (cachedPayload && (Array.isArray(cachedPayload.benefits) || cachedPayload.wash_day_tip))
       return cachedPayload;
+
 
 
     const { data: res, error } = await supabase.functions.invoke("brand-product-guidance", {
@@ -264,7 +315,19 @@ export function useBrandProductGuidance(
     }, GUIDANCE_SPINNER_MS);
     // Paint the previously generated guidance immediately if this profile
     // fingerprint has not been generated yet (e.g. she just changed her style).
-    void readStaleGuidance(user.id, product.id, surface)
+    // The stale payload is checked against her CURRENT recorded styles first —
+    // stale copy is a holding state, never a licence to describe a style she no
+    // longer wears.
+    void sharedContext(user.id)
+      .then((ctx) =>
+        readStaleGuidance(
+          user.id,
+          product.id,
+          surface,
+          ctx as unknown as Record<string, unknown>,
+        ),
+      )
+
       .then((stale) => {
         if (!cancelled && !settled && stale) {
           setGuidance(stale);
