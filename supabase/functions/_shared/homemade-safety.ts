@@ -366,7 +366,11 @@ ${hazardLines}
 Ingredients with NO entry in STRAND's verified glossary: ${unverifiedLines}
 For any ingredient in that list you may reason generally, but you must hedge the language ("commonly used for…", "generally understood to…") rather than stating its behaviour as verified fact. Never present an unverified kitchen ingredient with the same certainty as a glossary-verified one.
 
-Also remember: a homemade mix has no preservative system and no stability testing, so never imply it keeps like a bottled product.`;
+${
+    preservation
+      ? `Preservation — CHECKED AGAINST THE INGREDIENTS, NOT ASSUMED: this recipe DOES contain a preservative (${preservation.names.join(", ")}). Do NOT say it is unpreserved, do NOT tell her it will grow bacteria within days, and do NOT apply the two-or-three-day fridge rule. Normal shelf life applies; it still has no stability testing behind it.`
+      : `Also remember: this recipe has no preservative in it and no stability testing, so never imply it keeps like a bottled product.`
+  }`;
 }
 
 /**
