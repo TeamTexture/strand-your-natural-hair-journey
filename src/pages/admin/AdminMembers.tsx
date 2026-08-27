@@ -712,7 +712,7 @@ const AdminMembers = () => {
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-border">
+                <div className="mt-3 pt-3 border-t border-border space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -721,7 +721,13 @@ const AdminMembers = () => {
                   >
                     View passport
                   </Button>
+                  <ViewAsUserButton
+                    userId={r.user_id}
+                    name={r.display_name ?? r.email}
+                    className="h-9"
+                  />
                 </div>
+
                 <AccountTypeControl
                   userId={r.user_id}
                   name={r.display_name}
