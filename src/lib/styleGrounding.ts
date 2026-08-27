@@ -63,6 +63,40 @@ const norm = (s: unknown) =>
 const phraseRegex = (phrase: string) =>
   new RegExp(`(?<![a-z])${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`, "i");
 
+
+// AMBIGUOUS PHRASES. Words that are style names but also ordinary English in
+// product copy ("a low bun", "twists the strand", "wig cap"). They only count as
+// a style CLAIM when the copy ties them to wearing/removing a style. Without
+// this guard, ordinary prose was flagged as a hallucination — which discarded
+// perfectly valid cached guidance and paid for a fresh generation on every view.
+const AMBIGUOUS = new Set([
+  "braids",
+  "twists",
+  "locs",
+  "dreads",
+  "weave",
+  "wig",
+  "ponytail",
+  "low bun",
+  "high bun",
+]);
+
+const STYLE_CUE =
+  /(your|her|my|the|those|these|fresh|new|old|in|into|out of|take down|taking down|took down|install|installed|installing|wear|wearing|wore|remove|removing|refresh|refreshing|between)\s+([a-z-]+\s+){0,2}$/i;
+
+function claimsStyle(text: string, phrase: string): boolean {
+  if (!AMBIGUOUS.has(phrase)) return true;
+  const re = new RegExp(
+    `(?<![a-z])${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`,
+    "gi",
+  );
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (STYLE_CUE.test(text.slice(Math.max(0, m.index - 40), m.index))) return true;
+  }
+  return false;
+}
+
 export function recordedStyleLabels(context: Record<string, unknown> | null | undefined): string[] {
   const out = new Set<string>();
   const add = (v: unknown) => {
@@ -93,7 +127,7 @@ export function ungroundedStylePhrases(
 ): string[] {
   const t = norm(text);
   if (!t) return [];
-  const named = STYLE_PHRASES.filter((p) => phraseRegex(p).test(t));
+  const named = STYLE_PHRASES.filter((p) => phraseRegex(p).test(t) && claimsStyle(t, p));
   if (!named.length) return [];
   if (opts.styleWithheld) return named;
   const recorded = recordedStyleLabels(context);
