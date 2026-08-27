@@ -26,6 +26,9 @@ import {
   type StepHeat,
 } from "@/lib/washSteps";
 import { describeStylingHeat, type StylingHeat } from "@/lib/stylingHeat";
+import { readWashDraft, clearWashDrafts } from "@/lib/washDraft";
+import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
+import LoadingDot from "@/components/LoadingDot";
 
 const Card = ({ title, body, to, navigate }: { title: string; body: React.ReactNode; to: string; navigate: (s: string) => void }) => (
   <SurfaceCard>
