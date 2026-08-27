@@ -315,8 +315,16 @@ function validate(
   surface?: string,
   declared: string[] = [],
 ):
-  | { ok: true; value: GuidancePayload; soft: string[] }
-  | { ok: false; problems: string[]; soft: string[] } {
+): {
+  /** True only when nothing at all is wrong. */
+  ok: boolean;
+  /** Fatal: safety, grounding, mechanism, personalisation, structure. */
+  problems: string[];
+  /** Presentation-only: word budgets and repeated characteristics. */
+  cosmetic: string[];
+  soft: string[];
+  value: GuidancePayload;
+} {
   const problems: string[] = [];
   // COSMETIC MISSES — a word budget overrun or a characteristic named twice.
   // These are presentation faults, not safety or grounding faults, and they
