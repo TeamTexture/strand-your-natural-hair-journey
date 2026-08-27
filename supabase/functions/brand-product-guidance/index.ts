@@ -761,6 +761,21 @@ Deno.serve(async (req) => {
 
       const j = await r.json();
       const raw = j?.choices?.[0]?.message?.content ?? "{}";
+      const finish = String(j?.choices?.[0]?.finish_reason ?? "");
+      // TRUNCATION IS ITS OWN FAILURE MODE, and it used to be invisible: a cut
+      // off body just read as "not valid JSON". Log it distinctly so a future
+      // cap regression is diagnosable from the logs alone.
+      const truncated = finish === "length" || finish === "MAX_TOKENS";
+      if (truncated) {
+        console.log(JSON.stringify({
+          event: "guidance_output_truncated",
+          fn: "brand-product-guidance",
+          surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
+          attempt: attempt + 1,
+          finish_reason: finish,
+          completion_tokens: j?.usage?.completion_tokens ?? null,
+        }));
+      }
       // LENIENT PARSE. The model occasionally wraps the object in a code fence
       // or adds a stray leading line; a hard JSON.parse turned that into a 502
       // and a blank screen. Strip fences, then fall back to the outermost
@@ -783,6 +798,7 @@ Deno.serve(async (req) => {
 
 
       const result = validate(parsed, promptContext ?? null, surface, declared);
+
       // Soft signals are logged for author review and folded into the ONE
       // retry as preferences. They never reject.
       await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
