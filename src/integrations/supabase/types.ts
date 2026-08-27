@@ -1165,7 +1165,7 @@ export type Database = {
           },
         ]
       }
-      brand_offer_stats_legacy: {
+      brand_offer_stats_archive_2026_07: {
         Row: {
           code_copies: number
           created_at: string
