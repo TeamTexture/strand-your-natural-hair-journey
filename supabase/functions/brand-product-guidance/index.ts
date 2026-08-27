@@ -314,10 +314,23 @@ function validate(
   context: Record<string, unknown> | null,
   surface?: string,
   declared: string[] = [],
-):
-  | { ok: true; value: GuidancePayload; soft: string[] }
-  | { ok: false; problems: string[]; soft: string[] } {
+): {
+  /** True only when nothing at all is wrong. */
+  ok: boolean;
+  /** Fatal: safety, grounding, mechanism, personalisation, structure. */
+  problems: string[];
+  /** Presentation-only: word budgets and repeated characteristics. */
+  cosmetic: string[];
+  soft: string[];
+  value: GuidancePayload;
+} {
   const problems: string[] = [];
+  // COSMETIC MISSES — a word budget overrun or a characteristic named twice.
+  // These are presentation faults, not safety or grounding faults, and they
+  // must not be the reason a member sees no personalised line at all: they
+  // drive a corrective retry, but a candidate whose ONLY faults are cosmetic
+  // is served rather than discarded. Everything in `problems` stays fatal.
+  const cosmetic: string[] = [];
   const soft: string[] = [];
   const isWashDay = surface === "wash_day";
   const raw = (p ?? {}) as Record<string, unknown>;
@@ -340,7 +353,7 @@ function validate(
       : [];
 
   if (!headline) problems.push("headline is missing.");
-  else if (words(headline) > 8) problems.push(`headline is ${words(headline)} words — maximum 8.`);
+  else if (words(headline) > 8) cosmetic.push(`headline is ${words(headline)} words — maximum 8.`);
 
   // THE ADVERT TIP FLOORS — the same shared helpers the goal tip and routine
   // tips use. An advert tip with no action, or a tautological reason, is
@@ -352,12 +365,12 @@ function validate(
   if (!isWashDay) {
     if (!fitAction) problems.push("fit_line_action is missing — the advert tip must tell the member what to do.");
     else {
-      if (words(fitAction) > 16) problems.push(`fit_line_action is ${words(fitAction)} words — maximum 16.`);
+      if (words(fitAction) > 16) cosmetic.push(`fit_line_action is ${words(fitAction)} words — maximum 16.`);
       if (sentenceCount(fitAction) > 1) problems.push("fit_line_action must be exactly one sentence.");
     }
     if (!fitReason) problems.push("fit_line_reason is missing — the advert tip must explain why the action matters.");
     else {
-      if (words(fitReason) > 14) problems.push(`fit_line_reason is ${words(fitReason)} words — maximum 14.`);
+      if (words(fitReason) > 14) cosmetic.push(`fit_line_reason is ${words(fitReason)} words — maximum 14.`);
       if (sentenceCount(fitReason) > 1) problems.push("fit_line_reason must be exactly one sentence.");
     }
     if (fitLine && sentenceCount(fitLine) > 2)
@@ -405,7 +418,7 @@ function validate(
 
   if (!intro) problems.push("intro is missing.");
   else {
-    if (words(intro) > 20) problems.push(`intro is ${words(intro)} words — maximum 20.`);
+    if (words(intro) > 20) cosmetic.push(`intro is ${words(intro)} words — maximum 20.`);
     if (sentenceCount(intro) > 1) problems.push("intro must be exactly one sentence.");
   }
 
@@ -426,14 +439,14 @@ function validate(
   benefits.forEach((b, i) => {
     const lw = words(b.label);
     if (lw < 1 || lw > 2) problems.push(`benefits[${i}].label is ${lw} words — must be 1-2 words.`);
-    if (words(b.text) > 15) problems.push(`benefits[${i}].text is ${words(b.text)} words — maximum 15.`);
+    if (words(b.text) > 15) cosmetic.push(`benefits[${i}].text is ${words(b.text)} words — maximum 15.`);
     if (sentenceCount(b.text) > 1) problems.push(`benefits[${i}].text must be one sentence.`);
   });
 
   const steps = stepsRaw.map((s) => String(s ?? "").trim()).filter(Boolean);
   if (!isWashDay && steps.length !== 3) problems.push(`steps has ${steps.length} items — return exactly 3.`);
   steps.forEach((s, i) => {
-    if (words(s) > 25) problems.push(`steps[${i}] is ${words(s)} words — maximum 25.`);
+    if (words(s) > 25) cosmetic.push(`steps[${i}] is ${words(s)} words — maximum 25.`);
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
 
@@ -507,7 +520,7 @@ function validate(
       : [];
   const watchOuts = watchRaw.map((s) => String(s ?? "").trim()).filter(Boolean).slice(0, 2);
   watchOuts.forEach((s, i) => {
-    if (words(s) > 18) problems.push(`watch_outs[${i}] is ${words(s)} words — maximum 18.`);
+    if (words(s) > 18) cosmetic.push(`watch_outs[${i}] is ${words(s)} words — maximum 18.`);
     if (sentenceCount(s) > 1) problems.push(`watch_outs[${i}] must be one sentence.`);
     if (/\bnever\b|\bdamage\b|\bruin|\bdestroy|irreversib/i.test(s)) {
       problems.push(
@@ -534,15 +547,16 @@ function validate(
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
     if (n > 1) {
-      (isWashDay ? soft : problems).push(
+      (isWashDay ? soft : cosmetic).push(
         `"${term}" appears ${n} times across the card — each hair characteristic may appear at most ONCE in total. Remove the repeats and say "your hair" or nothing.`,
       );
     }
   }
 
-  if (problems.length) return { ok: false, problems, soft };
   return {
-    ok: true,
+    ok: problems.length === 0 && cosmetic.length === 0,
+    problems,
+    cosmetic,
     soft,
     value: {
       headline,
@@ -677,9 +691,22 @@ Deno.serve(async (req) => {
     brandCopy,
   })}`;
 
-  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}\n\n${buildTipsLevelBlock(
+  // THE PERSONALISATION FLOOR, STATED UP FRONT. The validator rejects a
+  // fit_line_action that references none of the member's recorded details, and
+  // the model was being asked to hit that bar without being told which words
+  // satisfy it — a rejection that cost a whole extra generation. Naming the
+  // exact tokens turns a guessing game into an instruction.
+  const recordedWords = attributeTokensFor(body.context as Record<string, unknown> | null);
+  const recordedBlock = recordedWords.length
+    ? `\n\nTHIS MEMBER'S RECORDED DETAILS — "fit_line_action" MUST REFERENCE AT LEAST ONE OF THESE\n${recordedWords
+        .slice(0, 16)
+        .join(", ")}\nUse the member's own wording where it reads naturally. Referencing none of them is rejected. Do not invent a detail that is not listed here.`
+    : "";
+
+  const system = `${SYSTEM}${groundingBlock}${policyBlock}\n\n${SCALP_PRODUCT_RULE}${surfaceBlock}${recordedBlock}\n\n${buildTipsLevelBlock(
     (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
   )}`;
+
 
 
   try {
@@ -689,7 +716,13 @@ Deno.serve(async (req) => {
     ];
 
     let clean: GuidancePayload | null = null;
+    // BEST NEAR-MISS. A candidate that cleared every safety, grounding and
+    // mechanism floor and only overran a word budget (or named a trait twice).
+    // Serving this beats serving nothing: every fault it carries is one the
+    // member cannot come to harm from.
+    let salvage: GuidancePayload | null = null;
     let lastProblems: string[] = [];
+
 
     // RETRY CAP: ONE. (Was 3 attempts / 2 retries.) One generation plus a single
     // corrective regeneration, then serve the best candidate that satisfies the
@@ -704,12 +737,25 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
-          // Output cap — output tokens drive latency on these interactive surfaces.
-          max_tokens: 2400,
+          // OUTPUT CAP — READ THIS BEFORE LOWERING IT.
+          // Gemini 3.x Flash is a reasoning model: its thinking tokens are
+          // billed and counted as OUTPUT tokens against this cap. The previous
+          // cap of 2400 was consumed almost entirely by reasoning, so the JSON
+          // body was cut off mid-string on EVERY call (`finish_reason: length`,
+          // output_tokens pinned at 2378-2396). Both attempts then failed with
+          // "Output was not valid JSON", the function returned
+          // `guidance: null` after ~66s, and the advert's personalised line
+          // never appeared. The card itself is ~250 tokens; the headroom below
+          // is for the thinking, not the answer.
+          max_tokens: 8000,
+          // Keep the thinking short — this is an interactive ad surface and
+          // reasoning tokens are what drives its latency.
+          reasoning_effort: "low",
           messages,
           response_format: { type: "json_object" },
         }),
       });
+
 
       if (r.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited — try again shortly" }), {
@@ -748,6 +794,21 @@ Deno.serve(async (req) => {
 
       const j = await r.json();
       const raw = j?.choices?.[0]?.message?.content ?? "{}";
+      const finish = String(j?.choices?.[0]?.finish_reason ?? "");
+      // TRUNCATION IS ITS OWN FAILURE MODE, and it used to be invisible: a cut
+      // off body just read as "not valid JSON". Log it distinctly so a future
+      // cap regression is diagnosable from the logs alone.
+      const truncated = finish === "length" || finish === "MAX_TOKENS";
+      if (truncated) {
+        console.log(JSON.stringify({
+          event: "guidance_output_truncated",
+          fn: "brand-product-guidance",
+          surface: surface === "wash_day" ? "sponsored-wash-day-tip" : "brand-product-guidance",
+          attempt: attempt + 1,
+          finish_reason: finish,
+          completion_tokens: j?.usage?.completion_tokens ?? null,
+        }));
+      }
       // LENIENT PARSE. The model occasionally wraps the object in a code fence
       // or adds a stray leading line; a hard JSON.parse turned that into a 502
       // and a blank screen. Strip fences, then fall back to the outermost
@@ -770,10 +831,15 @@ Deno.serve(async (req) => {
 
 
       const result = validate(parsed, promptContext ?? null, surface, declared);
+
       // Soft signals are logged for author review and folded into the ONE
       // retry as preferences. They never reject.
       await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
-      if (result.ok) {
+      // Run the guardrail whenever nothing FATAL is wrong. A cosmetic-only
+      // candidate is still sanitised and kept as the salvage, so the retry that
+      // follows is an attempt to do better — not the member's only chance.
+      const parsedOk = parsed !== null && result.problems.length === 0;
+      if (parsedOk) {
         // Sanitise INSIDE the loop. The blood guardrail can strip a whole
         // sentence, and a stripped reason would otherwise ship an action-only
         // tip — the exact defect the floors exist to prevent. If the guardrail
@@ -802,14 +868,35 @@ Deno.serve(async (req) => {
             ? !!String(candidate.wash_day_tip ?? "").trim()
             : sentenceCount(String(candidate.fit_line ?? "")) >= 2;
         if (survivedFloors) {
-          clean = candidate;
-          break;
+          if (result.cosmetic.length === 0) {
+            clean = candidate;
+            break;
+          }
+          // Keep the first cosmetic-only candidate and ask for a tidier one.
+          if (!salvage) salvage = candidate;
+          lastProblems = result.cosmetic;
+          if (attempt + 1 >= MAX_ATTEMPTS) break;
+          messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
+          messages.push({
+            role: "user",
+            content:
+              `That output was REJECTED on length only. Return the SAME guidance, shortened to fit, as corrected JSON only.\n- ` +
+              lastProblems.join("\n- "),
+          });
+          continue;
         }
         lastProblems = [
           'part of your advert tip was removed by the blood-claim guardrail, leaving it without a reason. Rewrite "fit_line_reason" so it explains the hair-care mechanism only — never bridge a blood marker, medication or health value to a hair outcome.',
         ];
       } else {
-        lastProblems = parsed === null ? ["Output was not valid JSON."] : result.problems;
+        lastProblems = parsed === null
+          ? [
+              truncated
+                ? "Your previous output ran out of room before the JSON closed. Think briefly, then return ONLY the compact JSON object — no preamble, no commentary, shortest wording that still satisfies the rules."
+                : "Output was not valid JSON.",
+            ]
+          : [...result.problems, ...result.cosmetic];
+
       }
       if (attempt + 1 >= MAX_ATTEMPTS) break;
       messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
@@ -825,10 +912,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Near-miss beats nothing. Every fatal floor was cleared; only a word
+    // budget was missed, and an advert with slightly long personalised copy is
+    // far better than an advert with none.
+    if (!clean && salvage) {
+      console.log(JSON.stringify({
+        event: "guidance_served_near_miss",
+        fn: "brand-product-guidance",
+        problems: lastProblems.slice(0, 4),
+      }));
+      clean = salvage;
+    }
+
     if (!clean) {
       // Personalised guidance is OPTIONAL copy. A validation miss must never
-      // surface as an invocation error / blank screen — the caller renders the
-      // approved advert without it.
+      // surface as an invocation error / blank screen — the caller renders
+      // generic usage copy in its place (see `adFallbackFitLine`).
       return new Response(
         JSON.stringify({ guidance: null, unavailable: "validation", problems: lastProblems }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },

@@ -221,8 +221,21 @@ export function warmBrandProductGuidance(
   void loadGuidance(userId, product, surface).catch(() => null);
 }
 
+/** HARD SPINNER CEILING. Generation involves manuscript retrieval plus a
+ *  reasoning model and legitimately takes tens of seconds; a rejected first
+ *  attempt doubles that. An advert is not allowed to sit spinning for that
+ *  long, so the spinner stops here and the surface shows the brand's own
+ *  declared usage copy instead. The generation is NOT cancelled — when it
+ *  lands (this render or a later visit, via the cache) the personalised line
+ *  replaces the fallback. */
+const GUIDANCE_SPINNER_MS = 12_000;
+
 /** Personalised guidance for one ad product. Set `enabled` false to hold off
- *  generation until the member actually engages (e.g. expands a banner). */
+ *  generation until the member actually engages (e.g. expands a banner).
+ *
+ *  `timedOut` is true once the spinner ceiling is passed with nothing to show —
+ *  the caller must render generic copy (see `adFallbackFitLine`) rather than an
+ *  empty slot, because this text carries paid campaigns. */
 
 export function useBrandProductGuidance(
   product: BrandGuidanceProduct | null | undefined,
@@ -232,35 +245,58 @@ export function useBrandProductGuidance(
   const { user } = useAuth();
   const [guidance, setGuidance] = useState<BrandGuidance | null>(null);
   const [loading, setLoading] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     if (!enabled || !product?.id || !user?.id) return;
     let cancelled = false;
     let settled = false;
     setLoading(true);
+    setTimedOut(false);
+    // Stop the spinner even if nothing ever comes back. Deliberately a state
+    // flip and not an abort: the request keeps running and populates the cache,
+    // so a later view is instant.
+    const timer = window.setTimeout(() => {
+      if (cancelled || settled) return;
+      setLoading(false);
+      setTimedOut(true);
+    }, GUIDANCE_SPINNER_MS);
     // Paint the previously generated guidance immediately if this profile
     // fingerprint has not been generated yet (e.g. she just changed her style).
     void readStaleGuidance(user.id, product.id, surface)
       .then((stale) => {
-        if (!cancelled && !settled && stale) setGuidance(stale);
+        if (!cancelled && !settled && stale) {
+          setGuidance(stale);
+          setLoading(false);
+          setTimedOut(false);
+        }
       })
       .catch(() => null);
     loadGuidance(user.id, product, surface)
       .then((g) => {
         settled = true;
-        if (!cancelled && g) setGuidance(g);
+        if (!cancelled && g) {
+          setGuidance(g);
+          setTimedOut(false);
+        }
       })
       .catch(() => {
-        /* Silent — the advert still renders without the personalised line. */
+        /* Silent — the surface falls back to generic usage copy. */
       })
       .finally(() => {
+        settled = true;
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, product?.id, user?.id, surface]);
 
-  return { guidance, loading };
+  // The surface has nothing personalised to show and is no longer waiting.
+  const needsFallback = !guidance?.fit_line && !loading;
+
+  return { guidance, loading, timedOut, needsFallback };
+
 }
