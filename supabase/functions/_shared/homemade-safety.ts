@@ -40,12 +40,25 @@ export interface HomemadeHazard {
   body: string;
 }
 
+export interface HomemadePreservation {
+  /** "preserved" only when a real preservative was FOUND in the recipe. */
+  status: "preserved";
+  /** The preservative ingredients actually present, as she wrote them. */
+  names: string[];
+  note: string;
+}
+
 export interface HomemadeSafety {
   severity: "hazard" | "caution" | "ok";
   headline: string;
   hazards: HomemadeHazard[];
   /** Ingredients with no glossary entry — reasoned about generally only. */
   unverified: string[];
+  /**
+   * Set only when the recipe has a water phase AND a recognised preservative —
+   * an honest shelf-life statement in place of the DIY spoilage warning.
+   */
+  preservation?: HomemadePreservation;
 }
 
 /** Normalises a free-text recipe payload into clean ingredient+amount pairs. */
