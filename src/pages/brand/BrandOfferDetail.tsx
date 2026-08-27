@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import CountdownClock from "@/components/brand/CountdownClock";
+import OfferVisibilityToggle from "@/components/brand/OfferVisibilityToggle";
 import { useOwnerMode, ownerHomeRoute, ownerOfferRoute } from "@/hooks/useOwnerMode";
 import { useMarkOfferInterestSeen, useOfferInterestCounts } from "@/hooks/useBrandOfferInterest";
 import { Users } from "lucide-react";
@@ -614,6 +615,11 @@ const BrandOfferDetail = () => {
             {isRevisionMode ? "Edit creative (submits for review)" : "Edit offer"}
           </Button>
         )}
+
+        <OfferVisibilityToggle
+          offerId={offer.id}
+          hiddenAt={(offer as { hidden_at?: string | null }).hidden_at ?? null}
+        />
 
         {canDelete && (
           <Button
