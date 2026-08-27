@@ -17,16 +17,13 @@ export interface AdFallbackProduct {
   key_features?: string[] | null;
 }
 
-/** First sentence of a block of text, capped so it fits the one-line slot. */
-function firstSentence(text: string, maxChars = 150): string {
+/** First sentence of a block of text, returned whole — the slot wraps, so a
+ *  sentence is never sliced mid-thought with an ellipsis. */
+function firstSentence(text: string): string {
   const clean = text.replace(/\s+/g, " ").trim();
   if (!clean) return "";
   const match = clean.match(/^[^.!?]{10,}?[.!?]/);
-  const sentence = (match?.[0] ?? clean).trim();
-  if (sentence.length <= maxChars) return sentence;
-  const cut = sentence.slice(0, maxChars);
-  const lastSpace = cut.lastIndexOf(" ");
-  return `${(lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+  return (match?.[0] ?? clean).trim();
 }
 
 /**
