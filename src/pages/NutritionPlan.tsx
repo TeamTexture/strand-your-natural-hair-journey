@@ -532,7 +532,50 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
   return out;
 };
 
+/** The plan already stored for this member, if it is complete enough to show. */
+async function loadStoredPlan(
+  userId: string,
+): Promise<{ plan: AiPlan; generatedAt: string | null } | null> {
+  const { data } = await supabase
+    .from("ai_summaries")
+    .select("payload, updated_at")
+    .eq("user_id", userId)
+    .eq("kind", "nutrition_plan")
+    .maybeSingle();
+  const payload = (data?.payload ?? null) as (AiPlan & { _generated_at?: string }) | null;
+  if (!payload) return null;
+  const complete =
+    !!payload.summary &&
+    Array.isArray(payload.diet) &&
+    payload.diet.length > 0 &&
+    Array.isArray(payload.avoid) &&
+    payload.avoid.length > 0;
+  if (!complete) return null;
+  return { plan: payload, generatedAt: payload._generated_at ?? data?.updated_at ?? null };
+}
+
+/** True when a blood panel or result was added or edited after `since`. */
+async function bloodTouchedSince(userId: string, since: string | null): Promise<boolean> {
+  if (!since) return true;
+  const [{ data: panels }, { data: results }] = await Promise.all([
+    supabase
+      .from("blood_panels")
+      .select("updated_at")
+      .eq("user_id", userId)
+      .gt("updated_at", since)
+      .limit(1),
+    supabase
+      .from("blood_results")
+      .select("updated_at")
+      .eq("user_id", userId)
+      .gt("updated_at", since)
+      .limit(1),
+  ]);
+  return (panels?.length ?? 0) > 0 || (results?.length ?? 0) > 0;
+}
+
 const NutritionPlan = () => {
+
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
   const { level } = useNutritionLevel();
@@ -676,6 +719,7 @@ const NutritionPlan = () => {
    */
   const inFlightRef = useRef(false);
 
+
   const fetchPlan = async (force = false, currentProfile = profile) => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
@@ -759,7 +803,28 @@ const NutritionPlan = () => {
         setProfile(next);
         // No bloods on file: this screen renders its locked state, so there is
         // nothing to generate. Blood work is optional; adding it later opens it.
-        if (bloodOnFile) void fetchPlan(false, next);
+        //
+        // VIEWING NEVER SPENDS A TOKEN (2026-08-27). The stored plan is read
+        // straight from `ai_summaries` and rendered instantly. The edge function
+        // is only invoked when there is no stored plan, or when her blood data
+        // has actually been touched since that plan was written. Every other
+        // visit — a back-navigation, a tab switch, a reload — is a pure read.
+        if (bloodOnFile) {
+          const stored = await loadStoredPlan(user.id);
+          if (cancelled) return;
+          if (stored?.plan) {
+            setPlan(stored.plan);
+            setPlanFailed(
+              !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
+            );
+            if (await bloodTouchedSince(user.id, stored.generatedAt)) {
+              if (!cancelled) void fetchPlan(false, next);
+            }
+          } else {
+            void fetchPlan(false, next);
+          }
+        }
+
       } finally {
         if (!cancelled) setLoading(false);
       }

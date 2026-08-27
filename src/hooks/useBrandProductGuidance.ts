@@ -70,7 +70,28 @@ function djb2Hex(s: string): string {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 
-/** Hash of only the context slices the guidance reasons from. */
+/** Canonical stringify — key order and array order can never move the hash.
+ *  JSON.stringify follows insertion order, so a re-ordered goals array or a
+ *  differently-built profile object produced a brand new cache key for an
+ *  unchanged member and paid for a fresh generation on every view. */
+function canonical(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value ?? null);
+  if (Array.isArray(value)) return "[" + value.map(canonical).sort().join(",") + "]";
+  const obj = value as Record<string, unknown>;
+  return (
+    "{" +
+    Object.keys(obj)
+      .sort()
+      .map((k) => JSON.stringify(k) + ":" + canonical(obj[k]))
+      .join(",") +
+    "}"
+  );
+}
+
+/** Hash of only the context slices the guidance reasons from.
+ *  VOLATILE FIELDS ARE EXCLUDED: `days_in_style` increments every day and
+ *  `style_set_on` / `planned_change_date` are timestamps — none of them change
+ *  what the guidance says, but all of them used to change the cache key. */
 function fingerprintContext(context: Record<string, unknown>): string {
   const pick = [
     "hairProfile",
@@ -80,10 +101,31 @@ function fingerprintContext(context: Record<string, unknown>): string {
     "goals",
     "tipsLevel",
   ];
+  const volatileStyleKeys = new Set([
+    "days_in_style",
+    "style_set_on",
+    "style_set_at",
+    "planned_change_date",
+    "updated_at",
+    "created_at",
+  ]);
   const slice: Record<string, unknown> = {};
-  for (const k of pick) if (k in context) slice[k] = context[k];
-  return djb2Hex(JSON.stringify(slice));
+  for (const k of pick) {
+    if (!(k in context)) continue;
+    const v = context[k];
+    if ((k === "currentStyle" || k === "styleProfile") && v && typeof v === "object") {
+      const cleaned: Record<string, unknown> = {};
+      for (const [ck, cv] of Object.entries(v as Record<string, unknown>)) {
+        if (!volatileStyleKeys.has(ck)) cleaned[ck] = cv;
+      }
+      slice[k] = cleaned;
+    } else {
+      slice[k] = v;
+    }
+  }
+  return djb2Hex(canonical(slice));
 }
+
 
 // The wash day (sponsored tip) surface is PRE-GENERATED in the background when
 // a campaign is approved, so its key must be computable server-side: it carries
@@ -204,15 +246,18 @@ async function loadGuidance(
       .eq("user_id", userId)
       .eq("kind", kind)
       .maybeSingle();
-    const cachedPayload = groundedPayload(
-      cached?.payload as unknown as BrandGuidance | null,
-      context,
-      surface,
-    );
+    // EXACT-FINGERPRINT HIT = TRUST IT. This row was generated against THIS
+    // profile state and already passed the server's hard style-grounding
+    // validator, so re-running the client gate here can only produce false
+    // positives — and a false positive means a paid regeneration on every
+    // single view. The grounding gate stays on the reads that genuinely can be
+    // out of date: the stale-prefix read and the un-fingerprinted wash day key.
+    const cachedPayload = cached?.payload as unknown as BrandGuidance | null;
     // The wash day surface returns a single tip body and no benefit rows, so a
     // cached payload is valid if it carries either shape.
     if (cachedPayload && (Array.isArray(cachedPayload.benefits) || cachedPayload.wash_day_tip))
       return cachedPayload;
+
 
 
 
