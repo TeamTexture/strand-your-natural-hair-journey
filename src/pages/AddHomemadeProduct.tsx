@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveProductKey } from "@/lib/productIdentity";
 import { prepareImageForAi } from "@/lib/imagePrep";
@@ -64,7 +65,7 @@ const AddHomemadeProduct = () => {
           const path = `${user.id}/homemade-${Date.now()}.jpg`;
           const { error } = await supabase.storage
             .from("product-photos")
-            .upload(path, prepared.file, { contentType: "image/jpeg", upsert: true });
+            .upload(path, prepared.uploadFile, { contentType: "image/jpeg", upsert: true });
           if (!error) storagePath = path;
         } catch {
           // A photo is optional — never block saving the recipe on it.
@@ -81,7 +82,7 @@ const AddHomemadeProduct = () => {
           brand: null,
           category,
           is_homemade: true,
-          homemade_recipe: recipe,
+          homemade_recipe: recipe as unknown as Json,
           // Kept in sync deliberately: every existing consumer reads this.
           ingredients: recipeIngredientNames(recipe),
           ingredients_source: "homemade",
