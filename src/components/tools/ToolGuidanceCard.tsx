@@ -67,9 +67,12 @@ const ToolGuidanceCard = ({ tool, enabled = true }: { tool: UserTool; enabled?: 
   const savedSteps = analysisSentences(analysis?.how_to_use, 3);
   const savedWatchOuts = analysisStrings(analysis?.warnings, 2);
 
-  const read = guidance
-    ? trimToSentences([guidance.fit_line, guidance.intro].filter(Boolean).join(" "))
-    : savedRead;
+  const liveRead = guidance
+    ? trimToSentences(
+        [validFitLine(guidance.fit_line), guidance.intro].filter(Boolean).join(" "),
+      )
+    : null;
+  const read = hasFitContent(liveRead) ? liveRead : savedRead;
   const benefits = (guidance?.benefits ?? []).filter((b) => b?.label && b?.text);
   const steps = guidance?.steps?.length
     ? guidance.steps.filter(Boolean).slice(0, 3)

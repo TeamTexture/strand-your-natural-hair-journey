@@ -6,6 +6,7 @@ import GuidanceCard from "@/components/guidance/GuidanceCard";
 import BenefitRows from "@/components/guidance/BenefitRows";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
+import { validFitLine } from "@/components/guidance/AdFitLine";
 import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -186,7 +187,8 @@ const BrandProductPage = () => {
   // Never an empty slot on an ad surface: generic (brand-declared) usage copy
   // stands in when the personalised line times out or is rejected.
   const fitLine =
-    guidance?.fit_line ?? (needsFallback && product ? adFallbackFitLine(product) : undefined);
+    validFitLine(guidance?.fit_line) ??
+    ((needsFallback || guidance) && product ? adFallbackFitLine(product) : undefined);
 
 
   // Adding is NOT conditional on a live advert. This screen is also reached

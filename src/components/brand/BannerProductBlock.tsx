@@ -9,6 +9,7 @@ import { useLogAdEvent } from "@/hooks/useBrandOffers";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
+import { validFitLine } from "@/components/guidance/AdFitLine";
 import type { BannerProductRow } from "@/components/brand/BrandOfferBanner";
 
 interface Props {
@@ -47,7 +48,9 @@ const BannerProductBlock = ({ offerId, slot, product, brandName = null, expanded
   const { guidance, loading, needsFallback } = useBrandProductGuidance(product, {
     enabled: expanded,
   });
-  const fitLine = guidance?.fit_line ?? (needsFallback ? adFallbackFitLine(product) : undefined);
+  const personalisedLine = validFitLine(guidance?.fit_line);
+  const fitLine =
+    personalisedLine ?? (needsFallback || guidance ? adFallbackFitLine(product) : undefined);
 
 
   const imageUrl = product.image_urls?.[0] ?? null;

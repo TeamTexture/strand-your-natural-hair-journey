@@ -9,7 +9,23 @@ interface Props {
 /** The personalised hook on an advert: one line naming something real about
  *  this member's hair and what the product does for it. Renders nothing when
  *  there is no grounded line to show. */
-const AdFitLine = ({ text, loading, className }: Props) => {
+/** A guidance line only counts as real copy when it has actual words in it.
+ *  A degenerate model response (an empty string, a lone ".", whitespace) must be
+ *  treated exactly like null so the caller falls through to its deterministic
+ *  fallback instead of rendering a stub. */
+export function hasFitContent(text?: string | null): boolean {
+  if (!text) return false;
+  const letters = text.replace(/[^\p{L}\p{N}]/gu, "");
+  return letters.length >= 4;
+}
+
+/** Returns the line when it is real copy, otherwise `undefined`. */
+export function validFitLine(text?: string | null): string | undefined {
+  return hasFitContent(text) ? (text as string) : undefined;
+}
+
+const AdFitLine = ({ text: rawText, loading, className }: Props) => {
+  const text = validFitLine(rawText);
   if (!text && !loading) return null;
   return (
     <p
