@@ -9,6 +9,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
