@@ -3,12 +3,14 @@
 // Deliberately NOT part of the scan/photo/link flows: there is no packaging to
 // read, no brand and no INCI list. She types what she put in the bowl.
 //
-// Amounts are free text on purpose — "5 drops", "2 tbsp", "a handful". Nobody
-// measures a hair mask precisely, and forcing a unit picker would either lose
-// the real amount or stop her saving at all. The recipe is stored as
-// ingredient+amount pairs, and the ingredient NAMES are also written to the
-// existing flat `ingredients` column so every downstream surface (analysis,
-// matching, shelf card, passport) keeps working with no changes.
+// Amounts are captured as a number + a unit (g, ml, tsp, tbsp, cup, drops,
+// pumps) so the analysis gets real, machine-readable concentration data instead
+// of parsing a loose string — with an "Other…" unit that reveals the old free
+// text field for the amounts a kitchen actually uses ("a pinch", "a handful").
+// Both parts stay optional: she can name an ingredient and skip the amount.
+// The recipe stores ingredient + qty + unit AND the rendered `amount` string,
+// and the ingredient NAMES are also written to the existing flat `ingredients`
+// column so every downstream surface keeps working with no changes.
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -27,22 +29,32 @@ import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { resolveProductKey } from "@/lib/productIdentity";
 import { prepareImageForAi } from "@/lib/imagePrep";
-import { HOMEMADE_CATEGORIES, recipeIngredientNames, type RecipeItem } from "@/lib/homemade";
+import {
+  HOMEMADE_CATEGORIES, RECIPE_UNITS, formatAmount, recipeIngredientNames,
+  type RecipeItem,
+} from "@/lib/homemade";
 import { toast } from "sonner";
+
+interface RowState {
+  ingredient: string;
+  qty: string;
+  unit: string;
+  /** Only used when unit === "other". */
+  freeText: string;
+}
+
+const emptyRow = (): RowState => ({ ingredient: "", qty: "", unit: "", freeText: "" });
 
 const AddHomemadeProduct = () => {
   const navigate = useNavigate();
   const { user, isViewingAs } = useAuth();
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
-  const [rows, setRows] = useState<RecipeItem[]>([
-    { ingredient: "", amount: "" },
-    { ingredient: "", amount: "" },
-  ]);
+  const [rows, setRows] = useState<RowState[]>([emptyRow(), emptyRow()]);
   const [photo, setPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const setRow = (i: number, patch: Partial<RecipeItem>) =>
+  const setRow = (i: number, patch: Partial<RowState>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
 
   const filled = rows.filter((r) => r.ingredient.trim().length > 0);
@@ -53,10 +65,17 @@ const AddHomemadeProduct = () => {
     if (isViewingAs) { toast.error("Read-only while viewing as a member"); return; }
     setSaving(true);
     try {
-      const recipe: RecipeItem[] = filled.map((r) => ({
-        ingredient: r.ingredient.trim(),
-        amount: r.amount.trim(),
-      }));
+      const recipe: RecipeItem[] = filled.map((r) => {
+        const qty = r.qty.trim();
+        const structured = r.unit && r.unit !== "other";
+        return {
+          ingredient: r.ingredient.trim(),
+          amount: formatAmount(qty, r.unit, r.freeText),
+          ...(qty && structured ? { qty } : {}),
+          ...(structured ? { unit: r.unit } : {}),
+        };
+      });
+
 
       let storagePath: string | null = null;
       if (photo) {
