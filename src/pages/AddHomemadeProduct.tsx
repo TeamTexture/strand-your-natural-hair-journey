@@ -57,6 +57,8 @@ const AddHomemadeProduct = () => {
   const [scanning, setScanning] = useState(false);
   /** True once a scan has populated rows — recorded on the saved row's source. */
   const [scanUsed, setScanUsed] = useState(false);
+  /** The scanned recipe photo — used as the product image when she adds none. */
+  const [scanPhoto, setScanPhoto] = useState<File | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   const setRow = (i: number, patch: Partial<RowState>) =>
@@ -100,6 +102,7 @@ const AddHomemadeProduct = () => {
         : "";
       if (scannedName && !name.trim()) setName(scannedName);
       setScanUsed(true);
+      setScanPhoto(file);
       toast.success(`Added ${scanned.length} ingredient${scanned.length === 1 ? "" : "s"} — check them over`);
     } catch (e) {
       console.error("recipe scan failed", e);
@@ -131,10 +134,14 @@ const AddHomemadeProduct = () => {
       });
 
 
+      // She may skip the photo step entirely — in that case the recipe photo
+      // she already scanned becomes the product image, so the shelf card and
+      // product page are never blank when a photo does exist.
+      const imageFile = photo ?? scanPhoto;
       let storagePath: string | null = null;
-      if (photo) {
+      if (imageFile) {
         try {
-          const prepared = await prepareImageForAi(photo);
+          const prepared = await prepareImageForAi(imageFile);
           const path = `${user.id}/homemade-${Date.now()}.jpg`;
           const { error } = await supabase.storage
             .from("product-photos")
@@ -317,7 +324,11 @@ const AddHomemadeProduct = () => {
           <label className="flex items-center gap-2.5 text-[12.5px] text-foreground cursor-pointer min-h-[44px]">
             <Camera className="size-4 text-primary" />
             <span className="flex-1 truncate">
-              {photo ? photo.name : "Add a photo of the mix or the jar"}
+              {photo
+                ? photo.name
+                : scanPhoto
+                  ? "Using your scanned recipe photo — tap to use a different one"
+                  : "Add a photo of the mix or the jar"}
             </span>
             <input
               type="file"
