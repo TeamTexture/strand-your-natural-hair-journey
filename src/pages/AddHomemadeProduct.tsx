@@ -324,7 +324,11 @@ const AddHomemadeProduct = () => {
           <label className="flex items-center gap-2.5 text-[12.5px] text-foreground cursor-pointer min-h-[44px]">
             <Camera className="size-4 text-primary" />
             <span className="flex-1 truncate">
-              {photo ? photo.name : "Add a photo of the mix or the jar"}
+              {photo
+                ? photo.name
+                : scanPhoto
+                  ? "Using your scanned recipe photo — tap to use a different one"
+                  : "Add a photo of the mix or the jar"}
             </span>
             <input
               type="file"
