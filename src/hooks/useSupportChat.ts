@@ -150,6 +150,7 @@ export function useAdminSupportThreads() {
 
       const preview = new Map<string, { body: string; at: string }>();
       const unread = new Map<string, number>();
+      const subjectOf = new Map(rows.map((t) => [t.id, t.subject_user_id ?? null]));
       for (const m of msgRes.data ?? []) {
         if (!preview.has(m.thread_id) && m.kind !== "system") {
           preview.set(m.thread_id, {
@@ -157,12 +158,18 @@ export function useAdminSupportThreads() {
             at: m.created_at,
           });
         }
-        // Unread for the admin side = anything the member sent that no admin
-        // has opened yet.
-        if (!m.read_at && m.sender_id && m.sender_id !== user!.id) {
+        // Unread for the admin side = anything the MEMBER whose thread this is
+        // sent and no admin has opened. It is deliberately not "anything not
+        // sent by me": an outbound reply from another admin (or from this admin
+        // while in a different role view) is unread by the member, not by us,
+        // and counting those made the badge report the team's own replies as
+        // waiting member messages.
+        const subject = subjectOf.get(m.thread_id);
+        if (!m.read_at && m.sender_id && subject && m.sender_id === subject) {
           unread.set(m.thread_id, (unread.get(m.thread_id) ?? 0) + 1);
         }
       }
+
 
       const profiles = new Map(
         ((profRes.data ?? []) as { user_id: string; display_name: string | null }[]).map((p) => [p.user_id, p]),
