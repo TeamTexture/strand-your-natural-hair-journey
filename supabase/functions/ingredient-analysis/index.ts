@@ -954,7 +954,7 @@ Deno.serve(async (req) => {
         const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}${sensitivityBlock}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}${sensitivityBlock}${factsBlock}`;
         analysis = await runLovable({
           systemPrompt,
           userPayload: baseRetryPayload,
@@ -965,6 +965,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason,
         });
+        analysis = applyKnownCategories(analysis, knownFacts);
         analysis = scrubGuidance(analysis);
         const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
         if (lovableProblems.length) {
