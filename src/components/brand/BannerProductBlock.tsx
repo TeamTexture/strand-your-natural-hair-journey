@@ -8,6 +8,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useLogAdEvent } from "@/hooks/useBrandOffers";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import AdFitLine from "@/components/guidance/AdFitLine";
+import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import type { BannerProductRow } from "@/components/brand/BrandOfferBanner";
 
 interface Props {
@@ -39,7 +40,6 @@ const BannerProductBlock = ({ offerId, slot, product, brandName = null, expanded
   const logEvent = useLogAdEvent();
   const [shelfBusy, setShelfBusy] = useState(false);
 
-  // Generated on expand (a deliberate action), never on a passing impression.
   // Generated on expand (a deliberate action), never on a passing impression.
   // `needsFallback` means the spinner has stopped with no personalised line
   // (timeout, guardrail rejection or a service error) — an advert must still
@@ -124,7 +124,7 @@ const BannerProductBlock = ({ offerId, slot, product, brandName = null, expanded
 
       {/* THIS product's tip — inside the block, so it is never ambiguous which
        *  of two products it describes. */}
-      <AdFitLine text={guidance?.fit_line} loading={loading} className="mt-3" />
+      <AdFitLine text={fitLine} loading={loading} className="mt-3" />
 
       <div className="mt-3 -mb-1 flex items-center gap-2 border-t border-border pt-2.5">
         <button

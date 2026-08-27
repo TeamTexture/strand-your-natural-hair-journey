@@ -5,6 +5,7 @@ import { ExternalLink, Heart, Check, Loader2, Sparkles, Plus } from "lucide-reac
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import BenefitRows from "@/components/guidance/BenefitRows";
 import AdFitLine from "@/components/guidance/AdFitLine";
+import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import NumberedSteps from "@/components/guidance/NumberedSteps";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -179,9 +180,13 @@ const BrandProductPage = () => {
   // ── Personalised guidance: benefits for THIS member's hair + how to get the
   //    most out of it. Shared with the banner and offer-page surfaces so the
   //    same reasoning shows wherever this advert appears. ──
-  const { guidance, loading: guidanceLoading } = useBrandProductGuidance(
+  const { guidance, loading: guidanceLoading, needsFallback } = useBrandProductGuidance(
     product ? { ...(product as unknown as BrandGuidanceProduct), brand: brandName } : null,
   );
+  // Never an empty slot on an ad surface: generic (brand-declared) usage copy
+  // stands in when the personalised line times out or is rejected.
+  const fitLine =
+    guidance?.fit_line ?? (needsFallback && product ? adFallbackFitLine(product) : undefined);
 
 
   // Adding is NOT conditional on a live advert. This screen is also reached
@@ -280,7 +285,7 @@ const BrandProductPage = () => {
             )}
             {/* The personalised hook — why this matters for THIS member's hair. */}
             <AdFitLine
-              text={guidance?.fit_line}
+              text={fitLine}
               loading={guidanceLoading}
               className="mt-3"
             />
