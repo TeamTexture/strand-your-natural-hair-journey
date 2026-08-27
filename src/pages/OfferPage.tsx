@@ -21,6 +21,8 @@ import AdFitLine from "@/components/guidance/AdFitLine";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import { validFitLine } from "@/components/guidance/AdFitLine";
+import BrandPlaybookCard from "@/components/guidance/BrandPlaybookCard";
+
 
 /** Deterministic keys so a brand item only ever creates a single row per user. */
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
