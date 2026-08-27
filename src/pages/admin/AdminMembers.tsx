@@ -75,12 +75,36 @@ function startedCheckoutUnpaid(r: MemberRow): boolean {
   );
 }
 
+/** On a free trial — entitled, but no money has been taken yet. */
+function isTrialing(r: MemberRow): boolean {
+  return !r.complimentary_access && r.subscription_status === "trialing";
+}
+
+/** Actually paying — the trial converted and billing is live. */
+function isPaying(r: MemberRow): boolean {
+  return !r.complimentary_access && r.subscription_status === "active";
+}
+
+/** Cancelled outright, or still active but set not to renew. */
+function isCancelled(r: MemberRow): boolean {
+  const s = r.subscription_status;
+  if (s === "canceled" || s === "cancelled") return true;
+  return s === "active" && r.cancel_at_period_end === true;
+}
+
 function statusBadge(row: MemberRow) {
   if (row.access_restricted) return { label: "Restricted", cls: "bg-destructive/15 text-destructive" };
   if (isPlusMember(row) && !row.complimentary_access) return { label: "STRAND+", cls: "bg-primary/20 text-primary font-bold" };
   if (row.complimentary_access) return { label: "Complimentary", cls: "bg-primary/15 text-primary" };
   const s = row.subscription_status;
-  if (s === "active" || s === "trialing") return { label: "Active", cls: "bg-good/15 text-good" };
+  if (isCancelled(row)) {
+    return {
+      label: s === "active" ? "Cancelling" : "Cancelled",
+      cls: "bg-destructive/15 text-destructive",
+    };
+  }
+  if (s === "trialing") return { label: "Trial", cls: "bg-brown/15 text-brown" };
+  if (s === "active") return { label: "Paid", cls: "bg-good/15 text-good" };
   if (s === "past_due" || s === "unpaid") return { label: "Past due", cls: "bg-warn/20 text-warn" };
   if (startedCheckoutUnpaid(row)) return { label: "Not paid", cls: "bg-warn/15 text-warn" };
   if (s === "canceled") return { label: "Cancelled", cls: "bg-muted text-muted-foreground" };
@@ -90,6 +114,9 @@ function statusBadge(row: MemberRow) {
 type Filter =
   | "all"
   | "active"
+  | "trialing"
+  | "paid"
+  | "cancelled"
   | "plus"
   | "checkout_unpaid"
   | "complimentary"
@@ -116,6 +143,9 @@ const AdminMembers = () => {
     const valid: Filter[] = [
       "all",
       "active",
+      "trialing",
+      "paid",
+      "cancelled",
       "plus",
       "checkout_unpaid",
       "complimentary",
@@ -375,6 +405,9 @@ const AdminMembers = () => {
       if (filter === "complimentary" && !r.complimentary_access) return false;
       if (filter === "plus" && !isPlusMember(r)) return false;
       if (filter === "checkout_unpaid" && !startedCheckoutUnpaid(r)) return false;
+      if (filter === "trialing" && !isTrialing(r)) return false;
+      if (filter === "paid" && (!isPaying(r) || isCancelled(r))) return false;
+      if (filter === "cancelled" && !isCancelled(r)) return false;
       if (filter === "active") {
         const active = r.subscription_status === "active" || r.subscription_status === "trialing";
         if (!active || r.access_restricted) return false;
@@ -496,6 +529,13 @@ const AdminMembers = () => {
         (r) => !r.access_restricted && (r.subscription_status === "active" || r.subscription_status === "trialing"),
       ).length,
     },
+    { key: "trialing", label: "Trial", count: rows.filter(isTrialing).length },
+    {
+      key: "paid",
+      label: "Paid",
+      count: rows.filter((r) => isPaying(r) && !isCancelled(r)).length,
+    },
+    { key: "cancelled", label: "Cancelled", count: rows.filter(isCancelled).length },
     { key: "plus", label: "STRAND+", count: rows.filter(isPlusMember).length },
     {
       key: "checkout_unpaid",
