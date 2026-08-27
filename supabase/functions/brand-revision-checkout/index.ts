@@ -99,7 +99,11 @@ Deno.serve(async (req) => {
     // Recorded for traceability only — the webhook is what moves the revision on.
     await admin
       .from("brand_offer_revisions")
-      .update({ stripe_session_id: session.id })
+      // checkout_started_at also LOCKS this revision: while it is set and
+      // fresh, submit_brand_offer_revision refuses to supersede the revision,
+      // so a brand can't be charged for an audience change that then gets
+      // thrown away by a newer submission.
+      .update({ stripe_session_id: session.id, checkout_started_at: new Date().toISOString() })
       .eq("id", rev.id);
 
     return json({ url: session.url, id: session.id });
