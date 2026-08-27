@@ -129,9 +129,10 @@ const AddHomemadeProduct = () => {
       <div className="px-5 pb-10 space-y-4">
         <p className="text-[12.5px] text-muted-foreground leading-relaxed">
           Add something you mixed yourself. List what went in and roughly how
-          much — "5 drops", "2 tbsp" and "a handful" are all fine. The analysis
-          reads the amounts, not just the ingredients.
+          much — pick a number and a unit, or choose "Other…" to describe it in
+          your own words. Amounts are optional, but the analysis reads them.
         </p>
+
 
         <SurfaceCard className="p-4 space-y-3">
           <div className="space-y-1.5">
