@@ -823,16 +823,26 @@ Deno.serve(async (req) => {
     if (capped) return capped;
 
     // ── Pull personalisation server-side ─────────────────────────────
-    const [bloodRowsRes, medRowsRes, goalRowsRes] = await Promise.all([
+    // The glossary lookup runs alongside these reads: it is one indexed query
+    // and it removes work from the model call that follows.
+    const [bloodRowsRes, medRowsRes, goalRowsRes, knownFacts] = await Promise.all([
       dataClient.from("blood_results").select("marker, value, unit, status, category").eq("user_id", memberId),
       dataClient.from("user_medications").select("name, category").eq("user_id", memberId),
       dataClient.from("user_goals")
         .select("kind, title, target_text, target_value, unit, current_value, target_date, challenges, challenge, notes, status")
         .eq("user_id", memberId).neq("status", "complete"),
+      loadKnownIngredientFacts(dataClient as never, rawIngredients),
     ]);
     const bloodRows = bloodRowsRes.data ?? [];
     const medRows = medRowsRes.data ?? [];
     const dbGoals = goalRowsRes.data ?? [];
+    const factsBlock = knownFactsBlock(knownFacts);
+    console.log(JSON.stringify({
+      function: "ingredient-analysis",
+      known_facts: knownFacts.size,
+      ingredients: rawIngredients.length,
+    }));
+
 
     const userPayload: Record<string, unknown> = {
       product: { key: productKey, name: productName, brand: productBrand },
