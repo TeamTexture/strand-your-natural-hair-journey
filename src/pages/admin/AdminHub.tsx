@@ -56,7 +56,10 @@ interface Stats {
   livePros: number;
   activeProSubs: number;
   membersTotal: number;
+  subscribedMembers: number;
+  unsubscribedMembers: number;
   activePaidMembers: number;
+
   trialMembers: number;
   cancelledMembers: number;
   plusMembers: number;
@@ -185,12 +188,24 @@ const useAdminStats = () =>
       // Winding down: still active, but Stripe will not renew them.
       const cancelPending = paying.filter((r) => r.cancel_at_period_end === true);
       const livePaid = paying;
+      // The members total is only meaningful as a split: a subscribed member
+      // (paying OR on trial — both have card details and app access) versus a
+      // registered account that never crossed the paywall. Counted on unique
+      // user_ids so a member with more than one subscription row is not
+      // double-counted and the two halves always add back to the total.
+      const subscribedIds = new Set(
+        [...paying, ...trialing].map((r) => r.user_id),
+      );
+      const subscribedMembers = subscribedIds.size;
       return {
         pendingApplications: pending.count ?? 0,
         livePros: live.count ?? 0,
         activeProSubs: proSubs.count ?? 0,
         membersTotal: memberCount,
+        subscribedMembers,
+        unsubscribedMembers: Math.max(0, memberCount - subscribedMembers),
         activePaidMembers: livePaid.length,
+
         trialMembers: trialing.length,
         cancelledMembers: cancelled.length + cancelPending.length,
         plusMembers: [...paying, ...trialing].filter((r) => r.tier === "plus").length,
