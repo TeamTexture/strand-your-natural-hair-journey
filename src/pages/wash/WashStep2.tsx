@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ICONS } from "@/lib/iconMap";
+import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
+import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
+import { useEffect } from "react";
 
 const SCALP_OPTIONS: Choice[] = [
   { value: "Clean", label: "Clean", icon: CheckCircle2 },
@@ -73,6 +76,15 @@ const WashStep2 = () => {
   const [scalp, setScalp] = useState<string[]>([]);
   const [breakage, setBreakage] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  // Seed from whatever was already captured for this log — locally or on the
+  // durable copy — so coming back to this screen never wipes her answers.
+  const { ready: draftReady } = useWashDraftHydration();
+  useEffect(() => {
+    if (!draftReady) return;
+    const saved = readWashDraft<{ scalp?: string[]; breakage?: string[] }>("strand_wash_step2", {});
+    if (saved.scalp?.length) setScalp((cur) => (cur.length ? cur : saved.scalp!));
+    if (saved.breakage?.length) setBreakage((cur) => (cur.length ? cur : saved.breakage!));
+  }, [draftReady]);
 
   const errors = {
     scalp: scalp.length === 0,
@@ -86,10 +98,7 @@ const WashStep2 = () => {
       toast.error("Pick at least one option in each section");
       return;
     }
-    localStorage.setItem(
-      "strand_wash_step2",
-      JSON.stringify({ scalp, breakage }),
-    );
+    writeWashDraft("strand_wash_step2", { scalp, breakage });
     navigate("/wash/step-3");
   };
 

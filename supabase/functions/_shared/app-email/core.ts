@@ -135,6 +135,16 @@ async function transmit(
   return { id: null, error: error || "Unknown send failure", permanent: false, status };
 }
 
+/** Minutes to wait before attempt N+1. Spans a Resend daily-quota reset. */
+const BACKOFF_MINUTES = [5, 45, 240, 720];
+
+function retryAt(attemptNo: number, maxAttempts: number, permanent: boolean): string | null {
+  if (permanent) return null;
+  if (attemptNo >= maxAttempts) return null;
+  const mins = BACKOFF_MINUTES[Math.min(attemptNo, BACKOFF_MINUTES.length) - 1] ?? 720;
+  return new Date(Date.now() + mins * 60_000).toISOString();
+}
+
 function defaultFrom(template: EmailTemplate): string {
   return template.sender === "noreply" ? FROM_NOREPLY : FROM_NOTIFICATIONS;
 }
@@ -166,14 +176,27 @@ export async function dispatchEmail(
   const triggerEvent = (input.triggerEvent || template.key).slice(0, 120);
 
   // --- Idempotency.
+  //
+  // A row only proves "already handled" when it reached a terminal, non-failed
+  // state. A `failed` row proves the OPPOSITE — the member never got the email.
+  // Treating those as deduped is what silently swallowed 31 sends when Resend
+  // returned 429 daily_quota_exceeded on 24 Aug 2026: every later attempt saw
+  // the failed row and returned "deduped" without sending anything.
+  let retryLogId: string | null = null;
+  let priorAttempts = 0;
   if (idempotencyKey) {
     const { data: existing } = await admin
       .from("email_log")
-      .select("id,status")
+      .select("id,status,attempts")
       .eq("idempotency_key", idempotencyKey)
       .maybeSingle();
-    if (existing) {
-      return { ok: true, sent: false, deduped: true, logId: existing.id as string };
+    const row = existing as { id: string; status: string; attempts: number | null } | null;
+    if (row && row.status !== "failed") {
+      return { ok: true, sent: false, deduped: true, logId: row.id };
+    }
+    if (row) {
+      retryLogId = row.id;
+      priorAttempts = row.attempts ?? 0;
     }
   }
 
@@ -233,6 +256,20 @@ export async function dispatchEmail(
     related_id: input.relatedId || null,
     subject,
     idempotency_key: idempotencyKey,
+    // The exact input this email was built from, so a failed send can be
+    // re-driven later by the retry sweep without its trigger firing again.
+    payload: {
+      templateKey: template.key,
+      to: recipients,
+      recipientUserId,
+      triggerEvent,
+      relatedTable: input.relatedTable ?? null,
+      relatedId: input.relatedId ?? null,
+      idempotencyKey,
+      data,
+      from: input.from ?? null,
+      replyTo: input.replyTo ?? null,
+    },
   };
 
   if (suppressedReason) {
@@ -250,17 +287,32 @@ export async function dispatchEmail(
     };
   }
 
-  const { data: queued, error: logErr } = await admin
-    .from("email_log")
-    .insert({ ...baseRow, status: "queued" })
-    .select("id")
-    .maybeSingle();
+  const attemptNo = priorAttempts + 1;
+  const { data: queued, error: logErr } = retryLogId
+    ? await admin
+        .from("email_log")
+        .update({
+          ...baseRow,
+          status: "queued",
+          attempts: attemptNo,
+          next_attempt_at: null,
+          error: null,
+        })
+        .eq("id", retryLogId)
+        .select("id")
+        .maybeSingle()
+    : await admin
+        .from("email_log")
+        .insert({ ...baseRow, status: "queued", attempts: attemptNo })
+        .select("id")
+        .maybeSingle();
   if (logErr) {
     // Logging is not optional — an unprovable send is worse than a late one.
     return { ok: false, sent: false, error: `email_log insert failed: ${logErr.message}` };
   }
-  const logId = (queued?.id as string) ?? null;
+  const logId = (queued?.id as string) ?? retryLogId;
 
+  const maxAttempts = 4;
   const result = await transmit({
     from: input.from || defaultFrom(template),
     ...(input.replyTo && validEmail(input.replyTo)
@@ -284,7 +336,14 @@ export async function dispatchEmail(
               sent_at: new Date().toISOString(),
               error: null,
             }
-          : { status: "failed", error: result.error },
+          : {
+              status: "failed",
+              error: result.error,
+              // Backoff across invocations, not just inside this one. A
+              // permanent rejection (bad address, unknown template) is never
+              // retried; a quota/transient failure is, until max_attempts.
+              next_attempt_at: retryAt(attemptNo, maxAttempts, result.permanent),
+            },
       )
       .eq("id", logId);
   }

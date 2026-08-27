@@ -12,6 +12,8 @@ import LevelGate from "@/components/tips/LevelGate";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
+import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 
 const VOICENOTE_BUCKET = "voicenotes";
 
@@ -36,6 +38,16 @@ const WashStep3 = () => {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [audioPath, setAudioPath] = useState<string | null>(null);
+  // Restore this screen's slice of the unsaved log (local or durable copy).
+  const { ready: draftReady } = useWashDraftHydration();
+  useEffect(() => {
+    if (!draftReady) return;
+    const saved = readWashDraft<{ note?: string; audioPath?: string | null }>("strand_wash_step3", {});
+    if (saved.note) setText((cur) => (cur ? cur : saved.note!));
+    if (saved.audioPath) setAudioPath((cur) => cur ?? saved.audioPath!);
+  }, [draftReady]);
+
+
 
   const [previous, setPrevious] = useState<PreviousEntry | null>(null);
   const [loadingPrev, setLoadingPrev] = useState(true);
@@ -148,7 +160,7 @@ const WashStep3 = () => {
           size="pill"
           className="mt-4"
           onClick={() => {
-            localStorage.setItem("strand_wash_step3", JSON.stringify({ note: text, audioPath }));
+            writeWashDraft("strand_wash_step3", { note: text, audioPath });
             navigate("/wash/step-styling");
           }}
         >

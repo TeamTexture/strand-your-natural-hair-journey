@@ -28,6 +28,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import CategoryProductPanels from "@/components/CategoryProductPanels";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
+import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
+import LoadingDot from "@/components/LoadingDot";
 import {
   CANONICAL_STYLE_OPTIONS,
   OTHER_STYLE,
@@ -123,12 +126,12 @@ const safeParse = <T,>(key: string, fallback: T): T => {
   } catch { return fallback; }
 };
 
-const WashStepStyling = () => {
+const WashStepStylingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
 
-  const saved = useMemo(() => safeParse<StylingSaved>("strand_wash_styling", {}), []);
+  const saved = useMemo(() => readWashDraft<StylingSaved>("strand_wash_styling", {}), []);
   const [style, setStyle] = useState<string[]>(saved.style ?? []);
   const [productIds, setProductIds] = useState<string[]>(saved.productIds ?? []);
   const [duration, setDuration] = useState<string[]>(saved.duration ?? []);
@@ -240,7 +243,7 @@ const WashStepStyling = () => {
         protectant_used: heatUsed ? heatProtectant : null,
       },
     };
-    localStorage.setItem("strand_wash_styling", JSON.stringify(payload));
+    writeWashDraft("strand_wash_styling", payload);
     navigate("/wash/step-4");
   };
 
@@ -523,6 +526,14 @@ const WashStepStyling = () => {
       </div>
     </ScreenLayout>
   );
+};
+
+// Hold the form back until the durable copy of the unsaved wash day has been
+// pulled onto this device — the form seeds its fields once, synchronously.
+const WashStepStyling = () => {
+  const { ready } = useWashDraftHydration();
+  if (!ready) return <LoadingDot />;
+  return <WashStepStylingForm />;
 };
 
 export default WashStepStyling;
