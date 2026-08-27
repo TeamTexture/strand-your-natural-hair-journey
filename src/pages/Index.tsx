@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getTrialOfferState } from "@/lib/trialOffer";
 import { walledDestination } from "@/lib/trialWall";
 import LoadingDot from "@/components/LoadingDot";
+import HeatHatOfferTag from "@/components/HeatHatOfferTag";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getBrandEntryPath,
@@ -183,20 +184,12 @@ const Index = () => {
               <h1 className="font-display text-primary text-5xl font-semibold tracking-strand uppercase whitespace-nowrap ml-[0.2em]">
                 Strand
               </h1>
-              <div className="mt-6 max-w-[260px] text-foreground/75 text-sm leading-relaxed space-y-1">
-                <p>
-                  Built with insights from
-                  <br />
-                  <span className="font-display italic text-foreground text-base">
-                    "How To Love Your Afro"
-                  </span>
+              <HeatHatOfferTag />
+              {firstName && (
+                <p className="font-body text-foreground text-base pt-2 mt-4">
+                  Welcome back {firstName}
                 </p>
-                {firstName && (
-                  <p className="font-body text-foreground text-base pt-2">
-                    Welcome back {firstName}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="w-full flex flex-col gap-3">

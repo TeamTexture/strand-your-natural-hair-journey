@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
 import HairStrandIcon from "./HairStrandIcon";
+import HeatHatOfferTag from "./HeatHatOfferTag";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -108,15 +109,7 @@ const SplashScreen = () => {
             Strand
           </h1>
 
-          <div className="mt-6 max-w-[260px] text-foreground/75 text-sm leading-relaxed space-y-1">
-            <p>
-              Built with insights from
-              <br />
-              <span className="font-display italic text-foreground text-base">
-                "How To Love Your Afro"
-              </span>
-            </p>
-          </div>
+          <HeatHatOfferTag />
         </div>
 
         {/* Sign-in form */}
