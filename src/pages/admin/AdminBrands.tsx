@@ -9,6 +9,7 @@ import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
+import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -462,7 +463,12 @@ const AdminBrands = () => {
                   </Button>
                 </div>
 
+                <div className="mt-3 pt-3 border-t border-border">
+                  <ViewAsUserButton userId={r.user_id} name={r.brand_name ?? r.contact_name} className="h-9" />
+                </div>
+
                 <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
+
                   <Button
                     variant="outline"
                     size="sm"

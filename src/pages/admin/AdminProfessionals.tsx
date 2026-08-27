@@ -7,6 +7,7 @@ import {
   Search, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, ShieldOff, ExternalLink, Activity,
 } from "lucide-react";
 import MessageButton from "@/components/admin/MessageButton";
+import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -634,7 +635,12 @@ const AdminProfessionals = () => {
                   </>
                 )}
 
+                <div className="mt-3 pt-3 border-t border-border">
+                  <ViewAsUserButton userId={r.user_id} name={r.display_name ?? r.email} className="h-9" />
+                </div>
+
                 <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
+
                   <Button
                     variant="outline"
                     size="sm"

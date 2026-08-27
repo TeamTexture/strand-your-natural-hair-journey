@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2, Mail, CheckCircle2, Circle, ArrowDownCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import MessageButton from "@/components/admin/MessageButton";
+import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
 import { useIncompleteMembers, type IncompleteMemberRow } from "@/hooks/useIncompleteMembers";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -712,7 +713,7 @@ const AdminMembers = () => {
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-border">
+                <div className="mt-3 pt-3 border-t border-border space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -721,7 +722,13 @@ const AdminMembers = () => {
                   >
                     View passport
                   </Button>
+                  <ViewAsUserButton
+                    userId={r.user_id}
+                    name={r.display_name ?? r.email}
+                    className="h-9"
+                  />
                 </div>
+
                 <AccountTypeControl
                   userId={r.user_id}
                   name={r.display_name}
@@ -1089,6 +1096,11 @@ const IncompleteMemberCard = ({
           </Button>
         )}
       </div>
+
+      <div className="mt-2">
+        <ViewAsUserButton userId={row.user_id} name={row.display_name ?? row.email} className="h-9" />
+      </div>
+
     </SurfaceCard>
   );
 };
