@@ -704,12 +704,25 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
-          // Output cap — output tokens drive latency on these interactive surfaces.
-          max_tokens: 2400,
+          // OUTPUT CAP — READ THIS BEFORE LOWERING IT.
+          // Gemini 3.x Flash is a reasoning model: its thinking tokens are
+          // billed and counted as OUTPUT tokens against this cap. The previous
+          // cap of 2400 was consumed almost entirely by reasoning, so the JSON
+          // body was cut off mid-string on EVERY call (`finish_reason: length`,
+          // output_tokens pinned at 2378-2396). Both attempts then failed with
+          // "Output was not valid JSON", the function returned
+          // `guidance: null` after ~66s, and the advert's personalised line
+          // never appeared. The card itself is ~250 tokens; the headroom below
+          // is for the thinking, not the answer.
+          max_tokens: 8000,
+          // Keep the thinking short — this is an interactive ad surface and
+          // reasoning tokens are what drives its latency.
+          reasoning_effort: "low",
           messages,
           response_format: { type: "json_object" },
         }),
       });
+
 
       if (r.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited — try again shortly" }), {
