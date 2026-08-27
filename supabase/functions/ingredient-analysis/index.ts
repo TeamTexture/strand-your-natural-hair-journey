@@ -37,6 +37,7 @@ import {
   enforceIngredientCardSensitivities,
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
+import { normaliseInciKey } from "../_shared/ingredient-copy.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import {
