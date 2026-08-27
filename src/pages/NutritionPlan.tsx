@@ -759,7 +759,28 @@ const NutritionPlan = () => {
         setProfile(next);
         // No bloods on file: this screen renders its locked state, so there is
         // nothing to generate. Blood work is optional; adding it later opens it.
-        if (bloodOnFile) void fetchPlan(false, next);
+        //
+        // VIEWING NEVER SPENDS A TOKEN (2026-08-27). The stored plan is read
+        // straight from `ai_summaries` and rendered instantly. The edge function
+        // is only invoked when there is no stored plan, or when her blood data
+        // has actually been touched since that plan was written. Every other
+        // visit — a back-navigation, a tab switch, a reload — is a pure read.
+        if (bloodOnFile) {
+          const stored = await loadStoredPlan(user.id);
+          if (cancelled) return;
+          if (stored?.plan) {
+            setPlan(stored.plan);
+            setPlanFailed(
+              !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
+            );
+            if (await bloodTouchedSince(user.id, stored.generatedAt)) {
+              if (!cancelled) void fetchPlan(false, next);
+            }
+          } else {
+            void fetchPlan(false, next);
+          }
+        }
+
       } finally {
         if (!cancelled) setLoading(false);
       }
