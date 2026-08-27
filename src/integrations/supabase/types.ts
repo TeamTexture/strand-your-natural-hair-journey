@@ -1270,6 +1270,8 @@ export type Database = {
           external_url: string | null
           headline: string | null
           hero_image_path: string | null
+          hidden_at: string | null
+          hidden_by: string | null
           id: string
           owner_type: string
           paid_at: string | null
@@ -1301,6 +1303,8 @@ export type Database = {
           external_url?: string | null
           headline?: string | null
           hero_image_path?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
           id?: string
           owner_type?: string
           paid_at?: string | null
@@ -1332,6 +1336,8 @@ export type Database = {
           external_url?: string | null
           headline?: string | null
           hero_image_path?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
           id?: string
           owner_type?: string
           paid_at?: string | null
