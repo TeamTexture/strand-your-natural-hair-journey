@@ -318,6 +318,12 @@ function validate(
   | { ok: true; value: GuidancePayload; soft: string[] }
   | { ok: false; problems: string[]; soft: string[] } {
   const problems: string[] = [];
+  // COSMETIC MISSES — a word budget overrun or a characteristic named twice.
+  // These are presentation faults, not safety or grounding faults, and they
+  // must not be the reason a member sees no personalised line at all: they
+  // drive a corrective retry, but a candidate whose ONLY faults are cosmetic
+  // is served rather than discarded. Everything in `problems` stays fatal.
+  const cosmetic: string[] = [];
   const soft: string[] = [];
   const isWashDay = surface === "wash_day";
   const raw = (p ?? {}) as Record<string, unknown>;
@@ -340,7 +346,7 @@ function validate(
       : [];
 
   if (!headline) problems.push("headline is missing.");
-  else if (words(headline) > 8) problems.push(`headline is ${words(headline)} words — maximum 8.`);
+  else if (words(headline) > 8) cosmetic.push(`headline is ${words(headline)} words — maximum 8.`);
 
   // THE ADVERT TIP FLOORS — the same shared helpers the goal tip and routine
   // tips use. An advert tip with no action, or a tautological reason, is
@@ -352,12 +358,12 @@ function validate(
   if (!isWashDay) {
     if (!fitAction) problems.push("fit_line_action is missing — the advert tip must tell the member what to do.");
     else {
-      if (words(fitAction) > 16) problems.push(`fit_line_action is ${words(fitAction)} words — maximum 16.`);
+      if (words(fitAction) > 16) cosmetic.push(`fit_line_action is ${words(fitAction)} words — maximum 16.`);
       if (sentenceCount(fitAction) > 1) problems.push("fit_line_action must be exactly one sentence.");
     }
     if (!fitReason) problems.push("fit_line_reason is missing — the advert tip must explain why the action matters.");
     else {
-      if (words(fitReason) > 14) problems.push(`fit_line_reason is ${words(fitReason)} words — maximum 14.`);
+      if (words(fitReason) > 14) cosmetic.push(`fit_line_reason is ${words(fitReason)} words — maximum 14.`);
       if (sentenceCount(fitReason) > 1) problems.push("fit_line_reason must be exactly one sentence.");
     }
     if (fitLine && sentenceCount(fitLine) > 2)
@@ -405,7 +411,7 @@ function validate(
 
   if (!intro) problems.push("intro is missing.");
   else {
-    if (words(intro) > 20) problems.push(`intro is ${words(intro)} words — maximum 20.`);
+    if (words(intro) > 20) cosmetic.push(`intro is ${words(intro)} words — maximum 20.`);
     if (sentenceCount(intro) > 1) problems.push("intro must be exactly one sentence.");
   }
 
@@ -426,14 +432,14 @@ function validate(
   benefits.forEach((b, i) => {
     const lw = words(b.label);
     if (lw < 1 || lw > 2) problems.push(`benefits[${i}].label is ${lw} words — must be 1-2 words.`);
-    if (words(b.text) > 15) problems.push(`benefits[${i}].text is ${words(b.text)} words — maximum 15.`);
+    if (words(b.text) > 15) cosmetic.push(`benefits[${i}].text is ${words(b.text)} words — maximum 15.`);
     if (sentenceCount(b.text) > 1) problems.push(`benefits[${i}].text must be one sentence.`);
   });
 
   const steps = stepsRaw.map((s) => String(s ?? "").trim()).filter(Boolean);
   if (!isWashDay && steps.length !== 3) problems.push(`steps has ${steps.length} items — return exactly 3.`);
   steps.forEach((s, i) => {
-    if (words(s) > 25) problems.push(`steps[${i}] is ${words(s)} words — maximum 25.`);
+    if (words(s) > 25) cosmetic.push(`steps[${i}] is ${words(s)} words — maximum 25.`);
     if (sentenceCount(s) > 1) problems.push(`steps[${i}] must be one sentence.`);
   });
 
@@ -507,7 +513,7 @@ function validate(
       : [];
   const watchOuts = watchRaw.map((s) => String(s ?? "").trim()).filter(Boolean).slice(0, 2);
   watchOuts.forEach((s, i) => {
-    if (words(s) > 18) problems.push(`watch_outs[${i}] is ${words(s)} words — maximum 18.`);
+    if (words(s) > 18) cosmetic.push(`watch_outs[${i}] is ${words(s)} words — maximum 18.`);
     if (sentenceCount(s) > 1) problems.push(`watch_outs[${i}] must be one sentence.`);
     if (/\bnever\b|\bdamage\b|\bruin|\bdestroy|irreversib/i.test(s)) {
       problems.push(
@@ -534,15 +540,16 @@ function validate(
   for (const term of characteristicTerms(context)) {
     const n = countTerm(assembled, term);
     if (n > 1) {
-      (isWashDay ? soft : problems).push(
+      (isWashDay ? soft : cosmetic).push(
         `"${term}" appears ${n} times across the card — each hair characteristic may appear at most ONCE in total. Remove the repeats and say "your hair" or nothing.`,
       );
     }
   }
 
-  if (problems.length) return { ok: false, problems, soft };
   return {
-    ok: true,
+    ok: problems.length === 0 && cosmetic.length === 0,
+    problems,
+    cosmetic,
     soft,
     value: {
       headline,
