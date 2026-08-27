@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { smartBack } from "@/lib/smartBack";
-import { ExternalLink, Heart, Check, Loader2, Sparkles, Plus } from "lucide-react";
-import GuidanceCard from "@/components/guidance/GuidanceCard";
-import BenefitRows from "@/components/guidance/BenefitRows";
+import { ExternalLink, Heart, Check, Loader2, Plus } from "lucide-react";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import { validFitLine } from "@/components/guidance/AdFitLine";
