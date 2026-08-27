@@ -221,7 +221,7 @@ const AddHomemadeProduct = () => {
             variant="goldOutline"
             size="pill"
             className="w-full"
-            onClick={() => setRows((prev) => [...prev, { ingredient: "", amount: "" }])}
+            onClick={() => setRows((prev) => [...prev, emptyRow()])}
           >
             <Plus className="size-4 mr-1.5" /> Add another ingredient
           </Button>
