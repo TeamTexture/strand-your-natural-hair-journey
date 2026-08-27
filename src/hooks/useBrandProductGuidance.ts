@@ -246,15 +246,18 @@ async function loadGuidance(
       .eq("user_id", userId)
       .eq("kind", kind)
       .maybeSingle();
-    const cachedPayload = groundedPayload(
-      cached?.payload as unknown as BrandGuidance | null,
-      context,
-      surface,
-    );
+    // EXACT-FINGERPRINT HIT = TRUST IT. This row was generated against THIS
+    // profile state and already passed the server's hard style-grounding
+    // validator, so re-running the client gate here can only produce false
+    // positives — and a false positive means a paid regeneration on every
+    // single view. The grounding gate stays on the reads that genuinely can be
+    // out of date: the stale-prefix read and the un-fingerprinted wash day key.
+    const cachedPayload = cached?.payload as unknown as BrandGuidance | null;
     // The wash day surface returns a single tip body and no benefit rows, so a
     // cached payload is valid if it carries either shape.
     if (cachedPayload && (Array.isArray(cachedPayload.benefits) || cachedPayload.wash_day_tip))
       return cachedPayload;
+
 
 
 
