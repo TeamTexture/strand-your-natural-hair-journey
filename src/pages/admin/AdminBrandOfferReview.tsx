@@ -33,6 +33,7 @@ import TargetingDiff from "@/components/brand/TargetingDiff";
 import AdminOfferOverride from "@/components/admin/AdminOfferOverride";
 
 import { useQueryClient } from "@tanstack/react-query";
+import OfferVisibilityToggle from "@/components/brand/OfferVisibilityToggle";
 
 const StatBox = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) => (
   <SurfaceCard className="text-center py-3">
@@ -678,6 +679,12 @@ const AdminBrandOfferReview = () => {
             )}
 
             <SectionLabel className="!px-0">Actions</SectionLabel>
+            <OfferVisibilityToggle
+              offerId={offer.id}
+              hiddenAt={(offer as { hidden_at?: string | null }).hidden_at ?? null}
+              audience="admin"
+            />
+
             {offer.status === "under_review" && (
               <div className="space-y-2">
                 <Button variant="gold" size="pill" onClick={() => setStatus("approved_unpaid", { approved_at: new Date().toISOString() })} className="w-full">

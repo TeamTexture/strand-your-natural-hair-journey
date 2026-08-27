@@ -92,6 +92,8 @@ const BrandsDirectory = () => {
         supabase
           .from("brand_offers")
           .select("brand_user_id")
+          // A hidden offer must not count towards a brand card's live tally.
+          .is("hidden_at", null)
           .in("status", ["live", "paid_scheduled"])
           .lte("starts_on", today)
           .gte("ends_on", today),
