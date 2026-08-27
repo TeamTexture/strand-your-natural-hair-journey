@@ -13,6 +13,7 @@ import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { useLogAdEvent } from "@/hooks/useBrandOffers";
 import type { ProductLiveOffer } from "@/hooks/useBrandProductEngagement";
 import type { BrandShelfProduct } from "@/lib/addBrandProductToShelf";
+import { hasFitContent, validFitLine } from "@/components/guidance/AdFitLine";
 
 /** Two or three sentences, never a paragraph. */
 const trimToSentences = (text: string, max = 3) => {
@@ -59,9 +60,12 @@ const BrandShelfCardDetail = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
-  const analysis = guidance
-    ? trimToSentences([guidance.fit_line, guidance.intro].filter(Boolean).join(" "))
+  const guidanceRead = guidance
+    ? trimToSentences(
+        [validFitLine(guidance.fit_line), guidance.intro].filter(Boolean).join(" "),
+      )
     : null;
+  const analysis = hasFitContent(guidanceRead) ? guidanceRead : null;
 
   const ingredients = (product.ingredients ?? []).filter(Boolean);
   const buyUrl = offer?.external_url ?? product.external_url ?? null;

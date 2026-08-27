@@ -20,6 +20,7 @@ import { ToolAdviceDialog } from "@/components/ToolAdviceDialog";
 import AdFitLine from "@/components/guidance/AdFitLine";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
+import { validFitLine } from "@/components/guidance/AdFitLine";
 
 /** Deterministic keys so a brand item only ever creates a single row per user. */
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
@@ -49,7 +50,9 @@ const OfferProductFit = ({
   // A timeout or a rejected generation must never leave a paid advert without
   // usage copy — fall back to the brand's own declared line.
   const { guidance, loading, needsFallback } = useBrandProductGuidance(product);
-  const fitLine = guidance?.fit_line ?? (needsFallback ? adFallbackFitLine(product) : undefined);
+  const personalisedLine = validFitLine(guidance?.fit_line);
+  const fitLine =
+    personalisedLine ?? (needsFallback || guidance ? adFallbackFitLine(product) : undefined);
   return <AdFitLine text={fitLine} loading={loading} className="mt-1.5" />;
 };
 

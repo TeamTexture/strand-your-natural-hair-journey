@@ -9,6 +9,8 @@ import { usePersonalisedOffersConsent } from "@/hooks/useAdTargeting";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { resolveBrandColours, tint } from "@/lib/brandColour";
 import AiProgressBar from "@/components/AiProgressBar";
+import { hasFitContent } from "@/components/guidance/AdFitLine";
+import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 
 /**
  * SponsoredWashDayTipCard — the sponsored tip on the Wash Day screen.
@@ -133,7 +135,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
   const brandName = (brand as { brand_name?: string | null } | null)?.brand_name ?? null;
 
   // STRAND's own read of this product against this member's wash day.
-  const { guidance, loading } = useBrandProductGuidance(
+  const { guidance, loading, needsFallback } = useBrandProductGuidance(
     enabled && product
       ? { ...product, brand: brandName, ingredients: product.ingredients ?? [] }
       : null,
@@ -156,6 +158,18 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
   }, [rendering]);
 
   if (!rendering || !offer || !product) return null;
+
+  // A degenerate generation (empty, punctuation-only) is treated as no copy at
+  // all, so the card falls through to the brand's own declared line.
+  const personalisedTip = [guidance?.wash_day_tip, guidance?.fit_line].find((t) =>
+    hasFitContent(t),
+  );
+  const tipCopy =
+    personalisedTip ??
+    (needsFallback || guidance
+      ? product.description || adFallbackFitLine(product) || ""
+      : "");
+
 
   return (
     <section
@@ -223,7 +237,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
               {loading && !guidance ? (
                 <span className="text-foreground/60">Working out how this fits your wash day…</span>
               ) : (
-                guidance?.wash_day_tip || guidance?.fit_line || product.description || ""
+                tipCopy
               )}
             </p>
             {loading && !guidance && (

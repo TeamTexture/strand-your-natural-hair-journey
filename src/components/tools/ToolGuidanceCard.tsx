@@ -13,6 +13,7 @@ import { Check, Info, Sparkles } from "lucide-react";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { analysisSentences, analysisStrings, cleanAnalysisText } from "@/lib/toolAnalysis";
 import type { UserTool } from "@/hooks/useUserTools";
+import { hasFitContent, validFitLine } from "@/components/guidance/AdFitLine";
 
 
 /** Keep the personalised read to two or three sentences — never a paragraph. */
@@ -67,9 +68,12 @@ const ToolGuidanceCard = ({ tool, enabled = true }: { tool: UserTool; enabled?: 
   const savedSteps = analysisSentences(analysis?.how_to_use, 3);
   const savedWatchOuts = analysisStrings(analysis?.warnings, 2);
 
-  const read = guidance
-    ? trimToSentences([guidance.fit_line, guidance.intro].filter(Boolean).join(" "))
-    : savedRead;
+  const liveRead = guidance
+    ? trimToSentences(
+        [validFitLine(guidance.fit_line), guidance.intro].filter(Boolean).join(" "),
+      )
+    : null;
+  const read = hasFitContent(liveRead) ? liveRead : savedRead;
   const benefits = (guidance?.benefits ?? []).filter((b) => b?.label && b?.text);
   const steps = guidance?.steps?.length
     ? guidance.steps.filter(Boolean).slice(0, 3)

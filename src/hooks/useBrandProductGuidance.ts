@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAiContext } from "@/lib/aiContext";
 import type { BenefitRow } from "@/components/guidance/BenefitRows";
+import { hasFitContent } from "@/components/guidance/AdFitLine";
 
 export interface BrandGuidance {
   headline: string;
@@ -295,7 +296,7 @@ export function useBrandProductGuidance(
   }, [enabled, product?.id, user?.id, surface]);
 
   // The surface has nothing personalised to show and is no longer waiting.
-  const needsFallback = !guidance?.fit_line && !loading;
+  const needsFallback = !hasFitContent(guidance?.fit_line) && !loading;
 
   return { guidance, loading, timedOut, needsFallback };
 
