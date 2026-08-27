@@ -463,8 +463,23 @@ const AdminHub = () => {
               <StatCard
                 label="Members total"
                 value={stats.membersTotal}
+                sublabel={`${stats.subscribedMembers} subscribed · ${stats.unsubscribedMembers} not`}
                 onClick={() => nav("/admin/members?filter=all")}
               />
+              <StatCard
+                label="Subscribed"
+                value={stats.subscribedMembers}
+                sublabel="Paid or on trial"
+                onClick={() => nav("/admin/members?filter=active")}
+              />
+              <StatCard
+                label="Not subscribed"
+                value={stats.unsubscribedMembers}
+                tone="warn"
+                sublabel="Registered, never paid"
+                onClick={() => nav("/admin/members?filter=incomplete")}
+              />
+
               <StatCard
                 label="Paid members"
                 value={stats.activePaidMembers}
