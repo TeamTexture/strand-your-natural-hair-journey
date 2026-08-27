@@ -1095,6 +1095,11 @@ const IncompleteMemberCard = ({
           </Button>
         )}
       </div>
+
+      <div className="mt-2">
+        <ViewAsUserButton userId={row.user_id} name={row.display_name ?? row.email} className="h-9" />
+      </div>
+
     </SurfaceCard>
   );
 };
