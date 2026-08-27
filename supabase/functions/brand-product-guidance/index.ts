@@ -314,7 +314,6 @@ function validate(
   context: Record<string, unknown> | null,
   surface?: string,
   declared: string[] = [],
-):
 ): {
   /** True only when nothing at all is wrong. */
   ok: boolean;
