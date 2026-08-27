@@ -319,8 +319,8 @@ const OfferPage = () => {
                 nav(`/offers/${offer.id}/product/${p.id}${slot ? `?slot=${slot}` : ""}`);
               };
               return (
+                <div key={p.id} className="space-y-3">
                 <SurfaceCard
-                  key={p.id}
                   className="cursor-pointer active:opacity-80 transition-opacity"
                   onClick={goProduct}
                   role="button"
@@ -352,8 +352,16 @@ const OfferPage = () => {
                     </div>
                   </div>
                 </SurfaceCard>
+                {/* The full personalised breakdown for this product, below the
+                    row it belongs to and above the next product. */}
+                <OfferProductPlaybook
+                  product={p}
+                  showName={(offer.brand_products ?? []).length > 1}
+                />
+                </div>
               );
             })}
+
           </>
         )}
       </div>
