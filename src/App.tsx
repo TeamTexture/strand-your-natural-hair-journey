@@ -200,6 +200,7 @@ const Favourites = lazyRetry(() => import("./pages/Favourites"));
 const OffShelf = lazyRetry(() => import("./pages/OffShelf"));
 const Avoidlist = lazyRetry(() => import("./pages/Avoidlist"));
 const ProductScanning = lazyRetry(() => import("./pages/ProductScanning"));
+const AddHomemadeProduct = lazyRetry(() => import("./pages/AddHomemadeProduct"));
 const ProductProfileRedirect = lazyRetry(() => import("./pages/ProductProfileRedirect"));
 const ToolProfile = lazyRetry(() => import("./pages/ToolProfile"));
 const ProductRepository = lazyRetry(() => import("./pages/ProductRepository"));
@@ -383,6 +384,7 @@ const App = () => (
               <Route path="/products/off-shelf" element={<Paid><OffShelf /></Paid>} />
               <Route path="/products/avoidlist" element={<Paid><Avoidlist /></Paid>} />
               <Route path="/products/scanning" element={<Paid><ProductScanning /></Paid>} />
+              <Route path="/products/homemade/new" element={<Paid><AddHomemadeProduct /></Paid>} />
               <Route path="/products/repository" element={<Paid><ProductRepository /></Paid>} />
               <Route path="/products/profile/:id" element={<Paid><ProductProfileRedirect /></Paid>} />
               <Route path="/tools/:id" element={<Paid><ToolProfile /></Paid>} />

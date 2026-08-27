@@ -6032,10 +6032,12 @@ export type Database = {
           brand: string | null
           category: string | null
           created_at: string
+          homemade_recipe: Json | null
           id: string
           image_url: string | null
           ingredients: string[]
           ingredients_source: string | null
+          is_homemade: boolean
           key_ingredients: Json
           last_used_at: string | null
           linked_brand_offer_id: string | null
@@ -6072,10 +6074,12 @@ export type Database = {
           brand?: string | null
           category?: string | null
           created_at?: string
+          homemade_recipe?: Json | null
           id?: string
           image_url?: string | null
           ingredients?: string[]
           ingredients_source?: string | null
+          is_homemade?: boolean
           key_ingredients?: Json
           last_used_at?: string | null
           linked_brand_offer_id?: string | null
@@ -6112,10 +6116,12 @@ export type Database = {
           brand?: string | null
           category?: string | null
           created_at?: string
+          homemade_recipe?: Json | null
           id?: string
           image_url?: string | null
           ingredients?: string[]
           ingredients_source?: string | null
+          is_homemade?: boolean
           key_ingredients?: Json
           last_used_at?: string | null
           linked_brand_offer_id?: string | null

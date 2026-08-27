@@ -52,6 +52,8 @@ import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { safeBack } from "@/lib/smartBack";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import HomemadeSafetyCard from "@/components/product/HomemadeSafetyCard";
+import { parseRecipe, type HomemadeSafetyPayload } from "@/lib/homemade";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +97,8 @@ interface Analysis {
   tips?: string[];
   pair_with?: Array<{ item: string; why: string }>;
   routine_suggestion?: string;
+  /** Homemade products only — standalone concentration-aware caution. */
+  homemade_safety?: HomemadeSafetyPayload;
 }
 
 // Shape returned by the product-analyse edge function (passed via route state
@@ -505,6 +509,11 @@ const IngredientDetail = () => {
               (Array.isArray((row as { ingredients?: unknown } | null)?.ingredients)
                 ? ((row as { ingredients?: unknown }).ingredients as string[])
                 : undefined) ?? freshAnalysis?.ingredients ?? undefined,
+            // Homemade recipes are analysed on their AMOUNTS, not just the
+            // ingredient names — a commercial product is pre-formulated at safe
+            // ratios, a kitchen mix is not.
+            isHomemade: (row as { is_homemade?: boolean } | null)?.is_homemade === true,
+            homemadeRecipe: parseRecipe((row as { homemade_recipe?: unknown } | null)?.homemade_recipe),
             hairProfile,
             healthProfile,
             heritage,
@@ -1103,6 +1112,12 @@ const IngredientDetail = () => {
 
         {analysis && !loading && (
           <>
+            {/* Homemade safety FIRST, and as its own card: a DIY hazard must
+                never read as a footnote under an otherwise warm verdict. */}
+            {analysis.homemade_safety && (
+              <HomemadeSafetyCard safety={analysis.homemade_safety} />
+            )}
+
             {/* AI Summary — the single verdict callout, bold lead-in only */}
 
             {(() => {

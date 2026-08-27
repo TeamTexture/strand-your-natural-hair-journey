@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart, Tag } from "lucide-react";
+import { ChevronDown, ChevronRight, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart, Tag, FlaskConical } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
@@ -81,9 +81,20 @@ const Products = () => {
     [products, filterState.search, filterState.categoryFilter, filterState.brandFilter, filterState.ratingFilter],
   );
 
+  // Homemade products get their own section rather than being scattered
+  // through the brand categories — she thinks of them as "the thing I made",
+  // and their analysis is concentration-aware, so grouping them together keeps
+  // that distinction visible. Same card treatment, so it is not second-class.
+  const homemadeProducts = useMemo(
+    () => filteredProducts.filter((p) => (p as UserProduct & { is_homemade?: boolean }).is_homemade),
+    [filteredProducts],
+  );
+
   const groups = useMemo(() => {
     const buckets = new Map<string, { label: string; items: UserProduct[] }>();
-    for (const p of filteredProducts) {
+    for (const p of filteredProducts.filter(
+      (x) => !(x as UserProduct & { is_homemade?: boolean }).is_homemade,
+    )) {
       const { key, label } = categoryBucket(p.category, p.name);
       if (!buckets.has(key)) buckets.set(key, { label, items: [] });
       buckets.get(key)!.items.push(p);
@@ -95,8 +106,11 @@ const Products = () => {
     }
     const other = buckets.get("other");
     if (other) ordered.push({ key: "other", label: other.label, items: other.items });
+    if (homemadeProducts.length) {
+      ordered.push({ key: "homemade", label: "Homemade", items: homemadeProducts });
+    }
     return ordered;
-  }, [filteredProducts]);
+  }, [filteredProducts, homemadeProducts]);
 
   // Which shelf categories she has folded away. A view preference, so it lives
   // in namespaced browser storage (per user id, cleared on sign-out) rather than
@@ -246,6 +260,15 @@ const Products = () => {
           >
             <LinkIcon className="size-4 mr-1.5" />
             {urlBusy ? "Reading link…" : "Paste Web Link"}
+          </Button>
+          <Button
+            variant="goldOutline"
+            size="pill"
+            onClick={() => navigate("/products/homemade/new")}
+            className="w-full"
+          >
+            <FlaskConical className="size-4 mr-1.5" />
+            Add Homemade Product
           </Button>
           <LevelGate min={2}>
             <p className="text-[11px] text-muted-foreground text-center leading-snug px-2">
