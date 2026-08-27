@@ -567,6 +567,7 @@ async function runClaude(args: {
   avoidList: string[];
   level: TipsLevel;
   sensitivityBlock?: string;
+  factsBlock?: string;
   generationId?: string | null;
   attemptNumber?: number | null;
   maxAttempts?: number | null;
@@ -580,7 +581,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level)}${args.sensitivityBlock ?? ""}`,
+    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level)}${args.sensitivityBlock ?? ""}${args.factsBlock ?? ""}`,
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
