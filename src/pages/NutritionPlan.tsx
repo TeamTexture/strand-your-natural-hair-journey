@@ -532,7 +532,50 @@ const buildFallbackSupplements = (p: Profile): AiSupplement[] => {
   return out;
 };
 
+/** The plan already stored for this member, if it is complete enough to show. */
+async function loadStoredPlan(
+  userId: string,
+): Promise<{ plan: AiPlan; generatedAt: string | null } | null> {
+  const { data } = await supabase
+    .from("ai_summaries")
+    .select("payload, updated_at")
+    .eq("user_id", userId)
+    .eq("kind", "nutrition_plan")
+    .maybeSingle();
+  const payload = (data?.payload ?? null) as (AiPlan & { _generated_at?: string }) | null;
+  if (!payload) return null;
+  const complete =
+    !!payload.summary &&
+    Array.isArray(payload.diet) &&
+    payload.diet.length > 0 &&
+    Array.isArray(payload.avoid) &&
+    payload.avoid.length > 0;
+  if (!complete) return null;
+  return { plan: payload, generatedAt: payload._generated_at ?? data?.updated_at ?? null };
+}
+
+/** True when a blood panel or result was added or edited after `since`. */
+async function bloodTouchedSince(userId: string, since: string | null): Promise<boolean> {
+  if (!since) return true;
+  const [{ data: panels }, { data: results }] = await Promise.all([
+    supabase
+      .from("blood_panels")
+      .select("updated_at")
+      .eq("user_id", userId)
+      .gt("updated_at", since)
+      .limit(1),
+    supabase
+      .from("blood_results")
+      .select("updated_at")
+      .eq("user_id", userId)
+      .gt("updated_at", since)
+      .limit(1),
+  ]);
+  return (panels?.length ?? 0) > 0 || (results?.length ?? 0) > 0;
+}
+
 const NutritionPlan = () => {
+
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
   const { level } = useNutritionLevel();
