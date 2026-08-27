@@ -742,7 +742,22 @@ Deno.serve(async (req: Request) => {
           plan: await sanitiseAndLog(cached, "nutrition-plan", { context: body.context }),
         });
       }
+      // Cache MISS diagnostics — logs which signature the stored plan carries so
+      // a signature that keeps moving for an unchanged member is visible instead
+      // of silently paying for a generation.
+      const { data: storedRow } = await dataClient
+        .from("ai_summaries")
+        .select("payload")
+        .eq("user_id", memberId)
+        .eq("kind", "nutrition_plan")
+        .maybeSingle();
+      console.log("[nutrition-debug] cache miss", {
+        sig,
+        stored_sig: (storedRow?.payload as Record<string, unknown> | null)?._sig ?? null,
+        blood_fp: bloodFp,
+      });
     }
+
 
 
     // Spend protection: per-user daily cap (model-spend paths only).
