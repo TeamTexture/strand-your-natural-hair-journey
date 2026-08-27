@@ -16,6 +16,7 @@ import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
+import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
@@ -503,6 +504,11 @@ const Home = () => {
           </button>
         </div>
       </header>
+
+      {/* Direct line to the STRAND team — deliberately above the dashboard. */}
+      <div className="px-5 pb-2">
+        <SpeakToStrandCard />
+      </div>
 
       {/* Anchor-first dashboard — the numbers that matter, tappable. */}
       <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
