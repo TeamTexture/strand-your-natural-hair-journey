@@ -105,4 +105,14 @@ export interface HomemadeSafetyPayload {
     body: string;
   }>;
   unverified: string[];
+  /**
+   * Present only when the recipe has a water phase AND a recognised
+   * preservative — an honest shelf-life statement instead of the DIY spoilage
+   * warning, which would be false here.
+   */
+  preservation?: {
+    status: "preserved";
+    names: string[];
+    note: string;
+  };
 }
