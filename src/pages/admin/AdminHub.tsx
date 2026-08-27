@@ -252,6 +252,7 @@ const NavCard = ({
   badge,
   badgeTone,
   context,
+  highlight,
 }: {
   icon: typeof ClipboardCheck;
   title: string;
@@ -260,13 +261,26 @@ const NavCard = ({
   badge?: number;
   badgeTone?: "urgent" | "default";
   context?: string;
+  /** Accent treatment for the cards an admin must notice first. */
+  highlight?: boolean;
 }) => (
   <button
     onClick={onClick}
     className="w-full text-left"
   >
-    <SurfaceCard className="flex items-center gap-3 py-3.5">
-      <span className="size-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+    <SurfaceCard
+      className={cn(
+        "flex items-center gap-3 py-3.5",
+        highlight &&
+          "border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent",
+      )}
+    >
+      <span
+        className={cn(
+          "size-9 rounded-full flex items-center justify-center shrink-0",
+          highlight ? "bg-primary/25" : "bg-primary/10",
+        )}
+      >
         <Icon className="size-4 text-primary" />
       </span>
       <div className="flex-1 min-w-0">
@@ -478,6 +492,20 @@ const AdminHub = () => {
 
         <SectionLabel className="!px-0">Manage</SectionLabel>
         <div className="space-y-2">
+          <NavCard
+            icon={MessageSquareHeart}
+            title="MEMBER MESSAGES"
+            description="Members messaging you from their dashboard — read and reply"
+            highlight
+            badge={memberMessageUnread || undefined}
+            badgeTone={memberMessageUnread > 0 ? "urgent" : "default"}
+            context={
+              memberMessageUnread > 0
+                ? `${memberMessageUnread} unread message${memberMessageUnread === 1 ? "" : "s"} waiting`
+                : "No unread member messages"
+            }
+            onClick={() => nav("/admin/member-messages")}
+          />
           <NavCard
             icon={ClipboardCheck}
             title="Applications"

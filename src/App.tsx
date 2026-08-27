@@ -145,6 +145,7 @@ const AdminTreatment = lazyRetry(() => import("./pages/admin/AdminTreatment"));
 const AdminTreatmentTemplate = lazyRetry(() => import("./pages/admin/AdminTreatmentTemplate"));
 const AdminTreatmentPlan = lazyRetry(() => import("./pages/admin/AdminTreatmentPlan"));
 const AdminMessages = lazyRetry(() => import("./pages/admin/AdminMessages"));
+const AdminMemberMessages = lazyRetry(() => import("./pages/admin/AdminMemberMessages"));
 const AdminBroadcast = lazyRetry(() => import("./pages/admin/AdminBroadcast"));
 const AdminBrandOffers = lazyRetry(() => import("./pages/admin/AdminBrandOffers"));
 const AdminShelfReview = lazyRetry(() => import("./pages/admin/AdminShelfReview"));
@@ -647,6 +648,7 @@ const App = () => (
               <Route path="/admin/shelf-review" element={<RoleGate allow={["admin"]}><AdminShelfReview /></RoleGate>} />
 
               <Route path="/admin/messages" element={<RoleGate allow={["admin"]}><AdminMessages /></RoleGate>} />
+              <Route path="/admin/member-messages" element={<RoleGate allow={["admin"]}><AdminMemberMessages /></RoleGate>} />
               <Route path="/admin/broadcast" element={<RoleGate allow={["admin"]}><AdminBroadcast /></RoleGate>} />
 
               {/* Consumer-facing brand directory */}
