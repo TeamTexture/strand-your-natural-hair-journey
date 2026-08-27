@@ -836,7 +836,11 @@ Deno.serve(async (req) => {
       // Soft signals are logged for author review and folded into the ONE
       // retry as preferences. They never reject.
       await logSoft(userId, result.soft, attempt + 1, String(raw).slice(0, 500));
-      if (result.ok) {
+      // Run the guardrail whenever nothing FATAL is wrong. A cosmetic-only
+      // candidate is still sanitised and kept as the salvage, so the retry that
+      // follows is an attempt to do better — not the member's only chance.
+      const parsedOk = parsed !== null && result.problems.length === 0;
+      if (parsedOk) {
         // Sanitise INSIDE the loop. The blood guardrail can strip a whole
         // sentence, and a stripped reason would otherwise ship an action-only
         // tip — the exact defect the floors exist to prevent. If the guardrail
@@ -865,8 +869,22 @@ Deno.serve(async (req) => {
             ? !!String(candidate.wash_day_tip ?? "").trim()
             : sentenceCount(String(candidate.fit_line ?? "")) >= 2;
         if (survivedFloors) {
-          clean = candidate;
-          break;
+          if (result.cosmetic.length === 0) {
+            clean = candidate;
+            break;
+          }
+          // Keep the first cosmetic-only candidate and ask for a tidier one.
+          if (!salvage) salvage = candidate;
+          lastProblems = result.cosmetic;
+          if (attempt + 1 >= MAX_ATTEMPTS) break;
+          messages.push({ role: "assistant", content: String(raw).slice(0, 4000) });
+          messages.push({
+            role: "user",
+            content:
+              `That output was REJECTED on length only. Return the SAME guidance, shortened to fit, as corrected JSON only.\n- ` +
+              lastProblems.join("\n- "),
+          });
+          continue;
         }
         lastProblems = [
           'part of your advert tip was removed by the blood-claim guardrail, leaving it without a reason. Rewrite "fit_line_reason" so it explains the hair-care mechanism only — never bridge a blood marker, medication or health value to a hair outcome.',
@@ -878,7 +896,7 @@ Deno.serve(async (req) => {
                 ? "Your previous output ran out of room before the JSON closed. Think briefly, then return ONLY the compact JSON object — no preamble, no commentary, shortest wording that still satisfies the rules."
                 : "Output was not valid JSON.",
             ]
-          : result.problems;
+          : [...result.problems, ...result.cosmetic];
 
       }
       if (attempt + 1 >= MAX_ATTEMPTS) break;
@@ -895,10 +913,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Near-miss beats nothing. Every fatal floor was cleared; only a word
+    // budget was missed, and an advert with slightly long personalised copy is
+    // far better than an advert with none.
+    if (!clean && salvage) {
+      console.log(JSON.stringify({
+        event: "guidance_served_near_miss",
+        fn: "brand-product-guidance",
+        problems: lastProblems.slice(0, 4),
+      }));
+      clean = salvage;
+    }
+
     if (!clean) {
       // Personalised guidance is OPTIONAL copy. A validation miss must never
-      // surface as an invocation error / blank screen — the caller renders the
-      // approved advert without it.
+      // surface as an invocation error / blank screen — the caller renders
+      // generic usage copy in its place (see `adFallbackFitLine`).
       return new Response(
         JSON.stringify({ guidance: null, unavailable: "validation", problems: lastProblems }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
