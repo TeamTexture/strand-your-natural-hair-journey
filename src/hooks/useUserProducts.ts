@@ -36,6 +36,9 @@ export interface UserProduct {
   updated_at: string;
   linked_brand_offer_id: string | null;
   linked_brand_product_id: string | null;
+  /** Member-made recipe product — analysed with concentration awareness. */
+  is_homemade?: boolean;
+  homemade_recipe?: unknown;
 }
 
 export interface SponsoredNote {
