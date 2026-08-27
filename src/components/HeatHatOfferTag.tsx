@@ -16,11 +16,11 @@ const HeatHatOfferTag = () => (
       href={TEAM_TEXTURE_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/[0.07] px-3.5 py-2 max-w-[280px] hover:bg-primary/10 hover:border-primary/50 transition-colors"
+      className="inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-2 max-w-[300px] hover:bg-primary/90 transition-colors"
     >
-      <Tag className="size-3.5 shrink-0 text-primary" aria-hidden />
-      <span className="font-body text-[12px] font-medium leading-tight text-foreground">
-        Subscribe for 15% off Team Texture Heat Hats
+      <Tag className="size-3.5 shrink-0 text-primary-foreground" aria-hidden />
+      <span className="font-body text-[12px] font-bold uppercase leading-tight text-primary-foreground">
+        Subscribe for 15% off TT Heat Hats
       </span>
     </a>
     <p className="text-[10.5px] font-body text-muted-foreground">
