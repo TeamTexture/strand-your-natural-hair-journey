@@ -260,13 +260,14 @@ export function detectHomemadeHazards(
     }
   }
 
-  // Water-based homemade mixes have no preservative system. This is not a
-  // scare — it is why a fridge jar of aloe/tea/yoghurt mask is a two-or-three
-  // day thing, not a bottle you keep.
-  const waterPhase = recipe.find((r) =>
-    /\b(water|aloe|tea|rice water|milk|yoghurt|yogurt|juice|brew|infusion|flaxseed|hibiscus)\b/i.test(r.ingredient)
-  );
-  if (waterPhase) {
+  // A water phase with NO preservative in it. This is not a scare — it is why a
+  // fridge jar of aloe/tea/yoghurt mask is a two-or-three day thing, not a
+  // bottle you keep. It fires on the INGREDIENTS, never on the fact that the
+  // product was entered through the homemade flow: a recipe that does contain a
+  // preservative gets an honest shelf-life note instead (see
+  // buildHomemadeSafety), because a false spoilage alarm is its own inaccuracy.
+  const waterPhase = findWaterPhase(recipe);
+  if (waterPhase && preservatives.length === 0) {
     hazards.push({
       id: "no-preservative",
       trigger: `${waterPhase.ingredient} — ${waterPhase.amount || "no amount given"}`,
