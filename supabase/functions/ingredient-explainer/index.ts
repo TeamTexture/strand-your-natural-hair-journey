@@ -829,72 +829,79 @@ Deno.serve(async (req) => {
     entry = await fillTermDefinition(entry);
     const kind = entry.kind ?? "molecule";
 
+    // SPEED: layer 2 (role in this product) and layer 3 (per-user fit) are
+    // independent of one another — the fit reasons about the ingredient, not
+    // about its role in the formula. They used to run back to back, which made
+    // a cold sheet two sequential model calls. They now run together, so a cold
+    // sheet costs the slower of the two rather than the sum.
+    const term = entry;
+
     // Layer 2 — role in THIS product (cached on the link row). Only a molecule
     // has a role inside a formula: a class or a concept does not.
-    let roleInProduct: string | null = null;
-    let productCategory: string | null = body.productCategory ?? null;
-    if (kind === "molecule" && body.userProductId) {
+    const resolveRole = async (): Promise<{ role: string | null; category: string | null }> => {
+      let roleInProduct: string | null = null;
+      let productCategory: string | null = body.productCategory ?? null;
+      if (kind !== "molecule" || !body.userProductId) return { role: null, category: productCategory };
       const { data: product } = await supabase
         .from("user_products")
         .select("id, name, brand, category, ingredients")
         .eq("id", body.userProductId)
         .maybeSingle();
-      if (product) {
-        productCategory = productCategory ?? ((product.category as string | null) ?? null);
-        const { data: link } = await supabase
-          .from("product_ingredients")
-          .select("role_in_product")
-          .eq("user_product_id", product.id)
-          .eq("ingredient_id", entry.id)
-          .maybeSingle();
-        roleInProduct = (link?.role_in_product as string | null) ?? null;
-        if (!roleInProduct) {
-          const roles = await generateRoles(
-            {
-              name: String(product.name ?? ""),
-              brand: String(product.brand ?? ""),
-              category: productCategory,
-            },
-            [entry.display_name],
-          );
-          roleInProduct = roles.get(normaliseInciKey(entry.display_name)) ?? roles.get(key) ?? null;
-          await supabase.from("product_ingredients").upsert(
-            {
-              user_product_id: product.id,
-              ingredient_id: entry.id,
-              position: Array.isArray(product.ingredients)
-                ? (product.ingredients as string[]).findIndex((i) => normaliseInciKey(i) === key)
-                : null,
-              role_in_product: roleInProduct,
-            },
-            { onConflict: "user_product_id,ingredient_id" },
-          );
-        }
+      if (!product) return { role: null, category: productCategory };
+      productCategory = productCategory ?? ((product.category as string | null) ?? null);
+      const { data: link } = await supabase
+        .from("product_ingredients")
+        .select("role_in_product")
+        .eq("user_product_id", product.id)
+        .eq("ingredient_id", term.id)
+        .maybeSingle();
+      roleInProduct = (link?.role_in_product as string | null) ?? null;
+      if (!roleInProduct) {
+        const roles = await generateRoles(
+          {
+            name: String(product.name ?? ""),
+            brand: String(product.brand ?? ""),
+            category: productCategory,
+          },
+          [term.display_name],
+        );
+        roleInProduct = roles.get(normaliseInciKey(term.display_name)) ?? roles.get(key) ?? null;
+        await supabase.from("product_ingredients").upsert(
+          {
+            user_product_id: product.id,
+            ingredient_id: term.id,
+            position: Array.isArray(product.ingredients)
+              ? (product.ingredients as string[]).findIndex((i) => normaliseInciKey(i) === key)
+              : null,
+            role_in_product: roleInProduct,
+          },
+          { onConflict: "user_product_id,ingredient_id" },
+        );
       }
-    }
+      return { role: roleInProduct, category: productCategory };
+    };
 
     // Layer 3 — per-user fit, cached in ai_summaries, invalidated by profile.
-    const cacheKind = `ingredient_fit:${entry.inci_key}`;
-    const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
-    let fit: FitPayload | null = null;
-    if (!body.force) {
-      const { data: cached } = await supabase
-        .from("ai_summaries")
-        .select("payload")
-        .eq("user_id", user.id)
-        .eq("kind", cacheKind)
-        .maybeSingle();
-      const payload = cached?.payload as FitPayload | undefined;
-      if (
-        payload &&
-        payload._model_version === FIT_MODEL_VERSION &&
-        payload._profile_fingerprint === fingerprint
-      ) {
-        fit = payload;
+    const cacheKind = `ingredient_fit:${term.inci_key}`;
+    const resolveFit = async (): Promise<FitPayload> => {
+      const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
+      if (!body.force) {
+        const { data: cached } = await supabase
+          .from("ai_summaries")
+          .select("payload")
+          .eq("user_id", user.id)
+          .eq("kind", cacheKind)
+          .maybeSingle();
+        const payload = cached?.payload as FitPayload | undefined;
+        if (
+          payload &&
+          payload._model_version === FIT_MODEL_VERSION &&
+          payload._profile_fingerprint === fingerprint
+        ) {
+          return payload;
+        }
       }
-    }
 
-    if (!fit) {
       // Declared topical sensitivities — the ONLY ingredient list that may make
       // an ingredient "bad" for her. Frequency of ownership never can.
       const [goalRes, sens] = await Promise.all([
@@ -908,13 +915,13 @@ Deno.serve(async (req) => {
         name: e.name,
         severity: e.severity,
       }));
-      fit = await generateFit({
-        ingredient: entry,
+      const generated = await generateFit({
+        ingredient: term,
         userPayload: {
           ingredient: {
-            name: entry.display_name,
-            category: entry.category,
-            what_it_is: entry.what_it_is,
+            name: term.display_name,
+            category: term.category,
+            what_it_is: term.what_it_is,
           },
           hairProfile: hair ?? {},
           healthProfile: health ?? {},
@@ -925,9 +932,9 @@ Deno.serve(async (req) => {
           },
         },
       });
-      fit._model_version = FIT_MODEL_VERSION;
-      fit._profile_fingerprint = fingerprint;
-      fit._generated_at = new Date().toISOString();
+      generated._model_version = FIT_MODEL_VERSION;
+      generated._profile_fingerprint = fingerprint;
+      generated._generated_at = new Date().toISOString();
 
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -937,13 +944,19 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (prior?.id) {
         await supabase.from("ai_summaries")
-          .update({ payload: fit as unknown as object, updated_at: new Date().toISOString() })
+          .update({ payload: generated as unknown as object, updated_at: new Date().toISOString() })
           .eq("id", prior.id);
       } else {
         await supabase.from("ai_summaries")
-          .insert({ user_id: user.id, kind: cacheKind, payload: fit as unknown as object });
+          .insert({ user_id: user.id, kind: cacheKind, payload: generated as unknown as object });
       }
-    }
+      return generated;
+    };
+
+    const [roleResult, fit] = await Promise.all([resolveRole(), resolveFit()]);
+    const roleInProduct = roleResult.role;
+    const productCategory = roleResult.category;
+
 
     const response = {
       glossary: entry,
