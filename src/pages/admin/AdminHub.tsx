@@ -105,9 +105,13 @@ const useAdminStats = () =>
           .from("pro_passport_views")
           .select("id", { count: "exact", head: true })
           .gte("viewed_at", sevenDaysAgo),
+        // "Live brands" means brands actually visible to members, so a brand
+        // hidden from the directory (e.g. a duplicate account) is excluded.
         supabase
           .from("brand_profiles")
-          .select("user_id", { count: "exact", head: true }),
+          .select("user_id", { count: "exact", head: true })
+          .eq("hidden_from_directory", false),
+
         supabase
           .from("brand_offers")
           .select("id, owner_type, status, starts_on, ends_on")
