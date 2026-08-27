@@ -904,11 +904,13 @@ Deno.serve(async (req) => {
           avoidList,
           level: tipsLevel,
           sensitivityBlock,
+          factsBlock,
           generationId,
           attemptNumber,
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason,
         });
+        analysis = applyKnownCategories(analysis, knownFacts);
         const claudeProblems = [
           ...(guidanceReferencesOtherProduct(analysis)
             ? [
@@ -922,27 +924,23 @@ Deno.serve(async (req) => {
             function: "ingredient-analysis",
             violation: "guidance_floor",
             problems: claudeProblems,
-            retry: true,
+            retry: "guidance_only",
           }));
-          analysis = await runClaude({
+          // Regenerate ONLY the guidance — the ingredient cards, score and
+          // summary already passed and re-writing them costs seconds for nothing.
+          const fixedTips = await runGuidanceRetry({
             productName,
             productBrand,
             ingredients: rawIngredients,
-            hairProfile: (hairProfile ?? {}) as Record<string, unknown>,
-            userPayload: {
-              ...baseRetryPayload,
-              _retry_reason:
-                `Your personalised_guidance was REJECTED. Regenerate it fixing every problem below. Each tip must be ONE instruction sentence followed by ONE sentence saying why it matters for this member:\n- ${claudeProblems.join("\n- ")}`,
-            },
+            userPayload: baseRetryPayload,
             selectorContext: buildSelectorContext(body),
-            avoidList,
             level: tipsLevel,
+            problems: claudeProblems,
             sensitivityBlock,
             generationId,
             attemptNumber,
-            maxAttempts: MAX_REJECTION_ATTEMPTS,
-            retryReason: retryReason ?? "guidance_floor_retry",
           });
+          if (fixedTips) analysis = { ...analysis, personalised_guidance: fixedTips };
         }
         analysis = scrubGuidance(analysis);
         auditGuidanceActionFloor(analysis, productKey);
