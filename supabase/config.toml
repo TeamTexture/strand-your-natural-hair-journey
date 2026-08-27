@@ -31,3 +31,6 @@ verify_jwt = false
 verify_jwt = false
 
 
+
+[functions.email-retry-sweep]
+verify_jwt = false
