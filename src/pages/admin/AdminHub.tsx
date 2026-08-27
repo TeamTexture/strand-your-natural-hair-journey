@@ -152,21 +152,42 @@ const useAdminStats = () =>
       const liveMemberIds = new Set(
         profiles.filter((p) => !privileged.has(p.user_id)).map((p) => p.user_id),
       );
-      const paidRows = await fetchAllRows<{ user_id: string; tier: string | null }>((from, to) =>
+      // Trial, paid and cancelled are read from the SAME rows and split by
+      // status, so the moment Stripe moves a member from `trialing` to `active`
+      // (or to `canceled`) the cards move with her — no separate bookkeeping to
+      // drift out of step.
+      const subRows = await fetchAllRows<{
+        user_id: string;
+        tier: string | null;
+        status: string | null;
+        cancel_at_period_end: boolean | null;
+      }>((from, to) =>
         supabase
           .from("consumer_subscriptions")
-          .select("user_id, tier")
-          .in("status", ["active", "trialing"])
+          .select("user_id, tier, status, cancel_at_period_end")
+          .in("status", ["active", "trialing", "canceled", "cancelled"])
           .range(from, to),
       );
-      const livePaid = paidRows.filter((r) => liveMemberIds.has(r.user_id));
+      const liveSubs = subRows.filter((r) => liveMemberIds.has(r.user_id));
+      const trialing = liveSubs.filter((r) => r.status === "trialing");
+      // "Paid members" now means money has actually been taken — a trial is not
+      // revenue, so it is counted only on the trial card until it converts.
+      const paying = liveSubs.filter((r) => r.status === "active");
+      const cancelled = liveSubs.filter(
+        (r) => r.status === "canceled" || r.status === "cancelled",
+      );
+      // Winding down: still active, but Stripe will not renew them.
+      const cancelPending = paying.filter((r) => r.cancel_at_period_end === true);
+      const livePaid = paying;
       return {
         pendingApplications: pending.count ?? 0,
         livePros: live.count ?? 0,
         activeProSubs: proSubs.count ?? 0,
         membersTotal: memberCount,
         activePaidMembers: livePaid.length,
-        plusMembers: livePaid.filter((r) => r.tier === "plus").length,
+        trialMembers: trialing.length,
+        cancelledMembers: cancelled.length + cancelPending.length,
+        plusMembers: [...paying, ...trialing].filter((r) => r.tier === "plus").length,
         complimentaryMembers: comps.count ?? 0,
         viewsLast7d: views.count ?? 0,
         liveBrands: liveBrandsQ.count ?? 0,
@@ -190,7 +211,7 @@ const StatCard = ({
 }: {
   label: string;
   value: number | string;
-  tone?: "warn" | "urgent" | "default";
+  tone?: "warn" | "urgent" | "trial" | "default";
   sublabel?: string;
   onClick?: () => void;
   compact?: boolean;
@@ -201,11 +222,13 @@ const StatCard = ({
         "relative h-full",
         compact ? "py-2 px-2 min-w-0 overflow-hidden" : "py-3",
         tone === "urgent" && "border-destructive/60 bg-destructive/5 ring-1 ring-destructive/40",
+        tone === "trial" && "border-brown/50 bg-brown text-brown-foreground",
       )}
     >
       <p
         className={cn(
-          "uppercase text-muted-foreground font-body font-medium",
+          "uppercase font-body font-medium",
+          tone === "trial" ? "text-brown-foreground/75" : "text-muted-foreground",
           compact
             ? "text-[8.5px] leading-tight tracking-[0.06em] whitespace-nowrap overflow-hidden text-ellipsis"
             : "text-[10px] pr-4 tracking-[0.18em]",
@@ -218,7 +241,13 @@ const StatCard = ({
         className={cn(
           "font-display leading-none",
           compact ? "text-[19px] mt-1" : "text-[26px] mt-1.5",
-          tone === "warn" ? "text-warn" : tone === "urgent" ? "text-destructive" : "text-foreground",
+          tone === "warn"
+            ? "text-warn"
+            : tone === "urgent"
+              ? "text-destructive"
+              : tone === "trial"
+                ? "text-brown-foreground"
+                : "text-foreground",
         )}
       >
         {value}
@@ -378,6 +407,16 @@ const AdminHub = () => {
           <LoadingDot label="Loading overview…" fullScreen={false} />
         ) : (
           <>
+            {/* Trials sit above everything else: they are the cohort that
+                either converts or churns in the next 72 hours. */}
+            <StatCard
+              label="Trial members"
+              tone="trial"
+              value={stats.trialMembers}
+              sublabel="On a free trial — not yet paid"
+              onClick={() => nav("/admin/members?filter=trialing")}
+            />
+
             <div className="grid grid-cols-2 gap-2.5">
               <StatCard
                 label="Pending applications"
@@ -408,7 +447,15 @@ const AdminHub = () => {
               <StatCard
                 label="Paid members"
                 value={stats.activePaidMembers}
-                onClick={() => nav("/admin/members?filter=active")}
+                sublabel="Billing live"
+                onClick={() => nav("/admin/members?filter=paid")}
+              />
+              <StatCard
+                label="Cancelled"
+                tone="urgent"
+                value={stats.cancelledMembers}
+                sublabel="Cancelled or winding down"
+                onClick={() => nav("/admin/members?filter=cancelled")}
               />
               <StatCard
                 label="STRAND+"
