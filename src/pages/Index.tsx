@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getTrialOfferState } from "@/lib/trialOffer";
 import { walledDestination } from "@/lib/trialWall";
 import LoadingDot from "@/components/LoadingDot";
+import HeatHatOfferTag from "@/components/HeatHatOfferTag";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getBrandEntryPath,
