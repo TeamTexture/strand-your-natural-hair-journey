@@ -16,8 +16,18 @@
 
 export interface RecipeItem {
   ingredient: string;
+  /** Rendered amount ("2 tbsp", "a handful", "" when not given). */
   amount: string;
+  /** Structured numeric quantity, when the client captured one. */
+  qty?: string;
+  /** Structured unit (g, ml, tsp, tbsp, cup, drops, pumps). */
+  unit?: string;
 }
+
+/** Units the client can send structured. Anything else is free text. */
+const STRUCTURED_UNITS = new Set([
+  "g", "ml", "tsp", "tbsp", "cup", "drops", "pumps",
+]);
 
 export type HazardSeverity = "hazard" | "caution";
 
@@ -47,7 +57,17 @@ export function parseRecipe(raw: unknown): RecipeItem[] {
     const r = row as Record<string, unknown>;
     const ingredient = String(r.ingredient ?? "").trim();
     if (!ingredient) continue;
-    out.push({ ingredient, amount: String(r.amount ?? "").trim() });
+    const qty = String(r.qty ?? "").trim();
+    const unitRaw = String(r.unit ?? "").trim().toLowerCase();
+    const unit = STRUCTURED_UNITS.has(unitRaw) ? unitRaw : "";
+    const amount = String(r.amount ?? "").trim() ||
+      [qty, unit].filter(Boolean).join(" ");
+    out.push({
+      ingredient,
+      amount,
+      ...(qty ? { qty } : {}),
+      ...(unit ? { unit } : {}),
+    });
   }
   return out;
 }
@@ -60,8 +80,13 @@ const ESSENTIAL_OIL_RX =
 
 const NEAT_RX = /\b(neat|undiluted|pure|straight|on its own|by itself|100%)\b/i;
 
-function dropCount(amount: string): number | null {
-  const m = amount.match(/(\d+(?:\.\d+)?)\s*(?:drops?|ml)\b/i);
+function dropCount(item: RecipeItem): number | null {
+  // Structured qty+unit is authoritative when present — no string parsing.
+  if (item.qty && (item.unit === "drops" || item.unit === "ml")) {
+    const n = Number(item.qty.replace(",", "."));
+    if (Number.isFinite(n)) return n;
+  }
+  const m = item.amount.match(/(\d+(?:\.\d+)?)\s*(?:drops?|ml)\b/i);
   return m ? Number(m[1]) : null;
 }
 
@@ -85,7 +110,7 @@ export function detectHomemadeHazards(recipe: RecipeItem[]): HomemadeHazard[] {
     const name = item.ingredient;
     const amount = item.amount;
     const line = `${name} — ${amount || "no amount given"}`;
-    const drops = dropCount(amount);
+    const drops = dropCount(item);
 
     if (ESSENTIAL_OIL_RX.test(name)) {
       const neat = NEAT_RX.test(amount) || NEAT_RX.test(name) || !hasCarrier;
@@ -218,8 +243,19 @@ export function homemadeRecipeBlock(
   hazards: HomemadeHazard[],
   unverified: string[],
 ): string {
+  // Structured amounts are handed over as machine-readable qty/unit so the
+  // model never has to parse a loose string; free text is passed through
+  // verbatim and labelled as such, and a missing amount is stated plainly.
   const lines = recipe
-    .map((r) => `- ${r.ingredient}: ${r.amount || "amount not given"}`)
+    .map((r) => {
+      if (r.qty && r.unit) {
+        return `- ${r.ingredient}: quantity=${r.qty} unit=${r.unit} (exact, measured)`;
+      }
+      if (r.unit) return `- ${r.ingredient}: unit=${r.unit}, quantity not given`;
+      if (r.qty) return `- ${r.ingredient}: quantity=${r.qty}, unit not given`;
+      if (r.amount) return `- ${r.ingredient}: "${r.amount}" (her own words, unmeasured)`;
+      return `- ${r.ingredient}: amount not given`;
+    })
     .join("\n");
   const hazardLines = hazards.length
     ? hazards.map((h) => `- ${h.title} (from "${h.trigger}")`).join("\n")
@@ -231,7 +267,7 @@ export function homemadeRecipeBlock(
 HOMEMADE RECIPE — THIS IS NOT A COMMERCIAL FORMULATION:
 This product was mixed by the member in her own kitchen. A shop-bought product is pre-formulated: a chemist has already fixed every concentration at a level that is safe and stable. NONE of that applies here. You must NOT assume an ingredient is at a safe or effective concentration just because it appears in the list. Reason about the AMOUNT she gave for each ingredient, and about the ratio between them, and say plainly when an amount is too high, too low to do anything, or unmeasurable.
 
-Recipe as she wrote it (ingredient: amount, free text):
+Recipe as recorded. Lines marked "exact, measured" give a structured quantity and unit — treat those as precise and reason numerically about them and about the ratios between them. Lines in her own words are approximate, and "amount not given" means you must not assume any concentration:
 ${lines}
 
 Already hard-flagged by STRAND's own safety check — treat these as established, do not soften them, do not contradict them, and do not repeat them at length (they are shown to her separately as a standalone caution):
