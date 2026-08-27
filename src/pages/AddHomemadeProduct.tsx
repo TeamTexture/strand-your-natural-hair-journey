@@ -57,6 +57,8 @@ const AddHomemadeProduct = () => {
   const [scanning, setScanning] = useState(false);
   /** True once a scan has populated rows — recorded on the saved row's source. */
   const [scanUsed, setScanUsed] = useState(false);
+  /** The scanned recipe photo — used as the product image when she adds none. */
+  const [scanPhoto, setScanPhoto] = useState<File | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
 
   const setRow = (i: number, patch: Partial<RowState>) =>
