@@ -331,6 +331,7 @@ export function homemadeRecipeBlock(
   recipe: RecipeItem[],
   hazards: HomemadeHazard[],
   unverified: string[],
+  preservation?: HomemadePreservation,
 ): string {
   // Structured amounts are handed over as machine-readable qty/unit so the
   // model never has to parse a loose string; free text is passed through
