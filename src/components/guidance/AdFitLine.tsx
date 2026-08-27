@@ -19,9 +19,17 @@ export function hasFitContent(text?: string | null): boolean {
   return letters.length >= 4;
 }
 
-/** Returns the line when it is real copy, otherwise `undefined`. */
+/** Returns the line when it is real copy, otherwise `undefined`. Any stray
+ *  markdown ([label](url), **bold**) is flattened to plain text so the member
+ *  never sees raw link syntax. */
 export function validFitLine(text?: string | null): string | undefined {
-  return hasFitContent(text) ? (text as string) : undefined;
+  if (!hasFitContent(text)) return undefined;
+  return String(text)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 const AdFitLine = ({ text: rawText, loading, className }: Props) => {
