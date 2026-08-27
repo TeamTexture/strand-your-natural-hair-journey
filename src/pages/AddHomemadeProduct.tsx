@@ -168,12 +168,42 @@ const AddHomemadeProduct = () => {
                     placeholder="Ingredient — e.g. shea butter"
                     maxLength={60}
                   />
-                  <Input
-                    value={row.amount}
-                    onChange={(e) => setRow(i, { amount: e.target.value })}
-                    placeholder="How much — e.g. 2 tbsp"
-                    maxLength={40}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={row.qty}
+                      onChange={(e) =>
+                        setRow(i, { qty: e.target.value.replace(/[^\d.,/]/g, "") })
+                      }
+                      inputMode="decimal"
+                      placeholder="Amount"
+                      aria-label="Amount"
+                      maxLength={8}
+                      disabled={row.unit === "other"}
+                      className="w-[92px]"
+                    />
+                    <Select
+                      value={row.unit}
+                      onValueChange={(v) => setRow(i, { unit: v })}
+                    >
+                      <SelectTrigger className="flex-1" aria-label="Unit">
+                        <SelectValue placeholder="Unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RECIPE_UNITS.map((u) => (
+                          <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {row.unit === "other" && (
+                    <Input
+                      value={row.freeText}
+                      onChange={(e) => setRow(i, { freeText: e.target.value })}
+                      placeholder="How much — e.g. a handful"
+                      maxLength={40}
+                    />
+                  )}
+
                 </div>
                 <button
                   type="button"
