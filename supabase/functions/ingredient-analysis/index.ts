@@ -919,7 +919,12 @@ Deno.serve(async (req) => {
     const dbGoals = goalRowsRes.data ?? [];
     let factsBlock = knownFactsBlock(knownFacts);
     if (isHomemade && homemadeSafety) {
-      factsBlock += homemadeRecipeBlock(recipe, homemadeSafety.hazards, homemadeSafety.unverified);
+      factsBlock += homemadeRecipeBlock(
+        recipe,
+        homemadeSafety.hazards,
+        homemadeSafety.unverified,
+        homemadeSafety.preservation,
+      );
       console.log(JSON.stringify({
         function: "ingredient-analysis",
         homemade: true,
