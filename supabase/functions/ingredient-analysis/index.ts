@@ -315,6 +315,130 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
   } as Record<string, unknown>;
 }
 
+// ── SPEED: known ingredient facts (LAYER 1 reuse) ───────────────────────
+//
+// A molecule's category and mechanism do not change with who is asking, and
+// the shared `glossary_terms` table already holds both. Handing those to the
+// model as ESTABLISHED FACTS removes the per-member re-derivation of ~20-30
+// ingredient definitions — the bulk of the reasoning and output tokens on this
+// call — and leaves the model only the personal half to write. The category is
+// then set deterministically from the glossary row, so accuracy improves too:
+// it is the same value every other ingredient surface shows.
+export interface KnownFact {
+  key: string;
+  name: string;
+  category: string | null;
+  what_it_is: string | null;
+}
+
+async function loadKnownIngredientFacts(
+  reader: { from: (t: string) => any }, // deno supabase client
+  names: string[],
+): Promise<Map<string, KnownFact>> {
+  const out = new Map<string, KnownFact>();
+  const keys = [...new Set(names.map((n) => normaliseInciKey(n)).filter(Boolean))];
+  if (keys.length === 0) return out;
+  try {
+    const { data } = await reader
+      .from("glossary_terms")
+      .select("inci_key, display_name, category, what_it_is")
+      .in("inci_key", keys.slice(0, 120));
+    for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+      const key = String(row.inci_key ?? "");
+      const what = row.what_it_is ? String(row.what_it_is).trim() : "";
+      if (!key || !what) continue;
+      out.set(key, {
+        key,
+        name: String(row.display_name ?? key),
+        category: row.category ? String(row.category) : null,
+        what_it_is: what,
+      });
+    }
+  } catch (e) {
+    console.warn("[ingredient-analysis] glossary facts unavailable", e instanceof Error ? e.message : e);
+  }
+  return out;
+}
+
+/** Prompt block: established facts the model must reuse rather than re-derive. */
+function knownFactsBlock(facts: Map<string, KnownFact>): string {
+  if (facts.size === 0) return "";
+  const lines = [...facts.values()]
+    .map((f) => `- ${f.name}${f.category ? ` [${f.category}]` : ""}: ${f.what_it_is}`)
+    .join("\n");
+  return `
+
+ESTABLISHED INGREDIENT FACTS — DO NOT RE-DERIVE:
+The category and mechanism below are already verified in STRAND's shared glossary and are shown to every member. For any ingredient listed here, reuse the given category EXACTLY and take the mechanism as given — do not restate it at length and do not contradict it. Spend your words on what it means for THIS member instead.
+${lines}`;
+}
+
+/** Deterministically aligns each card's category with the shared glossary. */
+function applyKnownCategories(
+  analysis: AnalysisPayload,
+  facts: Map<string, KnownFact>,
+): AnalysisPayload {
+  if (facts.size === 0 || !Array.isArray(analysis.ingredients)) return analysis;
+  for (const card of analysis.ingredients) {
+    const fact = facts.get(normaliseInciKey(String(card?.name ?? "")));
+    if (fact?.category) card.category = fact.category;
+  }
+  return analysis;
+}
+
+// ── SPEED: guidance-only regeneration ───────────────────────────────────
+//
+// The guidance floor rejects roughly one in five generations. Re-running the
+// WHOLE analysis to fix a usage tip re-writes every ingredient card for no
+// reason — the single biggest avoidable cost on this function. This regenerates
+// ONLY personalised_guidance, with the same rules and the same rejection
+// feedback, and splices it back onto the accepted analysis.
+async function runGuidanceRetry(args: {
+  productName: string;
+  productBrand: string;
+  ingredients: string[];
+  userPayload: Record<string, unknown>;
+  selectorContext: SelectorContext;
+  level: TipsLevel;
+  problems: string[];
+  sensitivityBlock?: string;
+  generationId?: string | null;
+  attemptNumber?: number | null;
+}): Promise<GuidanceTip[] | null> {
+  const fullSchema = buildToolSchema(0, args.level) as {
+    properties: Record<string, unknown>;
+  };
+  const req = await buildClaudeRequest({
+    function_kind: "ingredient-analysis",
+    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level)}${args.sensitivityBlock ?? ""}
+
+YOUR ONLY TASK NOW: return personalised_guidance. Every other field of the analysis is already accepted and must not be rewritten. Your previous guidance was REJECTED — fix every problem below. Each tip must be ONE instruction sentence about using THIS product, followed by the reason it matters for this member:
+- ${args.problems.join("\n- ")}`,
+    user_payload: args.userPayload,
+    selector_context: args.selectorContext,
+    force_topic_ids: ["wash-day-mechanics", "porosity"],
+    tool: {
+      name: "return_guidance",
+      description: "Return only the personalised usage guidance for this product.",
+      input_schema: {
+        type: "object",
+        properties: { personalised_guidance: fullSchema.properties.personalised_guidance },
+        required: ["personalised_guidance"],
+      } as Record<string, unknown>,
+    },
+    toolChoice: { type: "tool", name: "return_guidance" },
+    max_tokens: 1400,
+    generation_id: args.generationId ?? null,
+    attempt_number: args.attemptNumber ?? null,
+    retry_reason: "guidance_floor_retry",
+  });
+  const result = await callClaude<{ personalised_guidance?: GuidanceTip[] }>(req);
+  const tips = result.toolInput?.personalised_guidance;
+  return Array.isArray(tips) && tips.length > 0 ? tips : null;
+}
+
+
+
 // ── Task instructions (shared text — minus the brittle EXACTLY prose) ──
 function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL): string {
   return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
