@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight, Mic, Link as LinkIcon, ArrowDownToLine, Trash2, Heart, Tag, FlaskConical } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
+import SectionLabel from "@/components/SectionLabel";
+
 import TitleBar from "@/components/TitleBar";
 import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
@@ -106,11 +108,12 @@ const Products = () => {
     }
     const other = buckets.get("other");
     if (other) ordered.push({ key: "other", label: other.label, items: other.items });
-    if (homemadeProducts.length) {
-      ordered.push({ key: "homemade", label: "Homemade", items: homemadeProducts });
-    }
+    // Homemade mixes are NOT a category bucket — they render in their own
+    // section below the shelf (no brand, no INCI panel, concentration-aware
+    // analysis), so they must read as a distinct kind of thing.
     return ordered;
-  }, [filteredProducts, homemadeProducts]);
+  }, [filteredProducts]);
+
 
   // Which shelf categories she has folded away. A view preference, so it lives
   // in namespaced browser storage (per user id, cleared on sign-out) rather than
@@ -192,6 +195,152 @@ const Products = () => {
     () => filteredProducts.some((p) => batch.selected.has(p.id) && p.on_favourite),
     [filteredProducts, batch.selected],
   );
+
+  const renderProductRow = (p: UserProduct) => {
+            const isOpen = expanded === p.product_key;
+            const noteCount = counts[p.product_key] ?? 0;
+            const isSelected = batch.selected.has(p.id);
+
+            return (
+                <ShelfProductCard
+                  key={p.id}
+                  anchor={anchorProps(p.id)}
+                  className={cn(batch.selectMode && isSelected && "ring-2 ring-primary")}
+                  name={p.name}
+                  brand={<BrandLink brand={p.brand} />}
+                  imageUrl={p.image_url}
+                  storagePath={p.storage_path}
+                  ingredients={p.ingredients}
+                  matchScore={matchScoreOf(p)}
+                  thumbBadge={
+                    sponsoredById[p.id] ? (
+                      <span className="inline-flex items-center gap-1 rounded-pill bg-primary px-2 py-[3px] text-[9px] font-body font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-sm">
+                        <Tag className="size-2.5" /> Offer
+                      </span>
+                    ) : undefined
+                  }
+                  onOpen={() => {
+                    if (batch.selectMode) { batch.toggle(p.id); return; }
+                    const sp = sponsoredById[p.id];
+                    if (sp && p.linked_brand_product_id) {
+                      navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
+                      return;
+                    }
+                    if (sp) { navigate(`/offers/${sp.offerId}`); return; }
+                    navigate(`/products/profile/${p.id}`);
+                  }}
+                  leading={
+                    batch.selectMode ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); batch.toggle(p.id); }}
+                        className="shrink-0 mt-0.5"
+                        aria-label={isSelected ? "Deselect" : "Select"}
+                      >
+                        <SelectCheckbox checked={isSelected} />
+                      </button>
+                    ) : undefined
+                  }
+                  meta={
+                    <>
+                      <MatchStars item={p} ingredients={p.ingredients} />
+                      {noteCount > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
+                          <Mic className="size-3" /> {noteCount}
+                        </span>
+                      )}
+                    </>
+                  }
+                  banner={
+                    sponsoredById[p.id] ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sp = sponsoredById[p.id];
+                          if (p.linked_brand_product_id) navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
+                          else navigate(`/offers/${sp.offerId}`);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-[12px] border border-primary/35 bg-primary/[0.08] px-3 py-2.5 text-left hover:bg-primary/[0.13] transition-colors"
+                      >
+                        <Tag className="size-4 text-primary shrink-0" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12px] font-body font-semibold text-primary leading-tight truncate">
+                            Live offer
+                            {sponsoredById[p.id].discountCode ? ` · code ${sponsoredById[p.id].discountCode}` : ""}
+                          </span>
+                          <span className="block text-[10.5px] text-muted-foreground leading-tight truncate mt-0.5">
+                            Tap to view the offer &amp; buy
+                            {sponsoredById[p.id].endsOn ? ` — ends ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+                          </span>
+                        </span>
+                        <ChevronRight className="size-4 text-primary shrink-0" />
+                      </button>
+                    ) : undefined
+                  }
+                  headerActions={
+                    !batch.selectMode ? (
+                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleToggleFavourite(p)}
+                          className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                          aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
+                          aria-pressed={p.on_favourite}
+                        >
+                          <Heart
+                            className={cn(
+                              "size-4 transition-colors",
+                              p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
+                            )}
+                          />
+                        </button>
+                        <button
+                          onClick={() => setExpanded(isOpen ? null : p.product_key)}
+                          className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
+                          aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
+                          aria-expanded={isOpen}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "size-4 text-muted-foreground transition-transform",
+                              isOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </div>
+                    ) : undefined
+                  }
+                >
+                  {!batch.selectMode && isOpen && (
+                    <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
+                      <ProductVoicenotes
+                        productKey={p.product_key}
+                        productName={p.name}
+                        productBrand={p.brand ?? ""}
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          variant="goldOutline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setOffShelfTarget({ id: p.id, key: p.product_key, name: p.name })}
+                        >
+                          <ArrowDownToLine className="size-3.5 mr-1" />
+                          Take off shelf
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                          aria-label="Remove from app"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </ShelfProductCard>
+            );
+  };
 
   return (
     <ScreenLayout bottomNav>
@@ -304,166 +453,50 @@ const Products = () => {
             hint="Try a different search or clear your filters."
           />
         ) : (
-          <CategoryProductPanels
-            products={filteredProducts}
-            sections={groups.map((g) => ({ slug: g.key, label: g.label, products: g.items }))}
-            // Her own shelf: everything OPEN on arrival, collapsing is opt-in.
-            defaultOpen="all"
-            flatBelow={0}
-            countStyle="parens"
-            collapsedSlugs={collapsedCategories}
-            onToggleCollapsed={toggleCategoryCollapsed}
-            // A search or filter must never be defeated by a fold: while either
-            // is active every panel is forced open, so a match is always visible.
-            forceOpen={filtersActive}
-            sectionId={(slug) => `section-products-${slug}`}
-            renderRow={(p) => {
-              const isOpen = expanded === p.product_key;
-              const noteCount = counts[p.product_key] ?? 0;
-              const isSelected = batch.selected.has(p.id);
+          <>
+            {groups.length > 0 && (
+              <CategoryProductPanels
+                products={filteredProducts.filter(
+                  (x) => !(x as UserProduct & { is_homemade?: boolean }).is_homemade,
+                )}
+                sections={groups.map((g) => ({ slug: g.key, label: g.label, products: g.items }))}
+                // Her own shelf: everything OPEN on arrival, collapsing is opt-in.
+                defaultOpen="all"
+                flatBelow={0}
+                countStyle="parens"
+                collapsedSlugs={collapsedCategories}
+                onToggleCollapsed={toggleCategoryCollapsed}
+                // A search or filter must never be defeated by a fold: while either
+                // is active every panel is forced open, so a match is always visible.
+                forceOpen={filtersActive}
+                sectionId={(slug) => `section-products-${slug}`}
+                renderRow={renderProductRow}
+              />
+            )}
 
-              return (
-                  <ShelfProductCard
-                    key={p.id}
-                    anchor={anchorProps(p.id)}
-                    className={cn(batch.selectMode && isSelected && "ring-2 ring-primary")}
-                    name={p.name}
-                    brand={<BrandLink brand={p.brand} />}
-                    imageUrl={p.image_url}
-                    storagePath={p.storage_path}
-                    ingredients={p.ingredients}
-                    matchScore={matchScoreOf(p)}
-                    thumbBadge={
-                      sponsoredById[p.id] ? (
-                        <span className="inline-flex items-center gap-1 rounded-pill bg-primary px-2 py-[3px] text-[9px] font-body font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-sm">
-                          <Tag className="size-2.5" /> Offer
-                        </span>
-                      ) : undefined
-                    }
-                    onOpen={() => {
-                      if (batch.selectMode) { batch.toggle(p.id); return; }
-                      const sp = sponsoredById[p.id];
-                      if (sp && p.linked_brand_product_id) {
-                        navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
-                        return;
-                      }
-                      if (sp) { navigate(`/offers/${sp.offerId}`); return; }
-                      navigate(`/products/profile/${p.id}`);
-                    }}
-                    leading={
-                      batch.selectMode ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); batch.toggle(p.id); }}
-                          className="shrink-0 mt-0.5"
-                          aria-label={isSelected ? "Deselect" : "Select"}
-                        >
-                          <SelectCheckbox checked={isSelected} />
-                        </button>
-                      ) : undefined
-                    }
-                    meta={
-                      <>
-                        <MatchStars item={p} ingredients={p.ingredients} />
-                        {noteCount > 0 && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-primary font-medium">
-                            <Mic className="size-3" /> {noteCount}
-                          </span>
-                        )}
-                      </>
-                    }
-                    banner={
-                      sponsoredById[p.id] ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const sp = sponsoredById[p.id];
-                            if (p.linked_brand_product_id) navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
-                            else navigate(`/offers/${sp.offerId}`);
-                          }}
-                          className="w-full flex items-center gap-2.5 rounded-[12px] border border-primary/35 bg-primary/[0.08] px-3 py-2.5 text-left hover:bg-primary/[0.13] transition-colors"
-                        >
-                          <Tag className="size-4 text-primary shrink-0" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[12px] font-body font-semibold text-primary leading-tight truncate">
-                              Live offer
-                              {sponsoredById[p.id].discountCode ? ` · code ${sponsoredById[p.id].discountCode}` : ""}
-                            </span>
-                            <span className="block text-[10.5px] text-muted-foreground leading-tight truncate mt-0.5">
-                              Tap to view the offer &amp; buy
-                              {sponsoredById[p.id].endsOn ? ` — ends ${new Date(sponsoredById[p.id].endsOn!).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
-                            </span>
-                          </span>
-                          <ChevronRight className="size-4 text-primary shrink-0" />
-                        </button>
-                      ) : undefined
-                    }
-                    headerActions={
-                      !batch.selectMode ? (
-                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleToggleFavourite(p)}
-                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                            aria-label={p.on_favourite ? "Remove from favourites" : "Add to favourites"}
-                            aria-pressed={p.on_favourite}
-                          >
-                            <Heart
-                              className={cn(
-                                "size-4 transition-colors",
-                                p.on_favourite ? "fill-current text-destructive" : "text-muted-foreground",
-                              )}
-                            />
-                          </button>
-                          <button
-                            onClick={() => setExpanded(isOpen ? null : p.product_key)}
-                            className="size-11 rounded-full hover:bg-primary/10 flex items-center justify-center shrink-0"
-                            aria-label={isOpen ? "Hide voicenotes" : "Show voicenotes"}
-                            aria-expanded={isOpen}
-                          >
-                            <ChevronDown
-                              className={cn(
-                                "size-4 text-muted-foreground transition-transform",
-                                isOpen && "rotate-180",
-                              )}
-                            />
-                          </button>
-                        </div>
-                      ) : undefined
-                    }
-                  >
-                    {!batch.selectMode && isOpen && (
-                      <div className="px-3.5 pb-3.5 pt-1 border-t border-border/60 space-y-3">
-                        <ProductVoicenotes
-                          productKey={p.product_key}
-                          productName={p.name}
-                          productBrand={p.brand ?? ""}
-                        />
-                        <div className="flex gap-2 pt-1">
-                          <Button
-                            variant="goldOutline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => setOffShelfTarget({ id: p.id, key: p.product_key, name: p.name })}
-                          >
-                            <ArrowDownToLine className="size-3.5 mr-1" />
-                            Take off shelf
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
-                            aria-label="Remove from app"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </ShelfProductCard>
-              );
-            }}
-          />
+            {homemadeProducts.length > 0 && (
+              <section
+                id="section-products-homemade"
+                className="rounded-[18px] border border-primary/30 bg-primary/[0.05] p-3 space-y-2.5 mt-1"
+              >
+                <div className="flex items-center gap-2 px-0.5">
+                  <FlaskConical className="size-4 text-primary shrink-0" />
+                  <SectionLabel className="!mt-0 !mb-0 !px-0">
+                    My homemade mixes ({homemadeProducts.length})
+                  </SectionLabel>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug px-0.5">
+                  Made by you — no label to read, so the analysis works from your
+                  recipe and how much of each thing went in.
+                </p>
+                <div className="space-y-3">
+                  {homemadeProducts.map(renderProductRow)}
+                </div>
+              </section>
+            )}
+          </>
         )}
+
 
       </div>
 

@@ -12,9 +12,10 @@
 // and the ingredient NAMES are also written to the existing flat `ingredients`
 // column so every downstream surface keeps working with no changes.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Camera } from "lucide-react";
+import { Plus, Trash2, Camera, ScanLine } from "lucide-react";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -53,9 +54,62 @@ const AddHomemadeProduct = () => {
   const [rows, setRows] = useState<RowState[]>([emptyRow(), emptyRow()]);
   const [photo, setPhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  /** True once a scan has populated rows — recorded on the saved row's source. */
+  const [scanUsed, setScanUsed] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   const setRow = (i: number, patch: Partial<RowState>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+
+  // Reads HER OWN written recipe (notecard, jar label, notes screenshot) and
+  // fills the same structured rows the manual form uses. Never saves: OCR
+  // misreads a handwritten "2" as a "z", so she reviews and edits first.
+  const scanRecipe = async (file: File) => {
+    setScanning(true);
+    try {
+      const prepared = await prepareImageForAi(file);
+      const [, mime, b64] = prepared.dataUrl.match(/^data:([^;]+);base64,(.*)$/) ?? [];
+      if (!b64) throw new Error("Could not read that photo");
+      const { data, error } = await supabase.functions.invoke("homemade-recipe-scan", {
+        body: { image: { data: b64, mime } },
+      });
+      if (error) throw error;
+      const items = Array.isArray((data as { items?: unknown })?.items)
+        ? (data as { items: Array<Record<string, unknown>> }).items
+        : [];
+      if (items.length === 0) {
+        toast.error("Couldn't read a recipe there — try a clearer photo, or type it in");
+        return;
+      }
+      const scanned: RowState[] = items.map((it) => {
+        const amountText = String(it.amount_text ?? "").trim();
+        return {
+          ingredient: String(it.ingredient ?? "").trim(),
+          qty: String(it.qty ?? "").trim(),
+          unit: String(it.unit ?? "").trim() || (amountText ? "other" : ""),
+          freeText: amountText,
+        };
+      });
+      setRows((prev) => {
+        const kept = prev.filter((r) => r.ingredient.trim().length > 0);
+        return [...kept, ...scanned];
+      });
+      const scannedName = typeof (data as { name?: unknown })?.name === "string"
+        ? String((data as { name: string }).name).trim()
+        : "";
+      if (scannedName && !name.trim()) setName(scannedName);
+      setScanUsed(true);
+      toast.success(`Added ${scanned.length} ingredient${scanned.length === 1 ? "" : "s"} — check them over`);
+    } catch (e) {
+      console.error("recipe scan failed", e);
+      toast.error(e instanceof Error ? e.message : "Could not read that photo");
+    } finally {
+      setScanning(false);
+      if (scanInputRef.current) scanInputRef.current.value = "";
+    }
+  };
+
 
   const filled = rows.filter((r) => r.ingredient.trim().length > 0);
   const canSave = name.trim().length > 1 && !!category && filled.length >= 1;
@@ -104,7 +158,10 @@ const AddHomemadeProduct = () => {
           homemade_recipe: recipe as unknown as Json,
           // Kept in sync deliberately: every existing consumer reads this.
           ingredients: recipeIngredientNames(recipe),
-          ingredients_source: "homemade",
+          // Records HOW the list originated, so a misread scan can be told
+          // apart from something she typed herself.
+          ingredients_source: scanUsed ? "homemade_scan" : "homemade_manual",
+
           storage_path: storagePath,
           on_shelf: true,
           added_to_shelf_at: new Date().toISOString(),
@@ -159,6 +216,33 @@ const AddHomemadeProduct = () => {
 
         <SurfaceCard className="p-4 space-y-3">
           <SectionLabel>What's in it?</SectionLabel>
+          <div className="space-y-1.5">
+            <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              disabled={scanning}
+              onClick={() => scanInputRef.current?.click()}
+            >
+              <ScanLine className="size-4 mr-1.5" />
+              {scanning ? "Reading your recipe…" : "Scan a written recipe"}
+            </Button>
+            <input
+              ref={scanInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void scanRecipe(f);
+              }}
+            />
+            <p className="text-[11px] text-muted-foreground leading-snug text-center">
+              Photograph your notecard, jar label or notes screenshot — we'll fill
+              the list in for you to check before you save.
+            </p>
+          </div>
+
           <div className="space-y-2.5">
             {rows.map((row, i) => (
               <div key={i} className="flex items-start gap-2">
