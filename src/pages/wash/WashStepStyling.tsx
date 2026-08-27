@@ -123,12 +123,12 @@ const safeParse = <T,>(key: string, fallback: T): T => {
   } catch { return fallback; }
 };
 
-const WashStepStyling = () => {
+const WashStepStylingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { products: shelfProducts, loading: shelfLoading } = useUserProducts("shelf");
 
-  const saved = useMemo(() => safeParse<StylingSaved>("strand_wash_styling", {}), []);
+  const saved = useMemo(() => readWashDraft<StylingSaved>("strand_wash_styling", {}), []);
   const [style, setStyle] = useState<string[]>(saved.style ?? []);
   const [productIds, setProductIds] = useState<string[]>(saved.productIds ?? []);
   const [duration, setDuration] = useState<string[]>(saved.duration ?? []);
