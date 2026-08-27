@@ -7281,6 +7281,7 @@ export type Database = {
           similarity: number
         }[]
       }
+      member_start_support_thread: { Args: never; Returns: string }
       mention_search_all: {
         Args: { _limit?: number; _query: string }
         Returns: {
