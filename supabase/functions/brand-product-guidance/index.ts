@@ -717,7 +717,13 @@ Deno.serve(async (req) => {
     ];
 
     let clean: GuidancePayload | null = null;
+    // BEST NEAR-MISS. A candidate that cleared every safety, grounding and
+    // mechanism floor and only overran a word budget (or named a trait twice).
+    // Serving this beats serving nothing: every fault it carries is one the
+    // member cannot come to harm from.
+    let salvage: GuidancePayload | null = null;
     let lastProblems: string[] = [];
+
 
     // RETRY CAP: ONE. (Was 3 attempts / 2 retries.) One generation plus a single
     // corrective regeneration, then serve the best candidate that satisfies the
