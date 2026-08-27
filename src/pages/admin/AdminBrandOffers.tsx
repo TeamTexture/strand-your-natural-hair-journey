@@ -32,6 +32,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { HiddenOfferBadge } from "@/components/brand/OfferVisibilityToggle";
 
 const money = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -503,7 +504,10 @@ const AdminBrandOffers = () => {
                           );
                         })()}
                       </div>
-                      <StatusPill status={o._derived} />
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <StatusPill status={o._derived} />
+                        <HiddenOfferBadge hiddenAt={(o as { hidden_at?: string | null }).hidden_at} />
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {Array.from(new Set((o.brand_offer_placements ?? []).map((p) => p.slot))).map((s) => (
@@ -573,7 +577,10 @@ const AdminBrandOffers = () => {
                             {submitterOf(o)}
                           </p>
                         </div>
-                        <CountdownClock offer={o} />
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <HiddenOfferBadge hiddenAt={(o as { hidden_at?: string | null }).hidden_at} />
+                          <CountdownClock offer={o} />
+                        </div>
                       </div>
                       <LiveOfferCard
                         id={o.id}

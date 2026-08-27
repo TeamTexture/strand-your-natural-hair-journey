@@ -62,6 +62,7 @@ const BrandDashboard = () => {
   const nav = useNavigate();
   const { signOut } = useAuth();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [hiddenOpen, setHiddenOpen] = useState(false);
   const ownerMode = useOwnerMode();
   const { data: profile, isLoading: profileLoading } = useBrandProfile();
   const { data: offers = [], isLoading } = useBrandOffers(ownerMode);
