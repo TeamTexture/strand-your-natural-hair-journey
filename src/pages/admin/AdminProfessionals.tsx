@@ -7,6 +7,7 @@ import {
   Search, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, ShieldOff, ExternalLink, Activity,
 } from "lucide-react";
 import MessageButton from "@/components/admin/MessageButton";
+import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
