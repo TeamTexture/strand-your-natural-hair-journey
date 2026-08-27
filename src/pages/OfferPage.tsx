@@ -21,6 +21,8 @@ import AdFitLine from "@/components/guidance/AdFitLine";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import { validFitLine } from "@/components/guidance/AdFitLine";
+import BrandPlaybookCard from "@/components/guidance/BrandPlaybookCard";
+
 
 /** Deterministic keys so a brand item only ever creates a single row per user. */
 const productKeyFor = (brandProductId: string) => `brand-offer:${brandProductId}`;
@@ -56,6 +58,30 @@ const OfferProductFit = ({
   return <AdFitLine text={fitLine} loading={loading} className="mt-1.5" />;
 };
 
+/** The FULL personalised read for one product in this offer — headline, intro,
+ *  benefits, numbered steps and watch-outs, all grounded in her recorded hair
+ *  characteristics and goals. Shares the same cached payload as the fit line
+ *  above and the standalone product page, so nothing is generated twice.
+ *  Renders nothing at all if generation fails or times out. */
+const OfferProductPlaybook = ({
+  product,
+  showName,
+}: {
+  product: BrandItemRow;
+  showName: boolean;
+}) => {
+  const { guidance, loading, timedOut } = useBrandProductGuidance(product);
+  return (
+    <BrandPlaybookCard
+      guidance={guidance}
+      loading={loading}
+      timedOut={timedOut}
+      productName={showName ? product.name : undefined}
+    />
+  );
+};
+
+
 const OfferPage = () => {
   const { id } = useParams();
   const [params] = useSearchParams();
@@ -75,16 +101,29 @@ const OfferPage = () => {
     queryKey: ["brand-offer-public", id],
     enabled: !!id,
     queryFn: async () => {
+      // There is NO foreign key from brand_offers to brand_profiles, so an
+      // embedded select is a PostgREST 400 and leaves this page loading for
+      // ever. The brand name is read separately by owner id.
       const { data, error } = await supabase
         .from("brand_offers")
-        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(*)), brand_profiles!inner(brand_name)")
+        .select("id, headline, body_copy, hero_image_path, external_url, discount_code, status, ends_on, brand_user_id, brand_offer_products(position, created_at, brand_products(*))")
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
+      let brand: { brand_name: string | null } | null = null;
+      if (data.brand_user_id) {
+        const { data: bp } = await supabase
+          .from("brand_profiles")
+          .select("brand_name")
+          .eq("user_id", data.brand_user_id)
+          .maybeSingle();
+        brand = bp ?? null;
+      }
       // Products come through the join table (no direct offer->product FK), so
       // flatten them back to `brand_products` in the brand's chosen order.
-      return flattenOfferProducts(data);
+      return { ...flattenOfferProducts({ ...data, brand_profiles: brand }), brand_profiles: brand };
+
     },
   });
 
@@ -293,8 +332,8 @@ const OfferPage = () => {
                 nav(`/offers/${offer.id}/product/${p.id}${slot ? `?slot=${slot}` : ""}`);
               };
               return (
+                <div key={p.id} className="space-y-3">
                 <SurfaceCard
-                  key={p.id}
                   className="cursor-pointer active:opacity-80 transition-opacity"
                   onClick={goProduct}
                   role="button"
@@ -326,8 +365,16 @@ const OfferPage = () => {
                     </div>
                   </div>
                 </SurfaceCard>
+                {/* The full personalised breakdown for this product, below the
+                    row it belongs to and above the next product. */}
+                <OfferProductPlaybook
+                  product={p}
+                  showName={(offer.brand_products ?? []).length > 1}
+                />
+                </div>
               );
             })}
+
           </>
         )}
       </div>
