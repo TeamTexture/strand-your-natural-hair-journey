@@ -16,6 +16,7 @@ import {
   Megaphone,
   Store,
   MessageSquare,
+  MessageSquareHeart,
   Library,
   ShieldAlert,
   CalendarDays,
@@ -27,6 +28,7 @@ import {
   Globe,
 } from "lucide-react";
 
+import { useAdminSupportUnreadCount } from "@/hooks/useSupportChat";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -362,6 +364,7 @@ const AdminHub = () => {
   const { data: pendingRevisions = [] } = useAllPendingRevisions();
   const { data: openComplaints = 0 } = useOpenComplaintsCount();
   const revisionCount = pendingRevisions.length;
+  const memberMessageUnread = useAdminSupportUnreadCount();
 
   return (
     <ScreenLayout>
