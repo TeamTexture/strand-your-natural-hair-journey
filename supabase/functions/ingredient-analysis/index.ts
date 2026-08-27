@@ -252,7 +252,9 @@ interface RequestBody {
   ingredients?: string[];
   /** Member-made recipe: ingredient + free-text amount pairs. */
   isHomemade?: boolean;
-  homemadeRecipe?: Array<{ ingredient?: unknown; amount?: unknown }>;
+  homemadeRecipe?: Array<
+    { ingredient?: unknown; amount?: unknown; qty?: unknown; unit?: unknown }
+  >;
   hairProfile?: Record<string, unknown>;
   healthProfile?: Record<string, unknown>;
   heritage?: string[];
@@ -841,7 +843,9 @@ Deno.serve(async (req) => {
     // of amounts — editing "10 drops" to "2 drops" is a different product, so
     // the recipe is part of the cache identity.
     const recipeSig = isHomemade
-      ? `:hm${await shortHash(recipe.map((r) => `${r.ingredient.toLowerCase()}=${r.amount.toLowerCase()}`).sort().join("|"))}`
+      ? `:hm${await shortHash(recipe.map((r) =>
+          `${r.ingredient.toLowerCase()}=${r.amount.toLowerCase()}|${r.qty ?? ""}${r.unit ?? ""}`
+        ).sort().join("|"))}`
       : "";
     const cacheKind = `ingredient_analysis:${productKey}:L${tipsLevel}${recipeSig}`;
     const provider = readAiProvider("STRAND_AI_PROVIDER_INGREDIENT");
