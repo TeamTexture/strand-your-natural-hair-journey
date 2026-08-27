@@ -305,7 +305,25 @@ export function buildHomemadeSafety(
     : worst === "caution"
       ? "A couple of things to handle carefully with this one"
       : "Nothing in this recipe raises a safety concern";
-  return { severity: worst, headline, hazards, unverified };
+  // Honest replacement for the spoilage warning: there IS a preservative here,
+  // so the two-or-three-day fridge rule does not apply.
+  const preservation: HomemadePreservation | undefined =
+    preservatives.length > 0 && findWaterPhase(recipe)
+      ? {
+        status: "preserved",
+        names: preservatives,
+        note:
+          `This mix contains a preservative (${preservatives.join(", ")}), so it is not an unpreserved DIY blend: normal shelf life applies rather than the two-or-three-day fridge rule. Keep the lid on, keep fingers and water out of the jar, and stop using it if the smell, colour or texture changes.`,
+      }
+      : undefined;
+
+  return {
+    severity: worst,
+    headline,
+    hazards,
+    unverified,
+    ...(preservation ? { preservation } : {}),
+  };
 }
 
 /** Prompt block: tells the model this is a kitchen recipe, not a formulation. */
