@@ -634,7 +634,12 @@ const AdminProfessionals = () => {
                   </>
                 )}
 
+                <div className="mt-3 pt-3 border-t border-border">
+                  <ViewAsUserButton userId={r.user_id} name={r.display_name ?? r.email} className="h-9" />
+                </div>
+
                 <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2">
+
                   <Button
                     variant="outline"
                     size="sm"
