@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Search, Loader2, ShieldOff, ShieldCheck, Activity, Trash2, Mail, CheckCircle2, Circle, ArrowDownCircle } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import MessageButton from "@/components/admin/MessageButton";
+import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
 import { useIncompleteMembers, type IncompleteMemberRow } from "@/hooks/useIncompleteMembers";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
