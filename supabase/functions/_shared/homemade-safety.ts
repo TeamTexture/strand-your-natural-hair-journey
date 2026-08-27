@@ -103,13 +103,62 @@ function dropCount(item: RecipeItem): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** Water-phase ingredients: the thing bacteria and mould actually grow in. */
+const WATER_PHASE_RX =
+  /\b(water|aqua|aloe|tea|rice water|milk|yoghurt|yogurt|juice|brew|infusion|flaxseed|hibiscus)\b/i;
+
+/**
+ * Preservatives the shared glossary does not (yet) carry a row for. The
+ * glossary's `category = 'Preservative'` is the primary source of truth — this
+ * is only the safety net, because getting preservation WRONG in either
+ * direction is the bug this exists to prevent.
+ */
+const PRESERVATIVE_FALLBACK_RX =
+  /\b(phenoxyethanol|potassium sorbate|sorbic acid|sodium benzoate|benzoic acid|benzyl alcohol|dehydroacetic acid|leuconostoc|radish root ferment|caprylhydroxamic acid|ethylhexylglycerin|chlorphenesin|paraben|methylisothiazolinone|methylchloroisothiazolinone|dmdm hydantoin|diazolidinyl urea|imidazolidinyl urea|iodopropynyl butylcarbamate|piroctone olamine|sodium hydroxymethylglycinate|gluconolactone|glyceryl caprylate|sodium levulinate|sodium anisate|anisic acid|salicylic acid|zinc pyrithione)\b/i;
+
+export function findWaterPhase(recipe: RecipeItem[]): RecipeItem | undefined {
+  return recipe.find((r) => WATER_PHASE_RX.test(r.ingredient));
+}
+
+/**
+ * The preservatives ACTUALLY present in the recipe.
+ *
+ * `glossaryPreservatives` is the set of ingredient names the shared glossary
+ * classifies as `Preservative` (lower-cased). A preserved formula — a proper
+ * leave-in she is customising, or a whole commercial ingredient list — must
+ * never be told "nothing preserves this" just because it was entered through
+ * the homemade flow.
+ */
+export function findPreservatives(
+  recipe: RecipeItem[],
+  glossaryPreservatives: Iterable<string> = [],
+): string[] {
+  const known = new Set(
+    [...glossaryPreservatives].map((n) => n.trim().toLowerCase()).filter(Boolean),
+  );
+  const out: string[] = [];
+  for (const r of recipe) {
+    const name = r.ingredient.trim();
+    const lower = name.toLowerCase();
+    if (known.has(lower) || PRESERVATIVE_FALLBACK_RX.test(lower)) out.push(name);
+  }
+  return [...new Set(out)];
+}
+
 /**
  * Hard-flags known DIY hazards from the recipe.
  *
  * `hasCarrier` matters only for essential oils: everything else on this list is
  * a hazard at any dilution a kitchen can achieve.
+ *
+ * `preservatives` are the preservative ingredients found in the recipe; when
+ * any are present the unpreserved-spoilage warning is not true and is not
+ * raised. It is raised, unchanged and just as strongly, when none are.
  */
-export function detectHomemadeHazards(recipe: RecipeItem[]): HomemadeHazard[] {
+export function detectHomemadeHazards(
+  recipe: RecipeItem[],
+  preservatives: string[] = [],
+): HomemadeHazard[] {
   const hazards: HomemadeHazard[] = [];
   const hasCarrier = recipe.some((r) => CARRIER_RX.test(r.ingredient));
   const seen = new Set<string>();
