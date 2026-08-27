@@ -381,7 +381,7 @@ const WashStep4Inner = () => {
 
       <div className="px-5 pb-8 space-y-3">
         {draftLost && (
-          <StatusCallout tone="alert" icon={Sparkles} label="Your steps are missing">
+          <StatusCallout tone="warning" icon={Sparkles} label="Your steps are missing">
             We couldn't find the steps for this wash day on this device. Tap
             "Steps &amp; Products" to log them before saving, otherwise this wash
             day will save almost empty.
