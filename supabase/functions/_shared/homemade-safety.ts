@@ -40,12 +40,25 @@ export interface HomemadeHazard {
   body: string;
 }
 
+export interface HomemadePreservation {
+  /** "preserved" only when a real preservative was FOUND in the recipe. */
+  status: "preserved";
+  /** The preservative ingredients actually present, as she wrote them. */
+  names: string[];
+  note: string;
+}
+
 export interface HomemadeSafety {
   severity: "hazard" | "caution" | "ok";
   headline: string;
   hazards: HomemadeHazard[];
   /** Ingredients with no glossary entry — reasoned about generally only. */
   unverified: string[];
+  /**
+   * Set only when the recipe has a water phase AND a recognised preservative —
+   * an honest shelf-life statement in place of the DIY spoilage warning.
+   */
+  preservation?: HomemadePreservation;
 }
 
 /** Normalises a free-text recipe payload into clean ingredient+amount pairs. */
@@ -90,13 +103,62 @@ function dropCount(item: RecipeItem): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** Water-phase ingredients: the thing bacteria and mould actually grow in. */
+const WATER_PHASE_RX =
+  /\b(water|aqua|aloe|tea|rice water|milk|yoghurt|yogurt|juice|brew|infusion|flaxseed|hibiscus)\b/i;
+
+/**
+ * Preservatives the shared glossary does not (yet) carry a row for. The
+ * glossary's `category = 'Preservative'` is the primary source of truth — this
+ * is only the safety net, because getting preservation WRONG in either
+ * direction is the bug this exists to prevent.
+ */
+const PRESERVATIVE_FALLBACK_RX =
+  /\b(phenoxyethanol|potassium sorbate|sorbic acid|sodium benzoate|benzoic acid|benzyl alcohol|dehydroacetic acid|leuconostoc|radish root ferment|caprylhydroxamic acid|ethylhexylglycerin|chlorphenesin|paraben|methylisothiazolinone|methylchloroisothiazolinone|dmdm hydantoin|diazolidinyl urea|imidazolidinyl urea|iodopropynyl butylcarbamate|piroctone olamine|sodium hydroxymethylglycinate|gluconolactone|glyceryl caprylate|sodium levulinate|sodium anisate|anisic acid|salicylic acid|zinc pyrithione)\b/i;
+
+export function findWaterPhase(recipe: RecipeItem[]): RecipeItem | undefined {
+  return recipe.find((r) => WATER_PHASE_RX.test(r.ingredient));
+}
+
+/**
+ * The preservatives ACTUALLY present in the recipe.
+ *
+ * `glossaryPreservatives` is the set of ingredient names the shared glossary
+ * classifies as `Preservative` (lower-cased). A preserved formula — a proper
+ * leave-in she is customising, or a whole commercial ingredient list — must
+ * never be told "nothing preserves this" just because it was entered through
+ * the homemade flow.
+ */
+export function findPreservatives(
+  recipe: RecipeItem[],
+  glossaryPreservatives: Iterable<string> = [],
+): string[] {
+  const known = new Set(
+    [...glossaryPreservatives].map((n) => n.trim().toLowerCase()).filter(Boolean),
+  );
+  const out: string[] = [];
+  for (const r of recipe) {
+    const name = r.ingredient.trim();
+    const lower = name.toLowerCase();
+    if (known.has(lower) || PRESERVATIVE_FALLBACK_RX.test(lower)) out.push(name);
+  }
+  return [...new Set(out)];
+}
+
 /**
  * Hard-flags known DIY hazards from the recipe.
  *
  * `hasCarrier` matters only for essential oils: everything else on this list is
  * a hazard at any dilution a kitchen can achieve.
+ *
+ * `preservatives` are the preservative ingredients found in the recipe; when
+ * any are present the unpreserved-spoilage warning is not true and is not
+ * raised. It is raised, unchanged and just as strongly, when none are.
  */
-export function detectHomemadeHazards(recipe: RecipeItem[]): HomemadeHazard[] {
+export function detectHomemadeHazards(
+  recipe: RecipeItem[],
+  preservatives: string[] = [],
+): HomemadeHazard[] {
   const hazards: HomemadeHazard[] = [];
   const hasCarrier = recipe.some((r) => CARRIER_RX.test(r.ingredient));
   const seen = new Set<string>();
@@ -198,13 +260,14 @@ export function detectHomemadeHazards(recipe: RecipeItem[]): HomemadeHazard[] {
     }
   }
 
-  // Water-based homemade mixes have no preservative system. This is not a
-  // scare — it is why a fridge jar of aloe/tea/yoghurt mask is a two-or-three
-  // day thing, not a bottle you keep.
-  const waterPhase = recipe.find((r) =>
-    /\b(water|aloe|tea|rice water|milk|yoghurt|yogurt|juice|brew|infusion|flaxseed|hibiscus)\b/i.test(r.ingredient)
-  );
-  if (waterPhase) {
+  // A water phase with NO preservative in it. This is not a scare — it is why a
+  // fridge jar of aloe/tea/yoghurt mask is a two-or-three day thing, not a
+  // bottle you keep. It fires on the INGREDIENTS, never on the fact that the
+  // product was entered through the homemade flow: a recipe that does contain a
+  // preservative gets an honest shelf-life note instead (see
+  // buildHomemadeSafety), because a false spoilage alarm is its own inaccuracy.
+  const waterPhase = findWaterPhase(recipe);
+  if (waterPhase && preservatives.length === 0) {
     hazards.push({
       id: "no-preservative",
       trigger: `${waterPhase.ingredient} — ${waterPhase.amount || "no amount given"}`,
@@ -218,12 +281,20 @@ export function detectHomemadeHazards(recipe: RecipeItem[]): HomemadeHazard[] {
   return hazards;
 }
 
-/** The safety object stitched onto the analysis payload. */
+/**
+ * The safety object stitched onto the analysis payload.
+ *
+ * `glossaryPreservatives` — ingredient names the shared glossary classifies as
+ * `Preservative`. Pass them so preservation is judged from the actual
+ * ingredient list rather than from which flow the product was entered through.
+ */
 export function buildHomemadeSafety(
   recipe: RecipeItem[],
   unverified: string[],
+  glossaryPreservatives: Iterable<string> = [],
 ): HomemadeSafety {
-  const hazards = detectHomemadeHazards(recipe);
+  const preservatives = findPreservatives(recipe, glossaryPreservatives);
+  const hazards = detectHomemadeHazards(recipe, preservatives);
   const worst: HomemadeSafety["severity"] = hazards.some((h) => h.severity === "hazard")
     ? "hazard"
     : hazards.length
@@ -234,7 +305,25 @@ export function buildHomemadeSafety(
     : worst === "caution"
       ? "A couple of things to handle carefully with this one"
       : "Nothing in this recipe raises a safety concern";
-  return { severity: worst, headline, hazards, unverified };
+  // Honest replacement for the spoilage warning: there IS a preservative here,
+  // so the two-or-three-day fridge rule does not apply.
+  const preservation: HomemadePreservation | undefined =
+    preservatives.length > 0 && findWaterPhase(recipe)
+      ? {
+        status: "preserved",
+        names: preservatives,
+        note:
+          `This mix contains a preservative (${preservatives.join(", ")}), so it is not an unpreserved DIY blend: normal shelf life applies rather than the two-or-three-day fridge rule. Keep the lid on, keep fingers and water out of the jar, and stop using it if the smell, colour or texture changes.`,
+      }
+      : undefined;
+
+  return {
+    severity: worst,
+    headline,
+    hazards,
+    unverified,
+    ...(preservation ? { preservation } : {}),
+  };
 }
 
 /** Prompt block: tells the model this is a kitchen recipe, not a formulation. */
@@ -242,6 +331,7 @@ export function homemadeRecipeBlock(
   recipe: RecipeItem[],
   hazards: HomemadeHazard[],
   unverified: string[],
+  preservation?: HomemadePreservation,
 ): string {
   // Structured amounts are handed over as machine-readable qty/unit so the
   // model never has to parse a loose string; free text is passed through
@@ -276,7 +366,11 @@ ${hazardLines}
 Ingredients with NO entry in STRAND's verified glossary: ${unverifiedLines}
 For any ingredient in that list you may reason generally, but you must hedge the language ("commonly used for…", "generally understood to…") rather than stating its behaviour as verified fact. Never present an unverified kitchen ingredient with the same certainty as a glossary-verified one.
 
-Also remember: a homemade mix has no preservative system and no stability testing, so never imply it keeps like a bottled product.`;
+${
+    preservation
+      ? `Preservation — CHECKED AGAINST THE INGREDIENTS, NOT ASSUMED: this recipe DOES contain a preservative (${preservation.names.join(", ")}). Do NOT say it is unpreserved, do NOT tell her it will grow bacteria within days, and do NOT apply the two-or-three-day fridge rule. Normal shelf life applies; it still has no stability testing behind it.`
+      : `Also remember: this recipe has no preservative in it and no stability testing, so never imply it keeps like a bottled product.`
+  }`;
 }
 
 /**

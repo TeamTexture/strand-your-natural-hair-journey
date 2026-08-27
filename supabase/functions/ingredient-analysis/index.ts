@@ -830,7 +830,15 @@ Deno.serve(async (req) => {
         const unverified = recipe
           .map((r) => r.ingredient)
           .filter((n) => !facts.has(normaliseInciKey(n)));
-        return buildHomemadeSafety(recipe, unverified);
+        // Preservation is judged from the ingredients themselves: the shared
+        // glossary's own `category` decides, so a recipe that really does carry
+        // a preservative system is never told it has none.
+        const glossaryPreservatives = recipe
+          .map((r) => r.ingredient)
+          .filter((n) =>
+            (facts.get(normaliseInciKey(n))?.category ?? "").toLowerCase() === "preservative"
+          );
+        return buildHomemadeSafety(recipe, unverified, glossaryPreservatives);
       })()
       : null;
 
@@ -911,7 +919,12 @@ Deno.serve(async (req) => {
     const dbGoals = goalRowsRes.data ?? [];
     let factsBlock = knownFactsBlock(knownFacts);
     if (isHomemade && homemadeSafety) {
-      factsBlock += homemadeRecipeBlock(recipe, homemadeSafety.hazards, homemadeSafety.unverified);
+      factsBlock += homemadeRecipeBlock(
+        recipe,
+        homemadeSafety.hazards,
+        homemadeSafety.unverified,
+        homemadeSafety.preservation,
+      );
       console.log(JSON.stringify({
         function: "ingredient-analysis",
         homemade: true,
