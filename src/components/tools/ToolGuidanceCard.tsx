@@ -13,6 +13,7 @@ import { Check, Info, Sparkles } from "lucide-react";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { analysisSentences, analysisStrings, cleanAnalysisText } from "@/lib/toolAnalysis";
 import type { UserTool } from "@/hooks/useUserTools";
+import { hasFitContent, validFitLine } from "@/components/guidance/AdFitLine";
 
 
 /** Keep the personalised read to two or three sentences — never a paragraph. */

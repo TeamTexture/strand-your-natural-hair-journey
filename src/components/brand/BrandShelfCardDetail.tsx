@@ -13,6 +13,7 @@ import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { useLogAdEvent } from "@/hooks/useBrandOffers";
 import type { ProductLiveOffer } from "@/hooks/useBrandProductEngagement";
 import type { BrandShelfProduct } from "@/lib/addBrandProductToShelf";
+import { hasFitContent, validFitLine } from "@/components/guidance/AdFitLine";
 
 /** Two or three sentences, never a paragraph. */
 const trimToSentences = (text: string, max = 3) => {

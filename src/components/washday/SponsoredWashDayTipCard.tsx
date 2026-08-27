@@ -9,6 +9,8 @@ import { usePersonalisedOffersConsent } from "@/hooks/useAdTargeting";
 import { useBrandProductGuidance } from "@/hooks/useBrandProductGuidance";
 import { resolveBrandColours, tint } from "@/lib/brandColour";
 import AiProgressBar from "@/components/AiProgressBar";
+import { hasFitContent } from "@/components/guidance/AdFitLine";
+import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 
 /**
  * SponsoredWashDayTipCard — the sponsored tip on the Wash Day screen.
@@ -133,7 +135,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
   const brandName = (brand as { brand_name?: string | null } | null)?.brand_name ?? null;
 
   // STRAND's own read of this product against this member's wash day.
-  const { guidance, loading } = useBrandProductGuidance(
+  const { guidance, loading, needsFallback } = useBrandProductGuidance(
     enabled && product
       ? { ...product, brand: brandName, ingredients: product.ingredients ?? [] }
       : null,
