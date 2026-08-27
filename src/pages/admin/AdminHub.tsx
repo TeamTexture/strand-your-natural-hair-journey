@@ -57,6 +57,8 @@ interface Stats {
   activeProSubs: number;
   membersTotal: number;
   activePaidMembers: number;
+  trialMembers: number;
+  cancelledMembers: number;
   plusMembers: number;
   complimentaryMembers: number;
   viewsLast7d: number;
