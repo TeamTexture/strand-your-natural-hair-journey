@@ -13,9 +13,10 @@ import LoadingDot from "@/components/LoadingDot";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useChatThreads } from "@/hooks/useChat";
+import { useChatThreads, useStartAdminSupportThread } from "@/hooks/useChat";
 import { useMarkAdminEntityRead } from "@/hooks/useAdminNotifications";
 import SectionLabel from "@/components/SectionLabel";
+import { toast } from "sonner";
 
 const AdminMessages = () => {
   const nav = useNavigate();
@@ -26,6 +27,24 @@ const AdminMessages = () => {
   const focusRef = useRef<HTMLDivElement | null>(null);
   const { data: threads, isLoading } = useChatThreads();
   const markEntityRead = useMarkAdminEntityRead();
+  const startThread = useStartAdminSupportThread();
+
+  // email → user_id, so an enquiry with no recorded account can still be
+  // matched to the member who sent it and answered in chat.
+  const { data: emailToUserId } = useQuery({
+    queryKey: ["admin", "member-email-map"],
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_list_member_emails");
+      if (error) throw error;
+      const map = new Map<string, string>();
+      for (const r of (data ?? []) as Array<{ email: string | null; user_id: string }>) {
+        if (r.email) map.set(r.email.trim().toLowerCase(), r.user_id);
+      }
+      return map;
+    },
+  });
 
 
   const { data: enquiries } = useQuery({
@@ -34,7 +53,7 @@ const AdminMessages = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contact_messages")
-        .select("id, name, email, subject, message, created_at")
+        .select("id, name, email, subject, message, created_at, user_id")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -50,7 +69,7 @@ const AdminMessages = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contact_messages")
-        .select("id, name, email, subject, message, created_at")
+        .select("id, name, email, subject, message, created_at, user_id")
         .eq("id", focusEnquiryId!)
         .maybeSingle();
       if (error) throw error;
