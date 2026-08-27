@@ -83,16 +83,20 @@ interface StylingSaved {
 
 
 
-const WashStep4 = () => {
+const WashStep4Inner = () => {
   const navigate = useNavigate();
   const [observation, setObservation] = useState<string | null>(null);
   const [obsLoading, setObsLoading] = useState(true);
   const [obsError, setObsError] = useState<string | null>(null);
 
-  const step1 = safeParse<Step1Saved>("strand_wash_step1", {});
-  const step2 = safeParse<Step2Saved>("strand_wash_step2", {});
-  const step3 = safeParse<{ note?: string; audioPath?: string | null }>("strand_wash_step3", {});
-  const styling = safeParse<StylingSaved>("strand_wash_styling", {});
+  const step1 = readWashDraft<Step1Saved>("strand_wash_step1", {});
+  const step2 = readWashDraft<Step2Saved>("strand_wash_step2", {});
+  const step3 = readWashDraft<{ note?: string; audioPath?: string | null }>("strand_wash_step3", {});
+  const styling = readWashDraft<StylingSaved>("strand_wash_styling", {});
+  // Nothing to save means the log was lost (storage cleared, or she started on
+  // another device before durable drafts existed). Say so instead of letting
+  // her save an empty wash day and discover it later.
+  const draftLost = Object.keys(step1).length === 0;
   const { user, isViewingAs } = useAuth();
   const [saving, setSaving] = useState(false);
 
@@ -172,9 +176,9 @@ const WashStep4 = () => {
       setObsLoading(true);
       setObsError(null);
       try {
-        const steps = safeParse<Record<string, unknown>>("strand_wash_step1", {});
-        const results = safeParse<Record<string, unknown>>("strand_wash_step2", {});
-        const reflectionStep3 = safeParse<{ note?: string }>("strand_wash_step3", {});
+        const steps = readWashDraft<Record<string, unknown>>("strand_wash_step1", {});
+        const results = readWashDraft<Record<string, unknown>>("strand_wash_step2", {});
+        const reflectionStep3 = readWashDraft<{ note?: string }>("strand_wash_step3", {});
         const hairProfile = safeParse<Record<string, unknown>>("strand_hair_profile", {});
         const healthProfile = safeParse<Record<string, unknown>>("strand_health_profile", {});
         const context = await buildAiContext();
@@ -348,11 +352,8 @@ const WashStep4 = () => {
       }
 
       localStorage.setItem("strand_last_wash_date", new Date().toISOString());
-      localStorage.removeItem("strand_wash_step1");
-      localStorage.removeItem("strand_wash_step2");
-      localStorage.removeItem("strand_wash_step3");
-      localStorage.removeItem("strand_wash_styling");
-      localStorage.removeItem("strand_wash_date");
+      // Clears the local cache AND the durable copy of the unsaved log.
+      clearWashDrafts();
       // Notify Home + any other screen relying on wash-day data so alerts
       // (e.g. "wash overdue") clear immediately without waiting on realtime.
       window.dispatchEvent(new Event("strand:data-changed"));
@@ -438,6 +439,18 @@ const WashStep4 = () => {
       </div>
     </ScreenLayout>
   );
+};
+
+// The review screen reads the whole log synchronously, so the durable copy has
+// to be on this device before it renders — otherwise a member who switched
+// devices sees an empty review and can save an empty wash day.
+const WashStep4 = () => {
+  const { ready, recovered } = useWashDraftHydration();
+  useEffect(() => {
+    if (recovered) toast("Restored your unsaved wash day");
+  }, [recovered]);
+  if (!ready) return <LoadingDot />;
+  return <WashStep4Inner />;
 };
 
 export default WashStep4;
