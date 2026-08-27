@@ -28,6 +28,8 @@ import ProductPickerSheet from "@/components/ProductPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
 import HeatToolPicker from "@/components/HeatToolPicker";
 import HeatStepEditor, { type HeatChoice, type HeatRationale } from "@/components/wash/HeatStepEditor";
+import { readWashDraft, writeWashDraft, clearWashDraft } from "@/lib/washDraft";
+import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { washStepLabel, rollUpStepHeat, type StepHeat } from "@/lib/washSteps";
 import { useUserTools } from "@/hooks/useUserTools";
 import AiProse from "@/components/tips/AiProse";
@@ -386,17 +388,20 @@ const WashStep1 = () => {
   // after adding a new product). Run once shelfProducts is available so we
   // can also auto-merge any newly-shelved products into the right step.
   const [hydrated, setHydrated] = useState(false);
+  // Durable copy of the unsaved log — pulled in before we seed state so a
+  // member who started on another device (or lost localStorage) keeps it.
+  const { ready: draftReady, recovered } = useWashDraftHydration();
+  useEffect(() => {
+    if (recovered) toast("Restored your unsaved wash day");
+  }, [recovered]);
   useEffect(() => {
     if (hydrated) return;
     // Wait for the shelf AND the last-wash lookup before seeding — otherwise
     // we lock in empty arrays and lose the pre-fill.
     if (shelfLoading) return;
     if (lastWashProductIds === null) return;
-    let draft: Record<string, unknown> = {};
-    try {
-      const raw = localStorage.getItem("strand_wash_step1_draft");
-      if (raw) draft = JSON.parse(raw) as Record<string, unknown>;
-    } catch { /* ignore */ }
+    if (!draftReady) return;
+    const draft = readWashDraft<Record<string, unknown>>("strand_wash_step1_draft", {});
     const arr = (k: string) => (Array.isArray(draft[k]) ? (draft[k] as string[]) : []);
     const lastIds = lastWashProductIds;
     setPrePooIds(arr("prePooIds").length ? arr("prePooIds") : suggestStepProductIds(shelfProducts, "prepoo", lastIds));
@@ -420,7 +425,7 @@ const WashStep1 = () => {
     if (Array.isArray(draft.treatmentHeatToolIds))
       setTreatmentHeatToolIds(draft.treatmentHeatToolIds as string[]);
     setHydrated(true);
-  }, [shelfProducts, shelfLoading, hydrated, lastWashProductIds]);
+  }, [shelfProducts, shelfLoading, hydrated, lastWashProductIds, draftReady]);
 
 
   // If user tapped a specific calendar date on the hub, persist it so WashStep4
@@ -428,11 +433,11 @@ const WashStep1 = () => {
   useEffect(() => {
     const d = searchParams.get("date");
     if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-      localStorage.setItem("strand_wash_date", d);
+      writeWashDraft("strand_wash_date", d);
     } else {
       // No explicit date param → user is logging "today". Clear any stale
       // date left over from a previous calendar-tap so we don't back-date it.
-      localStorage.removeItem("strand_wash_date");
+      clearWashDraft("strand_wash_date");
     }
   }, [searchParams]);
 
@@ -440,16 +445,13 @@ const WashStep1 = () => {
   // (which navigates away and back) doesn't lose the user's progress.
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(
-      "strand_wash_step1_draft",
-      JSON.stringify({
-        prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
-        prePoo, cleanse, coWash, condition, treatment,
-        treatmentType,
-        heatChoice, heatMinutes, heatToolIds,
-        treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds,
-      }),
-    );
+    writeWashDraft("strand_wash_step1_draft", {
+      prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
+      prePoo, cleanse, coWash, condition, treatment,
+      treatmentType,
+      heatChoice, heatMinutes, heatToolIds,
+      treatmentHeatChoice, treatmentHeatMinutes, treatmentHeatToolIds,
+    });
   }, [hydrated, prePooIds, cleanseIds, coWashIds, conditionIds, treatmentIds,
       prePoo, cleanse, coWash, condition, treatment, treatmentType,
       heatChoice, heatMinutes, heatToolIds,
@@ -901,34 +903,31 @@ const WashStep1 = () => {
                   : null,
             };
             const rolledHeat = rollUpStepHeat(Object.values(heatByStep).map((heat) => ({ heat })));
-            localStorage.setItem(
-              "strand_wash_step1",
-              JSON.stringify({
-                // Persist explicit done/skipped state so the rest of the flow
-                // and the saved wash record can reflect what was skipped.
-                prePoo, cleanse, coWash, condition, treatment,
-                treatmentType,
-                products: productLabels,
-                productIds,
-                // Per-step heat, plus the log-level roll-up kept in the legacy
-                // keys so nothing downstream regresses.
-                heatByStep,
-                heatTreatment: rolledHeat ? (rolledHeat.used ? "yes" : "no") : null,
-                heatMinutes: rolledHeat?.duration_min ?? null,
-                heatToolIds: rolledHeat?.tool_ids ?? [],
-                heatToolNames: rolledHeat?.tools ?? [],
+            writeWashDraft("strand_wash_step1", {
+              // Persist explicit done/skipped state so the rest of the flow
+              // and the saved wash record can reflect what was skipped.
+              prePoo, cleanse, coWash, condition, treatment,
+              treatmentType,
+              products: productLabels,
+              productIds,
+              // Per-step heat, plus the log-level roll-up kept in the legacy
+              // keys so nothing downstream regresses.
+              heatByStep,
+              heatTreatment: rolledHeat ? (rolledHeat.used ? "yes" : "no") : null,
+              heatMinutes: rolledHeat?.duration_min ?? null,
+              heatToolIds: rolledHeat?.tool_ids ?? [],
+              heatToolNames: rolledHeat?.tools ?? [],
 
-                skipped: {
-                  prePoo: prePoo === "skipped",
-                  cleanse: cleanse === "skipped",
-                  coWash: coWash === "skipped",
-                  condition: condition === "skipped",
-                  treatment: treatment === "skipped",
-                },
-              }),
-            );
+              skipped: {
+                prePoo: prePoo === "skipped",
+                cleanse: cleanse === "skipped",
+                coWash: coWash === "skipped",
+                condition: condition === "skipped",
+                treatment: treatment === "skipped",
+              },
+            });
             // Draft is no longer needed once we've moved on to step 2.
-            localStorage.removeItem("strand_wash_step1_draft");
+            clearWashDraft("strand_wash_step1_draft");
             navigate("/wash/step-2");
           }}
         >

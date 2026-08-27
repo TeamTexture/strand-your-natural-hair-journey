@@ -1065,6 +1065,7 @@ export type Database = {
         Row: {
           body_copy: string | null
           brand_user_id: string
+          checkout_started_at: string | null
           created_at: string
           discount_code: string | null
           external_url: string | null
@@ -1096,6 +1097,7 @@ export type Database = {
         Insert: {
           body_copy?: string | null
           brand_user_id: string
+          checkout_started_at?: string | null
           created_at?: string
           discount_code?: string | null
           external_url?: string | null
@@ -1127,6 +1129,7 @@ export type Database = {
         Update: {
           body_copy?: string | null
           brand_user_id?: string
+          checkout_started_at?: string | null
           created_at?: string
           discount_code?: string | null
           external_url?: string | null
@@ -2135,6 +2138,9 @@ export type Database = {
           error: string | null
           id: string
           idempotency_key: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          payload: Json | null
           provider_message_id: string | null
           recipient_email: string
           recipient_user_id: string | null
@@ -2155,6 +2161,9 @@ export type Database = {
           error?: string | null
           id?: string
           idempotency_key?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          payload?: Json | null
           provider_message_id?: string | null
           recipient_email: string
           recipient_user_id?: string | null
@@ -2175,6 +2184,9 @@ export type Database = {
           error?: string | null
           id?: string
           idempotency_key?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          payload?: Json | null
           provider_message_id?: string | null
           recipient_email?: string
           recipient_user_id?: string | null
