@@ -41,7 +41,6 @@ import { normaliseInciKey } from "../_shared/ingredient-copy.ts";
 import {
   applyHomemadeSafety,
   buildHomemadeSafety,
-  detectHomemadeHazards,
   homemadeRecipeBlock,
   parseRecipe,
   type HomemadeSafety,
@@ -816,6 +815,23 @@ Deno.serve(async (req) => {
       recipe = rawIngredients.map((n) => ({ ingredient: n, amount: "" }));
     }
 
+    // Safety is resolved BEFORE the cache check, because a cached payload must
+    // never be served to a homemade product without its caution attached.
+    // Kitchen language ("shea butter") is matched through the SAME glossary the
+    // scan pipeline uses; anything it cannot verify is marked lower-confidence.
+    const homemadeSafety: HomemadeSafety | null = isHomemade
+      ? await (async () => {
+        const facts = await loadKnownIngredientFacts(
+          dataClient as never,
+          recipe.map((r) => r.ingredient),
+        );
+        const unverified = recipe
+          .map((r) => r.ingredient)
+          .filter((n) => !facts.has(normaliseInciKey(n)));
+        return buildHomemadeSafety(recipe, unverified);
+      })()
+      : null;
+
     const tipsLevel = coerceTipsLevel(
       (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
     );
@@ -890,26 +906,15 @@ Deno.serve(async (req) => {
     const medRows = medRowsRes.data ?? [];
     const dbGoals = goalRowsRes.data ?? [];
     let factsBlock = knownFactsBlock(knownFacts);
-    // Kitchen language ("shea butter") is matched through the SAME glossary
-    // lookup the scan pipeline uses. Anything it cannot verify is named to the
-    // model as unverified so its card comes back hedged, not stated as fact.
-    const unverified = isHomemade
-      ? recipe
-        .map((r) => r.ingredient)
-        .filter((n) => !knownFacts.has(normaliseInciKey(n)))
-      : [];
-    const homemadeSafety: HomemadeSafety | null = isHomemade
-      ? buildHomemadeSafety(recipe, unverified)
-      : null;
-    if (isHomemade) {
-      factsBlock += homemadeRecipeBlock(recipe, detectHomemadeHazards(recipe), unverified);
+    if (isHomemade && homemadeSafety) {
+      factsBlock += homemadeRecipeBlock(recipe, homemadeSafety.hazards, homemadeSafety.unverified);
       console.log(JSON.stringify({
         function: "ingredient-analysis",
         homemade: true,
         recipe_items: recipe.length,
-        unverified: unverified.length,
-        safety: homemadeSafety?.severity,
-        hazards: homemadeSafety?.hazards.map((h) => h.id),
+        unverified: homemadeSafety.unverified.length,
+        safety: homemadeSafety.severity,
+        hazards: homemadeSafety.hazards.map((h) => h.id),
       }));
     }
     console.log(JSON.stringify({
