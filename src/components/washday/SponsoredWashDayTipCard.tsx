@@ -159,6 +159,18 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
 
   if (!rendering || !offer || !product) return null;
 
+  // A degenerate generation (empty, punctuation-only) is treated as no copy at
+  // all, so the card falls through to the brand's own declared line.
+  const personalisedTip = [guidance?.wash_day_tip, guidance?.fit_line].find((t) =>
+    hasFitContent(t),
+  );
+  const tipCopy =
+    personalisedTip ??
+    (needsFallback || guidance
+      ? product.description || adFallbackFitLine(product) || ""
+      : "");
+
+
   return (
     <section
       ref={viewRef}
