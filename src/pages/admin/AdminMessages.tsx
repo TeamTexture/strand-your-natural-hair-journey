@@ -191,38 +191,72 @@ const AdminMessages = () => {
         <>
           <SectionLabel>Contact enquiries</SectionLabel>
           <div className="px-5 pb-8 space-y-2.5">
-            {enquiryList.map((e) => (
-              <SurfaceCard
-                key={e.id}
-                ref={e.id === focusEnquiryId ? focusRef : undefined}
-                className={e.id === focusEnquiryId ? "border-primary ring-2 ring-primary/30" : undefined}
-              >
+            {enquiryList.map((e) => {
+              // Prefer the id recorded on the enquiry; fall back to matching the
+              // address against member emails so older enquiries (sent before
+              // user_id was captured) can still be answered in chat.
+              const chatUserId =
+                e.user_id ?? emailToUserId?.get((e.email ?? "").trim().toLowerCase()) ?? null;
+              return (
+                <SurfaceCard
+                  key={e.id}
+                  ref={e.id === focusEnquiryId ? focusRef : undefined}
+                  className={e.id === focusEnquiryId ? "border-primary ring-2 ring-primary/30" : undefined}
+                >
 
-                <div className="min-w-0">
-                  <p className="font-display text-sm font-semibold leading-tight break-words">
-                    {e.subject || "Enquiry"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground font-body mt-0.5 break-all">
-                    {e.name} · {e.email}
-                  </p>
-                  <p className="text-[12px] font-body leading-snug mt-1.5 break-words whitespace-pre-line">
-                    {e.message}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1.5">
-                    {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
-                  </p>
-                  <a
-                    href={`mailto:${e.email}?subject=${encodeURIComponent(`Re: ${e.subject || "Your enquiry"}`)}`}
-                    className="inline-block text-[12px] text-primary underline underline-offset-2 mt-2"
-                  >
-                    Reply by email
-                  </a>
-                </div>
-              </SurfaceCard>
-            ))}
+                  <div className="min-w-0">
+                    <p className="font-display text-sm font-semibold leading-tight break-words">
+                      {e.subject || "Enquiry"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground font-body mt-0.5 break-all">
+                      {e.name} · {e.email}
+                    </p>
+                    <p className="text-[12px] font-body leading-snug mt-1.5 break-words whitespace-pre-line">
+                      {e.message}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                    </p>
+
+                    {chatUserId ? (
+                      <Button
+                        size="sm"
+                        className="w-full h-9 rounded-pill text-[12px] font-body mt-2.5"
+                        disabled={startThread.isPending}
+                        onClick={async () => {
+                          try {
+                            const id = await startThread.mutateAsync({
+                              subjectUserId: chatUserId,
+                              subjectRole: "consumer",
+                            });
+                            nav(`/messages/${id}`);
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Could not open chat");
+                          }
+                        }}
+                      >
+                        <MessageSquarePlus className="size-3.5 mr-1.5" /> Reply in chat
+                      </Button>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground font-body mt-2">
+                        No STRAND account matches this address — reply by email.
+                      </p>
+                    )}
+
+                    <a
+                      href={`mailto:${e.email}?subject=${encodeURIComponent(`Re: ${e.subject || "Your enquiry"}`)}`}
+                      className="inline-block text-[12px] text-primary underline underline-offset-2 mt-2"
+                    >
+                      Reply by email
+                    </a>
+                  </div>
+                </SurfaceCard>
+              );
+            })}
           </div>
         </>
       )}
+
     </ScreenLayout>
   );
 };
