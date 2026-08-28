@@ -514,6 +514,19 @@ const IngredientDetail = () => {
               (Array.isArray((row as { ingredients?: unknown } | null)?.ingredients)
                 ? ((row as { ingredients?: unknown }).ingredients as string[])
                 : undefined) ?? freshAnalysis?.ingredients ?? undefined,
+            // EXPOSURE: where the label says this product goes, and whether it
+            // stays on. Read off the pack at scan time and stored on the row —
+            // the model must weigh an ingredient's risk against actual contact,
+            // not guess the application area from the product name.
+            category:
+              (row as { category?: string | null } | null)?.category ?? null,
+            applicationArea:
+              (row as { application_area?: string | null } | null)?.application_area ?? null,
+            leaveOn:
+              (row as { leave_on?: boolean | null } | null)?.leave_on ?? null,
+            usageInstructions:
+              (row as { usage_instructions?: string | null } | null)?.usage_instructions
+              ?? freshAnalysis?.usage_instructions ?? null,
             // Homemade recipes are analysed on their AMOUNTS, not just the
             // ingredient names — a commercial product is pre-formulated at safe
             // ratios, a kitchen mix is not.
@@ -535,15 +548,26 @@ const IngredientDetail = () => {
         // of truth every surface reads (cards, passport, PDFs, aiContext). Any
         // score this analysis produces is written into that column BEFORE it can
         // be rendered — this page never displays a number that isn't stored.
+        //
+        // Existing shelves are NOT re-scored: a row saved before the
+        // single-score cutover keeps whatever score it already has. It still
+        // gets its provenance stamped, so this analysis is served from storage
+        // on every later open instead of being re-run on each visit.
         const freshScore = normaliseMatchScore(fresh?.match_score);
-        const needsWrite = row && freshScore != null && (stale || force || row.match_score !== freshScore);
-        if (needsWrite) {
+        if (row) {
+          const takesFreshScore =
+            freshScore != null
+            && (row.match_score == null || isSingleScoreProduct(row));
           try {
             await supabase
               .from("user_products")
               .update({
-                match_score: freshScore,
-                match_score_computed_at: new Date().toISOString(),
+                ...(takesFreshScore
+                  ? {
+                    match_score: freshScore,
+                    match_score_computed_at: new Date().toISOString(),
+                  }
+                  : {}),
                 // Stamp the provenance the cache gate below reads, so this
                 // result is served from storage on every later open.
                 analysis_generated_at: new Date().toISOString(),
@@ -559,6 +583,7 @@ const IngredientDetail = () => {
             console.warn("match_score write-back failed", syncErr);
           }
         }
+
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Could not analyse this product.";
         setError(msg);
