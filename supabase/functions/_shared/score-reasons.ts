@@ -5,7 +5,8 @@
 // Contract: 2–4 items, each { direction, factor, reason }.
 //   - direction: "plus" (earned points) | "minus" (cost points)
 //   - factor:    the concrete ingredient or formulation property
-//   - reason:    ≤18 words, MUST name the user characteristic, goal or
+//   - reason:    ≤28 words, MUST state the MECHANISM (what the ingredient
+//                physically does) and name the user characteristic, goal or
 //                flagged marker it interacts with. Anything that could be
 //                said to any user is invalid and dropped.
 
@@ -35,12 +36,12 @@ export const SCORE_REASONS_SCHEMA_PROPERTY = {
       factor: {
         type: "string",
         description:
-          "The concrete ingredient or formulation property responsible, named in ≤6 words. Examples: 'SLES surfactant', 'Behentrimonium methosulfate', 'No film-forming silicones', 'Glycerin high in the list'. Never a vague quality like 'good formulation'.",
+          "The concrete ingredient or formulation property responsible, named in ≤8 words. Examples: 'SLES surfactant', 'Behentrimonium methosulfate', 'No film-forming silicones', 'Glycerin high in the list'. Never a vague quality like 'good formulation'.",
       },
       reason: {
         type: "string",
         description:
-          "≤18 words tying that factor to a NAMED user signal — their porosity, density, texture, scalp condition, current style, a stated goal or a flagged blood marker. Example minus: 'Strips moisture fast — costly on your high-porosity hair chasing length.' Example plus: 'Smooths the cuticle your high porosity leaves open.' A reason that could apply to anyone is invalid.",
+          "≤28 words: the MECHANISM first (what this ingredient physically does to hair or scalp), then the NAMED user signal it lands on — their porosity, density, texture, elasticity, scalp condition, current style, a stated goal or a flagged blood marker. Example plus: 'A mild non-ionic surfactant, so it lifts sebum without stripping the lipids your high porosity already struggles to hold.' Example minus: 'Denatured alcohol evaporates fast and takes surface water with it — costly on hair already chasing length.' A reason with no mechanism, or one that could apply to anyone, is invalid.",
       },
     },
     required: ["direction", "factor", "reason"],
@@ -67,9 +68,10 @@ The member reads a verdict label derived from match_score: 90+ "a strong fit", 7
 /** Prompt block appended to every product-analysis system/task prompt. */
 export const SCORE_REASONS_RULES = `SCORE REASONS — THE SCORE MUST EXPLAIN ITSELF:
 Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, reason }.
-- factor names the CONCRETE ingredient or formulation property doing the work, ≤6 words ("SLES surfactant", "Behentrimonium methosulfate", "No film-forming silicones", "Glycerin high in the list"). Never a vague quality like "nice formulation" or "quality ingredients".
-- reason is ≤18 words and MUST name the user characteristic, goal or flagged marker it interacts with — their porosity, density, texture, elasticity, scalp condition, current style, a stated goal/challenge, or a flagged marker where THIS product directly intersects it. A reason that could be written for any user is INVALID; rewrite it or drop the item.
-- Order the strongest driver first. Include at least one minus unless this formula genuinely has no downside for this user, and at least one plus unless nothing in it helps them.
+- factor names the CONCRETE ingredient or formulation property doing the work, ≤8 words ("SLES surfactant", "Behentrimonium methosulfate", "No film-forming silicones", "Glycerin high in the list"). Never a vague quality like "nice formulation" or "quality ingredients".
+- reason is ≤28 words and MUST do BOTH: state the MECHANISM (what the ingredient physically does — cleanses, binds water, coats, evaporates, softens, buffers pH, adds surface film) AND name the user characteristic, goal or flagged marker it lands on — their porosity, density, texture, elasticity, scalp condition, current style, a stated goal/challenge, or a flagged marker where THIS product directly intersects it. A reason with no mechanism, or one that could be written for any user, is INVALID; rewrite it or drop the item.
+- USE THE APP'S OWN VOCABULARY. Where a mechanism has a taught term, name it: surfactant, humectant, emollient, occlusive, protein, cuticle, cortex, porosity, elasticity, sebum, build-up, slip, pH, hygral fatigue, molecular weight. These render as tappable definitions for the member, so the plain-English mechanism plus the correct term is better than either alone. Never coin a term that is not taught.
+- RANKED: the rows are displayed as a numbered ranking, strongest driver first. Row 1 must be the single biggest reason the score is what it is. Include at least one minus unless this formula genuinely has no downside for this user, and at least one plus unless nothing in it helps them.
 - CONSISTENCY: match_score must agree with the reasons. Mostly pluses cannot produce a 55; heavy minuses cannot produce an 85. Re-check the number against the list before returning.
 - GROUNDING: where the retrieved manuscript passages teach the ingredient or mechanism, reason from that teaching — never name the book, chapters or pages.
 - ONE IDEA ONCE: a score reason may NOT restate a use_cases item, a tip, or a key_ingredients reason verbatim. The verdict explains the score; "how to use" builds on it and never repeats it.
@@ -79,8 +81,8 @@ ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed
 
 ${ANALYSIS_FAILSAFE_RULES}`;
 
-const MAX_REASON_WORDS = 18;
-const MAX_FACTOR_WORDS = 6;
+const MAX_REASON_WORDS = 28;
+const MAX_FACTOR_WORDS = 8;
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean);
 
@@ -164,8 +166,8 @@ export function firstSentence(text: unknown): string {
  */
 export const TOOL_SCORE_REASONS_RULES = `SCORE REASONS — THE SCORE MUST EXPLAIN ITSELF:
 Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, reason }.
-- factor names the CONCRETE physical or mechanical property of the tool doing the work, ≤6 words ("Fine-tooth spacing", "Retained warmth under the cap", "230°C top heat", "Satin-lined interior", "Rigid nylon bristles", "Ionic diffuser vents"). Tools have NO ingredients — never name a formulation. Never a vague quality like "well made" or "great design".
-- reason is ≤18 words and MUST name the user characteristic, goal or flagged marker that property interacts with — their porosity, density, texture, diameter, elasticity, scalp condition, current or planned style (including tension and extensions), a stated goal/challenge, or a flagged marker the tool's mechanism actually touches. A reason that could be written for any user is INVALID; rewrite it or drop the item.
+- factor names the CONCRETE physical or mechanical property of the tool doing the work, ≤8 words ("Fine-tooth spacing", "Retained warmth under the cap", "230°C top heat", "Satin-lined interior", "Rigid nylon bristles", "Ionic diffuser vents"). Tools have NO ingredients — never name a formulation. Never a vague quality like "well made" or "great design".
+- reason is ≤28 words and MUST state the MECHANISM (what the tool physically does to hair or scalp) and name the user characteristic, goal or flagged marker that property interacts with — their porosity, density, texture, diameter, elasticity, scalp condition, current or planned style (including tension and extensions), a stated goal/challenge, or a flagged marker the tool's mechanism actually touches. A reason that could be written for any user is INVALID; rewrite it or drop the item.
 - RELEVANCE GATE: only cite a signal the tool's mechanism genuinely acts on. A satin pillowcase does not interact with tight braids' tension; a comb does not interact with ferritin; a bonnet does not interact with heat damage. If a signal is not mechanically touched by this tool, leave it out rather than reaching for it.
 - Order the strongest driver first. Include at least one minus unless this tool genuinely has no downside for this user, and at least one plus unless nothing about it helps them.
 - CONSISTENCY: match_score must agree with the reasons. Mostly pluses cannot produce a 55; heavy minuses cannot produce an 85. Re-check the number against the list before returning.
