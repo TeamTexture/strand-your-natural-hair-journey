@@ -20,7 +20,7 @@ import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
-import { requireAuthedUser as requireSignedInUser } from "../_shared/auth.ts";
+import { requireAuthedUser as requireSignedInUser, isServiceRoleCaller } from "../_shared/auth.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
@@ -533,7 +533,7 @@ RULES — STRICT:
    - Shampoo, high-porosity, length-retention goal, recent breakage in wash logs: title: "Emulsify before it touches the ends", body: "Work a coin-sized amount into wet palms first, then apply to your scalp only in four parted sections — let the lather run down your high-porosity lengths on the rinse. Your last two wash days flagged breakage, so keep hands off the mid-shafts while cleansing to protect length retention."
    - Leave-in, low-porosity, box braids 3 weeks in: title: "Mist it on soaking-wet partings", body: "Three weeks into your braids, dilute in a spray bottle and mist directly onto damp scalp partings — low-porosity strands only absorb when the cuticle is already softened by water, so applying to dry braids will just sit on top."
 
-7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
+7. NEVER INVENT AN INGREDIENT. You may only name, discuss or reason about ingredients that appear in the supplied ingredient list, exactly as supplied. If the list is empty, say plainly that the ingredients could not be read and return no per-ingredient entries — do NOT infer, guess or assume a typical formulation for this brand or product type. Do not rename a supplied ingredient to a more specific chemical than it says (a list saying "Alcohol" is Alcohol, never "Alcohol Denat.").
 8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.
 
 ${SCORE_REASONS_RULES}
@@ -754,20 +754,52 @@ Deno.serve(async (req) => {
 
 
   try {
-    const auth = await requireSignedInUser(req);
-    if (auth instanceof Response) return auth;
-    const { user: authUser, supabase } = auth;
+    // ── Caller resolution ─────────────────────────────────────────────
+    // Two entry points:
+    //   1. a signed-in member (normal), optionally an admin dry-run;
+    //   2. a trusted service-role caller running the paced re-analysis
+    //      backfill on a named member's behalf (`backfillUserId`). That path
+    //      is exempt from the PER-MEMBER daily cap — the backfill is our
+    //      spend, not hers, and it must not fail loudly in her face — but it
+    //      still respects the kill switch and the workspace-wide ceiling.
+    const preBody = await req.json().catch(() => ({})) as RequestBody & {
+      backfillUserId?: string;
+    };
+    const backfillFor = isServiceRoleCaller(req) && typeof preBody.backfillUserId === "string"
+      ? preBody.backfillUserId
+      : null;
 
-    const body: RequestBody = await req.json();
-    const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, supabase as never);
-    if (mode instanceof Response) return mode;
-    const memberId = mode.userId;
-    const dataClient = mode.dryRun
-      ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-      : supabase;
-    setAiCallUser(memberId);
-    setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
-    if (!(await isEntitled(memberId))) return membershipRequired();
+    let memberId: string;
+    let dataClient: ReturnType<typeof createClient>;
+    let mode: { userId: string; dryRun: boolean; isImpersonated: boolean; impersonatedBy: string | null };
+    const serviceBackfill = backfillFor !== null;
+
+    if (serviceBackfill) {
+      memberId = backfillFor!;
+      dataClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      mode = { userId: memberId, dryRun: false, isImpersonated: false, impersonatedBy: null };
+      setAiCallUser(memberId);
+      setAiCallImpersonation({ isImpersonated: false, impersonatedBy: null });
+    } else {
+      const auth = await requireSignedInUser(req);
+      if (auth instanceof Response) return auth;
+      const { user: authUser, supabase } = auth;
+      const resolved = await resolveAiRequestMode(authUser.id, preBody as Record<string, unknown>, supabase as never);
+      if (resolved instanceof Response) return resolved;
+      mode = resolved;
+      memberId = resolved.userId;
+      dataClient = (resolved.dryRun
+        ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+        : supabase) as ReturnType<typeof createClient>;
+      setAiCallUser(memberId);
+      setAiCallImpersonation({ isImpersonated: resolved.isImpersonated, impersonatedBy: resolved.impersonatedBy });
+      if (!(await isEntitled(memberId))) return membershipRequired();
+    }
+    const body: RequestBody = preBody;
+
 
     // Declared topical (skin/scalp) sensitivities — structured, encrypted
     // data that outranks free-text healthProfile mentions.
@@ -951,8 +983,13 @@ Deno.serve(async (req) => {
     const ceiling = await checkGlobalCeiling("ingredient-analysis");
     if (ceiling) return ceiling;
 
-    const capped = await checkDailyCap(memberId, "ingredient-analysis", 60);
-    if (capped) return capped;
+    // The paced backfill is our own spend, not hers: it must never consume her
+    // 60-a-day allowance nor fail loudly against it. The global ceiling above
+    // is what throttles it.
+    if (!serviceBackfill) {
+      const capped = await checkDailyCap(memberId, "ingredient-analysis", 60);
+      if (capped) return capped;
+    }
 
     // ── Pull personalisation server-side ─────────────────────────────
     // The glossary lookup runs alongside these reads: it is one indexed query
@@ -1242,6 +1279,38 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
         kind: cacheKind,
         payload: analysis as object,
       });
+    }
+
+    // ── Backfill: also write the verdict onto the product row ─────────
+    // In the app the client persists score/summary/flags after it receives the
+    // analysis. The backfill has no client, so it does that write itself —
+    // otherwise the shelf card and passport would keep showing the old score
+    // while the cached analysis was already correct.
+    if (serviceBackfill) {
+      const flagToneToSeverity = (t: unknown): "good" | "warn" | "avoid" =>
+        t === "bad" ? "avoid" : t === "good" ? "good" : "warn";
+      const flags = Array.isArray(analysis.ingredients) ? analysis.ingredients : [];
+      const keyIngredients = flags
+        .filter((f) => f && typeof (f as { name?: unknown }).name === "string")
+        .map((f) => {
+          const row = f as { name: string; body?: string; tone?: string };
+          return { name: row.name, benefit: row.body, flag: flagToneToSeverity(row.tone) };
+        });
+      const patch: Record<string, unknown> = {
+        ai_summary: typeof analysis.summary === "string" ? analysis.summary : null,
+        score_reasons: analysis.score_reasons ?? [],
+      };
+      if (typeof analysis.match_score === "number") {
+        patch.match_score = analysis.match_score;
+        patch.match_score_computed_at = new Date().toISOString();
+      }
+      if (keyIngredients.length > 0) patch.key_ingredients = keyIngredients;
+      const { error: rowErr } = await dataClient
+        .from("user_products")
+        .update(patch)
+        .eq("user_id", memberId)
+        .eq("product_key", productKey);
+      if (rowErr) console.error("[ingredient-analysis] backfill row write failed", rowErr.message);
     }
 
     return json(200, { cached: false, analysis });

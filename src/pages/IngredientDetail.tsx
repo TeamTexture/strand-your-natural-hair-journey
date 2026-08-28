@@ -58,7 +58,7 @@ import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
-import { useIngredientProfile } from "@/hooks/useIngredientProfile";
+import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { buildAiContext } from "@/lib/aiContext";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { aiInvoke } from "@/lib/aiInvoke";
@@ -333,17 +333,16 @@ const IngredientDetail = () => {
     ? "Appears in 3 or more of the user's favourite shelf products that are actively in use"
     : undefined;
 
-  const ingredientProfile = useIngredientProfile(
-    selectedIngredient?.name ?? null,
-    reasonForFlag,
-    !!selectedIngredient,
-    {
-      productKey,
-      productName,
-      productBrand,
-      formulationIngredients: otherFormulationNames,
-    },
-  );
+  // Single source of truth: the explainer resolves "what it is" from the shared
+  // glossary and "what this means for your hair" from THIS product's analysis
+  // (Path 1). The old `ingredient-profile` generator is retired, so the popup
+  // can no longer contradict the score card above it.
+  const {
+    explainer: ingredientExplainer,
+    isLoading: explainerLoading,
+    error: explainerError,
+  } = useIngredientExplainer(selectedIngredient?.name ?? null, productRow?.id ?? null);
+
 
   // For the ingredient popup: index the user's shelf/wishlist products by
   // lowercased ingredient name. Excludes the current product so the dialog can
@@ -1541,13 +1540,16 @@ const IngredientDetail = () => {
             const ing = selectedIngredient;
             const lower = ing.name.toLowerCase().trim();
             const isFlagged = flaggedNames.has(lower);
-            const profile = ingredientProfile.data;
-            const meansForYou = profile?.what_it_means_for_you;
-            const whatItIs = profile?.what_it_is;
-            // deep_dive removed in v5 — popup is now succinct (what_it_is + benefits + what_it_means_for_you).
-            const benefits = profile?.benefits ?? [];
-            const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
-            const profileError = ingredientProfile.isError;
+            const profile = ingredientExplainer;
+            // Product-specific verdict from the authoritative analysis; falls
+            // back to the analysis row's own body so the copy always agrees.
+            const meansForYou = profile?.fit?.for_you || ing.body || undefined;
+            const notFlagged = !profile?.fit?.for_you && profile?.fit_note === "not_flagged";
+            const whatItIs = profile?.glossary?.what_it_is ?? undefined;
+            const roleInProduct = profile?.role_in_product ?? undefined;
+            const profileLoading = explainerLoading;
+            const profileError = Boolean(explainerError);
+
             const alsoInProducts = productsByIngredient.get(lower) ?? [];
             const shelfMatches = alsoInProducts.filter((p) => p.onShelf);
             const wishlistMatches = alsoInProducts.filter((p) => !p.onShelf && p.onWishlist);
@@ -1636,23 +1638,12 @@ const IngredientDetail = () => {
                   </div>
 
                   <LevelGate min={3}>
-                    {benefits.length > 0 && (
+                    {roleInProduct && (
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
                           What it does in this formula
                         </p>
-                        {showBeginnerHelp ? (
-                          <BeginnerSteps steps={benefits.map((b) => ({ text: b }))} />
-                        ) : (
-                          <ul className="space-y-1.5">
-                            {benefits.map((b, i) => (
-                              <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
-                                <span className="text-primary shrink-0 mt-0.5">•</span>
-                                <span>{b}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        <AiProse text={roleInProduct} />
                       </div>
                     )}
                   </LevelGate>
@@ -1669,12 +1660,19 @@ const IngredientDetail = () => {
                       </p>
                     )}
                     {meansForYou && <AiProse text={meansForYou} />}
-                    {!profileLoading && !meansForYou && profileError && (
+                    {!profileLoading && !meansForYou && notFlagged && (
+                      <p className="text-sm leading-relaxed text-foreground/80">
+                        This one wasn't flagged either way in your analysis of this product —
+                        nothing here counts for or against it on your profile.
+                      </p>
+                    )}
+                    {!profileLoading && !meansForYou && !notFlagged && profileError && (
                       <p className="text-sm leading-relaxed text-muted-foreground italic">
                         Personalised guidance unavailable right now.
                       </p>
                     )}
                   </div>
+
 
 
 

@@ -347,6 +347,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_backfill_state: {
+        Row: {
+          job: string
+          last_run_at: string | null
+          lease_until: string | null
+          note: string | null
+          pause_reason: string | null
+          paused: boolean
+          updated_at: string
+        }
+        Insert: {
+          job: string
+          last_run_at?: string | null
+          lease_until?: string | null
+          note?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          updated_at?: string
+        }
+        Update: {
+          job?: string
+          last_run_at?: string | null
+          lease_until?: string | null
+          note?: string | null
+          pause_reason?: string | null
+          paused?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_call_log: {
         Row: {
           attempt_number: number | null
@@ -4340,6 +4370,53 @@ export type Database = {
         }
         Relationships: []
       }
+      product_analysis_backfill: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          processed_at: string | null
+          product_key: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          user_product_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          product_key?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_product_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          processed_at?: string | null
+          product_key?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_analysis_backfill_user_product_id_fkey"
+            columns: ["user_product_id"]
+            isOneToOne: true
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_ingredients: {
         Row: {
           created_at: string
@@ -6112,6 +6189,8 @@ export type Database = {
           id: string
           image_url: string | null
           ingredients: string[]
+          ingredients_captured_at: string | null
+          ingredients_provenance: string | null
           ingredients_source: string | null
           is_homemade: boolean
           key_ingredients: Json
@@ -6157,6 +6236,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredients?: string[]
+          ingredients_captured_at?: string | null
+          ingredients_provenance?: string | null
           ingredients_source?: string | null
           is_homemade?: boolean
           key_ingredients?: Json
@@ -6202,6 +6283,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           ingredients?: string[]
+          ingredients_captured_at?: string | null
+          ingredients_provenance?: string | null
           ingredients_source?: string | null
           is_homemade?: boolean
           key_ingredients?: Json
@@ -7449,6 +7532,13 @@ export type Database = {
         }[]
       }
       pro_treatment_clients: { Args: never; Returns: Json }
+      product_analysis_backfill_progress: {
+        Args: never
+        Returns: {
+          count: number
+          status: string
+        }[]
+      }
       purge_ad_events: { Args: never; Returns: number }
       queue_appointment_reminders: { Args: never; Returns: number }
       record_ad_event: {

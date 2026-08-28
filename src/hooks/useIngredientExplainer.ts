@@ -17,12 +17,20 @@ export interface IngredientExplainer {
   /** Why it sits in this particular product. */
   role_in_product: string | null;
   product_category?: string | null;
-  /** LAYER 3 — per-user fit, regenerated only when the hair/health profile moves. */
+  /**
+   * LAYER 3 — "Works with your hair". When the sheet is opened from a saved
+   * product this is the product-specific analysis verdict (the single source of
+   * truth), so it can never contradict the score card. `null` with
+   * `fit_note === "not_flagged"` means that analysis did not single this
+   * ingredient out either way.
+   */
   fit: {
     tone: "good" | "warn" | "bad";
     for_you: string;
     usage_tip: string;
+    _source?: "product_analysis" | "profile";
   } | null;
+  fit_note?: "not_flagged" | null;
 }
 
 export interface ShelfMatch {

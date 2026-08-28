@@ -54,8 +54,21 @@ export default function IngredientExplainerSheet({
   // block below waits on generation.
   const { lookup } = useIngredientGlossary();
   const cached = name ? lookup(name) : null;
+  // NAME INTEGRITY: never show a more specific chemical than the pack said.
+  // The glossary may annotate ("Curcuma Longa (Turmeric) Root Extract") but it
+  // must not rename — a captured "Alcohol" is never shown as "Alcohol Denat.".
+  const safeName = (glossaryName: string | null | undefined): string => {
+    const raw = (name ?? "").trim();
+    if (!raw) return glossaryName ?? "Ingredient";
+    if (!glossaryName) return raw;
+    const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const a = norm(raw);
+    const b = norm(glossaryName);
+    if (a === b || b.includes(a)) return glossaryName;
+    return raw;
+  };
   const head = {
-    display_name: explainer?.glossary?.display_name ?? cached?.display_name ?? name ?? "Ingredient",
+    display_name: safeName(explainer?.glossary?.display_name ?? cached?.display_name ?? null),
     phonetic: explainer?.glossary?.phonetic ?? cached?.phonetic ?? null,
     what_it_is: explainer?.glossary?.what_it_is ?? cached?.what_it_is ?? null,
     kind: explainer?.glossary?.kind ?? cached?.kind ?? "molecule",
@@ -182,6 +195,23 @@ export default function IngredientExplainerSheet({
                 )}
               </div>
             )}
+
+            {/* The product's own analysis didn't single this one out. Saying so
+                is more honest than generating a second, product-blind verdict
+                that could contradict the score above. */}
+            {!explainer.fit?.for_you && explainer.fit_note === "not_flagged" && (
+              <div className="rounded-[12px] border border-border bg-muted/40 p-3">
+                <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/55 font-body">
+                  <Beaker className="size-3.5" aria-hidden />
+                  What it means for you
+                </p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/80 font-body">
+                  This one wasn't flagged either way in your analysis of this product — nothing here
+                  counts for or against it on your profile.
+                </p>
+              </div>
+            )}
+
 
             {others.length > 0 && (
               <div className="rounded-[12px] border border-border bg-card p-3">

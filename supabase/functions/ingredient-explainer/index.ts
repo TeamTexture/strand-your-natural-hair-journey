@@ -118,6 +118,8 @@ interface FitPayload {
   tone: "good" | "warn" | "bad";
   for_you: string;
   usage_tip: string;
+  /** "product_analysis" = path 1 (authoritative), "profile" = generic tap. */
+  _source?: "product_analysis" | "profile";
   _model_version?: string;
   _profile_fingerprint?: string;
   _generated_at?: string;
@@ -128,6 +130,29 @@ function serviceClient(): SupabaseClient {
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+// ── NAME INTEGRITY ──────────────────────────────────────────────────────
+//
+// A glossary row may carry a friendlier or fuller display name than the INCI
+// key ("Curcuma Longa (Turmeric) Root Extract"). That is fine. What is NOT
+// fine is upgrading a captured name to a DIFFERENT, more specific chemical —
+// the glossary once displayed a generic "Alcohol" as "Alcohol Denat.", so a
+// member read a denatured-alcohol explanation for a product whose label just
+// said Alcohol. Rule: the captured name always wins unless the glossary name
+// is the same substance with extra annotation (i.e. it contains the captured
+// name).
+export function safeDisplayName(captured: string, glossaryName: string): string {
+  const raw = (captured ?? "").trim();
+  if (!raw) return glossaryName;
+  const a = normaliseInciKey(raw);
+  const b = normaliseInciKey(glossaryName ?? "");
+  if (!b || a === b) return glossaryName || raw;
+  // Same substance, richer label (annotated botanicals) — keep the glossary's.
+  if (b.includes(a)) return glossaryName;
+  // Anything else is a rename to a different chemical: keep what was captured.
+  return raw.replace(/\s+/g, " ");
+}
+
 
 // ── LAYER 1: glossary ───────────────────────────────────────────────────
 
@@ -835,6 +860,9 @@ Deno.serve(async (req) => {
     // a cold sheet two sequential model calls. They now run together, so a cold
     // sheet costs the slower of the two rather than the sum.
     const term = entry;
+    // The name the member sees and the model reasons about is the one that was
+    // actually captured off the pack — never a more specific chemical.
+    const displayName = safeDisplayName(rawName, term.display_name);
 
     // Layer 2 — role in THIS product (cached on the link row). Only a molecule
     // has a role inside a formula: a class or a concept does not.
@@ -863,9 +891,9 @@ Deno.serve(async (req) => {
             brand: String(product.brand ?? ""),
             category: productCategory,
           },
-          [term.display_name],
+          [displayName],
         );
-        roleInProduct = roles.get(normaliseInciKey(term.display_name)) ?? roles.get(key) ?? null;
+        roleInProduct = roles.get(normaliseInciKey(displayName)) ?? roles.get(key) ?? null;
         await supabase.from("product_ingredients").upsert(
           {
             user_product_id: product.id,
@@ -881,9 +909,62 @@ Deno.serve(async (req) => {
       return { role: roleInProduct, category: productCategory };
     };
 
-    // Layer 3 — per-user fit, cached in ai_summaries, invalidated by profile.
+    // Layer 3 — "Works with your hair".
+    //
+    // SINGLE SOURCE OF TRUTH: when the sheet is opened from a saved product,
+    // this line comes from the product-specific ingredient-analysis already
+    // stored for that product (path 1 — sensitivity-aware, exposure-aware,
+    // aware of where the ingredient sits in the list). It is NEVER regenerated
+    // here, so the sheet can no longer contradict the verdict card that sits
+    // above it. If the product analysis did not single this ingredient out, the
+    // sheet says so plainly rather than inventing a verdict.
     const cacheKind = `ingredient_fit:${term.inci_key}`;
-    const resolveFit = async (): Promise<FitPayload> => {
+
+    const resolveProductFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
+      if (!body.userProductId) return { fit: null, note: null };
+      const { data: product } = await supabase
+        .from("user_products")
+        .select("product_key")
+        .eq("id", body.userProductId)
+        .maybeSingle();
+      const productKey = (product?.product_key as string | null) ?? null;
+      if (!productKey) return { fit: null, note: null };
+
+      const { data: rows } = await supabase
+        .from("ai_summaries")
+        .select("payload, updated_at")
+        .eq("user_id", user.id)
+        .like("kind", `ingredient_analysis:${productKey}:%`)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      const payload = (rows?.[0]?.payload ?? null) as
+        | { ingredients?: { name?: string; tone?: string; body?: string }[] }
+        | null;
+      if (!payload || !Array.isArray(payload.ingredients)) return { fit: null, note: null };
+
+      const match = payload.ingredients.find(
+        (i) => i && typeof i.name === "string" && normaliseInciKey(i.name) === key,
+      );
+      if (!match || typeof match.body !== "string" || match.body.trim().length < 8) {
+        return { fit: null, note: "not_flagged" };
+      }
+      const tone: FitPayload["tone"] =
+        match.tone === "good" || match.tone === "bad" ? match.tone : "warn";
+      return {
+        fit: {
+          tone,
+          for_you: clampWords(cleanDescriptiveCopy(match.body), 60),
+          usage_tip: "",
+          _source: "product_analysis",
+        },
+        note: null,
+      };
+    };
+
+    // Product-agnostic tap (avoid list, ingredient research): there is no
+    // product to be authoritative, so a profile-level line is generated and
+    // cached. Never used when a product analysis exists.
+    const resolveProfileFit = async (): Promise<FitPayload> => {
       const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
       if (!body.force) {
         const { data: cached } = await supabase
@@ -919,7 +1000,7 @@ Deno.serve(async (req) => {
         ingredient: term,
         userPayload: {
           ingredient: {
-            name: term.display_name,
+            name: displayName,
             category: term.category,
             what_it_is: term.what_it_is,
           },
@@ -935,6 +1016,7 @@ Deno.serve(async (req) => {
       generated._model_version = FIT_MODEL_VERSION;
       generated._profile_fingerprint = fingerprint;
       generated._generated_at = new Date().toISOString();
+      generated._source = "profile";
 
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -953,17 +1035,23 @@ Deno.serve(async (req) => {
       return generated;
     };
 
-    const [roleResult, fit] = await Promise.all([resolveRole(), resolveFit()]);
+    const resolveFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
+      if (body.userProductId) return await resolveProductFit();
+      return { fit: await resolveProfileFit(), note: null };
+    };
+
+    const [roleResult, fitResult] = await Promise.all([resolveRole(), resolveFit()]);
     const roleInProduct = roleResult.role;
     const productCategory = roleResult.category;
 
 
     const response = {
-      glossary: entry,
+      glossary: { ...entry, display_name: displayName },
       kind,
       role_in_product: roleInProduct,
       product_category: productCategory,
-      fit,
+      fit: fitResult.fit,
+      fit_note: fitResult.note,
     };
     return json(200, await sanitiseAndLog(response, "ingredient-explainer"));
   } catch (e) {
