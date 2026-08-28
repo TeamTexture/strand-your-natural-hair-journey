@@ -141,6 +141,19 @@ const Discounts = () => {
           </>
         )}
 
+        {/* STRAND's own partner deals. Separate concept from the paid brand
+            campaigns above — no slots, no billing, no ad tracking. */}
+        {(curatedOffers?.length ?? 0) > 0 && (
+          <>
+            <SectionLabel>Partner deals</SectionLabel>
+            {curatedOffers!.map((o) => (
+              <CuratedOfferCard key={o.id} offer={o} />
+            ))}
+          </>
+        )}
+
+
+
         {/* Blood testing — the STRAND-recommended panel, shown as a standing
             member offer and as a route to booking a test. Single source of
             truth for the Lola copy, shared with the retest routes sheet. */}
