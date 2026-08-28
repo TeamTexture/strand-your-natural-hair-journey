@@ -993,7 +993,16 @@ Deno.serve(async (req) => {
 
 
     const userPayload: Record<string, unknown> = {
-      product: { key: productKey, name: productName, brand: productBrand },
+      product: {
+        key: productKey,
+        name: productName,
+        brand: productBrand,
+        category: productCategory,
+        application_area: applicationArea,
+        leave_on: leaveOn,
+        usage_instructions: usageInstructions,
+      },
+
       ingredients: rawIngredients,
       hairProfile: hairProfile ?? {},
       healthProfile: healthProfile ?? {},
