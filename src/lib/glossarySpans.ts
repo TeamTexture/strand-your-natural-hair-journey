@@ -19,7 +19,14 @@ export interface GlossarySpan {
   text: string;
 }
 
-const isWordChar = (ch: string | undefined) => Boolean(ch && /[\w-]/.test(ch));
+// A hyphen is a WORD SEPARATOR here, not part of the word: generated copy says
+// "high-porosity strands" and "surfactant-heavy", and those must still resolve
+// to "high porosity" / "surfactant". Only alphanumerics block a boundary.
+const isWordChar = (ch: string | undefined) => Boolean(ch && /[0-9A-Za-z_]/.test(ch));
+
+/** Lower-cased copy of `text` with hyphens flattened to spaces. Same LENGTH as
+ *  the source, so span offsets map straight back onto the original string. */
+const matchable = (text: string) => text.toLowerCase().replace(/[-\u2010\u2011\u2012\u2013]/g, " ");
 
 /**
  * Finds glossary spans inside `text`.
@@ -38,7 +45,7 @@ export function findGlossarySpans(
 ): GlossarySpan[] {
   const source = String(text ?? "");
   if (!source.trim()) return [];
-  const haystack = source.toLowerCase();
+  const haystack = matchable(source);
   const spans: GlossarySpan[] = [];
   const claimed = new Set<string>();
 
@@ -46,7 +53,7 @@ export function findGlossarySpans(
     spans.some((s) => !(end <= s.start || start >= s.end));
 
   for (const term of tokenNames) {
-    const key = term.toLowerCase();
+    const key = matchable(term).replace(/\s+/g, " ").trim();
     if (claimed.has(key)) continue;
     const row = lookup(term);
     if (!row) continue;

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import IngredientExplainerSheet from "@/components/ingredients/IngredientExplainerSheet";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { splitCompoundLabel } from "@/lib/ingredientLabel";
+import { glossarySegments } from "@/lib/glossarySpans";
 
 
 interface Ctx {
@@ -122,36 +123,14 @@ export function GlossaryPhrase({
   text: string;
   className?: string;
 }) {
-  const { tokenNames, lookup } = useIngredientGlossary();
-  const parts = useMemo(() => {
-    type Seg = { text: string; name?: string };
-    const spans: { start: number; end: number; name: string }[] = [];
-    const claimed = new Set<string>();
-    for (const term of tokenNames) {
-      const key = term.toLowerCase();
-      if (claimed.has(key)) continue;
-      const idx = text.toLowerCase().indexOf(key);
-      if (idx < 0) continue;
-      const before = text[idx - 1];
-      const after = text[idx + term.length];
-      if ((before && /[\w-]/.test(before)) || (after && /[\w-]/.test(after))) continue;
-      if (spans.some((s) => !(idx + term.length <= s.start || idx >= s.end))) continue;
-      const row = lookup(term);
-      if (!row) continue;
-      claimed.add(key);
-      spans.push({ start: idx, end: idx + term.length, name: row.display_name });
-    }
-    spans.sort((a, b) => a.start - b.start);
-    const segs: Seg[] = [];
-    let cursor = 0;
-    for (const s of spans) {
-      if (s.start > cursor) segs.push({ text: text.slice(cursor, s.start) });
-      segs.push({ text: text.slice(s.start, s.end), name: s.name });
-      cursor = s.end;
-    }
-    if (cursor < text.length) segs.push({ text: text.slice(cursor) });
-    return segs;
-  }, [text, tokenNames, lookup]);
+  // Uses the SAME matcher and the SAME (uncapped-concept) vocabulary as prose,
+  // so "surfactant" inside "Strong clarifying surfactant system" and
+  // "high-porosity" both resolve exactly as they do in body copy.
+  const { proseTermNames, lookup } = useIngredientGlossary();
+  const parts = useMemo(
+    () => glossarySegments(text, proseTermNames, lookup),
+    [text, proseTermNames, lookup],
+  );
 
   if (!parts.some((p) => p.name)) {
     return <span className={cn("font-semibold text-foreground", className)}>{text}</span>;
