@@ -11,6 +11,7 @@ import { useUserProducts, UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import BrandLink from "@/components/BrandLink";
 import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 type Tab = "shelf" | "wishlist" | "off-shelf";
 
