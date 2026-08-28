@@ -857,6 +857,42 @@ Deno.serve(async (req) => {
       })()
       : null;
 
+    // ── APPLICATION AREA (exposure) ───────────────────────────────────
+    // Where the product goes and whether it stays on decide how much a given
+    // ingredient concern can actually cost. Read from the caller first, then
+    // from the stored row, so a saved product always scores on its own label
+    // rather than on a guess from its name. Never inferred here.
+    const APPLICATION_AREAS = ["scalp", "lengths_ends", "scalp_and_lengths", "rinse_out", "unknown"];
+    const normaliseArea = (v: unknown): string => {
+      const raw = typeof v === "string" ? v.trim().toLowerCase() : "";
+      return APPLICATION_AREAS.includes(raw) ? raw : "unknown";
+    };
+    let applicationArea = normaliseArea(body.applicationArea);
+    let leaveOn = typeof body.leaveOn === "boolean" ? body.leaveOn : null;
+    let productCategory = typeof body.category === "string" && body.category.trim()
+      ? body.category.trim()
+      : null;
+    let usageInstructions = typeof body.usageInstructions === "string" && body.usageInstructions.trim()
+      ? body.usageInstructions.trim()
+      : null;
+    if (applicationArea === "unknown" || leaveOn === null || !productCategory) {
+      const { data: metaRow } = await dataClient
+        .from("user_products")
+        .select("category, application_area, leave_on, usage_instructions")
+        .eq("user_id", memberId)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      if (metaRow) {
+        if (applicationArea === "unknown") applicationArea = normaliseArea(metaRow.application_area);
+        if (leaveOn === null && typeof metaRow.leave_on === "boolean") leaveOn = metaRow.leave_on;
+        if (!productCategory && metaRow.category) productCategory = String(metaRow.category);
+        if (!usageInstructions && metaRow.usage_instructions) {
+          usageInstructions = String(metaRow.usage_instructions);
+        }
+      }
+    }
+
+
     const tipsLevel = coerceTipsLevel(
       (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
     );
