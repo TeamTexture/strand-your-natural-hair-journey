@@ -250,6 +250,12 @@ interface RequestBody {
   productName: string;
   productBrand: string;
   ingredients?: string[];
+  /** Stored product metadata — resolved from user_products when omitted. */
+  category?: string | null;
+  applicationArea?: string | null;
+  leaveOn?: boolean | null;
+  usageInstructions?: string | null;
+
   /** Member-made recipe: ingredient + free-text amount pairs. */
   isHomemade?: boolean;
   homemadeRecipe?: Array<
