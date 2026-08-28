@@ -105,8 +105,8 @@ export function useIngredientGlossary() {
    * PROSE TERMS — the list used by `GlossaryRichText` for the standing
    * bold+tappable treatment in generated analysis copy. Same closed vocabulary
    * and same stoplist as `tokenNames`, but hair-science concepts and ingredient
-   * families are listed FIRST so the length cap can never drop short taught
-   * words like "cuticle", "sebum" or "porosity" behind 600 long molecule names.
+   * families are never dropped by the length cap, so short taught words like
+   * "cuticle", "sebum" and "porosity" always resolve.
    */
   const proseTermNames = useMemo(() => {
     const seen = new Set<string>();
@@ -126,7 +126,10 @@ export function useIngredientGlossary() {
       }
     }
     const byLength = (a: string, b: string) => b.length - a.length;
-    return [...concepts.sort(byLength), ...molecules.sort(byLength).slice(0, 700)];
+    // Concepts and families are never capped; molecules are. The combined list
+    // is then sorted longest-first so a long molecule ("Hydrolyzed proteins")
+    // still wins over a short concept it contains ("protein").
+    return [...concepts, ...molecules.sort(byLength).slice(0, 700)].sort(byLength);
   }, [rows]);
 
   const lookup = (name: string) => byKey.get(normaliseInciKey(name)) ?? null;
