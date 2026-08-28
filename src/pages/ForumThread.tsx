@@ -432,7 +432,7 @@ const InlineComposer = ({
   );
 };
 
-const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null }) => {
+const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null; compact?: boolean }) => {
   const nav = useNavigate();
   const { user } = useAuth();
   const [opening, setOpening] = useState(false);
@@ -451,15 +451,17 @@ const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: 
   };
 
   return (
-    <div className="flex items-start gap-2.5">
-      <Link to={`/member/${uid}`} className="flex items-start gap-2.5 min-w-0 flex-1 group">
-        <ForumAvatar path={avatar} fallback={name[0]} className="size-9 text-[13px]" />
+    <div className="flex items-start gap-2">
+      <Link to={`/member/${uid}`} className="flex items-center gap-2 min-w-0 flex-1 group">
+        <ForumAvatar path={avatar} fallback={name[0]} className={compact ? "size-6 text-[11px]" : "size-8 text-[12px]"} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[12.5px] font-body font-semibold text-foreground/85 group-hover:text-primary leading-tight">{name}</span>
-            <span className="text-[10.5px] font-body text-foreground/50">· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+          <div className="flex items-center gap-1.5 flex-wrap leading-tight">
+            <span className={cn("font-body font-semibold text-foreground/85 group-hover:text-primary", compact ? "text-[11.5px]" : "text-[12.5px]")}>{name}</span>
+            <span className={cn("font-body text-foreground/45", compact ? "text-[10px]" : "text-[10.5px]")}>· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
+            {meta && (
+              <span className={cn("font-body text-foreground/45 min-w-0 truncate", compact ? "text-[10px]" : "text-[10.5px]")}>· {meta}</span>
+            )}
           </div>
-          {meta && <p className="text-[10.5px] font-body text-foreground/60 leading-tight truncate mt-0.5">{meta}</p>}
         </div>
       </Link>
       {!isMe && (
@@ -468,7 +470,10 @@ const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: 
           onClick={message}
           disabled={opening}
           aria-label={`Message ${name}`}
-          className="shrink-0 size-8 rounded-full border border-border bg-card flex items-center justify-center text-foreground/60 hover:text-primary hover:bg-primary/10 disabled:opacity-50"
+          className={cn(
+            "shrink-0 rounded-full border border-border bg-card flex items-center justify-center text-foreground/60 hover:text-primary hover:bg-primary/10 disabled:opacity-50",
+            compact ? "size-7" : "size-8",
+          )}
         >
           {opening ? <Loader2 className="size-3.5 animate-spin" /> : <MessageSquare className="size-3.5" />}
         </button>
@@ -476,6 +481,7 @@ const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: 
     </div>
   );
 };
+
 
 
 export default ForumThread;
