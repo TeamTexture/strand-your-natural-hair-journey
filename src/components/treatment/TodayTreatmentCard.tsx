@@ -44,6 +44,7 @@ import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
  */
 const TodayTreatmentCard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { steps, streakLine, streak, days, loading, hasActivePlan } = useDueToday();
   const { bundles } = useActiveTreatmentPlans();
   const { hasPlus, isLoading: plusLoading } = usePlusAccess();
@@ -62,9 +63,41 @@ const TodayTreatmentCard = () => {
   const plan = bundle?.plan;
 
   const { open: openCheckin, skip: skipCheckin } = useCheckinReminder();
-  const { checkins } = useTreatmentCheckins(plan?.id);
-  // Day one (week 0) is her starting point — once written, it stays on show.
-  const startingPoint = checkins.find((c) => c.week_number === 0 && c.submitted_at) ?? null;
+  const { checkins, media } = useTreatmentCheckins(plan?.id);
+
+  // HER STARTING POINT — the first check-in she filled in, day one (week 0)
+  // where it exists, otherwise her earliest week. It counts as written once
+  // there are words on it (the transcribed voice note lands in written_note)
+  // or a photo attached, so a saved-but-unsubmitted first week still previews.
+  const startingPointRow =
+    [...checkins]
+      .sort((a, b) => a.week_number - b.week_number)
+      .find(
+        (c) =>
+          !!c.submitted_at ||
+          !!c.written_note?.trim() ||
+          media.some((m) => m.checkin_id === c.id && m.media_type === "photo"),
+      ) ?? null;
+  const startingPhotos = media
+    .filter((m) => m.checkin_id === startingPointRow?.id && m.media_type === "photo")
+    .slice(0, 3);
+  const { urls: startingUrls } = useSignedMedia(startingPhotos.map((m) => m.storage_path));
+
+  // Collapse is a view preference, per member and per plan — never member data.
+  const collapseKey = plan ? `treatment_card_collapsed_${plan.id}` : null;
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    if (!collapseKey) return;
+    setCollapsed(readViewPref<boolean>(user?.id, collapseKey, false));
+  }, [collapseKey, user?.id]);
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      if (collapseKey) writeViewPref(user?.id, collapseKey, next);
+      return next;
+    });
+  };
+
 
   if (loading || plusLoading) return null;
 
