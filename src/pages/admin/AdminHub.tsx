@@ -692,6 +692,16 @@ const AdminHub = () => {
             onClick={() => nav("/admin/brand-offers")}
           />
 
+          {/* STRAND-arranged deals — entirely separate from paid campaigns. */}
+          <NavCard
+            icon={Tag}
+            title="Curated offers"
+            description="Create STRAND's own deals for the Discounts & offers page"
+            onClick={() => nav("/admin/curated-offers")}
+          />
+
+
+
           <NavCard
             icon={PackageCheck}
             title="Brand shelf review"
