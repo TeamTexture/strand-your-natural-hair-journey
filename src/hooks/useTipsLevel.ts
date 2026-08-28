@@ -127,7 +127,9 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
     showExplanations: showsExplanations(level),
     /** Show inline beginner definitions + encouragement (level 3, Hand-holding). */
     showBeginnerHelp: showsBeginnerHelp(level),
-  }), [answerPrompt, level, prompted, setLevel]);
+    // No session → no server value is coming, so the cached/default level is final.
+    ready: !user?.id ? true : profileFetched,
+  }), [answerPrompt, level, prompted, setLevel, user?.id, profileFetched]);
 
   return createElement(TipsLevelContext.Provider, { value }, children);
 }
