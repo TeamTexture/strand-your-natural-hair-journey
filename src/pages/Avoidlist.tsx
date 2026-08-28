@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useAuth } from "@/hooks/useAuth";
-import { useIngredientProfile } from "@/hooks/useIngredientProfile";
+import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { generateIngredientReportPdf } from "@/lib/ingredientReportPdf";
 import { supabase } from "@/integrations/supabase/client";
 import BrandLink from "@/components/BrandLink";
