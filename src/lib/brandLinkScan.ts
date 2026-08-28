@@ -48,7 +48,7 @@ export async function scanProductLink(url: string): Promise<BrandLinkScanResult>
   if ((data as { error?: string } | null)?.error) {
     throw new Error((data as { error: string }).error);
   }
-  const fields = buildProductSaveFields(data ?? {});
+  const fields = buildProductSaveFields(data ?? {}, "Untitled product", "brand_page");
   const hero = heroImageFromAnalysis(data);
   return {
     name: fields.name,
