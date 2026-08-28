@@ -45,7 +45,11 @@ describe("analysis failsafes are shared, not per-function", () => {
   it("every enumerated function runs the shared failsafes", () => {
     for (const name of FUNCTIONS) {
       const src = read(`${FN}/${name}/index.ts`);
+      // The vocabulary + name-lock checks now live in the single shared
+      // content-integrity module (2026-08-28), reached either directly or
+      // through enforceAnalysisFailsafes.
       const usesShared = src.includes("enforceAnalysisFailsafes")
+        || src.includes("_shared/content-integrity.ts")
         || (src.includes("_shared/hair-vocabulary.ts") && src.includes("_shared/fit-first-score.ts"));
       expect(usesShared, `${name} does not run the shared failsafes`).toBe(true);
     }
@@ -54,7 +58,9 @@ describe("analysis failsafes are shared, not per-function", () => {
   it("every enumerated function carries the fit-first cache tag", () => {
     for (const name of FUNCTIONS) {
       const src = read(`${FN}/${name}/index.ts`);
-      const tagged = src.includes("fit-first-2026-08-28") || src.includes("v15_fit_first");
+      // Fit-first landed at v15; later contract bumps (v16…v21) supersede the
+      // tag but must never take a surface back below it.
+      const tagged = /fit-first-2026-08-28|v15_fit_first|MODEL_VERSION\s*=\s*["'`]v(1[5-9]|[2-9]\d)/.test(src);
       // brand-product-guidance keys its cache from the client hook.
       if (name === "brand-product-guidance") {
         expect(read("src/hooks/useBrandProductGuidance.ts")).toContain("brand_product_guidance_v15");
@@ -63,6 +69,7 @@ describe("analysis failsafes are shared, not per-function", () => {
       expect(tagged, `${name} still serves a pre-fit-first cache key`).toBe(true);
     }
   });
+
 
   it("the fit-first prompt rules are attached to the shared score-reason blocks", () => {
     const src = read(`${FN}/_shared/score-reasons.ts`);
