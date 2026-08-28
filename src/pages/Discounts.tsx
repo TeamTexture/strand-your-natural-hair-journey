@@ -90,6 +90,8 @@ const Discounts = () => {
   const navigate = useNavigate();
   const { data: brandOffers } = useAllLiveBrandOffers();
   const { data: proOffers } = useProOffersForConsumer();
+  const { data: curatedOffers } = useLiveCuratedOffers();
+
 
   return (
     <ScreenLayout>
