@@ -30,6 +30,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import ProductThumb from "@/components/ProductThumb";
 import MatchStars from "@/components/MatchStars";
 import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
