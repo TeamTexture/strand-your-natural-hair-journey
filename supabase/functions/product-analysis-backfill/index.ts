@@ -19,14 +19,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const JOB = "product_analysis_backfill";
-const LEASE_MINUTES = 5; // matches the 5-minute cron cadence
-const DEFAULT_LIMIT = 8;
+const LEASE_MINUTES = 2; // matches the 2-minute cron cadence
+const DEFAULT_LIMIT = 4;
 const MAX_LIMIT = 25;
 const MAX_ATTEMPTS = 3;
 const GAP_MS = 800; // cooldown between items — keeps us under the rate limit
-const RUN_BUDGET_MS = 4 * 60_000; // stop before the next scheduled tick
-const ITEM_TIMEOUT_MS = 90_000; // a hung analysis can't eat the whole run
-const STALE_RUNNING_MINUTES = 10; // requeue rows a dead run left in flight
+// The platform kills an invocation after 150s idle, so a run must finish well
+// inside that: short, frequent runs beat long ones that get cut mid-item.
+const RUN_BUDGET_MS = 110_000;
+const ITEM_TIMEOUT_MS = 60_000; // a hung analysis can't eat the whole run
+const STALE_RUNNING_MINUTES = 5; // requeue rows a dead run left in flight
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
