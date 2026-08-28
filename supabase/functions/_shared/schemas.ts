@@ -87,11 +87,23 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
 
 
 
+    application_area: {
+      type: "string",
+      enum: ["scalp", "lengths_ends", "scalp_and_lengths", "rinse_out", "unknown"],
+      description:
+        "WHERE the manufacturer says this product goes, read off the label/directions only: 'scalp' = scalp or partings only, 'lengths_ends' = mid-lengths and ends only, 'scalp_and_lengths' = whole head, 'rinse_out' = applied then rinsed off during washing (shampoo, conditioner, rinse-out mask). If the label does not say, return 'unknown' — never guess.",
+    },
+    leave_on: {
+      type: "boolean",
+      description:
+        "true when the directions say the product stays on the hair (leave-in, oil, styler, serum), false when the directions say it is rinsed out. Omit the field entirely if the label does not say — never guess.",
+    },
     usage_instructions: {
       type: "string",
       description:
         "VERBATIM directions from the manufacturer if visible on the label or resolved via web_search. Empty string if not available — never invent.",
     },
+
     use_cases: { type: "array", items: { type: "string" } },
     tips: { type: "array", items: { type: "string" } },
     pair_with: {
@@ -126,7 +138,9 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     "insight",
     "ai_summary",
     "key_ingredients",
+    "application_area",
     "usage_instructions",
+
     "use_cases",
     "tips",
   ],
@@ -162,7 +176,17 @@ export interface ProductAnalysisPayload {
   insight?: PurposeInsight;
 
   ai_summary: string;
+  /** Where the label says the product goes. "unknown" when it doesn't say. */
+  application_area?:
+    | "scalp"
+    | "lengths_ends"
+    | "scalp_and_lengths"
+    | "rinse_out"
+    | "unknown";
+  /** true = stays on the hair, false = rinsed out, undefined = label silent. */
+  leave_on?: boolean;
   usage_instructions: string;
+
   use_cases: string[];
   tips: string[];
   pair_with?: Array<{ item: string; why: string }>;
