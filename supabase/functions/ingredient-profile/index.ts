@@ -29,6 +29,7 @@ import {
   applyFieldNulls,
   enforceAnalysisFailsafes,
 } from "../_shared/analysis-failsafes.ts";
+import { logContentIntegrityRejections } from "../_shared/content-integrity.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import { gatewayFetch } from "../_shared/ai-meter.ts";
 
@@ -323,6 +324,8 @@ Deno.serve(async (req) => {
     if (parsed) {
       const row = parsed as unknown as Record<string, unknown>;
       const failsafe = enforceAnalysisFailsafes({
+        functionName: "ingredient-profile",
+        userId: user.id,
         fields: [
           { field: "what_it_is", text: row.what_it_is },
           { field: "what_it_means_for_you", text: row.what_it_means_for_you },
@@ -340,6 +343,12 @@ Deno.serve(async (req) => {
           cleared,
           problems: failsafe.problems,
         }));
+        // Author review: every rejection lands in ai_content_rejections.
+        await logContentIntegrityRejections(failsafe.violations, {
+          functionName: "ingredient-profile",
+          userId: user.id,
+          action: "field_nulled",
+        });
         parsed = row as unknown as typeof parsed;
       }
     }

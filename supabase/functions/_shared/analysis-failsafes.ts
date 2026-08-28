@@ -15,12 +15,12 @@
 // `src/test/analysis_failsafes.test.ts`, which enumerates the list here.
 
 import type { ScoreReason } from "./score-reasons.ts";
-import { validateTerminologyFields } from "./hair-vocabulary.ts";
-import {
-  buildNameLock,
-  validateIngredientCardNames,
-  validateNameLockFields,
-} from "./ingredient-name-lock.ts";
+// The vocabulary + name-lock + usage-grounding checks live in ONE module
+// (`content-integrity.ts`) shared by every member-facing generation, analysis
+// or not. This file keeps the analysis-specific extras on top: fit-first
+// scoring and the Strand Tip split.
+import { checkContentIntegrity, type IntegrityCheck } from "./content-integrity.ts";
+import type { UsageDirections } from "./usage-grounding.ts";
 import { applyFitFirst, sanitiseStrandTips, type StrandTipNote } from "./fit-first-score.ts";
 
 /**
@@ -55,12 +55,21 @@ export interface FailsafeInput {
   reasons?: ScoreReason[];
   /** Whatever the model returned in `strand_tip`. */
   modelTips?: unknown;
+  /** Real manufacturer directions, when the surface has a product. Enables
+   *  the technique-grounding check inside the shared integrity module. */
+  directions?: UsageDirections | null;
+  /** Rejection-log metadata, so failures are queryable in ai_content_rejections. */
+  functionName?: string;
+  userId?: string | null;
+  subject?: string | null;
 }
 
 export interface FailsafeViolation {
   field: string;
   phrase: string;
   rule: string;
+  /** Which shared integrity check produced this. */
+  check?: IntegrityCheck;
 }
 
 export interface FailsafeResult {
@@ -78,13 +87,16 @@ export interface FailsafeResult {
  * lockdown, then fit-first scoring (only when a score exists).
  */
 export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
-  const nameLock = buildNameLock(input.allowedIngredients ?? [], input.vocabulary ?? []);
-
-  const violations: FailsafeViolation[] = [
-    ...validateTerminologyFields(input.fields),
-    ...validateIngredientCardNames(input.cards, nameLock),
-    ...validateNameLockFields(input.fields, nameLock),
-  ];
+  const violations: FailsafeViolation[] = checkContentIntegrity({
+    functionName: input.functionName ?? "analysis",
+    userId: input.userId ?? null,
+    subject: input.subject ?? null,
+    fields: input.fields,
+    cards: input.cards,
+    allowedIngredients: input.allowedIngredients ?? [],
+    ingredientVocabulary: input.vocabulary ?? [],
+    directions: input.directions ?? null,
+  }).violations;
 
   const hasScore = typeof input.score === "number" && Number.isFinite(input.score);
   const fit = applyFitFirst(

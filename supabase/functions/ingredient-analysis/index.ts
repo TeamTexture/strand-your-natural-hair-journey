@@ -77,7 +77,10 @@ import {
   STRAND_TIP_SCHEMA_PROPERTY,
   type StrandTipNote,
 } from "../_shared/fit-first-score.ts";
-import { validateTerminologyFields } from "../_shared/hair-vocabulary.ts";
+import {
+  checkContentIntegrity,
+  logContentIntegrityRejections,
+} from "../_shared/content-integrity.ts";
 import {
   buildNameLock,
   ingredientNameLockBlock,
@@ -1387,11 +1390,19 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           { field: `personalised_guidance[${i}].body`, text: t?.body },
         ]),
       ];
-      const structuralViolations = [
-        ...validateTerminologyFields(termFields),
-        ...validateIngredientCardNames(analysis.ingredients, nameLock),
-        ...validateNameLockFields(termFields, nameLock),
-      ];
+      // ONE shared guardrail — closed vocabulary + ingredient-name lockdown,
+      // identical to every other member-facing surface. See
+      // _shared/content-integrity.ts.
+      const structuralViolations = checkContentIntegrity({
+        functionName: "ingredient-analysis",
+        userId: memberId,
+        subject: productKey ?? null,
+        fields: termFields,
+        cards: analysis.ingredients,
+        allowedIngredients: nameLock.allowed,
+        ingredientVocabulary: nameLock.vocabulary,
+        attempt: attemptNumber,
+      }).violations;
       retryViolations = structuralViolations;
       const structuralProblems = structuralViolations.map((v) => v.rule);
       if (structuralProblems.length) {
@@ -1412,6 +1423,13 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           max_attempts: MAX_REJECTION_ATTEMPTS,
         });
         retryRules = [...new Set(structuralProblems)].slice(0, 8);
+        await logContentIntegrityRejections(structuralViolations, {
+          functionName: "ingredient-analysis",
+          userId: memberId,
+          subject: productKey ?? null,
+          attempt: attemptNumber,
+          action: attemptNumber < MAX_REJECTION_ATTEMPTS ? "rejected" : "field_nulled",
+        });
         if (attemptNumber < MAX_REJECTION_ATTEMPTS) continue;
 
         // A third otherwise-valid generation must not become a total 503 just

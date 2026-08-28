@@ -485,6 +485,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_content_rejections: {
+        Row: {
+          action: string
+          attempt: number | null
+          check_name: string
+          created_at: string
+          field: string
+          function_name: string
+          id: string
+          phrase: string | null
+          rule: string | null
+          subject: string | null
+          surface: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string
+          attempt?: number | null
+          check_name: string
+          created_at?: string
+          field: string
+          function_name: string
+          id?: string
+          phrase?: string | null
+          rule?: string | null
+          subject?: string | null
+          surface?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          attempt?: number | null
+          check_name?: string
+          created_at?: string
+          field?: string
+          function_name?: string
+          id?: string
+          phrase?: string | null
+          rule?: string | null
+          subject?: string | null
+          surface?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_fidelity_rejections: {
         Row: {
           attempt: number

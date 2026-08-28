@@ -13,6 +13,7 @@
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { enforceAnalysisFailsafes } from "../_shared/analysis-failsafes.ts";
+import { logContentIntegrityRejections } from "../_shared/content-integrity.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
@@ -586,6 +587,8 @@ function validate(
   // re-asked, never shown on a sponsored surface.
   {
     const failsafe = enforceAnalysisFailsafes({
+        functionName: "brand-product-guidance",
+        userId: null,
       fields: [
         { field: "headline", text: headline },
         { field: "fit_line", text: fitLine },

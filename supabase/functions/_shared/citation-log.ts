@@ -62,6 +62,9 @@ import {
   enforceStyleVerbatimDeep,
   recordedStyles,
 } from "./blood-guardrail.ts";
+import { enforceContentIntegrity } from "./content-integrity.ts";
+import type { UsageDirections } from "./usage-grounding.ts";
+
 
 declare const Deno: { env: { get(key: string): string | undefined } };
 
@@ -157,6 +160,18 @@ export async function sanitiseAndLog<T>(
     dryRun?: boolean;
     /** Called when this pass removed/rejected output, so callers can retry. */
     onRejected?: (rules: string[]) => void;
+    /**
+     * CONTENT INTEGRITY source lockdown (see _shared/content-integrity.ts).
+     * `allowedIngredients` = the verified ingredient list held for this
+     * product; an EMPTY array forbids naming any ingredient, `undefined`
+     * disables the check on surfaces with no product. `directions` = the real
+     * manufacturer directions, enabling the technique-grounding check.
+     */
+    allowedIngredients?: string[] | null;
+    ingredientVocabulary?: string[] | null;
+    directions?: UsageDirections | null;
+    /** What the copy is about (product key, marker) for the rejection log. */
+    subject?: string | null;
   },
 ): Promise<T> {
 
@@ -260,12 +275,63 @@ export async function sanitiseAndLog<T>(
         { surface: opts?.surface ?? null, userId: opts?.userId ?? null },
       );
     }
-    return pruneEmptyProseRows(out);
+    return pruneEmptyProseRows(await applyContentIntegrity(out, functionName, opts));
   }
-  return pruneEmptyProseRows(await verifyStage3(out, functionName, evidenceSet, opts, {
-    rejections: clarRejections,
-    governed: clarCheck.governed,
-  }));
+  return pruneEmptyProseRows(
+    await applyContentIntegrity(
+      await verifyStage3(out, functionName, evidenceSet, opts, {
+        rejections: clarRejections,
+        governed: clarCheck.governed,
+      }),
+      functionName,
+      opts,
+    ),
+  );
+}
+
+/**
+ * CONTENT INTEGRITY — the shared guardrail, applied on the single path every
+ * generation already goes through. Closed vocabulary runs on every surface;
+ * the ingredient-name and manufacturer-directions lockdowns run wherever the
+ * caller supplied that source data. Offending fields are nulled (never an
+ * error — "not established" is a valid answer) and every rejection is logged
+ * to `public.ai_content_rejections`. See _shared/content-integrity.ts.
+ */
+async function applyContentIntegrity<T>(
+  value: T,
+  functionName: string,
+  opts?: {
+    surface?: string | null;
+    userId?: string | null;
+    subject?: string | null;
+    dryRun?: boolean;
+    allowedIngredients?: string[] | null;
+    ingredientVocabulary?: string[] | null;
+    directions?: UsageDirections | null;
+    attemptNumber?: number | null;
+    onRejected?: (rules: string[]) => void;
+  },
+): Promise<T> {
+  if (!value || typeof value !== "object") return value;
+  try {
+    const payload = value as unknown as Record<string, unknown>;
+    const result = await enforceContentIntegrity(payload, {
+      functionName,
+      surface: opts?.surface ?? null,
+      userId: opts?.userId ?? null,
+      subject: opts?.subject ?? null,
+      allowedIngredients: opts?.allowedIngredients ?? undefined,
+      ingredientVocabulary: opts?.ingredientVocabulary ?? undefined,
+      directions: opts?.directions ?? null,
+      attempt: opts?.attemptNumber ?? undefined,
+    });
+    if (!result.ok) opts?.onRejected?.(result.problems);
+    return payload as unknown as T;
+  } catch (e) {
+    // The guardrail must never be the reason a member sees nothing.
+    console.warn("[content-integrity] skipped:", e instanceof Error ? e.message : e);
+    return value;
+  }
 }
 
 /** The member's own goal label, where the surface passed one in its context. */

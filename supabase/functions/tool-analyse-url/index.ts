@@ -22,6 +22,7 @@ import {
   enforceAnalysisFailsafes,
   productProseFields,
 } from "../_shared/analysis-failsafes.ts";
+import { logContentIntegrityRejections } from "../_shared/content-integrity.ts";
 import { alignFitLanguage } from "../_shared/fit-band.ts";
 import {
   callClaude,
@@ -874,6 +875,8 @@ Deno.serve(async (req: Request) => {
     {
       const a = analysis as Record<string, unknown>;
       const failsafe = enforceAnalysisFailsafes({
+        functionName: "tool-analyse-url",
+        userId: user.id,
         fields: productProseFields(a),
         score: typeof a.match_score === "number" ? a.match_score : null,
         reasons: (a.score_reasons ?? []) as never,
@@ -890,6 +893,12 @@ Deno.serve(async (req: Request) => {
           cleared,
           problems: failsafe.problems,
         }));
+        // Author review: every rejection lands in ai_content_rejections.
+        await logContentIntegrityRejections(failsafe.violations, {
+          functionName: "tool-analyse-url",
+          userId: user.id,
+          action: "field_nulled",
+        });
       }
       const aligned = alignFitLanguage(
         a.ai_summary ?? a.summary,
