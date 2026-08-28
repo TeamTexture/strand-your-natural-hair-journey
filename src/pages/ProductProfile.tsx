@@ -673,9 +673,9 @@ const ProductProfile = () => {
                                     ) : "🧴"}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
+                                    <p className="text-[13px] font-medium leading-tight break-words">{m.name}</p>
                                     {m.brand && (
-                                      <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={m.brand} /></p>
+                                      <p className="text-[11px] text-muted-foreground break-words"><BrandLink brand={m.brand} /></p>
                                     )}
                                   </div>
                                 </button>
@@ -702,9 +702,9 @@ const ProductProfile = () => {
                                     ) : "🧴"}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-medium leading-tight truncate">{m.name}</p>
+                                    <p className="text-[13px] font-medium leading-tight break-words">{m.name}</p>
                                     {m.brand && (
-                                      <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={m.brand} /></p>
+                                      <p className="text-[11px] text-muted-foreground break-words"><BrandLink brand={m.brand} /></p>
                                     )}
                                   </div>
                                 </button>

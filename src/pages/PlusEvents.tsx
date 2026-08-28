@@ -279,7 +279,7 @@ const PlusEvents = () => {
                               </span>
                             )}
                           </div>
-                          <p className="font-display text-[14px] font-semibold leading-tight truncate">{event.title}</p>
+                          <p className="font-display text-[14px] font-semibold leading-tight break-words">{event.title}</p>
                         </div>
                         <ChevronDown className={cn("size-4 text-foreground/50 shrink-0 transition-transform", isOpen && "rotate-180")} />
                       </button>

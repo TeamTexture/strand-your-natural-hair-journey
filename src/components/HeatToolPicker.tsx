@@ -88,7 +88,7 @@ const HeatToolPicker = ({ selectedIds, onToggle }: HeatToolPickerProps) => {
                 )}
               >
                 {active && <Check className="size-3 shrink-0" />}
-                <span className="truncate max-w-[160px]">{formatTool(t)}</span>
+                <span className="break-words">{formatTool(t)}</span>
               </button>
             );
           })}

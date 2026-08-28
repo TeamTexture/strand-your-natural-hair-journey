@@ -53,7 +53,7 @@ const Row = ({
         wrapperClassName="size-10 rounded-[8px] overflow-hidden bg-secondary shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{t.name}</p>
+        <p className="text-sm font-medium break-words">{t.name}</p>
         <div className="flex items-center gap-2 min-w-0">
           {t.brand && <p className="text-[11px] text-muted-foreground truncate">{t.brand}</p>}
           {typeof t.rating === "number" && t.rating > 0 && (

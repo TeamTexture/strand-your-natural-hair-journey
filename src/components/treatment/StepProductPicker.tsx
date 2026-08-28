@@ -190,7 +190,7 @@ const StepProductPicker = ({ planId, value, onChange, disabled }: Props) => {
                     key={p.id}
                     type="button"
                     onClick={() => onChange(p.id)}
-                    className="rounded-pill border border-border bg-card px-3 py-1.5 font-body text-[12px] max-w-full truncate"
+                    className="rounded-pill border border-border bg-card px-3 py-1.5 font-body text-[12px] max-w-full break-words"
                   >
                     {p.product_name}
                   </button>

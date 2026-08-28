@@ -94,11 +94,11 @@ const Row = ({
             prefix ("Dove Scalp + Hair Therapy …") and stay indistinguishable
             until the tail of the name is visible, which needs a third line at
             375px. */}
-        <p className="text-sm font-medium leading-snug line-clamp-3 break-words">{p.name}</p>
+        <p className="text-sm font-medium leading-snug break-words">{p.name}</p>
 
         <div className="flex items-center gap-2 min-w-0">
           {p.brand && (
-            <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+            <p className="text-[11px] text-muted-foreground break-words">{p.brand}</p>
           )}
           <MatchStars item={p} />
         </div>
