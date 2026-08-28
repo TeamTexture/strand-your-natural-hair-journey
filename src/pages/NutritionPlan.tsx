@@ -920,8 +920,9 @@ const NutritionPlan = () => {
   );
 
 
-  const renderLoading = (label: string) => {
-    const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
+  const renderLoading = (label: string, pctOverride?: number) => {
+    const pct = Math.min(100, Math.max(0, Math.round(pctOverride ?? aiProgress)));
+
     return (
       <div className="px-2 pt-6 pb-4 flex flex-col items-center text-center">
         <p className="font-display text-[20px] leading-tight text-foreground mb-5">{label}</p>
