@@ -63,6 +63,12 @@ import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from 
 import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { buildAiContext } from "@/lib/aiContext";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
+import {
+  decideProductAnalysis,
+  assertAnalysisTrigger,
+  type AnalysisTrigger,
+} from "@/lib/analysisGate";
+
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
