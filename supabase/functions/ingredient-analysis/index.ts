@@ -99,6 +99,7 @@ import {
   makeGenerationId,
   retryReasonFromRules,
 } from "../_shared/guardrail-retry.ts";
+import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -1250,7 +1251,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // Nullable schema: a null descriptive field is a legitimate "not
       // established" answer, so it must never render as the string "null".
       if (analysis.summary == null) analysis.summary = "";
-      const reasons = sanitiseScoreReasons(analysis.score_reasons);
+      let reasons = sanitiseScoreReasons(analysis.score_reasons);
 
       // ── Closed vocabulary + ingredient-naming validation ───────────────
       // Both are structural: a violation is rejected and re-asked rather than
@@ -1270,11 +1271,12 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           { field: `personalised_guidance[${i}].body`, text: t?.body },
         ]),
       ];
-      const structuralProblems = [
-        ...validateTerminologyFields(termFields).map((v) => v.rule),
-        ...validateIngredientCardNames(analysis.ingredients, nameLock).map((v) => v.rule),
-        ...validateNameLockFields(termFields, nameLock).map((v) => v.rule),
+      const structuralViolations = [
+        ...validateTerminologyFields(termFields),
+        ...validateIngredientCardNames(analysis.ingredients, nameLock),
+        ...validateNameLockFields(termFields, nameLock),
       ];
+      const structuralProblems = structuralViolations.map((v) => v.rule);
       if (structuralProblems.length) {
         console.log(JSON.stringify({
           function: "ingredient-analysis",
@@ -1294,6 +1296,22 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         });
         retryRules = [...new Set(structuralProblems)].slice(0, 8);
         if (attemptNumber < MAX_REJECTION_ATTEMPTS) continue;
+
+        // A third otherwise-valid generation must not become a total 503 just
+        // because one prose field still used rejected wording. The schemas are
+        // intentionally nullable: remove only the offending field/row, then
+        // serve and cache the safe remainder.
+        const cleared = applyFieldNulls(
+          analysis as unknown as Record<string, unknown>,
+          structuralViolations,
+        );
+        console.warn(JSON.stringify({
+          function: "ingredient-analysis",
+          event: "terminal_field_null_fallback",
+          cleared,
+        }));
+        reasons = sanitiseScoreReasons(analysis.score_reasons);
+        retryRules = null;
       }
 
       // ── Fit-first scoring ──────────────────────────────────────────────
@@ -1334,7 +1352,12 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         dryRun: mode.dryRun,
         onRejected: (rules) => rejected.push(...rules),
       }) as AnalysisPayload;
-      if (rejected.length === 0) break;
+      if (rejected.length === 0) {
+        // Clear problems from an earlier attempt. Previously this stale value
+        // survived a successful retry and incorrectly forced the 503 branch.
+        retryRules = null;
+        break;
+      }
       retryRules = [...new Set(rejected)];
     }
 
