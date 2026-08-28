@@ -1153,80 +1153,130 @@ const Home = () => {
           </button>
         ) : (
           <>
-            {shelfProducts.slice(0, 4).map((s) => {
-              const sp = shelfSponsoredById[s.id];
-              const goToOffer = () => {
-                if (sp && s.linked_brand_product_id) {
-                  navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
-                  return;
-                }
-                if (sp) { navigate(`/offers/${sp.offerId}`); return; }
-                navigate(`/products/profile/${s.id}`);
-              };
+            {/* Homemade products live in their own group, never mixed into the
+                store-bought strip — they are a different kind of thing. */}
+            {(() => {
+              const { storeBought, homemade } = splitByHomemade(shelfProducts);
               return (
-                // SAFETY: the Home shelf strip renders the same passive allergen
-                // alert as every other product surface.
-                <div
-                  key={s.id}
-                  className="overflow-hidden rounded-[14px] border border-border bg-card"
-                >
-                  <SensitivityShelfAlert ingredients={s.ingredients as string[] | null} />
-                  <ListRow
-                    onClick={goToOffer}
-                    className="rounded-none border-0"
-                    leading={
-                    <span className="relative shrink-0">
-                      <ProductThumb
-                        imageUrl={s.image_url}
-                        storagePath={s.storage_path}
-                        brand={s.brand}
-                        name={s.name}
-                        alt={s.name}
-                        cover
-                        wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
-                      />
-                      {sp && (
-                        <span className="absolute -top-1.5 -left-1.5 inline-flex items-center gap-0.5 rounded-pill bg-primary px-1.5 py-[2px] text-[8px] font-body font-semibold uppercase tracking-[0.1em] text-primary-foreground shadow-sm">
-                          <Tag className="size-2" /> Offer
-                        </span>
-                      )}
-                    </span>
-                  }
-                  name={
-                    <span className="inline-flex items-center gap-1.5">
-                      {s.name}
-                      {s.on_favourite && (
-                        <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
-                      )}
-                    </span>
-                  }
-                  secondary={
-                    sp ? (
-                      <span className="inline-flex flex-wrap items-center gap-1.5">
-                        <BrandLink brand={s.brand} />
-                        <span className="inline-flex items-center gap-1 rounded-pill border border-primary/40 bg-primary/10 px-2 py-[1px] text-[10px] font-body font-semibold text-primary">
-                          View offer →
-                        </span>
-                      </span>
-                    ) : (
-                      <BrandLink brand={s.brand} />
-                    )
-                  }
-                    trailing={<MatchStars item={s} />}
-                  />
-                </div>
-              );
+                <>
+                  {storeBought.slice(0, 4).map((s) => {
+                    const sp = shelfSponsoredById[s.id];
+                    const goToOffer = () => {
+                      if (sp && s.linked_brand_product_id) {
+                        navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
+                        return;
+                      }
+                      if (sp) { navigate(`/offers/${sp.offerId}`); return; }
+                      navigate(`/products/profile/${s.id}`);
+                    };
+                    return (
+                      // SAFETY: the Home shelf strip renders the same passive allergen
+                      // alert as every other product surface.
+                      <div
+                        key={s.id}
+                        className="overflow-hidden rounded-[14px] border border-border bg-card"
+                      >
+                        <SensitivityShelfAlert ingredients={s.ingredients as string[] | null} />
+                        <ListRow
+                          onClick={goToOffer}
+                          className="rounded-none border-0"
+                          leading={
+                          <span className="relative shrink-0">
+                            <ProductThumb
+                              imageUrl={s.image_url}
+                              storagePath={s.storage_path}
+                              brand={s.brand}
+                              name={s.name}
+                              alt={s.name}
+                              cover
+                              wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
+                            />
+                            {sp && (
+                              <span className="absolute -top-1.5 -left-1.5 inline-flex items-center gap-0.5 rounded-pill bg-primary px-1.5 py-[2px] text-[8px] font-body font-semibold uppercase tracking-[0.1em] text-primary-foreground shadow-sm">
+                                <Tag className="size-2" /> Offer
+                              </span>
+                            )}
+                          </span>
+                        }
+                        name={
+                          <span className="inline-flex items-center gap-1.5">
+                            {s.name}
+                            {s.on_favourite && (
+                              <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
+                            )}
+                          </span>
+                        }
+                        secondary={
+                          sp ? (
+                            <span className="inline-flex flex-wrap items-center gap-1.5">
+                              <BrandLink brand={s.brand} />
+                              <span className="inline-flex items-center gap-1 rounded-pill border border-primary/40 bg-primary/10 px-2 py-[1px] text-[10px] font-body font-semibold text-primary">
+                                View offer →
+                              </span>
+                            </span>
+                          ) : (
+                            <BrandLink brand={s.brand} />
+                          )
+                        }
+                          trailing={<MatchStars item={s} />}
+                        />
+                      </div>
+                    );
+                  })}
 
-            })}
-            {shelfProducts.length > 4 && (
-              <button
-                onClick={() => navigate("/products")}
-                className="w-full p-3.5 flex items-center justify-center gap-2 text-left text-xs uppercase tracking-[0.15em] text-primary font-medium hover:bg-primary/5 transition-colors rounded-[14px] border border-border bg-card"
-              >
-                <span>See Full Shelf</span>
-                <span aria-hidden>→</span>
-              </button>
-            )}
+                  {homemade.length > 0 && (
+                    <HomemadeProductsSection
+                      products={homemade.slice(0, 4)}
+                      label={`Homemade (${homemade.length})`}
+                      showExplainer={false}
+                      renderRow={(s) => (
+                        <div
+                          key={s.id}
+                          className="overflow-hidden rounded-[14px] border border-border bg-card"
+                        >
+                          <SensitivityShelfAlert ingredients={s.ingredients as string[] | null} />
+                          <ListRow
+                            onClick={() => navigate(`/products/profile/${s.id}`)}
+                            className="rounded-none border-0"
+                            leading={
+                              <ProductThumb
+                                imageUrl={s.image_url}
+                                storagePath={s.storage_path}
+                                brand={s.brand}
+                                name={s.name}
+                                alt={s.name}
+                                cover
+                                wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
+                              />
+                            }
+                            name={
+                              <span className="inline-flex items-center gap-1.5">
+                                {s.name}
+                                {s.on_favourite && (
+                                  <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
+                                )}
+                              </span>
+                            }
+                            secondary={<BrandLink brand={s.brand} />}
+                            trailing={<MatchStars item={s} />}
+                          />
+                        </div>
+                      )}
+                    />
+                  )}
+
+                  {shelfProducts.length > 4 && (
+                    <button
+                      onClick={() => navigate("/products")}
+                      className="w-full p-3.5 flex items-center justify-center gap-2 text-left text-xs uppercase tracking-[0.15em] text-primary font-medium hover:bg-primary/5 transition-colors rounded-[14px] border border-border bg-card"
+                    >
+                      <span>See Full Shelf</span>
+                      <span aria-hidden>→</span>
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </>
         )}
       </div>
