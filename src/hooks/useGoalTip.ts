@@ -197,11 +197,12 @@ export const useGoalTip = (
   // style or the goal changes. No calendar rollover, no wash day, no
   // appointment — those belong to the responsive tip surfaces.
 
-  const { level } = useTipsLevel();
+  const { level, ready: levelReady } = useTipsLevel();
   const { data: signature } = useTipSignature(goal, level);
   return useQuery({
     queryKey: ["goal-tip", CACHE_VERSION, signature, goal?.id, level, variantKey],
     enabled:
+      levelReady &&
       !!signature &&
       !!goal &&
       (challengesOf(goal).length > 0 || !!goal.target_text || !!goal.title),

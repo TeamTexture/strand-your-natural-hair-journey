@@ -170,11 +170,11 @@ async function loadWashHistory(userId: string) {
 
 export function useDynamicWashTip() {
   const { user } = useAuth();
-  const { level } = useTipsLevel();
+  const { level, ready: levelReady } = useTipsLevel();
 
   return useQuery({
     queryKey: ["wash_day_tip_v4_reason", user?.id, level],
-    enabled: !!user?.id,
+    enabled: !!user?.id && levelReady,
     staleTime: Infinity,
     gcTime: Infinity,
     // Stale-while-revalidate: a style change invalidates this tip, so render the
