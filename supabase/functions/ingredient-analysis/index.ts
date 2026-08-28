@@ -754,20 +754,52 @@ Deno.serve(async (req) => {
 
 
   try {
-    const auth = await requireSignedInUser(req);
-    if (auth instanceof Response) return auth;
-    const { user: authUser, supabase } = auth;
+    // ── Caller resolution ─────────────────────────────────────────────
+    // Two entry points:
+    //   1. a signed-in member (normal), optionally an admin dry-run;
+    //   2. a trusted service-role caller running the paced re-analysis
+    //      backfill on a named member's behalf (`backfillUserId`). That path
+    //      is exempt from the PER-MEMBER daily cap — the backfill is our
+    //      spend, not hers, and it must not fail loudly in her face — but it
+    //      still respects the kill switch and the workspace-wide ceiling.
+    const preBody = await req.json().catch(() => ({})) as RequestBody & {
+      backfillUserId?: string;
+    };
+    const backfillFor = isServiceRoleCaller(req) && typeof preBody.backfillUserId === "string"
+      ? preBody.backfillUserId
+      : null;
 
-    const body: RequestBody = await req.json();
-    const mode = await resolveAiRequestMode(authUser.id, body as Record<string, unknown>, supabase as never);
-    if (mode instanceof Response) return mode;
-    const memberId = mode.userId;
-    const dataClient = mode.dryRun
-      ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-      : supabase;
-    setAiCallUser(memberId);
-    setAiCallImpersonation({ isImpersonated: mode.isImpersonated, impersonatedBy: mode.impersonatedBy });
-    if (!(await isEntitled(memberId))) return membershipRequired();
+    let memberId: string;
+    let dataClient: ReturnType<typeof createClient>;
+    let mode: { userId: string; dryRun: boolean; isImpersonated: boolean; impersonatedBy: string | null };
+    const serviceBackfill = backfillFor !== null;
+
+    if (serviceBackfill) {
+      memberId = backfillFor!;
+      dataClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      mode = { userId: memberId, dryRun: false, isImpersonated: false, impersonatedBy: null };
+      setAiCallUser(memberId);
+      setAiCallImpersonation({ isImpersonated: false, impersonatedBy: null });
+    } else {
+      const auth = await requireSignedInUser(req);
+      if (auth instanceof Response) return auth;
+      const { user: authUser, supabase } = auth;
+      const resolved = await resolveAiRequestMode(authUser.id, preBody as Record<string, unknown>, supabase as never);
+      if (resolved instanceof Response) return resolved;
+      mode = resolved;
+      memberId = resolved.userId;
+      dataClient = (resolved.dryRun
+        ? createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+        : supabase) as ReturnType<typeof createClient>;
+      setAiCallUser(memberId);
+      setAiCallImpersonation({ isImpersonated: resolved.isImpersonated, impersonatedBy: resolved.impersonatedBy });
+      if (!(await isEntitled(memberId))) return membershipRequired();
+    }
+    const body: RequestBody = preBody;
+
 
     // Declared topical (skin/scalp) sensitivities — structured, encrypted
     // data that outranks free-text healthProfile mentions.
