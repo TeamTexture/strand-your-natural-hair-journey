@@ -110,10 +110,11 @@ Deno.serve(async (req) => {
 
 
   const now = Date.now();
-  const leaseHeld = state?.lease_until && new Date(state.lease_until).getTime() > now;
+  const leaseHeld = !singleId && state?.lease_until && new Date(state.lease_until).getTime() > now;
   if (leaseHeld) {
     return json({ skipped: "another run holds the lease", lease_until: state!.lease_until });
   }
+
 
   const leaseUntil = new Date(now + LEASE_MINUTES * 60_000).toISOString();
   await admin
