@@ -14,7 +14,10 @@ import { useAllLiveBrandOffers } from "@/hooks/useBrandOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { directoryLinkForPro } from "@/lib/directoryLink";
 import SponsoredOfferCard from "@/components/SponsoredOfferCard";
+import CuratedOfferCard from "@/components/CuratedOfferCard";
+import { useLiveCuratedOffers } from "@/hooks/useCuratedOffers";
 import LolaPeakInsightsCard from "@/components/blood/LolaPeakInsightsCard";
+
 
 
 interface OfferProps {

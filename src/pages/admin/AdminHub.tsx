@@ -14,6 +14,8 @@ import {
   Stethoscope,
   Droplet,
   Megaphone,
+  Tag,
+
   Store,
   MessageSquare,
   MessageSquareHeart,
