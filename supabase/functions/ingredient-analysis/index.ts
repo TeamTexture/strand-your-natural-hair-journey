@@ -472,6 +472,7 @@ async function runGuidanceRetry(args: {
   level: TipsLevel;
   problems: string[];
   sensitivityBlock?: string;
+  usageBlock?: string;
   generationId?: string | null;
   attemptNumber?: number | null;
 }): Promise<GuidanceTip[] | null> {
@@ -480,7 +481,7 @@ async function runGuidanceRetry(args: {
   };
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level, args.ingredients)}${args.sensitivityBlock ?? ""}
+    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level, args.ingredients)}${args.sensitivityBlock ?? ""}${args.usageBlock ?? ""}
 
 YOUR ONLY TASK NOW: return personalised_guidance. Every other field of the analysis is already accepted and must not be rewritten. Your previous guidance was REJECTED — fix every problem below. Each tip must be ONE instruction sentence about using THIS product, followed by the reason it matters for this member:
 - ${args.problems.join("\n- ")}`,
@@ -659,6 +660,7 @@ async function runClaude(args: {
   level: TipsLevel;
   sensitivityBlock?: string;
   factsBlock?: string;
+  usageBlock?: string;
   generationId?: string | null;
   attemptNumber?: number | null;
   maxAttempts?: number | null;
@@ -672,7 +674,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.factsBlock ?? ""}`,
+    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.usageBlock ?? ""}${args.factsBlock ?? ""}`,
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -1154,6 +1156,7 @@ Deno.serve(async (req) => {
         application_area: applicationArea,
         leave_on: leaveOn,
         usage_instructions: usageInstructions,
+        usage_instructions_source: usageSourceLabel(usageSource),
       },
 
       ingredients: rawIngredients,
@@ -1217,6 +1220,7 @@ Deno.serve(async (req) => {
           avoidList,
           level: tipsLevel,
           sensitivityBlock,
+          usageBlock,
           factsBlock,
           generationId,
           attemptNumber,
@@ -1250,6 +1254,7 @@ Deno.serve(async (req) => {
             level: tipsLevel,
             problems: claudeProblems,
             sensitivityBlock,
+            usageBlock,
             generationId,
             attemptNumber,
           });
@@ -1267,7 +1272,7 @@ Deno.serve(async (req) => {
         const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${factsBlock}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${usageBlock}${factsBlock}`;
         analysis = await runLovable({
           systemPrompt,
           userPayload: baseRetryPayload,
