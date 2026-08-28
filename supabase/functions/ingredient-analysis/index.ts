@@ -1368,9 +1368,11 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         onRejected: (rules) => rejected.push(...rules),
       }) as AnalysisPayload;
       const postReasons = sanitiseScoreReasons(analysis.score_reasons);
-      if (postReasons.length === 0 && preReasons.length > 0) {
+      if (postReasons.length < preReasons.length && preReasons.length > 0) {
         // Re-run the bullets one row at a time so only the row that actually
-        // breached a rule is dropped and every clean row still renders.
+        // breached a rule is dropped and every clean row still renders. Runs
+        // on ANY shrinkage, not just a total wipe: the ranked verdict card is
+        // the standing design, and losing a row silently thins it.
         const survivors: ScoreReason[] = [];
         for (const row of preReasons) {
           const checked = sanitiseScoreReasons(
@@ -1387,10 +1389,12 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           function: "ingredient-analysis",
           event: "score_reasons_row_rescue",
           before: preReasons.length,
+          after: postReasons.length,
           rescued: survivors.length,
         }));
-        analysis.score_reasons = survivors;
+        if (survivors.length > postReasons.length) analysis.score_reasons = survivors;
       }
+
       console.log(JSON.stringify({
         function: "ingredient-analysis",
         event: "score_reasons_stage",
