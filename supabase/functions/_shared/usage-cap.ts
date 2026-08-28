@@ -21,6 +21,14 @@ export async function checkDailyCap(
   limit: number,
 ): Promise<Response | null> {
   try {
+    // Per-function override, e.g. AI_DAILY_CAP_INGREDIENT_ANALYSIS=200. Lets a
+    // cap be raised without a redeploy when a legitimate member (or a support
+    // session) needs more headroom for a day.
+    const override = Number(
+      Deno.env.get(`AI_DAILY_CAP_${functionName.replace(/[^a-z0-9]+/gi, "_").toUpperCase()}`) ?? "",
+    );
+    if (Number.isFinite(override) && override > 0) limit = override;
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SERVICE_ROLE) return null;
