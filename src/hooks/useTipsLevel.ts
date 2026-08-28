@@ -152,5 +152,6 @@ export function useTipsLevel() {
     needsPrompt: !readPrompted(),
     showExplanations: showsExplanations(fallbackLevel),
     showBeginnerHelp: showsBeginnerHelp(fallbackLevel),
+    ready: true,
   } satisfies TipsLevelContextValue;
 }
