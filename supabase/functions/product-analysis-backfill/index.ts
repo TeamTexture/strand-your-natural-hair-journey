@@ -19,11 +19,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const JOB = "product_analysis_backfill";
-const LEASE_MINUTES = 10;
-const DEFAULT_LIMIT = 6;
+const LEASE_MINUTES = 2; // matches the 2-minute cron cadence
+const DEFAULT_LIMIT = 4;
 const MAX_LIMIT = 25;
 const MAX_ATTEMPTS = 3;
-const GAP_MS = 1500; // cooldown between items — keeps us under the rate limit
+const GAP_MS = 800; // cooldown between items — keeps us under the rate limit
+// The platform kills an invocation after 150s idle, so a run must finish well
+// inside that: short, frequent runs beat long ones that get cut mid-item.
+const RUN_BUDGET_MS = 110_000;
+const ITEM_TIMEOUT_MS = 60_000; // a hung analysis can't eat the whole run
+const STALE_RUNNING_MINUTES = 5; // requeue rows a dead run left in flight
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -111,6 +116,14 @@ Deno.serve(async (req) => {
       .update({ paused: true, pause_reason: reason, lease_until: null, note: reason })
       .eq("job", JOB);
 
+  // Rows a dead run left marked in-flight go back on the queue — their attempt
+  // was already counted, so this can't loop forever.
+  await admin
+    .from("product_analysis_backfill")
+    .update({ status: "pending", last_error: "requeued after stalled run" })
+    .eq("status", "running")
+    .lt("updated_at", new Date(now - STALE_RUNNING_MINUTES * 60_000).toISOString());
+
   // ── Claim a bounded batch ────────────────────────────────────────────────
   const { data: queued, error: queueErr } = await admin
     .from("product_analysis_backfill")
@@ -137,6 +150,8 @@ Deno.serve(async (req) => {
   let breaker: string | null = null;
 
   for (const row of rows) {
+    // Never overrun into the next scheduled tick — leftovers stay pending.
+    if (Date.now() - now > RUN_BUDGET_MS) break;
     // Mark in-flight so a crash can't hide the attempt.
     await admin
       .from("product_analysis_backfill")
@@ -212,6 +227,8 @@ Deno.serve(async (req) => {
           apikey: serviceKey,
         },
         body: JSON.stringify(payload),
+        // A single hung analysis used to swallow the whole run.
+        signal: AbortSignal.timeout(ITEM_TIMEOUT_MS),
       });
       status = res.status;
       if (!res.ok) errText = (await res.text()).slice(0, 500);
