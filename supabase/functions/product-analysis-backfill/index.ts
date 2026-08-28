@@ -133,20 +133,56 @@ Deno.serve(async (req) => {
 
   // Rows a dead run left marked in-flight go back on the queue — their attempt
   // was already counted, so this can't loop forever.
-  await admin
-    .from("product_analysis_backfill")
-    .update({ status: "pending", last_error: "requeued after stalled run" })
-    .eq("status", "running")
-    .lt("updated_at", new Date(now - STALE_RUNNING_MINUTES * 60_000).toISOString());
+  if (!singleId) {
+    await admin
+      .from("product_analysis_backfill")
+      .update({ status: "pending", last_error: "requeued after stalled run" })
+      .eq("status", "running")
+      .lt("updated_at", new Date(now - STALE_RUNNING_MINUTES * 60_000).toISOString());
+  }
+
+  // Single-item override: reset (or create) just this product's queue row so
+  // the normal claim below picks it and nothing else.
+  if (singleId) {
+    const { data: p } = await admin
+      .from("user_products")
+      .select("id, user_id, product_key")
+      .eq("id", singleId)
+      .maybeSingle();
+    if (!p) return json({ error: "product not found" }, 404);
+    const prod = p as { id: string; user_id: string; product_key: string | null };
+    const { data: existingQ } = await admin
+      .from("product_analysis_backfill")
+      .select("id")
+      .eq("user_product_id", singleId)
+      .maybeSingle();
+    if (existingQ) {
+      await admin
+        .from("product_analysis_backfill")
+        .update({ status: "pending", attempts: 0, last_error: null, processed_at: null })
+        .eq("id", (existingQ as { id: string }).id);
+    } else {
+      await admin.from("product_analysis_backfill").insert({
+        user_id: prod.user_id,
+        user_product_id: prod.id,
+        product_key: prod.product_key,
+        status: "pending",
+        attempts: 0,
+      });
+    }
+  }
 
   // ── Claim a bounded batch ────────────────────────────────────────────────
-  const { data: queued, error: queueErr } = await admin
+  let claimQuery = admin
     .from("product_analysis_backfill")
     .select("id, user_id, user_product_id, product_key, attempts")
     .eq("status", "pending")
-    .lt("attempts", MAX_ATTEMPTS)
+    .lt("attempts", MAX_ATTEMPTS);
+  if (singleId) claimQuery = claimQuery.eq("user_product_id", singleId);
+  const { data: queued, error: queueErr } = await claimQuery
     .order("created_at", { ascending: true })
     .limit(runLimit);
+
 
   if (queueErr) {
     await releaseLease(`queue read failed: ${queueErr.message}`);
