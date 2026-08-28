@@ -1638,23 +1638,12 @@ const IngredientDetail = () => {
                   </div>
 
                   <LevelGate min={3}>
-                    {benefits.length > 0 && (
+                    {roleInProduct && (
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
                           What it does in this formula
                         </p>
-                        {showBeginnerHelp ? (
-                          <BeginnerSteps steps={benefits.map((b) => ({ text: b }))} />
-                        ) : (
-                          <ul className="space-y-1.5">
-                            {benefits.map((b, i) => (
-                              <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
-                                <span className="text-primary shrink-0 mt-0.5">•</span>
-                                <span>{b}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        <AiProse text={roleInProduct} />
                       </div>
                     )}
                   </LevelGate>
@@ -1671,12 +1660,19 @@ const IngredientDetail = () => {
                       </p>
                     )}
                     {meansForYou && <AiProse text={meansForYou} />}
-                    {!profileLoading && !meansForYou && profileError && (
+                    {!profileLoading && !meansForYou && notFlagged && (
+                      <p className="text-sm leading-relaxed text-foreground/80">
+                        This one wasn't flagged either way in your analysis of this product —
+                        nothing here counts for or against it on your profile.
+                      </p>
+                    )}
+                    {!profileLoading && !meansForYou && !notFlagged && profileError && (
                       <p className="text-sm leading-relaxed text-muted-foreground italic">
                         Personalised guidance unavailable right now.
                       </p>
                     )}
                   </div>
+
 
 
 
