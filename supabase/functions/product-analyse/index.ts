@@ -49,6 +49,7 @@ import {
   loadIngredientVocabulary,
   productProseFields,
 } from "../_shared/analysis-failsafes.ts";
+import { logContentIntegrityRejections } from "../_shared/content-integrity.ts";
 import { alignFitLanguage } from "../_shared/fit-band.ts";
 import {
   callClaude,
@@ -732,6 +733,8 @@ Deno.serve(async (req: Request) => {
     {
       const a = analysis as Record<string, unknown>;
       const failsafe = enforceAnalysisFailsafes({
+        functionName: "product-analyse",
+        userId: user.id,
         fields: productProseFields(a),
         cards: a.key_ingredients,
         allowedIngredients: Array.isArray(a.ingredients)
@@ -753,6 +756,12 @@ Deno.serve(async (req: Request) => {
           cleared,
           problems: failsafe.problems,
         }));
+        // Author review: every rejection lands in ai_content_rejections.
+        await logContentIntegrityRejections(failsafe.violations, {
+          functionName: "product-analyse",
+          userId: user.id,
+          action: "field_nulled",
+        });
       }
       // The label the member reads is derived from the score; the prose must
       // not contradict it.
