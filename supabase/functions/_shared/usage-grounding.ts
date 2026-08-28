@@ -277,6 +277,10 @@ ANTI-ANCHORING RULE (validated — this is a real failure mode we have seen):
 - Never default to the same profile trait across products. Density is NOT the house trait, and neither is porosity. A trait is named only because this product's mechanism makes it relevant, never because it was used on a previous product, never because it appears in an example, and never because it is the trait you reach for most easily.
 - Do not pattern-match to any example wording in this prompt. The examples show the DEPTH expected, not the trait to pick.
 - If the trait you first thought of is not the one that actually changes this product's mechanism, discard it. Different products should genuinely surface different traits.
+${(opts.recentTraits?.length ?? 0) > 0
+  ? `- ALREADY USED ON HER OTHER PRODUCTS (most used first): ${opts.recentTraits!.join(", ")}. You have leaned on these already. Reuse one ONLY if it is genuinely the trait that changes this product's mechanism; if another stored trait is more relevant here, use that one instead.`
+  : ""}
+
 
 MECHANISM → TRAIT, ILLUSTRATIVE ONLY (never a lookup table, and only if the trait is actually on her record):
 - Product that must reach the scalp: what limits scalp access — current style, coverage, density, scalp condition.
