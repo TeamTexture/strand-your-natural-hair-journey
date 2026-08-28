@@ -1,7 +1,9 @@
 // PER-USER DAILY CALL CAPS — pure spend protection.
 //
-// Counts rows in `public.ai_call_log` (the Phase 2 cost meter) for this user +
-// function over the last 24 hours and refuses the call once the limit is hit.
+// Counts distinct user-initiated generations in `public.ai_call_log` for this
+// user + function over the last 24 hours and refuses the call once the limit is
+// hit. One request may write several rows (evidence stage, writer, guardrail
+// retries); those share a generation_id and must count as ONE member action.
 //
 // Best effort by design: if the count query itself fails we log a warning and
 // allow the call through. A broken meter must never lock a member out.
@@ -30,16 +32,30 @@ export async function checkDailyCap(
     });
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count, error } = await admin
+    const { data: rows, error } = await admin
       .from("ai_call_log")
-      .select("id", { count: "exact", head: true })
+      .select("id, generation_id")
       .eq("user_id", userId)
       .eq("function_name", functionName)
-      .gt("created_at", since);
+      .gt("created_at", since)
+      .limit(5000);
 
     if (error) throw new Error(error.message);
 
-    if (typeof count === "number" && count >= limit) {
+    // Modern rows from one request share a generation_id. Older rows have no
+    // generation_id, so count each of those conservatively as one action.
+    const generationIds = new Set<string>();
+    let legacyRows = 0;
+    for (const row of rows ?? []) {
+      if (typeof row.generation_id === "string" && row.generation_id) {
+        generationIds.add(row.generation_id);
+      } else {
+        legacyRows += 1;
+      }
+    }
+    const count = generationIds.size + legacyRows;
+
+    if (count >= limit) {
       console.log(
         JSON.stringify({
           event: "daily_cap_hit",
