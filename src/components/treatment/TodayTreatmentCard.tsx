@@ -156,36 +156,52 @@ const TodayTreatmentCard = () => {
         id={alertAnchorId(ALERT_KEYS.TREATMENT_CHECKIN)}
         className="space-y-3.5"
       >
-        {/* Plan identity first: the title in full, never clipped. */}
-        <button
-          onClick={() => navigate(`/treatment/${plan.id}`)}
-          className="w-full flex items-start gap-3 text-left min-h-[44px]"
-          aria-label={`Open ${plan.title}`}
-        >
-          {heroImage ? (
-            <img
-              src={heroImage}
-              alt=""
-              loading="lazy"
-              className="size-12 rounded-xl object-cover shrink-0 border border-border/60"
-            />
-          ) : (
-            <span className="size-12 rounded-xl shrink-0 bg-primary/10 flex items-center justify-center">
-              <Sparkles className="size-5 text-primary" />
+        {/* Plan identity first: the title in full, never clipped. Collapsed,
+            this row is the whole card — photo and title, nothing else. */}
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => navigate(`/treatment/${plan.id}`)}
+            className="min-w-0 flex-1 flex items-start gap-3 text-left min-h-[44px]"
+            aria-label={`Open ${plan.title}`}
+          >
+            {heroImage ? (
+              <img
+                src={heroImage}
+                alt=""
+                loading="lazy"
+                className="size-12 rounded-xl object-cover shrink-0 border border-border/60"
+              />
+            ) : (
+              <span className="size-12 rounded-xl shrink-0 bg-primary/10 flex items-center justify-center">
+                <Sparkles className="size-5 text-primary" />
+              </span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[20px] leading-tight break-words [overflow-wrap:anywhere]">
+                {plan.title}
+              </span>
+              {!collapsed && (
+                <span className="block font-body text-[11.5px] text-muted-foreground mt-1">
+                  Week {current?.week ?? 1} of {plan.duration_weeks} · Open plan
+                </span>
+              )}
             </span>
-          )}
-          <span className="min-w-0 flex-1">
-            <span className="block font-display text-[20px] leading-tight break-words [overflow-wrap:anywhere]">
-              {plan.title}
-            </span>
-            <span className="block font-body text-[11.5px] text-muted-foreground mt-1">
-              Week {current?.week ?? 1} of {plan.duration_weeks} · Open plan
-            </span>
-          </span>
-          <ChevronRight className="size-4 text-primary shrink-0 mt-1" />
-        </button>
+            {collapsed && <ChevronRight className="size-4 text-primary shrink-0 mt-1" />}
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Show my treatment plan" : "Hide my treatment plan"}
+            className="shrink-0 size-9 -mr-1 rounded-full flex items-center justify-center text-primary"
+          >
+            {collapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+          </button>
+        </div>
 
-        {/* PRODUCTS ON THE PLAN — full names, wrapped, with their own photo. */}
+        {!collapsed && (
+          <>
+
         {products.length > 0 && (
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
