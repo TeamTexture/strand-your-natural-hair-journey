@@ -188,9 +188,19 @@
   .font-script {
     font-family: 'Cormorant Garamond', Georgia, serif;
   }
+  /* Product card titles: small, bold, and wrapped at WORD boundaries only —
+   * never split mid-word (overrides the global `overflow-wrap: anywhere`). */
+  .product-title {
+    font-weight: 700;
+    overflow-wrap: normal;
+    word-break: normal;
+    word-wrap: normal;
+    hyphens: none;
+  }
   .tracking-strand {
     letter-spacing: 0.2em;
   }
+
   .tracking-button {
     letter-spacing: 0.2em;
   }
