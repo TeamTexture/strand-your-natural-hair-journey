@@ -29,6 +29,7 @@ import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 const Favourites = () => {
   const navigate = useNavigate();
