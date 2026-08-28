@@ -65,13 +65,19 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
-  let body: { limit?: number; resume?: boolean } = {};
+  let body: { limit?: number; resume?: boolean; single_user_product_id?: string } = {};
   try {
     body = (await req.json()) as typeof body;
   } catch {
     body = {};
   }
   const limit = Math.min(Math.max(Number(body.limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+  // SINGLE-ITEM OVERRIDE. Re-runs exactly ONE saved product, ignoring the
+  // pause guard and the rest of the queue, and never clears the pause flag.
+  // Used to prove a specific product's analysis without resuming the job.
+  const singleId = typeof body.single_user_product_id === "string" && body.single_user_product_id
+    ? body.single_user_product_id
+    : null;
 
   // ── Job state: pause guard + single-flight lease ─────────────────────────
   const { data: stateRow } = await admin
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
       .eq("job", JOB);
   }
 
-  const paused = !body.resume && !!state?.paused;
+  const paused = !body.resume && !singleId && !!state?.paused;
   // A GATEWAY pause (402/403) self-heals out of band, so it still runs exactly
   // ONE probe item per run: a denied probe spends no credits and keeps the
   // pause, a successful one clears it. A pause set by hand is a HARD STOP —
@@ -99,7 +105,8 @@ Deno.serve(async (req) => {
   if (paused && !gatewayPause) {
     return json({ skipped: "job paused", pause_reason: state?.pause_reason ?? null, paused: true });
   }
-  const runLimit = paused ? 1 : limit;
+  const runLimit = singleId ? 1 : paused ? 1 : limit;
+
 
 
   const now = Date.now();
