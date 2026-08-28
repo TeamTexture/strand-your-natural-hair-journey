@@ -351,6 +351,10 @@ async function loadDirectory(): Promise<Professional[]> {
       website: normalizeWebsiteUrl(row.website_url) || instaUrl,
       bookCode: "",
       discount: row.discount_description ?? "",
+      offers: row.discount_description
+        ? [{ title: row.discount_description as string, code: null }]
+        : [],
+
       bookingUrl:
         normalizeWebsiteUrl(row.booking_url) || normalizeWebsiteUrl(row.website_url) || undefined,
       featured: true,
