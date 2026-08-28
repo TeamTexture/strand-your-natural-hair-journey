@@ -20,7 +20,7 @@ import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
-import { requireAuthedUser as requireSignedInUser } from "../_shared/auth.ts";
+import { requireAuthedUser as requireSignedInUser, isServiceRoleCaller } from "../_shared/auth.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
