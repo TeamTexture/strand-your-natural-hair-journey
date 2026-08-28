@@ -91,9 +91,16 @@ Deno.serve(async (req) => {
   }
 
   const paused = !body.resume && !!state?.paused;
-  // While paused we still run exactly ONE probe item: a denied probe spends no
-  // credits and keeps the pause, a successful one clears it.
+  // A GATEWAY pause (402/403) self-heals out of band, so it still runs exactly
+  // ONE probe item per run: a denied probe spends no credits and keeps the
+  // pause, a successful one clears it. A pause set by hand is a HARD STOP —
+  // no probe, no items, nothing until someone resumes it explicitly.
+  const gatewayPause = /^gateway /i.test(state?.pause_reason ?? "");
+  if (paused && !gatewayPause) {
+    return json({ skipped: "job paused", pause_reason: state?.pause_reason ?? null, paused: true });
+  }
   const runLimit = paused ? 1 : limit;
+
 
   const now = Date.now();
   const leaseHeld = state?.lease_until && new Date(state.lease_until).getTime() > now;
