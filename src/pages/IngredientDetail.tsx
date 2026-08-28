@@ -54,6 +54,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { safeBack } from "@/lib/smartBack";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import HomemadeSafetyCard from "@/components/product/HomemadeSafetyCard";
+import GlossaryConfidenceCard from "@/components/product/GlossaryConfidenceCard";
 import { parseRecipe, type HomemadeSafetyPayload } from "@/lib/homemade";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
@@ -1164,6 +1165,15 @@ const IngredientDetail = () => {
                 never read as a footnote under an otherwise warm verdict. */}
             {analysis.homemade_safety && (
               <HomemadeSafetyCard safety={analysis.homemade_safety} />
+            )}
+
+            {/* Glossary coverage — physically separated from the safety card so a
+                long subset of names can never read as the full recipe. */}
+            {analysis.homemade_safety && (
+              <GlossaryConfidenceCard
+                unverified={analysis.homemade_safety.unverified ?? []}
+                total={analysis.ingredients?.length ?? 0}
+              />
             )}
 
             {/* AI Summary — the single verdict callout, bold lead-in only */}
