@@ -1091,7 +1091,11 @@ Deno.serve(async (req) => {
     const provider = readAiProvider("STRAND_AI_PROVIDER_INGREDIENT");
 
     // ── Cache check (model_version-aware) ─────────────────────────────
-    if (!force) {
+    // Kept outside the `force`/version gates so that when we cannot spend on a
+    // fresh generation (daily cap) we can still serve her last good write-up
+    // instead of an error card on an empty screen.
+    let stalePayload: AnalysisPayload | null = null;
+    {
       const { data: existing } = await dataClient
         .from("ai_summaries")
         .select("payload, updated_at")
