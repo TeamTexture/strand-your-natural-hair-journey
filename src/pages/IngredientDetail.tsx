@@ -101,7 +101,14 @@ function isSingleScoreProduct(row: { created_at?: string | null } | null): boole
   return Number.isFinite(created) && created >= SINGLE_SCORE_CUTOVER;
 }
 
+// EMERGENCY STABILISATION (2026-08-28). While true: opening a product never
+// triggers a live analysis. Any stored analysis is rendered instantly; when
+// there is none, a calm "Analysis not yet available" shows instead of an
+// error/retry or a hanging spinner. Explicit "Re-analyse" still works.
+const DEMO_SAFE_MODE = true;
+
 interface Analysis {
+
   /** null when the payload carried no score — never a made-up number. */
   match_score: number | null;
 
