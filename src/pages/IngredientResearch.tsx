@@ -12,7 +12,6 @@ import ProductThumb from "@/components/ProductThumb";
 import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import AiProse from "@/components/tips/AiProse";
-import LevelGate from "@/components/tips/LevelGate";
 
 const SectionHeader = ({ icon: Icon, label }: { icon: LucideIcon; label: string }) => (
   <div className="flex items-center gap-2">
