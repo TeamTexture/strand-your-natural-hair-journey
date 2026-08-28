@@ -65,13 +65,19 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
-  let body: { limit?: number; resume?: boolean } = {};
+  let body: { limit?: number; resume?: boolean; single_user_product_id?: string } = {};
   try {
     body = (await req.json()) as typeof body;
   } catch {
     body = {};
   }
   const limit = Math.min(Math.max(Number(body.limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+  // SINGLE-ITEM OVERRIDE. Re-runs exactly ONE saved product, ignoring the
+  // pause guard and the rest of the queue, and never clears the pause flag.
+  // Used to prove a specific product's analysis without resuming the job.
+  const singleId = typeof body.single_user_product_id === "string" && body.single_user_product_id
+    ? body.single_user_product_id
+    : null;
 
   // ── Job state: pause guard + single-flight lease ─────────────────────────
   const { data: stateRow } = await admin
@@ -90,7 +96,7 @@ Deno.serve(async (req) => {
       .eq("job", JOB);
   }
 
-  const paused = !body.resume && !!state?.paused;
+  const paused = !body.resume && !singleId && !!state?.paused;
   // A GATEWAY pause (402/403) self-heals out of band, so it still runs exactly
   // ONE probe item per run: a denied probe spends no credits and keeps the
   // pause, a successful one clears it. A pause set by hand is a HARD STOP —
@@ -99,14 +105,16 @@ Deno.serve(async (req) => {
   if (paused && !gatewayPause) {
     return json({ skipped: "job paused", pause_reason: state?.pause_reason ?? null, paused: true });
   }
-  const runLimit = paused ? 1 : limit;
+  const runLimit = singleId ? 1 : paused ? 1 : limit;
+
 
 
   const now = Date.now();
-  const leaseHeld = state?.lease_until && new Date(state.lease_until).getTime() > now;
+  const leaseHeld = !singleId && state?.lease_until && new Date(state.lease_until).getTime() > now;
   if (leaseHeld) {
     return json({ skipped: "another run holds the lease", lease_until: state!.lease_until });
   }
+
 
   const leaseUntil = new Date(now + LEASE_MINUTES * 60_000).toISOString();
   await admin
@@ -125,20 +133,56 @@ Deno.serve(async (req) => {
 
   // Rows a dead run left marked in-flight go back on the queue — their attempt
   // was already counted, so this can't loop forever.
-  await admin
-    .from("product_analysis_backfill")
-    .update({ status: "pending", last_error: "requeued after stalled run" })
-    .eq("status", "running")
-    .lt("updated_at", new Date(now - STALE_RUNNING_MINUTES * 60_000).toISOString());
+  if (!singleId) {
+    await admin
+      .from("product_analysis_backfill")
+      .update({ status: "pending", last_error: "requeued after stalled run" })
+      .eq("status", "running")
+      .lt("updated_at", new Date(now - STALE_RUNNING_MINUTES * 60_000).toISOString());
+  }
+
+  // Single-item override: reset (or create) just this product's queue row so
+  // the normal claim below picks it and nothing else.
+  if (singleId) {
+    const { data: p } = await admin
+      .from("user_products")
+      .select("id, user_id, product_key")
+      .eq("id", singleId)
+      .maybeSingle();
+    if (!p) return json({ error: "product not found" }, 404);
+    const prod = p as { id: string; user_id: string; product_key: string | null };
+    const { data: existingQ } = await admin
+      .from("product_analysis_backfill")
+      .select("id")
+      .eq("user_product_id", singleId)
+      .maybeSingle();
+    if (existingQ) {
+      await admin
+        .from("product_analysis_backfill")
+        .update({ status: "pending", attempts: 0, last_error: null, processed_at: null })
+        .eq("id", (existingQ as { id: string }).id);
+    } else {
+      await admin.from("product_analysis_backfill").insert({
+        user_id: prod.user_id,
+        user_product_id: prod.id,
+        product_key: prod.product_key,
+        status: "pending",
+        attempts: 0,
+      });
+    }
+  }
 
   // ── Claim a bounded batch ────────────────────────────────────────────────
-  const { data: queued, error: queueErr } = await admin
+  let claimQuery = admin
     .from("product_analysis_backfill")
     .select("id, user_id, user_product_id, product_key, attempts")
     .eq("status", "pending")
-    .lt("attempts", MAX_ATTEMPTS)
+    .lt("attempts", MAX_ATTEMPTS);
+  if (singleId) claimQuery = claimQuery.eq("user_product_id", singleId);
+  const { data: queued, error: queueErr } = await claimQuery
     .order("created_at", { ascending: true })
     .limit(runLimit);
+
 
   if (queueErr) {
     await releaseLease(`queue read failed: ${queueErr.message}`);
