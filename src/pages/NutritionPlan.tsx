@@ -628,7 +628,11 @@ const NutritionPlan = () => {
   const [planFailed, setPlanFailed] = useState(false);
   const [meals, setMeals] = useState<AiMeal[] | null>(null);
   const [mealsLoading, setMealsLoading] = useState(false);
+  /** Real, moving progress for the only case that generates: an explicit ask. */
+  const [mealsProgress, setMealsProgress] = useState(0);
+  const mealsInFlightRef = useRef(false);
   const [mealsView, setMealsView] = useState<"ideas" | "saved">("ideas");
+
   const savedMealsQ = useSavedMeals();
 
   const savedByKey = useMemo(() => {
