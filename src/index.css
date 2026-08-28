@@ -189,7 +189,8 @@
     font-family: 'Cormorant Garamond', Georgia, serif;
   }
   /* Product card titles: small, bold, and wrapped at WORD boundaries only —
-   * never split mid-word (overrides the global `overflow-wrap: anywhere`). */
+   * never split mid-word (overrides the global `overflow-wrap: anywhere`).
+   * Per-card font-sizes are set inline; keep them small and consistent. */
   .product-title {
     font-weight: 700;
     overflow-wrap: normal;

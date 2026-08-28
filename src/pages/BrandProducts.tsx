@@ -96,7 +96,7 @@ const BrandProducts = () => {
                       cover={!!p.storage_path}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="product-title text-[13px] leading-snug">
+                      <p className="product-title text-[12px] leading-snug">
 
                         {p.name}
                       </p>

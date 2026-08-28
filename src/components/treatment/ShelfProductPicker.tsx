@@ -95,7 +95,7 @@ const ShelfProductPicker = ({ open, onOpenChange, usedIds = [], onPick }: Props)
                   wrapperClassName="size-11 rounded-xl overflow-hidden bg-secondary shrink-0"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="product-title font-body text-[12.5px] text-foreground">
+                  <p className="product-title font-body text-[11.5px] text-foreground">
                     {p.name}
                   </p>
                   {p.brand && (

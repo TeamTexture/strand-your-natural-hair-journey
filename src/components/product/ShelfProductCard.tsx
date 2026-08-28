@@ -113,7 +113,7 @@ const ShelfProductCard = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="product-title font-display text-[13.5px] leading-snug">
+          <p className="product-title font-display text-[12.5px] leading-snug">
             {name}
           </p>
 
