@@ -9,6 +9,7 @@
 // is safe; renaming or removing a field is a breaking change that
 // requires a coordinated client update.
 
+import { STRAND_TIP_SCHEMA_PROPERTY } from "./fit-first-score.ts";
 import {
   SCORE_REASONS_SCHEMA_PROPERTY,
   type ScoreReason,
@@ -52,6 +53,9 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
 
     match_score: { type: "integer", minimum: 0, maximum: 100 },
     score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+    // Fit-first (2026-08-28): mild, non-harmful observations live here so they
+    // stop costing score points. Nullable — no tip is the preferred answer.
+    strand_tip: STRAND_TIP_SCHEMA_PROPERTY,
     insight: PURPOSE_INSIGHT_SCHEMA_PROPERTY,
     ai_summary: {
       type: "string",

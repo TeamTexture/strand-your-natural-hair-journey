@@ -16,6 +16,7 @@ import IngredientFlagRow from "@/components/product/IngredientFlagRow";
 import { IngredientProductScope } from "@/components/ingredients/IngredientToken";
 import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { emphasisSplit } from "@/lib/tipsRender";
+import { alignFitLanguage } from "@/lib/fitBand";
 import { looksSequential, splitNumberedSteps } from "@/lib/guidance";
 import { condenseProse, wantsWhy, type GuidanceTip as GTip } from "@/lib/tipsRender";
 import { BeginnerSteps } from "@/components/beginner/BeginnerGuide";
@@ -1171,7 +1172,12 @@ const IngredientDetail = () => {
               // SAFETY: when a declared sensitivity matches, the AI paragraph was
               // written against the pre-sensitivity score — any endorsement in it
               // is stripped so no positive claim can sit beside the avoid warning.
-              const safeSummary = safeProductSummary(analysis.summary, hasSensitivity);
+              // The verdict label above is derived from the score; prose that
+              // calls the same product a different fit is a contradiction.
+              const safeSummary = alignFitLanguage(
+                safeProductSummary(analysis.summary, hasSensitivity),
+                displayScore,
+              );
               const { phrase, rest } = emphasisSplit(safeSummary);
               // A declared sensitivity overrides the tone outright: the callout
               // can never read green above a warning that contradicts it.

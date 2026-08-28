@@ -32,6 +32,8 @@ import { cn } from "@/lib/utils";
 import MatchStars from "@/components/MatchStars";
 import { matchScoreOf, scoreTone as toneForScore } from "@/lib/matchStars";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
+import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
+import { alignFitLanguage } from "@/lib/fitBand";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
 import BrandLink from "@/components/BrandLink";
@@ -64,6 +66,8 @@ interface IngredientAnalysisResponse {
     summary?: string;
     match_score?: number;
     score_reasons?: unknown;
+    strand_tip?: unknown;
+
   };
 }
 
@@ -112,6 +116,8 @@ const ProductProfile = () => {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiMatchScore, setAiMatchScore] = useState<number | null>(null);
   const [aiScoreReasons, setAiScoreReasons] = useState<ScoreReason[]>([]);
+  // Fit-first: mild, non-harmful observations render here, never as score rationale.
+  const [strandTips, setStrandTips] = useState<StrandTipNote[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -266,6 +272,7 @@ const ProductProfile = () => {
         setAiMatchScore(score);
         const reasons = parseScoreReasons(data?.analysis?.score_reasons);
         setAiScoreReasons(reasons);
+        setStrandTips(parseStrandTips(data?.analysis?.strand_tip));
 
         // Persist to user_products so the next visit hydrates instantly and
         // never re-triggers the AI call. We save both the summary/score AND
@@ -416,7 +423,7 @@ const ProductProfile = () => {
             neutral information only and leave decisions to the user. */}
 
 {(() => {
-          const summaryText = aiSummary ?? product.ai_summary ?? "";
+          const summaryText = alignFitLanguage(aiSummary ?? product.ai_summary ?? "", score);
           const { phrase, rest } = summaryText ? emphasisSplit(summaryText) : { phrase: "", rest: "" };
           const scoreTone = toneForScore(score);
           return (
@@ -444,6 +451,7 @@ const ProductProfile = () => {
                     </p>
                     <ScoreReasons reasons={aiScoreReasons} />
                   </StatusCallout>
+                  <StrandTipNotes tips={strandTips} />
                 </div>
               ) : aiError ? (
                 <p className="mt-3 text-sm leading-snug text-muted-foreground">

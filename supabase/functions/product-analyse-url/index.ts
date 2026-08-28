@@ -47,6 +47,14 @@ import {
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
+  applyFieldNulls,
+  enforceAnalysisFailsafes,
+  loadIngredientVocabulary,
+  productProseFields,
+} from "../_shared/analysis-failsafes.ts";
+import { alignFitLanguage } from "../_shared/fit-band.ts";
+
+import {
   callClaude,
   type ContentBlockInput,
   type ServerTool,
@@ -78,8 +86,8 @@ declare const Deno: {
 };
 
 // v5 invalidates scans cached before product-specific hero-image extraction.
-const MODEL_VERSION = "claude-sonnet-4-6@v6-manuscript-2026-08-09";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v6-manuscript-2026-08-09";
+const MODEL_VERSION = "claude-sonnet-4-6@v15-fit-first-2026-08-28";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v15-fit-first-2026-08-28";
 
 
 function levelCap(level: TipsLevel): number {
@@ -994,8 +1002,48 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+
+    // ── Shared analysis failsafes (fit-first score, Strand Tip, closed
+    // vocabulary, ingredient-name lockdown) — the same module every analysis
+    // function uses. See _shared/analysis-failsafes.ts.
+    {
+      const a = analysis as Record<string, unknown>;
+      const failsafe = enforceAnalysisFailsafes({
+        fields: productProseFields(a),
+        cards: a.key_ingredients,
+        allowedIngredients: Array.isArray(a.ingredients)
+          ? (a.ingredients as unknown[]).map((i) => String(i))
+          : [],
+        vocabulary: await loadIngredientVocabulary(supabase as never),
+        score: typeof a.match_score === "number" ? a.match_score : null,
+        reasons: (a.score_reasons ?? []) as never,
+        modelTips: a.strand_tip,
+      });
+      a.score_reasons = failsafe.reasons;
+      a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
+      if (failsafe.score != null) a.match_score = failsafe.score;
+      if (failsafe.violations.length) {
+        const cleared = applyFieldNulls(a, failsafe.violations);
+        console.log(JSON.stringify({
+          function: "product-analyse-url",
+          violation: "vocabulary_or_name_lock",
+          cleared,
+          problems: failsafe.problems,
+        }));
+      }
+      a.ai_summary = alignFitLanguage(
+        a.ai_summary,
+        typeof a.match_score === "number" ? a.match_score : null,
+      );
+    }
+
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "url-debug", phase: "all done", total_ms: Date.now() - t0 }));
+
+    // Sanitise BEFORE caching so the stored payload is byte-identical to the
+    // one delivered — the fidelity sanitiser can drop a whole score reason,
+    // which is what made the cache and the rendered card disagree.
+    analysis = await sanitiseAndLog(analysis, "product-analyse-url") as typeof analysis;
 
     // ── Upsert cache ───────────────────────────────────────────────
     const { data: prior } = await supabase
@@ -1017,7 +1065,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify(await sanitiseAndLog(analysis, "product-analyse-url")),
+      JSON.stringify(analysis),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
