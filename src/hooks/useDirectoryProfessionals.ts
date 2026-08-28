@@ -202,7 +202,7 @@ async function loadDirectory(): Promise<Professional[]> {
     proIds.length > 0
       ? supabase
           .from("pro_offers")
-          .select("pro_user_id,title,code,starts_at,ends_at,is_active,created_at")
+          .select("pro_user_id,title,description,code,starts_at,ends_at,is_active,created_at")
           .in("pro_user_id", proIds)
           .eq("is_active", true)
           .order("created_at", { ascending: false })
@@ -217,13 +217,22 @@ async function loadDirectory(): Promise<Professional[]> {
   const avatarMap = new Map<string, string | null>(avatarPairs);
   const galleryMap = new Map<string, string[]>(galleryPairs);
   const nowMs = Date.now();
-  const offerMap = new Map<string, { title: string; code: string | null }>();
-  for (const o of offers ?? []) {
-    const starts = o.starts_at ? new Date(o.starts_at).getTime() : -Infinity;
-    const ends = o.ends_at ? new Date(o.ends_at).getTime() : Infinity;
-    if (starts <= nowMs && ends >= nowMs && !offerMap.has(o.pro_user_id)) {
-      offerMap.set(o.pro_user_id, { title: o.title, code: o.code ?? null });
-    }
+  // EVERY live offer per pro, newest first — a pro running three campaigns has
+  // all three shown, not just the newest one.
+  const offerMap = new Map<string, ProOfferView[]>();
+  for (const o of (offers ?? []) as Array<Record<string, unknown>>) {
+    const proUserId = o.pro_user_id as string;
+    const starts = o.starts_at ? new Date(o.starts_at as string).getTime() : -Infinity;
+    const ends = o.ends_at ? new Date(o.ends_at as string).getTime() : Infinity;
+    if (starts > nowMs || ends < nowMs) continue;
+    const list = offerMap.get(proUserId) ?? [];
+    list.push({
+      title: o.title as string,
+      description: (o.description as string | null) ?? null,
+      code: (o.code as string | null) ?? null,
+      endsAt: (o.ends_at as string | null) ?? null,
+    });
+    offerMap.set(proUserId, list);
   }
 
   // ── Live pros — the professional's own current saved profile.
@@ -235,14 +244,26 @@ async function loadDirectory(): Promise<Professional[]> {
     const isSalonStylist = !row.user_id;
     // Salon-managed stylists carry their own discount on the profile row; solo
     // pros keep using their pro_offers campaigns.
-    const ownDiscount =
+    const ownDiscount: ProOfferView | null =
       row.discount_active && row.discount_code
         ? {
             title: row.discount_description ?? "Discount available",
             code: row.discount_code as string,
           }
         : null;
-    const offer = row.user_id ? offerMap.get(row.user_id) ?? ownDiscount : ownDiscount;
+    const offerList: ProOfferView[] = row.user_id
+      ? offerMap.get(row.user_id as string) ?? (ownDiscount ? [ownDiscount] : [])
+      : ownDiscount
+        ? [ownDiscount]
+        : [];
+    const offer = offerList[0] ?? null;
+    // Services live on the professional's own listing row — rendered verbatim.
+    const serviceList: ProService[] = Array.isArray(row.services)
+      ? (row.services as unknown as ProService[]).filter(
+          (s) => s && typeof s.name === "string" && s.name.trim().length > 0,
+        )
+      : [];
+
     // Address and hours live at salon level so two stylists in one building can
     // never drift apart.
     const addressLine1 = salon?.address_line1 ?? row.address_line1;
