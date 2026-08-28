@@ -58,7 +58,7 @@ import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from "@/hooks/useIngredientLists";
-import { useIngredientProfile } from "@/hooks/useIngredientProfile";
+import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { buildAiContext } from "@/lib/aiContext";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { aiInvoke } from "@/lib/aiInvoke";
