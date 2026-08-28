@@ -74,6 +74,7 @@ import {
   validateIngredientCardNames,
   validateNameLockFields,
   type NameLockContext,
+  type NameLockViolation,
 } from "../_shared/ingredient-name-lock.ts";
 
 import {
