@@ -5,7 +5,12 @@ import { Link } from "react-router-dom";
 export function renderMentions(text: string | null | undefined): React.ReactNode {
   if (!text) return null;
   // Split on mentions OR hashtags, capturing them so we can style/link.
-  const parts = text.split(/(@everyone\b|@[A-Za-z0-9_][A-Za-z0-9_ .'-]{0,30}?(?=[\s.,!?;:)]|$)|#[A-Za-z0-9_]{2,40})/g);
+  // Display names are multi-word, so a mention absorbs up to two further
+  // capitalised words ("@Paige Lewin") without swallowing the sentence after it.
+  const parts = text.split(
+    /(@everyone\b|@[A-Za-z0-9_][A-Za-z0-9_.'-]{0,30}(?: [A-Z][A-Za-z0-9_.'-]{0,20}){0,2}|#[A-Za-z0-9_]{2,40})/g,
+  );
+
   return parts.map((p, i) => {
     if (!p) return null;
     if (p === "@everyone") {
