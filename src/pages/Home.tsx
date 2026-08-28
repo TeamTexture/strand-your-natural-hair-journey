@@ -751,7 +751,7 @@ const Home = () => {
 
             {/* Treatment plans are a STRAND+ feature — only + members see them */}
             <div className="space-y-3">
-              <CheckinReminderBanner />
+              
               <PendingPlanInvites />
               <TodayTreatmentCard />
             </div>
