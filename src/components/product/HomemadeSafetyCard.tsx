@@ -65,16 +65,10 @@ const HomemadeSafetyCard = ({ safety }: { safety: HomemadeSafetyPayload }) => {
           {safety.preservation.note}
         </p>
       )}
+      {/* The glossary-confidence list deliberately lives in its OWN card
+          (GlossaryConfidenceCard): rendered here, a long subset of ingredient
+          names read as if it were the whole recipe. */}
 
-      {safety.unverified.length > 0 && (
-        <p className="text-[11.5px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2.5">
-          <span className="font-semibold text-foreground">Lower confidence: </span>
-          {safety.unverified.join(", ")} {safety.unverified.length === 1 ? "isn't" : "aren't"} in
-          STRAND's verified ingredient glossary, so anything said about{" "}
-          {safety.unverified.length === 1 ? "it" : "them"} is general reasoning rather than
-          verified fact.
-        </p>
-      )}
     </SurfaceCard>
   );
 };
