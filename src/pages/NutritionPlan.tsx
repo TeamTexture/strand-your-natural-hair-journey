@@ -642,7 +642,17 @@ const NutritionPlan = () => {
   }, [savedMealsQ.data]);
 
   const fetchMeals = async (currentProfile = profile) => {
+    if (mealsInFlightRef.current) return;
+    mealsInFlightRef.current = true;
     setMealsLoading(true);
+    setMealsProgress(0);
+    const start = Date.now();
+    const ticker = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const target = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 8))));
+      setMealsProgress((p) => (target > p ? target : Math.min(95, p + 1)));
+    }, 200);
+
     try {
       const context = await buildAiContext();
       // Saved meals are permanently off the menu until she deletes them.
