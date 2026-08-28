@@ -508,7 +508,11 @@ const IngredientDetail = () => {
 
 
   const runAnalysis = useCallback(
-    async (force = false) => {
+    async (trigger: AnalysisTrigger, force = false) => {
+      // Tripwire: a call site that reached here without a recognised trigger
+      // bypassed the gate. Fail loudly rather than silently spending a call.
+      assertAnalysisTrigger(trigger);
+
       setLoading(true);
       setError(null);
       try {
