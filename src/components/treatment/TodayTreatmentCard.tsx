@@ -391,13 +391,12 @@ const TodayTreatmentCard = () => {
               </div>
             )}
             <Button
-              variant="outline"
               className="w-full rounded-pill"
               onClick={() =>
                 navigate(`/treatment/${plan.id}/checkin/${startingPointRow.week_number}`)
               }
             >
-              Read all
+              View check-in
             </Button>
           </div>
         )}
