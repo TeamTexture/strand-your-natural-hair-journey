@@ -84,6 +84,18 @@ interface Ingredient {
   category?: string;
 }
 interface GuidanceTip { title: string; body: string }
+
+// ── SINGLE-SCORE CUTOVER ─────────────────────────────────────────────────
+// From this date, ingredient-analysis is the ONE scorer for a product and its
+// result is persisted to user_products.match_score. Rows saved before it keep
+// the score they already have — no backfill, no silent re-scoring of shelves
+// members have already read.
+const SINGLE_SCORE_CUTOVER = Date.parse("2026-09-01T00:00:00Z");
+function isSingleScoreProduct(row: { created_at?: string | null } | null): boolean {
+  const created = row?.created_at ? Date.parse(row.created_at) : NaN;
+  return Number.isFinite(created) && created >= SINGLE_SCORE_CUTOVER;
+}
+
 interface Analysis {
   /** null when the payload carried no score — never a made-up number. */
   match_score: number | null;
