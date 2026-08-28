@@ -1183,7 +1183,11 @@ const IngredientDetail = () => {
             {analysis.homemade_safety && (
               <GlossaryConfidenceCard
                 unverified={analysis.homemade_safety.unverified ?? []}
-                total={analysis.ingredients?.length ?? 0}
+                total={
+                  (Array.isArray((productRow as { ingredients?: unknown } | null)?.ingredients)
+                    ? ((productRow as { ingredients: string[] }).ingredients.length)
+                    : 0) || (analysis.ingredients?.length ?? 0)
+                }
               />
             )}
 
