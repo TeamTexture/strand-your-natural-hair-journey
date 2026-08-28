@@ -25,6 +25,8 @@ const KIND_VIEWS: Record<string, ActiveRoleView[]> = {
   library_collection: ["consumer"],
   mention: ["consumer"],
   setup_goal: ["consumer"],
+  treatment_checkin: ["consumer"],
+
 };
 
 /**

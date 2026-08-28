@@ -70,12 +70,27 @@ Deno.serve(async (req) => {
     out.invitations_error = String(e);
   }
 
+  const nudgedPlans = new Set<string>();
   try {
     out.nudges =
-      force || hour >= NUDGE_FROM_HOUR ? await sendNudges(admin, today) : { skipped: "outside_window" };
+      force || hour >= NUDGE_FROM_HOUR
+        ? await sendNudges(admin, today, nudgedPlans)
+        : { skipped: "outside_window" };
   } catch (e) {
     out.nudges_error = String(e);
   }
+
+  try {
+    // Day one goes out from the same evening window, and never to a plan that
+    // already had a nudge in this run — one treatment email per plan per day.
+    out.day_one =
+      force || hour >= NUDGE_FROM_HOUR
+        ? await sendDayOne(admin, today, nudgedPlans)
+        : { skipped: "outside_window" };
+  } catch (e) {
+    out.day_one_error = String(e);
+  }
+
 
   try {
     out.digests =
@@ -112,7 +127,7 @@ async function sweepInvitations(admin: SupabaseClient) {
 
 /* -------------------------------------------- client weekly check-in ------ */
 
-async function sendNudges(admin: SupabaseClient, today: string) {
+async function sendNudges(admin: SupabaseClient, today: string, nudgedPlans?: Set<string>) {
   // Each plan carries its own cadence (daily / weekly on a chosen day) and hour
   // in the member's timezone. This runs hourly and only picks the plans whose
   // chosen slot is the current local hour.
@@ -172,11 +187,91 @@ async function sendNudges(admin: SupabaseClient, today: string) {
       },
       admin,
     );
+    nudgedPlans?.add(String(row.plan_id));
     if (res.sent) sent += 1;
     else skipped += 1;
   }
   return { due: due?.length ?? 0, sent, skipped };
 }
+
+/* ------------------------------------------- day one starting point ------- */
+
+// The Day 1 check-in is asked for on every plan regardless of the cadence she
+// chose, so it needs its own sweep. Conditions are deliberately narrow: an
+// active plan starting today, no starting point written yet, still + entitled,
+// and no other treatment email already going out for that plan in this run.
+async function sendDayOne(admin: SupabaseClient, today: string, nudgedPlans: Set<string>) {
+  const { data: plans } = await admin
+    .from("treatment_plans")
+    .select("id, user_id, title")
+    .eq("status", "active")
+    .eq("start_date", today)
+    .limit(200);
+
+  let sent = 0;
+  let skipped = 0;
+  for (const p of (plans ?? []) as Array<Record<string, unknown>>) {
+    const planId = String(p.id);
+    if (nudgedPlans.has(planId)) {
+      skipped += 1;
+      continue;
+    }
+    const userId = String(p.user_id);
+
+    const { data: existing } = await admin
+      .from("treatment_plan_checkins")
+      .select("id")
+      .eq("plan_id", planId)
+      .eq("week_number", 0)
+      .not("submitted_at", "is", null)
+      .maybeSingle();
+    if (existing) {
+      skipped += 1;
+      continue;
+    }
+
+    const { data: plus } = await admin.rpc("has_active_plus_subscription", { _user: userId });
+    if (plus !== true) {
+      skipped += 1;
+      continue;
+    }
+    const { data: u } = await admin.auth.admin.getUserById(userId);
+    const email = u?.user?.email;
+    if (!email) {
+      skipped += 1;
+      continue;
+    }
+    const { data: pr } = await admin
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const res = await dispatchEmail(
+      {
+        templateKey: "treatment-day-one-checkin",
+        to: email,
+        recipientUserId: userId,
+        triggerEvent: "treatment_plan.reminder",
+        relatedTable: "treatment_plans",
+        relatedId: planId,
+        // One key per plan, full stop — day one happens once.
+        idempotencyKey: `treatment-day-one-checkin:${planId}`,
+        data: {
+          name: pr?.display_name ? String(pr.display_name).split(" ")[0] : "there",
+          plan_id: planId,
+          plan_title: p.title ?? "your plan",
+        },
+      },
+      admin,
+    );
+    if (res.sent) sent += 1;
+    else skipped += 1;
+  }
+  return { candidates: plans?.length ?? 0, sent, skipped };
+}
+
+
 
 /* ------------------------------- professional / admin weekly digest ------ */
 

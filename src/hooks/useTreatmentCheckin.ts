@@ -95,7 +95,10 @@ export function useCheckinMutations(planId?: string) {
       if (existing.error) throw existing.error;
       if (existing.data) return existing.data as CheckinRow;
 
-      const { start, end } = weekRange(v.startDate, v.week);
+      // Week 0 is the day-one check-in: a single day, the plan's start date.
+      const { start, end } =
+        v.week === 0 ? { start: v.startDate, end: v.startDate } : weekRange(v.startDate, v.week);
+
       const { data, error } = await db
         .from("treatment_plan_checkins")
         .insert({

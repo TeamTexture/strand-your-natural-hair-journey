@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, RotateCcw, Sparkles } from "lucide-react";
+import { Check, ChevronRight, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionHeader from "@/components/nav/SectionHeader";
@@ -109,14 +109,42 @@ const TodayTreatmentCard = () => {
         </SurfaceCard>
       ) : (
         <SurfaceCard className="space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
-              {slotLabel(current.slot)}
-            </p>
-            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-body font-semibold text-primary whitespace-nowrap">
-              Week {current.week} of {current.plan.duration_weeks}
+          {/* Plan identity first: which plan this is, what it uses, and an
+              obvious way in. At a glance, before the day's task. */}
+          <button
+            onClick={() => navigate(`/treatment/${current.plan.id}`)}
+            className="w-full flex items-center gap-3 text-left min-h-[44px]"
+            aria-label={`Open ${current.plan.title}`}
+          >
+            {current.product?.image_url ? (
+              <img
+                src={current.product.image_url}
+                alt={current.product.product_name}
+                loading="lazy"
+                className="size-11 rounded-xl object-cover shrink-0 border border-border/60"
+              />
+            ) : (
+              <span className="size-11 rounded-xl shrink-0 bg-primary/10 flex items-center justify-center">
+                <Sparkles className="size-4 text-primary" />
+              </span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[16px] leading-tight break-words">
+                {current.plan.title}
+              </span>
+              <span className="block font-body text-[11.5px] text-muted-foreground mt-0.5">
+                Week {current.week} of {current.plan.duration_weeks} · Open plan
+              </span>
             </span>
-          </div>
+            <ChevronRight className="size-4 text-primary shrink-0" />
+          </button>
+
+          <div className="h-px bg-border/60" />
+
+          <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
+            {slotLabel(current.slot)} · today
+          </p>
+
 
           <div className="min-w-0">
             <h3 className="font-display text-[18px] leading-tight break-words">

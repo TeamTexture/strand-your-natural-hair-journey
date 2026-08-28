@@ -27,7 +27,7 @@ import PlanProgressPhotos from "@/components/treatment/PlanProgressPhotos";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import {
-  checkinCycles,
+  planCycles,
   computeAdherence,
   fromDateKey,
   todayKey,
@@ -94,7 +94,10 @@ const TreatmentPlanDetail = () => {
   const openCheckin = (week: number) => navigate(`/treatment/${plan.id}/checkin/${week}`);
 
   const everyWeeks = plan.checkin_every_weeks ?? 1;
-  const cycles = checkinCycles(plan.start_date, plan.duration_weeks, everyWeeks);
+  // Day one first, then her chosen cadence. The weekly engine is unchanged —
+  // planCycles just puts the mandatory starting-point check-in in front of it.
+  const cycles = planCycles(plan.start_date, plan.duration_weeks, everyWeeks);
+
   const savedWeeks = new Set(
     checkins.filter((c) => c.submitted_at).map((c) => c.week_number),
   );

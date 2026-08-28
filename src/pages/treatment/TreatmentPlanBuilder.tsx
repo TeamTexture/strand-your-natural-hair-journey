@@ -13,7 +13,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import UsageNotesAssist from "@/components/treatment/UsageNotesAssist";
+import {
+  DURATION_MAX,
+  DURATION_UNITS,
+  clampDurationValue,
+  durationHelper,
+  durationToWeeks,
+  type DurationUnit,
+} from "@/lib/treatmentDuration";
 import { cn } from "@/lib/utils";
+
 import ShelfProductPicker from "@/components/treatment/ShelfProductPicker";
 import ProductThumb from "@/components/ProductThumb";
 import BrandCatalogueProductPicker from "@/components/treatment/BrandCatalogueProductPicker";
@@ -74,7 +91,7 @@ const Chip = ({
   </button>
 );
 
-const DURATIONS = [4, 8, 12, 16, 24];
+
 
 const emptyStep = (): DraftStep => ({
   task_name: "",
@@ -102,7 +119,12 @@ const TreatmentPlanBuilder = () => {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
-  const [durationWeeks, setDurationWeeks] = useState(12);
+  // What she typed (value + unit) is remembered; durationWeeks is derived from
+  // it and remains the only number the week engine ever sees.
+  const [durationValue, setDurationValue] = useState(12);
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>("weeks");
+  const durationWeeks = durationToWeeks(durationValue, durationUnit);
+
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [products, setProducts] = useState<DraftProduct[]>([emptyProduct()]);
   const [steps, setSteps] = useState<DraftStep[]>([emptyStep()]);
@@ -127,13 +149,19 @@ const TreatmentPlanBuilder = () => {
     Record<number, { id: string; display_name: string }[]>
   >({});
 
-  const setDuration = (weeks: number) => {
-    setDurationWeeks(weeks);
+  // Milestones only ever reference weeks, so they're pruned against the derived
+  // week count whenever the value or the unit changes.
+  const setDuration = (value: number, unit: DurationUnit) => {
+    const v = clampDurationValue(value, unit);
+    setDurationValue(v);
+    setDurationUnit(unit);
+    const weeks = durationToWeeks(v, unit);
     setMilestoneWeeks((prev) => {
       const kept = prev.filter((w) => w <= weeks);
       return kept.length ? kept : defaultMilestoneWeeks(weeks);
     });
   };
+
 
   const patchProduct = (i: number, patch: Partial<DraftProduct>) =>
     setProducts((p) => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
@@ -208,6 +236,9 @@ const TreatmentPlanBuilder = () => {
         title,
         goal,
         duration_weeks: durationWeeks,
+        duration_value: durationValue,
+        duration_unit: durationUnit,
+
         start_date: toDateKey(startDate),
         products: cleanProducts,
         steps: steps
@@ -271,14 +302,42 @@ const TreatmentPlanBuilder = () => {
             <SurfaceCard className="space-y-3">
               <div className="space-y-2">
                 <SectionLabel className="px-0 mt-0 mb-1.5">How long</SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {DURATIONS.map((w) => (
-                    <Chip key={w} active={durationWeeks === w} onClick={() => setDuration(w)}>
-                      {w} weeks
-                    </Chip>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={DURATION_MAX[durationUnit]}
+                    value={durationValue}
+                    onChange={(e) => setDurationValue(Number(e.target.value))}
+                    onBlur={(e) => setDuration(Number(e.target.value), durationUnit)}
+                    aria-label="How long"
+                    className="w-[84px] text-center"
+                  />
+                  <Select
+                    value={durationUnit}
+                    onValueChange={(v) => setDuration(durationValue, v as DurationUnit)}
+                  >
+                    <SelectTrigger className="flex-1" aria-label="Duration unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DURATION_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                {durationHelper(durationValue, durationUnit) && (
+                  <p className="font-body text-[11.5px] text-muted-foreground">
+                    {durationHelper(durationValue, durationUnit)} — check-ins and milestones run in
+                    weeks.
+                  </p>
+                )}
               </div>
+
 
               <div className="space-y-2">
                 <SectionLabel className="px-0 mt-0 mb-1.5">Starting</SectionLabel>
@@ -458,6 +517,13 @@ const TreatmentPlanBuilder = () => {
                   placeholder="How you use it — amount, where it goes"
                   rows={2}
                 />
+                {/* Pre-fill only. Whatever comes back lands in the field above
+                    for her to read and edit; nothing is stored separately. */}
+                <UsageNotesAssist
+                  value={p.usage_notes}
+                  onChange={(next) => patchProduct(i, { usage_notes: next })}
+                />
+
               </SurfaceCard>
             ))}
             <Button

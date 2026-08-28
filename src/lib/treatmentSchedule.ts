@@ -521,7 +521,7 @@ export function runChain(
 export type CheckinState = "not_open" | "open" | "saved" | "missed";
 
 export interface CheckinCycle {
-  /** 1-indexed cycle number. */
+  /** 1-indexed cycle number. Cycle 0 is the mandatory day-one check-in. */
   cycle: number;
   /** First plan week the cycle covers. */
   startWeek: number;
@@ -532,6 +532,25 @@ export interface CheckinCycle {
   end: string;
   /** The day the check-in becomes available: the start of the closing week. */
   opensOn: string;
+  /**
+   * The day-one check-in: her starting point, anchored to the plan start date
+   * and asked for regardless of the reminder cadence she chose. Stored as
+   * week_number 0 so it can never collide with a weekly check-in.
+   */
+  isDayOne?: boolean;
+}
+
+/** The mandatory day-one check-in, anchored to the plan's start date. */
+export function dayOneCycle(startDate: string): CheckinCycle {
+  return {
+    cycle: 0,
+    startWeek: 1,
+    closingWeek: 0,
+    start: startDate,
+    end: startDate,
+    opensOn: startDate,
+    isDayOne: true,
+  };
 }
 
 /** Every check-in cycle in a plan, in order. */
@@ -558,6 +577,19 @@ export function checkinCycles(
 }
 
 /**
+ * The day-one check-in followed by every cadence cycle. This is the list every
+ * surface should render — the weekly engine is untouched, day one simply sits
+ * in front of it.
+ */
+export function planCycles(
+  startDate: string,
+  durationWeeks: number,
+  everyWeeks = 1,
+): CheckinCycle[] {
+  return [dayOneCycle(startDate), ...checkinCycles(startDate, durationWeeks, everyWeeks)];
+}
+
+/**
  * State of one cycle. `saved` wins over everything; a cycle whose successor has
  * already opened and was never submitted is `missed` — which is never styled as
  * a failure, and stays fillable for as long as the plan exists.
@@ -570,10 +602,14 @@ export function cycleState(
 ): CheckinState {
   if (saved) return "saved";
   if (daysBetween(cycle.opensOn, today) < 0) return "not_open";
+  // Day one is mandatory: it stays open until she fills it in, and is never
+  // shown as missed, so the ask doesn't turn into a reprimand.
+  if (cycle.isDayOne) return "open";
   const next = cycles.find((c) => c.cycle === cycle.cycle + 1);
   if (next && daysBetween(next.opensOn, today) >= 0) return "missed";
   return "open";
 }
+
 
 /** The cycle a date falls inside. */
 export function cycleFor(cycles: CheckinCycle[], dateKey: string): CheckinCycle | null {
