@@ -30,7 +30,7 @@ import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures, allowsProFeatures } from "@/lib/viewFeatures";
