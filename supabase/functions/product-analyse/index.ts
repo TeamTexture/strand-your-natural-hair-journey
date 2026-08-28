@@ -421,6 +421,8 @@ ABSOLUTE RULES
    - "good" (green) if the ingredient appears in history.high_rated_products[].ingredients OR is well-matched to their porosity/texture/scalp OR directly supports a stated goal/challenge.
    - "warn" (amber) for neutral-but-noteworthy.
 5. match_score (0–100): lower it sharply for any red flags; raise it for "good" flags; consider category fit, the durable style pattern they usually wear (default_style), blood-result deficiencies (only when relevant to this product), and goal alignment. current_hairstyle and days_in_style must never move the score. Ingredients the member already owns frequently (history.flagged_ingredients) must NEVER reduce the score — ownership frequency is not a fit signal in either direction.
+5b. application_area / leave_on: read STRICTLY off the label's own directions. application_area = "scalp" (scalp/partings only), "lengths_ends" (mid-lengths and ends only), "scalp_and_lengths" (whole head), "rinse_out" (applied then rinsed off during washing). leave_on = true when the directions say it stays on the hair, false when it is rinsed out. If the label does not say, return "unknown" and null — NEVER guess from the product name or category.
+
 
 PRODUCT ANALYSIS SCOPE — HARD RULE:
 Focus ONLY on signals that intersect with what's INSIDE this product (ingredients, mechanism, formulation, application). Tension / traction alopecia / styling weight are HANDLING concerns, not formulation concerns — do NOT cite them in any product output. Lab values, sleep, stress, and dermatologist context are ONLY relevant if THIS product directly intersects them.
