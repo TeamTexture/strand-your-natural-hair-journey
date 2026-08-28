@@ -1138,6 +1138,9 @@ Deno.serve(async (req) => {
     const generationId = makeGenerationId();
     let analysis: AnalysisPayload | null = null;
     let retryRules: string[] | null = null;
+    // Violations from the final attempt, so the terminal fallback can null just
+    // the offending fields rather than failing the whole generation.
+    let retryViolations: NameLockViolation[] = [];
     for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
       const baseRetryPayload = retryRules?.length
         ? {
