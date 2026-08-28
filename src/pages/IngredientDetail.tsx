@@ -653,13 +653,19 @@ const IngredientDetail = () => {
           const currentHash = currentProfileHash(await buildAiContext());
           if (currentHash !== storedHash) { reason = "profile_changed"; return null; }
         }
+        // Homemade payloads carry a recipe signature suffix on the cache kind,
+        // so match on the prefix — an exact-match lookup missed every homemade
+        // product's stored analysis and re-ran the model on each visit.
         const { data } = await supabase
           .from("ai_summaries")
           .select("payload")
-          .eq("kind", `ingredient_analysis:${productKey}:L${tipsLevel}`)
+          .like("kind", `ingredient_analysis:${productKey}:L${tipsLevel}%`)
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         if (!data?.payload) { reason = "stored_payload_missing"; return null; }
         return data.payload as unknown as Analysis;
+
       })();
       if (cancelled) return;
       console.log("[analysis-cache] decision", {
