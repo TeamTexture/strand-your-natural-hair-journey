@@ -170,7 +170,7 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
           </span>
           {!heroUrl && (
             <div className="relative h-full flex items-center pl-3 pr-16 w-2/3 pointer-events-none min-w-0">
-              <p className="font-display text-foreground text-[15px] leading-tight line-clamp-2 [overflow-wrap:anywhere]">
+              <p className="font-display text-foreground text-[15px] leading-tight break-words [overflow-wrap:anywhere]">
                 {offer.headline || product?.name || "Sponsored offer"}
               </p>
             </div>

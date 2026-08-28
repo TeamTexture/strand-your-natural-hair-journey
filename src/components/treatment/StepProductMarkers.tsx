@@ -28,7 +28,7 @@ const Marker = ({
     )}
   >
     <Icon className={cn("size-3.5 shrink-0", needsUpdate ? "text-primary" : "text-muted-foreground")} />
-    <span className="font-body text-[11px] leading-none truncate">{label}</span>
+    <span className="font-body text-[11px] leading-none break-words">{label}</span>
     {needsUpdate && (
       <span
         aria-hidden

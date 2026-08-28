@@ -94,7 +94,7 @@ const PastOfferCard = ({
           </span>
         )}
         <div className="absolute inset-x-0 bottom-0 p-2.5">
-          <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
+          <p className="font-display text-white text-[15px] leading-tight break-words drop-shadow-sm">
             {headline || "Untitled campaign"}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
@@ -109,7 +109,7 @@ const PastOfferCard = ({
 
       <div className="px-3 pt-3 pb-2.5">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <p className="text-[11px] font-body text-foreground/70 truncate">
+          <p className="text-[11px] font-body text-foreground/70 break-words">
             {submitter ?? ""}
           </p>
           <p className="text-[10.5px] font-body text-muted-foreground shrink-0">

@@ -219,7 +219,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     </span>
                     <span className="flex items-center gap-1.5 min-w-0">
                       {p?.brand && (
-                        <span className="text-[11px] text-muted-foreground truncate">{p.brand}</span>
+                        <span className="text-[11px] text-muted-foreground break-words">{p.brand}</span>
                       )}
                       <MatchStars item={p ?? null} size="sm" showValue={false} />
 
@@ -261,7 +261,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     </span>
                     <span className="flex items-center gap-1.5 min-w-0">
                       {t?.brand && (
-                        <span className="text-[11px] text-muted-foreground truncate">{t.brand}</span>
+                        <span className="text-[11px] text-muted-foreground break-words">{t.brand}</span>
                       )}
                       <MatchStars item={t ?? null} size="sm" showValue={false} />
                     </span>
