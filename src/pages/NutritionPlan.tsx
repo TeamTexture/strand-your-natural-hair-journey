@@ -573,8 +573,35 @@ async function bloodTouchedSince(userId: string, since: string | null): Promise<
   ]);
   return (panels?.length ?? 0) > 0 || (results?.length ?? 0) > 0;
 }
+/**
+ * The meal ideas already stored for this member.
+ *
+ * PERMANENT STORAGE (2026-08-28). `meal-ideas` writes every good batch to
+ * `ai_summaries` (kind = "meal_ideas"), but the screen never read it back, so
+ * every visit to the Meals tab fired a fresh generation and sat on a progress
+ * bar. Meals are now read straight from storage and rendered instantly; a new
+ * batch is only ever written on an explicit request or after a real blood
+ * change. Viewing never spends a token.
+ */
+async function loadStoredMeals(
+  userId: string,
+): Promise<{ meals: AiMeal[]; generatedAt: string | null } | null> {
+  const { data } = await supabase
+    .from("ai_summaries")
+    .select("payload, updated_at")
+    .eq("user_id", userId)
+    .eq("kind", "meal_ideas")
+    .maybeSingle();
+  const payload = (data?.payload ?? null) as
+    | { meals?: AiMeal[]; _generated_at?: string }
+    | null;
+  const meals = Array.isArray(payload?.meals) ? (payload!.meals as AiMeal[]) : [];
+  if (meals.length === 0) return null;
+  return { meals, generatedAt: payload?._generated_at ?? data?.updated_at ?? null };
+}
 
 const NutritionPlan = () => {
+
 
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
@@ -601,7 +628,11 @@ const NutritionPlan = () => {
   const [planFailed, setPlanFailed] = useState(false);
   const [meals, setMeals] = useState<AiMeal[] | null>(null);
   const [mealsLoading, setMealsLoading] = useState(false);
+  /** Real, moving progress for the only case that generates: an explicit ask. */
+  const [mealsProgress, setMealsProgress] = useState(0);
+  const mealsInFlightRef = useRef(false);
   const [mealsView, setMealsView] = useState<"ideas" | "saved">("ideas");
+
   const savedMealsQ = useSavedMeals();
 
   const savedByKey = useMemo(() => {
@@ -611,7 +642,17 @@ const NutritionPlan = () => {
   }, [savedMealsQ.data]);
 
   const fetchMeals = async (currentProfile = profile) => {
+    if (mealsInFlightRef.current) return;
+    mealsInFlightRef.current = true;
     setMealsLoading(true);
+    setMealsProgress(0);
+    const start = Date.now();
+    const ticker = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const target = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsed / 8))));
+      setMealsProgress((p) => (target > p ? target : Math.min(95, p + 1)));
+    }, 200);
+
     try {
       const context = await buildAiContext();
       // Saved meals are permanently off the menu until she deletes them.
@@ -662,8 +703,12 @@ const NutritionPlan = () => {
       console.error("meal-ideas invoke failed", e);
       toast.error("Couldn't generate meal ideas.");
     } finally {
+      clearInterval(ticker);
+      setMealsProgress(100);
+      mealsInFlightRef.current = false;
       setMealsLoading(false);
     }
+
   };
 
   const handleSaveMeal = async (meal: AiMeal) => {
@@ -823,7 +868,21 @@ const NutritionPlan = () => {
           } else {
             void fetchPlan(false, next);
           }
+
+          // MEALS: read the permanently stored batch and render it instantly.
+          // A generation only happens when there is nothing stored yet, or when
+          // her blood data has actually changed since that batch was written.
+          const storedMeals = await loadStoredMeals(user.id);
+          if (cancelled) return;
+          if (storedMeals) {
+            setMeals(storedMeals.meals);
+            if (await bloodTouchedSince(user.id, storedMeals.generatedAt)) {
+              if (!cancelled) void fetchMeals(next);
+            }
+          }
         }
+
+
 
       } finally {
         if (!cancelled) setLoading(false);
@@ -920,8 +979,9 @@ const NutritionPlan = () => {
   );
 
 
-  const renderLoading = (label: string) => {
-    const pct = Math.min(100, Math.max(0, Math.round(aiProgress)));
+  const renderLoading = (label: string, pctOverride?: number) => {
+    const pct = Math.min(100, Math.max(0, Math.round(pctOverride ?? aiProgress)));
+
     return (
       <div className="px-2 pt-6 pb-4 flex flex-col items-center text-center">
         <p className="font-display text-[20px] leading-tight text-foreground mb-5">{label}</p>
@@ -1104,9 +1164,11 @@ const NutritionPlan = () => {
           </div>
         )}
 
-        <Tabs defaultValue="supplements" onValueChange={(v) => {
-          if (v === "meals" && !meals && !mealsLoading) void fetchMeals();
-        }}>
+        {/* Opening the Meals tab NEVER generates. Stored meals are already
+            hydrated on mount; with nothing stored she gets an explicit
+            "Generate meal ideas" button instead of an automatic spend. */}
+        <Tabs defaultValue="supplements">
+
           <TabsList className="grid w-full grid-cols-4 bg-secondary gap-0.5 p-0.5">
             <TabsTrigger value="supplements" className="gap-1 px-1 text-[11px]">
               <Pill className="size-3" /> Supps
@@ -1232,7 +1294,8 @@ const NutritionPlan = () => {
             {mealsView === "ideas" ? (
               <>
                 {mealsLoading && !meals ? (
-                  renderLoading("Cooking up your meal ideas…")
+                  renderLoading("Cooking up your meal ideas…", mealsProgress)
+
                 ) : meals && limitSupporting(meals, level).length > 0 ? (
                   <>
                     {limitSupporting(meals, level).map((m, i) => (
