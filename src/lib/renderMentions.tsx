@@ -17,9 +17,15 @@ export function renderMentions(text: string | null | undefined): React.ReactNode
     }
     if (p.startsWith("@") && p.length > 1) {
       return (
-        <span key={i} className="text-orange-600 font-semibold">{p}</span>
+        <span
+          key={i}
+          className="inline-block rounded-full bg-orange-500/15 text-orange-600 font-semibold px-1.5 py-[1px] leading-snug"
+        >
+          {p}
+        </span>
       );
     }
+
     if (p.startsWith("#") && p.length > 1) {
       const tag = p.slice(1).toLowerCase();
       return (
