@@ -30,6 +30,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 
 const OffShelf = () => {
