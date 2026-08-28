@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronRight, NotebookPen, Package, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  NotebookPen,
+  Package,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionHeader from "@/components/nav/SectionHeader";
@@ -9,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { useActiveTreatmentPlans, useDueToday, useLogTreatmentStep } from "@/hooks/useTreatmentPlans";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import { useCheckinReminder } from "@/hooks/useCheckinReminder";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { useAuth } from "@/hooks/useAuth";
+import { readViewPref, writeViewPref } from "@/lib/viewPrefs";
 import TreatmentStreak from "@/components/treatment/TreatmentStreak";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentPlusUpsell from "@/components/treatment/TreatmentPlusUpsell";
@@ -16,6 +28,7 @@ import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNot
 import StepLogSheet from "@/components/treatment/StepLogSheet";
 import { alertAnchorId, ALERT_KEYS } from "@/lib/alertKeys";
 import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
+
 
 /**
  * THE TREATMENT PLAN CARD — one card on Home, nothing else.
@@ -31,6 +44,7 @@ import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
  */
 const TodayTreatmentCard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { steps, streakLine, streak, days, loading, hasActivePlan } = useDueToday();
   const { bundles } = useActiveTreatmentPlans();
   const { hasPlus, isLoading: plusLoading } = usePlusAccess();
@@ -49,9 +63,41 @@ const TodayTreatmentCard = () => {
   const plan = bundle?.plan;
 
   const { open: openCheckin, skip: skipCheckin } = useCheckinReminder();
-  const { checkins } = useTreatmentCheckins(plan?.id);
-  // Day one (week 0) is her starting point — once written, it stays on show.
-  const startingPoint = checkins.find((c) => c.week_number === 0 && c.submitted_at) ?? null;
+  const { checkins, media } = useTreatmentCheckins(plan?.id);
+
+  // HER STARTING POINT — the first check-in she filled in, day one (week 0)
+  // where it exists, otherwise her earliest week. It counts as written once
+  // there are words on it (the transcribed voice note lands in written_note)
+  // or a photo attached, so a saved-but-unsubmitted first week still previews.
+  const startingPointRow =
+    [...checkins]
+      .sort((a, b) => a.week_number - b.week_number)
+      .find(
+        (c) =>
+          !!c.submitted_at ||
+          !!c.written_note?.trim() ||
+          media.some((m) => m.checkin_id === c.id && m.media_type === "photo"),
+      ) ?? null;
+  const startingPhotos = media
+    .filter((m) => m.checkin_id === startingPointRow?.id && m.media_type === "photo")
+    .slice(0, 3);
+  const { urls: startingUrls } = useSignedMedia(startingPhotos.map((m) => m.storage_path));
+
+  // Collapse is a view preference, per member and per plan — never member data.
+  const collapseKey = plan ? `treatment_card_collapsed_${plan.id}` : null;
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    if (!collapseKey) return;
+    setCollapsed(readViewPref<boolean>(user?.id, collapseKey, false));
+  }, [collapseKey, user?.id]);
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      if (collapseKey) writeViewPref(user?.id, collapseKey, next);
+      return next;
+    });
+  };
+
 
   if (loading || plusLoading) return null;
 
@@ -110,36 +156,52 @@ const TodayTreatmentCard = () => {
         id={alertAnchorId(ALERT_KEYS.TREATMENT_CHECKIN)}
         className="space-y-3.5"
       >
-        {/* Plan identity first: the title in full, never clipped. */}
-        <button
-          onClick={() => navigate(`/treatment/${plan.id}`)}
-          className="w-full flex items-start gap-3 text-left min-h-[44px]"
-          aria-label={`Open ${plan.title}`}
-        >
-          {heroImage ? (
-            <img
-              src={heroImage}
-              alt=""
-              loading="lazy"
-              className="size-12 rounded-xl object-cover shrink-0 border border-border/60"
-            />
-          ) : (
-            <span className="size-12 rounded-xl shrink-0 bg-primary/10 flex items-center justify-center">
-              <Sparkles className="size-5 text-primary" />
+        {/* Plan identity first: the title in full, never clipped. Collapsed,
+            this row is the whole card — photo and title, nothing else. */}
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => navigate(`/treatment/${plan.id}`)}
+            className="min-w-0 flex-1 flex items-start gap-3 text-left min-h-[44px]"
+            aria-label={`Open ${plan.title}`}
+          >
+            {heroImage ? (
+              <img
+                src={heroImage}
+                alt=""
+                loading="lazy"
+                className="size-12 rounded-xl object-cover shrink-0 border border-border/60"
+              />
+            ) : (
+              <span className="size-12 rounded-xl shrink-0 bg-primary/10 flex items-center justify-center">
+                <Sparkles className="size-5 text-primary" />
+              </span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-[20px] leading-tight break-words [overflow-wrap:anywhere]">
+                {plan.title}
+              </span>
+              {!collapsed && (
+                <span className="block font-body text-[11.5px] text-muted-foreground mt-1">
+                  Week {current?.week ?? 1} of {plan.duration_weeks} · Open plan
+                </span>
+              )}
             </span>
-          )}
-          <span className="min-w-0 flex-1">
-            <span className="block font-display text-[20px] leading-tight break-words [overflow-wrap:anywhere]">
-              {plan.title}
-            </span>
-            <span className="block font-body text-[11.5px] text-muted-foreground mt-1">
-              Week {current?.week ?? 1} of {plan.duration_weeks} · Open plan
-            </span>
-          </span>
-          <ChevronRight className="size-4 text-primary shrink-0 mt-1" />
-        </button>
+            {collapsed && <ChevronRight className="size-4 text-primary shrink-0 mt-1" />}
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Show my treatment plan" : "Hide my treatment plan"}
+            className="shrink-0 size-9 -mr-1 rounded-full flex items-center justify-center text-primary"
+          >
+            {collapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+          </button>
+        </div>
 
-        {/* PRODUCTS ON THE PLAN — full names, wrapped, with their own photo. */}
+        {!collapsed && (
+          <>
+
         {products.length > 0 && (
           <div className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
@@ -269,28 +331,56 @@ const TodayTreatmentCard = () => {
           </div>
         )}
 
-        {/* STARTING POINT — her own first check-in, previewed once written. */}
-        {startingPoint && (
+        {/* STARTING POINT — her own first check-in, previewed as soon as it
+            exists: the words she wrote (or the voice note written out for her)
+            plus the photos she attached that day. */}
+        {startingPointRow && (
           <button
             type="button"
-            onClick={() => navigate(`/treatment/${plan.id}/checkin/0`)}
-            className="w-full text-left rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5"
+            onClick={() =>
+              navigate(`/treatment/${plan.id}/checkin/${startingPointRow.week_number}`)
+            }
+            className="w-full text-left rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5 space-y-2"
           >
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
               Where you started
             </p>
-            {startingPoint.written_note ? (
-              <p className="font-body text-[12.5px] leading-snug text-foreground/85 mt-1 line-clamp-3 [overflow-wrap:anywhere]">
-                “{startingPoint.written_note}”
+            {startingPointRow.written_note?.trim() ? (
+              <p className="font-body text-[12.5px] leading-snug text-foreground/85 line-clamp-4 [overflow-wrap:anywhere] whitespace-pre-line">
+                “{startingPointRow.written_note.trim()}”
               </p>
             ) : (
-              <p className="font-body text-[12.5px] text-muted-foreground mt-1">
-                Your day one check-in is saved.
+              <p className="font-body text-[12.5px] text-muted-foreground">
+                {startingPhotos.length > 0
+                  ? "Your first photos are saved here."
+                  : "Your first check-in is saved."}
               </p>
             )}
-            <p className="font-body text-[11px] text-primary mt-1">Read it again</p>
+            {startingPhotos.length > 0 && (
+              <div className="flex gap-1.5">
+                {startingPhotos.map((p) => {
+                  const url = startingUrls[p.storage_path];
+                  return url ? (
+                    <img
+                      key={p.id}
+                      src={url}
+                      alt=""
+                      loading="lazy"
+                      className="size-14 rounded-[10px] object-cover border border-border/60 bg-secondary"
+                    />
+                  ) : (
+                    <span
+                      key={p.id}
+                      className="size-14 rounded-[10px] bg-secondary border border-border/60"
+                    />
+                  );
+                })}
+              </div>
+            )}
+            <p className="font-body text-[11px] text-primary">Read it again</p>
           </button>
         )}
+
 
         {/* THE OPEN CHECK-IN — merged in, never a second card. */}
         {checkinForThisPlan && (
@@ -352,7 +442,10 @@ const TodayTreatmentCard = () => {
         {streakLine && (
           <p className="font-body text-[12px] text-muted-foreground">{streakLine}</p>
         )}
+          </>
+        )}
       </SurfaceCard>
+
 
       {current && (
         <StepLogSheet
