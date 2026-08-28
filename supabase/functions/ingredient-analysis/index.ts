@@ -964,10 +964,16 @@ Deno.serve(async (req) => {
     let usageInstructions = typeof body.usageInstructions === "string" && body.usageInstructions.trim()
       ? body.usageInstructions.trim()
       : null;
-    if (applicationArea === "unknown" || leaveOn === null || !productCategory) {
+    // ── HOW-TO-USE SOURCE HIERARCHY ───────────────────────────────────
+    // 1. directions captured from a photographed label (primary),
+    // 2. directions published on the brand's official product page,
+    // 3. nothing — general guidance only, and flagged as general.
+    let usageSource: UsageSource = usageInstructions ? "label_photo" : "none";
+    let productSourceUrl: string | null = null;
+    {
       const { data: metaRow } = await dataClient
         .from("user_products")
-        .select("category, application_area, leave_on, usage_instructions")
+        .select("category, application_area, leave_on, usage_instructions, usage_instructions_source, source_url")
         .eq("user_id", memberId)
         .eq("product_key", productKey)
         .maybeSingle();
@@ -975,11 +981,49 @@ Deno.serve(async (req) => {
         if (applicationArea === "unknown") applicationArea = normaliseArea(metaRow.application_area);
         if (leaveOn === null && typeof metaRow.leave_on === "boolean") leaveOn = metaRow.leave_on;
         if (!productCategory && metaRow.category) productCategory = String(metaRow.category);
+        productSourceUrl = metaRow.source_url ? String(metaRow.source_url) : null;
         if (!usageInstructions && metaRow.usage_instructions) {
           usageInstructions = String(metaRow.usage_instructions);
+          const stored = metaRow.usage_instructions_source
+            ? String(metaRow.usage_instructions_source)
+            : null;
+          usageSource = stored === "label_photo" || stored === "brand_page"
+            ? stored
+            // Legacy rows carry no provenance: a product added from a link had
+            // its directions read off that page, everything else off the label.
+            : (productSourceUrl ? "brand_page" : "label_photo");
         }
       }
     }
+    // Step 2 of the hierarchy: no captured directions, but we know the
+    // product's official page — read the published directions off it rather
+    // than letting the model invent generic advice.
+    if (!usageInstructions && productSourceUrl) {
+      try {
+        const page = await scrapePage(productSourceUrl);
+        const found = page.text ? extractDirectionsFromPage(page.text) : null;
+        if (found) {
+          usageInstructions = found;
+          usageSource = "brand_page";
+          await dataClient
+            .from("user_products")
+            .update({ usage_instructions: found, usage_instructions_source: "brand_page" })
+            .eq("user_id", memberId)
+            .eq("product_key", productKey);
+        }
+      } catch (e) {
+        console.warn("[ingredient-analysis] directions scrape failed", e instanceof Error ? e.message : e);
+      }
+    }
+    if (!usageInstructions) usageSource = "none";
+    const usageDirections: UsageDirections = { text: usageInstructions, source: usageSource };
+    const usageBlock = usageGroundingBlock(usageDirections);
+    console.log(JSON.stringify({
+      function: "ingredient-analysis",
+      usage_source: usageSource,
+      usage_chars: usageInstructions?.length ?? 0,
+    }));
+
 
 
     const tipsLevel = coerceTipsLevel(
