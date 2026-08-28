@@ -9,7 +9,7 @@ import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
 import BrandLink from "@/components/BrandLink";
 import ProductThumb from "@/components/ProductThumb";
-import { useIngredientProfile } from "@/hooks/useIngredientProfile";
+import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
