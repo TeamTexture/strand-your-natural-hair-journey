@@ -101,7 +101,36 @@ export function useIngredientGlossary() {
   }, [rows]);
 
 
+  /**
+   * PROSE TERMS — the list used by `GlossaryRichText` for the standing
+   * bold+tappable treatment in generated analysis copy. Same closed vocabulary
+   * and same stoplist as `tokenNames`, but hair-science concepts and ingredient
+   * families are listed FIRST so the length cap can never drop short taught
+   * words like "cuticle", "sebum" or "porosity" behind 600 long molecule names.
+   */
+  const proseTermNames = useMemo(() => {
+    const seen = new Set<string>();
+    const concepts: string[] = [];
+    const molecules: string[] = [];
+    for (const row of rows) {
+      if (row.is_common) continue;
+      const bucket = row.kind === "molecule" ? molecules : concepts;
+      for (const form of [row.display_name, ...(row.aliases ?? [])]) {
+        const text = (form ?? "").trim();
+        if (text.length < 4) continue;
+        const lower = text.toLowerCase();
+        if (!lower.includes(" ") && TOKEN_STOPLIST.has(lower)) continue;
+        if (seen.has(lower)) continue;
+        seen.add(lower);
+        bucket.push(text);
+      }
+    }
+    const byLength = (a: string, b: string) => b.length - a.length;
+    return [...concepts.sort(byLength), ...molecules.sort(byLength).slice(0, 700)];
+  }, [rows]);
+
   const lookup = (name: string) => byKey.get(normaliseInciKey(name)) ?? null;
 
-  return { rows, byKey, tokenNames, lookup, isLoading: query.isLoading };
+  return { rows, byKey, tokenNames, proseTermNames, lookup, isLoading: query.isLoading };
 }
+
