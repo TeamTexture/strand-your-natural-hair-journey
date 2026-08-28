@@ -38,6 +38,16 @@ import {
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import { inciKeyCandidates, normaliseInciKey } from "../_shared/ingredient-copy.ts";
+import { scrapePage } from "../_shared/page-scrape.ts";
+import {
+  extractDirectionsFromPage,
+  scrubUngroundedUsage,
+  usageGroundingBlock,
+  usageSourceLabel,
+  validateUsageGrounding,
+  type UsageDirections,
+  type UsageSource,
+} from "../_shared/usage-grounding.ts";
 import {
   applyHomemadeSafety,
   buildHomemadeSafety,
