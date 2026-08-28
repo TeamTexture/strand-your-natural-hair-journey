@@ -61,6 +61,22 @@ import {
   type ScoreReason,
 } from "../_shared/score-reasons.ts";
 import {
+  applyFitFirst,
+  FIT_FIRST_SCORE_RULES,
+  sanitiseStrandTips,
+  STRAND_TIP_SCHEMA_PROPERTY,
+  type StrandTipNote,
+} from "./fit-first-score.ts";
+import { validateTerminologyFields } from "./hair-vocabulary.ts";
+import {
+  buildNameLock,
+  ingredientNameLockBlock,
+  validateIngredientCardNames,
+  validateNameLockFields,
+  type NameLockContext,
+} from "./ingredient-name-lock.ts";
+
+import {
   PURPOSE_INSIGHT_RULES,
   PURPOSE_INSIGHT_SCHEMA_PROPERTY,
   sanitisePurposeInsight,
@@ -92,7 +108,12 @@ async function shortHash(input: string): Promise<string> {
   return [...new Uint8Array(buf)].slice(0, 6).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const MODEL_VERSION = "claude-sonnet-4-6@v14-manuscript-2026-08-09";
+// v15: closed-vocabulary validation, ingredient-naming lockdown, nullable
+// descriptive fields and fit-first scoring with the separate Strand Tip.
+// The bump forces regeneration so no member keeps reading a caution-first
+// score or copy written before the terminology gate existed.
+const MODEL_VERSION = "claude-sonnet-4-6@v15-fit-first-2026-08-28";
+
 
 
 interface IngredientCard {
@@ -102,12 +123,12 @@ interface IngredientCard {
    * Cosmetic-chemistry category, drawn from the STRAND manuscript's framework
    * (Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning
    * Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster,
-   * Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract). When
-   * the ingredient doesn't slot into a book category, infer from cosmetic
-   * science.
+   * Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract).
+   * NULLABLE: "not established" is a valid answer and is preferred over a
+   * guess when the ingredient does not slot into a real category.
    */
-  category: string;
-  body: string;
+  category: string | null;
+  body: string | null;
   /** Set server-side when this ingredient matches a declared topical
    *  sensitivity — drives the distinct "sensitivity" tag in the UI. */
   sensitivity?: boolean;
@@ -121,6 +142,8 @@ interface AnalysisPayload {
   score_reasons?: ScoreReason[];
   insight?: PurposeInsight;
   summary: string;
+  /** Mild, non-harmful observations. NEVER part of the score. */
+  strand_tip?: StrandTipNote[] | null;
 
   ingredients: IngredientCard[];
   personalised_guidance?: GuidanceTip[];
@@ -131,9 +154,6 @@ interface AnalysisPayload {
   homemade_safety?: HomemadeSafety;
 }
 
-// ── Guidance validators ─────────────────────────────────────────────────
-// Detects references to any OTHER product/step so the tip stays about
-// getting the most out of THIS product only.
 const FORBIDDEN_GUIDANCE_PATTERNS: RegExp[] = [
   /\b(pair|layer|follow|combine|use)\s+(it\s+)?(with|under|over|after|before)\b/i,
   /\bfollow(ed)?\s+(this\s+\w+\s+)?with\b/i,
@@ -303,8 +323,13 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
     properties: {
       match_score: { type: "integer", minimum: 0, maximum: 100 },
       score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+      strand_tip: STRAND_TIP_SCHEMA_PROPERTY,
       insight: PURPOSE_INSIGHT_SCHEMA_PROPERTY,
-      summary: { type: "string" },
+      summary: {
+        type: ["string", "null"],
+        description:
+          "One-sentence fit verdict for THIS member. Return null rather than writing a verdict you cannot support from the supplied ingredients and her recorded data.",
+      },
 
       ingredients: {
         type: "array",
@@ -312,17 +337,21 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
         items: {
           type: "object",
           properties: {
-            name: { type: "string" },
+            name: { type: "string", description: "The ingredient name EXACTLY as supplied in the ingredient list. Never corrected, expanded, merged or made more specific." },
             tone: { type: "string", enum: ["good", "warn", "bad"] },
             category: {
-              type: "string",
-              description: "Cosmetic-chemistry category from the STRAND manuscript: Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If the ingredient doesn't slot into a book category, choose the closest cosmetic-science category.",
+              type: ["string", "null"],
+              description: "Cosmetic-chemistry category from the STRAND manuscript: Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent, Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If you cannot place it from real knowledge of the molecule, return null — null is correct and preferred over a guess.",
             },
-            body: { type: "string" },
+            body: {
+              type: ["string", "null"],
+              description: "One sentence on the mechanism and what it means for this member, or null when nothing is established about this ingredient. Null is preferred over speculation.",
+            },
           },
           required: ["name", "tone", "category", "body"],
         },
       },
+
       personalised_guidance: {
         type: "array",
         minItems: guidanceCount(level),
@@ -437,7 +466,7 @@ async function runGuidanceRetry(args: {
   };
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level)}${args.sensitivityBlock ?? ""}
+    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level, args.ingredients)}${args.sensitivityBlock ?? ""}
 
 YOUR ONLY TASK NOW: return personalised_guidance. Every other field of the analysis is already accepted and must not be rewritten. Your previous guidance was REJECTED — fix every problem below. Each tip must be ONE instruction sentence about using THIS product, followed by the reason it matters for this member:
 - ${args.problems.join("\n- ")}`,
@@ -467,12 +496,22 @@ YOUR ONLY TASK NOW: return personalised_guidance. Every other field of the analy
 
 
 // ── Task instructions (shared text — minus the brittle EXACTLY prose) ──
-function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL): string {
+function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL, allowedIngredients: string[] = []): string {
   return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. In every body field, lead with the molecule's mechanism in plain English (translate the cosmetic-chemistry term on first use), then bridge with a connective ("which means", "so", "this is why") into what it means for THIS user. Talk to "you", not "your hair". Warm but not saccharine; no hedging stacks.
 
-USER INPUTS to weigh: hairProfile (porosity, density, type, scalp condition, length), healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, bloodResults, medications, context.flagged_ingredients (a NEUTRAL frequency count of ingredients appearing in 3+ of her saved products — what she already owns and uses; it carries no safety, quality or suitability meaning and must never lower the match score).
+USER INPUTS to weigh — TWO SEPARATE DOMAINS, never blended:
+  • THE HAIR STRAND (hairProfile.porosity, hairProfile.elasticity, strand diameter, surface texture, curl pattern, length). Porosity, elasticity and cuticle describe the STRAND and only the strand. They are NOT properties of skin, scalp, follicles or sebum, and phrases like "porosity scalp", "scalp porosity" or "follicle elasticity" do not exist. Writing one is a hard failure.
+  • THE SCALP AND SKIN (hairProfile.scalp_condition, density, hairline/edges, diagnoses in healthProfile). Weigh these with scalp language only — tolerance, irritation, flaking, sebum, comfort.
+Also weigh: healthProfile (diagnoses, allergies, medications, blood markers), heritage, goals, challenges, bloodResults, medications, context.flagged_ingredients (a NEUTRAL frequency count of ingredients appearing in 3+ of her saved products — what she already owns and uses; it carries no safety, quality or suitability meaning and must never lower the match score).
+
+CLOSED TERMINOLOGY — validated after you answer:
+Use only hair and scalp terms STRAND already teaches: porosity (strand), cuticle, cortex, elasticity, strand diameter, surface texture, curl pattern, length retention, moisture retention, protein balance, build-up, slip, breakage, shrinkage, heat damage — and for the scalp: scalp condition, scalp health, sebum, follicle, flaking, irritation, hairline, edges, partings, shedding, density. Never invent a term, never fuse two terms into a new one, and never attach a strand property to the scalp. If no approved term fits what you want to say, say less or return null for that field.
+
+NULL IS A VALID, PREFERRED ANSWER:
+Every descriptive and categorical field in this schema is nullable. When something does not apply, or you do not have real grounded data for it, return null — that is CORRECT and preferred. Never fill a field with a plausible guess, a generic statement, or an inferred value to avoid leaving it empty. "Not established" beats invented detail every time.
+
 
 PHILOSOPHY — READ THIS BEFORE FLAGGING ANYTHING:
 We are NOT a Yuka-style scaremonger app. Cosmetic preservatives (phenoxyethanol, parabens at legal limits, sodium benzoate, potassium sorbate, methylisothiazolinone, etc.), fragrance/parfum, colourants, and standard pH adjusters are used in legally-permitted small quantities and are NOT inherently harmful for the general user. Do NOT mark them "bad" purely because they exist in the formula. Real-world cosmetic safety is regulated; our job is personalised fit, not fear.
@@ -504,9 +543,11 @@ RULES — STRICT:
    GOOD example (bad): "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
    GOOD example (warn): "Broad-spectrum preservative used at <1% — safe at this level; flag only if your scalp has reacted to it before."
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
-3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
-4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to, and NEVER dock score because the formula contains ingredients she already owns frequently (context.flagged_ingredients) — ownership frequency is not a fit signal in either direction.
+3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. Never invent a new category, and where you genuinely cannot place the molecule from real knowledge, return null instead of forcing the closest-sounding one.
+${FIT_FIRST_SCORE_RULES}
 4a. match_score AND EXPOSURE — the exposure gate above is an explicit scoring factor, not just a tone factor. A concern only counts against the score to the extent the directions actually expose the member to it: a scalp-only, rinse-off product must NOT be docked as hard as a leave-on lengths product carrying the same ingredient, and a rinse-out formula must not be docked for build-up or heaviness the way a leave-in is. Where exposure changed the weighting, say so in the matching score_reasons row (e.g. "rinsed out, so contact time is short"). A DECLARED sensitivity is docked at full weight regardless of exposure. When application_area is "unknown", score from the ingredients alone and never assert where the product goes.
+${ingredientNameLockBlock(allowedIngredients)}
+
 
 5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. Each tip body must be a DETAILED, multi-sentence explanation (${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words) — never a single sentence. Within each tip, give the action in full (amount, placement, sectioning, hair state, temperature, dwell time, rinse, frequency), the reason it fits one NAMED trait of this user, what it should look or feel like when done right, and the mistake to avoid. ${level >= 3 ? "This user is at support level 3 (hand-holding): the fullest, most explanatory version — plain words, reading age 9-10, timings scaled to their hair, everything spelled out." : level === 2 ? "This user is at support level 2 (essential): the action, one sentence of why, and the concrete how. No extended explanatory passage." : "This user is at support level 1 (minimal): the action plus one short sentence of why, and nothing more."}
 
@@ -617,7 +658,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level)}${args.sensitivityBlock ?? ""}${args.factsBlock ?? ""}`,
+    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.factsBlock ?? ""}`,
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -994,17 +1035,28 @@ Deno.serve(async (req) => {
     // ── Pull personalisation server-side ─────────────────────────────
     // The glossary lookup runs alongside these reads: it is one indexed query
     // and it removes work from the model call that follows.
-    const [bloodRowsRes, medRowsRes, goalRowsRes, knownFacts] = await Promise.all([
+    const [bloodRowsRes, medRowsRes, goalRowsRes, knownFacts, glossaryRes] = await Promise.all([
       dataClient.from("blood_results").select("marker, value, unit, status, category").eq("user_id", memberId),
       dataClient.from("user_medications").select("name, category").eq("user_id", memberId),
       dataClient.from("user_goals")
         .select("kind, title, target_text, target_value, unit, current_value, target_date, challenges, challenge, notes, status")
         .eq("user_id", memberId).neq("status", "complete"),
       loadKnownIngredientFacts(dataClient as never, rawIngredients),
+      // Detection vocabulary for the ingredient-naming lockdown: STRAND's own
+      // known ingredient names. Only names in here are looked for in prose, so
+      // ordinary sentences are never falsely flagged.
+      dataClient.from("glossary_terms").select("display_name").limit(2000),
     ]);
     const bloodRows = bloodRowsRes.data ?? [];
     const medRows = medRowsRes.data ?? [];
     const dbGoals = goalRowsRes.data ?? [];
+    const nameLock = buildNameLock(
+      rawIngredients,
+      ((glossaryRes.data ?? []) as Array<{ display_name?: string | null }>)
+        .map((r) => (r.display_name ?? "").trim())
+        .filter(Boolean),
+    );
+
     let factsBlock = knownFactsBlock(knownFacts);
     if (isHomemade && homemadeSafety) {
       factsBlock += homemadeRecipeBlock(
@@ -1148,7 +1200,7 @@ Deno.serve(async (req) => {
         const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}${sensitivityBlock}${factsBlock}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${factsBlock}`;
         analysis = await runLovable({
           systemPrompt,
           userPayload: baseRetryPayload,
@@ -1191,15 +1243,74 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
       }
 
       analysis.insight = sanitisePurposeInsight(analysis.insight) ?? undefined;
+      // Nullable schema: a null descriptive field is a legitimate "not
+      // established" answer, so it must never render as the string "null".
+      if (analysis.summary == null) analysis.summary = "";
       const reasons = sanitiseScoreReasons(analysis.score_reasons);
-      analysis.score_reasons = reasons;
-      if (typeof analysis.match_score === "number") {
-        analysis.match_score = alignScoreWithReasons(analysis.match_score, reasons);
+
+      // ── Closed vocabulary + ingredient-naming validation ───────────────
+      // Both are structural: a violation is rejected and re-asked rather than
+      // shown, so no member reads an invented term or an ingredient that is
+      // not in the formula she owns.
+      const termFields = [
+        { field: "summary", text: analysis.summary },
+        ...reasons.flatMap((r, i) => [
+          { field: `score_reasons[${i}].factor`, text: r.factor },
+          { field: `score_reasons[${i}].reason`, text: r.reason },
+        ]),
+        ...(analysis.ingredients ?? []).flatMap((c, i) => [
+          { field: `ingredients[${i}].body`, text: c?.body },
+        ]),
+        ...(analysis.personalised_guidance ?? []).flatMap((t, i) => [
+          { field: `personalised_guidance[${i}].title`, text: t?.title },
+          { field: `personalised_guidance[${i}].body`, text: t?.body },
+        ]),
+      ];
+      const structuralProblems = [
+        ...validateTerminologyFields(termFields).map((v) => v.rule),
+        ...validateIngredientCardNames(analysis.ingredients, nameLock).map((v) => v.rule),
+        ...validateNameLockFields(termFields, nameLock).map((v) => v.rule),
+      ];
+      if (structuralProblems.length) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "vocabulary_or_name_lock",
+          attempt: attemptNumber,
+          problems: structuralProblems.slice(0, 8),
+        }));
+        recordAiOutcome({
+          function_name: "ingredient-analysis",
+          surface: "ingredient-analysis",
+          user_id: memberId,
+          outcome: "rejected",
+          rejection_rule: "vocabulary_or_name_lock",
+          generation_id: generationId,
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+        });
+        retryRules = [...new Set(structuralProblems)].slice(0, 8);
+        if (attemptNumber < MAX_REJECTION_ATTEMPTS) continue;
       }
-      if (reasons.length >= 2) {
+
+      // ── Fit-first scoring ──────────────────────────────────────────────
+      // Only a real conflict or a real harm may lower the score. Mild,
+      // non-harmful observations move to the Strand Tip, which the UI renders
+      // separately and never describes as score rationale.
+      const fitFirst = applyFitFirst(
+        typeof analysis.match_score === "number"
+          ? alignScoreWithReasons(analysis.match_score, reasons)
+          : null,
+        reasons,
+        sanitiseStrandTips(analysis.strand_tip),
+      );
+      analysis.score_reasons = fitFirst.reasons;
+      analysis.strand_tip = fitFirst.strandTips.length ? fitFirst.strandTips : null;
+      if (fitFirst.score != null) analysis.match_score = fitFirst.score;
+      if (fitFirst.reasons.length >= 2) {
         const one = firstSentence(analysis.summary);
         if (one) analysis.summary = one;
       }
+
 
       enforceIngredientCardSensitivities(
         analysis as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
