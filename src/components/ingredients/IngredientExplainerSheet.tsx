@@ -54,8 +54,21 @@ export default function IngredientExplainerSheet({
   // block below waits on generation.
   const { lookup } = useIngredientGlossary();
   const cached = name ? lookup(name) : null;
+  // NAME INTEGRITY: never show a more specific chemical than the pack said.
+  // The glossary may annotate ("Curcuma Longa (Turmeric) Root Extract") but it
+  // must not rename — a captured "Alcohol" is never shown as "Alcohol Denat.".
+  const safeName = (glossaryName: string | null | undefined): string => {
+    const raw = (name ?? "").trim();
+    if (!raw) return glossaryName ?? "Ingredient";
+    if (!glossaryName) return raw;
+    const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const a = norm(raw);
+    const b = norm(glossaryName);
+    if (a === b || b.includes(a)) return glossaryName;
+    return raw;
+  };
   const head = {
-    display_name: explainer?.glossary?.display_name ?? cached?.display_name ?? name ?? "Ingredient",
+    display_name: safeName(explainer?.glossary?.display_name ?? cached?.display_name ?? null),
     phonetic: explainer?.glossary?.phonetic ?? cached?.phonetic ?? null,
     what_it_is: explainer?.glossary?.what_it_is ?? cached?.what_it_is ?? null,
     kind: explainer?.glossary?.kind ?? cached?.kind ?? "molecule",
