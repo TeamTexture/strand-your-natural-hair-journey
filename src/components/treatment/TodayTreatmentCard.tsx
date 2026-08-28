@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronRight, NotebookPen, Package, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  NotebookPen,
+  Package,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionHeader from "@/components/nav/SectionHeader";
@@ -9,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { useActiveTreatmentPlans, useDueToday, useLogTreatmentStep } from "@/hooks/useTreatmentPlans";
 import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import { useCheckinReminder } from "@/hooks/useCheckinReminder";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { useAuth } from "@/hooks/useAuth";
+import { readViewPref, writeViewPref } from "@/lib/viewPrefs";
 import TreatmentStreak from "@/components/treatment/TreatmentStreak";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import TreatmentPlusUpsell from "@/components/treatment/TreatmentPlusUpsell";
@@ -16,6 +28,7 @@ import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNot
 import StepLogSheet from "@/components/treatment/StepLogSheet";
 import { alertAnchorId, ALERT_KEYS } from "@/lib/alertKeys";
 import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
+
 
 /**
  * THE TREATMENT PLAN CARD — one card on Home, nothing else.
