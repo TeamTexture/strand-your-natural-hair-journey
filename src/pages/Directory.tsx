@@ -830,6 +830,19 @@ const Directory = () => {
     <ScreenLayout bottomNav={memberActions}>
       <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
 
+      {/* Discount codes are a signed-in member benefit — say so plainly rather
+          than implying a code exists on any particular listing. */}
+      {!user && (
+        <div className="px-5 pb-3">
+          <p className="text-[11px] font-body text-muted-foreground leading-snug">
+            <Tag className="size-3 text-primary inline mr-1 align-[-1px]" />
+            STRAND member discounts are shown when you sign in.
+          </p>
+        </div>
+      )}
+
+
+
       {bloodOnly && (
         <div className="px-5 pb-3">
           <SurfaceCard tone="gold">
