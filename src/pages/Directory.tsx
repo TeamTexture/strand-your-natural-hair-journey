@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  BadgeCheck, ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus, Stethoscope, Droplet,
+  BadgeCheck, ArrowUp, Search, Star, Pencil, Clock, ChevronDown, MapPin, Phone, Mail, Tag, UserPlus, Stethoscope, Droplet, Scissors,
 } from "lucide-react";
 
 import ScreenLayout from "@/components/ScreenLayout";
@@ -30,7 +30,7 @@ import { summariseOpeningHours, listOpeningHours } from "@/lib/openingHours";
 import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures, allowsProFeatures } from "@/lib/viewFeatures";
@@ -89,6 +89,7 @@ const Directory = () => {
     proUserId: string | null;
   } | null>(null);
   const [expandedHours, setExpandedHours] = useState<Record<string, boolean>>({});
+  const [expandedServices, setExpandedServices] = useState<Record<string, boolean>>({});
   const [expandedSalons, setExpandedSalons] = useState<Record<string, boolean>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -344,6 +345,16 @@ const Directory = () => {
     const ratingSummary = p.proUserId ? reviewSummaries?.get(p.proUserId) : undefined;
     const openingSummary = summariseOpeningHours(p.openingHours);
     const hoursOpen = expandedHours[p.id] === true;
+    const services = (p.services ?? []).filter((s) => s.name.trim().length > 0);
+    const servicesOpen = expandedServices[p.id] === true;
+    // Every live discount on the listing, newest first. Falls back to the
+    // single legacy line so curated/seed rows still render.
+    const offers =
+      p.offers && p.offers.length > 0
+        ? p.offers
+        : p.discount && p.discount.trim().length > 0
+          ? [{ title: p.discount, code: null as string | null }]
+          : [];
     const fullHours = hoursOpen ? listOpeningHours(p.openingHours) : [];
     const addressParts = [p.addressLine1, p.addressLine2, p.city, p.location]
       .map((s) => (typeof s === "string" ? s.trim() : ""))
@@ -486,6 +497,54 @@ const Directory = () => {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Services and prices, exactly as the professional entered them. */}
+        {services.length > 0 && (
+          <div className="mt-3 rounded-[10px] border border-border/70 bg-background/60">
+            <button
+              type="button"
+              onClick={() =>
+                setExpandedServices((cur) => ({ ...cur, [p.id]: !cur[p.id] }))
+              }
+              className="w-full flex items-center gap-2 px-3 py-2 text-left"
+              aria-expanded={servicesOpen}
+            >
+              <Scissors className="size-3.5 text-primary shrink-0" />
+              <span className="text-[11px] font-body text-foreground/85 flex-1">
+                Services &amp; prices ({services.length})
+              </span>
+              <ChevronDown
+                className={cn(
+                  "size-3.5 text-muted-foreground transition-transform",
+                  servicesOpen && "rotate-180",
+                )}
+              />
+            </button>
+            {servicesOpen && (
+              <ul className="px-3 pb-2 pt-1 space-y-2 border-t border-border/60">
+                {services.map((s, i) => (
+                  <li key={`${s.name}-${i}`} className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-body font-semibold text-foreground break-words">
+                        {s.name}
+                      </p>
+                      {s.description && s.description.trim().length > 0 && (
+                        <p className="text-[11px] font-body text-muted-foreground leading-snug">
+                          {s.description}
+                        </p>
+                      )}
+                    </div>
+                    {s.price && s.price.trim().length > 0 && (
+                      <span className="shrink-0 text-[11px] font-body font-semibold text-primary">
+                        {s.price}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -742,11 +801,25 @@ const Directory = () => {
           </a>
         )}
       </div>
-      {p.discount && p.discount.trim().length > 0 && (
-        <div className="bg-primary/15 px-4 py-2.5 text-xs">
-          <span className="font-semibold tracking-[0.1em] uppercase text-primary">
-            {p.discount}
-          </span>
+      {offers.length > 0 && (
+        <div className="bg-primary/15 px-4 py-2.5 space-y-2">
+          {offers.map((o, i) => (
+            <div key={`${o.title}-${i}`} className="text-xs">
+              <span className="font-semibold tracking-[0.1em] uppercase text-primary break-words">
+                {o.code ? `${o.code} — ${o.title}` : o.title}
+              </span>
+              {o.description && o.description.trim().length > 0 && (
+                <p className="text-[11px] font-body text-foreground/80 leading-snug mt-0.5">
+                  {o.description}
+                </p>
+              )}
+              {o.endsAt && (
+                <p className="text-[10px] font-body text-muted-foreground mt-0.5">
+                  Valid until {format(new Date(o.endsAt), "d MMM yyyy")}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </SurfaceCard>
@@ -756,6 +829,19 @@ const Directory = () => {
   return (
     <ScreenLayout bottomNav={memberActions}>
       <TitleBar title={bloodOnly ? "Book a Doctor" : "Professionals"} />
+
+      {/* Discount codes are a signed-in member benefit — say so plainly rather
+          than implying a code exists on any particular listing. */}
+      {!user && (
+        <div className="px-5 pb-3">
+          <p className="text-[11px] font-body text-muted-foreground leading-snug">
+            <Tag className="size-3 text-primary inline mr-1 align-[-1px]" />
+            STRAND member discounts are shown when you sign in.
+          </p>
+        </div>
+      )}
+
+
 
       {bloodOnly && (
         <div className="px-5 pb-3">
