@@ -573,8 +573,35 @@ async function bloodTouchedSince(userId: string, since: string | null): Promise<
   ]);
   return (panels?.length ?? 0) > 0 || (results?.length ?? 0) > 0;
 }
+/**
+ * The meal ideas already stored for this member.
+ *
+ * PERMANENT STORAGE (2026-08-28). `meal-ideas` writes every good batch to
+ * `ai_summaries` (kind = "meal_ideas"), but the screen never read it back, so
+ * every visit to the Meals tab fired a fresh generation and sat on a progress
+ * bar. Meals are now read straight from storage and rendered instantly; a new
+ * batch is only ever written on an explicit request or after a real blood
+ * change. Viewing never spends a token.
+ */
+async function loadStoredMeals(
+  userId: string,
+): Promise<{ meals: AiMeal[]; generatedAt: string | null } | null> {
+  const { data } = await supabase
+    .from("ai_summaries")
+    .select("payload, updated_at")
+    .eq("user_id", userId)
+    .eq("kind", "meal_ideas")
+    .maybeSingle();
+  const payload = (data?.payload ?? null) as
+    | { meals?: AiMeal[]; _generated_at?: string }
+    | null;
+  const meals = Array.isArray(payload?.meals) ? (payload!.meals as AiMeal[]) : [];
+  if (meals.length === 0) return null;
+  return { meals, generatedAt: payload?._generated_at ?? data?.updated_at ?? null };
+}
 
 const NutritionPlan = () => {
+
 
   const navigate = useNavigate();
   const isOnboarding = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("onboarding") === "1";
