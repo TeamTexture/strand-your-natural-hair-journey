@@ -114,3 +114,12 @@ Opening a product page must never spend a model call when a valid stored analysi
 - An unknown *current* fingerprint is never treated as a change — only a known-vs-known mismatch invalidates.
 - Do not reintroduce a blanket kill switch (the old `DEMO_SAFE_MODE`); it also suppressed the two legitimate generation cases.
 - `src/test/analysis_no_reanalyse.test.ts` asserts the invariant and statically checks that no product surface bypasses the gate. Do not weaken it to make a new surface pass.
+
+## STANDING RULE — how-to-use personalisation picks the trait by mechanism (2026-08-28, permanent)
+
+The "How to Use This For Your Hair" copy must select which stored profile trait to reason about from **this** product's real directions and ingredients — never a default trait, and never the trait used on the previous product. Anchoring on one trait (density, after a worked example named it) is a defect, not personalisation.
+
+- The selection instruction, anti-anchoring rule and mechanism→trait routing hints live in `supabase/functions/_shared/usage-grounding.ts` (`usageGroundingBlock`). Any example sentence there must be depth guidance only: keep at least two examples, on different traits, and never one on density alone.
+- `ingredient-analysis` passes `recentTraits` — the traits her other products' how-to-use copy already leaned on (`recentTraitUsage`/`detectNamedTraits`) — so the prompt is told what it has already over-used and must justify reusing it.
+- Different products should genuinely surface different traits: scalp products reason about scalp access/style, leave-ins about porosity/moisture retention, heat products about heat and elasticity/protein history, oils and butters about strand diameter and weigh-down. These are reasoning prompts, not a lookup table.
+- `src/test/usage_trait_anchoring.test.ts` guards the prompt text and trait detection.
