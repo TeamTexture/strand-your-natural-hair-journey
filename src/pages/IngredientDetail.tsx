@@ -565,7 +565,19 @@ const IngredientDetail = () => {
           },
         );
         if (fnError) throw fnError;
+        // Ingredients could not be read: the backend hard-blocks generation, so
+        // show that plainly and never render an analysis for this product.
+        if ((data as { ingredients_unreadable?: boolean } | null)?.ingredients_unreadable) {
+          setAnalysis(null);
+          setError(
+            (data as { message?: string }).message ??
+              "We couldn't read the ingredients for this product. Add them manually or try rescanning the label.",
+          );
+          setLoading(false);
+          return;
+        }
         if (data?.error) throw new Error(data.error);
+
         const fresh = data.analysis as Analysis;
         setAnalysis(fresh);
 
