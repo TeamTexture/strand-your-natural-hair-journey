@@ -97,7 +97,10 @@ export function useIngredientGlossary() {
         out.push(text);
       }
     }
-    return out.sort((a, b) => b.length - a.length).slice(0, 600);
+    // Longest-first so multi-word terms win. NOTE: no blanket cap — a length
+    // cap silently dropped short taught words ("cuticle", "surfactant"), which
+    // is exactly how the tap-to-open glossary looked "styled but dead".
+    return out.sort((a, b) => b.length - a.length);
   }, [rows]);
 
 

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import IngredientExplainerSheet from "@/components/ingredients/IngredientExplainerSheet";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { splitCompoundLabel } from "@/lib/ingredientLabel";
+import { glossarySegments } from "@/lib/glossarySpans";
 
 
 interface Ctx {
