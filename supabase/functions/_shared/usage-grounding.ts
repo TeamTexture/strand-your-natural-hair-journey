@@ -241,7 +241,7 @@ export function extractDirectionsFromPage(pageText: string): string | null {
  *  generates "how to use this for your hair" copy. */
 export function usageGroundingBlock(
   directions: UsageDirections,
-  opts: { profileExample?: boolean } = {},
+  opts: { profileExample?: boolean; recentTraits?: string[] } = {},
 ): string {
   const base = directions.text
     ? `
