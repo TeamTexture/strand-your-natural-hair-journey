@@ -36,11 +36,11 @@ const errorMessage = (error: unknown): string =>
 
 export function useStyleTip() {
   const { user } = useAuth();
-  const { level } = useTipsLevel();
+  const { level, ready: levelReady } = useTipsLevel();
 
   return useQuery({
     queryKey: ["style_tip_v2_procedural", user?.id, level],
-    enabled: !!user?.id,
+    enabled: !!user?.id && levelReady,
     staleTime: Infinity,
     gcTime: Infinity,
     // Stale-while-revalidate — see src/lib/lastGoodTip.ts.

@@ -95,11 +95,13 @@ export interface WashDayStepsResult {
 
 export function useWashDaySteps() {
   const { user } = useAuth();
-  const { level } = useTipsLevel();
+  const { level, ready: levelReady } = useTipsLevel();
 
   return useQuery({
     queryKey: ["wash_day_steps_v2", user?.id, level],
-    enabled: !!user?.id,
+    // Wait for the SERVER guidance level: generating at the pre-resolve default
+    // burned a generation at the wrong level on every mount.
+    enabled: !!user?.id && levelReady,
     // A SUCCESSFUL sequence is cached for the session; a FAILURE never is.
     // React Query keeps an errored query in the cache too, and with
     // staleTime/gcTime Infinity that error used to stick for the whole session:

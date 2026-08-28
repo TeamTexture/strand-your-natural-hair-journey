@@ -21,6 +21,14 @@ interface TipsLevelContextValue {
   needsPrompt: boolean;
   showExplanations: boolean;
   showBeginnerHelp: boolean;
+  /**
+   * True once `level` reflects the SERVER value (or there is no session, so no
+   * server value is coming). Any surface that keys a cache — or an AI call — on
+   * the level MUST wait for this: the initial render returns the locally cached
+   * or default level, and acting on that fired a fresh analysis at the wrong
+   * level on every page open before the real level arrived.
+   */
+  ready: boolean;
 }
 
 const TipsLevelContext = createContext<TipsLevelContextValue | null>(null);
@@ -46,7 +54,7 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
   const [level, setLevelState] = useState<TipsLevel>(readCached);
   const [prompted, setPrompted] = useState<boolean>(readPrompted);
   const queryClient = useQueryClient();
-  const { data: profile } = useMyProfile();
+  const { data: profile, isFetched: profileFetched } = useMyProfile();
   const levelRef = useRef(level);
   const lastOptimisticAtRef = useRef(0);
 
@@ -119,7 +127,9 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
     showExplanations: showsExplanations(level),
     /** Show inline beginner definitions + encouragement (level 3, Hand-holding). */
     showBeginnerHelp: showsBeginnerHelp(level),
-  }), [answerPrompt, level, prompted, setLevel]);
+    // No session → no server value is coming, so the cached/default level is final.
+    ready: !user?.id ? true : profileFetched,
+  }), [answerPrompt, level, prompted, setLevel, user?.id, profileFetched]);
 
   return createElement(TipsLevelContext.Provider, { value }, children);
 }
@@ -142,5 +152,6 @@ export function useTipsLevel() {
     needsPrompt: !readPrompted(),
     showExplanations: showsExplanations(fallbackLevel),
     showBeginnerHelp: showsBeginnerHelp(fallbackLevel),
+    ready: true,
   } satisfies TipsLevelContextValue;
 }
