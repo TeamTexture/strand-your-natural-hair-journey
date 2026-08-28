@@ -89,6 +89,33 @@ function isSuppliedName(name: string, haystacks: string[]): boolean {
 }
 
 
+
+/**
+ * PLAIN-ENGLISH ALIASES (2026-08-28). The detection vocabulary holds INCI
+ * display names, so a write-up that said "Denatured alcohol high in formula"
+ * for a serum with no alcohol at all sailed past the lock — "denatured
+ * alcohol" does not match the key "alcohol denat". These are the everyday
+ * renderings of INCI names the model actually reaches for; each is only
+ * flagged when the canonical ingredient is NOT in this product's list and the
+ * alias's own words are not in the supplied list either.
+ */
+const PROSE_ALIASES: Record<string, string[]> = {
+  "alcohol denat": ["denatured alcohol", "sd alcohol", "ethanol denat"],
+  "petrolatum": ["petroleum jelly"],
+  "paraffinum liquidum": ["mineral oil", "liquid paraffin"],
+  "butyrospermum parkii butter": ["shea butter"],
+  "theobroma cacao seed butter": ["cocoa butter"],
+  "cocos nucifera oil": ["coconut oil"],
+  "olea europaea fruit oil": ["olive oil"],
+  "ricinus communis seed oil": ["castor oil"],
+  "argania spinosa kernel oil": ["argan oil"],
+  "simmondsia chinensis seed oil": ["jojoba oil"],
+  "aloe barbadensis leaf juice": ["aloe vera"],
+  "sodium lauryl sulfate": ["lauryl sulphate", "lauryl sulfate"],
+  "sodium laureth sulfate": ["laureth sulphate", "laureth sulfate"],
+  "dimethicone": ["silicone oil"],
+};
+
 /**
  * Per-ingredient CARD names: every name must map to a supplied ingredient.
  * Returns the violations; the caller rejects and retries.
@@ -142,13 +169,18 @@ export function validateIngredientMentions(
     const key = normaliseInciKey(name);
     if (!key || allow.has(key) || seen.has(key)) continue;
     if (isSuppliedName(name, haystacks)) continue;
-    if (new RegExp(`\\b${escape(name)}\\b`, "i").test(text)) {
+    // The INCI display name plus its everyday English renderings. An alias is
+    // only a candidate when its own words are not in the supplied list.
+    const surfaces = [name, ...(PROSE_ALIASES[key] ?? [])]
+      .filter((form) => form === name || !isSuppliedName(form, haystacks));
+    const hit = surfaces.find((form) => new RegExp(`\\b${escape(form)}\\b`, "i").test(text));
+    if (hit) {
       seen.add(key);
       out.push({
         field,
         phrase: name,
         rule:
-          `${field} names "${name}", which is NOT in this product's ingredient list. You may only name ingredients that literally appear in the supplied list. Remove it or rewrite the sentence around an ingredient that is actually in the formula.`,
+          `${field} names "${hit}", which is NOT in this product's ingredient list. You may only name ingredients that literally appear in the supplied list. Remove it or rewrite the sentence around an ingredient that is actually in the formula.`,
       });
     }
   }

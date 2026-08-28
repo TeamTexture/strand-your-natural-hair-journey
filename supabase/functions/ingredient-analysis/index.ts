@@ -74,6 +74,7 @@ import {
   validateIngredientCardNames,
   validateNameLockFields,
   type NameLockContext,
+  type NameLockViolation,
 } from "../_shared/ingredient-name-lock.ts";
 
 import {
@@ -113,7 +114,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v18-bilingual-inci-2026-08-29";
+const MODEL_VERSION = "claude-sonnet-4-6@v19-prose-aliases-2026-08-29";
 
 
 
@@ -1138,6 +1139,9 @@ Deno.serve(async (req) => {
     const generationId = makeGenerationId();
     let analysis: AnalysisPayload | null = null;
     let retryRules: string[] | null = null;
+    // Violations from the final attempt, so the terminal fallback can null just
+    // the offending fields rather than failing the whole generation.
+    let retryViolations: NameLockViolation[] = [];
     for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
       const baseRetryPayload = retryRules?.length
         ? {
@@ -1280,6 +1284,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         ...validateIngredientCardNames(analysis.ingredients, nameLock),
         ...validateNameLockFields(termFields, nameLock),
       ];
+      retryViolations = structuralViolations;
       const structuralProblems = structuralViolations.map((v) => v.rule);
       if (structuralProblems.length) {
         console.log(JSON.stringify({
@@ -1427,7 +1432,17 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         .eq("kind", cacheKind)
         .maybeSingle();
       const priorPayload = lastGood?.payload as AnalysisPayload | null | undefined;
-      if (priorPayload) {
+      // STALE-SERVE GUARD (2026-08-29). Falling back to the previous payload
+      // whatever its provenance is how one product stayed stuck for a day: the
+      // stored payload predated the current guardrails (it named an ingredient
+      // that is not in the formula), every fresh generation was rejected, and
+      // the rejection branch served that same poisoned payload straight back —
+      // and never cached anything, so the loop repeated on every view. Only a
+      // payload generated under the CURRENT model version may be served stale;
+      // anything older is treated as absent and the terminal field-null
+      // fallback below carries the fresh generation instead.
+      const priorIsCurrent = priorPayload?._model_version === MODEL_VERSION;
+      if (priorPayload && priorIsCurrent) {
         const guarded = enforceIngredientCardSensitivities(
           priorPayload as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
           sens,
@@ -1437,12 +1452,43 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         if (homemadeSafety) applyHomemadeSafety(guarded, homemadeSafety);
         return json(200, { cached: true, stale: true, analysis: guarded });
       }
-      return json(503, { error: "ingredient_analysis_unavailable" });
+      // No usable current-version fallback: drop only the fields the guardrails
+      // objected to and carry on with the fresh generation, so the member gets
+      // the parts that passed instead of an error or day-old poisoned copy.
+      const clearedTerminal = applyFieldNulls(
+        analysis as unknown as Record<string, unknown>,
+        retryViolations,
+      );
+      console.warn(JSON.stringify({
+        function: "ingredient-analysis",
+        event: "terminal_stale_guard_fallback",
+        cleared: clearedTerminal,
+      }));
+      retryRules = null;
+    }
+
+    // NEVER-HOLLOW SUMMARY. A nulled summary rendered as "still preparing the
+    // write-up", which is what a member saw for a full day. When the prose is
+    // gone but the reasoning survived, lead with the strongest reason instead.
+    if (!(typeof analysis.summary === "string" && analysis.summary.trim())) {
+      const reasonsNow = sanitiseScoreReasons(analysis.score_reasons);
+      const lead = reasonsNow.find((r) => r.direction === "plus") ?? reasonsNow[0];
+      if (lead?.reason) analysis.summary = lead.reason;
     }
 
     if (mode.dryRun) return json(200, { cached: false, analysis });
 
     // ── Upsert cache ────────────────────────────────────────────────
+    // VERSION STAMP (2026-08-29). The stamp set at generation time was being
+    // lost before it reached the row (cached rows came back with a null
+    // `_model_version`), so the version gate above could never invalidate a
+    // poisoned payload and stale write-ups — including ones naming ingredients
+    // that are not in the formula — kept rendering forever. Stamp immediately
+    // before the write so what is stored always carries its version.
+    (analysis as AnalysisPayload)._model_version = MODEL_VERSION;
+    if (!(analysis as AnalysisPayload)._generated_at) {
+      (analysis as AnalysisPayload)._generated_at = new Date().toISOString();
+    }
     const { data: prior } = await dataClient
       .from("ai_summaries")
       .select("id")
