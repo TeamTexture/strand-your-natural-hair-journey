@@ -674,7 +674,24 @@ const IngredientDetail = () => {
           })
         | null;
       let reason = "";
+      // HARD BLOCK (2026-08-28): a saved product with zero captured ingredients
+      // is never given an analysis — not a fresh one, and not a stored one that
+      // may name ingredients this product was never known to contain.
+      const capturedIngredients = Array.isArray((row as { ingredients?: unknown } | null)?.ingredients)
+        ? ((row as { ingredients?: unknown }).ingredients as unknown[]).filter(
+            (x) => typeof x === "string" && x.trim().length > 0,
+          )
+        : [];
+      if (row && capturedIngredients.length === 0 && (row as { is_homemade?: boolean }).is_homemade !== true) {
+        setAnalysis(null);
+        setError(
+          "We couldn't read the ingredients for this product. Add them manually or try rescanning the label.",
+        );
+        setLoading(false);
+        return;
+      }
       const cached = await (async (): Promise<Analysis | null> => {
+
         if (!row) { reason = "no_saved_row"; return null; }
         if (matchScoreOf(row) == null || !row.analysis_generated_at) {
           reason = "no_stored_analysis";
