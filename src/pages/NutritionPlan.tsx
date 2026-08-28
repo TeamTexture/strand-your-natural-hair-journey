@@ -703,8 +703,12 @@ const NutritionPlan = () => {
       console.error("meal-ideas invoke failed", e);
       toast.error("Couldn't generate meal ideas.");
     } finally {
+      clearInterval(ticker);
+      setMealsProgress(100);
+      mealsInFlightRef.current = false;
       setMealsLoading(false);
     }
+
   };
 
   const handleSaveMeal = async (meal: AiMeal) => {
