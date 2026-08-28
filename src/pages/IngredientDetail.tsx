@@ -66,7 +66,9 @@ import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapsho
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
-import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
+import ScoreReasons, { parseScoreReasons, scoreReasonsHeading, type ScoreReason } from "@/components/product/ScoreReasons";
+import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
+
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
 import PurposeInsight, { parsePurposeInsight, type ProductPurposeInsight } from "@/components/product/PurposeInsight";
 import { cn } from "@/lib/utils";
@@ -1242,16 +1244,15 @@ const IngredientDetail = () => {
                   {(phrase || rest) && (
                     <p className={hasSensitivity ? "text-foreground/75" : undefined}>
                       {phrase && (
-                        <span
+                        <GlossaryRichText
+                          text={`${phrase} `}
                           className={cn(
                             "font-semibold",
                             hasSensitivity ? "text-foreground/75" : "text-foreground",
                           )}
-                        >
-                          {phrase}{" "}
-                        </span>
+                        />
                       )}
-                      <span className="text-foreground/75">{rest}</span>
+                      <GlossaryRichText text={rest} className="text-foreground/75" />
                     </p>
                   )}
 
@@ -1267,8 +1268,9 @@ const IngredientDetail = () => {
                         </p>
                       );
                     }
-                    return <ScoreReasons reasons={reasons} />;
+                    return <ScoreReasons reasons={reasons} heading={scoreReasonsHeading(displayScore)} />;
                   })()}
+
                 </StatusCallout>
 
               );

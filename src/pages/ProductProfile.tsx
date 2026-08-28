@@ -31,7 +31,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import MatchStars from "@/components/MatchStars";
 import { matchScoreOf, scoreTone as toneForScore } from "@/lib/matchStars";
-import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
+import ScoreReasons, { parseScoreReasons, scoreReasonsHeading, type ScoreReason } from "@/components/product/ScoreReasons";
+import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
+
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
 import { alignFitLanguage } from "@/lib/fitBand";
 import { buildAiContext } from "@/lib/aiContext";
@@ -446,10 +448,16 @@ const ProductProfile = () => {
                 <div className="mt-3">
                   <StatusCallout tone={scoreTone} icon={Sparkles} label="Verdict">
                     <p>
-                      {phrase && <span className="font-semibold text-foreground">{phrase} </span>}
-                      <span className="text-foreground/75">{rest}</span>
+                      {phrase && (
+                        <GlossaryRichText
+                          text={`${phrase} `}
+                          className="font-semibold text-foreground"
+                        />
+                      )}
+                      <GlossaryRichText text={rest} className="text-foreground/75" />
                     </p>
-                    <ScoreReasons reasons={aiScoreReasons} />
+                    <ScoreReasons reasons={aiScoreReasons} heading={scoreReasonsHeading(score)} />
+
                   </StatusCallout>
                   <StrandTipNotes tips={strandTips} />
                 </div>
