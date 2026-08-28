@@ -43,6 +43,8 @@ import {
   extractDirectionsFromPage,
   scrubUngroundedUsage,
   usageGroundingBlock,
+  recentTraitUsage,
+
   usageSourceLabel,
   validateUsageGrounding,
   type UsageDirections,
