@@ -1281,6 +1281,38 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel)}$
       });
     }
 
+    // ── Backfill: also write the verdict onto the product row ─────────
+    // In the app the client persists score/summary/flags after it receives the
+    // analysis. The backfill has no client, so it does that write itself —
+    // otherwise the shelf card and passport would keep showing the old score
+    // while the cached analysis was already correct.
+    if (serviceBackfill) {
+      const flagToneToSeverity = (t: unknown): "good" | "warn" | "avoid" =>
+        t === "bad" ? "avoid" : t === "good" ? "good" : "warn";
+      const flags = Array.isArray(analysis.ingredients) ? analysis.ingredients : [];
+      const keyIngredients = flags
+        .filter((f) => f && typeof (f as { name?: unknown }).name === "string")
+        .map((f) => {
+          const row = f as { name: string; body?: string; tone?: string };
+          return { name: row.name, benefit: row.body, flag: flagToneToSeverity(row.tone) };
+        });
+      const patch: Record<string, unknown> = {
+        ai_summary: typeof analysis.summary === "string" ? analysis.summary : null,
+        score_reasons: analysis.score_reasons ?? [],
+      };
+      if (typeof analysis.match_score === "number") {
+        patch.match_score = analysis.match_score;
+        patch.match_score_computed_at = new Date().toISOString();
+      }
+      if (keyIngredients.length > 0) patch.key_ingredients = keyIngredients;
+      const { error: rowErr } = await dataClient
+        .from("user_products")
+        .update(patch)
+        .eq("user_id", memberId)
+        .eq("product_key", productKey);
+      if (rowErr) console.error("[ingredient-analysis] backfill row write failed", rowErr.message);
+    }
+
     return json(200, { cached: false, analysis });
   } catch (e) {
     return aiErrorResponse(e, "ingredient-analysis");
