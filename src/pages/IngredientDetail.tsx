@@ -101,11 +101,11 @@ function isSingleScoreProduct(row: { created_at?: string | null } | null): boole
   return Number.isFinite(created) && created >= SINGLE_SCORE_CUTOVER;
 }
 
-// EMERGENCY STABILISATION (2026-08-28). While true: opening a product never
-// triggers a live analysis. Any stored analysis is rendered instantly; when
-// there is none, a calm "Analysis not yet available" shows instead of an
-// error/retry or a hanging spinner. Explicit "Re-analyse" still works.
-const DEMO_SAFE_MODE = true;
+// REGENERATION IS GATED, NOT FLAGGED (2026-08-28, permanent). Opening a product
+// can only ever spend a model call when `decideProductAnalysis` says so, and it
+// can only say so for "nothing stored yet" or a real fingerprint change. See
+// src/lib/analysisGate.ts and src/test/analysis_no_reanalyse.test.ts.
+
 
 interface Analysis {
 
