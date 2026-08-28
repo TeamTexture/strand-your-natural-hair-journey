@@ -118,6 +118,8 @@ interface FitPayload {
   tone: "good" | "warn" | "bad";
   for_you: string;
   usage_tip: string;
+  /** "product_analysis" = path 1 (authoritative), "profile" = generic tap. */
+  _source?: "product_analysis" | "profile";
   _model_version?: string;
   _profile_fingerprint?: string;
   _generated_at?: string;
@@ -128,6 +130,29 @@ function serviceClient(): SupabaseClient {
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+// ── NAME INTEGRITY ──────────────────────────────────────────────────────
+//
+// A glossary row may carry a friendlier or fuller display name than the INCI
+// key ("Curcuma Longa (Turmeric) Root Extract"). That is fine. What is NOT
+// fine is upgrading a captured name to a DIFFERENT, more specific chemical —
+// the glossary once displayed a generic "Alcohol" as "Alcohol Denat.", so a
+// member read a denatured-alcohol explanation for a product whose label just
+// said Alcohol. Rule: the captured name always wins unless the glossary name
+// is the same substance with extra annotation (i.e. it contains the captured
+// name).
+export function safeDisplayName(captured: string, glossaryName: string): string {
+  const raw = (captured ?? "").trim();
+  if (!raw) return glossaryName;
+  const a = normaliseInciKey(raw);
+  const b = normaliseInciKey(glossaryName ?? "");
+  if (!b || a === b) return glossaryName || raw;
+  // Same substance, richer label (annotated botanicals) — keep the glossary's.
+  if (b.includes(a)) return glossaryName;
+  // Anything else is a rename to a different chemical: keep what was captured.
+  return raw.replace(/\s+/g, " ");
+}
+
 
 // ── LAYER 1: glossary ───────────────────────────────────────────────────
 
