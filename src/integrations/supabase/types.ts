@@ -2082,6 +2082,63 @@ export type Database = {
         }
         Relationships: []
       }
+      curated_offers: {
+        Row: {
+          brand_name: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_code: string | null
+          ends_on: string | null
+          external_url: string | null
+          hidden_at: string | null
+          hidden_by: string | null
+          id: string
+          image_path: string | null
+          is_active: boolean
+          sort_order: number
+          starts_on: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          brand_name: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_code?: string | null
+          ends_on?: string | null
+          external_url?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          id?: string
+          image_path?: string | null
+          is_active?: boolean
+          sort_order?: number
+          starts_on?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_code?: string | null
+          ends_on?: string | null
+          external_url?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
+          id?: string
+          image_path?: string | null
+          is_active?: boolean
+          sort_order?: number
+          starts_on?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       data_protection_complaints: {
         Row: {
           acknowledged_at: string | null
