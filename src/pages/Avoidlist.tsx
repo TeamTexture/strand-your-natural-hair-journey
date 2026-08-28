@@ -20,8 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 import BrandLink from "@/components/BrandLink";
 import DetailCard from "@/components/tips/DetailCard";
 import LevelGate from "@/components/tips/LevelGate";
-import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { limitSupporting } from "@/lib/tipsRender";
 
 const Avoidlist = () => {
   const [exporting, setExporting] = useState(false);
@@ -190,7 +188,7 @@ const IngredientRow = ({
   // no sensitivity awareness and could contradict the product analysis.
   const { explainer, isLoading: explainerLoading, error: explainerError } =
     useIngredientExplainer(isOpen ? row.ingredient : null);
-  useTipsLevel();
+
 
 
   return (
