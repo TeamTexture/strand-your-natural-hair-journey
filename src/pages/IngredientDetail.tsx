@@ -624,6 +624,13 @@ const IngredientDetail = () => {
     // Fresh-scan path: analysis is already in state, no need to re-fetch.
     if (freshAnalysis && !needsAnalysis) return;
     if (!productKey || !profileChecked) return;
+    // GUIDANCE LEVEL MUST BE RESOLVED FIRST. The level is part of the cache
+    // identity (`:L{n}` on the stored payload and `:tl{n}` on the profile
+    // hash). On first render `useTipsLevel` returns the local default (2)
+    // before the member's real level arrives from `profiles.tips_level`, so
+    // running here looked up the WRONG level's cache, missed, and fired a
+    // fresh analysis on every single page open. Wait for the server value.
+    if (!tipsLevelReady) return;
     // Wait for the member's shelf to load before deciding the row is missing.
     // Without this guard the effect fired while `allProducts` was still
     // fetching, saw a null `savedRowRef.current`, concluded "no_saved_row"
