@@ -54,7 +54,7 @@ export function TipsLevelProvider({ children }: { children: ReactNode }) {
   const [level, setLevelState] = useState<TipsLevel>(readCached);
   const [prompted, setPrompted] = useState<boolean>(readPrompted);
   const queryClient = useQueryClient();
-  const { data: profile } = useMyProfile();
+  const { data: profile, isFetched: profileFetched } = useMyProfile();
   const levelRef = useRef(level);
   const lastOptimisticAtRef = useRef(0);
 
