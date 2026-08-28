@@ -85,7 +85,9 @@ interface Ingredient {
 }
 interface GuidanceTip { title: string; body: string }
 interface Analysis {
-  match_score: number;
+  /** null when the payload carried no score — never a made-up number. */
+  match_score: number | null;
+
   score_reasons?: ScoreReason[];
   insight?: ProductPurposeInsight | null;
   summary: string;
@@ -139,7 +141,10 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
     };
   });
   return {
-    match_score: typeof fresh.match_score === "number" ? fresh.match_score : 0,
+    // No ad-hoc fallback: a missing score stays missing rather than rendering
+    // a fabricated 0 that reads as "terrible match".
+    match_score: typeof fresh.match_score === "number" ? fresh.match_score : null,
+
     score_reasons: parseScoreReasons(fresh.score_reasons),
     insight: parsePurposeInsight(fresh.insight),
     summary: fresh.ai_summary ?? "",
