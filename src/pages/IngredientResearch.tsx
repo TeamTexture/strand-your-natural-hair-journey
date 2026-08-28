@@ -56,16 +56,11 @@ const IngredientResearch = () => {
     });
   }, [allProducts, ingredient]);
 
-  const profile = useIngredientProfile(
-    ingredient || null,
-    "The user tapped this ingredient from a wash-day tip for further research.",
-    Boolean(ingredient),
-    {
-      formulationIngredients: Array.from(
-        new Set(relatedProducts.flatMap((p) => p.ingredients ?? [])),
-      ).filter((name) => name.toLowerCase() !== ingredient.toLowerCase()).slice(0, 30),
-    },
-  );
+  // Single authoritative path: the ingredient explainer (shared glossary for
+  // "what it is" + the sensitivity-aware fit). The old `ingredient-profile`
+  // generator is retired so this page can never contradict a product score.
+  const { explainer, isLoading: explainerLoading, error: explainerError } =
+    useIngredientExplainer(ingredient || null);
 
   return (
     <ScreenLayout bottomNav>
@@ -80,54 +75,45 @@ const IngredientResearch = () => {
                 Ingredient
               </p>
               <h1 className="font-display text-2xl leading-tight text-foreground break-words">
-                {ingredient}
+                {explainer?.glossary?.display_name || ingredient}
               </h1>
             </div>
 
-            {profile.isLoading ? (
+            {explainerLoading ? (
               <SurfaceCard>
                 <LoadingDot label="Loading ingredient profile…" fullScreen={false} />
               </SurfaceCard>
-            ) : profile.error ? (
+            ) : explainerError ? (
               <SurfaceCard tone="orange" className="space-y-2">
                 <SectionHeader icon={FlaskConical} label="Research note" />
                 <p className="text-sm leading-relaxed text-foreground/80">
-                  This ingredient is saved in your product data, but its AI profile could not load right now.
+                  This ingredient is saved in your product data, but its profile could not load right now.
                 </p>
               </SurfaceCard>
-            ) : profile.data ? (
+            ) : explainer ? (
               <div className="space-y-3">
-                {profile.data.what_it_is?.trim() && (
+                {explainer.glossary?.what_it_is?.trim() && (
                   <SurfaceCard className="space-y-3">
                     <SectionHeader icon={FlaskConical} label="What it is" />
-                    <AiProse text={profile.data.what_it_is} />
+                    <AiProse text={explainer.glossary.what_it_is} />
                   </SurfaceCard>
                 )}
 
-                {profile.data.what_it_means_for_you && (
+                {explainer.fit?.for_you && (
                   <SurfaceCard tone="gold" className="space-y-3">
                     <SectionHeader icon={Sparkles} label="What it means for you" />
-                    <AiProse text={profile.data.what_it_means_for_you} />
+                    <AiProse text={explainer.fit.for_you} />
+                    {explainer.fit.usage_tip && (
+                      <p className="text-sm leading-relaxed text-foreground/80 flex gap-2">
+                        <Leaf className="mt-[3px] size-3.5 shrink-0 text-primary" aria-hidden />
+                        <span>{explainer.fit.usage_tip}</span>
+                      </p>
+                    )}
                   </SurfaceCard>
-                )}
-
-                {profile.data.benefits?.length > 0 && (
-                  <LevelGate min={2} fallback={null}>
-                  <SurfaceCard className="space-y-3">
-                    <SectionHeader icon={Leaf} label="In a formula" />
-                    <div className="space-y-2">
-                      {profile.data.benefits.map((benefit, index) => (
-                        <p key={index} className="text-sm leading-relaxed text-foreground/85 flex gap-2">
-                          <span className="text-primary shrink-0">•</span>
-                          <span>{benefit}</span>
-                        </p>
-                      ))}
-                    </div>
-                  </SurfaceCard>
-                  </LevelGate>
                 )}
               </div>
             ) : null}
+
 
             <SurfaceCard className="space-y-3">
               <SectionHeader icon={PackageSearch} label="Products containing this" />
