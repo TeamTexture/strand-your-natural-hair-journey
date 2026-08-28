@@ -241,7 +241,7 @@ const IngredientDetail = () => {
   useIngredientIndex(productRow);
   savedRowRef.current = productRow;
 
-  const { level: tipsLevel, showBeginnerHelp } = useTipsLevel();
+  const { level: tipsLevel, showBeginnerHelp, ready: tipsLevelReady } = useTipsLevel();
   const [showAllIngredients, setShowAllIngredients] = useState(false);
 
 
