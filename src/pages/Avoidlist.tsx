@@ -218,64 +218,45 @@ const IngredientRow = ({
 
       {isOpen && (
         <div className="border-t border-border bg-muted/30 px-3 py-3 space-y-3">
-          {/* AI profile — what it is, benefits, personalised notes.
-              Level 1: name + one-line relevance only (the header above already
-              covers this, so nothing further renders).
-              Level 2-3: what it is + supporting detail, capped by level.
-              Hand-holding: plain-English "what this is → what it means → what to
-              do" via DetailCard. */}
+          {/* Glossary "what it is" + the profile-level fit from the single
+              authoritative explainer path. */}
           <div className="space-y-2">
             <LevelGate min={2}>
-              {profileQuery.isLoading && (
+              {explainerLoading && (
                 <p className="text-[11px] text-muted-foreground italic">
                   Building your personalised ingredient profile…
                 </p>
               )}
-              {profileQuery.isError && (
+              {explainerError && (
                 <p className="text-[11px] text-destructive">
                   Couldn't load profile — pull down to refresh and try again.
                 </p>
               )}
-              {profileQuery.data && (
+              {explainer && (
                 <DetailCard
-                  title={row.ingredient}
+                  title={explainer.glossary?.display_name || row.ingredient}
                   className="!p-0 !border-0 !bg-transparent !rounded-none"
                   relevance={row.reason}
-                  what={profileQuery.data.what_it_is}
-                  action={profileQuery.data.personal_notes[0]}
+                  what={explainer.glossary?.what_it_is ?? undefined}
+                  action={explainer.fit?.usage_tip}
                 >
-                  <div className="space-y-2.5 mt-1">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                        What it does
-                      </p>
-                      <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
-                        {limitSupporting(profileQuery.data.benefits, level).map((b, i) => (
-                          <li key={i}>{b}</li>
-                        ))}
-                      </ul>
+                  {explainer.fit?.for_you && (
+                    <div className="space-y-2.5 mt-1">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
+                          For your hair specifically
+                        </p>
+                        <p className="text-xs leading-snug text-foreground/85">
+                          {explainer.fit.for_you}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-0.5">
-                        For your hair specifically
-                      </p>
-                      <ul className="text-xs leading-snug space-y-1 pl-3 list-disc marker:text-muted-foreground">
-                        {limitSupporting(profileQuery.data.personal_notes, level).map((n, i) => (
-                          <li key={i}>{n}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                  )}
                 </DetailCard>
               )}
             </LevelGate>
           </div>
 
-          {/* Matching products from the user's library */}
-          <div className="space-y-1.5 pt-2 border-t border-border/60">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
-              In your products
-            </p>
             {matches.length === 0 ? (
               <p className="text-[11px] text-muted-foreground py-1">
                 No matching products found.
