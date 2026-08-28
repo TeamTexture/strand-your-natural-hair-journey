@@ -4,7 +4,26 @@
 
 export type ProType = "Trichologist" | "Dermatologist" | "Curl Specialist" | "Colourist" | "Stylist";
 
+/** One service the professional offers, exactly as they typed it. */
+export interface ProService {
+  name: string;
+  description?: string;
+  /** Free text as entered (e.g. "£120", "from £85"). Never computed. */
+  price?: string;
+}
+
+/** A live STRAND member discount on a listing. */
+export interface ProOfferView {
+  title: string;
+  description?: string | null;
+  /** Only ever populated for signed-in members. */
+  code?: string | null;
+  /** ISO date the offer stops being valid, when the pro set one. */
+  endsAt?: string | null;
+}
+
 export interface Professional {
+
   id: string;
   emoji: string;
   name: string;
