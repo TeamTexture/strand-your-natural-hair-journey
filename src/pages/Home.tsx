@@ -14,7 +14,7 @@ import {
 import StatTile from "@/components/nav/StatTile";
 import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
-import CheckinReminderBanner from "@/components/treatment/CheckinReminderBanner";
+
 
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
@@ -751,7 +751,7 @@ const Home = () => {
 
             {/* Treatment plans are a STRAND+ feature — only + members see them */}
             <div className="space-y-3">
-              <CheckinReminderBanner />
+              
               <PendingPlanInvites />
               <TodayTreatmentCard />
             </div>
