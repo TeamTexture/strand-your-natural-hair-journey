@@ -85,3 +85,22 @@ Product, tool, brand, offer and content titles are **never** truncated, line-cla
 - Titles include the item's own name *and* its brand/attribution line.
 - Layout must adapt to the title, not the reverse: keep the text column `min-w-0 flex-1` and let the row grow taller. Do not reintroduce a clamp to "keep cards even height".
 - Clamping remains fine for genuine body copy (descriptions, forum post bodies, notes) — never for names.
+
+## STANDING RULE — one content-integrity guardrail for all generated text (2026-08-28, permanent)
+
+Every function that produces text a member reads routes through **`supabase/functions/_shared/content-integrity.ts`**. It is the single place three checks live, and they are identical on every surface:
+
+1. **Closed vocabulary.** Hair/scalp/scientific terminology must come from the approved list built from Paige's manuscript plus established science (`_shared/hair-vocabulary.ts`). Invented compound terms and domain-crossed terms ("high porosity scalp") are rejections, not stylistic quibbles.
+2. **Source lockdown.** An ingredient may only be named if it is in the verified list held for that product (`_shared/ingredient-name-lock.ts` — an empty list forbids naming any ingredient). A technique specific (wet/dry, amount, timing, tool, frequency, temperature, rinse) may only be stated if it appears in real manufacturer directions (`_shared/usage-grounding.ts`); otherwise it must be framed explicitly as general guidance with no product-specific claim.
+3. **Nullable by default.** Every descriptive field is nullable and **"not established" is a correct, expected answer** — never an error state. When held data does not support a claim, the field is nulled and the rest is served.
+
+Enforcement points:
+
+- `sanitiseAndLog` (`_shared/citation-log.ts`) applies the guardrail on the single path every generation already goes through, so a new surface is covered the moment it uses the standard sanitiser. Pass `allowedIngredients` / `ingredientVocabulary` / `directions` whenever the surface has product source data, or the source-lockdown checks cannot run.
+- Analysis surfaces additionally call `enforceAnalysisFailsafes`, which now delegates its vocabulary and name-lock checks to the same module.
+- Functions running their own reject-and-retry loop call `checkContentIntegrity` (pure, synchronous) inside the loop, then `logContentIntegrityRejections` on the final attempt.
+- Use `contentIntegrityBlock()` in the prompt so the model is told the rules it will be validated against.
+
+Every rejection is written to **`public.ai_content_rejections`** (admin-readable) with the function, surface, check, field, offending phrase, rule and whether the output was re-asked (`rejected`) or served without the field (`field_nulled`) — one place Paige can review what the models tried to say.
+
+`src/test/content_integrity.test.ts` enumerates the generation functions and fails if one bypasses the guardrail or re-implements a check locally. Do not weaken it to make a new function pass.
