@@ -169,7 +169,7 @@ const MentionTextarea = ({
         </div>
       )}
       {open && (
-        <div className="absolute z-30 left-0 right-0 mt-1 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-auto">
+        <div className={`absolute z-30 left-0 right-0 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-auto ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
           <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-body text-foreground/50 border-b border-border">
             Tag someone
           </p>
