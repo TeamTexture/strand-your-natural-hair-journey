@@ -534,6 +534,9 @@ const IngredientDetail = () => {
             productKey,
             productName,
             productBrand,
+            /** Audit trail: why this call was allowed to happen at all. */
+            trigger,
+
             // Catalogue ingredients for a product the member hasn't saved yet
             // (opened from a brand's shelf) — otherwise the model has to infer.
             // Prefer the stored INCI list so the model never has to infer a
