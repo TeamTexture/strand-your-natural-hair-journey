@@ -153,21 +153,52 @@ export interface VocabularyViolation {
 }
 
 /**
+ * Terms that are genuinely PROPERTIES of the strand and cannot belong to the
+ * scalp. Deliberately excludes location and outcome words that read perfectly
+ * well next to "scalp" in ordinary English — "scalp build-up", "cleanses the
+ * scalp while protecting your strands", "scalp and strand health" are all
+ * correct and must never be rejected.
+ */
+const STRAND_PROPERTY_TERMS = [
+  "porosity",
+  "low porosity",
+  "high porosity",
+  "medium porosity",
+  "cuticle",
+  "cuticles",
+  "cuticle scales",
+  "cuticle layers",
+  "cortex",
+  "elasticity",
+  "strand diameter",
+  "surface texture",
+  "curl pattern",
+  "curl diameter",
+  "protein balance",
+  "protein overload",
+  "hair shaft",
+  "mid-shaft",
+];
+
+/** Only genuine attributive connectors — never a conjunction or a verb. */
+const ATTRIBUTIVE_GAP = "(?:\\s+(?:of|on|in|at|the|a|your|her|his|my|their|its))+\\s+";
+
+/**
  * Domain-crossing check: a strand-only property used as if it belonged to the
  * scalp (or vice versa), within the same short noun phrase. Catches
  * "high porosity scalp", "scalp porosity", "the porosity of your scalp",
- * "follicle elasticity", "cuticle of the scalp".
+ * "follicle elasticity", "cuticle of the scalp" — but not two domains merely
+ * mentioned in one sentence.
  */
 function domainCrossings(text: string): string[] {
   const hits: string[] = [];
-  const gap = "(?:\\s+\\w+){0,3}\\s+"; // up to 3 filler words ("of your", "on the")
-  for (const term of [...STRAND_ONLY, ...STRAND_WORDS]) {
+  for (const term of STRAND_PROPERTY_TERMS) {
     const t = escape(term.toLowerCase());
     for (const scalpWord of SCALP_WORDS) {
       const s = escape(scalpWord);
       const patterns = [
-        new RegExp(`\\b${t}${gap}${s}\\b`, "i"),
-        new RegExp(`\\b${s}${gap}${t}\\b`, "i"),
+        new RegExp(`\\b${t}${ATTRIBUTIVE_GAP}${s}\\b`, "i"),
+        new RegExp(`\\b${s}${ATTRIBUTIVE_GAP}${t}\\b`, "i"),
         new RegExp(`\\b${t}\\s+${s}\\b`, "i"),
         new RegExp(`\\b${s}\\s+${t}\\b`, "i"),
       ];
@@ -186,6 +217,7 @@ function domainCrossings(text: string): string[] {
   }
   return [...new Set(hits)];
 }
+
 
 /**
  * Unknown-technical-term check: a phrase built on a hair-science root that is

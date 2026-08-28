@@ -113,7 +113,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v16-molecule-vocab-2026-08-28";
+const MODEL_VERSION = "claude-sonnet-4-6@v17-namelock-variants-2026-08-28";
 
 
 
@@ -1342,6 +1342,12 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       );
 
       const rejected: string[] = [];
+      // Snapshot the verdict bullets BEFORE the guardrail pipeline. The blood
+      // guardrail, clarification pass and fidelity audit each blank prose in
+      // place, and the structural prune then drops the hollow row — so a single
+      // stripped sentence could empty the whole array and leave the member with
+      // a verdict card carrying no reasoning at all. Row-level rescue below.
+      const preReasons = sanitiseScoreReasons(analysis.score_reasons);
       analysis = await sanitiseAndLog(analysis, "ingredient-analysis", {
         surface: "ingredient-analysis",
         userId: memberId,
@@ -1352,6 +1358,38 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         dryRun: mode.dryRun,
         onRejected: (rules) => rejected.push(...rules),
       }) as AnalysisPayload;
+      const postReasons = sanitiseScoreReasons(analysis.score_reasons);
+      if (postReasons.length === 0 && preReasons.length > 0) {
+        // Re-run the bullets one row at a time so only the row that actually
+        // breached a rule is dropped and every clean row still renders.
+        const survivors: ScoreReason[] = [];
+        for (const row of preReasons) {
+          const checked = sanitiseScoreReasons(
+            (await sanitiseAndLog([row], "ingredient-analysis", {
+              surface: "ingredient-analysis",
+              userId: memberId,
+              generationId,
+              dryRun: true,
+            })) as unknown,
+          );
+          if (checked.length === 1) survivors.push(checked[0]);
+        }
+        console.warn(JSON.stringify({
+          function: "ingredient-analysis",
+          event: "score_reasons_row_rescue",
+          before: preReasons.length,
+          rescued: survivors.length,
+        }));
+        analysis.score_reasons = survivors;
+      }
+      console.log(JSON.stringify({
+        function: "ingredient-analysis",
+        event: "score_reasons_stage",
+        attempt: attemptNumber,
+        pre: preReasons.length,
+        post: sanitiseScoreReasons(analysis.score_reasons).length,
+      }));
+
       if (rejected.length === 0) {
         // Clear problems from an earlier attempt. Previously this stale value
         // survived a successful retry and incorrectly forced the 503 branch.
