@@ -1231,24 +1231,24 @@ const IngredientDetail = () => {
 
 
         {error && !loading && (
-          DEMO_SAFE_MODE ? (
+          error.startsWith("We couldn't read") ? (
             <SurfaceCard className="space-y-1">
-              <p className="font-body text-[13px] text-foreground/80">
-                {error.startsWith("We couldn't read")
-                  ? error
-                  : "Analysis not yet available for this product."}
-              </p>
+              <p className="font-body text-[13px] text-foreground/80">{error}</p>
             </SurfaceCard>
-
           ) : (
             <SurfaceCard tone="orange" className="space-y-2">
               <p className="text-sm">Could not analyse this product.</p>
-              <Button variant="goldGhost" size="pill" onClick={() => runAnalysis(true)}>
+              <Button
+                variant="goldGhost"
+                size="pill"
+                onClick={() => runAnalysis("member_requested", true)}
+              >
                 <RefreshCw className="size-4 mr-1" /> Retry
               </Button>
             </SurfaceCard>
           )
         )}
+
 
 
         {analysis && !loading && (
