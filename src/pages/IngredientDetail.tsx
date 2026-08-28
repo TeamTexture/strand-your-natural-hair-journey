@@ -722,7 +722,7 @@ const IngredientDetail = () => {
       runAnalysis(false);
     })();
     return () => { cancelled = true; };
-  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, productsLoading]);
+  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, tipsLevelReady, productsLoading]);
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the
