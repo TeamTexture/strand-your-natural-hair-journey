@@ -274,6 +274,49 @@ function scrubGuidance(analysis: AnalysisPayload): AnalysisPayload {
   return { ...analysis, personalised_guidance: cleaned };
 }
 
+// ── USAGE GROUNDING (how-to-use) ────────────────────────────────────────
+// A technique specific must come from the real manufacturer directions, or be
+// flagged as general guidance. Same discipline as the ingredient claim checks.
+function usageGroundingProblems(
+  analysis: AnalysisPayload,
+  directions: UsageDirections,
+): string[] {
+  const fields = (analysis.personalised_guidance ?? []).flatMap((t, i) => [
+    { field: `personalised_guidance[${i}].title`, text: t?.title },
+    { field: `personalised_guidance[${i}].body`, text: t?.body },
+  ]);
+  return [...new Set(validateUsageGrounding(fields, directions).map((p) => p.rule))];
+}
+
+/** Terminal fallback: drop the ungrounded sentences rather than show them. */
+function scrubUsageGrounding(
+  analysis: AnalysisPayload,
+  directions: UsageDirections,
+  productKey: string,
+): AnalysisPayload {
+  const tips = analysis.personalised_guidance;
+  if (!Array.isArray(tips) || tips.length === 0) return analysis;
+  let removed = 0;
+  const cleaned = tips.map((tip) => {
+    const bodyOut = scrubUngroundedUsage(tip?.body ?? "", directions);
+    const titleBad = validateUsageGrounding([{ field: "title", text: tip?.title }], directions).length > 0;
+    removed += bodyOut.removed + (titleBad ? 1 : 0);
+    return {
+      title: titleBad ? "Get the most from this product" : (tip?.title ?? "").trim(),
+      body: bodyOut.text || "Follow the manufacturer's own directions for this product, and focus on covering your hair evenly rather than adding conditions the label does not give.",
+    };
+  });
+  if (removed) {
+    console.warn(JSON.stringify({
+      function: "ingredient-analysis",
+      event: "usage_grounding_scrub",
+      productKey,
+      removed,
+    }));
+  }
+  return { ...analysis, personalised_guidance: cleaned };
+}
+
 interface RequestBody {
   productKey: string;
   dryRun?: boolean;
@@ -1235,6 +1278,7 @@ Deno.serve(async (req) => {
             ]
             : []),
           ...guidanceFloorProblems(analysis, guidanceTokens),
+          ...usageGroundingProblems(analysis, usageDirections),
         ];
         if (claudeProblems.length) {
           console.log(JSON.stringify({
@@ -1261,6 +1305,7 @@ Deno.serve(async (req) => {
           if (fixedTips) analysis = { ...analysis, personalised_guidance: fixedTips };
         }
         analysis = scrubGuidance(analysis);
+        analysis = scrubUsageGrounding(analysis, usageDirections, productKey);
         auditGuidanceActionFloor(analysis, productKey);
         const remaining = guidanceFloorProblems(analysis, guidanceTokens);
         if (remaining.length)
@@ -1285,7 +1330,10 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         });
         analysis = applyKnownCategories(analysis, knownFacts);
         analysis = scrubGuidance(analysis);
-        const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
+        const lovableProblems = [
+          ...guidanceFloorProblems(analysis, guidanceTokens),
+          ...usageGroundingProblems(analysis, usageDirections),
+        ];
         if (lovableProblems.length) {
           console.log(JSON.stringify({
             function: "ingredient-analysis",
@@ -1309,6 +1357,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           });
           analysis = scrubGuidance(analysis);
         }
+        analysis = scrubUsageGrounding(analysis, usageDirections, productKey);
         auditGuidanceActionFloor(analysis, productKey);
         analysis._provider = "lovable";
         analysis._generated_at = new Date().toISOString();
