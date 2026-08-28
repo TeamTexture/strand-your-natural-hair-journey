@@ -113,7 +113,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v18-bilingual-inci-2026-08-29";
+const MODEL_VERSION = "claude-sonnet-4-6@v19-prose-aliases-2026-08-29";
 
 
 
@@ -1443,6 +1443,16 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
     if (mode.dryRun) return json(200, { cached: false, analysis });
 
     // ── Upsert cache ────────────────────────────────────────────────
+    // VERSION STAMP (2026-08-29). The stamp set at generation time was being
+    // lost before it reached the row (cached rows came back with a null
+    // `_model_version`), so the version gate above could never invalidate a
+    // poisoned payload and stale write-ups — including ones naming ingredients
+    // that are not in the formula — kept rendering forever. Stamp immediately
+    // before the write so what is stored always carries its version.
+    (analysis as AnalysisPayload)._model_version = MODEL_VERSION;
+    if (!(analysis as AnalysisPayload)._generated_at) {
+      (analysis as AnalysisPayload)._generated_at = new Date().toISOString();
+    }
     const { data: prior } = await dataClient
       .from("ai_summaries")
       .select("id")

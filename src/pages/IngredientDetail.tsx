@@ -685,6 +685,18 @@ const IngredientDetail = () => {
           .limit(1)
           .maybeSingle();
         if (!data?.payload) { reason = "stored_payload_missing"; return null; }
+        // VERSION GUARD (2026-08-29). A stored payload written before the
+        // current guardrail generation carries no `_model_version`. Those are
+        // the payloads that kept naming ingredients that are not in the
+        // formula, because reading them here skips the server's version gate
+        // entirely. Send unversioned payloads back through the function: it
+        // re-checks the version itself and serves its own cache where the
+        // payload is still valid, so this costs no model spend by default.
+        const storedVersion = (data.payload as { _model_version?: unknown } | null)?._model_version;
+        if (typeof storedVersion !== "string" || !storedVersion) {
+          reason = "unversioned_stored_payload";
+          return null;
+        }
         return data.payload as unknown as Analysis;
 
       })();
