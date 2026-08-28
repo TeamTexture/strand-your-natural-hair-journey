@@ -37,7 +37,7 @@ import {
   enforceIngredientCardSensitivities,
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
-import { normaliseInciKey } from "../_shared/ingredient-copy.ts";
+import { inciKeyCandidates, normaliseInciKey } from "../_shared/ingredient-copy.ts";
 import {
   applyHomemadeSafety,
   buildHomemadeSafety,
@@ -113,7 +113,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v17-namelock-variants-2026-08-28";
+const MODEL_VERSION = "claude-sonnet-4-6@v18-bilingual-inci-2026-08-29";
 
 
 
@@ -393,7 +393,9 @@ async function loadKnownIngredientFacts(
   names: string[],
 ): Promise<Map<string, KnownFact>> {
   const out = new Map<string, KnownFact>();
-  const keys = [...new Set(names.map((n) => normaliseInciKey(n)).filter(Boolean))];
+  // Bilingual label forms ("water/eau/aqua") only resolve through their
+  // candidate keys, so every alternative is looked up, not just the raw string.
+  const keys = [...new Set(names.flatMap((n) => inciKeyCandidates(n)).filter(Boolean))];
   if (keys.length === 0) return out;
   try {
     const { data } = await reader
@@ -916,16 +918,18 @@ Deno.serve(async (req) => {
           dataClient as never,
           recipe.map((r) => r.ingredient),
         );
+        const factFor = (n: string) =>
+          inciKeyCandidates(n).map((k) => facts.get(k)).find(Boolean) ?? null;
         const unverified = recipe
           .map((r) => r.ingredient)
-          .filter((n) => !facts.has(normaliseInciKey(n)));
+          .filter((n) => !factFor(n));
         // Preservation is judged from the ingredients themselves: the shared
         // glossary's own `category` decides, so a recipe that really does carry
         // a preservative system is never told it has none.
         const glossaryPreservatives = recipe
           .map((r) => r.ingredient)
           .filter((n) =>
-            (facts.get(normaliseInciKey(n))?.category ?? "").toLowerCase() === "preservative"
+            (factFor(n)?.category ?? "").toLowerCase() === "preservative"
           );
         return buildHomemadeSafety(recipe, unverified, glossaryPreservatives);
       })()

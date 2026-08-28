@@ -34,6 +34,11 @@ import {
   HOMEMADE_CATEGORIES, RECIPE_UNITS, formatAmount, recipeIngredientNames,
   type RecipeItem,
 } from "@/lib/homemade";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { detectCommercialLabel } from "@/lib/commercialLabelDetect";
 import { toast } from "sonner";
 
 interface RowState {
@@ -60,6 +65,8 @@ const AddHomemadeProduct = () => {
   /** The scanned recipe photo — used as the product image when she adds none. */
   const [scanPhoto, setScanPhoto] = useState<File | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
+  /** Set when the list looks like a scanned shop-bought label, not a recipe. */
+  const [commercialPrompt, setCommercialPrompt] = useState(false);
 
   const setRow = (i: number, patch: Partial<RowState>) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -117,7 +124,22 @@ const AddHomemadeProduct = () => {
   const filled = rows.filter((r) => r.ingredient.trim().length > 0);
   const canSave = name.trim().length > 1 && !!category && filled.length >= 1;
 
-  const save = async () => {
+  /** Signals for "this is a shop-bought label, not a recipe" — prompt only. */
+  const commercialSignals = detectCommercialLabel(
+    filled.map((r) => ({
+      ingredient: r.ingredient,
+      amount: formatAmount(r.qty.trim(), r.unit, r.freeText),
+    })),
+  );
+
+  // She taps Save; if the list reads as a manufactured ingredient panel she is
+  // asked first, and nothing is reclassified without her answer.
+  const onSavePressed = () => {
+    if (commercialSignals.looksCommercial) { setCommercialPrompt(true); return; }
+    void save(true);
+  };
+
+  const save = async (asHomemade: boolean) => {
     if (!user || !canSave) return;
     if (isViewingAs) { toast.error("Read-only while viewing as a member"); return; }
     setSaving(true);
@@ -161,13 +183,15 @@ const AddHomemadeProduct = () => {
           name: name.trim(),
           brand: null,
           category,
-          is_homemade: true,
-          homemade_recipe: recipe as unknown as Json,
+          is_homemade: asHomemade,
+          homemade_recipe: (asHomemade ? recipe : null) as unknown as Json,
           // Kept in sync deliberately: every existing consumer reads this.
           ingredients: recipeIngredientNames(recipe),
           // Records HOW the list originated, so a misread scan can be told
           // apart from something she typed herself.
-          ingredients_source: scanUsed ? "homemade_scan" : "homemade_manual",
+          ingredients_source: asHomemade
+            ? (scanUsed ? "homemade_scan" : "homemade_manual")
+            : (scanUsed ? "label_scan" : "manual"),
 
           storage_path: storagePath,
           on_shelf: true,
@@ -177,7 +201,9 @@ const AddHomemadeProduct = () => {
         .single();
       if (error) throw error;
 
-      toast.success("Recipe saved — analysing it now");
+      toast.success(
+        asHomemade ? "Recipe saved — analysing it now" : "Product saved — analysing it now",
+      );
       navigate(`/products/profile/${data.id}`, { replace: true });
     } catch (e) {
       console.error("homemade save failed", e);
@@ -258,7 +284,7 @@ const AddHomemadeProduct = () => {
                     value={row.ingredient}
                     onChange={(e) => setRow(i, { ingredient: e.target.value })}
                     placeholder="Ingredient — e.g. shea butter"
-                    maxLength={60}
+                    maxLength={180}
                   />
                   <div className="flex items-center gap-2">
                     <Input
@@ -344,11 +370,42 @@ const AddHomemadeProduct = () => {
           size="pill"
           className="w-full"
           disabled={!canSave || saving}
-          onClick={save}
+          onClick={onSavePressed}
         >
           {saving ? "Saving…" : "Save & analyse"}
         </Button>
       </div>
+
+      <AlertDialog open={commercialPrompt} onOpenChange={setCommercialPrompt}>
+        <AlertDialogContent className="max-w-[320px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-[17px]">
+              This looks like a store-bought product
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[12.5px] leading-relaxed">
+              {commercialSignals.preservatives.length > 0
+                ? `The list includes ${commercialSignals.preservatives.join(", ")} and no measured amounts, which is how a manufactured ingredient panel reads rather than a recipe you mixed.`
+                : `The list has ${commercialSignals.ingredientCount} ingredients and no measured amounts, which is how a manufactured ingredient panel reads rather than a recipe you mixed.`}
+              {" "}Saving it as a regular product gives you the right analysis. Want to
+              save it as a regular product instead?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction
+              className="w-full"
+              onClick={() => { setCommercialPrompt(false); void save(false); }}
+            >
+              Save as a regular product
+            </AlertDialogAction>
+            <AlertDialogCancel
+              className="w-full mt-0"
+              onClick={() => { setCommercialPrompt(false); void save(true); }}
+            >
+              No, it's my own recipe
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScreenLayout>
   );
 };

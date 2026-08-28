@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     const items = (Array.isArray(parsed.items) ? parsed.items : [])
       .map((raw) => {
         const r = (raw ?? {}) as Record<string, unknown>;
-        const ingredient = String(r.ingredient ?? "").trim().slice(0, 60);
+        const ingredient = String(r.ingredient ?? "").trim().slice(0, 180);
         if (!ingredient) return null;
         const unitRaw = String(r.unit ?? "").trim().toLowerCase();
         const unit = unitSet.has(unitRaw) ? unitRaw : "";
@@ -107,11 +107,11 @@ Deno.serve(async (req) => {
         // misread, and a wrong number is worse than no number.
         const qtyRaw = String(r.qty ?? "").trim().replace(/[^\d.,/]/g, "");
         const qty = unit && /\d/.test(qtyRaw) ? qtyRaw.slice(0, 8) : "";
-        const amount_text = unit ? "" : String(r.amount_text ?? "").trim().slice(0, 40);
+        const amount_text = unit ? "" : String(r.amount_text ?? "").trim().slice(0, 80);
         return { ingredient, qty, unit, amount_text };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
-      .slice(0, 25);
+      .slice(0, 80);
 
     const nameRaw = typeof parsed.name === "string" ? parsed.name.trim().slice(0, 80) : "";
 

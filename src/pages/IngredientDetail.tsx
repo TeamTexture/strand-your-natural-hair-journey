@@ -54,6 +54,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { safeBack } from "@/lib/smartBack";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import HomemadeSafetyCard from "@/components/product/HomemadeSafetyCard";
+import GlossaryConfidenceCard from "@/components/product/GlossaryConfidenceCard";
 import { parseRecipe, type HomemadeSafetyPayload } from "@/lib/homemade";
 import { useProductPhotos } from "@/hooks/useProductPhotos";
 import { useUserProducts } from "@/hooks/useUserProducts";
@@ -651,6 +652,17 @@ const IngredientDetail = () => {
           reason = "no_stored_analysis";
           return null;
         }
+        // HOMEMADE: the DIY safety block (hazards, preservation, glossary
+        // coverage) is recomputed deterministically INSIDE the edge function on
+        // every call, including its own cache hits. Reading ai_summaries direct
+        // from here skips that pass and renders whatever safety text was stored
+        // months ago — which is how a preserved formula kept showing "nothing in
+        // this recipe preserves it". Go through the function instead: it costs no
+        // model spend on a cache hit, it just re-derives the safety.
+        if ((row as { is_homemade?: boolean }).is_homemade === true) {
+          reason = "homemade_safety_recompute";
+          return null;
+        }
         const storedIng = row.analysis_ingredients_hash ?? null;
         const currentIng = ingredientsFingerprint(row.ingredients);
         if (storedIng && currentIng && storedIng !== currentIng) {
@@ -1164,6 +1176,19 @@ const IngredientDetail = () => {
                 never read as a footnote under an otherwise warm verdict. */}
             {analysis.homemade_safety && (
               <HomemadeSafetyCard safety={analysis.homemade_safety} />
+            )}
+
+            {/* Glossary coverage — physically separated from the safety card so a
+                long subset of names can never read as the full recipe. */}
+            {analysis.homemade_safety && (
+              <GlossaryConfidenceCard
+                unverified={analysis.homemade_safety.unverified ?? []}
+                total={
+                  (Array.isArray((productRow as { ingredients?: unknown } | null)?.ingredients)
+                    ? ((productRow as { ingredients: string[] }).ingredients.length)
+                    : 0) || (analysis.ingredients?.length ?? 0)
+                }
+              />
             )}
 
             {/* AI Summary — the single verdict callout, bold lead-in only */}
