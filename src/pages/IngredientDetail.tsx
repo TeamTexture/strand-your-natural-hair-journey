@@ -1540,13 +1540,16 @@ const IngredientDetail = () => {
             const ing = selectedIngredient;
             const lower = ing.name.toLowerCase().trim();
             const isFlagged = flaggedNames.has(lower);
-            const profile = ingredientProfile.data;
-            const meansForYou = profile?.what_it_means_for_you;
-            const whatItIs = profile?.what_it_is;
-            // deep_dive removed in v5 — popup is now succinct (what_it_is + benefits + what_it_means_for_you).
-            const benefits = profile?.benefits ?? [];
-            const profileLoading = ingredientProfile.isLoading || ingredientProfile.isFetching;
-            const profileError = ingredientProfile.isError;
+            const profile = ingredientExplainer;
+            // Product-specific verdict from the authoritative analysis; falls
+            // back to the analysis row's own body so the copy always agrees.
+            const meansForYou = profile?.fit?.for_you || ing.body || undefined;
+            const notFlagged = !profile?.fit?.for_you && profile?.fit_note === "not_flagged";
+            const whatItIs = profile?.glossary?.what_it_is ?? undefined;
+            const roleInProduct = profile?.role_in_product ?? undefined;
+            const profileLoading = explainerLoading;
+            const profileError = Boolean(explainerError);
+
             const alsoInProducts = productsByIngredient.get(lower) ?? [];
             const shelfMatches = alsoInProducts.filter((p) => p.onShelf);
             const wishlistMatches = alsoInProducts.filter((p) => !p.onShelf && p.onWishlist);
