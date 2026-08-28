@@ -190,6 +190,8 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
 6. Field rules — strict:
    - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
    - category: pick the single best fit from the enum.
+   - application_area / leave_on: read STRICTLY off the label's directions. application_area = "scalp" (scalp/partings only), "lengths_ends" (mid-lengths and ends only), "scalp_and_lengths" (whole head), "rinse_out" (applied then rinsed off during washing). leave_on = true when the directions say it stays on the hair, false when it is rinsed out. If the label does not say, return "unknown" and omit leave_on — NEVER guess from the product name or category.
+
    - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when photo 2's list is partial; otherwise transcribe what's visible.
    - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a FREQUENCY COUNT of ingredients she already owns (3+ saved products) — it is NEVER a reason to flag "avoid".
    - match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable hair/health traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients the member already owns frequently (history.flagged_ingredients) — frequency of ownership is not a fit signal in either direction, and must not appear as a negative score factor.
@@ -438,7 +440,10 @@ SCHEMA
   "product_name": string,
   "brand": string,
   "category": "shampoo"|"conditioner"|"treatment"|"styler"|"oil"|"mask"|"leave-in"|"other",
+  "application_area": "scalp"|"lengths_ends"|"scalp_and_lengths"|"rinse_out"|"unknown",
+  "leave_on": boolean|null,
   "ingredients": string[],
+
   "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
   "match_score": number,
   "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
