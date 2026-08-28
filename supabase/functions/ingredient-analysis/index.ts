@@ -1102,9 +1102,10 @@ Deno.serve(async (req) => {
         .select("payload, updated_at, kind")
         .eq("user_id", memberId)
         .like("kind", "ingredient_analysis:%")
-        .neq("kind", cacheKind)
+        .not("kind", "like", `ingredient_analysis:${productKey}:%`)
         .order("updated_at", { ascending: false })
         .limit(8);
+
       recentTraits = recentTraitUsage(
         (others ?? []).map((r) => {
           const p = r.payload as { usage_instructions?: string | null } | null;
