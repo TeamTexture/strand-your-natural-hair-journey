@@ -5638,6 +5638,8 @@ export type Database = {
           checkin_every_weeks: number
           created_at: string
           created_by_user_id: string
+          duration_unit: string
+          duration_value: number | null
           duration_weeks: number
           end_date: string | null
           goal: string | null
@@ -5661,6 +5663,8 @@ export type Database = {
           checkin_every_weeks?: number
           created_at?: string
           created_by_user_id: string
+          duration_unit?: string
+          duration_value?: number | null
           duration_weeks?: number
           end_date?: string | null
           goal?: string | null
@@ -5684,6 +5688,8 @@ export type Database = {
           checkin_every_weeks?: number
           created_at?: string
           created_by_user_id?: string
+          duration_unit?: string
+          duration_value?: number | null
           duration_weeks?: number
           end_date?: string | null
           goal?: string | null
@@ -7247,6 +7253,10 @@ export type Database = {
       decline_treatment_assignment: {
         Args: { _assignment_id: string }
         Returns: undefined
+      }
+      ensure_treatment_checkin_notification: {
+        Args: { _plan_id: string; _week: number }
+        Returns: string
       }
       expire_unpaid_brand_offer_revisions: { Args: never; Returns: number }
       forum_author_info: {

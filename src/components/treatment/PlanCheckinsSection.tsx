@@ -129,7 +129,7 @@ const PlanCheckinsSection = ({
                         state === "open" ? "text-primary" : "text-muted-foreground",
                       )}
                     >
-                      Cycle {c.cycle} of {cycles.length}
+                      {c.isDayOne ? "Starting point" : `Cycle ${c.cycle} of ${cycles.length - 1}`}
                     </p>
                     <p
                       className={cn(
@@ -137,11 +137,16 @@ const PlanCheckinsSection = ({
                         state === "not_open" && "text-muted-foreground",
                       )}
                     >
-                      {c.startWeek === c.closingWeek
-                        ? `Week ${c.closingWeek}`
-                        : `Weeks ${c.startWeek}–${c.closingWeek}`}
+                      {c.isDayOne
+                        ? "Day one"
+                        : c.startWeek === c.closingWeek
+                          ? `Week ${c.closingWeek}`
+                          : `Weeks ${c.startWeek}–${c.closingWeek}`}
                     </p>
-                    <p className="font-body text-[11.5px] text-muted-foreground mt-0.5">{range}</p>
+                    <p className="font-body text-[11.5px] text-muted-foreground mt-0.5">
+                      {c.isDayOne ? format(fromDateKey(c.start), "d MMM") : range}
+                    </p>
+
                   </div>
 
                   <span className="shrink-0 flex items-center gap-1.5">
@@ -164,8 +169,12 @@ const PlanCheckinsSection = ({
                 {state === "open" && (
                   <>
                     <p className="font-body text-[12.5px] text-muted-foreground leading-snug">
-                      {cycleConsistencyLine(schedule, entries, startDate, c, today)}
+                      {c.isDayOne
+                        ? "Where you are starting from, in your own words."
+                        : cycleConsistencyLine(schedule, entries, startDate, c, today)}
                     </p>
+
+
                     <Button
                       variant="outline"
                       className="rounded-pill w-full"

@@ -29,6 +29,10 @@ export interface TreatmentPlanRow {
   start_date: string;
   end_date: string | null;
   duration_weeks: number;
+  /** What the member typed on the builder — display only. */
+  duration_value: number | null;
+  duration_unit: "days" | "weeks" | "months" | null;
+
   status: PlanStatus;
   professional_id: string | null;
   notes: string | null;
@@ -78,7 +82,7 @@ const db = supabase as unknown as {
 async function loadBundles(userId: string, statuses: PlanStatus[]): Promise<PlanBundle[]> {
   const { data: plans, error } = await db
     .from("treatment_plans")
-    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone, checkin_every_weeks")
+    .select("id, user_id, title, goal, start_date, end_date, duration_weeks, duration_value, duration_unit, status, professional_id, notes, reminder_frequency, reminder_weekday, reminder_hour, reminder_timezone, checkin_every_weeks")
     .eq("user_id", userId)
     .in("status", statuses)
     .order("created_at", { ascending: false });
@@ -395,8 +399,13 @@ export interface DraftProduct {
 export interface DraftPlan {
   title: string;
   goal: string;
+  /** Derived weeks — still the only number the engine runs on. */
   duration_weeks: number;
+  /** What the member actually typed, remembered for display only. */
+  duration_value?: number;
+  duration_unit?: "days" | "weeks" | "months";
   start_date: string;
+
   products: DraftProduct[];
   steps: DraftStep[];
   milestoneWeeks: number[];
@@ -427,6 +436,9 @@ export function useCreateTreatmentPlan() {
           start_date: draft.start_date,
           end_date: endKey,
           duration_weeks: draft.duration_weeks,
+          duration_value: draft.duration_value ?? draft.duration_weeks,
+          duration_unit: draft.duration_unit ?? "weeks",
+
           status: "active",
           reminder_frequency: draft.reminderFrequency,
           reminder_weekday: draft.reminderWeekday,

@@ -48,7 +48,11 @@ export const ALERT_KEYS = {
 
   // "How this works" strip on a treatment plan — signature is the plan id
   TREATMENT_HOW_IT_WORKS: "treatment_how_it_works",
+  // Check-in reminder banner. Signature is "<plan id>:<week>", so skipping is
+  // permanent for that ONE cycle and never mutes the rest of the plan.
+  TREATMENT_CHECKIN: "treatment_checkin",
 } as const;
+
 
 export type AlertKey = (typeof ALERT_KEYS)[keyof typeof ALERT_KEYS];
 

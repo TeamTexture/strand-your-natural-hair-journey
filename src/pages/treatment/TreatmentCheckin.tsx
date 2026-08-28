@@ -71,12 +71,15 @@ const TreatmentCheckin = () => {
   const [note, setNote] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
+  // Week 0 is the mandatory day-one check-in — her starting point.
   const week = useMemo(() => {
     const parsed = Number(weekParam);
-    if (Number.isFinite(parsed) && parsed >= 1) return Math.floor(parsed);
+    if (Number.isFinite(parsed) && parsed >= 0) return Math.floor(parsed);
     if (!bundle) return 1;
     return Math.max(1, Math.min(bundle.plan.duration_weeks, weekNumberFor(bundle.plan.start_date, todayKey())));
   }, [weekParam, bundle]);
+  const isDayOne = week === 0;
+
 
   const milestone = useMemo(
     () => bundle?.milestones.find((m) => m.week_number === week) ?? null,
@@ -131,7 +134,11 @@ const TreatmentCheckin = () => {
   }
 
   const { plan } = bundle;
-  const range = weekRange(plan.start_date, week);
+  const range = isDayOne
+    ? { start: plan.start_date, end: plan.start_date }
+    : weekRange(plan.start_date, week);
+  const checkinTitle = isDayOne ? "Day one check-in" : `Week ${week} check-in`;
+
 
   // What she said she'd do at the start, measured against what she actually logged.
   const weekAdherence = computeAdherence(bundle.schedule, bundle.entries, plan.start_date, {
@@ -168,7 +175,7 @@ const TreatmentCheckin = () => {
       { checkinId: checkin.id, ratings, note },
       {
         onSuccess: () => {
-          toast.success(`Week ${week} check-in saved`);
+          toast.success(`${checkinTitle} saved`);
           navigate(`/treatment/${plan.id}?checkin=${week}`, { replace: true });
         },
         onError: () => toast.error("Couldn't save that just now — your media is still here."),
@@ -178,22 +185,28 @@ const TreatmentCheckin = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title={`Week ${week} check-in`} backFallback={`/treatment/${plan.id}`} />
+      <TitleBar title={checkinTitle} backFallback={`/treatment/${plan.id}`} />
 
       <div className="px-5 pt-1 pb-10 space-y-4">
         {!hasPlus && <TreatmentReadOnlyNotice next={`/treatment/${plan.id}/checkin/${week}`} />}
         <div>
-          <h1 className="font-display text-[24px] leading-tight">Week {week} check-in</h1>
+          <h1 className="font-display text-[24px] leading-tight">{checkinTitle}</h1>
           <p className="font-body text-[13px] text-muted-foreground mt-1 leading-snug">
-            Tell us how it's going in your own words — write it, record it, or show it.
+            {isDayOne
+              ? "Where you're starting from, in your own words — write it, record it, or show it."
+              : "Tell us how it's going in your own words — write it, record it, or show it."}
           </p>
           <p className="font-body text-[12px] text-muted-foreground mt-1">
-            {format(fromDateKey(range.start), "d MMM")} – {format(fromDateKey(range.end), "d MMM")}
+            {isDayOne
+              ? format(fromDateKey(range.start), "d MMM")
+              : `${format(fromDateKey(range.start), "d MMM")} – ${format(fromDateKey(range.end), "d MMM")}`}
           </p>
         </div>
 
-        {/* what she committed to, against what she logged */}
+        {/* what she committed to, against what she logged — nothing to measure on day one */}
+        {!isDayOne && (
         <SurfaceCard className="space-y-2.5">
+
           <div className="flex items-baseline justify-between gap-3">
             <p className="font-body text-[14px] font-semibold">How the week went to plan</p>
             <p className="font-display text-[17px] text-primary leading-none">
@@ -223,6 +236,9 @@ const TreatmentCheckin = () => {
               : "your plan hasn't come due yet."}
           </p>
         </SurfaceCard>
+        )}
+
+
 
         {/* milestone leads */}
         {milestone && (

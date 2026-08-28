@@ -92,14 +92,19 @@ const PlanActionBlock = ({
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <p className="font-body text-[10px] uppercase tracking-[0.18em] text-primary-foreground/75">
-              Cycle {open.cycle} of {cycles.length} is ready
+              {open.isDayOne
+                ? "Your starting point"
+                : `Cycle ${open.cycle} of ${cycles.filter((c) => !c.isDayOne).length} is ready`}
             </p>
             <p className="font-display text-[21px] leading-tight mt-0.5">
-              How did these {open.closingWeek - open.startWeek + 1 === 1 ? "week" : "weeks"} go?
+              {open.isDayOne
+                ? "Where are you starting from?"
+                : `How did these ${open.closingWeek - open.startWeek + 1 === 1 ? "week" : "weeks"} go?`}
             </p>
             <p className="font-body text-[11.5px] text-primary-foreground/85 mt-0.5">
-              {format(fromDateKey(open.start), "d MMM")} –{" "}
-              {format(fromDateKey(open.end), "d MMM")}
+              {open.isDayOne
+                ? format(fromDateKey(open.start), "d MMM")
+                : `${format(fromDateKey(open.start), "d MMM")} – ${format(fromDateKey(open.end), "d MMM")}`}
             </p>
           </div>
           {milestoneWeeks.includes(open.closingWeek) && (
@@ -110,8 +115,11 @@ const PlanActionBlock = ({
         </div>
 
         <p className="font-body text-[13px] leading-snug text-primary-foreground/90">
-          {cycleConsistencyLine(schedule, entries, plan.start_date, open, today)}
+          {open.isDayOne
+            ? "A quick note on your hair today gives every later check-in something to compare against."
+            : cycleConsistencyLine(schedule, entries, plan.start_date, open, today)}
         </p>
+
 
         <Button
           className="rounded-pill w-full bg-background text-primary hover:bg-background/90"

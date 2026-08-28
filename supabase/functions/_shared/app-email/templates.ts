@@ -860,6 +860,29 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     { eyebrow: "Treatment plan" },
   ),
 
+  // Day one. Sent on the plan's start date only, asking for her starting point
+  // so later weeks have something honest to be measured against.
+  "treatment-day-one-checkin": t(
+    "treatment-day-one-checkin",
+    "transactional",
+    false,
+    (d) => `Day one of ${s(d.plan_title, "your plan")}`,
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `${s(d.plan_title, "Your plan")} starts today.`,
+      "Before anything changes, write down where your hair is right now — how it feels, what you can see, what you want to be different.",
+      "It takes a couple of minutes, and it is what every later check-in is compared against.",
+    ],
+    (d) => ({
+      label: "Write my starting point",
+      path: `/treatment/${s(d.plan_id)}/checkin/0`,
+    }),
+    "treatment_checkin_reminders",
+    { eyebrow: "Treatment plan" },
+  ),
+
+
+
   // Daily reminder. Names the exact steps due today — the whole point is that
   // she does not have to open the app to remember what she committed to.
   "treatment-daily-reminder": t(
