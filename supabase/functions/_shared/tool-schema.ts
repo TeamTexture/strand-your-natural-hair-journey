@@ -8,6 +8,7 @@ import {
   SCORE_REASONS_SCHEMA_PROPERTY,
   type ScoreReason,
 } from "./score-reasons.ts";
+import { STRAND_TIP_SCHEMA_PROPERTY } from "./fit-first-score.ts";
 
 export const TOOL_KIND_ENUM = [
   "heat_cap",
@@ -84,6 +85,7 @@ export const RETURN_TOOL_ANALYSIS_SCHEMA = {
         "How well this tool fits THIS user's hair profile, goals and current style. 0 = poor fit, 100 = ideal fit. Calibrate honestly — most tools land 40–75.",
     },
     score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
+    strand_tip: STRAND_TIP_SCHEMA_PROPERTY,
     how_to_use: {
       type: "string",
       description:

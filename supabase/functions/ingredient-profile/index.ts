@@ -25,6 +25,10 @@ import {
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import {
+  applyFieldNulls,
+  enforceAnalysisFailsafes,
+} from "../_shared/analysis-failsafes.ts";
 import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import { gatewayFetch } from "../_shared/ai-meter.ts";
 
@@ -39,7 +43,7 @@ declare const Deno: {
 
 // Flash is ~3–5× faster than Pro and plenty for this short, structured payload.
 const MODEL = "google/gemini-3.6-flash";
-const MODEL_VERSION = "ingredient-profile@v7-manuscript-2026-08-09";
+const MODEL_VERSION = "ingredient-profile@v15-fit-first-2026-08-28";
 
 interface RequestBody {
   ingredient: string;
@@ -313,6 +317,33 @@ Deno.serve(async (req) => {
     if (parsed && rawMeans && !parsed.what_it_means_for_you?.trim()) {
       parsed = { ...parsed, what_it_means_for_you: rawMeans };
     }
+    // ── Shared analysis failsafes. No score on this surface, so fit-first
+    // scoring is inert; the closed hair/scalp vocabulary check is not — this is
+    // the surface that produced "high porosity scalp".
+    if (parsed) {
+      const row = parsed as unknown as Record<string, unknown>;
+      const failsafe = enforceAnalysisFailsafes({
+        fields: [
+          { field: "what_it_is", text: row.what_it_is },
+          { field: "what_it_means_for_you", text: row.what_it_means_for_you },
+          ...(Array.isArray(row.benefits) ? row.benefits : []).map((b, i) => ({
+            field: `benefits[${i}]`,
+            text: b,
+          })),
+        ],
+      });
+      if (failsafe.violations.length) {
+        const cleared = applyFieldNulls(row, failsafe.violations);
+        console.log(JSON.stringify({
+          function: "ingredient-profile",
+          violation: "vocabulary_or_name_lock",
+          cleared,
+          problems: failsafe.problems,
+        }));
+        parsed = row as unknown as typeof parsed;
+      }
+    }
+
     if (!parsed?.what_it_is?.trim()) throw new Error("empty what_it_is");
 
   } catch (e) {

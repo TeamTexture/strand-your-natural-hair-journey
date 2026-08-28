@@ -9,6 +9,8 @@
 //                flagged marker it interacts with. Anything that could be
 //                said to any user is invalid and dropped.
 
+import { FIT_FIRST_SCORE_RULES } from "./fit-first-score.ts";
+
 export interface ScoreReason {
   direction: "plus" | "minus";
   factor: string;
@@ -45,6 +47,23 @@ export const SCORE_REASONS_SCHEMA_PROPERTY = {
   },
 } as const;
 
+
+// ── THE SHARED FAILSAFE RULES (2026-08-28) ────────────────────────────────
+// Appended to BOTH rule blocks below, which every analysis function already
+// embeds. Prompt rules therefore cannot reach one analysis surface and miss
+// another — the same way `sanitiseScoreReasons` already can't.
+export const ANALYSIS_FAILSAFE_RULES = `
+${FIT_FIRST_SCORE_RULES}
+
+CLOSED HAIR/SCALP VOCABULARY (hard validation runs on your output):
+Porosity, elasticity, cuticle, cortex, strand diameter, surface texture and curl pattern describe the HAIR STRAND. Density, sebum, follicles, flaking, irritation, hairline, edges and partings describe the SCALP. Never cross the two and never weld them into a new term: "porosity scalp", "scalp porosity", "follicle elasticity" and "cuticle of the scalp" are not real concepts and are rejected outright. Use only terminology the app already teaches; if no approved term fits, say nothing or return null for the field.
+
+NULLABILITY:
+Every descriptive and categorical field is nullable. Where you do not have real grounded data, return null — that is the correct and preferred answer. Never fill a field with a plausible guess, an inferred value or a generic statement to avoid leaving it empty.
+
+OVERALL FIT LANGUAGE — MUST MATCH THE SCORE:
+The member reads a verdict label derived from match_score: 90+ "a strong fit", 70-89 "a good fit", 50-69 "a mixed fit", 30-49 "not an ideal fit", under 30 "a poor fit". Any overall-fit wording in ai_summary must be the phrase for the band your own score falls in. Never call a product a mixed fit while scoring it 70+, or a good fit while scoring it low. If the honest verdict is mixed, return a mixed-band score.`;
+
 /** Prompt block appended to every product-analysis system/task prompt. */
 export const SCORE_REASONS_RULES = `SCORE REASONS — THE SCORE MUST EXPLAIN ITSELF:
 Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, reason }.
@@ -56,7 +75,9 @@ Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, r
 - ONE IDEA ONCE: a score reason may NOT restate a use_cases item, a tip, or a key_ingredients reason verbatim. The verdict explains the score; "how to use" builds on it and never repeats it.
 
 AI SUMMARY — ONE SENTENCE ONLY:
-ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed fit / poor fit) and the single signal driving it. The score_reasons carry the why, so do NOT explain the reasoning again in ai_summary and never exceed one sentence.`;
+ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed fit / poor fit) and the single signal driving it. The score_reasons carry the why, so do NOT explain the reasoning again in ai_summary and never exceed one sentence.
+
+${ANALYSIS_FAILSAFE_RULES}`;
 
 const MAX_REASON_WORDS = 18;
 const MAX_FACTOR_WORDS = 6;
@@ -152,4 +173,6 @@ Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, r
 - ONE IDEA ONCE: a score reason may NOT restate a use_cases item, a tip, a key_features relevance or the how_to_use text verbatim. The verdict explains the score; "how to use" builds on it and never repeats it.
 
 AI SUMMARY — ONE SENTENCE ONLY:
-ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed fit / poor fit) and the single signal driving it. The score_reasons carry the why, so do NOT explain the reasoning again in ai_summary and never exceed one sentence.`;
+ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed fit / poor fit) and the single signal driving it. The score_reasons carry the why, so do NOT explain the reasoning again in ai_summary and never exceed one sentence.
+
+${ANALYSIS_FAILSAFE_RULES}`;

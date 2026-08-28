@@ -18,6 +18,12 @@ import {
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
+  applyFieldNulls,
+  enforceAnalysisFailsafes,
+  productProseFields,
+} from "../_shared/analysis-failsafes.ts";
+import { alignFitLanguage } from "../_shared/fit-band.ts";
+import {
   callClaude,
   type ContentBlockInput,
   type ServerTool,
@@ -49,8 +55,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v5-verified-image-2026-08-09";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v5-verified-image-2026-08-09";
+const MODEL_VERSION = "claude-haiku-4-5@v15-fit-first-2026-08-28";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v15-fit-first-2026-08-28";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
@@ -861,6 +867,44 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // ── Shared analysis failsafes. A tool has no ingredient list, so the
+    // name lockdown is inert here by construction; the closed vocabulary,
+    // nullability, fit-first scoring, Strand Tip and score/prose agreement all
+    // apply exactly as they do on the product paths.
+    {
+      const a = analysis as Record<string, unknown>;
+      const failsafe = enforceAnalysisFailsafes({
+        fields: productProseFields(a),
+        score: typeof a.match_score === "number" ? a.match_score : null,
+        reasons: (a.score_reasons ?? []) as never,
+        modelTips: a.strand_tip,
+      });
+      a.score_reasons = failsafe.reasons;
+      a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
+      if (failsafe.score != null) a.match_score = failsafe.score;
+      if (failsafe.violations.length) {
+        const cleared = applyFieldNulls(a, failsafe.violations);
+        console.log(JSON.stringify({
+          function: "tool-analyse-url",
+          violation: "vocabulary_or_name_lock",
+          cleared,
+          problems: failsafe.problems,
+        }));
+      }
+      const aligned = alignFitLanguage(
+        a.ai_summary ?? a.summary,
+        typeof a.match_score === "number" ? a.match_score : null,
+      );
+      if (aligned) {
+        if (typeof a.ai_summary === "string") a.ai_summary = aligned;
+        if (typeof a.summary === "string") a.summary = aligned;
+      }
+    }
+
+    // Sanitise BEFORE caching so the stored payload is identical to the one
+    // delivered (the fidelity sanitiser can drop a whole score reason).
+    analysis = await sanitiseAndLog(analysis, "tool-analyse-url") as typeof analysis;
+
     analysis._profile_snapshot_hash = profileHash;
     console.log(JSON.stringify({ tag: "tool-debug", phase: "all done", total_ms: Date.now() - t0 }));
 
@@ -884,7 +928,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify(await sanitiseAndLog(analysis, "tool-analyse-url")),
+      JSON.stringify(analysis),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

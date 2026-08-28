@@ -135,7 +135,7 @@ function fingerprintContext(context: Record<string, unknown>): string {
 const cacheKind = (productId: string, fingerprint: string, surface: string) =>
   surface === "wash_day"
     ? `brand_wash_tip_v1:${productId}`
-    : `brand_product_guidance_v10:${surface}:${productId}:${fingerprint}`;
+    : `brand_product_guidance_v15:${surface}:${productId}:${fingerprint}`;
 
 
 /** STALE-FIRST. When the member changes their hair, style or goals every
@@ -147,7 +147,7 @@ const cacheKind = (productId: string, fingerprint: string, surface: string) =>
 const stalePrefix = (productId: string, surface: string) =>
   surface === "wash_day"
     ? `brand_wash_tip_v1:${productId}`
-    : `brand_product_guidance_v10:${surface}:${productId}:`;
+    : `brand_product_guidance_v15:${surface}:${productId}:`;
 
 /** Every string the member actually reads out of a payload. */
 function payloadCopy(p: BrandGuidance): string {

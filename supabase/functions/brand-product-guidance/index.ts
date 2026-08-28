@@ -12,6 +12,7 @@
 // unchanged.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { enforceAnalysisFailsafes } from "../_shared/analysis-failsafes.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { STRAND_PERSONA, SCALP_PRODUCT_RULE } from "../_shared/strand-persona.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
@@ -577,6 +578,27 @@ function validate(
         `"${term}" appears ${n} times across the card — each hair characteristic may appear at most ONCE in total. Remove the repeats and say "your hair" or nothing.`,
       );
     }
+  }
+
+  // ── Shared analysis failsafes: the closed hair/scalp vocabulary and the
+  // ingredient-name lockdown, identical to the product analysis paths. Fatal —
+  // an invented term or an ingredient that is not in the declared list is
+  // re-asked, never shown on a sponsored surface.
+  {
+    const failsafe = enforceAnalysisFailsafes({
+      fields: [
+        { field: "headline", text: headline },
+        { field: "fit_line", text: fitLine },
+        { field: "intro", text: intro },
+        { field: "wash_day_tip", text: washDayTip },
+        ...benefits.map((b, i) => ({ field: `benefits[${i}].text`, text: b.text })),
+        ...steps.map((t, i) => ({ field: `steps[${i}]`, text: t })),
+        ...watchOuts.map((t, i) => ({ field: `watch_outs[${i}]`, text: t })),
+      ],
+      allowedIngredients: declared,
+      vocabulary: declared,
+    });
+    problems.push(...failsafe.problems);
   }
 
   return {

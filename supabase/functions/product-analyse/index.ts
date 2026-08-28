@@ -44,6 +44,13 @@ import {
 } from "../_shared/book-chapters.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
+  applyFieldNulls,
+  enforceAnalysisFailsafes,
+  loadIngredientVocabulary,
+  productProseFields,
+} from "../_shared/analysis-failsafes.ts";
+import { alignFitLanguage } from "../_shared/fit-band.ts";
+import {
   callClaude,
   type ContentBlockInput,
   type ImageBlockSource,
@@ -81,8 +88,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v6-manuscript-2026-08-09";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v5-manuscript-2026-08-09";
+const MODEL_VERSION = "claude-sonnet-4-6@v15-fit-first-2026-08-28";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v15-fit-first-2026-08-28";
 
 
 /** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,
@@ -719,6 +726,42 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // ── Shared analysis failsafes (fit-first score, Strand Tip, closed
+    // vocabulary, ingredient-name lockdown). Identical module, identical
+    // behaviour, in every analysis function — see _shared/analysis-failsafes.ts.
+    {
+      const a = analysis as Record<string, unknown>;
+      const failsafe = enforceAnalysisFailsafes({
+        fields: productProseFields(a),
+        cards: a.key_ingredients,
+        allowedIngredients: Array.isArray(a.ingredients)
+          ? (a.ingredients as unknown[]).map((i) => String(i))
+          : [],
+        vocabulary: await loadIngredientVocabulary(supabase as never),
+        score: typeof a.match_score === "number" ? a.match_score : null,
+        reasons: (a.score_reasons ?? []) as never,
+        modelTips: a.strand_tip,
+      });
+      a.score_reasons = failsafe.reasons;
+      a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
+      if (failsafe.score != null) a.match_score = failsafe.score;
+      if (failsafe.violations.length) {
+        const cleared = applyFieldNulls(a, failsafe.violations);
+        console.log(JSON.stringify({
+          function: "product-analyse",
+          violation: "vocabulary_or_name_lock",
+          cleared,
+          problems: failsafe.problems,
+        }));
+      }
+      // The label the member reads is derived from the score; the prose must
+      // not contradict it.
+      a.ai_summary = alignFitLanguage(
+        a.ai_summary,
+        typeof a.match_score === "number" ? a.match_score : null,
+      );
+    }
+
     // ── Topical sensitivity warnings (deterministic, post-generation).
     // Runs AFTER score-reason normalisation so the named warning and its
     // score reason survive into the payload the member sees.
@@ -729,6 +772,14 @@ Deno.serve(async (req: Request) => {
     ) as unknown as ProductAnalysisPayload;
 
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
+
+    // ── Sanitise BEFORE caching (2026-08-28) ──────────────────────────
+    // The citation/fidelity sanitiser can DROP a whole score reason whose
+    // prose it strips (an emptied `reason` makes the item hollow). Caching the
+    // pre-sanitise payload and returning the post-sanitise one is what made
+    // `ai_summaries` hold four reasons while the member read three. One
+    // payload now: what we store is exactly what we deliver.
+    analysis = await sanitiseAndLog(analysis, "product-analyse") as unknown as ProductAnalysisPayload;
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
     if (cacheKind) {
@@ -759,10 +810,7 @@ Deno.serve(async (req: Request) => {
         : [],
     );
 
-      return await sanitiseAndLog(analysis, "product-analyse") as unknown as Record<
-        string,
-        unknown
-      >;
+      return analysis as unknown as Record<string, unknown>;
     };
 
     if (!wantsStream) {
