@@ -349,11 +349,11 @@ const TodayTreatmentCard = () => {
           </div>
         )}
 
-        {/* STARTING POINT — only shown when there is no day-1 check-in listed
-            (the open day-1 check-in block already prompts her to write it).
-            Once day one has passed, this previews the words and photos she
-            captured at the start. */}
-        {startingPointRow && !checkinIsDayOne && (
+        {/* STARTING POINT — her first check-in, always previewed once one
+            exists: the transcribed voice note, her first photos, and a way
+            straight into it. This IS her starting point, so it is never
+            replaced by an ask to write another one. */}
+        {startingPointRow && (
           <div className="w-full rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5 space-y-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
               Where you started
@@ -391,13 +391,12 @@ const TodayTreatmentCard = () => {
               </div>
             )}
             <Button
-              variant="outline"
               className="w-full rounded-pill"
               onClick={() =>
                 navigate(`/treatment/${plan.id}/checkin/${startingPointRow.week_number}`)
               }
             >
-              Read all
+              View check-in
             </Button>
           </div>
         )}

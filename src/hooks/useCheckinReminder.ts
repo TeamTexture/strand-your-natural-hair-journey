@@ -55,14 +55,22 @@ function useSubmittedCycles(planIds: string[]) {
         .select("plan_id, week_number, submitted_at")
         .in("plan_id", planIds)
         .not("submitted_at", "is", null);
-      return new Set(
-        ((data ?? []) as { plan_id: string; week_number: number }[]).map(
-          (r) => `${r.plan_id}:${r.week_number}`,
-        ),
-      );
+      const rows = (data ?? []) as { plan_id: string; week_number: number }[];
+      return {
+        cycles: new Set(rows.map((r) => `${r.plan_id}:${r.week_number}`)),
+        // Day one is a starting snapshot, not a numbered week. If she already
+        // filled in her first week ON or BEFORE the plan started, that IS her
+        // starting point — asking for another one is meaningless, so week 0 or
+        // week 1 both settle it.
+        startingPoint: new Set(rows.filter((r) => r.week_number <= 1).map((r) => r.plan_id)),
+      };
     },
   });
-  return { submitted: q.data ?? null, loaded: planIds.length === 0 || q.isSuccess };
+  return {
+    submitted: q.data?.cycles ?? null,
+    startingPointDone: q.data?.startingPoint ?? null,
+    loaded: planIds.length === 0 || q.isSuccess,
+  };
 }
 
 export function useCheckinReminder() {
@@ -70,7 +78,7 @@ export function useCheckinReminder() {
   const { bundles } = useActiveTreatmentPlans();
   const { loaded: dismissalsLoaded, isDismissed, dismiss } = useAlertDismissals();
   const planIds = useMemo(() => bundles.map((b) => b.plan.id), [bundles]);
-  const { submitted, loaded: submittedLoaded } = useSubmittedCycles(planIds);
+  const { submitted, startingPointDone, loaded: submittedLoaded } = useSubmittedCycles(planIds);
   const raised = useRef<Set<string>>(new Set());
 
   const open = useMemo<OpenCheckin | null>(() => {
@@ -84,7 +92,9 @@ export function useCheckinReminder() {
         b.plan.checkin_every_weeks ?? 1,
       );
       for (const c of cycles) {
-        const saved = done.has(`${b.plan.id}:${c.closingWeek}`);
+        const saved =
+          done.has(`${b.plan.id}:${c.closingWeek}`) ||
+          (!!c.isDayOne && !!startingPointDone?.has(b.plan.id));
         const state = cycleState(c, cycles, saved, today);
         if (state !== "open" && state !== "missed") continue;
         if (
@@ -104,7 +114,7 @@ export function useCheckinReminder() {
       }
     }
     return null;
-  }, [bundles, dismissalsLoaded, submittedLoaded, submitted, isDismissed]);
+  }, [bundles, dismissalsLoaded, submittedLoaded, submitted, startingPointDone, isDismissed]);
 
   // Raise the in-app notification once per cycle. Never while impersonating.
   useEffect(() => {
