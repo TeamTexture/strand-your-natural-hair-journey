@@ -62,6 +62,7 @@ const MentionTextarea = ({
   const [atStart, setAtStart] = useState<number | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [flashLabel, setFlashLabel] = useState<string | null>(null);
+  const [dropUp, setDropUp] = useState(false);
 
   useEffect(() => {
     if (!open) return;
