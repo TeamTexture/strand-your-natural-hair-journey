@@ -117,7 +117,7 @@ const ProductRepository = () => {
                   wrapperClassName="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium font-body leading-tight break-words">{p.name}</p>
+                  <p className="product-title text-[13px] font-body leading-snug">{p.name}</p>
                   <p className="text-[11px] text-muted-foreground break-words"><BrandLink brand={p.brand} /></p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <MatchStars item={p} ingredients={p.ingredients} />

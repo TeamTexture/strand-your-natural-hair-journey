@@ -94,7 +94,7 @@ const Row = ({
             prefix ("Dove Scalp + Hair Therapy …") and stay indistinguishable
             until the tail of the name is visible, which needs a third line at
             375px. */}
-        <p className="text-sm font-medium leading-snug break-words">{p.name}</p>
+        <p className="product-title text-[13px] leading-snug">{p.name}</p>
 
         <div className="flex items-center gap-2 min-w-0">
           {p.brand && (
