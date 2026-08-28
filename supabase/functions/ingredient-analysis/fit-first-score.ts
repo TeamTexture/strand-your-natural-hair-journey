@@ -16,7 +16,7 @@
 // They move to the STRAND TIP: food-for-thought rendered separately, below the
 // rating, never described as part of why the score is what it is.
 
-import type { ScoreReason } from "./score-reasons.ts";
+import type { ScoreReason } from "../_shared/score-reasons.ts";
 
 export interface StrandTipNote {
   title: string;

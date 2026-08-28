@@ -66,15 +66,15 @@ import {
   sanitiseStrandTips,
   STRAND_TIP_SCHEMA_PROPERTY,
   type StrandTipNote,
-} from "../_shared/fit-first-score.ts";
-import { validateTerminologyFields } from "../_shared/hair-vocabulary.ts";
+} from "./fit-first-score.ts";
+import { validateTerminologyFields } from "./hair-vocabulary.ts";
 import {
   buildNameLock,
   ingredientNameLockBlock,
   validateIngredientCardNames,
   validateNameLockFields,
   type NameLockContext,
-} from "../_shared/ingredient-name-lock.ts";
+} from "./ingredient-name-lock.ts";
 
 import {
   PURPOSE_INSIGHT_RULES,
