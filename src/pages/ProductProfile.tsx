@@ -53,7 +53,12 @@ import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
+// EMERGENCY STABILISATION (2026-08-28): while true, viewing a product never
+// triggers a live analysis anywhere in the app.
+const DEMO_SAFE_MODE = true;
+
 interface IngredientFlag {
+
   name: string;
   tone: "good" | "warn" | "bad";
   body: string;
@@ -229,7 +234,18 @@ const ProductProfile = () => {
       return;
     }
 
+    // EMERGENCY STABILISATION (2026-08-28): opening a product never triggers a
+    // live model call. With nothing stored, show a calm empty state instead of
+    // a spinner or an error/retry.
+    if (DEMO_SAFE_MODE) {
+      setAiLoading(false);
+      setAiError(null);
+      setAiSummary(null);
+      return;
+    }
+
     let cancelled = false;
+
     (async () => {
       setAiLoading(true);
       setAiError(null);

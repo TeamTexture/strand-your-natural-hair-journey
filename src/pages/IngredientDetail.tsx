@@ -101,7 +101,14 @@ function isSingleScoreProduct(row: { created_at?: string | null } | null): boole
   return Number.isFinite(created) && created >= SINGLE_SCORE_CUTOVER;
 }
 
+// EMERGENCY STABILISATION (2026-08-28). While true: opening a product never
+// triggers a live analysis. Any stored analysis is rendered instantly; when
+// there is none, a calm "Analysis not yet available" shows instead of an
+// error/retry or a hanging spinner. Explicit "Re-analyse" still works.
+const DEMO_SAFE_MODE = true;
+
 interface Analysis {
+
   /** null when the payload carried no score — never a made-up number. */
   match_score: number | null;
 
@@ -710,14 +717,39 @@ const IngredientDetail = () => {
 
       })();
       if (cancelled) return;
+      // ── DEMO SAFE MODE (emergency stabilisation, app-wide) ────────────────
+      // Opening a product must NEVER trigger a live model call and must NEVER
+      // show an error/retry. When the strict gate above rejects the stored
+      // payload, fall back to ANY stored payload for this product at any
+      // guidance level and render it as-is. Regeneration only ever happens from
+      // an explicit member action ("Re-analyse").
+      let safe = cached;
+      if (!safe && DEMO_SAFE_MODE) {
+        const { data: anyRow } = await supabase
+          .from("ai_summaries")
+          .select("payload")
+          .like("kind", `ingredient_analysis:${productKey}:%`)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        if (anyRow?.payload) safe = anyRow.payload as unknown as Analysis;
+      }
       console.log("[analysis-cache] decision", {
         product_key: productKey,
-        decision: cached ? "use_stored" : "analyse",
+        decision: safe ? "use_stored" : DEMO_SAFE_MODE ? "no_stored_calm" : "analyse",
         reason: cached ? "valid_stored_analysis" : reason,
       });
-      if (cached) {
-        setAnalysis(cached);
+      if (safe) {
+        setAnalysis(safe);
         setError(null);
+        setLoading(false);
+        return;
+      }
+      if (DEMO_SAFE_MODE) {
+        // Nothing stored at all: calm empty state, no spinner, no model call.
+        setAnalysis(null);
+        setError("Analysis not yet available.");
         setLoading(false);
         return;
       }
@@ -725,6 +757,7 @@ const IngredientDetail = () => {
     })();
     return () => { cancelled = true; };
   }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, tipsLevelReady, productsLoading]);
+
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the
@@ -1183,13 +1216,22 @@ const IngredientDetail = () => {
 
 
         {error && !loading && (
-          <SurfaceCard tone="orange" className="space-y-2">
-            <p className="text-sm">Could not analyse this product.</p>
-            <Button variant="goldGhost" size="pill" onClick={() => runAnalysis(true)}>
-              <RefreshCw className="size-4 mr-1" /> Retry
-            </Button>
-          </SurfaceCard>
+          DEMO_SAFE_MODE ? (
+            <SurfaceCard className="space-y-1">
+              <p className="font-body text-[13px] text-foreground/80">
+                Analysis not yet available for this product.
+              </p>
+            </SurfaceCard>
+          ) : (
+            <SurfaceCard tone="orange" className="space-y-2">
+              <p className="text-sm">Could not analyse this product.</p>
+              <Button variant="goldGhost" size="pill" onClick={() => runAnalysis(true)}>
+                <RefreshCw className="size-4 mr-1" /> Retry
+              </Button>
+            </SurfaceCard>
+          )
         )}
+
 
         {analysis && !loading && (
           <>
