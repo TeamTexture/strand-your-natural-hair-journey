@@ -1164,9 +1164,11 @@ const NutritionPlan = () => {
           </div>
         )}
 
-        <Tabs defaultValue="supplements" onValueChange={(v) => {
-          if (v === "meals" && !meals && !mealsLoading) void fetchMeals();
-        }}>
+        {/* Opening the Meals tab NEVER generates. Stored meals are already
+            hydrated on mount; with nothing stored she gets an explicit
+            "Generate meal ideas" button instead of an automatic spend. */}
+        <Tabs defaultValue="supplements">
+
           <TabsList className="grid w-full grid-cols-4 bg-secondary gap-0.5 p-0.5">
             <TabsTrigger value="supplements" className="gap-1 px-1 text-[11px]">
               <Pill className="size-3" /> Supps
