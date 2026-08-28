@@ -253,7 +253,10 @@ Deno.serve(async (req) => {
 
     const payload = {
       backfillUserId: row.user_id,
-      force: true,
+      // The explicit single-product repair path must reuse a valid cache when
+      // one exists (including a safe higher→lower guidance-level downshift).
+      // Bulk backfill remains forceful because its purpose is regeneration.
+      force: !singleId,
       productKey: product.product_key ?? row.product_key ?? product.id,
       productName: product.name ?? "Saved product",
       productBrand: product.brand ?? "",
