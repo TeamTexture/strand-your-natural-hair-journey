@@ -1211,8 +1211,22 @@ const IngredientDetail = () => {
                     </p>
                   )}
 
-                  <ScoreReasons reasons={parseScoreReasons(analysis.score_reasons)} />
+                  {(() => {
+                    const reasons = parseScoreReasons(analysis.score_reasons);
+                    // Safety net: if the guardrails cleared every line of
+                    // prose, say so plainly rather than render an empty card.
+                    if (!phrase && !rest && reasons.length === 0 && !hasSensitivity) {
+                      return (
+                        <p className="text-foreground/75">
+                          We're still preparing the write-up for this one. Pull down to refresh, or
+                          rescan the product to generate it again.
+                        </p>
+                      );
+                    }
+                    return <ScoreReasons reasons={reasons} />;
+                  })()}
                 </StatusCallout>
+
               );
             })()}
 
