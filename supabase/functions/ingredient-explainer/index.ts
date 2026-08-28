@@ -860,6 +860,9 @@ Deno.serve(async (req) => {
     // a cold sheet two sequential model calls. They now run together, so a cold
     // sheet costs the slower of the two rather than the sum.
     const term = entry;
+    // The name the member sees and the model reasons about is the one that was
+    // actually captured off the pack — never a more specific chemical.
+    const displayName = safeDisplayName(rawName, term.display_name);
 
     // Layer 2 — role in THIS product (cached on the link row). Only a molecule
     // has a role inside a formula: a class or a concept does not.
