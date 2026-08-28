@@ -65,6 +65,7 @@ import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import ScoreReasons, { parseScoreReasons, type ScoreReason } from "@/components/product/ScoreReasons";
+import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
 import PurposeInsight, { parsePurposeInsight, type ProductPurposeInsight } from "@/components/product/PurposeInsight";
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
@@ -101,6 +102,8 @@ interface Analysis {
   match_score: number | null;
 
   score_reasons?: ScoreReason[];
+  /** Mild observations shown separately, never part of the score. */
+  strand_tip?: StrandTipNote[] | null;
   insight?: ProductPurposeInsight | null;
   summary: string;
   ingredients: Ingredient[];
@@ -1206,6 +1209,10 @@ const IngredientDetail = () => {
                 </StatusCallout>
               );
             })()}
+
+            {/* Mild, non-harmful observations — outside the score callout on
+                purpose: food for thought, not score rationale. */}
+            <StrandTipNotes tips={parseStrandTips(analysis.strand_tip)} />
 
             {/* Personalised "How to use this for your hair" */}
             {analysis.personalised_guidance && analysis.personalised_guidance.length > 0 && (
