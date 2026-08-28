@@ -1111,7 +1111,8 @@ Deno.serve(async (req) => {
         const versionOk = provider === "claude"
           ? cached._model_version === MODEL_VERSION
           : true;
-        if (versionOk && hasGuidance && depthOk) {
+        if (hasGuidance) stalePayload = cached;
+        if (!force && versionOk && hasGuidance && depthOk) {
           // SAFETY: a payload cached before the member declared a sensitivity
           // (or before this enforcement existed) must never be served raw.
           // Re-run the deterministic pass against the stored INCI list on every
