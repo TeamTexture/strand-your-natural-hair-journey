@@ -36,6 +36,7 @@ import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import WishlistTools from "@/components/WishlistTools";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 const Wishlist = () => {
   const navigate = useNavigate();
