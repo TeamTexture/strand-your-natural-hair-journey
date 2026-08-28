@@ -983,8 +983,13 @@ Deno.serve(async (req) => {
     const ceiling = await checkGlobalCeiling("ingredient-analysis");
     if (ceiling) return ceiling;
 
-    const capped = await checkDailyCap(memberId, "ingredient-analysis", 60);
-    if (capped) return capped;
+    // The paced backfill is our own spend, not hers: it must never consume her
+    // 60-a-day allowance nor fail loudly against it. The global ceiling above
+    // is what throttles it.
+    if (!serviceBackfill) {
+      const capped = await checkDailyCap(memberId, "ingredient-analysis", 60);
+      if (capped) return capped;
+    }
 
     // ── Pull personalisation server-side ─────────────────────────────
     // The glossary lookup runs alongside these reads: it is one indexed query
