@@ -94,7 +94,7 @@ const LiveOfferCard = ({
         ) : null}
         {/* Headline overlay */}
         <div className="absolute inset-x-0 bottom-0 p-2.5">
-          <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
+          <p className="font-display text-white text-[15px] leading-tight break-words drop-shadow-sm">
             {headline || "Untitled advert"}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">

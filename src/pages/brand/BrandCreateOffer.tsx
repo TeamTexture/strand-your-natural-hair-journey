@@ -1320,7 +1320,7 @@ const BrandCreateOffer = () => {
                       <span className="size-11 rounded-[9px] bg-muted shrink-0" aria-hidden />
                     )}
                     <span className="flex-1 min-w-0">
-                      <span className="block font-body text-[13px] leading-snug [overflow-wrap:anywhere] line-clamp-2">
+                      <span className="block font-body text-[13px] leading-snug [overflow-wrap:anywhere] break-words">
                         {item.name}
                       </span>
                       <span className="block text-[11px] text-muted-foreground font-body capitalize">
