@@ -277,6 +277,8 @@ const ProductProfile = () => {
             productKey: product.product_key,
             productName: product.name,
             productBrand: product.brand,
+            trigger: gate.reason,
+
             ingredients: product.ingredients,
             hairProfile: context.hairProfile ?? {},
             healthProfile: context.healthProfile ?? {},
