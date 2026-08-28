@@ -1142,7 +1142,23 @@ Deno.serve(async (req) => {
     // is what throttles it.
     if (!serviceBackfill) {
       const capped = await checkDailyCap(memberId, "ingredient-analysis", 60);
-      if (capped) return capped;
+      if (capped) {
+        // Capped, but we hold a previous write-up for this exact product: serve
+        // it (guardrails re-applied) rather than an error card. Only when there
+        // is nothing on file does she see the limit message.
+        if (stalePayload) {
+          const guarded = enforceIngredientCardSensitivities(
+            stalePayload as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+            sens,
+            rawIngredients,
+            "ingredient-analysis",
+          ) as unknown as AnalysisPayload;
+          const served = await sanitiseAndLog(guarded, "ingredient-analysis") as AnalysisPayload;
+          if (homemadeSafety) applyHomemadeSafety(served, homemadeSafety);
+          return json(200, { cached: true, stale: true, analysis: served });
+        }
+        return capped;
+      }
     }
 
     // ── Pull personalisation server-side ─────────────────────────────
