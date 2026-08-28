@@ -114,6 +114,14 @@ Deno.serve(async (req) => {
       .update({ paused: true, pause_reason: reason, lease_until: null, note: reason })
       .eq("job", JOB);
 
+  // Rows a dead run left marked in-flight go back on the queue — their attempt
+  // was already counted, so this can't loop forever.
+  await admin
+    .from("product_analysis_backfill")
+    .update({ status: "pending", last_error: "requeued after stalled run" })
+    .eq("status", "running")
+    .lt("updated_at", new Date(now - STALE_RUNNING_MINUTES * 60_000).toISOString());
+
   // ── Claim a bounded batch ────────────────────────────────────────────────
   const { data: queued, error: queueErr } = await admin
     .from("product_analysis_backfill")
