@@ -184,8 +184,14 @@ const IngredientRow = ({
 }: IngredientRowProps) => {
   // Only fetch when the row is open. The hook respects this via `enabled`
   // so a closed row makes zero network calls.
-  const profileQuery = useIngredientProfile(row.ingredient, row.reason, isOpen);
-  const { level } = useTipsLevel();
+  //
+  // Source: the ingredient-explainer (glossary + profile-level fit, Claude,
+  // sensitivity-aware). The old `ingredient-profile` path is retired — it had
+  // no sensitivity awareness and could contradict the product analysis.
+  const { explainer, isLoading: explainerLoading, error: explainerError } =
+    useIngredientExplainer(isOpen ? row.ingredient : null);
+  useTipsLevel();
+
 
   return (
     <SurfaceCard className="p-0 overflow-hidden">
