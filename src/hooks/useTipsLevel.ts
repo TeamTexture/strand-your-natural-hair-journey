@@ -21,6 +21,14 @@ interface TipsLevelContextValue {
   needsPrompt: boolean;
   showExplanations: boolean;
   showBeginnerHelp: boolean;
+  /**
+   * True once `level` reflects the SERVER value (or there is no session, so no
+   * server value is coming). Any surface that keys a cache — or an AI call — on
+   * the level MUST wait for this: the initial render returns the locally cached
+   * or default level, and acting on that fired a fresh analysis at the wrong
+   * level on every page open before the real level arrived.
+   */
+  ready: boolean;
 }
 
 const TipsLevelContext = createContext<TipsLevelContextValue | null>(null);
