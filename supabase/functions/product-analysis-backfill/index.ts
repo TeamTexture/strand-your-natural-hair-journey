@@ -225,6 +225,8 @@ Deno.serve(async (req) => {
           apikey: serviceKey,
         },
         body: JSON.stringify(payload),
+        // A single hung analysis used to swallow the whole run.
+        signal: AbortSignal.timeout(ITEM_TIMEOUT_MS),
       });
       status = res.status;
       if (!res.ok) errText = (await res.text()).slice(0, 500);
