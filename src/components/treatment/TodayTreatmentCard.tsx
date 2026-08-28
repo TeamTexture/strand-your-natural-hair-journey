@@ -331,28 +331,56 @@ const TodayTreatmentCard = () => {
           </div>
         )}
 
-        {/* STARTING POINT — her own first check-in, previewed once written. */}
-        {startingPoint && (
+        {/* STARTING POINT — her own first check-in, previewed as soon as it
+            exists: the words she wrote (or the voice note written out for her)
+            plus the photos she attached that day. */}
+        {startingPointRow && (
           <button
             type="button"
-            onClick={() => navigate(`/treatment/${plan.id}/checkin/0`)}
-            className="w-full text-left rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5"
+            onClick={() =>
+              navigate(`/treatment/${plan.id}/checkin/${startingPointRow.week_number}`)
+            }
+            className="w-full text-left rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5 space-y-2"
           >
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
               Where you started
             </p>
-            {startingPoint.written_note ? (
-              <p className="font-body text-[12.5px] leading-snug text-foreground/85 mt-1 line-clamp-3 [overflow-wrap:anywhere]">
-                “{startingPoint.written_note}”
+            {startingPointRow.written_note?.trim() ? (
+              <p className="font-body text-[12.5px] leading-snug text-foreground/85 line-clamp-4 [overflow-wrap:anywhere] whitespace-pre-line">
+                “{startingPointRow.written_note.trim()}”
               </p>
             ) : (
-              <p className="font-body text-[12.5px] text-muted-foreground mt-1">
-                Your day one check-in is saved.
+              <p className="font-body text-[12.5px] text-muted-foreground">
+                {startingPhotos.length > 0
+                  ? "Your first photos are saved here."
+                  : "Your first check-in is saved."}
               </p>
             )}
-            <p className="font-body text-[11px] text-primary mt-1">Read it again</p>
+            {startingPhotos.length > 0 && (
+              <div className="flex gap-1.5">
+                {startingPhotos.map((p) => {
+                  const url = startingUrls[p.storage_path];
+                  return url ? (
+                    <img
+                      key={p.id}
+                      src={url}
+                      alt=""
+                      loading="lazy"
+                      className="size-14 rounded-[10px] object-cover border border-border/60 bg-secondary"
+                    />
+                  ) : (
+                    <span
+                      key={p.id}
+                      className="size-14 rounded-[10px] bg-secondary border border-border/60"
+                    />
+                  );
+                })}
+              </div>
+            )}
+            <p className="font-body text-[11px] text-primary">Read it again</p>
           </button>
         )}
+
 
         {/* THE OPEN CHECK-IN — merged in, never a second card. */}
         {checkinForThisPlan && (
