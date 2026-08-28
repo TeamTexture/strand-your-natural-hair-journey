@@ -112,7 +112,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v15-fit-first-2026-08-28";
+const MODEL_VERSION = "claude-sonnet-4-6@v16-molecule-vocab-2026-08-28";
 
 
 
@@ -1043,9 +1043,13 @@ Deno.serve(async (req) => {
         .eq("user_id", memberId).neq("status", "complete"),
       loadKnownIngredientFacts(dataClient as never, rawIngredients),
       // Detection vocabulary for the ingredient-naming lockdown: STRAND's own
-      // known ingredient names. Only names in here are looked for in prose, so
-      // ordinary sentences are never falsely flagged.
-      dataClient.from("glossary_terms").select("display_name").limit(2000),
+      // known ingredient names. MOLECULES ONLY — the glossary also holds
+      // concept/class rows ("Porosity", "Density", "Occlusives", "Humectants")
+      // and searching for those in prose falsely flagged ordinary sentences as
+      // naming an off-formula ingredient, exhausting the retries and nulling
+      // the write-up (2026-08-28 regression).
+      dataClient.from("glossary_terms").select("display_name").eq("kind", "molecule").limit(2000),
+
     ]);
     const bloodRows = bloodRowsRes.data ?? [];
     const medRows = medRowsRes.data ?? [];
