@@ -24,11 +24,12 @@ export default function GlossaryRichText({
   className?: string;
   termClassName?: string;
 }) {
-  const { tokenNames, lookup } = useIngredientGlossary();
+  const { proseTermNames, lookup } = useIngredientGlossary();
   const segments = useMemo(
-    () => glossarySegments(text ?? "", tokenNames, lookup),
-    [text, tokenNames, lookup],
+    () => glossarySegments(text ?? "", proseTermNames, lookup),
+    [text, proseTermNames, lookup],
   );
+
   if (segments.length === 0) return null;
   return (
     <span className={className}>
