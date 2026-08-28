@@ -38,6 +38,16 @@ import {
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import { inciKeyCandidates, normaliseInciKey } from "../_shared/ingredient-copy.ts";
+import { scrapePage } from "../_shared/page-scrape.ts";
+import {
+  extractDirectionsFromPage,
+  scrubUngroundedUsage,
+  usageGroundingBlock,
+  usageSourceLabel,
+  validateUsageGrounding,
+  type UsageDirections,
+  type UsageSource,
+} from "../_shared/usage-grounding.ts";
 import {
   applyHomemadeSafety,
   buildHomemadeSafety,
@@ -114,7 +124,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v20-ranked-verdict-2026-08-29";
+const MODEL_VERSION = "claude-sonnet-4-6@v21-usage-grounding-2026-08-29";
 
 
 
@@ -261,6 +271,49 @@ function scrubGuidance(analysis: AnalysisPayload): AnalysisPayload {
     }
     return { title, body };
   });
+  return { ...analysis, personalised_guidance: cleaned };
+}
+
+// ── USAGE GROUNDING (how-to-use) ────────────────────────────────────────
+// A technique specific must come from the real manufacturer directions, or be
+// flagged as general guidance. Same discipline as the ingredient claim checks.
+function usageGroundingProblems(
+  analysis: AnalysisPayload,
+  directions: UsageDirections,
+): string[] {
+  const fields = (analysis.personalised_guidance ?? []).flatMap((t, i) => [
+    { field: `personalised_guidance[${i}].title`, text: t?.title },
+    { field: `personalised_guidance[${i}].body`, text: t?.body },
+  ]);
+  return [...new Set(validateUsageGrounding(fields, directions).map((p) => p.rule))];
+}
+
+/** Terminal fallback: drop the ungrounded sentences rather than show them. */
+function scrubUsageGrounding(
+  analysis: AnalysisPayload,
+  directions: UsageDirections,
+  productKey: string,
+): AnalysisPayload {
+  const tips = analysis.personalised_guidance;
+  if (!Array.isArray(tips) || tips.length === 0) return analysis;
+  let removed = 0;
+  const cleaned = tips.map((tip) => {
+    const bodyOut = scrubUngroundedUsage(tip?.body ?? "", directions);
+    const titleBad = validateUsageGrounding([{ field: "title", text: tip?.title }], directions).length > 0;
+    removed += bodyOut.removed + (titleBad ? 1 : 0);
+    return {
+      title: titleBad ? "Get the most from this product" : (tip?.title ?? "").trim(),
+      body: bodyOut.text || "Follow the manufacturer's own directions for this product, and focus on covering your hair evenly rather than adding conditions the label does not give.",
+    };
+  });
+  if (removed) {
+    console.warn(JSON.stringify({
+      function: "ingredient-analysis",
+      event: "usage_grounding_scrub",
+      productKey,
+      removed,
+    }));
+  }
   return { ...analysis, personalised_guidance: cleaned };
 }
 
@@ -462,6 +515,7 @@ async function runGuidanceRetry(args: {
   level: TipsLevel;
   problems: string[];
   sensitivityBlock?: string;
+  usageBlock?: string;
   generationId?: string | null;
   attemptNumber?: number | null;
 }): Promise<GuidanceTip[] | null> {
@@ -470,7 +524,7 @@ async function runGuidanceRetry(args: {
   };
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level, args.ingredients)}${args.sensitivityBlock ?? ""}
+    task_instructions: `${buildTaskInstructions(args.productBrand, args.productName, args.ingredients.length, args.level, args.ingredients)}${args.sensitivityBlock ?? ""}${args.usageBlock ?? ""}
 
 YOUR ONLY TASK NOW: return personalised_guidance. Every other field of the analysis is already accepted and must not be rewritten. Your previous guidance was REJECTED — fix every problem below. Each tip must be ONE instruction sentence about using THIS product, followed by the reason it matters for this member:
 - ${args.problems.join("\n- ")}`,
@@ -649,6 +703,7 @@ async function runClaude(args: {
   level: TipsLevel;
   sensitivityBlock?: string;
   factsBlock?: string;
+  usageBlock?: string;
   generationId?: string | null;
   attemptNumber?: number | null;
   maxAttempts?: number | null;
@@ -662,7 +717,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.factsBlock ?? ""}`,
+    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.usageBlock ?? ""}${args.factsBlock ?? ""}`,
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -954,10 +1009,16 @@ Deno.serve(async (req) => {
     let usageInstructions = typeof body.usageInstructions === "string" && body.usageInstructions.trim()
       ? body.usageInstructions.trim()
       : null;
-    if (applicationArea === "unknown" || leaveOn === null || !productCategory) {
+    // ── HOW-TO-USE SOURCE HIERARCHY ───────────────────────────────────
+    // 1. directions captured from a photographed label (primary),
+    // 2. directions published on the brand's official product page,
+    // 3. nothing — general guidance only, and flagged as general.
+    let usageSource: UsageSource = usageInstructions ? "label_photo" : "none";
+    let productSourceUrl: string | null = null;
+    {
       const { data: metaRow } = await dataClient
         .from("user_products")
-        .select("category, application_area, leave_on, usage_instructions")
+        .select("category, application_area, leave_on, usage_instructions, usage_instructions_source, source_url")
         .eq("user_id", memberId)
         .eq("product_key", productKey)
         .maybeSingle();
@@ -965,11 +1026,49 @@ Deno.serve(async (req) => {
         if (applicationArea === "unknown") applicationArea = normaliseArea(metaRow.application_area);
         if (leaveOn === null && typeof metaRow.leave_on === "boolean") leaveOn = metaRow.leave_on;
         if (!productCategory && metaRow.category) productCategory = String(metaRow.category);
+        productSourceUrl = metaRow.source_url ? String(metaRow.source_url) : null;
         if (!usageInstructions && metaRow.usage_instructions) {
           usageInstructions = String(metaRow.usage_instructions);
+          const stored = metaRow.usage_instructions_source
+            ? String(metaRow.usage_instructions_source)
+            : null;
+          usageSource = stored === "label_photo" || stored === "brand_page"
+            ? stored
+            // Legacy rows carry no provenance: a product added from a link had
+            // its directions read off that page, everything else off the label.
+            : (productSourceUrl ? "brand_page" : "label_photo");
         }
       }
     }
+    // Step 2 of the hierarchy: no captured directions, but we know the
+    // product's official page — read the published directions off it rather
+    // than letting the model invent generic advice.
+    if (!usageInstructions && productSourceUrl) {
+      try {
+        const page = await scrapePage(productSourceUrl);
+        const found = page.text ? extractDirectionsFromPage(page.text) : null;
+        if (found) {
+          usageInstructions = found;
+          usageSource = "brand_page";
+          await dataClient
+            .from("user_products")
+            .update({ usage_instructions: found, usage_instructions_source: "brand_page" })
+            .eq("user_id", memberId)
+            .eq("product_key", productKey);
+        }
+      } catch (e) {
+        console.warn("[ingredient-analysis] directions scrape failed", e instanceof Error ? e.message : e);
+      }
+    }
+    if (!usageInstructions) usageSource = "none";
+    const usageDirections: UsageDirections = { text: usageInstructions, source: usageSource };
+    const usageBlock = usageGroundingBlock(usageDirections);
+    console.log(JSON.stringify({
+      function: "ingredient-analysis",
+      usage_source: usageSource,
+      usage_chars: usageInstructions?.length ?? 0,
+    }));
+
 
 
     const tipsLevel = coerceTipsLevel(
@@ -1100,6 +1199,7 @@ Deno.serve(async (req) => {
         application_area: applicationArea,
         leave_on: leaveOn,
         usage_instructions: usageInstructions,
+        usage_instructions_source: usageSourceLabel(usageSource),
       },
 
       ingredients: rawIngredients,
@@ -1163,6 +1263,7 @@ Deno.serve(async (req) => {
           avoidList,
           level: tipsLevel,
           sensitivityBlock,
+          usageBlock,
           factsBlock,
           generationId,
           attemptNumber,
@@ -1177,6 +1278,7 @@ Deno.serve(async (req) => {
             ]
             : []),
           ...guidanceFloorProblems(analysis, guidanceTokens),
+          ...usageGroundingProblems(analysis, usageDirections),
         ];
         if (claudeProblems.length) {
           console.log(JSON.stringify({
@@ -1196,12 +1298,14 @@ Deno.serve(async (req) => {
             level: tipsLevel,
             problems: claudeProblems,
             sensitivityBlock,
+            usageBlock,
             generationId,
             attemptNumber,
           });
           if (fixedTips) analysis = { ...analysis, personalised_guidance: fixedTips };
         }
         analysis = scrubGuidance(analysis);
+        analysis = scrubUsageGrounding(analysis, usageDirections, productKey);
         auditGuidanceActionFloor(analysis, productKey);
         const remaining = guidanceFloorProblems(analysis, guidanceTokens);
         if (remaining.length)
@@ -1213,7 +1317,7 @@ Deno.serve(async (req) => {
         const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${factsBlock}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${usageBlock}${factsBlock}`;
         analysis = await runLovable({
           systemPrompt,
           userPayload: baseRetryPayload,
@@ -1226,7 +1330,10 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         });
         analysis = applyKnownCategories(analysis, knownFacts);
         analysis = scrubGuidance(analysis);
-        const lovableProblems = guidanceFloorProblems(analysis, guidanceTokens);
+        const lovableProblems = [
+          ...guidanceFloorProblems(analysis, guidanceTokens),
+          ...usageGroundingProblems(analysis, usageDirections),
+        ];
         if (lovableProblems.length) {
           console.log(JSON.stringify({
             function: "ingredient-analysis",
@@ -1250,6 +1357,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           });
           analysis = scrubGuidance(analysis);
         }
+        analysis = scrubUsageGrounding(analysis, usageDirections, productKey);
         auditGuidanceActionFloor(analysis, productKey);
         analysis._provider = "lovable";
         analysis._generated_at = new Date().toISOString();

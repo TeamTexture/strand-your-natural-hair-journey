@@ -105,7 +105,7 @@ export function useProductUrlScan() {
         : remoteImage;
 
       const autoSave = extras?.auto_save === true;
-      const saveFields = buildProductSaveFields(data ?? {});
+      const saveFields = buildProductSaveFields(data ?? {}, "Untitled product", "brand_page");
 
       if (decision === "re_analyse" && row) {
         // Overwrite the existing row in place — preserve on_shelf /

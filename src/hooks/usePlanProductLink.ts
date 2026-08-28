@@ -84,7 +84,7 @@ export function usePlanProductLink() {
           remoteImage && remoteImage.startsWith("http://")
             ? "https://" + remoteImage.slice("http://".length)
             : remoteImage;
-        const saveFields = buildProductSaveFields(data ?? {});
+        const saveFields = buildProductSaveFields(data ?? {}, "Untitled product", "brand_page");
 
         if (row) {
           const { error: updErr } = await supabase

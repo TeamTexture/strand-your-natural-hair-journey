@@ -179,7 +179,7 @@ const ProductScanning = () => {
         // product_key — has a row to display. Without this insert, the
         // redirect would land on an empty product page and bounce back.
         const intent = state.intent ?? "shelf";
-        const saveFields = buildProductSaveFields(data ?? {});
+        const saveFields = buildProductSaveFields(data ?? {}, "Untitled product", "label_photo");
         // ONE PRODUCT, ONE ROW. The key is derived from the normalised brand +
         // name, and an existing row for the same product is reused even when
         // the scan spelled it differently — see src/lib/productIdentity.ts.

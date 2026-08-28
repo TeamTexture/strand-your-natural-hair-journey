@@ -6263,6 +6263,7 @@ export type Database = {
           storage_path: string | null
           updated_at: string
           usage_instructions: string | null
+          usage_instructions_source: string | null
           use_count: number
           user_id: string
         }
@@ -6310,6 +6311,7 @@ export type Database = {
           storage_path?: string | null
           updated_at?: string
           usage_instructions?: string | null
+          usage_instructions_source?: string | null
           use_count?: number
           user_id: string
         }
@@ -6357,6 +6359,7 @@ export type Database = {
           storage_path?: string | null
           updated_at?: string
           usage_instructions?: string | null
+          usage_instructions_source?: string | null
           use_count?: number
           user_id?: string
         }

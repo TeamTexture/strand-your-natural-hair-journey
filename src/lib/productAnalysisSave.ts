@@ -118,14 +118,23 @@ const cleanScoreReasons = (value: unknown): SavedScoreReason[] => {
     .slice(0, 4);
 };
 
-export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName = "Untitled product") {
+export function buildProductSaveFields(
+  data: ProductAnalysisLike,
+  fallbackName = "Untitled product",
+  /** Where the directions came from — the How-to-use grounding hierarchy
+   *  needs provenance, so a photographed label is never confused with a
+   *  brand page (or with invented generic advice). */
+  usageSource?: "label_photo" | "brand_page",
+) {
+  const usage = cleanText(data.usage_instructions);
   return {
+    ...(usage && usageSource ? { usage_instructions_source: usageSource } : {}),
     name: cleanText(data.product_name) ?? fallbackName,
     brand: cleanText(data.brand),
     category: cleanText(data.category),
     application_area: cleanApplicationArea(data.application_area),
     leave_on: cleanLeaveOn(data.leave_on),
-    usage_instructions: cleanText(data.usage_instructions),
+    usage_instructions: usage,
     ingredients: cleanTextList(data.ingredients),
     key_ingredients: cleanKeyIngredients(data.key_ingredients),
     ai_summary: cleanText(data.ai_summary),
