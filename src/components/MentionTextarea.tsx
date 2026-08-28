@@ -115,6 +115,9 @@ const MentionTextarea = ({
     if (at > 0 && !/[\s\n]/.test(before[at - 1])) return closeMenu();
     setAtStart(at);
     setQuery(between);
+    // Bottom-docked composers have no room below — flip the menu upwards.
+    const box = ref.current?.getBoundingClientRect();
+    setDropUp(!!box && box.bottom > window.innerHeight - 260);
     setOpen(true);
   };
 
