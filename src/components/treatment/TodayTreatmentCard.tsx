@@ -442,7 +442,10 @@ const TodayTreatmentCard = () => {
         {streakLine && (
           <p className="font-body text-[12px] text-muted-foreground">{streakLine}</p>
         )}
+          </>
+        )}
       </SurfaceCard>
+
 
       {current && (
         <StepLogSheet
