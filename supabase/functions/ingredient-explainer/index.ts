@@ -906,9 +906,62 @@ Deno.serve(async (req) => {
       return { role: roleInProduct, category: productCategory };
     };
 
-    // Layer 3 — per-user fit, cached in ai_summaries, invalidated by profile.
+    // Layer 3 — "Works with your hair".
+    //
+    // SINGLE SOURCE OF TRUTH: when the sheet is opened from a saved product,
+    // this line comes from the product-specific ingredient-analysis already
+    // stored for that product (path 1 — sensitivity-aware, exposure-aware,
+    // aware of where the ingredient sits in the list). It is NEVER regenerated
+    // here, so the sheet can no longer contradict the verdict card that sits
+    // above it. If the product analysis did not single this ingredient out, the
+    // sheet says so plainly rather than inventing a verdict.
     const cacheKind = `ingredient_fit:${term.inci_key}`;
-    const resolveFit = async (): Promise<FitPayload> => {
+
+    const resolveProductFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
+      if (!body.userProductId) return { fit: null, note: null };
+      const { data: product } = await supabase
+        .from("user_products")
+        .select("product_key")
+        .eq("id", body.userProductId)
+        .maybeSingle();
+      const productKey = (product?.product_key as string | null) ?? null;
+      if (!productKey) return { fit: null, note: null };
+
+      const { data: rows } = await supabase
+        .from("ai_summaries")
+        .select("payload, updated_at")
+        .eq("user_id", user.id)
+        .like("kind", `ingredient_analysis:${productKey}:%`)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      const payload = (rows?.[0]?.payload ?? null) as
+        | { ingredients?: { name?: string; tone?: string; body?: string }[] }
+        | null;
+      if (!payload || !Array.isArray(payload.ingredients)) return { fit: null, note: null };
+
+      const match = payload.ingredients.find(
+        (i) => i && typeof i.name === "string" && normaliseInciKey(i.name) === key,
+      );
+      if (!match || typeof match.body !== "string" || match.body.trim().length < 8) {
+        return { fit: null, note: "not_flagged" };
+      }
+      const tone: FitPayload["tone"] =
+        match.tone === "good" || match.tone === "bad" ? match.tone : "warn";
+      return {
+        fit: {
+          tone,
+          for_you: clampWords(cleanDescriptiveCopy(match.body), 60),
+          usage_tip: "",
+          _source: "product_analysis",
+        },
+        note: null,
+      };
+    };
+
+    // Product-agnostic tap (avoid list, ingredient research): there is no
+    // product to be authoritative, so a profile-level line is generated and
+    // cached. Never used when a product analysis exists.
+    const resolveProfileFit = async (): Promise<FitPayload> => {
       const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
       if (!body.force) {
         const { data: cached } = await supabase
@@ -944,7 +997,7 @@ Deno.serve(async (req) => {
         ingredient: term,
         userPayload: {
           ingredient: {
-            name: term.display_name,
+            name: displayName,
             category: term.category,
             what_it_is: term.what_it_is,
           },
@@ -960,6 +1013,7 @@ Deno.serve(async (req) => {
       generated._model_version = FIT_MODEL_VERSION;
       generated._profile_fingerprint = fingerprint;
       generated._generated_at = new Date().toISOString();
+      generated._source = "profile";
 
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -978,17 +1032,23 @@ Deno.serve(async (req) => {
       return generated;
     };
 
-    const [roleResult, fit] = await Promise.all([resolveRole(), resolveFit()]);
+    const resolveFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
+      if (body.userProductId) return await resolveProductFit();
+      return { fit: await resolveProfileFit(), note: null };
+    };
+
+    const [roleResult, fitResult] = await Promise.all([resolveRole(), resolveFit()]);
     const roleInProduct = roleResult.role;
     const productCategory = roleResult.category;
 
 
     const response = {
-      glossary: entry,
+      glossary: { ...entry, display_name: displayName },
       kind,
       role_in_product: roleInProduct,
       product_category: productCategory,
-      fit,
+      fit: fitResult.fit,
+      fit_note: fitResult.note,
     };
     return json(200, await sanitiseAndLog(response, "ingredient-explainer"));
   } catch (e) {
