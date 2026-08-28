@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 STRAND is a mobile-first hair journal / clinical companion for women on a natural hair care journey, exclusive to TT Collective Pro members. It's a Vite + React + TypeScript SPA with a Supabase backend (auth, Postgres, edge functions). The project was bootstrapped via Lovable — `lovable-tagger` runs as a Vite plugin in dev, and several files in `src/integrations/supabase/` are auto-generated.
 
+## Working on a live app — protect existing flows
+
+Real members are using STRAND right now. Every change — however small or however isolated it looks — must be checked against the rest of the app before it ships: what tables, hooks, edge functions, and UI surfaces does this touch or share, and could this change break, slow, or silently alter behaviour anywhere else that reads the same data or calls the same function? Prefer additive changes (new columns, new optional fields, new components) over rewriting shared logic. If a shared file or table must change, explicitly list every other feature that reads from it and confirm each one still works before considering the task done. This applies to every future change to this repo, not just the one in progress when this rule was added.
+
 ## Commands
 
 Package manager is npm (a `bun.lockb` exists but `package-lock.json` is the committed source of truth).
