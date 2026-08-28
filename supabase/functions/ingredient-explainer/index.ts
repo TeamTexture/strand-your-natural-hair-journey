@@ -891,9 +891,9 @@ Deno.serve(async (req) => {
             brand: String(product.brand ?? ""),
             category: productCategory,
           },
-          [term.display_name],
+          [displayName],
         );
-        roleInProduct = roles.get(normaliseInciKey(term.display_name)) ?? roles.get(key) ?? null;
+        roleInProduct = roles.get(normaliseInciKey(displayName)) ?? roles.get(key) ?? null;
         await supabase.from("product_ingredients").upsert(
           {
             user_product_id: product.id,
