@@ -53,6 +53,18 @@
 
     --radius: 0.875rem; /* 14px */
 
+    /* Community feed palette (scoped to the forum feed page) */
+    --forum-espresso: 26 34% 22%;        /* #4A3324 */
+    --forum-espresso-light: 25 38% 40%;  /* lighter warm brown for trending gradient */
+    --forum-terracotta: 25 72% 41%;      /* #B5651D — General */
+    --forum-terracotta-tint: 28 39% 89%; /* #F3E4D3 */
+    --forum-moss: 76 28% 33%;            /* #5C6B3C — Wash day */
+    --forum-moss-tint: 76 25% 89%;       /* #E6EADB */
+    --forum-wine: 0 35% 35%;             /* #7A3B3B — Products & reviews */
+    --forum-wine-tint: 0 17% 90%;        /* #EEDEDE */
+    --forum-ivory: 42 63% 95%;           /* #FBF6EA */
+    --forum-charcoal: 40 13% 16%;        /* #2E2A22 */
+
     /* STRAND status colors */
     --good: 120 21% 45%;       /* #5A8A5A */
     --good-foreground: 0 0% 100%;
