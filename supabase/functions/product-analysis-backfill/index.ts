@@ -148,6 +148,8 @@ Deno.serve(async (req) => {
   let breaker: string | null = null;
 
   for (const row of rows) {
+    // Never overrun into the next scheduled tick — leftovers stay pending.
+    if (Date.now() - now > RUN_BUDGET_MS) break;
     // Mark in-flight so a crash can't hide the attempt.
     await admin
       .from("product_analysis_backfill")
