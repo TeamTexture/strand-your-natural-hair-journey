@@ -4,12 +4,37 @@ interface ProductAnalysisLike {
   product_name?: unknown;
   brand?: unknown;
   category?: unknown;
+  application_area?: unknown;
+  leave_on?: unknown;
+  usage_instructions?: unknown;
   ingredients?: unknown;
   key_ingredients?: unknown;
   ai_summary?: unknown;
   match_score?: unknown;
   score_reasons?: unknown;
 }
+
+/** Application areas the DB check constraint accepts. */
+const APPLICATION_AREAS = [
+  "scalp",
+  "lengths_ends",
+  "scalp_and_lengths",
+  "rinse_out",
+  "unknown",
+] as const;
+export type ApplicationArea = (typeof APPLICATION_AREAS)[number];
+
+/** Never guess: anything the model didn't give us stays "unknown". */
+const cleanApplicationArea = (value: unknown): ApplicationArea => {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return (APPLICATION_AREAS as readonly string[]).includes(raw)
+    ? (raw as ApplicationArea)
+    : "unknown";
+};
+
+const cleanLeaveOn = (value: unknown): boolean | null =>
+  typeof value === "boolean" ? value : null;
+
 
 
 type SavedScoreReason = {
