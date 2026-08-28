@@ -208,35 +208,53 @@ const TodayTreatmentCard = () => {
               Products on this plan
             </p>
             <ul className="space-y-1.5">
-              {products.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-start gap-2.5 rounded-[12px] border border-border bg-card px-2.5 py-2"
-                >
-                  {p.image_url ? (
-                    <img
-                      src={p.image_url}
-                      alt=""
-                      loading="lazy"
-                      className="size-9 rounded-[8px] object-cover shrink-0 bg-secondary"
-                    />
-                  ) : (
-                    <span className="size-9 rounded-[8px] shrink-0 bg-secondary flex items-center justify-center">
-                      <Package className="size-4 text-muted-foreground" />
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-body text-[13px] leading-snug break-words [overflow-wrap:anywhere]">
-                      {p.product_name}
-                    </span>
-                    {p.brand && (
-                      <span className="block font-body text-[11px] text-muted-foreground mt-0.5 break-words">
-                        {p.brand}
+              {products.map((p) => {
+                const linked = !!p.user_product_id;
+                const rowClass =
+                  "w-full flex items-start gap-2.5 rounded-[12px] border border-border bg-card px-2.5 py-2 text-left min-h-[44px]";
+                const inner = (
+                  <>
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt=""
+                        loading="lazy"
+                        className="size-9 rounded-[8px] object-cover shrink-0 bg-secondary"
+                      />
+                    ) : (
+                      <span className="size-9 rounded-[8px] shrink-0 bg-secondary flex items-center justify-center">
+                        <Package className="size-4 text-muted-foreground" />
                       </span>
                     )}
-                  </span>
-                </li>
-              ))}
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-body text-[13px] leading-snug break-words [overflow-wrap:anywhere]">
+                        {p.product_name}
+                      </span>
+                      {p.brand && (
+                        <span className="block font-body text-[11px] text-muted-foreground mt-0.5 break-words">
+                          {p.brand}
+                        </span>
+                      )}
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={p.id}>
+                    {linked ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/products/profile/${p.user_product_id}`)}
+                        aria-label={`Open ${p.product_name} on your shelf`}
+                        className={rowClass}
+                      >
+                        {inner}
+                      </button>
+                    ) : (
+                      <div className={rowClass}>{inner}</div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -331,17 +349,12 @@ const TodayTreatmentCard = () => {
           </div>
         )}
 
-        {/* STARTING POINT — her own first check-in, previewed as soon as it
-            exists: the words she wrote (or the voice note written out for her)
-            plus the photos she attached that day. */}
-        {startingPointRow && (
-          <button
-            type="button"
-            onClick={() =>
-              navigate(`/treatment/${plan.id}/checkin/${startingPointRow.week_number}`)
-            }
-            className="w-full text-left rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5 space-y-2"
-          >
+        {/* STARTING POINT — only shown when there is no day-1 check-in listed
+            (the open day-1 check-in block already prompts her to write it).
+            Once day one has passed, this previews the words and photos she
+            captured at the start. */}
+        {startingPointRow && !checkinIsDayOne && (
+          <div className="w-full rounded-[12px] border border-border bg-secondary/40 px-3 py-2.5 space-y-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold">
               Where you started
             </p>
@@ -377,8 +390,16 @@ const TodayTreatmentCard = () => {
                 })}
               </div>
             )}
-            <p className="font-body text-[11px] text-primary">Read it again</p>
-          </button>
+            <Button
+              variant="outline"
+              className="w-full rounded-pill"
+              onClick={() =>
+                navigate(`/treatment/${plan.id}/checkin/${startingPointRow.week_number}`)
+              }
+            >
+              Read all
+            </Button>
+          </div>
         )}
 
 
