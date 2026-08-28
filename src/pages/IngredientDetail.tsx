@@ -710,14 +710,39 @@ const IngredientDetail = () => {
 
       })();
       if (cancelled) return;
+      // ── DEMO SAFE MODE (emergency stabilisation, app-wide) ────────────────
+      // Opening a product must NEVER trigger a live model call and must NEVER
+      // show an error/retry. When the strict gate above rejects the stored
+      // payload, fall back to ANY stored payload for this product at any
+      // guidance level and render it as-is. Regeneration only ever happens from
+      // an explicit member action ("Re-analyse").
+      let safe = cached;
+      if (!safe && DEMO_SAFE_MODE) {
+        const { data: anyRow } = await supabase
+          .from("ai_summaries")
+          .select("payload")
+          .like("kind", `ingredient_analysis:${productKey}:%`)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        if (anyRow?.payload) safe = anyRow.payload as unknown as Analysis;
+      }
       console.log("[analysis-cache] decision", {
         product_key: productKey,
-        decision: cached ? "use_stored" : "analyse",
+        decision: safe ? "use_stored" : DEMO_SAFE_MODE ? "no_stored_calm" : "analyse",
         reason: cached ? "valid_stored_analysis" : reason,
       });
-      if (cached) {
-        setAnalysis(cached);
+      if (safe) {
+        setAnalysis(safe);
         setError(null);
+        setLoading(false);
+        return;
+      }
+      if (DEMO_SAFE_MODE) {
+        // Nothing stored at all: calm empty state, no spinner, no model call.
+        setAnalysis(null);
+        setError("Analysis not yet available.");
         setLoading(false);
         return;
       }
@@ -725,6 +750,7 @@ const IngredientDetail = () => {
     })();
     return () => { cancelled = true; };
   }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, tipsLevelReady, productsLoading]);
+
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the
