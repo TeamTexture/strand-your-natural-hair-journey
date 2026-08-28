@@ -53,9 +53,10 @@ import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
-// EMERGENCY STABILISATION (2026-08-28): while true, viewing a product never
-// triggers a live analysis anywhere in the app.
-const DEMO_SAFE_MODE = true;
+// Regeneration on this page is gated by the same rule as the detail page: the
+// stored analysis on the row is rendered whenever one exists, and the only way
+// to reach a fresh call is having nothing stored at all.
+
 
 interface IngredientFlag {
 
