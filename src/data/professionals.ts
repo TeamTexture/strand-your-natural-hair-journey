@@ -108,6 +108,18 @@ export interface Professional {
   salonCity?: string | null;
   /** True when this listing has no login of its own (salon-managed stylist). */
   isSalonStylist?: boolean;
+  /**
+   * Services and prices the professional entered on their own listing. Rendered
+   * verbatim — never computed, never invented, hidden entirely when empty.
+   */
+  services?: ProService[];
+  /**
+   * EVERY currently-live discount on this listing, not just the newest. Codes
+   * are only present for signed-in members (column-level privileges keep them
+   * away from anonymous visitors).
+   */
+  offers?: ProOfferView[];
+
 }
 
 export const PROFESSIONALS: Professional[] = [
