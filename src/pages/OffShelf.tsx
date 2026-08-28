@@ -165,7 +165,7 @@ const OffShelf = () => {
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="product-title text-[13px] font-body leading-snug">{p.name}</p>
+                      <p className="product-title text-[12px] font-body leading-snug">{p.name}</p>
                       <p className="text-[11px] text-muted-foreground truncate"><BrandLink brand={p.brand} /></p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <MatchStars item={p} ingredients={p.ingredients} />
