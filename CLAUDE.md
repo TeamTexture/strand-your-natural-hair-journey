@@ -76,3 +76,12 @@ This is the default shape of **every** product/tool analysis card, not a one-off
 2. **Every technical term is bold + tappable, every time, no exceptions.** In all member-facing analysis text — verdict summary, score reasons, guidance prose — ingredient names ("Decyl glucoside"), ingredient families ("surfactants", "humectants") AND hair-science concepts ("cuticle", "high porosity", "elasticity", "sebum") must render bold and open the shared glossary explainer sheet. Render prose with `GlossaryRichText` (`src/components/ingredients/GlossaryRichText.tsx`) or `ProseText`/`useSmartInline`; never emit raw AI prose into a bare `<span>`/`<p>`.
 3. **Closed vocabulary still applies.** A term is only emphasised/linked when it resolves to an existing `glossary_terms` row (kinds: `molecule`, `class`, `concept`). Definitions are never invented at render time — the explainer generates them from Paige's manuscript via `ingredient-explainer`. Matching logic is centralised in `src/lib/glossarySpans.ts` (first occurrence only, plural tolerant, longest match wins).
 4. When you add a new AI surface that shows hair/scalp/ingredient copy, wire it to `GlossaryRichText` in the same change, and bump the surface's `MODEL_VERSION` when the reasoning contract changes so stale thin copy regenerates.
+
+## STANDING DESIGN RULE — titles are never truncated (2026-08-28, permanent)
+
+Product, tool, brand, offer and content titles are **never** truncated, line-clamped, character-capped or shown with an ellipsis anywhere in the app — on cards, thumbnails, list rows, pickers, sheets, previews or the passport. The full title must always be visible, wrapping onto as many lines as it needs.
+
+- Use `break-words` (plus `[overflow-wrap:anywhere]` for long unbroken strings) on title elements. Never `truncate`, `text-ellipsis`, `line-clamp-*`, `whitespace-nowrap` or `max-w-[Npx]` on a title.
+- Titles include the item's own name *and* its brand/attribution line.
+- Layout must adapt to the title, not the reverse: keep the text column `min-w-0 flex-1` and let the row grow taller. Do not reintroduce a clamp to "keep cards even height".
+- Clamping remains fine for genuine body copy (descriptions, forum post bodies, notes) — never for names.
