@@ -257,6 +257,13 @@ const IngredientRow = ({
             </LevelGate>
           </div>
 
+          {/* Matching products from the user's library */}
+          <div className="space-y-1.5 pt-2 border-t border-border/60">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+              In your products
+            </p>
+
+
             {matches.length === 0 ? (
               <p className="text-[11px] text-muted-foreground py-1">
                 No matching products found.
