@@ -30,6 +30,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import MatchStars from "@/components/MatchStars";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 
 const OffShelf = () => {
@@ -123,8 +124,9 @@ const OffShelf = () => {
             message="No matches"
             hint="Try a different search or clear your filters."
           />
-        ) : (
-          filteredProducts.map((p) => {
+        ) : (() => {
+          const { storeBought, homemade } = splitByHomemade(filteredProducts);
+          const renderRow = (p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             const stars = p.rating ?? 0;
@@ -232,8 +234,14 @@ const OffShelf = () => {
                 )}
               </div>
             );
-          })
-        )}
+          };
+          return (
+            <>
+              {storeBought.map(renderRow)}
+              <HomemadeProductsSection products={homemade} renderRow={renderRow} />
+            </>
+          );
+        })()}
       </div>
 
       {batch.selectMode && (

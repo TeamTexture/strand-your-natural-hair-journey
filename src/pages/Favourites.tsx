@@ -29,6 +29,7 @@ import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 const Favourites = () => {
   const navigate = useNavigate();
@@ -117,8 +118,9 @@ const Favourites = () => {
             message="No matches"
             hint="Try a different search or clear your filters."
           />
-        ) : (
-          filteredProducts.map((p) => {
+        ) : (() => {
+          const { storeBought, homemade } = splitByHomemade(filteredProducts);
+          const renderCard = (p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             const isSelected = batch.selected.has(p.id);
@@ -209,8 +211,14 @@ const Favourites = () => {
                 )}
               </SurfaceCard>
             );
-          })
-        )}
+          };
+          return (
+            <>
+              {storeBought.map(renderCard)}
+              <HomemadeProductsSection products={homemade} renderRow={renderCard} />
+            </>
+          );
+        })()}
       </div>
 
       {batch.selectMode && (

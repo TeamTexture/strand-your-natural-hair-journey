@@ -36,6 +36,7 @@ import { useProductUrlScan } from "@/hooks/useProductUrlScan";
 import { toast } from "sonner";
 import BrandLink from "@/components/BrandLink";
 import WishlistTools from "@/components/WishlistTools";
+import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -142,8 +143,9 @@ const Wishlist = () => {
             message="No matches"
             hint="Try a different search or clear your filters."
           />
-        ) : (
-          filteredProducts.map((p) => {
+        ) : (() => {
+          const { storeBought, homemade } = splitByHomemade(filteredProducts);
+          const renderCard = (p) => {
             const isOpen = expanded === p.product_key;
             const noteCount = counts[p.product_key] ?? 0;
             const isSelected = batch.selected.has(p.id);
@@ -217,8 +219,14 @@ const Wishlist = () => {
                 )}
               </SurfaceCard>
             );
-          })
-        )}
+          };
+          return (
+            <>
+              {storeBought.map(renderCard)}
+              <HomemadeProductsSection products={homemade} renderRow={renderCard} />
+            </>
+          );
+        })()}
       </div>
 
       {!batch.selectMode && <WishlistTools />}
