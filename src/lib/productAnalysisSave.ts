@@ -123,6 +123,9 @@ export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName =
     name: cleanText(data.product_name) ?? fallbackName,
     brand: cleanText(data.brand),
     category: cleanText(data.category),
+    application_area: cleanApplicationArea(data.application_area),
+    leave_on: cleanLeaveOn(data.leave_on),
+    usage_instructions: cleanText(data.usage_instructions),
     ingredients: cleanTextList(data.ingredients),
     key_ingredients: cleanKeyIngredients(data.key_ingredients),
     ai_summary: cleanText(data.ai_summary),
@@ -130,3 +133,4 @@ export function buildProductSaveFields(data: ProductAnalysisLike, fallbackName =
     score_reasons: cleanScoreReasons(data.score_reasons),
   };
 }
+
