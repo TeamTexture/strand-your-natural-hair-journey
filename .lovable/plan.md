@@ -1,121 +1,61 @@
-# Live-app audit sweep — 27 Aug 2026 (report only, nothing changed)
+# Admin-created deals on "Discounts & offers" — findings and two options
 
-Docs reviewed first: `AUDIT.md` (26 Apr, largely superseded), `docs/AUDIT_FLOW_INVENTORY.md`,
-`docs/CURRENT_STATE.md` (the live tracker, 21 Aug), `docs/KNOWN_ISSUES.md` (redirects to CURRENT_STATE),
-`docs/PHASE_1_PLAN.md`, `docs/PHASE_2_AUDIT.md`. Findings below are marked **NEW** or **TRACKED**.
-Live evidence: `email_log`, `ai_call_log`, `ad_events`, `klaviyo_sync_log`, policy/function definitions,
-edge-function logs, and last 10 days of commits. Build is currently clean ("build OK").
+## 1. Is there a real admin role?
 
-Population context: 323 profiles, 26 subscription rows (5 active, 8 trialing, 2 cancelled, 11 none).
+Yes. It is a proper in-app role, not preview chrome:
 
----
+- `app_role` enum includes `admin`; roles live in `public.user_roles` and are checked by `has_role(auth.uid(),'admin')`.
+- `src/App.tsx` has ~35 `/admin/*` routes behind `<RoleGate allow={["admin"]}>` (hub, members, professionals, brands, brand offers, brand calendar, offer review, shelf review, messages, broadcast, treatment, library, events, salons, capabilities, audit, view-as, settings…).
+- Separately, the Lovable preview toolbar has its own "view as" switcher — that is editor chrome, not app UI. The in-app equivalent is `/admin/view-as` (`AdminViewAs.tsx`).
 
-## P0 — silent failures with real member/brand impact
+What admin can already do to brand offers today (`AdminBrandOffers.tsx`, `AdminBrandOfferReview.tsx`, `AdminBrandCalendar.tsx`): approve, reject with a reason, hide/unhide (`hidden_at`), approve/reject creative and targeting revisions, waive payment, free relaunch, and override audience/slots/dates via the `admin_override_brand_offer()` function. RLS backs this — `brand_offers` has an "Admins manage brand offers" policy for ALL commands.
 
-1. **NEW — 31 real emails were permanently lost to a Resend daily quota, with no retry queue.**
-   `email_log` (24 Aug): 21 `admin-signup-received`, 8 `onboarding-next-steps`, 3 `international-waitlist`
-   failed with `429 daily_quota_exceeded`. `supabase/functions/_shared/app-email/core.ts:103-136` retries
-   only 3 times inside the same request (~2s of backoff) and then gives up; nothing re-drives a `failed` row.
-   Worse, the idempotency check (`core.ts:169-178`) returns "deduped" for an existing row of **any** status,
-   so a failed send can never be re-sent under the same key. Affected: 8 real members got no onboarding
-   email, plus admin signup alerts for that day. Will recur at every quota ceiling or Resend outage.
+What admin **cannot** do today: create an offer from scratch. There is no admin create screen; the only creation path is the brand's own `BrandCreateOffer.tsx` → submit → admin approve → Stripe checkout → `paid_scheduled`/`live`.
 
-2. **NEW — the two Klaviyo nurture lists never receive anyone: the secrets don't exist.**
-   Secret store has `KLAVIYO_PAID_LIST_ID` only; `KLAVIYO_PAYWALL_LIST_ID` (XcgcdA) and
-   `KLAVIYO_ABANDONED_LIST_ID` (WzQpDj) are unset, and the live edge log confirms the silent skip:
-   `[klaviyo-nurture] paywall list id not configured — skipping pushes`. `klaviyo_sync_log` for the last
-   7 days shows only `paid_list_webhook`, `paid_backfill`, `consent_sync` — zero paywall/abandoned pushes.
-   Affected: every member who reaches the paywall and doesn't convert (the majority of the 11 `none` +
-   drop-offs) gets no nurture at all. Fails silently by design, so it looks "built" but isn't running.
+## 2. Is the brand offer system entirely brand self-serve?
 
-3. **NEW — a brand can be charged for a targeting revision that is then discarded with no effect and no refund.**
-   `submit_brand_offer_revision` supersedes any revision in `approved_pending_payment` with no check for an
-   in-flight Stripe session; `confirm_brand_offer_revision_payment` then returns `false` and
-   `supabase/functions/brand-stripe-webhook/index.ts:121-134` treats the no-op as success — money captured,
-   uplift never applied, no admin alert. Affected: any brand who edits a pending revision with a checkout tab
-   open. Low frequency, money-touching, so P0 by severity not volume.
+Creation, yes — every row in `brand_offers` originates from a brand (or campaign-owner pro) account, and `brand_user_id` is `NOT NULL` with no null-owner path. But the system is not purely paid: admin can already waive payment and force dates/slots, so a non-paying partner offer is technically expressible today — it just needs a brand account to hang off, and there is no UI to create the offer row.
 
-4. **NEW — Wash Day logging has no server-side draft; four screens hold the entry in `localStorage` only.**
-   `WashStep1.tsx:396-422`, `WashStep2.tsx:89-93`, `WashStep3.tsx:151`, `WashStepStyling.tsx:243`; only
-   `WashStep4.save()` writes to `wash_days`. Cleared/evicted storage (Safari private mode, storage pressure)
-   or starting on phone and finishing on desktop loses everything typed — scalp/breakage answers, hair-feel
-   voicenote, styling choices — with no toast and no warning. The blood flow already solves exactly this via
-   `onboarding_drafts`; Wash Day does not. Affected: anyone who doesn't finish the logger in one sitting on
-   one device.
+How the member page actually reads them: `Discounts.tsx` → `useAllLiveBrandOffers()` selects `brand_offers` where `hidden_at is null`, `status in ('live','paid_scheduled')`, and today is inside `starts_on…ends_on`. It does **not** require a placement, a slot, or a payment. `SponsoredOfferCard` then looks up `brand_profiles` for the brand name/logo and logs view/click/code-copy `ad_events`.
 
-## P1 — wrong data shown, or wrong gate decision
+Current data: 2 brand profiles, 4 offers total (1 live, 2 ended, 1 cancelled). So the live blast radius is small but real — Team Texture's live campaign is one of these rows.
 
-5. **NEW — brand `interactors` silently under-counts once raw events are archived.**
-   `brand_offer_metrics` sums archived `ad_stats_daily` into reach/clicks/expands but **not** interactors
-   (no per-day distinct figure is stored), so after the monthly `purge_ad_events()` rollup an offer can show
-   more `link_clicks` than `interactors` — an obviously wrong number in front of a paying brand.
-   Related, lower: `reach` counts `session_id` for signed-out impressions, so repeat anonymous visits inflate it.
+## Option A — admin creates directly into `brand_offers`
 
-6. **NEW — chat send gate disagrees with itself on cancelled appointments.**
-   Verified live: the `chat_messages` INSERT policy *does* call `can_send_chat_message` (a subagent claim that
-   it was orphaned SQL is **wrong** — do not act on that). But the server function keys off
-   `appointments.cancelled_at is null`, while member self-cancel (`src/pages/LogAppointment.tsx:200-208`)
-   writes only `status='cancelled'` and never `cancelled_at`. So a member who cancels her own first appointment
-   is still treated server-side as having had it, and the STRAND+ chat wall can close on her while the UI
-   (`useCanSendChatMessage.ts:42-49`, which filters on `status`) says she may write. Latent today — 0 cancelled
-   appointments in the table — but it will bite the first self-cancellation.
+Add an admin "create offer" screen that inserts a `brand_offers` row (plus optional placements/targeting) on behalf of a chosen brand, marked as internal/unpaid.
 
-7. **NEW — no email at all for member↔pro chat replies.**
-   `supabase/functions/notify-message-recipient/index.ts:38-39` returns early unless
-   `thread_type = 'admin_support'`. Members and pros only get in-app/push, and 16 `chat_message`
-   notifications are currently unread. Affects every client↔pro conversation.
+Pros: renders identically everywhere (Discounts page, home/products/wash-day banners, brand page), full per-click/code-copy tracking, reuses the existing card, revision and hide machinery.
 
-8. **NEW — the notifications feed is hard-capped at 30 rows.**
-   `src/hooks/useNotifications.ts:37-45,70-101`: unread count and "mark all read" only ever see the newest 30,
-   so anything older can never be cleared and the OS badge (`useAppBadge`) drifts. Affects heavy accounts
-   (active pros, admins) first.
+Cons / risks:
+- Needs a brand account to own it (`brand_user_id NOT NULL`) — internal deals mean creating placeholder `brand_profiles`, which then leak into the brands directory, admin brand counts, "live brands" metrics, and the brand-facing dashboards.
+- `total_price_pence = 0` rows enter the same revenue/metrics surfaces brands and you both read (`brand_offer_metrics`, billing, calendar), so the ad-revenue numbers stop meaning "paid".
+- Touches the exact tables the in-flight work sits on: revision charging + `checkout_started_at` race guard, Stripe webhook status transitions, the brand calendar's slot-overlap constraint, and the realtime `brand_offers` sync channel. Any bug here can affect a paying brand's live campaign.
+- Ad metrics audit rules (frozen archive, source-of-truth) would need the internal rows explicitly excluded or labelled.
 
-9. **NEW — `past_due` members are told "Cancelled" on their own billing screen.**
-   `ManageSubscriptionSection.tsx:130-140` falls through to a "Cancelled" pill for every status outside
-   active/trialing/paused/cancelling, while `entitlement.ts:20-38` still grants them access. Display-only,
-   but alarming for a member whose card just bounced once.
+## Option B — separate "curated offers" table (recommended)
 
-10. **NEW — `ai_call_log` has 185 rows in 7 days with `outcome='unflushed'`** (nutrition-plan 73,
-    wash-day-steps 59, ingredient-explainer 29). Duration and tokens are present, so these are completed
-    calls whose finaliser never stamped the outcome — cost/rejection reporting under-counts. Telemetry only,
-    no member impact.
+New `public.curated_offers` table, admin CRUD only, rendered as its own section on the same page. No brand account, no slot, no booking, no Stripe, no `ad_events`.
 
-## P2 — cosmetic / hygiene
+Fields: `title`, `brand_name`, `description`, `discount_code`, `external_url`, `image_path`, `starts_on`, `ends_on`, `sort_order`, `is_active`, `hidden_at`, timestamps.
 
-11. **NEW — signup skips `/onboarding/goal`.** `src/pages/Auth.tsx:219` navigates straight to
-    `profile-step-1`, and `ProfileStep1.tsx:404` hardcodes `goalCaptured: true`, so the goal/challenge capture
-    and its whole `trialWall` plumbing is unreachable on the primary route. Affects 100% of new signups
-    (data-capture gap, not a blocker).
-12. **NEW — storage leaks:** wash-day delete (`WashDayDetail.tsx:326-344`) never removes voicenotes or
-    styling photos; `WashStepStyling.tsx:171-199` uploads photos before the entry exists, orphaning them if
-    she backs out; journal step media isn't cleaned on entry delete.
-13. **NEW — `expand` ad events have no dedupe** while `view` is hour-deduped server-side, so remount/back-nav
-    inflates the expand count brands see (47 expands vs 38 views in the last 7 days is consistent with this).
-14. **NEW — every product open does a pointless round trip** through `ProductProfileRedirect` (uuid →
-    `product_key`) from Shelf, Wishlist, Favourites and Repository — wider than tracked item 2.
-15. **NEW — `OnboardingGate` capture-path bounce omits `/onboarding/photos` and `/onboarding/success`**, so a
-    finished member can replay both; `SuccessScreen` re-stamps `onboarding_completed_at` on each visit.
-16. **NEW — `wash_days.steps` is typed non-nullable but can be null on legacy rows** (`useWashDays.ts:10,47`);
-    current consumers guard with `?.`, so it's one unguarded future call from a crash.
+Pros: zero contact with `brand_offers`, placements, revisions, checkout, ad metrics, or the paywall/nurture work — nothing in the live paid system can regress. Simple admin form (create/edit/delete/reorder/expire). Reuses `DiscountCodeChip`, `OfferCard`, `ScreenLayout`/`SectionLabel`, and the existing `brand-assets` storage bucket pattern for the image.
+Cons: a second concept to maintain; no per-click/code-copy analytics unless added later (can be added cheaply as a lightweight counter, deliberately kept out of `ad_events` so brand reporting stays clean); does not appear in the paid banner slots.
 
-## Already tracked in docs/CURRENT_STATE.md — re-confirmed, not new
+## Recommendation
 
-Two-scorer product match split and the dead `ProductProfile.tsx` on the live route (items 3/3b), verdict-vs-stars
-(4), length goal not on Home (1), wishlist detail parity (2), onboarding step counters disagreeing,
-consent-accept landing on `/`, `journal-encouragement` ignoring its provider flag (12), provider-flag
-case-sensitivity (14), nutrition-plan model label (15), `useHomeAlerts` serial decrypt (8), regex rebuild per
-shelf card (9). Guardrail rejections are working as designed (`tip_generation_rejections`: 11
-`clarification-cleanse-area-focus` on ingredient-analysis, 6 `unmapped_claim`) — retries absorb them.
+**Option B is less work and far lower risk.** Roughly one migration + one admin page + one section on `Discounts.tsx`, all additive. Option A means an admin creation path through the most financially sensitive table in the app while brand revision-charging and the Klaviyo nurture work are still settling.
 
-## Checked and found sound
+A sensible middle path if you later want an internal deal in the paid banner slots: keep Option B for the Discounts page, and separately add an `is_internal` flag to `brand_offers` (excluded from revenue metrics) only when that need is concrete.
 
-`ad_delivery_for_slot` (status + `hidden_at` + date window + dismissals all filtered — no live offer past
-`ends_on`; the single live offer ends 31 Aug), `BrandPaywallGate`/`useBrandLockout`, `PaidGate`/`PlusGate`/
-`TrialWall` (fail closed, trialing/complimentary/admin honoured), impersonation dry-run and `aiInvoke` dedup
-keys, `ai_summaries` per-user scoping, `parseRecipe`/homemade safety degradation on malformed rows,
-booking-click single insert, blood-extract marker validation, `useOnboardingDraft` race guard, onboarding save
-paths (all surface errors and stop).
+## Things either option could affect
 
-## Suggested fix order if you want a build pass next
+- The Discounts page also renders pro offers (`pro_offers`) and the blood-testing card — a new section must not reorder or displace those.
+- `Discounts.tsx` is member-facing under the entitlement gate; admin impersonation must show curated offers read-only (no writes during view-as).
+- Option A only: brand realtime sync channel, slot-overlap constraint, revision payment race guard, brand billing/metrics, brands directory counts, admin dashboard "live brands".
+- Option B only: no effect on brand campaign flow, email sending, or the nurture lists.
 
-1 and 2 first (silent, ongoing, affects real members), then 3 (money), 4 (data loss), then 5-9.
+## Technical notes
+
+- Live-offer read: `useAllLiveBrandOffers()` in `src/hooks/useBrandOffers.ts` (status + date window + `hidden_at`), no placement required.
+- `brand_offers` RLS: admin ALL policy already exists; public SELECT is restricted to live/paid-in-window and ended, both with `hidden_at is null`.
+- Option B table follows the existing `curated_content` precedent (admin-read-all + members-read-published policies) and needs `GRANT SELECT` to `authenticated`, `GRANT ALL` to `service_role`, RLS on, admin-manage + member-read-active policies.
