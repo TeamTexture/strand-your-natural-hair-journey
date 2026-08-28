@@ -235,15 +235,29 @@ const ProductProfile = () => {
       return;
     }
 
-    // EMERGENCY STABILISATION (2026-08-28): opening a product never triggers a
-    // live model call. With nothing stored, show a calm empty state instead of
-    // a spinner or an error/retry.
-    if (DEMO_SAFE_MODE) {
+    // Nothing stored for this product at all — the one case where this page may
+    // generate. The early return above means a row that already carries an
+    // analysis can never reach here, so a second load costs nothing.
+    const gate = decideProductAnalysis({
+      hasSavedRow: true,
+      capturedIngredientCount: (product.ingredients ?? []).length,
+      isHomemade: (product as unknown as { is_homemade?: boolean }).is_homemade === true,
+      storedScore: null,
+      storedGeneratedAt: null,
+      storedProfileHash: null,
+      currentProfileHash: null,
+      storedIngredientsHash: null,
+      currentIngredientsHash: null,
+      storedPayloadFound: false,
+    });
+    if (gate.action !== "generate") {
       setAiLoading(false);
       setAiError(null);
       setAiSummary(null);
       return;
     }
+    assertAnalysisTrigger(gate.reason);
+
 
     let cancelled = false;
 
