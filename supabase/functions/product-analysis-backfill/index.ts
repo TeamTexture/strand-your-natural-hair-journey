@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
 
     // Durable profile signals the analysis weighs. Read server-side so the job
     // needs no client context payload.
-    const [{ data: hair }, { data: goals }, { data: style }] = await Promise.all([
+    const [{ data: hair }, { data: goals }, { data: style }, { data: profile }] = await Promise.all([
       admin.from("user_hair_profile").select("*").eq("user_id", row.user_id).maybeSingle(),
       admin
         .from("user_goals")
@@ -242,6 +242,11 @@ Deno.serve(async (req) => {
       admin
         .from("user_style_profile")
         .select("default_style, planned_next_style")
+        .eq("user_id", row.user_id)
+        .maybeSingle(),
+      admin
+        .from("profiles")
+        .select("tips_level")
         .eq("user_id", row.user_id)
         .maybeSingle(),
     ]);
@@ -264,6 +269,9 @@ Deno.serve(async (req) => {
         hairProfile: (hair ?? {}) as Record<string, unknown>,
         goals: (goals ?? []) as Array<Record<string, unknown>>,
         currentStyle: (style ?? null) as Record<string, unknown> | null,
+        // Cache identity includes guidance level. Omitting this silently used
+        // the L2 default and made L1/L3 members miss the generated row forever.
+        tipsLevel: (profile as { tips_level?: number | null } | null)?.tips_level ?? 2,
       },
     };
 

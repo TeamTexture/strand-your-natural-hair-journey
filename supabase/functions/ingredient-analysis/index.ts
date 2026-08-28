@@ -1130,6 +1130,54 @@ Deno.serve(async (req) => {
           return json(200, { cached: true, analysis: served });
         }
       }
+
+      // A service backfill used to omit `context.tipsLevel`, so it generated a
+      // perfectly usable default-L2 payload even for members whose stored level
+      // was L1. The client then looked for L1, missed on every page open, and
+      // invoked this function again. Reuse a CURRENT higher-detail payload by
+      // trimming its ranked guidance to the requested count, and persist that
+      // exact level key. This is deterministic and makes no model call.
+      if (!force && !existing?.payload && tipsLevel < 3) {
+        const higherKinds: string[] = [];
+        for (let level = tipsLevel + 1; level <= 3; level += 1) {
+          higherKinds.push(`ingredient_analysis:${productKey}:L${level}${recipeSig}`);
+        }
+        const { data: higherRows } = await dataClient
+          .from("ai_summaries")
+          .select("payload, updated_at")
+          .eq("user_id", memberId)
+          .in("kind", higherKinds)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        const higher = higherRows?.[0]?.payload as AnalysisPayload | null | undefined;
+        const higherGuidance = Array.isArray(higher?.personalised_guidance)
+          ? higher.personalised_guidance
+          : [];
+        if (higher?._model_version === MODEL_VERSION && higherGuidance.length >= guidanceCount(tipsLevel)) {
+          const derived = structuredClone(higher);
+          derived.personalised_guidance = higherGuidance.slice(0, guidanceCount(tipsLevel));
+          const guarded = enforceIngredientCardSensitivities(
+            derived as unknown as { match_score?: number; summary?: string; ingredients?: unknown },
+            sens,
+            rawIngredients,
+            "ingredient-analysis",
+          ) as unknown as AnalysisPayload;
+          const served = await sanitiseAndLog(guarded, "ingredient-analysis") as AnalysisPayload;
+          if (homemadeSafety) applyHomemadeSafety(served, homemadeSafety);
+          await dataClient.from("ai_summaries").insert({
+            user_id: memberId,
+            kind: cacheKind,
+            payload: served as object,
+          });
+          console.log(JSON.stringify({
+            function: "ingredient-analysis",
+            event: "cache_level_downshift",
+            product_key: productKey,
+            requested_level: tipsLevel,
+          }));
+          return json(200, { cached: true, derived_level: true, analysis: served });
+        }
+      }
     }
 
     // Spend protection: per-user daily cap (model-spend paths only).
