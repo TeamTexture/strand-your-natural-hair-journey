@@ -619,6 +619,12 @@ const IngredientDetail = () => {
     // Fresh-scan path: analysis is already in state, no need to re-fetch.
     if (freshAnalysis && !needsAnalysis) return;
     if (!productKey || !profileChecked) return;
+    // Wait for the member's shelf to load before deciding the row is missing.
+    // Without this guard the effect fired while `allProducts` was still
+    // fetching, saw a null `savedRowRef.current`, concluded "no_saved_row"
+    // and re-ran the model — burning a generation on every visit to a
+    // product that already has a stored analysis.
+    if (productsLoading) return;
     // Support level is part of the identity: guidance depth is level-specific,
     // so a level change looks for that level's stored analysis.
     const runKey = `${productKey}:L${tipsLevel}`;
@@ -681,7 +687,7 @@ const IngredientDetail = () => {
       runAnalysis(false);
     })();
     return () => { cancelled = true; };
-  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel]);
+  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, productsLoading]);
 
   // Save the freshly-scanned product into user_products. The scanning flow
   // already attempts this upsert, but we re-run it here to (a) cover the
