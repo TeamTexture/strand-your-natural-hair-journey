@@ -1090,7 +1090,30 @@ Deno.serve(async (req) => {
     }
     if (!usageInstructions) usageSource = "none";
     const usageDirections: UsageDirections = { text: usageInstructions, source: usageSource };
-    const usageBlock = usageGroundingBlock(usageDirections);
+    // Anti-anchoring: which profile traits her OTHER products' how-to-use copy
+    // already leaned on. Fed into the prompt so it cannot silently repeat one
+    // trait (density) across every product.
+    let recentTraits: string[] = [];
+    try {
+      const { data: others } = await dataClient
+        .from("ai_summaries")
+        .select("payload, updated_at, kind")
+        .eq("user_id", memberId)
+        .like("kind", "ingredient_analysis:%")
+        .neq("kind", cacheKind)
+        .order("updated_at", { ascending: false })
+        .limit(8);
+      recentTraits = recentTraitUsage(
+        (others ?? []).map((r) => {
+          const p = r.payload as { usage_instructions?: string | null } | null;
+          return p?.usage_instructions ?? null;
+        }),
+      );
+    } catch (e) {
+      console.warn("[ingredient-analysis] recent trait scan failed", e instanceof Error ? e.message : e);
+    }
+    const usageBlock = usageGroundingBlock(usageDirections, { recentTraits });
+
     console.log(JSON.stringify({
       function: "ingredient-analysis",
       usage_source: usageSource,
