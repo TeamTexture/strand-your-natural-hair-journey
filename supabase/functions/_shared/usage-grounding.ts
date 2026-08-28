@@ -220,12 +220,33 @@ RULES (validated after you answer — a violation is rejected):
     : `
 
 PERSONALISATION ON TOP OF THE REAL DIRECTIONS — REQUIRED QUALITY BAR:
-Take the manufacturer's directions as the base, then work out which of this member's STORED profile fields (density, porosity, elasticity, curl pattern, strand diameter, length, scalp condition, current style, goal, challenge) genuinely change HOW she physically carries out those directions. Change the technique, never the instruction.
-Target quality (this is the standard, not a template):
-"As you have high density hair, ensure you really separate your afro apart to expose as much of your scalp as possible when applying this serum so it makes direct contact with your scalp which is where its focus is, and don't build up the product on your hair."
-Note what that does: it names ONE real stored trait, gives a CONCRETE physical adjustment (separate the hair to expose scalp), ties it to the manufacturer's own intent (a scalp-focused serum), and adds the mistake to avoid. Do that.
-- Name the trait from her record and say WHY it changes the handling — never drop a trait name into generic phrasing ("as you have high density hair, apply evenly" is a failure).
-- If no stored trait genuinely changes the handling of this product, say less rather than inventing a reason.`;
+Take the manufacturer's directions as the base, then work out which of this member's STORED profile fields genuinely change HOW she physically carries out those directions. Change the technique, never the instruction.
+
+STEP 1 — SELECT THE TRAIT BY MECHANISM, DO NOT DEFAULT TO ONE.
+Read this product's real directions and its actual ingredients, decide what physically governs the outcome (where it has to land, whether it must absorb, whether heat is involved, whether it stays on, whether it must not build up), then scan her WHOLE record for the trait that changes that specific mechanism: porosity, cuticle state, elasticity/protein history, density, strand diameter, surface texture, curl pattern, length, scalp condition, current style and its scalp access, goal, challenge, and held health/sensitivity data.
+Ask yourself plainly: which stored trait, if it were different, would make me give DIFFERENT handling advice for THIS product? That trait — and only that one — is the one to name. If two traits genuinely both change the handling, you may name both; never list traits for the sake of it.
+
+ANTI-ANCHORING RULE (validated — this is a real failure mode we have seen):
+- Never default to the same profile trait across products. Density is NOT the house trait, and neither is porosity. A trait is named only because this product's mechanism makes it relevant, never because it was used on a previous product, never because it appears in an example, and never because it is the trait you reach for most easily.
+- Do not pattern-match to any example wording in this prompt. The examples show the DEPTH expected, not the trait to pick.
+- If the trait you first thought of is not the one that actually changes this product's mechanism, discard it. Different products should genuinely surface different traits.
+
+MECHANISM → TRAIT, ILLUSTRATIVE ONLY (never a lookup table, and only if the trait is actually on her record):
+- Product that must reach the scalp: what limits scalp access — current style, coverage, density, scalp condition.
+- Leave-in / moisture product that must absorb and hold: porosity, cuticle state, whether it dries out fast.
+- Heat or styling product: her heat history, elasticity/protein state, damage or breakage challenge.
+- Protein / bond product: elasticity, previous protein response, colour or chemical history.
+- Oil, butter or heavy cream: strand diameter, length, weigh-down and build-up risk, roots-vs-ends placement.
+- Cleanser: how much product has to come off, scalp condition, how the current style is washed.
+None of these override STEP 1 — they are prompts for your own reasoning, not assignments.
+
+STEP 2 — WRITE IT WITH THIS DEPTH.
+Whichever trait you selected, the sentence must: name the real stored trait, give a CONCRETE physical adjustment she can perform, tie it to the manufacturer's own intent for the product, and where useful name the mistake to avoid. Two examples, deliberately on different traits, to show depth only:
+"As your hair dries out quickly, work this through in sections while your hair still holds water so the leave-in has something to seal in, rather than applying it to hair that has already dried down."
+"Because your strands are fine, keep this to your mid-lengths and ends and use less than feels right at first — the oils high in this formula will flatten fine hair at the roots long before you notice them on the ends."
+- Name the trait and say WHY it changes the handling — never drop a trait name into generic phrasing ("as you have high density hair, apply evenly" is a failure, whatever the trait).
+- If no stored trait genuinely changes the handling of this product, say less rather than inventing a reason. Silence is better than a forced trait.`;
 
   return `${base}${bar}`;
 }
+
