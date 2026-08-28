@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useState } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, MessageSquare, ArrowUp, Pin, Lock } from "lucide-react";
+import { Plus, MessageSquare, ArrowUp, ArrowDown, Pin, Lock, Flame } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -15,6 +16,19 @@ import ForumAvatar from "@/components/ForumAvatar";
 import { renderMentions } from "@/lib/renderMentions";
 
 type Sort = "new" | "top";
+
+/** Community feed category palette — keyed by lowercased category name. */
+const CATEGORY_STYLE: Record<string, { solid: string; tint: string }> = {
+  general: { solid: "hsl(var(--forum-terracotta))", tint: "hsl(var(--forum-terracotta-tint))" },
+  "wash day": { solid: "hsl(var(--forum-moss))", tint: "hsl(var(--forum-moss-tint))" },
+  "wash-day": { solid: "hsl(var(--forum-moss))", tint: "hsl(var(--forum-moss-tint))" },
+  washday: { solid: "hsl(var(--forum-moss))", tint: "hsl(var(--forum-moss-tint))" },
+  "products & reviews": { solid: "hsl(var(--forum-wine))", tint: "hsl(var(--forum-wine-tint))" },
+  products: { solid: "hsl(var(--forum-wine))", tint: "hsl(var(--forum-wine-tint))" },
+  reviews: { solid: "hsl(var(--forum-wine))", tint: "hsl(var(--forum-wine-tint))" },
+};
+const FALLBACK_STYLE = { solid: "hsl(var(--forum-espresso))", tint: "hsl(var(--forum-ivory))" };
+const catStyle = (name: string) => CATEGORY_STYLE[name.trim().toLowerCase()] ?? FALLBACK_STYLE;
 
 const Forum = () => {
   useEffect(() => { markPlusSurfaceSeen("forum"); markPlusSurfaceSeen("threads"); }, []);
@@ -76,6 +90,17 @@ const Forum = () => {
   const catName = (id: string | null) =>
     catsQ.data?.find((c) => c.id === id)?.name ?? "";
 
+  /** Trending = whichever loaded thread currently has the most net upvotes. */
+  const trendingId = useMemo(() => {
+    const list = threadsQ.data ?? [];
+    let best: { id: string; votes: number } | null = null;
+    for (const t of list) {
+      const v = t.vote_count ?? 0;
+      if (!best || v > best.votes) best = { id: t.id, votes: v };
+    }
+    return best && best.votes > 0 ? best.id : null;
+  }, [threadsQ.data]);
+
   return (
     <PlusGate title="Forum">
       <ScreenLayout>
@@ -83,7 +108,10 @@ const Forum = () => {
           title="Community"
           right={
             <Link to="/forum/new">
-              <Button variant="gold" size="sm" className="rounded-full h-9 px-3">
+              <Button
+                size="sm"
+                className="rounded-full h-9 px-3 bg-[hsl(var(--forum-espresso))] text-[hsl(var(--forum-ivory))] hover:bg-[hsl(var(--forum-espresso))]/90"
+              >
                 <Plus className="size-4 mr-1" /> New
               </Button>
             </Link>
@@ -92,12 +120,27 @@ const Forum = () => {
         <div className="px-4 pb-16 space-y-4">
           <div className="flex items-center gap-2">
             <div className="flex-1 flex gap-1.5 strand-hscroll">
-              <Chip active={!categoryId} onClick={() => setCategoryId(null)}>All</Chip>
-              {catsQ.data?.map((c) => (
-                <Chip key={c.id} active={categoryId === c.id} onClick={() => setCategoryId(c.id)}>
-                  {c.name}
-                </Chip>
-              ))}
+              <Chip
+                active={!categoryId}
+                onClick={() => setCategoryId(null)}
+                activeStyle={{ background: "hsl(var(--forum-espresso))", color: "hsl(var(--forum-ivory))" }}
+              >
+                All
+              </Chip>
+              {catsQ.data?.map((c) => {
+                const s = catStyle(c.name);
+                return (
+                  <Chip
+                    key={c.id}
+                    active={categoryId === c.id}
+                    onClick={() => setCategoryId(c.id)}
+                    activeStyle={{ background: s.solid, color: "hsl(var(--forum-ivory))" }}
+                    idleStyle={{ background: s.tint, color: s.solid }}
+                  >
+                    {c.name}
+                  </Chip>
+                );
+              })}
             </div>
           </div>
           <div className="flex items-center gap-1 text-[11px] font-body">
@@ -108,7 +151,7 @@ const Forum = () => {
           {threadsQ.isLoading ? (
             <LoadingDot />
           ) : threadsQ.data && threadsQ.data.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {threadsQ.data.map((t) => {
                 const author = authorsQ.data?.get(t.author_id);
                 const firstName = (author?.display_name ?? "Member").split(" ")[0];
@@ -116,38 +159,119 @@ const Forum = () => {
                 if (author?.goal_title) metaParts.push(`Goal: ${author.goal_title}`);
                 if (author?.current_style) metaParts.push(`Current Style: ${author.current_style}`);
                 const metaLine = metaParts.length > 0 ? metaParts.join(" · ") : null;
+                const isTrending = t.id === trendingId;
+                const cName = catName(t.category_id);
+                const cStyle = catStyle(cName);
                 return (
                   <li key={t.id}>
                     <Link
                       to={`/forum/${t.id}`}
-                      className="block rounded-[14px] border border-border bg-card p-4 hover:bg-muted/30 transition-colors"
+                      className={cn(
+                        "block rounded-2xl border p-4 transition-colors",
+                        isTrending
+                          ? "border-[hsl(var(--forum-espresso))] text-[hsl(var(--forum-ivory))] bg-[linear-gradient(135deg,hsl(var(--forum-espresso)),hsl(var(--forum-espresso-light)))]"
+                          : "border-border bg-[hsl(var(--surface-raised))] hover:bg-[hsl(var(--forum-ivory))]",
+                      )}
                     >
                       <div className="flex items-start gap-2.5 mb-2">
-                        <ForumAvatar path={author?.avatar_url} fallback={firstName[0]} className="size-9 text-[13px]" />
+                        <span
+                          className="rounded-full p-[2px] shrink-0"
+                          style={{ background: isTrending ? "hsl(var(--forum-ivory))" : cStyle.solid }}
+                        >
+                          <ForumAvatar
+                            path={author?.avatar_url}
+                            fallback={firstName[0]}
+                            className="size-9 text-[13px] border-2 border-[hsl(var(--surface-raised))]"
+                          />
+                        </span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[12px] font-body font-semibold text-foreground/85 leading-tight">{firstName}</span>
-                            {t.category_id && (
-                              <span className="text-[9.5px] font-body font-semibold uppercase tracking-wider text-primary bg-primary/10 rounded-full px-1.5 py-0.5 leading-none">
-                                {catName(t.category_id)}
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                "text-[12px] font-body font-semibold leading-tight",
+                                isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-[hsl(var(--forum-charcoal))]",
+                              )}
+                            >
+                              {firstName}
+                            </span>
+                            {isTrending ? (
+                              <span className="inline-flex items-center gap-0.5 text-[9.5px] font-body font-bold uppercase tracking-wider text-[hsl(var(--forum-espresso))] bg-[hsl(var(--forum-ivory))] rounded-full px-1.5 py-0.5 leading-none">
+                                <Flame className="size-2.5" /> Trending
                               </span>
+                            ) : (
+                              t.category_id && (
+                                <span
+                                  className="text-[9.5px] font-body font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.5 leading-none"
+                                  style={{ background: cStyle.tint, color: cStyle.solid }}
+                                >
+                                  {cName}
+                                </span>
+                              )
                             )}
-                            {t.is_pinned && <Pin className="size-3 text-primary" />}
-                            {t.is_locked && <Lock className="size-3 text-muted-foreground" />}
+                            {t.is_pinned && <Pin className={cn("size-3", isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-[hsl(var(--forum-espresso))]")} />}
+                            {t.is_locked && <Lock className={cn("size-3", isTrending ? "text-[hsl(var(--forum-ivory))]/70" : "text-muted-foreground")} />}
+                            <span
+                              className={cn(
+                                "ml-auto text-[10.5px] font-body whitespace-nowrap",
+                                isTrending ? "text-[hsl(var(--forum-ivory))]/75" : "text-foreground/55",
+                              )}
+                            >
+                              {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
+                            </span>
                           </div>
                           {metaLine && (
-                            <p className="text-[10.5px] font-body text-foreground/60 leading-tight truncate mt-0.5">
+                            <p
+                              className={cn(
+                                "text-[10.5px] font-body leading-tight truncate mt-0.5",
+                                isTrending ? "text-[hsl(var(--forum-ivory))]/70" : "text-foreground/60",
+                              )}
+                            >
                               {metaLine}
                             </p>
                           )}
                         </div>
                       </div>
-                      <h3 className="font-display text-[15px] font-semibold leading-tight text-foreground">{t.title}</h3>
-                      {t.body && <p className="mt-1 font-body text-[12px] text-foreground/70 line-clamp-2">{renderMentions(t.body)}</p>}
-                      <div className="mt-2 flex items-center gap-3 text-[11px] text-foreground/60 font-body">
-                        <span className="inline-flex items-center gap-1"><ArrowUp className="size-3" /> {t.vote_count ?? 0}</span>
-                        <span className="inline-flex items-center gap-1"><MessageSquare className="size-3" /> {t.reply_count ?? 0}</span>
-                        <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}</span>
+                      <h3
+                        className={cn(
+                          "font-display text-[15.5px] font-semibold leading-tight break-words",
+                          isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-[hsl(var(--forum-charcoal))]",
+                        )}
+                      >
+                        {t.title}
+                      </h3>
+                      {t.body && (
+                        <p
+                          className={cn(
+                            "mt-1 font-body text-[12px] line-clamp-2 break-words",
+                            isTrending ? "text-[hsl(var(--forum-ivory))]/85" : "text-foreground/70",
+                          )}
+                        >
+                          {renderMentions(t.body)}
+                        </p>
+                      )}
+                      <div className="mt-2.5 flex items-center gap-3 text-[11px] font-body">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-1",
+                            isTrending
+                              ? "bg-[hsl(var(--forum-ivory))]/15 text-[hsl(var(--forum-ivory))]"
+                              : (t.vote_count ?? 0) > 0
+                                ? "bg-[hsl(var(--forum-terracotta-tint))] text-[hsl(var(--forum-espresso))]"
+                                : "bg-[hsl(var(--forum-ivory))] text-foreground/60",
+                          )}
+                        >
+                          <ArrowUp className={cn("size-3", !isTrending && (t.vote_count ?? 0) > 0 && "text-[hsl(var(--forum-espresso))]")} />
+                          <span className="font-semibold">{t.vote_count ?? 0}</span>
+                          <ArrowDown className="size-3 opacity-60" />
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1",
+                            isTrending ? "text-[hsl(var(--forum-ivory))]/75" : "text-muted-foreground",
+                          )}
+                        >
+                          <MessageSquare className="size-3" /> {t.reply_count ?? 0}
+                        </span>
                       </div>
                     </Link>
                   </li>
@@ -165,12 +289,25 @@ const Forum = () => {
   );
 };
 
-const Chip = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+const Chip = ({
+  active,
+  onClick,
+  children,
+  activeStyle,
+  idleStyle,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  activeStyle: React.CSSProperties;
+  idleStyle?: React.CSSProperties;
+}) => (
   <button
     onClick={onClick}
+    style={active ? activeStyle : idleStyle}
     className={cn(
       "shrink-0 h-8 px-3 rounded-full text-[11.5px] font-body font-semibold border transition-colors",
-      active ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground/75",
+      active ? "border-transparent" : "border-transparent",
     )}
   >
     {children}
@@ -181,7 +318,7 @@ const SortBtn = ({ active, onClick, children }: { active: boolean; onClick: () =
     onClick={onClick}
     className={cn(
       "px-3 h-7 rounded-full font-semibold uppercase tracking-wider text-[10px]",
-      active ? "bg-brown text-brown-foreground" : "text-foreground/60",
+      active ? "bg-[hsl(var(--forum-espresso))] text-[hsl(var(--forum-ivory))]" : "text-foreground/60",
     )}
   >
     {children}
