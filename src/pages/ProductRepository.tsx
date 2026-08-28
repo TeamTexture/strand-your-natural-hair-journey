@@ -97,8 +97,9 @@ const ProductRepository = () => {
                 : "Scan or upload a product to get started."
             }
           />
-        ) : (
-          filtered.map(p => {
+        ) : (() => {
+          const { storeBought, homemade } = splitByHomemade(filtered);
+          const renderRow = (p: UserProduct) => {
             const lastUsed = formatDate(lastUsedByProductId.get(p.id) ?? p.last_used_at);
             return (
               <div
@@ -130,8 +131,14 @@ const ProductRepository = () => {
                 </button>
               </div>
             );
-          })
-        )}
+          };
+          return (
+            <>
+              {storeBought.map(renderRow)}
+              <HomemadeProductsSection products={homemade} renderRow={renderRow} />
+            </>
+          );
+        })()}
       </div>
     </ScreenLayout>
   );
