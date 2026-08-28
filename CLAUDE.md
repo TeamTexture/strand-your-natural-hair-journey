@@ -104,3 +104,13 @@ Enforcement points:
 Every rejection is written to **`public.ai_content_rejections`** (admin-readable) with the function, surface, check, field, offending phrase, rule and whether the output was re-asked (`rejected`) or served without the field (`field_nulled`) — one place Paige can review what the models tried to say.
 
 `src/test/content_integrity.test.ts` enumerates the generation functions and fails if one bypasses the guardrail or re-implements a check locally. Do not weaken it to make a new function pass.
+
+## STANDING RULE — analysis regeneration goes through ONE gate (2026-08-28, permanent)
+
+Opening a product page must never spend a model call when a valid stored analysis exists for the member's current profile fingerprint. The decision lives in **`src/lib/analysisGate.ts`** (`decideProductAnalysis`), is pure, and can only return `generate` for one of exactly three reasons: `no_stored_analysis`, `profile_changed`, `ingredients_changed`. `member_requested` comes only from a tap on Re-analyse/Retry.
+
+- Every mount-time analysis path calls the gate and passes its `trigger` into the edge function; `assertAnalysisTrigger` throws if a call site reaches an invocation without one.
+- Guidance level is NOT part of the invalidation contract: a level change reads another level's stored payload (or lets the function downshift it), never a fresh generation.
+- An unknown *current* fingerprint is never treated as a change — only a known-vs-known mismatch invalidates.
+- Do not reintroduce a blanket kill switch (the old `DEMO_SAFE_MODE`); it also suppressed the two legitimate generation cases.
+- `src/test/analysis_no_reanalyse.test.ts` asserts the invariant and statically checks that no product surface bypasses the gate. Do not weaken it to make a new surface pass.

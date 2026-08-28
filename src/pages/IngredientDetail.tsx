@@ -63,6 +63,12 @@ import { saveProductRating, recomputeIngredientFlags, useIngredientLists } from 
 import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { buildAiContext } from "@/lib/aiContext";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
+import {
+  decideProductAnalysis,
+  assertAnalysisTrigger,
+  type AnalysisTrigger,
+} from "@/lib/analysisGate";
+
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
@@ -101,11 +107,11 @@ function isSingleScoreProduct(row: { created_at?: string | null } | null): boole
   return Number.isFinite(created) && created >= SINGLE_SCORE_CUTOVER;
 }
 
-// EMERGENCY STABILISATION (2026-08-28). While true: opening a product never
-// triggers a live analysis. Any stored analysis is rendered instantly; when
-// there is none, a calm "Analysis not yet available" shows instead of an
-// error/retry or a hanging spinner. Explicit "Re-analyse" still works.
-const DEMO_SAFE_MODE = true;
+// REGENERATION IS GATED, NOT FLAGGED (2026-08-28, permanent). Opening a product
+// can only ever spend a model call when `decideProductAnalysis` says so, and it
+// can only say so for "nothing stored yet" or a real fingerprint change. See
+// src/lib/analysisGate.ts and src/test/analysis_no_reanalyse.test.ts.
+
 
 interface Analysis {
 
@@ -508,7 +514,11 @@ const IngredientDetail = () => {
 
 
   const runAnalysis = useCallback(
-    async (force = false) => {
+    async (trigger: AnalysisTrigger, force = false) => {
+      // Tripwire: a call site that reached here without a recognised trigger
+      // bypassed the gate. Fail loudly rather than silently spending a call.
+      assertAnalysisTrigger(trigger);
+
       setLoading(true);
       setError(null);
       try {
@@ -530,6 +540,9 @@ const IngredientDetail = () => {
             productKey,
             productName,
             productBrand,
+            /** Audit trail: why this call was allowed to happen at all. */
+            trigger,
+
             // Catalogue ingredients for a product the member hasn't saved yet
             // (opened from a brand's shelf) — otherwise the model has to infer.
             // Prefer the stored INCI list so the model never has to infer a
@@ -690,99 +703,78 @@ const IngredientDetail = () => {
         setLoading(false);
         return;
       }
-      const cached = await (async (): Promise<Analysis | null> => {
-
-        if (!row) { reason = "no_saved_row"; return null; }
-        if (matchScoreOf(row) == null || !row.analysis_generated_at) {
-          reason = "no_stored_analysis";
-          return null;
-        }
-        // HOMEMADE: the DIY safety block (hazards, preservation, glossary
-        // coverage) is recomputed deterministically INSIDE the edge function on
-        // every call, including its own cache hits. Reading ai_summaries direct
-        // from here skips that pass and renders whatever safety text was stored
-        // months ago — which is how a preserved formula kept showing "nothing in
-        // this recipe preserves it". Go through the function instead: it costs no
-        // model spend on a cache hit, it just re-derives the safety.
-        if ((row as { is_homemade?: boolean }).is_homemade === true) {
-          reason = "homemade_safety_recompute";
-          return null;
-        }
-        const storedIng = row.analysis_ingredients_hash ?? null;
-        const currentIng = ingredientsFingerprint(row.ingredients);
-        if (storedIng && currentIng && storedIng !== currentIng) {
-          reason = "ingredients_changed";
-          return null;
-        }
-        const storedHash = row.analysis_profile_snapshot_hash ?? null;
-        if (storedHash) {
-          const currentHash = currentProfileHash(await buildAiContext());
-          if (currentHash !== storedHash) { reason = "profile_changed"; return null; }
-        }
-        // Homemade payloads carry a recipe signature suffix on the cache kind,
-        // so match on the prefix — an exact-match lookup missed every homemade
-        // product's stored analysis and re-ran the model on each visit.
-        const { data } = await supabase
+      // Read the stored payload for this level (homemade kinds carry a recipe
+      // signature suffix, so match on the prefix), then fall back to any level:
+      // the edge function downshifts a richer payload for a lower level, and a
+      // level change is not a profile change, so it must never spend a call.
+      const readStored = async (): Promise<Analysis | null> => {
+        const forLevel = await supabase
           .from("ai_summaries")
           .select("payload")
           .like("kind", `ingredient_analysis:${productKey}:L${tipsLevel}%`)
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (!data?.payload) { reason = "stored_payload_missing"; return null; }
-        // VERSION GUARD (2026-08-29). A stored payload written before the
-        // current guardrail generation carries no `_model_version`. Those are
-        // the payloads that kept naming ingredients that are not in the
-        // formula, because reading them here skips the server's version gate
-        // entirely. Send unversioned payloads back through the function: it
-        // re-checks the version itself and serves its own cache where the
-        // payload is still valid, so this costs no model spend by default.
-        const storedVersion = (data.payload as { _model_version?: unknown } | null)?._model_version;
-        if (typeof storedVersion !== "string" || !storedVersion) {
-          reason = "unversioned_stored_payload";
-          return null;
-        }
-        return data.payload as unknown as Analysis;
-
-      })();
-      if (cancelled) return;
-      // ── DEMO SAFE MODE (emergency stabilisation, app-wide) ────────────────
-      // Opening a product must NEVER trigger a live model call and must NEVER
-      // show an error/retry. When the strict gate above rejects the stored
-      // payload, fall back to ANY stored payload for this product at any
-      // guidance level and render it as-is. Regeneration only ever happens from
-      // an explicit member action ("Re-analyse").
-      let safe = cached;
-      if (!safe && DEMO_SAFE_MODE) {
-        const { data: anyRow } = await supabase
+        if (forLevel.data?.payload) return forLevel.data.payload as unknown as Analysis;
+        const anyLevel = await supabase
           .from("ai_summaries")
           .select("payload")
           .like("kind", `ingredient_analysis:${productKey}:%`)
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (cancelled) return;
-        if (anyRow?.payload) safe = anyRow.payload as unknown as Analysis;
-      }
+        return (anyLevel.data?.payload as unknown as Analysis) ?? null;
+      };
+
+      const storedPayload = row ? await readStored() : null;
+      if (cancelled) return;
+
+      // ── THE GATE ──────────────────────────────────────────────────────────
+      // Pure decision, unit-tested in src/test/analysis_no_reanalyse.test.ts.
+      // It can only ever return `generate` for "nothing stored" or a genuine
+      // fingerprint change, so a second open of the same product on the same
+      // profile is structurally incapable of spending a model call.
+      const decision = decideProductAnalysis({
+        hasSavedRow: !!row,
+        capturedIngredientCount: capturedIngredients.length,
+        isHomemade: (row as { is_homemade?: boolean } | null)?.is_homemade === true,
+        storedScore: row ? matchScoreOf(row) : null,
+        storedGeneratedAt: row?.analysis_generated_at ?? null,
+        storedProfileHash: row?.analysis_profile_snapshot_hash ?? null,
+        currentProfileHash: row?.analysis_profile_snapshot_hash
+          ? currentProfileHash(await buildAiContext())
+          : null,
+        storedIngredientsHash: row?.analysis_ingredients_hash ?? null,
+        currentIngredientsHash: row ? ingredientsFingerprint(row.ingredients) : null,
+        storedPayloadFound: !!storedPayload,
+      });
+      if (cancelled) return;
+      reason = decision.reason;
       console.log("[analysis-cache] decision", {
         product_key: productKey,
-        decision: safe ? "use_stored" : DEMO_SAFE_MODE ? "no_stored_calm" : "analyse",
-        reason: cached ? "valid_stored_analysis" : reason,
+        decision: decision.action,
+        reason,
       });
-      if (safe) {
-        setAnalysis(safe);
+
+      if (decision.action === "blocked") {
+        setAnalysis(null);
+        setError(
+          "We couldn't read the ingredients for this product. Add them manually or try rescanning the label.",
+        );
+        setLoading(false);
+        return;
+      }
+      if (decision.action === "use_stored") {
+        setAnalysis(storedPayload);
         setError(null);
         setLoading(false);
         return;
       }
-      if (DEMO_SAFE_MODE) {
-        // Nothing stored at all: calm empty state, no spinner, no model call.
-        setAnalysis(null);
-        setError("Analysis not yet available.");
-        setLoading(false);
-        return;
-      }
-      runAnalysis(false);
+      // Last-resort belt: even on `generate`, if anything is stored for this
+      // product, render it first so the member never waits on a blank screen.
+      if (storedPayload) setAnalysis(storedPayload);
+      runAnalysis(decision.reason);
+
     })();
     return () => { cancelled = true; };
   }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, tipsLevelReady, productsLoading]);
@@ -1245,24 +1237,24 @@ const IngredientDetail = () => {
 
 
         {error && !loading && (
-          DEMO_SAFE_MODE ? (
+          error.startsWith("We couldn't read") ? (
             <SurfaceCard className="space-y-1">
-              <p className="font-body text-[13px] text-foreground/80">
-                {error.startsWith("We couldn't read")
-                  ? error
-                  : "Analysis not yet available for this product."}
-              </p>
+              <p className="font-body text-[13px] text-foreground/80">{error}</p>
             </SurfaceCard>
-
           ) : (
             <SurfaceCard tone="orange" className="space-y-2">
               <p className="text-sm">Could not analyse this product.</p>
-              <Button variant="goldGhost" size="pill" onClick={() => runAnalysis(true)}>
+              <Button
+                variant="goldGhost"
+                size="pill"
+                onClick={() => runAnalysis("member_requested", true)}
+              >
                 <RefreshCw className="size-4 mr-1" /> Retry
               </Button>
             </SurfaceCard>
           )
         )}
+
 
 
         {analysis && !loading && (

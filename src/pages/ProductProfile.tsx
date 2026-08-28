@@ -38,6 +38,8 @@ import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/component
 import { alignFitLanguage } from "@/lib/fitBand";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
+import { decideProductAnalysis, assertAnalysisTrigger } from "@/lib/analysisGate";
+
 import BrandLink from "@/components/BrandLink";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
@@ -53,9 +55,10 @@ import { useIngredientIndex } from "@/hooks/useIngredientIndex";
 import { Sparkles } from "lucide-react";
 
 /** Per-ingredient flag returned by the ingredient-analysis edge function. */
-// EMERGENCY STABILISATION (2026-08-28): while true, viewing a product never
-// triggers a live analysis anywhere in the app.
-const DEMO_SAFE_MODE = true;
+// Regeneration on this page is gated by the same rule as the detail page: the
+// stored analysis on the row is rendered whenever one exists, and the only way
+// to reach a fresh call is having nothing stored at all.
+
 
 interface IngredientFlag {
 
@@ -234,15 +237,29 @@ const ProductProfile = () => {
       return;
     }
 
-    // EMERGENCY STABILISATION (2026-08-28): opening a product never triggers a
-    // live model call. With nothing stored, show a calm empty state instead of
-    // a spinner or an error/retry.
-    if (DEMO_SAFE_MODE) {
+    // Nothing stored for this product at all — the one case where this page may
+    // generate. The early return above means a row that already carries an
+    // analysis can never reach here, so a second load costs nothing.
+    const gate = decideProductAnalysis({
+      hasSavedRow: true,
+      capturedIngredientCount: (product.ingredients ?? []).length,
+      isHomemade: (product as unknown as { is_homemade?: boolean }).is_homemade === true,
+      storedScore: null,
+      storedGeneratedAt: null,
+      storedProfileHash: null,
+      currentProfileHash: null,
+      storedIngredientsHash: null,
+      currentIngredientsHash: null,
+      storedPayloadFound: false,
+    });
+    if (gate.action !== "generate") {
       setAiLoading(false);
       setAiError(null);
       setAiSummary(null);
       return;
     }
+    assertAnalysisTrigger(gate.reason);
+
 
     let cancelled = false;
 
@@ -260,6 +277,8 @@ const ProductProfile = () => {
             productKey: product.product_key,
             productName: product.name,
             productBrand: product.brand,
+            trigger: gate.reason,
+
             ingredients: product.ingredients,
             hairProfile: context.hairProfile ?? {},
             healthProfile: context.healthProfile ?? {},
