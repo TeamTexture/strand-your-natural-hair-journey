@@ -1294,7 +1294,8 @@ const NutritionPlan = () => {
             {mealsView === "ideas" ? (
               <>
                 {mealsLoading && !meals ? (
-                  renderLoading("Cooking up your meal ideas…")
+                  renderLoading("Cooking up your meal ideas…", mealsProgress)
+
                 ) : meals && limitSupporting(meals, level).length > 0 ? (
                   <>
                     {limitSupporting(meals, level).map((m, i) => (
