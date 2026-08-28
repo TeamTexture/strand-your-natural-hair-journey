@@ -967,6 +967,31 @@ Deno.serve(async (req) => {
       recipe = rawIngredients.map((n) => ({ ingredient: n, amount: "" }));
     }
 
+    // ── HARD BLOCK: no captured ingredients, no generation ─────────────
+    // (2026-08-28) A product whose ingredient list could not be read must never
+    // be scored, described or reasoned about. This is enforced in code, BEFORE
+    // the cache lookup and before any model call, so neither a prompt rule nor
+    // an older fabricated cache row can put invented ingredient names in front
+    // of a member. The only valid response is "we couldn't read the
+    // ingredients".
+    if (rawIngredients.length === 0 && recipe.length === 0) {
+      console.log("[ingredient-analysis] blocked: no ingredients captured", {
+        product_key: productKey,
+      });
+      return new Response(
+        JSON.stringify({
+          error: "ingredients_unreadable",
+          ingredients_unreadable: true,
+          analysis: null,
+          message:
+            "We couldn't read the ingredients for this product. Add them manually or try rescanning the label.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
+
+
     // Safety is resolved BEFORE the cache check, because a cached payload must
     // never be served to a homemade product without its caution attached.
     // Kitchen language ("shea butter") is matched through the SAME glossary the
