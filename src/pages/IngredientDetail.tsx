@@ -1396,6 +1396,18 @@ const IngredientDetail = () => {
                   ) : (
                     <AiProse text={analysis.usage_instructions} />
                   )}
+                  {(() => {
+                    const src = (productRow as { usage_instructions_source?: string | null } | null)
+                      ?.usage_instructions_source ?? null;
+                    const caption = src === "label_photo"
+                      ? "Manufacturer's directions, read from the product label."
+                      : src === "brand_page"
+                        ? "Manufacturer's directions, published on the brand's own product page."
+                        : null;
+                    return caption
+                      ? <p className="mt-3 text-[11px] leading-snug text-muted-foreground">{caption}</p>
+                      : null;
+                  })()}
                 </SurfaceCard>
               </LevelGate>
             )}
