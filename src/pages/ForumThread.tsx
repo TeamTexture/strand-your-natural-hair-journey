@@ -393,16 +393,17 @@ const InlineComposer = ({
   const mentions = useRef<ResolvedMention[]>([]);
 
   return (
-    <div className="mt-2 ml-3 pl-3 border-l-2 border-primary/40">
-      <div className="rounded-[12px] border border-border bg-muted/40 p-2.5">
+    <div className="mt-2 ml-4 pl-3 border-l-2 border-primary/50">
+      <div className="rounded-[12px] border-2 border-primary/40 bg-muted/40 p-2.5 shadow-sm">
         <div className="flex items-center justify-between mb-1.5">
-          <p className="text-[10.5px] font-body font-semibold uppercase tracking-wider text-foreground/60">
-            Replying to {replyingToName}
+          <p className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-body font-bold uppercase tracking-wider text-primary">
+            <ReplyIcon className="size-3" /> Replying to {replyingToName}
           </p>
           <button onClick={onCancel} aria-label="Cancel reply" className="size-6 rounded-full flex items-center justify-center text-foreground/50 hover:text-foreground">
             <X className="size-3.5" />
           </button>
         </div>
+
         <MentionTextarea
           rows={2}
           value={body}
