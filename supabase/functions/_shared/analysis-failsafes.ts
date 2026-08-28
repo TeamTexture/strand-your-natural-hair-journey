@@ -179,10 +179,25 @@ export function applyFieldNulls(
  * degrades to "no prose detection", never to a blocked generation.
  */
 export async function loadIngredientVocabulary(
-  client: { from: (t: string) => { select: (c: string) => { limit: (n: number) => Promise<{ data: unknown }> } } },
+  client: {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (col: string, val: string) => { limit: (n: number) => Promise<{ data: unknown }> };
+      };
+    };
+  },
 ): Promise<string[]> {
   try {
-    const { data } = await client.from("glossary_terms").select("display_name").limit(2000);
+    // MOLECULES ONLY (2026-08-28 regression). The glossary also holds concept
+    // and class entries ("Porosity", "Density", "Peptides"). Searching for
+    // those in prose made ordinary sentences look like they named an
+    // ingredient that was not in the formula, which nulled ai_summary and
+    // score_reasons and left the member with an empty verdict card.
+    const { data } = await client
+      .from("glossary_terms")
+      .select("display_name")
+      .eq("kind", "molecule")
+      .limit(2000);
     return ((data ?? []) as Array<{ display_name?: string | null }>)
       .map((r) => (r.display_name ?? "").trim())
       .filter(Boolean);

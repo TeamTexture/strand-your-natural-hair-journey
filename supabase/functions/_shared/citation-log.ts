@@ -12,7 +12,7 @@
 
 import { sanitiseChapterCitationsDeep, sanitiseChapterCitations } from "./book-chapters.ts";
 import { getBufferedUsage, recordAiOutcome } from "./ai-meter.ts";
-import { collectText, enforceFidelity, stripDeep } from "./fidelity.ts";
+import { collectText, enforceFidelity, pruneEmptyProseRows, stripDeep } from "./fidelity.ts";
 import { lastSourceText } from "./chapter-context.ts";
 import {
   lastEvidence,
@@ -260,12 +260,12 @@ export async function sanitiseAndLog<T>(
         { surface: opts?.surface ?? null, userId: opts?.userId ?? null },
       );
     }
-    return out;
+    return pruneEmptyProseRows(out);
   }
-  return await verifyStage3(out, functionName, evidenceSet, opts, {
+  return pruneEmptyProseRows(await verifyStage3(out, functionName, evidenceSet, opts, {
     rejections: clarRejections,
     governed: clarCheck.governed,
-  });
+  }));
 }
 
 /** The member's own goal label, where the surface passed one in its context. */

@@ -567,6 +567,46 @@ function isHollow(value: unknown): boolean {
   return entries.every(([, v]) => !String(v).trim());
 }
 
+/**
+ * FINAL STRUCTURAL PASS (2026-08-28 regression).
+ *
+ * `stripDeep` drops hollow rows it creates itself, but the blood guardrail,
+ * the clarification pass and the stage-3 verifier each blank prose fields on
+ * their own paths. That left rows like
+ *   { direction: "minus", factor: "SLES surfactant", reason: "" }
+ * in the cached payload: the renderer drops them, so the member saw an empty
+ * verdict card while the DB looked populated. Pruning them centrally, right
+ * before the payload is returned and cached, keeps the stored analysis and the
+ * rendered analysis identical on every surface.
+ */
+const PROSE_KEYS = ["reason", "body", "why", "text", "benefit", "summary", "description"];
+
+function isProseless(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  const present = PROSE_KEYS.filter((k) => k in row);
+  if (present.length === 0) return false;
+  return present.every((k) => typeof row[k] !== "string" || !(row[k] as string).trim());
+}
+
+export function pruneEmptyProseRows<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => pruneEmptyProseRows(v))
+      .filter((v) => !isProseless(v)) as unknown as T;
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = pruneEmptyProseRows(v);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
+
+
+
 
 /**
  * Universal fail-safe applied to every AI response. Deterministic rules always
