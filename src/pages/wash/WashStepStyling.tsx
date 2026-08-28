@@ -391,9 +391,9 @@ const WashStepStylingForm = () => {
                       wrapperClassName="size-11 rounded-[10px] shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium leading-snug line-clamp-3 break-words">{p.name}</p>
+                      <p className="text-[13px] font-medium leading-snug break-words">{p.name}</p>
                       {p.brand && (
-                        <p className="text-[11px] text-muted-foreground truncate">{p.brand}</p>
+                        <p className="text-[11px] text-muted-foreground break-words">{p.brand}</p>
                       )}
                     </div>
                     <div

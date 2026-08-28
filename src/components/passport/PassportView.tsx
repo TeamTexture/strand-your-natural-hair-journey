@@ -1366,8 +1366,8 @@ const ProductsSection = ({ d }: { d: PassportDataset }) => {
             <div className="flex items-center gap-3">
               <Thumb bucket="product-photos" path={(t.storage_path as string | null) ?? null} className="size-11 shrink-0 rounded-lg" title={String(t.name ?? "Tool")} />
               <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-body font-semibold text-foreground truncate">{humaniseValue(t.name) ?? "Tool"}</p>
-                <p className="text-[11px] text-muted-foreground font-body truncate">
+                <p className="text-[13.5px] font-body font-semibold text-foreground break-words">{humaniseValue(t.name) ?? "Tool"}</p>
+                <p className="text-[11px] text-muted-foreground font-body break-words">
                   {humaniseValue(t.brand) ?? "—"}{t.category ? ` · ${humaniseValue(t.category)}` : ""}
                 </p>
               </div>

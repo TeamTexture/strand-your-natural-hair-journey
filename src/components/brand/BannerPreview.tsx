@@ -45,7 +45,7 @@ const BannerPreview = ({
         </span>
         {hasHeadline && (
           <div className="relative h-full flex items-center pl-3 pr-9 max-w-[68%]">
-            <p className="font-display text-white text-[15px] leading-tight line-clamp-2 drop-shadow-sm break-words">
+            <p className="font-display text-white text-[15px] leading-tight break-words drop-shadow-sm">
               {headline}
             </p>
           </div>
@@ -99,7 +99,7 @@ const BannerPreview = ({
                   )}
                 </div>
                 {productName && (
-                  <p className="mt-1 text-[10px] font-body leading-tight line-clamp-2">{productName}</p>
+                  <p className="mt-1 text-[10px] font-body leading-tight break-words">{productName}</p>
                 )}
               </div>
             )}

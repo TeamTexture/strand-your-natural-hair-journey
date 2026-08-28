@@ -236,11 +236,11 @@ export default function IngredientExplainerSheet({
                             wrapperClassName="size-9 shrink-0"
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[12.5px] font-semibold text-foreground font-body">
+                            <span className="block break-words text-[12.5px] font-semibold text-foreground font-body">
                               {p.name}
                             </span>
                             {p.brand && (
-                              <span className="block truncate text-[11px] text-foreground/55 font-body">{p.brand}</span>
+                              <span className="block break-words text-[11px] text-foreground/55 font-body">{p.brand}</span>
                             )}
                           </span>
                           {typeof score === "number" && (

@@ -214,12 +214,12 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium leading-snug line-clamp-2 break-words">
+                    <span className="block text-[13px] font-medium leading-snug break-words">
                       {p?.name ?? "Product"}
                     </span>
                     <span className="flex items-center gap-1.5 min-w-0">
                       {p?.brand && (
-                        <span className="text-[11px] text-muted-foreground truncate">{p.brand}</span>
+                        <span className="text-[11px] text-muted-foreground break-words">{p.brand}</span>
                       )}
                       <MatchStars item={p ?? null} size="sm" showValue={false} />
 
@@ -256,12 +256,12 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium leading-snug line-clamp-2 break-words">
+                    <span className="block text-[13px] font-medium leading-snug break-words">
                       {t?.name ?? "Tool"}
                     </span>
                     <span className="flex items-center gap-1.5 min-w-0">
                       {t?.brand && (
-                        <span className="text-[11px] text-muted-foreground truncate">{t.brand}</span>
+                        <span className="text-[11px] text-muted-foreground break-words">{t.brand}</span>
                       )}
                       <MatchStars item={t ?? null} size="sm" showValue={false} />
                     </span>

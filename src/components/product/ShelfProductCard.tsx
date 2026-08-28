@@ -113,11 +113,11 @@ const ShelfProductCard = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-display text-[15px] leading-tight line-clamp-2 [overflow-wrap:anywhere]">
+          <p className="font-display text-[15px] leading-tight break-words [overflow-wrap:anywhere]">
             {name}
           </p>
           {brand && (
-            <p className="text-[11px] text-muted-foreground font-body truncate mt-0.5">{brand}</p>
+            <p className="text-[11px] text-muted-foreground font-body break-words mt-0.5">{brand}</p>
           )}
           {description && (
             <p className="mt-1 text-[12px] font-body text-foreground/75 leading-snug line-clamp-2 [overflow-wrap:anywhere]">

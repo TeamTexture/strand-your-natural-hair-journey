@@ -47,7 +47,7 @@ const BrandShelfPreview = () => {
                   </div>
                 )}
               </div>
-              <p className="mt-1 line-clamp-2 text-[10.5px] font-body leading-snug text-foreground/80">
+              <p className="mt-1 break-words text-[10.5px] font-body leading-snug text-foreground/80">
                 {item.name}
               </p>
               <p className="text-[9.5px] font-body text-muted-foreground">

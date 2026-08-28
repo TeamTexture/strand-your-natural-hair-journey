@@ -351,7 +351,7 @@ const OfferPage = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-display text-[15px] leading-tight truncate">{p.name}</p>
+                        <p className="font-display text-[15px] leading-tight break-words">{p.name}</p>
                         <span className="text-[9px] uppercase tracking-wider text-muted-foreground border border-border rounded-pill px-1.5 py-[1px] shrink-0">
                           {tool ? "Tool" : "Product"}
                         </span>

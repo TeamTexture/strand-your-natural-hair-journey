@@ -60,7 +60,7 @@ const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
           Ended
         </span>
         <div className="absolute inset-x-0 bottom-0 p-2.5 min-w-0">
-          <p className="font-display text-white text-[13px] leading-tight line-clamp-2 drop-shadow-sm [overflow-wrap:anywhere]">
+          <p className="font-display text-white text-[13px] leading-tight break-words drop-shadow-sm [overflow-wrap:anywhere]">
             {offer.headline || "Offer"}
           </p>
         </div>
@@ -71,7 +71,7 @@ const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
           {offer.ends_on ? ` – ${format(new Date(offer.ends_on), "d MMM yyyy")}` : ""}
         </p>
         {offer.body_copy && (
-          <p className="text-[11px] font-body text-muted-foreground leading-snug line-clamp-2 [overflow-wrap:anywhere]">
+          <p className="text-[11px] font-body text-muted-foreground leading-snug break-words [overflow-wrap:anywhere]">
             {offer.body_copy}
           </p>
         )}

@@ -96,7 +96,7 @@ const UpcomingOfferCard = ({
           </span>
         ) : null}
         <div className="absolute inset-x-0 bottom-0 p-2.5">
-          <p className="font-display text-background text-[15px] leading-tight line-clamp-2 drop-shadow-sm">
+          <p className="font-display text-background text-[15px] leading-tight break-words drop-shadow-sm">
             {headline || "Untitled campaign"}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
@@ -111,7 +111,7 @@ const UpcomingOfferCard = ({
 
       <div className="px-3 pt-3 pb-2.5">
         <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
-          <p className="text-[11px] font-body text-foreground/70 truncate min-w-0">
+          <p className="text-[11px] font-body text-foreground/70 break-words min-w-0">
             {submitter ?? ""}
             {productCount > 0 ? ` · ${productCount} product${productCount === 1 ? "" : "s"}` : ""}
           </p>

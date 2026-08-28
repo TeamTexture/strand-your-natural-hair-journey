@@ -285,7 +285,7 @@ const AdminBrands = () => {
               <SurfaceCard key={r.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="font-display text-[15px] leading-tight truncate">{r.brand_name}</p>
+                    <p className="font-display text-[15px] leading-tight break-words">{r.brand_name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">
                       {r.category ?? "Uncategorised"}
                       {r.contact_name ? ` · ${r.contact_name}` : ""}

@@ -71,7 +71,7 @@ const PlusLibrary = () => {
                     </div>
                     <div className="p-3">
                       <p className="text-[9.5px] font-body font-bold uppercase tracking-wider text-primary">{KIND_LABEL[c.kind] ?? c.kind}</p>
-                      <h3 className="mt-0.5 font-display text-[13.5px] font-semibold leading-tight line-clamp-2">{c.title}</h3>
+                      <h3 className="mt-0.5 font-display text-[13.5px] font-semibold leading-tight break-words">{c.title}</h3>
                     </div>
                   </Link>
                 );

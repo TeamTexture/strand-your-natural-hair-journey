@@ -597,7 +597,7 @@ const BrandOfferDetail = () => {
                       <div className="size-12 rounded-md bg-muted flex-none" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-display text-[14px] leading-tight truncate">{p.name}</p>
+                      <p className="font-display text-[14px] leading-tight break-words">{p.name}</p>
                       {p.description && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{p.description}</p>}
                     </div>
                     <Eye className="size-4 text-muted-foreground flex-none" />

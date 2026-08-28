@@ -62,7 +62,7 @@ const ProductRow = ({ row, exact, imageUrl }: { row: ShelfEngagementRow; exact: 
         className="w-full flex items-center gap-2 p-3 text-left"
       >
         <Thumb src={imageUrl} name={row.name} />
-        <span className="flex-1 min-w-0 font-body text-[13px] leading-snug [overflow-wrap:anywhere] line-clamp-2">
+        <span className="flex-1 min-w-0 font-body text-[13px] leading-snug [overflow-wrap:anywhere] break-words">
           {row.name}
         </span>
         <ChevronDown

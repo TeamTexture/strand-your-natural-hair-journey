@@ -435,7 +435,7 @@ const LogAppointment = () => {
                   >
                     <ProAvatar name={p.name} photoUrl={p.photoUrl} size="size-9" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight truncate">{p.name}</p>
+                      <p className="text-sm font-medium leading-tight break-words">{p.name}</p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {p.clinic} · {p.location}
                       </p>

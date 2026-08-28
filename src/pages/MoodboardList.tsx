@@ -293,7 +293,7 @@ const MoodboardList = () => {
                 </button>
               </div>
               <div className="relative">
-                <p className="font-display text-sm font-semibold leading-tight truncate">{b.name}</p>
+                <p className="font-display text-sm font-semibold leading-tight break-words">{b.name}</p>
                 <p className="text-[10px] opacity-90">
                   {b.imageCount ?? 0} {b.imageCount === 1 ? "image" : "images"}
                 </p>

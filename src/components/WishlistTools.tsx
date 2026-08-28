@@ -30,9 +30,9 @@ const WishlistTools = () => {
               <div className="size-12 rounded-xl bg-muted shrink-0" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="font-body text-[14px] font-medium truncate">{t.name}</p>
+              <p className="font-body text-[14px] font-medium break-words">{t.name}</p>
               {t.brand && (
-                <p className="text-[12px] text-muted-foreground truncate">{t.brand}</p>
+                <p className="text-[12px] text-muted-foreground break-words">{t.brand}</p>
               )}
             </div>
           </div>

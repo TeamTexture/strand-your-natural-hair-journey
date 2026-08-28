@@ -198,7 +198,7 @@ const RsvpRow = ({ event, onToggle, onDelete }: { event: EventRow; onToggle: () 
             {event.kind === "digital" ? "Digital" : "In person"}
             {event.cancelled_at && <span className="text-alert-dark ml-2">CANCELLED</span>}
           </p>
-          <p className="font-body text-[13px] font-semibold truncate">{event.title}</p>
+          <p className="font-body text-[13px] font-semibold break-words">{event.title}</p>
           <p className="font-body text-[11px] text-foreground/60">{format(new Date(event.starts_at), "EEE d MMM · HH:mm")}</p>
         </div>
         <div className="text-right">

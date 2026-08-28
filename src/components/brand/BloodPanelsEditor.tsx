@@ -129,8 +129,8 @@ const BloodPanelsEditor = ({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[13px] font-body font-semibold truncate">{p.panel_name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="text-[13px] font-body font-semibold break-words">{p.panel_name}</p>
+                    <p className="text-[11px] text-muted-foreground break-words">
                       {p.markers_covered.length} marker
                       {p.markers_covered.length === 1 ? "" : "s"}
                       {p.price_from != null ? ` · from £${p.price_from}` : ""}

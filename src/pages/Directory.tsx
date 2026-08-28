@@ -390,7 +390,7 @@ const Directory = () => {
                 {/* Names are never clipped: a professional's full name is the
                     one thing a member must be able to read, so it wraps to two
                     lines instead of truncating. */}
-                <p className="font-display text-base font-semibold leading-tight break-words line-clamp-2 min-w-0">
+                <p className="font-display text-base font-semibold leading-tight break-words min-w-0">
                   {p.name}
                 </p>
               </div>
