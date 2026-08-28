@@ -214,7 +214,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium leading-snug line-clamp-2 break-words">
+                    <span className="block text-[13px] font-medium leading-snug break-words">
                       {p?.name ?? "Product"}
                     </span>
                     <span className="flex items-center gap-1.5 min-w-0">
@@ -256,7 +256,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     wrapperClassName="size-9 rounded-[8px] overflow-hidden bg-secondary shrink-0"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium leading-snug line-clamp-2 break-words">
+                    <span className="block text-[13px] font-medium leading-snug break-words">
                       {t?.name ?? "Tool"}
                     </span>
                     <span className="flex items-center gap-1.5 min-w-0">
