@@ -565,7 +565,19 @@ const IngredientDetail = () => {
           },
         );
         if (fnError) throw fnError;
+        // Ingredients could not be read: the backend hard-blocks generation, so
+        // show that plainly and never render an analysis for this product.
+        if ((data as { ingredients_unreadable?: boolean } | null)?.ingredients_unreadable) {
+          setAnalysis(null);
+          setError(
+            (data as { message?: string }).message ??
+              "We couldn't read the ingredients for this product. Add them manually or try rescanning the label.",
+          );
+          setLoading(false);
+          return;
+        }
         if (data?.error) throw new Error(data.error);
+
         const fresh = data.analysis as Analysis;
         setAnalysis(fresh);
 
@@ -662,7 +674,24 @@ const IngredientDetail = () => {
           })
         | null;
       let reason = "";
+      // HARD BLOCK (2026-08-28): a saved product with zero captured ingredients
+      // is never given an analysis — not a fresh one, and not a stored one that
+      // may name ingredients this product was never known to contain.
+      const capturedIngredients = Array.isArray((row as { ingredients?: unknown } | null)?.ingredients)
+        ? ((row as { ingredients?: unknown }).ingredients as unknown[]).filter(
+            (x) => typeof x === "string" && x.trim().length > 0,
+          )
+        : [];
+      if (row && capturedIngredients.length === 0 && (row as { is_homemade?: boolean }).is_homemade !== true) {
+        setAnalysis(null);
+        setError(
+          "We couldn't read the ingredients for this product. Add them manually or try rescanning the label.",
+        );
+        setLoading(false);
+        return;
+      }
       const cached = await (async (): Promise<Analysis | null> => {
+
         if (!row) { reason = "no_saved_row"; return null; }
         if (matchScoreOf(row) == null || !row.analysis_generated_at) {
           reason = "no_stored_analysis";
@@ -1219,9 +1248,12 @@ const IngredientDetail = () => {
           DEMO_SAFE_MODE ? (
             <SurfaceCard className="space-y-1">
               <p className="font-body text-[13px] text-foreground/80">
-                Analysis not yet available for this product.
+                {error.startsWith("We couldn't read")
+                  ? error
+                  : "Analysis not yet available for this product."}
               </p>
             </SurfaceCard>
+
           ) : (
             <SurfaceCard tone="orange" className="space-y-2">
               <p className="text-sm">Could not analyse this product.</p>
