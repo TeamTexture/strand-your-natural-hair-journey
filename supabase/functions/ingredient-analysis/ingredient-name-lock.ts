@@ -11,7 +11,7 @@
 // `glossary_terms` display names handed in by the caller). Naming a known
 // ingredient that is NOT in this product's list is a violation.
 
-import { normaliseInciKey } from "./ingredient-copy.ts";
+import { normaliseInciKey } from "../_shared/ingredient-copy.ts";
 
 export interface NameLockViolation {
   field: string;
