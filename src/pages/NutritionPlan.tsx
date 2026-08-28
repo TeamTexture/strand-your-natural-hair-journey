@@ -868,7 +868,21 @@ const NutritionPlan = () => {
           } else {
             void fetchPlan(false, next);
           }
+
+          // MEALS: read the permanently stored batch and render it instantly.
+          // A generation only happens when there is nothing stored yet, or when
+          // her blood data has actually changed since that batch was written.
+          const storedMeals = await loadStoredMeals(user.id);
+          if (cancelled) return;
+          if (storedMeals) {
+            setMeals(storedMeals.meals);
+            if (await bloodTouchedSince(user.id, storedMeals.generatedAt)) {
+              if (!cancelled) void fetchMeals(next);
+            }
+          }
         }
+
+
 
       } finally {
         if (!cancelled) setLoading(false);
