@@ -51,6 +51,7 @@ const READ_ONLY_RPCS = new Set([
   "brand_taken_placements",
   "forum_author_info",
   "forum_author_meta",
+  "forum_mention_search",
   "has_active_plus_subscription",
   "mention_search_all",
   "passport_treatment_plans",

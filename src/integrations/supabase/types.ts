@@ -2471,11 +2471,50 @@ export type Database = {
         }
         Relationships: []
       }
+      forum_mentions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          target_id: string
+          target_kind: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          target_id: string
+          target_kind: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          target_id?: string
+          target_kind?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_mentions_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forum_replies: {
         Row: {
           author_id: string
           body: string
           created_at: string
+          depth: number
           id: string
           parent_reply_id: string | null
           thread_id: string
@@ -2486,6 +2525,7 @@ export type Database = {
           author_id: string
           body: string
           created_at?: string
+          depth?: number
           id?: string
           parent_reply_id?: string | null
           thread_id: string
@@ -2496,6 +2536,7 @@ export type Database = {
           author_id?: string
           body?: string
           created_at?: string
+          depth?: number
           id?: string
           parent_reply_id?: string | null
           thread_id?: string
@@ -2615,6 +2656,7 @@ export type Database = {
           target_id: string
           target_kind: string
           user_id: string
+          value: number
         }
         Insert: {
           created_at?: string
@@ -2622,6 +2664,7 @@ export type Database = {
           target_id: string
           target_kind: string
           user_id: string
+          value?: number
         }
         Update: {
           created_at?: string
@@ -2629,6 +2672,7 @@ export type Database = {
           target_id?: string
           target_kind?: string
           user_id?: string
+          value?: number
         }
         Relationships: []
       }
@@ -7360,6 +7404,17 @@ export type Database = {
           goal_title: string
           hair_type: string
           user_id: string
+        }[]
+      }
+      forum_mention_search: {
+        Args: { _limit?: number; _query: string; _thread_id: string }
+        Returns: {
+          avatar_url: string
+          entity_id: string
+          in_thread: boolean
+          kind: string
+          label: string
+          subtitle: string
         }[]
       }
       forum_search_plus_members: {

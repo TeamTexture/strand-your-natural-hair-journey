@@ -11,6 +11,8 @@ type Suggestion = {
   avatar_url: string | null;
 };
 
+export type ResolvedMention = { user_id: string; label: string };
+
 interface Props {
   value: string;
   onChange: (v: string) => void;
@@ -19,6 +21,10 @@ interface Props {
   maxLength?: number;
   className?: string;
   disabled?: boolean;
+  /** When set, search prioritises people who have posted in this thread. */
+  threadId?: string;
+  /** Fires whenever a mention is picked, so the caller can notify by id. */
+  onMention?: (m: ResolvedMention) => void;
 }
 
 const KIND_LABEL: Record<Suggestion["kind"], string> = {
@@ -36,24 +42,48 @@ const KIND_TONE: Record<Suggestion["kind"], string> = {
 };
 
 /** Textarea with universal @-tagging (members, pros, brands, @everyone) and orange selection highlight. */
-const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, className, disabled = false }: Props) => {
+const MentionTextarea = ({
+  value,
+  onChange,
+  placeholder,
+  rows = 6,
+  maxLength,
+  className,
+  disabled = false,
+  threadId,
+  onMention,
+}: Props) => {
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [atStart, setAtStart] = useState<number | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [flashLabel, setFlashLabel] = useState<string | null>(null);
+  const [dropUp, setDropUp] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
+    setFailed(false);
     const t = window.setTimeout(async () => {
-      const { data } = await supabase.rpc("mention_search_all", { _query: query, _limit: 12 });
+      // Thread context: prefer people already in the conversation.
+      const res = threadId
+        ? await supabase.rpc("forum_mention_search", { _thread_id: threadId, _query: query, _limit: 12 })
+        : await supabase.rpc("mention_search_all", { _query: query, _limit: 12 });
       if (cancelled) return;
-      const rows = (data as Suggestion[]) ?? [];
+      if (res.error) {
+        // Never fail silently — a broken search used to render as "No matches".
+        console.error("[MentionTextarea] mention search failed", res.error);
+        setSuggestions([]);
+        setFailed(true);
+        setLoading(false);
+        return;
+      }
+      const rows = ((res.data as Suggestion[]) ?? []).filter((r) => !!r.label);
       const everyone: Suggestion = {
         kind: "everyone",
         entity_id: null,
@@ -67,9 +97,9 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, cl
       setLoading(false);
     }, 150);
     return () => { cancelled = true; window.clearTimeout(t); };
-  }, [open, query]);
+  }, [open, query, threadId]);
 
-  const closeMenu = () => { setOpen(false); setAtStart(null); setActiveIdx(0); };
+  const closeMenu = () => { setOpen(false); setAtStart(null); setActiveIdx(0); setFailed(false); };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value;
@@ -79,10 +109,16 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, cl
     const at = before.lastIndexOf("@");
     if (at < 0) return closeMenu();
     const between = before.slice(at + 1);
-    if (/\s/.test(between) || between.length > 30) return closeMenu();
+    // Display names are full names, so allow spaces — up to 4 words — instead of
+    // closing the menu the moment the member types a space.
+    if (/[\n]/.test(between) || between.length > 40) return closeMenu();
+    if (between.trim().split(/\s+/).filter(Boolean).length > 4) return closeMenu();
     if (at > 0 && !/[\s\n]/.test(before[at - 1])) return closeMenu();
     setAtStart(at);
     setQuery(between);
+    // Bottom-docked composers have no room below — flip the menu upwards.
+    const box = ref.current?.getBoundingClientRect();
+    setDropUp(!!box && box.bottom > window.innerHeight - 260);
     setOpen(true);
   };
 
@@ -96,6 +132,7 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, cl
     const inserted = `@${cleanLabel} `;
     const next = before + inserted + after;
     onChange(next);
+    if (s.entity_id && s.kind !== "everyone") onMention?.({ user_id: s.entity_id, label: cleanLabel });
     setFlashLabel(cleanLabel);
     window.setTimeout(() => setFlashLabel(null), 900);
     closeMenu();
@@ -133,12 +170,14 @@ const MentionTextarea = ({ value, onChange, placeholder, rows = 6, maxLength, cl
         </div>
       )}
       {open && (
-        <div className="absolute z-30 left-0 right-0 mt-1 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-auto">
+        <div className={`absolute z-30 left-0 right-0 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-auto ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
           <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-body text-foreground/50 border-b border-border">
             Tag someone
           </p>
           {loading ? (
             <div className="p-3 flex justify-center"><Loader2 className="size-4 animate-spin text-primary" /></div>
+          ) : failed ? (
+            <p className="p-3 text-[12px] font-body text-alert-dark">Couldn't load members. Check your connection and try again.</p>
           ) : suggestions.length === 0 ? (
             <p className="p-3 text-[12px] font-body text-foreground/60">No matches</p>
           ) : (

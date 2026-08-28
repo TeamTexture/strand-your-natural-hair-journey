@@ -1,24 +1,35 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Send } from "lucide-react";
+import { MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Send, Reply as ReplyIcon, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import PlusGate from "@/components/PlusGate";
 import LoadingDot from "@/components/LoadingDot";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { cn } from "@/lib/utils";
 import ForumAvatar from "@/components/ForumAvatar";
-import MentionTextarea from "@/components/MentionTextarea";
+import MentionTextarea, { type ResolvedMention } from "@/components/MentionTextarea";
+import VoteControl from "@/components/forum/VoteControl";
 import { renderMentions } from "@/lib/renderMentions";
 import { smartBack } from "@/lib/smartBack";
+
+type ReplyRow = {
+  id: string;
+  thread_id: string;
+  parent_reply_id: string | null;
+  depth: number | null;
+  author_id: string;
+  body: string;
+  vote_count: number | null;
+  created_at: string;
+};
 
 const ForumThread = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +40,8 @@ const ForumThread = () => {
   const { isAdmin } = useRoles();
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const rootMentions = useRef<ResolvedMention[]>([]);
 
   const threadQ = useQuery({
     queryKey: ["forum_thread", id],
@@ -54,9 +67,32 @@ const ForumThread = () => {
         .from("forum_replies").select("*").eq("thread_id", id!)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ReplyRow[];
     },
   });
+
+  /** The member's own votes on this thread and its replies. */
+  const myVotesQ = useQuery({
+    queryKey: ["forum_my_votes", id, user?.id],
+    enabled: !!id && !!user?.id,
+    queryFn: async () => {
+      const ids = [id!, ...(repliesQ.data ?? []).map((r) => r.id)];
+      const { data, error } = await supabase
+        .from("forum_votes")
+        .select("target_id,target_kind,value")
+        .eq("user_id", user!.id)
+        .in("target_id", ids);
+      if (error) throw error;
+      const map = new Map<string, -1 | 0 | 1>();
+      (data ?? []).forEach((v) => map.set(`${v.target_kind}:${v.target_id}`, (v.value ?? 1) as -1 | 1));
+      return map;
+    },
+  });
+
+  // Re-read votes once replies land so nested rows get their own state.
+  useEffect(() => {
+    if (repliesQ.data && user?.id) qc.invalidateQueries({ queryKey: ["forum_my_votes", id, user.id] });
+  }, [repliesQ.data, user?.id, id, qc]);
 
   const authorIds = useMemo(() => {
     const set = new Set<string>();
@@ -84,31 +120,75 @@ const ForumThread = () => {
     },
   });
 
-  const upvote = async (kind: "thread" | "reply", targetId: string) => {
+  /** Two-level tree: top-level replies with their (single-level) children. */
+  const tree = useMemo(() => {
+    const rows = repliesQ.data ?? [];
+    const tops = rows.filter((r) => !r.parent_reply_id);
+    const kids = new Map<string, ReplyRow[]>();
+    rows.filter((r) => !!r.parent_reply_id).forEach((r) => {
+      const list = kids.get(r.parent_reply_id!) ?? [];
+      list.push(r);
+      kids.set(r.parent_reply_id!, list);
+    });
+    return tops.map((t) => ({ reply: t, children: kids.get(t.id) ?? [] }));
+  }, [repliesQ.data]);
+
+  const myVote = (kind: "thread" | "reply", targetId: string): -1 | 0 | 1 =>
+    myVotesQ.data?.get(`${kind}:${targetId}`) ?? 0;
+
+  const setVote = async (kind: "thread" | "reply", targetId: string, next: -1 | 0 | 1) => {
     if (!user) return;
-    // Toggle: insert if missing, delete if present (unique constraint on user+target).
     const { data: existing } = await supabase
-      .from("forum_votes").select("id")
+      .from("forum_votes").select("id,value")
       .eq("user_id", user.id).eq("target_id", targetId).eq("target_kind", kind)
       .maybeSingle();
-    if (existing) {
-      await supabase.from("forum_votes").delete().eq("id", existing.id);
+    if (next === 0) {
+      if (existing) await supabase.from("forum_votes").delete().eq("id", existing.id);
+    } else if (existing) {
+      if (existing.value !== next) await supabase.from("forum_votes").update({ value: next }).eq("id", existing.id);
     } else {
-      await supabase.from("forum_votes").insert({ user_id: user.id, target_id: targetId, target_kind: kind });
+      const { error } = await supabase.from("forum_votes")
+        .insert({ user_id: user.id, target_id: targetId, target_kind: kind, value: next });
+      if (error) { toast.error("Could not save your vote"); return; }
     }
+    qc.invalidateQueries({ queryKey: ["forum_my_votes", id, user.id] });
     if (kind === "thread") qc.invalidateQueries({ queryKey: ["forum_thread", id] });
     else qc.invalidateQueries({ queryKey: ["forum_replies", id] });
   };
-  const postReply = async () => {
-    if (!user || !id || !reply.trim()) return;
+
+  /** Record picked mentions so the member is notified by id, not by name matching. */
+  const recordMentions = async (targetKind: "reply", targetId: string, mentions: ResolvedMention[]) => {
+    if (!user || mentions.length === 0 || !id) return;
+    const unique = Array.from(new Map(mentions.map((m) => [m.user_id, m])).values());
+    await supabase.from("forum_mentions").insert(
+      unique.map((m) => ({
+        target_kind: targetKind, target_id: targetId, thread_id: id,
+        user_id: m.user_id, created_by: user.id,
+      })),
+    );
+  };
+
+  const postReply = async (body: string, parentId: string | null, mentions: ResolvedMention[]) => {
+    if (!user || !id || !body.trim()) return false;
     setBusy(true);
-    const { error } = await supabase.from("forum_replies").insert({ thread_id: id, author_id: user.id, body: reply.trim() });
+    const { data, error } = await supabase
+      .from("forum_replies")
+      .insert({ thread_id: id, author_id: user.id, body: body.trim(), parent_reply_id: parentId })
+      .select("id")
+      .maybeSingle();
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    setReply("");
+    if (error) { toast.error(error.message); return false; }
+    if (data?.id) await recordMentions("reply", data.id, mentions);
     qc.invalidateQueries({ queryKey: ["forum_replies", id] });
     qc.invalidateQueries({ queryKey: ["forum_thread", id] });
+    return true;
   };
+
+  const postRootReply = async () => {
+    const ok = await postReply(reply, null, rootMentions.current);
+    if (ok) { setReply(""); rootMentions.current = []; }
+  };
+
   const report = async (kind: "thread" | "reply", targetId: string) => {
     if (!user) return;
     const reason = window.prompt("Reason for reporting?");
@@ -142,6 +222,51 @@ const ForumThread = () => {
     return parts.length > 0 ? parts.join(" · ") : null;
   };
 
+  const commentCount = repliesQ.data?.length ?? 0;
+
+  const renderReply = (r: ReplyRow, nested: boolean) => (
+    <div key={r.id} className={cn(nested && "pl-3 border-l-2 border-border/70 ml-3")}>
+      <div className={cn("rounded-[14px] border border-border bg-card", nested ? "p-3" : "p-4")}>
+        <PosterRow uid={r.author_id} name={authorName(r.author_id)} avatar={authorAvatar(r.author_id)} createdAt={r.created_at} meta={authorMetaLine(r.author_id)} />
+        <p className={cn("mt-2 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed", nested ? "text-[12.5px]" : "text-[13px]")}>
+          {renderMentions(r.body)}
+        </p>
+        <div className="mt-2 flex items-center gap-1.5">
+          <VoteControl size="sm" score={r.vote_count ?? 0} myVote={myVote("reply", r.id)} onVote={(n) => setVote("reply", r.id, n)} />
+          {!t.is_locked && (
+            <button
+              onClick={() => setReplyingTo(replyingTo === r.id ? null : r.id)}
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold border border-border bg-card text-foreground/70 hover:text-primary hover:bg-primary/10"
+            >
+              <ReplyIcon className="size-3" /> Reply
+            </button>
+          )}
+          <button onClick={() => report("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold text-foreground/60 hover:text-alert-dark">
+            <Flag className="size-3" /> Report
+          </button>
+          {isAdmin && (
+            <button onClick={() => modAction("delete_reply", r.id)} className="ml-auto size-7 rounded-full flex items-center justify-center text-alert-dark hover:bg-alert-dark/10">
+              <Trash2 className="size-3" />
+            </button>
+          )}
+        </div>
+      </div>
+      {replyingTo === r.id && (
+        <InlineComposer
+          threadId={t.id}
+          replyingToName={authorName(r.author_id)}
+          busy={busy}
+          onCancel={() => setReplyingTo(null)}
+          onSubmit={async (body, mentions) => {
+            const ok = await postReply(body, r.id, mentions);
+            if (ok) setReplyingTo(null);
+            return ok;
+          }}
+        />
+      )}
+    </div>
+  );
+
   return (
     <PlusGate title="Thread">
       <ScreenLayout>
@@ -152,9 +277,7 @@ const ForumThread = () => {
             <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight">{t.title}</h1>
             {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{renderMentions(t.body)}</p>}
             <div className="mt-3 flex items-center gap-2">
-              <button onClick={() => upvote("thread", t.id)} className="inline-flex items-center gap-1 h-8 px-3 rounded-full text-[11px] font-semibold border border-border bg-card hover:bg-primary/10">
-                <ArrowUp className="size-3.5" /> {t.vote_count ?? 0}
-              </button>
+              <VoteControl score={t.vote_count ?? 0} myVote={myVote("thread", t.id)} onVote={(n) => setVote("thread", t.id, n)} />
               <button onClick={() => report("thread", t.id)} className="inline-flex items-center gap-1 h-8 px-3 rounded-full text-[11px] font-semibold text-foreground/60 hover:text-alert-dark">
                 <Flag className="size-3.5" /> Report
               </button>
@@ -175,26 +298,13 @@ const ForumThread = () => {
           </article>
 
           <div className="text-[11px] font-body font-bold uppercase tracking-wider text-foreground/60 px-1 flex items-center gap-1">
-            <MessageSquare className="size-3" /> Replies ({repliesQ.data?.length ?? 0})
+            <MessageSquare className="size-3" /> Comments ({commentCount})
           </div>
 
-          {(repliesQ.data ?? []).map((r) => (
-            <div key={r.id} className="rounded-[14px] border border-border bg-card p-4">
-              <PosterRow uid={r.author_id} name={authorName(r.author_id)} avatar={authorAvatar(r.author_id)} createdAt={r.created_at} meta={authorMetaLine(r.author_id)} />
-              <p className="mt-2 whitespace-pre-wrap font-body text-[13px] text-foreground/85 leading-relaxed">{renderMentions(r.body)}</p>
-              <div className="mt-2 flex items-center gap-2">
-                <button onClick={() => upvote("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold border border-border bg-card hover:bg-primary/10">
-                  <ArrowUp className="size-3" /> {r.vote_count ?? 0}
-                </button>
-                <button onClick={() => report("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10.5px] font-semibold text-foreground/60 hover:text-alert-dark">
-                  <Flag className="size-3" /> Report
-                </button>
-                {isAdmin && (
-                  <button onClick={() => modAction("delete_reply", r.id)} className="ml-auto size-7 rounded-full flex items-center justify-center text-alert-dark hover:bg-alert-dark/10">
-                    <Trash2 className="size-3" />
-                  </button>
-                )}
-              </div>
+          {tree.map(({ reply: top, children }) => (
+            <div key={top.id} className="space-y-2">
+              {renderReply(top, false)}
+              {children.map((c) => renderReply(c, true))}
             </div>
           ))}
         </div>
@@ -207,9 +317,18 @@ const ForumThread = () => {
           <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t border-border p-3">
             <div className="flex gap-2 items-end">
               <div className="flex-1">
-                <MentionTextarea rows={2} value={reply} onChange={setReply} placeholder="Add a reply… type @ to tag" maxLength={2000} className="resize-none min-h-[44px]" />
+                <MentionTextarea
+                  rows={2}
+                  value={reply}
+                  onChange={setReply}
+                  threadId={t.id}
+                  onMention={(m) => { rootMentions.current = [...rootMentions.current, m]; }}
+                  placeholder="Add a comment… type @ to tag"
+                  maxLength={2000}
+                  className="resize-none min-h-[44px]"
+                />
               </div>
-              <Button variant="gold" size="icon" className="rounded-full size-11 shrink-0" onClick={postReply} disabled={busy || !reply.trim()}>
+              <Button variant="gold" size="icon" className="rounded-full size-11 shrink-0" onClick={postRootReply} disabled={busy || !reply.trim()}>
                 {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </Button>
             </div>
@@ -217,6 +336,63 @@ const ForumThread = () => {
         )}
       </ScreenLayout>
     </PlusGate>
+  );
+};
+
+/** Composer scoped to one comment — never creates a top-level comment. */
+const InlineComposer = ({
+  threadId,
+  replyingToName,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  threadId: string;
+  replyingToName: string;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (body: string, mentions: ResolvedMention[]) => Promise<boolean>;
+}) => {
+  const [body, setBody] = useState("");
+  const mentions = useRef<ResolvedMention[]>([]);
+
+  return (
+    <div className="mt-2 ml-3 pl-3 border-l-2 border-primary/40">
+      <div className="rounded-[12px] border border-border bg-muted/40 p-2.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[10.5px] font-body font-semibold uppercase tracking-wider text-foreground/60">
+            Replying to {replyingToName}
+          </p>
+          <button onClick={onCancel} aria-label="Cancel reply" className="size-6 rounded-full flex items-center justify-center text-foreground/50 hover:text-foreground">
+            <X className="size-3.5" />
+          </button>
+        </div>
+        <MentionTextarea
+          rows={2}
+          value={body}
+          onChange={setBody}
+          threadId={threadId}
+          onMention={(m) => { mentions.current = [...mentions.current, m]; }}
+          placeholder="Write a reply… type @ to tag"
+          maxLength={2000}
+          className="resize-none min-h-[40px] bg-card"
+        />
+        <div className="mt-2 flex justify-end">
+          <Button
+            variant="gold"
+            size="sm"
+            className="rounded-pill h-8 px-4 text-[11px] font-semibold uppercase tracking-wider"
+            disabled={busy || !body.trim()}
+            onClick={async () => {
+              const ok = await onSubmit(body, mentions.current);
+              if (ok) { setBody(""); mentions.current = []; }
+            }}
+          >
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : "Reply"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -267,4 +443,3 @@ const PosterRow = ({ uid, name, avatar, createdAt, meta }: { uid: string; name: 
 
 
 export default ForumThread;
-
