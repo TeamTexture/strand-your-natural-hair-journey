@@ -304,6 +304,9 @@ async function loadDirectory(): Promise<Professional[]> {
       salonName: salon?.name ?? null,
       salonCity: salon?.city ?? null,
       isSalonStylist,
+      services: serviceList,
+      offers: offerList,
+
       listingTier: (row.listing_tier as Professional["listingTier"]) ?? "full",
       referralFeePercent:
         row.referral_fee_percent != null ? Number(row.referral_fee_percent) : null,
