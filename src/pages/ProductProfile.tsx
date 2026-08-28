@@ -38,6 +38,8 @@ import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/component
 import { alignFitLanguage } from "@/lib/fitBand";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
+import { decideProductAnalysis, assertAnalysisTrigger } from "@/lib/analysisGate";
+
 import BrandLink from "@/components/BrandLink";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { condenseProse, emphasisSplit } from "@/lib/tipsRender";
