@@ -28,6 +28,53 @@ export const usageSourceLabel = (source: UsageSource): string =>
       ? "brand's official product page"
       : "no manufacturer directions available";
 
+// ── ANTI-ANCHORING (2026-08-28) ────────────────────────────────────────
+// After an example sentence in this file used "high density hair", the models
+// started reaching for density on products where density changes nothing. The
+// example was depth guidance, not a template. We now (a) tell the prompt to
+// select the trait by this product's mechanism, and (b) tell it which traits it
+// already used on her other products so it cannot silently repeat one.
+
+/** Profile traits the how-to-use copy can legitimately reason about, with the
+ *  phrasings that count as "this trait was named". */
+const TRAIT_PATTERNS: { trait: string; re: RegExp }[] = [
+  { trait: "density", re: /\b(high|low|medium)?\s*density\b|\bdense\b|\bthick head of hair\b/i },
+  { trait: "porosity", re: /\bporosity\b|\bporous\b|\bdries out quickly\b|\bholds (?:on to )?moisture\b/i },
+  { trait: "elasticity/protein", re: /\belasticity\b|\bprotein\b|\bsnaps? back\b|\bbond\b/i },
+  { trait: "strand diameter", re: /\bfine strands?\b|\byour strands are fine\b|\bcoarse strands?\b|\bstrand (?:diameter|thickness)\b/i },
+  { trait: "curl pattern", re: /\bcurl pattern\b|\bcoil(?:s|y)\b|\bkink(?:s|y)\b|\bwav(?:e|y)\b/i },
+  { trait: "length", re: /\byour length\b|\bshort hair\b|\blonger hair\b|\bhair length\b/i },
+  { trait: "scalp condition", re: /\bscalp (?:condition|is|feels|gets)\b|\bflak(?:e|y|ing)\b|\bitch(?:y|ing)\b|\bsensitive scalp\b/i },
+  { trait: "current style", re: /\bin (?:your )?(?:cornrows|braids|twists|locs|afro|mohawk|protective style)\b|\bcurrent style\b|\bwhile (?:you'?re )?in style\b/i },
+  { trait: "texture", re: /\bsurface texture\b|\bcoarse hair\b|\bsoft hair\b/i },
+  { trait: "goal", re: /\byour goal\b|\bgrowth goal\b|\bretain(?:ing)? length\b/i },
+  { trait: "challenge", re: /\bbreakage\b|\bshedding\b|\bdryness\b|\bfrizz\b/i },
+];
+
+/** Which profile traits a piece of generated how-to-use copy actually named. */
+export function detectNamedTraits(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const found: string[] = [];
+  for (const { trait, re } of TRAIT_PATTERNS) {
+    if (re.test(text) && !found.includes(trait)) found.push(trait);
+  }
+  return found;
+}
+
+/** Traits used most often across her other products, most-used first. Fed back
+ *  into the prompt so the model can see its own anchoring. */
+export function recentTraitUsage(texts: (string | null | undefined)[]): string[] {
+  const counts = new Map<string, number>();
+  for (const t of texts) {
+    for (const trait of detectNamedTraits(t)) {
+      counts.set(trait, (counts.get(trait) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([trait]) => trait);
+}
+
 /** Families of "specific condition" claims we police. Each has the phrase
  *  patterns that assert it, plus the tokens that count as support inside the
  *  manufacturer directions. */
