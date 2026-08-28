@@ -45,7 +45,7 @@ export function findGlossarySpans(
 ): GlossarySpan[] {
   const source = String(text ?? "");
   if (!source.trim()) return [];
-  const haystack = source.toLowerCase();
+  const haystack = matchable(source);
   const spans: GlossarySpan[] = [];
   const claimed = new Set<string>();
 
@@ -53,7 +53,7 @@ export function findGlossarySpans(
     spans.some((s) => !(end <= s.start || start >= s.end));
 
   for (const term of tokenNames) {
-    const key = term.toLowerCase();
+    const key = matchable(term).replace(/\s+/g, " ").trim();
     if (claimed.has(key)) continue;
     const row = lookup(term);
     if (!row) continue;
