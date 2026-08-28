@@ -60,7 +60,7 @@ describe("analysis failsafes are shared, not per-function", () => {
       const src = read(`${FN}/${name}/index.ts`);
       // Fit-first landed at v15; later contract bumps (v16…v21) supersede the
       // tag but must never take a surface back below it.
-      const tagged = /fit-first-2026-08-28|v15_fit_first|MODEL_VERSION\s*=\s*["'`]v(1[5-9]|[2-9]\d)/.test(src);
+      const tagged = /fit-first-2026-08-28|v15_fit_first|@v(1[5-9]|[2-9]\d)|MODEL_VERSION\s*=\s*["'`]v(1[5-9]|[2-9]\d)/.test(src);
       // brand-product-guidance keys its cache from the client hook.
       if (name === "brand-product-guidance") {
         expect(read("src/hooks/useBrandProductGuidance.ts")).toContain("brand_product_guidance_v15");
