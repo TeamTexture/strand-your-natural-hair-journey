@@ -413,7 +413,10 @@ SCHEMA
   "product_name": string,
   "brand": string,
   "category": "shampoo"|"conditioner"|"treatment"|"styler"|"oil"|"mask"|"leave-in"|"other",
+  "application_area": "scalp"|"lengths_ends"|"scalp_and_lengths"|"rinse_out"|"unknown",
+  "leave_on": boolean|null,
   "ingredients": string[],
+
   "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
   "match_score": number,
   "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],
