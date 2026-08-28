@@ -652,6 +652,17 @@ const IngredientDetail = () => {
           reason = "no_stored_analysis";
           return null;
         }
+        // HOMEMADE: the DIY safety block (hazards, preservation, glossary
+        // coverage) is recomputed deterministically INSIDE the edge function on
+        // every call, including its own cache hits. Reading ai_summaries direct
+        // from here skips that pass and renders whatever safety text was stored
+        // months ago — which is how a preserved formula kept showing "nothing in
+        // this recipe preserves it". Go through the function instead: it costs no
+        // model spend on a cache hit, it just re-derives the safety.
+        if ((row as { is_homemade?: boolean }).is_homemade === true) {
+          reason = "homemade_safety_recompute";
+          return null;
+        }
         const storedIng = row.analysis_ingredients_hash ?? null;
         const currentIng = ingredientsFingerprint(row.ingredients);
         if (storedIng && currentIng && storedIng !== currentIng) {
