@@ -1183,13 +1183,22 @@ const IngredientDetail = () => {
 
 
         {error && !loading && (
-          <SurfaceCard tone="orange" className="space-y-2">
-            <p className="text-sm">Could not analyse this product.</p>
-            <Button variant="goldGhost" size="pill" onClick={() => runAnalysis(true)}>
-              <RefreshCw className="size-4 mr-1" /> Retry
-            </Button>
-          </SurfaceCard>
+          DEMO_SAFE_MODE ? (
+            <SurfaceCard className="space-y-1">
+              <p className="font-body text-[13px] text-foreground/80">
+                Analysis not yet available for this product.
+              </p>
+            </SurfaceCard>
+          ) : (
+            <SurfaceCard tone="orange" className="space-y-2">
+              <p className="text-sm">Could not analyse this product.</p>
+              <Button variant="goldGhost" size="pill" onClick={() => runAnalysis(true)}>
+                <RefreshCw className="size-4 mr-1" /> Retry
+              </Button>
+            </SurfaceCard>
+          )
         )}
+
 
         {analysis && !loading && (
           <>
