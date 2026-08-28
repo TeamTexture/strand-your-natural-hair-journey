@@ -1,7 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PROFESSIONALS, type Professional, type ProType } from "@/data/professionals";
+import {
+  PROFESSIONALS,
+  type Professional,
+  type ProType,
+  type ProService,
+  type ProOfferView,
+} from "@/data/professionals";
 import { normalizeInstagramHandle, instagramUrl, normalizeWebsiteUrl } from "@/lib/socialLinks";
 
 /**
