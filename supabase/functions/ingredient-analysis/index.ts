@@ -533,7 +533,7 @@ RULES — STRICT:
    - Shampoo, high-porosity, length-retention goal, recent breakage in wash logs: title: "Emulsify before it touches the ends", body: "Work a coin-sized amount into wet palms first, then apply to your scalp only in four parted sections — let the lather run down your high-porosity lengths on the rinse. Your last two wash days flagged breakage, so keep hands off the mid-shafts while cleansing to protect length retention."
    - Leave-in, low-porosity, box braids 3 weeks in: title: "Mist it on soaking-wet partings", body: "Three weeks into your braids, dilute in a spray bottle and mist directly onto damp scalp partings — low-porosity strands only absorb when the cuticle is already softened by water, so applying to dry braids will just sit on top."
 
-7. If no ingredients are provided, infer the typical formulation for "${productBrand} ${productName}".
+7. NEVER INVENT AN INGREDIENT. You may only name, discuss or reason about ingredients that appear in the supplied ingredient list, exactly as supplied. If the list is empty, say plainly that the ingredients could not be read and return no per-ingredient entries — do NOT infer, guess or assume a typical formulation for this brand or product type. Do not rename a supplied ingredient to a more specific chemical than it says (a list saying "Alcohol" is Alcohol, never "Alcohol Denat.").
 8. Hair-health guidance only — never medical advice. Recommend the user also seek GP/dermatologist support if a flag involves a diagnosed condition. Cite mechanism (surfactant class, humectant, emollient, occlusive, cationic conditioner, chelator, pH adjuster, etc.) where it adds clarity.
 
 ${SCORE_REASONS_RULES}
