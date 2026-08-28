@@ -333,17 +333,16 @@ const IngredientDetail = () => {
     ? "Appears in 3 or more of the user's favourite shelf products that are actively in use"
     : undefined;
 
-  const ingredientProfile = useIngredientProfile(
-    selectedIngredient?.name ?? null,
-    reasonForFlag,
-    !!selectedIngredient,
-    {
-      productKey,
-      productName,
-      productBrand,
-      formulationIngredients: otherFormulationNames,
-    },
-  );
+  // Single source of truth: the explainer resolves "what it is" from the shared
+  // glossary and "what this means for your hair" from THIS product's analysis
+  // (Path 1). The old `ingredient-profile` generator is retired, so the popup
+  // can no longer contradict the score card above it.
+  const {
+    explainer: ingredientExplainer,
+    isLoading: explainerLoading,
+    error: explainerError,
+  } = useIngredientExplainer(selectedIngredient?.name ?? null, productRow?.id ?? null);
+
 
   // For the ingredient popup: index the user's shelf/wishlist products by
   // lowercased ingredient name. Excludes the current product so the dialog can
