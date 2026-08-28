@@ -250,6 +250,12 @@ interface RequestBody {
   productName: string;
   productBrand: string;
   ingredients?: string[];
+  /** Stored product metadata — resolved from user_products when omitted. */
+  category?: string | null;
+  applicationArea?: string | null;
+  leaveOn?: boolean | null;
+  usageInstructions?: string | null;
+
   /** Member-made recipe: ingredient + free-text amount pairs. */
   isHomemade?: boolean;
   homemadeRecipe?: Array<
@@ -487,12 +493,21 @@ RULES — STRICT:
      NEVER mark a standard preservative, fragrance, colourant, or pH adjuster "bad" without (a), (b) or (c). Existence ≠ harm.
    - "good" = the ingredient has a documented mechanism that benefits THIS user's measurable traits (humectant for low-porosity in humid climate, emollient for high-porosity ends, anti-fungal for diagnosed scalp condition, etc.).
    - "warn" = neutral / context-dependent / patch-test recommended / "fine for most people but watch how your scalp reacts". Use "warn" — NOT "bad" — for routine preservatives and fragrance when the user has no flagged sensitivity.
+   - EXPOSURE GATE (product.application_area / product.leave_on in the payload) — apply this BEFORE settling any tone. The same molecule does not carry the same risk at every contact point or contact time:
+     • application_area "scalp": weigh scalp tolerance, irritation and the member's scalp condition. Do NOT raise a lengths/porosity concern (sealing, weighing down, protein balance, cuticle build-up) to "bad" for a product that never touches the lengths — "warn" at most, and say the exposure is scalp-only.
+     • application_area "lengths_ends": weigh porosity, protein/moisture balance, build-up and slip. Do NOT raise a scalp-irritation concern to "bad" when the directions keep it off the scalp — "warn" at most.
+     • application_area "scalp_and_lengths": both sets of concerns apply at full weight.
+     • application_area "rinse_out" or leave_on false: contact time is minutes and the formula is washed away, so build-up, occlusion, heaviness and coating concerns drop a step (a "bad" becomes "warn", a "warn" becomes neutral) unless the ingredient is a DECLARED sensitivity. Declared sensitivities and documented allergies are NEVER downgraded by exposure — they stay "bad" at any contact time.
+     • leave_on true: contact is hours to days, so occlusion, build-up and drying-alcohol concerns apply at FULL weight.
+     • application_area "unknown": weigh it neutrally from the ingredients alone. Do NOT infer an application area from the product name, and never write about where it goes as if you know.
 3. body: ONE concise sentence (max 22 words). Lead with the SCIENTIFIC mechanism (what the molecule does chemically), THEN tie to the user's specific data point if relevant. No generic care tips, no usage instructions, no "consider", no "may help your routine". Never imply legal-limit cosmetic ingredients are dangerous.
    GOOD example (bad): "Anionic surfactant — strips sebum and lipids; harsh given your dry scalp diagnosis."
    GOOD example (warn): "Broad-spectrum preservative used at <1% — safe at this level; flag only if your scalp has reacted to it before."
    BAD example: "Avoid — fragrance can irritate." (No, only if the user has flagged it.)
 3a. category: assign EVERY ingredient a single category from the STRAND manuscript's ingredient framework — Preservative, Humectant, Emollient, Occlusive, Surfactant, Conditioning Agent (cationic / silicone / quat), Protein, Active, Fragrance, Colourant, Solvent, pH Adjuster, Chelator, Emulsifier, Thickener, Antioxidant, Botanical Extract. If an ingredient does not slot into the manuscript's categories, choose the closest cosmetic-science category from the same list (do not invent new ones).
 4. match_score 0–100: weight bad flags heavily down, good flags up. Consider porosity fit, scalp diagnoses, deficiencies, allergens, goal alignment. Do NOT dock score for routine preservatives/fragrance the user has never reacted to, and NEVER dock score because the formula contains ingredients she already owns frequently (context.flagged_ingredients) — ownership frequency is not a fit signal in either direction.
+4a. match_score AND EXPOSURE — the exposure gate above is an explicit scoring factor, not just a tone factor. A concern only counts against the score to the extent the directions actually expose the member to it: a scalp-only, rinse-off product must NOT be docked as hard as a leave-on lengths product carrying the same ingredient, and a rinse-out formula must not be docked for build-up or heaviness the way a leave-in is. Where exposure changed the weighting, say so in the matching score_reasons row (e.g. "rinsed out, so contact time is short"). A DECLARED sensitivity is docked at full weight regardless of exposure. When application_area is "unknown", score from the ingredients alone and never assert where the product goes.
+
 5. summary: 1 sentence (max 25 words) — pure factual fit verdict for THIS user. No advice, no tips. 6. personalised_guidance: return EXACTLY ${guidanceCount(level)} tip(s) — the highest-impact, science-rooted guidance for how this user gets the most out of THIS specific product, ordered most important first. Never more, never fewer. Each tip must cover a DIFFERENT lever (e.g. amount, sectioning, water state, dwell time, rinse, frequency, distribution for their density) with no overlap or restatement. Each tip body must be a DETAILED, multi-sentence explanation (${guidanceDepth(level).sentences}, up to ${guidanceDepth(level).words} words) — never a single sentence. Within each tip, give the action in full (amount, placement, sectioning, hair state, temperature, dwell time, rinse, frequency), the reason it fits one NAMED trait of this user, what it should look or feel like when done right, and the mistake to avoid. ${level >= 3 ? "This user is at support level 3 (hand-holding): the fullest, most explanatory version — plain words, reading age 9-10, timings scaled to their hair, everything spelled out." : level === 2 ? "This user is at support level 2 (essential): the action, one sentence of why, and the concrete how. No extended explanatory passage." : "This user is at support level 1 (minimal): the action plus one short sentence of why, and nothing more."}
 
    ABSOLUTE SCOPE — HARD BAN on referencing anything outside THIS product:
@@ -842,6 +857,42 @@ Deno.serve(async (req) => {
       })()
       : null;
 
+    // ── APPLICATION AREA (exposure) ───────────────────────────────────
+    // Where the product goes and whether it stays on decide how much a given
+    // ingredient concern can actually cost. Read from the caller first, then
+    // from the stored row, so a saved product always scores on its own label
+    // rather than on a guess from its name. Never inferred here.
+    const APPLICATION_AREAS = ["scalp", "lengths_ends", "scalp_and_lengths", "rinse_out", "unknown"];
+    const normaliseArea = (v: unknown): string => {
+      const raw = typeof v === "string" ? v.trim().toLowerCase() : "";
+      return APPLICATION_AREAS.includes(raw) ? raw : "unknown";
+    };
+    let applicationArea = normaliseArea(body.applicationArea);
+    let leaveOn = typeof body.leaveOn === "boolean" ? body.leaveOn : null;
+    let productCategory = typeof body.category === "string" && body.category.trim()
+      ? body.category.trim()
+      : null;
+    let usageInstructions = typeof body.usageInstructions === "string" && body.usageInstructions.trim()
+      ? body.usageInstructions.trim()
+      : null;
+    if (applicationArea === "unknown" || leaveOn === null || !productCategory) {
+      const { data: metaRow } = await dataClient
+        .from("user_products")
+        .select("category, application_area, leave_on, usage_instructions")
+        .eq("user_id", memberId)
+        .eq("product_key", productKey)
+        .maybeSingle();
+      if (metaRow) {
+        if (applicationArea === "unknown") applicationArea = normaliseArea(metaRow.application_area);
+        if (leaveOn === null && typeof metaRow.leave_on === "boolean") leaveOn = metaRow.leave_on;
+        if (!productCategory && metaRow.category) productCategory = String(metaRow.category);
+        if (!usageInstructions && metaRow.usage_instructions) {
+          usageInstructions = String(metaRow.usage_instructions);
+        }
+      }
+    }
+
+
     const tipsLevel = coerceTipsLevel(
       (body.context as Record<string, unknown> | null | undefined)?.tipsLevel,
     );
@@ -942,7 +993,16 @@ Deno.serve(async (req) => {
 
 
     const userPayload: Record<string, unknown> = {
-      product: { key: productKey, name: productName, brand: productBrand },
+      product: {
+        key: productKey,
+        name: productName,
+        brand: productBrand,
+        category: productCategory,
+        application_area: applicationArea,
+        leave_on: leaveOn,
+        usage_instructions: usageInstructions,
+      },
+
       ingredients: rawIngredients,
       hairProfile: hairProfile ?? {},
       healthProfile: healthProfile ?? {},

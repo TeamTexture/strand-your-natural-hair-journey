@@ -6041,6 +6041,7 @@ export type Database = {
           analysis_generated_at: string | null
           analysis_ingredients_hash: string | null
           analysis_profile_snapshot_hash: string | null
+          application_area: string
           brand: string | null
           category: string | null
           created_at: string
@@ -6052,6 +6053,7 @@ export type Database = {
           is_homemade: boolean
           key_ingredients: Json
           last_used_at: string | null
+          leave_on: boolean | null
           linked_brand_offer_id: string | null
           linked_brand_product_id: string | null
           marketed_purpose:
@@ -6074,6 +6076,7 @@ export type Database = {
           source_url: string | null
           storage_path: string | null
           updated_at: string
+          usage_instructions: string | null
           use_count: number
           user_id: string
         }
@@ -6083,6 +6086,7 @@ export type Database = {
           analysis_generated_at?: string | null
           analysis_ingredients_hash?: string | null
           analysis_profile_snapshot_hash?: string | null
+          application_area?: string
           brand?: string | null
           category?: string | null
           created_at?: string
@@ -6094,6 +6098,7 @@ export type Database = {
           is_homemade?: boolean
           key_ingredients?: Json
           last_used_at?: string | null
+          leave_on?: boolean | null
           linked_brand_offer_id?: string | null
           linked_brand_product_id?: string | null
           marketed_purpose?:
@@ -6116,6 +6121,7 @@ export type Database = {
           source_url?: string | null
           storage_path?: string | null
           updated_at?: string
+          usage_instructions?: string | null
           use_count?: number
           user_id: string
         }
@@ -6125,6 +6131,7 @@ export type Database = {
           analysis_generated_at?: string | null
           analysis_ingredients_hash?: string | null
           analysis_profile_snapshot_hash?: string | null
+          application_area?: string
           brand?: string | null
           category?: string | null
           created_at?: string
@@ -6136,6 +6143,7 @@ export type Database = {
           is_homemade?: boolean
           key_ingredients?: Json
           last_used_at?: string | null
+          leave_on?: boolean | null
           linked_brand_offer_id?: string | null
           linked_brand_product_id?: string | null
           marketed_purpose?:
@@ -6158,6 +6166,7 @@ export type Database = {
           source_url?: string | null
           storage_path?: string | null
           updated_at?: string
+          usage_instructions?: string | null
           use_count?: number
           user_id?: string
         }

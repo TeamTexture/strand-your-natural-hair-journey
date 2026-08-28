@@ -190,6 +190,8 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
 6. Field rules — strict:
    - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
    - category: pick the single best fit from the enum.
+   - application_area / leave_on: read STRICTLY off the label's directions. application_area = "scalp" (scalp/partings only), "lengths_ends" (mid-lengths and ends only), "scalp_and_lengths" (whole head), "rinse_out" (applied then rinsed off during washing). leave_on = true when the directions say it stays on the hair, false when it is rinsed out. If the label does not say, return "unknown" and omit leave_on — NEVER guess from the product name or category.
+
    - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when photo 2's list is partial; otherwise transcribe what's visible.
    - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a FREQUENCY COUNT of ingredients she already owns (3+ saved products) — it is NEVER a reason to flag "avoid".
    - match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable hair/health traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients the member already owns frequently (history.flagged_ingredients) — frequency of ownership is not a fit signal in either direction, and must not appear as a negative score factor.
@@ -419,6 +421,8 @@ ABSOLUTE RULES
    - "good" (green) if the ingredient appears in history.high_rated_products[].ingredients OR is well-matched to their porosity/texture/scalp OR directly supports a stated goal/challenge.
    - "warn" (amber) for neutral-but-noteworthy.
 5. match_score (0–100): lower it sharply for any red flags; raise it for "good" flags; consider category fit, the durable style pattern they usually wear (default_style), blood-result deficiencies (only when relevant to this product), and goal alignment. current_hairstyle and days_in_style must never move the score. Ingredients the member already owns frequently (history.flagged_ingredients) must NEVER reduce the score — ownership frequency is not a fit signal in either direction.
+5b. application_area / leave_on: read STRICTLY off the label's own directions. application_area = "scalp" (scalp/partings only), "lengths_ends" (mid-lengths and ends only), "scalp_and_lengths" (whole head), "rinse_out" (applied then rinsed off during washing). leave_on = true when the directions say it stays on the hair, false when it is rinsed out. If the label does not say, return "unknown" and null — NEVER guess from the product name or category.
+
 
 PRODUCT ANALYSIS SCOPE — HARD RULE:
 Focus ONLY on signals that intersect with what's INSIDE this product (ingredients, mechanism, formulation, application). Tension / traction alopecia / styling weight are HANDLING concerns, not formulation concerns — do NOT cite them in any product output. Lab values, sleep, stress, and dermatologist context are ONLY relevant if THIS product directly intersects them.
@@ -438,7 +442,10 @@ SCHEMA
   "product_name": string,
   "brand": string,
   "category": "shampoo"|"conditioner"|"treatment"|"styler"|"oil"|"mask"|"leave-in"|"other",
+  "application_area": "scalp"|"lengths_ends"|"scalp_and_lengths"|"rinse_out"|"unknown",
+  "leave_on": boolean|null,
   "ingredients": string[],
+
   "key_ingredients": [{"name": string, "benefit": string, "flag": "good"|"warn"|"avoid", "reason": string, "surfactant_role": "primary"|"secondary"|"none"}],
   "match_score": number,
   "score_reasons": [{"direction": "plus"|"minus", "factor": string, "reason": string}],

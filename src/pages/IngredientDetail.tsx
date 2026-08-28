@@ -84,8 +84,22 @@ interface Ingredient {
   category?: string;
 }
 interface GuidanceTip { title: string; body: string }
+
+// ── SINGLE-SCORE CUTOVER ─────────────────────────────────────────────────
+// From this date, ingredient-analysis is the ONE scorer for a product and its
+// result is persisted to user_products.match_score. Rows saved before it keep
+// the score they already have — no backfill, no silent re-scoring of shelves
+// members have already read.
+const SINGLE_SCORE_CUTOVER = Date.parse("2026-08-28T00:00:00Z");
+function isSingleScoreProduct(row: { created_at?: string | null } | null): boolean {
+  const created = row?.created_at ? Date.parse(row.created_at) : NaN;
+  return Number.isFinite(created) && created >= SINGLE_SCORE_CUTOVER;
+}
+
 interface Analysis {
-  match_score: number;
+  /** null when the payload carried no score — never a made-up number. */
+  match_score: number | null;
+
   score_reasons?: ScoreReason[];
   insight?: ProductPurposeInsight | null;
   summary: string;
@@ -139,7 +153,10 @@ function freshToAnalysis(fresh: FreshAnalysisPayload): Analysis {
     };
   });
   return {
-    match_score: typeof fresh.match_score === "number" ? fresh.match_score : 0,
+    // No ad-hoc fallback: a missing score stays missing rather than rendering
+    // a fabricated 0 that reads as "terrible match".
+    match_score: typeof fresh.match_score === "number" ? fresh.match_score : null,
+
     score_reasons: parseScoreReasons(fresh.score_reasons),
     insight: parsePurposeInsight(fresh.insight),
     summary: fresh.ai_summary ?? "",
@@ -509,6 +526,19 @@ const IngredientDetail = () => {
               (Array.isArray((row as { ingredients?: unknown } | null)?.ingredients)
                 ? ((row as { ingredients?: unknown }).ingredients as string[])
                 : undefined) ?? freshAnalysis?.ingredients ?? undefined,
+            // EXPOSURE: where the label says this product goes, and whether it
+            // stays on. Read off the pack at scan time and stored on the row —
+            // the model must weigh an ingredient's risk against actual contact,
+            // not guess the application area from the product name.
+            category:
+              (row as { category?: string | null } | null)?.category ?? null,
+            applicationArea:
+              (row as { application_area?: string | null } | null)?.application_area ?? null,
+            leaveOn:
+              (row as { leave_on?: boolean | null } | null)?.leave_on ?? null,
+            usageInstructions:
+              (row as { usage_instructions?: string | null } | null)?.usage_instructions
+              ?? freshAnalysis?.usage_instructions ?? null,
             // Homemade recipes are analysed on their AMOUNTS, not just the
             // ingredient names — a commercial product is pre-formulated at safe
             // ratios, a kitchen mix is not.
@@ -530,15 +560,26 @@ const IngredientDetail = () => {
         // of truth every surface reads (cards, passport, PDFs, aiContext). Any
         // score this analysis produces is written into that column BEFORE it can
         // be rendered — this page never displays a number that isn't stored.
+        //
+        // Existing shelves are NOT re-scored: a row saved before the
+        // single-score cutover keeps whatever score it already has. It still
+        // gets its provenance stamped, so this analysis is served from storage
+        // on every later open instead of being re-run on each visit.
         const freshScore = normaliseMatchScore(fresh?.match_score);
-        const needsWrite = row && freshScore != null && (stale || force || row.match_score !== freshScore);
-        if (needsWrite) {
+        if (row) {
+          const takesFreshScore =
+            freshScore != null
+            && (row.match_score == null || isSingleScoreProduct(row));
           try {
             await supabase
               .from("user_products")
               .update({
-                match_score: freshScore,
-                match_score_computed_at: new Date().toISOString(),
+                ...(takesFreshScore
+                  ? {
+                    match_score: freshScore,
+                    match_score_computed_at: new Date().toISOString(),
+                  }
+                  : {}),
                 // Stamp the provenance the cache gate below reads, so this
                 // result is served from storage on every later open.
                 analysis_generated_at: new Date().toISOString(),
@@ -554,6 +595,7 @@ const IngredientDetail = () => {
             console.warn("match_score write-back failed", syncErr);
           }
         }
+
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Could not analyse this product.";
         setError(msg);
@@ -611,13 +653,19 @@ const IngredientDetail = () => {
           const currentHash = currentProfileHash(await buildAiContext());
           if (currentHash !== storedHash) { reason = "profile_changed"; return null; }
         }
+        // Homemade payloads carry a recipe signature suffix on the cache kind,
+        // so match on the prefix — an exact-match lookup missed every homemade
+        // product's stored analysis and re-ran the model on each visit.
         const { data } = await supabase
           .from("ai_summaries")
           .select("payload")
-          .eq("kind", `ingredient_analysis:${productKey}:L${tipsLevel}`)
+          .like("kind", `ingredient_analysis:${productKey}:L${tipsLevel}%`)
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         if (!data?.payload) { reason = "stored_payload_missing"; return null; }
         return data.payload as unknown as Analysis;
+
       })();
       if (cancelled) return;
       console.log("[analysis-cache] decision", {
@@ -1065,19 +1113,10 @@ const IngredientDetail = () => {
                 </div>
               );
             })()}
-            {/* The ONLY way a score is recomputed on demand. Opening this page
-                never re-analyses on its own. */}
-            {productRow && (
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => runAnalysis(true)}
-                className="mt-2 inline-flex items-center gap-1 text-[11px] font-body text-muted-foreground underline underline-offset-2 disabled:opacity-50"
-              >
-                <RefreshCw className="size-3" />
-                {loading ? "Re-analysing…" : "Re-analyse this product"}
-              </button>
-            )}
+            {/* No manual re-analyse. The score is computed once and re-computed
+                only when her hair characteristics, style, goals or challenges
+                change (the profile fingerprint in the cache gate below). */}
+
           </div>
 
         </SurfaceCard>
