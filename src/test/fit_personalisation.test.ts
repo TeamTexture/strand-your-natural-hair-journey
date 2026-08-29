@@ -34,6 +34,10 @@ describe("fit personalisation detector", () => {
     expect(referencesMemberData("A mild plant-derived cleanser used in shampoos.", TOKENS)).toBe(false);
   });
 
+  it("rejects the reported line outright — mentioning scalp/hair is not personalisation", () => {
+    expect(referencesMemberData(REPORTED, TOKENS)).toBe(false);
+  });
+
   it("builds tokens from her values, not column names", () => {
     expect(TOKENS).toContain("coils");
     expect(TOKENS).toContain("retention");
