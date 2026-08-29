@@ -844,14 +844,58 @@ Deno.serve(async (req) => {
     if (!rawName) return json(400, { error: "name is required" });
     const key = normaliseInciKey(rawName);
 
-    const glossary = await resolveGlossary(supabase, [rawName]);
+    // RELIABILITY: a tap must ALWAYS render something. Glossary resolution,
+    // definition fill, role and fit are each allowed to fail independently —
+    // one model hiccup, cap or timeout must never turn the whole sheet into
+    // "we couldn't load this ingredient just now".
+    let glossary = new Map<string, GlossaryRow>();
+    try {
+      glossary = await resolveGlossary(supabase, [rawName]);
+    } catch (e) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "glossary",
+        soft_error: e instanceof Error ? e.message : String(e),
+        name: rawName,
+      }));
+    }
     let entry = glossary.get(key);
-    // A compound label or descriptive phrase resolves to nothing by design —
-    // the client renders it as plain text rather than a token that 404s.
-    if (!entry) return json(404, { error: "ingredient could not be resolved" });
+    // A compound label or descriptive phrase resolves to nothing by design, and
+    // a generation failure must not look different to the member: serve the
+    // captured name with an honest "no verified entry yet" note.
+    if (!entry) {
+      return json(200, {
+        glossary: {
+          id: "",
+          inci_key: key,
+          display_name: rawName.replace(/\s+/g, " "),
+          phonetic: null,
+          category: null,
+          what_it_is: null,
+          aliases: [],
+          is_common: false,
+          kind: "molecule" as const,
+        },
+        kind: "molecule",
+        role_in_product: null,
+        product_category: body.productCategory ?? null,
+        fit: null,
+        fit_note: null,
+        unresolved: true,
+      });
+    }
 
     // Seeded class/concept rows carry no definition until first tapped.
-    entry = await fillTermDefinition(entry);
+    try {
+      entry = await fillTermDefinition(entry);
+    } catch (e) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "term-definition",
+        soft_error: e instanceof Error ? e.message : String(e),
+        name: rawName,
+      }));
+    }
     const kind = entry.kind ?? "molecule";
 
     // SPEED: layer 2 (role in this product) and layer 3 (per-user fit) are
@@ -996,7 +1040,7 @@ Deno.serve(async (req) => {
         name: e.name,
         severity: e.severity,
       }));
-      const generated = await generateFit({
+      const args = {
         ingredient: term,
         userPayload: {
           ingredient: {
@@ -1012,11 +1056,18 @@ Deno.serve(async (req) => {
             topical_sensitivities: topicalSensitivities.slice(0, 40),
           },
         },
-      });
+      };
+      // The explanation IS the answer: a blank `for_you` is a failed generation,
+      // never something to cache and serve. Ask once more, then give up rather
+      // than persist an empty personalised line.
+      let generated = await generateFit(args);
+      if (!generated.for_you.trim()) generated = await generateFit(args);
+      if (!generated.for_you.trim()) throw new Error("fit generation returned no personalised line");
       generated._model_version = FIT_MODEL_VERSION;
       generated._profile_fingerprint = fingerprint;
       generated._generated_at = new Date().toISOString();
       generated._source = "profile";
+
 
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -1035,12 +1086,45 @@ Deno.serve(async (req) => {
       return generated;
     };
 
+    // NO BOILERPLATE. "Not flagged in this product's analysis" is a fact about
+    // the analysis, never an answer to "what does this mean for MY hair".
+    //
+    //  - A CONCEPT or a CLASS (cuticle, porosity, surfactants, protein) is a
+    //    property of her hair or a family of ingredients — a product analysis
+    //    never scores it, so it always resolves against her stored profile.
+    //  - A MOLECULE the product analysis DID single out keeps that verdict (it
+    //    is the authoritative, product-specific line).
+    //  - A MOLECULE the analysis did not single out falls back to the cached
+    //    profile-level line, so she still gets something specific to her hair
+    //    rather than a non-answer. The note travels with it so the UI can frame
+    //    it as general-to-her rather than a verdict on this formula.
     const resolveFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
-      if (body.userProductId) return await resolveProductFit();
+      if (body.userProductId && kind === "molecule") {
+        const product = await resolveProductFit();
+        if (product.fit) return product;
+        return { fit: await resolveProfileFit(), note: product.note };
+      }
       return { fit: await resolveProfileFit(), note: null };
     };
 
-    const [roleResult, fitResult] = await Promise.all([resolveRole(), resolveFit()]);
+    const [roleResult, fitResult] = await Promise.all([
+      resolveRole().catch((e) => {
+        console.log(JSON.stringify({
+          function: "ingredient-explainer",
+          layer: "role",
+          soft_error: e instanceof Error ? e.message : String(e),
+        }));
+        return { role: null, category: body.productCategory ?? null };
+      }),
+      resolveFit().catch((e) => {
+        console.log(JSON.stringify({
+          function: "ingredient-explainer",
+          layer: "fit",
+          soft_error: e instanceof Error ? e.message : String(e),
+        }));
+        return { fit: null, note: null };
+      }),
+    ]);
     const roleInProduct = roleResult.role;
     const productCategory = roleResult.category;
 

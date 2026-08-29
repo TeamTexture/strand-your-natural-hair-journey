@@ -76,6 +76,9 @@ export default function IngredientExplainerSheet({
   };
   const verdict = explainer?.fit?.tone ? VERDICT[explainer.fit.tone] : null;
   const VerdictIcon = verdict?.icon ?? Beaker;
+  // A profile-scoped line explains the term against HER hair; it is not a
+  // verdict on this formula, so it is never labelled "Works with your hair".
+  const profileScoped = explainer?.fit?._source === "profile";
   const others = shelf.filter((p) => p.id !== userProductId);
   // A molecule is labelled by its cosmetic-chemistry category; a class or a
   // concept is labelled by what kind of term it is.
@@ -91,24 +94,25 @@ export default function IngredientExplainerSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-[20px] px-4 pb-8">
-        <SheetHeader className="text-left">
-          <SheetTitle className="font-display text-[20px] leading-tight">
+        {/* HIERARCHY: name → how you say it → what kind of term it is. Each on
+            its own line, full width, so nothing is squeezed into a right-hand
+            column beside the close button. */}
+        <SheetHeader className="block space-y-1 pr-8 text-left">
+          <SheetTitle className="font-display text-[20px] leading-tight [overflow-wrap:break-word]">
             {head.display_name}
           </SheetTitle>
-          {/* Pronunciation gets its own line directly beneath the name — it is
-              how you say the word, not a category, so it is never concatenated
-              with one. The category pill sits below it. */}
           {head.phonetic && (
             <p className="text-[12px] italic leading-snug text-muted-foreground font-body">
               {head.phonetic}
             </p>
           )}
           {kindLabel && (
-            <span className="mt-1 inline-flex w-fit items-center rounded-pill border border-border bg-muted px-2.5 py-[3px] text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/60 font-body">
-              {kindLabel}
-            </span>
+            <div className="pt-0.5">
+              <span className="term-badge inline-block rounded-pill border border-border bg-muted px-2.5 py-[3px] text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/60 font-body">
+                {kindLabel}
+              </span>
+            </div>
           )}
-
         </SheetHeader>
 
         {isLoading && (
@@ -179,7 +183,7 @@ export default function IngredientExplainerSheet({
               <div className={cn("rounded-[12px] border p-3", verdict?.cls ?? "bg-muted border-border")}>
                 <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/60 font-body">
                   <VerdictIcon className="size-3.5" aria-hidden />
-                  {verdict?.label ?? "What it means for you"}
+                  {profileScoped ? "What it means for your hair" : verdict?.label ?? "What it means for you"}
                 </p>
                 <ProseText
                   text={explainer.fit.for_you}
@@ -193,21 +197,29 @@ export default function IngredientExplainerSheet({
                     <span>{explainer.fit.usage_tip}</span>
                   </p>
                 )}
+                {/* Framing, not a substitute for the explanation above: this
+                    line is about YOUR hair generally, not a verdict on this
+                    formula (the product analysis didn't single it out). */}
+                {profileScoped && explainer.fit_note === "not_flagged" && (
+                  <p className="mt-2 text-[11.5px] leading-snug text-foreground/55 font-body">
+                    This one wasn't singled out either way in this product's own score.
+                  </p>
+                )}
               </div>
             )}
 
-            {/* The product's own analysis didn't single this one out. Saying so
-                is more honest than generating a second, product-blind verdict
-                that could contradict the score above. */}
-            {!explainer.fit?.for_you && explainer.fit_note === "not_flagged" && (
+            {/* No verified entry, or the personalised line couldn't be prepared
+                — say what's actually true rather than showing a scary error. */}
+            {!explainer.fit?.for_you && (
               <div className="rounded-[12px] border border-border bg-muted/40 p-3">
                 <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-foreground/55 font-body">
                   <Beaker className="size-3.5" aria-hidden />
-                  What it means for you
+                  What it means for your hair
                 </p>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/80 font-body">
-                  This one wasn't flagged either way in your analysis of this product — nothing here
-                  counts for or against it on your profile.
+                  {explainer.unresolved
+                    ? "We don't hold a verified entry for this exact name yet, so we won't guess at what it does. It hasn't counted for or against this product's score."
+                    : "We couldn't prepare this for your profile just now. Close this and tap the term again in a moment."}
                 </p>
               </div>
             )}
