@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import {
   duplicatesFactualCopy,
+  deterministicProfileFit,
   memberDataTokens,
   referencesMemberData,
 } from "../../supabase/functions/_shared/fit-personalisation.ts";
@@ -11,6 +12,19 @@ const TOKENS = memberDataTokens({
   hair: { porosity: "high", density: "medium", curl_pattern: "tight coils", scalp_condition: "dry scalp" },
   goals: [{ title: "Length retention", challenges: ["breakage at the ends"] }],
   sensitivities: [{ name: "Sulphates" }],
+});
+
+describe("deterministic glossary fit fallback", () => {
+  it("grounds an active in the real profile without inventing a follicle effect", () => {
+    const fit = deterministicProfileFit({
+      hair: { porosity: "high" },
+      goals: [{ title: "Length retention" }],
+      ingredientCategory: "Active",
+    });
+    expect(fit).toContain("high porosity");
+    expect(fit).toContain("does not establish a follicle or growth effect");
+    expect(fit).toContain("length retention");
+  });
 });
 
 const REPORTED =

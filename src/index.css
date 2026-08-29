@@ -225,10 +225,21 @@
    * a word onto the next line ("peptid / e"). Only a genuinely unbreakable
    * string longer than its column may overflow-wrap. */
   .wrap-words {
-    overflow-wrap: break-word;
-    word-break: normal;
-    word-wrap: break-word;
-    hyphens: none;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    word-wrap: normal !important;
+    hyphens: none !important;
+    white-space: normal;
+  }
+  /* Glossary prose is split into multiple inline React nodes. The app-wide
+   * emergency `overflow-wrap:anywhere` rule must not leak into those child
+   * spans/buttons or a narrow analysis row can split "peptide" mid-letter. */
+  .wrap-words *,
+  .glossary-token {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    word-wrap: normal !important;
+    hyphens: none !important;
   }
   .tracking-strand {
     letter-spacing: 0.2em;

@@ -37,4 +37,15 @@ describe("glossary term linking", () => {
   it("never links a term that is not in the closed vocabulary", () => {
     expect(linked("a lovely creamy texture")).toHaveLength(0);
   });
+
+  it("keeps the reported factor in reading order when split into glossary segments", () => {
+    const segments = glossarySegments(
+      "Water-based caffeine and peptide formula",
+      ["caffeine", "peptide"],
+      (name) => ({ display_name: name }),
+    );
+    expect(segments.map((segment) => segment.text).join(""))
+      .toBe("Water-based caffeine and peptide formula");
+    expect(segments.every((segment) => !/^(e|a)$/.test(segment.text))).toBe(true);
+  });
 });
