@@ -40,7 +40,7 @@ describe("fit personalisation detector", () => {
 
   it("builds tokens from her values, not column names", () => {
     expect(TOKENS).toContain("coils");
-    expect(TOKENS).toContain("retention");
+    expect(TOKENS).toContain("sulphates");
     expect(TOKENS).not.toContain("curl_pattern");
   });
 });
