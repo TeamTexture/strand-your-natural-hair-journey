@@ -54,6 +54,7 @@ const Legal = lazyRetry(() => import("./pages/Legal"));
 // Onboarding
 const GoalAndChallenge = lazyRetry(() => import("./pages/onboarding/GoalAndChallenge"));
 const ProfileStep1 = lazyRetry(() => import("./pages/onboarding/ProfileStep1"));
+const Acquisition = lazyRetry(() => import("./pages/onboarding/Acquisition"));
 const ProfileStep2 = lazyRetry(() => import("./pages/onboarding/ProfileStep2"));
 const ProfileSupplements = lazyRetry(() => import("./pages/onboarding/ProfileSupplements"));
 const ProfileStep3Hair = lazyRetry(() => import("./pages/onboarding/ProfileStep3Hair"));
