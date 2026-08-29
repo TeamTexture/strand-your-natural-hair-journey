@@ -44,11 +44,16 @@ import {
   type UsageDirections,
 } from "./usage-grounding.ts";
 import { applyFieldNulls } from "./analysis-failsafes.ts";
+// THIRD GUARDRAIL (2026-08-29): invented RELATIONSHIPS between real, approved
+// nouns — "high porosity hair loses oil fast". Additive: it runs alongside the
+// vocabulary and source lockdowns, and changes neither.
+import { relationshipBlock, validateRelationshipFields } from "./relationships.ts";
 
 export type IntegrityCheck =
   | "closed_vocabulary"
   | "ingredient_name_lock"
-  | "usage_grounding";
+  | "usage_grounding"
+  | "relationship_integrity";
 
 export interface IntegrityViolation {
   /** Dotted/indexed path of the offending field, e.g. `tips[2].body`. */
@@ -125,6 +130,12 @@ export function checkContentIntegrity(
   // 1. Closed vocabulary — runs on EVERY surface, always.
   for (const v of validateTerminologyFields(fields) as VocabularyViolation[]) {
     violations.push(tag("closed_vocabulary", v));
+  }
+
+  // 1b. Relationship integrity — every causal/mechanistic claim must sit inside
+  // the manuscript's approved relationship set. Runs on EVERY surface, always.
+  for (const v of validateRelationshipFields(fields)) {
+    violations.push(tag("relationship_integrity", v));
   }
 
   // 2a. Source lockdown — ingredient names.
@@ -294,6 +305,7 @@ CONTENT INTEGRITY — hard validation runs on your output:
 - TERMINOLOGY IS CLOSED. Use only hair/scalp terms this app already teaches (porosity, cuticle, cortex, elasticity, strand diameter, surface texture, curl pattern, density, scalp condition, sebum, follicle, moisture retention, protein balance, build-up, length retention). Never invent a compound term, and never attach a strand property to the scalp — "high porosity scalp" is a hard failure.
 - NOTHING INVENTED TO FILL A GAP. Every ingredient, claim and technique detail must be traceable to the data supplied in this prompt. Established general knowledge is allowed only when no product-specific claim is attached to it.
 - "NOT ESTABLISHED" IS A CORRECT ANSWER. Every descriptive field is nullable. If the supplied data does not support a claim, return null for that field or leave it out. That is expected, not a failure.`,
+    relationshipBlock(),
   ];
   if (Array.isArray(opts.allowedIngredients)) {
     lines.push(

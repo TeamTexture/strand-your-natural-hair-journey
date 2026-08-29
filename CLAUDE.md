@@ -123,3 +123,12 @@ The "How to Use This For Your Hair" copy must select which stored profile trait 
 - `ingredient-analysis` passes `recentTraits` — the traits her other products' how-to-use copy already leaned on (`recentTraitUsage`/`detectNamedTraits`) — so the prompt is told what it has already over-used and must justify reusing it.
 - Different products should genuinely surface different traits: scalp products reason about scalp access/style, leave-ins about porosity/moisture retention, heat products about heat and elasticity/protein history, oils and butters about strand diameter and weigh-down. These are reasoning prompts, not a lookup table.
 - `src/test/usage_trait_anchoring.test.ts` guards the prompt text and trait detection.
+
+## STANDING RULE — relationship validation is the third guardrail (2026-08-29, permanent)
+
+The vocabulary lockdown and the source lockdown police **nouns**. They do not catch an invented **relationship** between two real, approved nouns — the app shipped "high porosity hair loses oil fast", where every term is approved and the mechanism is false and contradicts the manuscript.
+
+- The ground truth lives in **`supabase/functions/_shared/relationships.ts`**: `CONCEPTS` (each tagged `strand` / `scalp` / `substance` / `measure`), `APPROVED_RELATIONSHIPS`, and `FORBIDDEN_RELATIONSHIPS` (each with its own deterministic detector and its manuscript citation). The same rows are mirrored into the queryable reference tables `public.hair_concepts` and `public.hair_relationships`.
+- Validation runs inside `checkContentIntegrity` as the `relationship_integrity` check, so **every** surface that already has the closed-vocabulary check gets it with no per-function work, and rejections log to `public.ai_content_rejections` alongside the others. Outcome is the same: reject-and-regenerate inside a retry loop, or null the field.
+- Hard invariants: strand properties (porosity, density, elasticity) never connect to oil, sebum or a scalp condition; only water gives moisture (oils/butters/emollients slow its loss); humectants attract from the atmosphere while emollients lock in what is already there; silicones and preservatives are never framed as inherently bad; no topical product stimulates growth or reaches the follicle unless genuinely medicinal.
+- Extending the library is a data change, not a code change: add the concept + the approved relationships + the forbidden ones with detectors, re-seed the two tables, and add a case to `src/test/relationship_integrity.test.ts`. Never widen a detector to make a generation pass.
