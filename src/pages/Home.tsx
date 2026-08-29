@@ -17,6 +17,7 @@ import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
 
 
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
+import AcquisitionAskScreen, { useAcquisitionAsk } from "@/components/onboarding/AcquisitionAskPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
 import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
 
@@ -97,6 +98,7 @@ interface ProfileStyle {
 
 const Home = () => {
   const navigate = useNavigate();
+  const acquisitionAsk = useAcquisitionAsk();
   const renderRichText = useSmartInline();
   const location = useLocation();
   const { user } = useAuth();
@@ -452,9 +454,14 @@ const Home = () => {
 
   const shelfCount = shelfProducts.length;
 
+  // Members who joined before the attribution step exists get the one-off ask
+  // in place of Home, once. Answering or skipping stamps the profile for good.
+  if (acquisitionAsk.due) return <AcquisitionAskScreen onDone={acquisitionAsk.markAnswered} />;
+
   return (
     <ScreenLayout bottomNav>
       <ProfileReconfirmPrompt />
+
       <PersonalisedOffersCard />
       {/* greeting */}
       <header className="px-5 pt-3 pb-2 flex items-start justify-between gap-2">
