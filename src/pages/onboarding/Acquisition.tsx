@@ -87,7 +87,7 @@ const Acquisition = () => {
         .update({
           acquisition_source: source,
           acquisition_asked_at: new Date().toISOString(),
-        } as never)
+        })
         .eq("user_id", user.id);
       if (error) throw error;
     } catch (err) {
