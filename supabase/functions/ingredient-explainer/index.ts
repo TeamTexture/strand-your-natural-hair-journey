@@ -551,7 +551,7 @@ TONE — apply this exact decision tree:
 - "warn" = neutral / context-dependent / "fine for most people, watch how your scalp responds".
 
 RULES:
-1. for_you: MAX 45 words, and it MUST name a real data point from the supplied profile. If the profile is too sparse to personalise honestly, say what the ingredient suits in terms of the traits they DO have — never invent a trait.
+1. for_you: MAX 45 words. It MUST name at least one real data point from the supplied profile (her porosity, density, curl pattern, elasticity, scalp condition, length, current style, a stated goal or challenge, or a declared sensitivity) and say what this term does ON THAT trait. It must NOT be a rephrase of "What it is" above it: do not restate what the ingredient generally does. Sentences like "a gentle plant-based surfactant that cleanses without stripping" are REJECTED — they describe the ingredient, not her hair. If the profile is too sparse to personalise honestly, reason from the traits she DOES have — never invent a trait.
 2. usage_tip: MAX 30 words, technique only, about this ingredient in the products they already use. HARD BAN on referencing any other product, product type, category, brand, accessory or routine step, and on frequency caps or prohibitions.
 3. ${NO_MEDICAL_RULE}
 4. ${NO_SOURCE_NAMING_RULE}
