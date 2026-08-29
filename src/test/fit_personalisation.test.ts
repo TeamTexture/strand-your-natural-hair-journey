@@ -22,7 +22,7 @@ describe("deterministic glossary fit fallback", () => {
       ingredientCategory: "Active",
     });
     expect(fit).toContain("high porosity");
-    expect(fit).toContain("does not establish a follicle or growth effect");
+    expect(fit).toContain("acts at the hair or scalp surface");
     expect(fit).toContain("length retention");
   });
 });

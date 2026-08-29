@@ -226,7 +226,7 @@
    * string longer than its column may overflow-wrap. */
   .wrap-words {
     overflow-wrap: normal !important;
-    word-break: normal !important;
+    word-break: keep-all !important;
     word-wrap: normal !important;
     hyphens: none !important;
     white-space: normal;
@@ -237,7 +237,7 @@
   .wrap-words *,
   .glossary-token {
     overflow-wrap: normal !important;
-    word-break: normal !important;
+    word-break: keep-all !important;
     word-wrap: normal !important;
     hyphens: none !important;
   }

@@ -207,7 +207,7 @@ export function deterministicProfileFit(input: {
   if (porosity) {
     const prefix = `Your ${porosity} porosity describes how your cuticle takes in and releases water.`;
     if (/active|peptide|protein/.test(category)) {
-      return `${prefix} This ingredient's presence does not establish a follicle or growth effect${goal ? `, so it has not been counted as support for your ${goal.toLowerCase()} goal` : ""}.`;
+      return `${prefix} This cosmetic ingredient acts at the hair or scalp surface${goal ? `, so it has not been counted as support for your ${goal.toLowerCase()} goal` : ""}.`;
     }
     if (/surfactant|cleans/.test(category)) {
       return `${prefix} This ingredient's cleansing role does not change that strand trait, so the two are considered separately.`;
