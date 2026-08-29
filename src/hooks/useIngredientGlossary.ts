@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { normaliseInciKey } from "@/lib/inci";
 
 /**
@@ -51,8 +52,15 @@ export interface GlossaryRow {
  * grows, it never changes under a user.
  */
 export function useIngredientGlossary() {
+  // RLS scopes glossary_terms to authenticated users. If this query fires
+  // before the session hydrates (cold load), PostgREST returns an EMPTY 200 —
+  // not an error — and that empty result would be cached for an hour, leaving
+  // every glossary term app-wide rendering as plain, dead text. Gate on auth.
+  const { user, loading: authLoading } = useAuth();
   const query = useQuery({
-    queryKey: ["glossary-terms"],
+    queryKey: ["glossary-terms", user?.id ?? "anon"],
+    enabled: !authLoading && Boolean(user),
+    retry: 3,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 4,
     queryFn: async (): Promise<GlossaryRow[]> => {
