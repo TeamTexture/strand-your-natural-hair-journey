@@ -40,6 +40,12 @@ import {
   cleanUsageTip,
   normaliseInciKey,
 } from "../_shared/ingredient-copy.ts";
+import {
+  duplicatesFactualCopy,
+  memberDataTokens,
+  referencesMemberData,
+} from "../_shared/fit-personalisation.ts";
+
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 declare const Deno: {
@@ -545,7 +551,7 @@ TONE — apply this exact decision tree:
 - "warn" = neutral / context-dependent / "fine for most people, watch how your scalp responds".
 
 RULES:
-1. for_you: MAX 45 words, and it MUST name a real data point from the supplied profile. If the profile is too sparse to personalise honestly, say what the ingredient suits in terms of the traits they DO have — never invent a trait.
+1. for_you: MAX 45 words. It MUST name at least one real data point from the supplied profile (her porosity, density, curl pattern, elasticity, scalp condition, length, current style, a stated goal or challenge, or a declared sensitivity) and say what this term does ON THAT trait. It must NOT be a rephrase of "What it is" above it: do not restate what the ingredient generally does. Sentences like "a gentle plant-based surfactant that cleanses without stripping" are REJECTED — they describe the ingredient, not her hair. If the profile is too sparse to personalise honestly, reason from the traits she DOES have — never invent a trait.
 2. usage_tip: MAX 30 words, technique only, about this ingredient in the products they already use. HARD BAN on referencing any other product, product type, category, brand, accessory or routine step, and on frequency caps or prohibitions.
 3. ${NO_MEDICAL_RULE}
 4. ${NO_SOURCE_NAMING_RULE}
@@ -1099,14 +1105,54 @@ Deno.serve(async (req) => {
     //    profile-level line, so she still gets something specific to her hair
     //    rather than a non-answer. The note travels with it so the UI can frame
     //    it as general-to-her rather than a verdict on this formula.
+    //  - A MOLECULE the product analysis singled out keeps that verdict ONLY
+    //    when the line genuinely reasons about her record. A purely descriptive
+    //    analysis sentence (a rephrase of "what it is") is NOT an answer to
+    //    "what does this mean for MY hair", so the profile-grounded line is
+    //    generated instead and the analysis TONE is preserved so the sheet can
+    //    still never contradict the verdict card above it.
     const resolveFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
       if (body.userProductId && kind === "molecule") {
         const product = await resolveProductFit();
-        if (product.fit) return product;
+        if (product.fit) {
+          const { hair, health } = await profileFingerprint(supabase, user.id);
+          const [goalRes, sens] = await Promise.all([
+            supabase.from("user_goals")
+              .select("title, target_text, challenges, challenge, status")
+              .eq("user_id", user.id).neq("status", "complete"),
+            loadSensitivities(supabase, user.id, "topical") as Promise<LoadedSensitivities>,
+          ]);
+          const tokens = memberDataTokens({
+            hair,
+            health,
+            goals: goalRes.data ?? [],
+            sensitivities: sens.all.map((e) => ({ name: e.name })),
+          });
+          const line = product.fit.for_you;
+          const personalised = referencesMemberData(line, tokens) &&
+            !duplicatesFactualCopy(line, entry.what_it_is);
+          if (personalised) return product;
+          console.log(JSON.stringify({
+            function: "ingredient-explainer",
+            layer: "fit",
+            event: "product_line_not_personalised",
+            term: entry.inci_key,
+          }));
+          try {
+            const profile = await resolveProfileFit();
+            return {
+              fit: { ...profile, tone: product.fit.tone, _source: "product_analysis" },
+              note: null,
+            };
+          } catch {
+            return product;
+          }
+        }
         return { fit: await resolveProfileFit(), note: product.note };
       }
       return { fit: await resolveProfileFit(), note: null };
     };
+
 
     const [roleResult, fitResult] = await Promise.all([
       resolveRole().catch((e) => {
