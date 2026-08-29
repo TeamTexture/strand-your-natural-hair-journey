@@ -40,6 +40,12 @@ import {
   cleanUsageTip,
   normaliseInciKey,
 } from "../_shared/ingredient-copy.ts";
+import {
+  duplicatesFactualCopy,
+  memberDataTokens,
+  referencesMemberData,
+} from "../_shared/fit-personalisation.ts";
+
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 declare const Deno: {
