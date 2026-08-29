@@ -1099,14 +1099,54 @@ Deno.serve(async (req) => {
     //    profile-level line, so she still gets something specific to her hair
     //    rather than a non-answer. The note travels with it so the UI can frame
     //    it as general-to-her rather than a verdict on this formula.
+    //  - A MOLECULE the product analysis singled out keeps that verdict ONLY
+    //    when the line genuinely reasons about her record. A purely descriptive
+    //    analysis sentence (a rephrase of "what it is") is NOT an answer to
+    //    "what does this mean for MY hair", so the profile-grounded line is
+    //    generated instead and the analysis TONE is preserved so the sheet can
+    //    still never contradict the verdict card above it.
     const resolveFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
       if (body.userProductId && kind === "molecule") {
         const product = await resolveProductFit();
-        if (product.fit) return product;
+        if (product.fit) {
+          const { hair, health } = await profileFingerprint(supabase, user.id);
+          const [goalRes, sens] = await Promise.all([
+            supabase.from("user_goals")
+              .select("title, target_text, challenges, challenge, status")
+              .eq("user_id", user.id).neq("status", "complete"),
+            loadSensitivities(supabase, user.id, "topical") as Promise<LoadedSensitivities>,
+          ]);
+          const tokens = memberDataTokens({
+            hair,
+            health,
+            goals: goalRes.data ?? [],
+            sensitivities: sens.all.map((e) => ({ name: e.name })),
+          });
+          const line = product.fit.for_you;
+          const personalised = referencesMemberData(line, tokens) &&
+            !duplicatesFactualCopy(line, entry.what_it_is);
+          if (personalised) return product;
+          console.log(JSON.stringify({
+            function: "ingredient-explainer",
+            layer: "fit",
+            event: "product_line_not_personalised",
+            term: entry.inci_key,
+          }));
+          try {
+            const profile = await resolveProfileFit();
+            return {
+              fit: { ...profile, tone: product.fit.tone, _source: "product_analysis" },
+              note: null,
+            };
+          } catch {
+            return product;
+          }
+        }
         return { fit: await resolveProfileFit(), note: product.note };
       }
       return { fit: await resolveProfileFit(), note: null };
     };
+
 
     const [roleResult, fitResult] = await Promise.all([
       resolveRole().catch((e) => {
