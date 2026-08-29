@@ -343,6 +343,7 @@ const App = () => (
               {/* Onboarding (auth required so data persists) */}
               <Route path="/onboarding/goal" element={<Onboard><GoalAndChallenge /></Onboard>} />
               <Route path="/onboarding/profile-step-1" element={<Onboard><ProfileStep1 /></Onboard>} />
+              <Route path="/onboarding/acquisition" element={<Onboard><Acquisition /></Onboard>} />
               <Route path="/onboarding/profile-step-2" element={<Onboard><ProfileStep2 /></Onboard>} />
               <Route path="/onboarding/profile-supplements" element={<Onboard><ProfileSupplements /></Onboard>} />
               {/* The professional-consultation stage was removed from onboarding.
