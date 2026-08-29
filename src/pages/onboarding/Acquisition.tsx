@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { onboardingBack } from "@/lib/onboardingFlow";
+import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { ACQUISITION_PATH } from "@/lib/trialWall";
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 import { toast } from "sonner";
