@@ -396,12 +396,16 @@ const ProfileStep1 = () => {
       .catch((err) => console.error("[gate] declared-country check failed", err));
 
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", user?.id] });
-    // About You is in: the paywall is the very next screen for a stamped member
-    // with no membership. Never step 3.
+    // About You is in: the optional attribution question, then the paywall, is
+    // the very next screen for a stamped member with no membership. Never step 3.
     const trialState = user ? await getTrialOfferState(user.id) : null;
     navigate(
       trialState?.walled
-        ? walledDestination({ basicComplete: true, goalCaptured: true })
+        ? walledDestination({
+            basicComplete: true,
+            goalCaptured: true,
+            acquisitionAnswered: trialState.acquisitionAnswered,
+          })
         : "/onboarding/profile-step-2",
     );
 
