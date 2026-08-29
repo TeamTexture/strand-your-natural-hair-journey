@@ -195,6 +195,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
     bloodOnFile,
     consultationComplete,
     paymentDue: dataComplete,
+    acquisitionAnswered,
 
     resumePath,
     entryPath,

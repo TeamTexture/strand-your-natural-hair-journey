@@ -118,7 +118,7 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
 
   const trialEligible =
     !s?.stripe_subscription_id && !s?.trial_end && (!s?.status || s.status === "none");
-  return { walled: true, trialEligible, goalCaptured };
+  return { walled: true, trialEligible, goalCaptured, acquisitionAnswered };
 }
 
 /**
