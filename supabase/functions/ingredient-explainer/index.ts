@@ -1130,15 +1130,45 @@ Deno.serve(async (req) => {
     const productCategory = roleResult.category;
 
 
-    const response = {
+    const buildResponse = (fit: FitPayload | null, note: string | null) => ({
       glossary: { ...entry, display_name: displayName },
       kind,
       role_in_product: roleInProduct,
       product_category: productCategory,
-      fit: fitResult.fit,
-      fit_note: fitResult.note,
-    };
-    return json(200, await sanitiseAndLog(response, "ingredient-explainer"));
+      fit,
+      fit_note: note,
+    });
+
+    type SheetResponse = ReturnType<typeof buildResponse>;
+    let sanitised = await sanitiseAndLog(
+      buildResponse(fitResult.fit, fitResult.note),
+      "ingredient-explainer",
+    ) as SheetResponse;
+
+    // A guardrail can legitimately strip the ONLY sentence in the personalised
+    // line (e.g. the author's rejection of "locks moisture in"), which would
+    // leave the member with an empty block. When that happens, regenerate once
+    // — the prompt is told the rule — and re-run the guardrails on the result.
+    const blank = (f: FitPayload | null | undefined) => !((f?.for_you ?? "").trim());
+    if (!blank(fitResult.fit) && blank(sanitised.fit)) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "fit",
+        event: "regenerate_after_guardrail_stripped_for_you",
+        term: entry.inci_key,
+      }));
+      body.force = true;
+      try {
+        const fresh = await resolveProfileFit();
+        sanitised = await sanitiseAndLog(
+          buildResponse(fresh, fitResult.note),
+          "ingredient-explainer",
+        ) as SheetResponse;
+      } catch { /* fall through: UI renders its honest fallback */ }
+    }
+    // Never serve a hollow block — the client renders its own honest line.
+    if (blank(sanitised.fit)) sanitised = { ...sanitised, fit: null };
+    return json(200, sanitised);
   } catch (e) {
     return aiErrorResponse(e, "ingredient-explainer");
   }
