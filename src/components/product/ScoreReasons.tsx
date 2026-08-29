@@ -109,7 +109,7 @@ export default function ScoreReasons({
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="flex items-start gap-1.5 text-[13px] leading-snug">
+                <p className="wrap-words flex items-start gap-1.5 text-[13px] leading-snug">
                   <Icon
                     className={cn(
                       "mt-[3px] size-3 shrink-0",
@@ -120,7 +120,7 @@ export default function ScoreReasons({
                   />
                   <GlossaryTerm text={r.factor} className="font-semibold" />
                 </p>
-                <p className="mt-0.5 text-[12.5px] leading-[1.5] text-foreground/70">
+                <p className="wrap-words mt-0.5 text-[12.5px] leading-[1.5] text-foreground/70">
                   <GlossaryRichText text={r.reason} />
                 </p>
               </div>
