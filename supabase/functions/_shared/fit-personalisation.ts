@@ -62,6 +62,18 @@ const STOP = new Set([
   "their","has","have","can","also","more","most","very","essential","gentle","help","helps",
 ]);
 
+/**
+ * Words that are too generic to prove personalisation on their own. Some are
+ * stored profile VALUES ("dry scalp", "medium"), but generic ingredient copy
+ * uses the same words, so a bare match cannot be counted as reasoning about her.
+ */
+const GENERIC = new Set([
+  ...TRAIT_WORDS,
+  "medium", "high", "low", "normal", "moderate", "fine", "thick", "thin", "dry", "oily",
+  "moisture", "moisturising", "cleanser", "cleanse", "surfactant", "plant", "based",
+  "product", "products", "routine", "water", "daily", "weekly", "type", "types", "mixed",
+]);
+
 function words(text: string): string[] {
   return (text ?? "")
     .toLowerCase()
@@ -94,7 +106,7 @@ export function memberDataTokens(input: {
     if (!s || s.length < 3) return;
     if (/^(true|false|null|none|unknown|not sure|other)$/i.test(s)) return;
     for (const w of words(s)) {
-      if (w.length >= 4 && !STOP.has(w)) out.add(w);
+      if (w.length >= 5 && !STOP.has(w) && !GENERIC.has(w)) out.add(w);
     }
   };
 
