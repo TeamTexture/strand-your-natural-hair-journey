@@ -4,6 +4,7 @@ import LoadingDot from "@/components/LoadingDot";
 import { useTrialOffer } from "@/hooks/useTrialOffer";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import {
+  ACQUISITION_PATH,
   isPrePaywallPath,
   isTrialWallAllowedPath,
   walledDestination,
@@ -55,6 +56,18 @@ const TrialWall = ({ children }: { children: ReactNode }) => {
         replace
       />
     );
+  }
+  // About You is done but the one-off attribution question hasn't been asked
+  // yet: it sits between About You and the paywall, so the paywall (and
+  // everything else) bounces here until it is answered or skipped.
+  if (walled && onboarding?.basicComplete && onboarding?.acquisitionAnswered === false) {
+    if (onboardingLoading) return <LoadingDot />;
+    if (location.pathname === ACQUISITION_PATH) return <>{children}</>;
+    if (isPrePaywallPath(location.pathname)) return <>{children}</>;
+    if (isTrialWallAllowedPath(location.pathname) && location.pathname !== TRIAL_PAYWALL_PATH) {
+      return <>{children}</>;
+    }
+    return <Navigate to={ACQUISITION_PATH} replace />;
   }
   if (isTrialWallAllowedPath(location.pathname)) return <>{children}</>;
   if (walled) return <Navigate to={TRIAL_PAYWALL_PATH} replace />;
