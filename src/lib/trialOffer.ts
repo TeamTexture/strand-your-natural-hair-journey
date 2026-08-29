@@ -92,8 +92,14 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
   ]);
   const goalCaptured = (goalRes.count ?? 0) > 0;
   const row = profile as
-    | { trial_offer_at?: string | null; complimentary_access?: boolean | null }
+    | {
+        trial_offer_at?: string | null;
+        complimentary_access?: boolean | null;
+        acquisition_source?: string | null;
+        acquisition_asked_at?: string | null;
+      }
     | null;
+  const acquisitionAnswered = !!(row?.acquisition_source || row?.acquisition_asked_at);
   if (!row?.trial_offer_at) return none;
   if (row.complimentary_access) return none;
 
