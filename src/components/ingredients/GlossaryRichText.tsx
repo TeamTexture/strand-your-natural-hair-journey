@@ -32,7 +32,7 @@ export default function GlossaryRichText({
 
   if (segments.length === 0) return null;
   return (
-    <span className={className}>
+    <span className={cn("wrap-words", className)}>
       {segments.map((seg, i) =>
         seg.name ? (
           <IngredientToken

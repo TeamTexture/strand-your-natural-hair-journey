@@ -173,3 +173,55 @@ export function duplicatesFactualCopy(text: string, ...factual: Array<string | n
   }
   return false;
 }
+
+/**
+ * Last-resort profile explanation for a glossary fit whose generated sentence
+ * was rejected by the science guardrails twice. It makes no unverified claim
+ * about the ingredient: it relates a real stored trait to its established
+ * meaning and explicitly avoids inferring a product effect from category alone.
+ */
+export function deterministicProfileFit(input: {
+  hair?: Record<string, unknown> | null;
+  goals?: Array<Record<string, unknown>> | null;
+  ingredientCategory?: string | null;
+}): string {
+  const hair = input.hair ?? {};
+  const value = (keys: string[]): string | null => {
+    for (const key of keys) {
+      const raw = hair[key];
+      if (typeof raw === "string" && raw.trim() && !/unknown|not sure/i.test(raw)) {
+        return raw.trim().replace(/_/g, " ").toLowerCase();
+      }
+    }
+    return null;
+  };
+  const porosity = value(["porosity", "hair_porosity"]);
+  const density = value(["density", "hair_density"]);
+  const elasticity = value(["elasticity", "hair_elasticity"]);
+  const goal = (input.goals ?? []).map((g) => {
+    const raw = g?.title ?? g?.target_text;
+    return typeof raw === "string" ? raw.trim() : "";
+  }).find(Boolean) ?? null;
+  const category = (input.ingredientCategory ?? "").toLowerCase();
+
+  if (porosity) {
+    const prefix = `Your ${porosity} porosity describes how your cuticle takes in and releases water.`;
+    if (/active|peptide|protein/.test(category)) {
+      return `${prefix} This cosmetic ingredient acts at the hair or scalp surface${goal ? `, so it has not been counted as support for your ${goal.toLowerCase()} goal` : ""}.`;
+    }
+    if (/surfactant|cleans/.test(category)) {
+      return `${prefix} This ingredient's cleansing role does not change that strand trait, so the two are considered separately.`;
+    }
+    return `${prefix} Its ingredient category alone does not establish a direct effect on that trait, so it has not counted for or against it.`;
+  }
+  if (elasticity) {
+    return `Your ${elasticity} elasticity records how your strands stretch and return. This ingredient's category alone does not establish a direct effect on that trait, so it has not counted for or against it.`;
+  }
+  if (density) {
+    return `Your ${density} density records how many strands grow within an area of scalp. This ingredient's category alone does not establish a direct effect on that count, so it has not counted for or against it.`;
+  }
+  if (goal) {
+    return `Your recorded goal is ${goal.toLowerCase()}. This ingredient's category alone does not establish that it advances that goal, so it has not been counted for or against it.`;
+  }
+  return "Your stored profile does not establish a direct relationship with this ingredient, so it has not counted for or against your hair.";
+}

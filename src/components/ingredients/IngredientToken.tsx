@@ -101,7 +101,7 @@ export function IngredientToken({
         ctx.openIngredient(name, ctx.productId);
       }}
       className={cn(
-        "inline text-left font-medium text-foreground underline decoration-dotted decoration-primary/70 decoration-1 underline-offset-2 hover:decoration-primary transition",
+        "glossary-token inline whitespace-normal text-left font-medium text-foreground underline decoration-dotted decoration-primary/70 decoration-1 underline-offset-2 hover:decoration-primary transition",
         className,
       )}
     >
@@ -133,7 +133,7 @@ export function GlossaryPhrase({
   );
 
   if (!parts.some((p) => p.name)) {
-    return <span className={cn("font-semibold text-foreground", className)}>{text}</span>;
+    return <span className={cn("wrap-words font-semibold text-foreground", className)}>{text}</span>;
   }
   return (
     <>
@@ -141,7 +141,7 @@ export function GlossaryPhrase({
         p.name ? (
           <IngredientToken key={`gp-${i}`} name={p.name} label={p.text} className={className} />
         ) : (
-          <span key={`gp-${i}`} className={cn("font-semibold text-foreground", className)}>
+          <span key={`gp-${i}`} className={cn("wrap-words font-semibold text-foreground", className)}>
             {p.text}
           </span>
         ),

@@ -100,11 +100,11 @@ const ToolProfile = () => {
               wrapperClassName="size-[84px] rounded-[12px] overflow-hidden bg-secondary shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-[19px] leading-tight [overflow-wrap:anywhere]">
+              <h1 className="wrap-words font-display text-[19px] leading-tight">
                 {tool.name}
               </h1>
               {tool.brand && (
-                <p className="text-[13px] text-muted-foreground [overflow-wrap:anywhere]">
+                <p className="wrap-words text-[13px] text-muted-foreground">
                   {tool.brand}
                 </p>
               )}
@@ -166,7 +166,7 @@ const ToolProfile = () => {
                   ) : (
                     <Check className="mt-[3px] size-3.5 shrink-0 text-primary" />
                   )}
-                  <p className="text-[12.5px] font-body leading-snug text-foreground/85 [overflow-wrap:anywhere]">
+                  <p className="wrap-words min-w-0 flex-1 text-[12.5px] font-body leading-snug text-foreground/85">
                     <span className="font-display text-[13px] text-foreground">{r.factor}</span>
                     {r.reason ? ` — ${r.reason}` : ""}
                   </p>
@@ -182,11 +182,11 @@ const ToolProfile = () => {
             <ul className="space-y-2">
               {features.map((f) => (
                 <li key={f.name}>
-                  <p className="font-display text-[13.5px] leading-tight [overflow-wrap:anywhere]">
+                  <p className="wrap-words font-display text-[13.5px] leading-tight">
                     {f.name}
                   </p>
                   {f.detail && (
-                    <p className="text-[12.5px] font-body leading-snug text-foreground/80 [overflow-wrap:anywhere]">
+                    <p className="wrap-words text-[12.5px] font-body leading-snug text-foreground/80">
                       {f.detail}
                     </p>
                   )}
@@ -205,7 +205,7 @@ const ToolProfile = () => {
                   <span className="mt-[1px] text-[11px] font-body font-semibold text-primary">
                     {i + 1}
                   </span>
-                  <p className="text-[12.5px] font-body leading-snug text-foreground/85 [overflow-wrap:anywhere]">
+                  <p className="wrap-words min-w-0 flex-1 text-[12.5px] font-body leading-snug text-foreground/85">
                     {u}
                   </p>
                 </li>
@@ -221,7 +221,7 @@ const ToolProfile = () => {
               {cautions.map((w) => (
                 <li key={w.slice(0, 16)} className="flex gap-2">
                   <AlertTriangle className="mt-[3px] size-3.5 shrink-0 text-muted-foreground" />
-                  <p className="text-[12.5px] font-body leading-snug text-foreground/80 [overflow-wrap:anywhere]">
+                  <p className="wrap-words min-w-0 flex-1 text-[12.5px] font-body leading-snug text-foreground/80">
                     {w}
                   </p>
                 </li>

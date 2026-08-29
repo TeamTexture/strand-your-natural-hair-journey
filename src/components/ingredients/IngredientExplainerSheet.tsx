@@ -99,7 +99,7 @@ export default function IngredientExplainerSheet({
             its own line, full width, so nothing is squeezed into a right-hand
             column beside the close button. */}
         <SheetHeader className="block space-y-1 pr-8 text-left">
-          <SheetTitle className="font-display text-[20px] leading-tight [overflow-wrap:break-word]">
+          <SheetTitle className="wrap-words font-display text-[20px] leading-tight">
             {head.display_name}
           </SheetTitle>
           {head.phonetic && (

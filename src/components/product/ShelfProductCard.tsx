@@ -121,7 +121,7 @@ const ShelfProductCard = ({
             <p className="text-[11px] text-muted-foreground font-body break-words mt-0.5">{brand}</p>
           )}
           {description && (
-            <p className="mt-1 text-[12px] font-body text-foreground/75 leading-snug line-clamp-2 [overflow-wrap:anywhere]">
+            <p className="wrap-words mt-1 text-[12px] font-body text-foreground/75 leading-snug line-clamp-2">
               {description}
             </p>
           )}

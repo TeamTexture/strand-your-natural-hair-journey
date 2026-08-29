@@ -41,10 +41,12 @@ import {
   normaliseInciKey,
 } from "../_shared/ingredient-copy.ts";
 import {
+  deterministicProfileFit,
   duplicatesFactualCopy,
   memberDataTokens,
   referencesMemberData,
 } from "../_shared/fit-personalisation.ts";
+import { checkContentIntegrity } from "../_shared/content-integrity.ts";
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
@@ -515,8 +517,9 @@ const FIT_SCHEMA = {
 async function generateFit(args: {
   ingredient: GlossaryRow;
   userPayload: Record<string, unknown>;
+  rejectionRules?: string[];
 }): Promise<FitPayload> {
-  const { ingredient, userPayload } = args;
+  const { ingredient, userPayload, rejectionRules = [] } = args;
   const req = await buildClaudeRequest({
     surface: "ingredient-explainer",
     function_kind: "ingredient-explainer",
@@ -532,7 +535,7 @@ async function generateFit(args: {
         : ingredient.kind === "class"
         ? "\n\nThis is a FAMILY of ingredients: reason about how the family as a whole behaves on her hair, not about one molecule."
         : ""
-    }
+    }${rejectionRules.length > 0 ? `\n\nYour previous answer was rejected for these exact reasons:\n- ${rejectionRules.join("\n- ")}\nRewrite the relationship; do not repeat the rejected claim.` : ""}
 
 Term: ${ingredient.display_name}${ingredient.category ? ` (${ingredient.category})` : ""}
 What it is: ${ingredient.what_it_is ?? ""}
@@ -1017,6 +1020,14 @@ Deno.serve(async (req) => {
     // cached. Never used when a product analysis exists.
     const resolveProfileFit = async (): Promise<FitPayload> => {
       const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
+      const fitIntegrity = (payload: FitPayload) => checkContentIntegrity({
+        functionName: "ingredient-explainer",
+        surface: "ingredient-explainer-fit",
+        userId: user.id,
+        subject: term.inci_key,
+        fields: [{ field: "fit.for_you", text: payload.for_you }],
+      });
+
       if (!body.force) {
         const { data: cached } = await supabase
           .from("ai_summaries")
@@ -1028,7 +1039,9 @@ Deno.serve(async (req) => {
         if (
           payload &&
           payload._model_version === FIT_MODEL_VERSION &&
-          payload._profile_fingerprint === fingerprint
+          payload._profile_fingerprint === fingerprint &&
+          payload.for_you?.trim() &&
+          fitIntegrity(payload).ok
         ) {
           return payload;
         }
@@ -1068,8 +1081,27 @@ Deno.serve(async (req) => {
       // never something to cache and serve. Ask once more, then give up rather
       // than persist an empty personalised line.
       let generated = await generateFit(args);
-      if (!generated.for_you.trim()) generated = await generateFit(args);
-      if (!generated.for_you.trim()) throw new Error("fit generation returned no personalised line");
+      let integrity = fitIntegrity(generated);
+      if (!generated.for_you.trim() || !integrity.ok) {
+        generated = await generateFit({
+          ...args,
+          rejectionRules: generated.for_you.trim()
+            ? integrity.problems
+            : ["The personalised explanation was empty."],
+        });
+        integrity = fitIntegrity(generated);
+      }
+      if (!generated.for_you.trim() || !integrity.ok) {
+        generated = {
+          tone: "warn",
+          for_you: deterministicProfileFit({
+            hair,
+            goals: (goalRes.data ?? []) as Array<Record<string, unknown>>,
+            ingredientCategory: term.category,
+          }),
+          usage_tip: "",
+        };
+      }
       generated._model_version = FIT_MODEL_VERSION;
       generated._profile_fingerprint = fingerprint;
       generated._generated_at = new Date().toISOString();
@@ -1210,7 +1242,27 @@ Deno.serve(async (req) => {
           buildResponse(fresh, fitResult.note),
           "ingredient-explainer",
         ) as SheetResponse;
-      } catch { /* fall through: UI renders its honest fallback */ }
+      } catch { /* deterministic fallback below still prevents a hollow block */ }
+    }
+    if (blank(sanitised.fit)) {
+      const { hair } = await profileFingerprint(supabase, user.id);
+      const { data: goals } = await supabase.from("user_goals")
+        .select("title, target_text, status")
+        .eq("user_id", user.id).neq("status", "complete");
+      const fallback: FitPayload = {
+        tone: "warn",
+        for_you: deterministicProfileFit({
+          hair,
+          goals: (goals ?? []) as Array<Record<string, unknown>>,
+          ingredientCategory: entry.category,
+        }),
+        usage_tip: "",
+        _source: "profile",
+      };
+      sanitised = await sanitiseAndLog(
+        buildResponse(fallback, fitResult.note),
+        "ingredient-explainer",
+      ) as SheetResponse;
     }
     // Never serve a hollow block — the client renders its own honest line.
     if (blank(sanitised.fit)) sanitised = { ...sanitised, fit: null };
