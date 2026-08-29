@@ -210,6 +210,17 @@
     word-wrap: normal;
     hyphens: none;
   }
+  /* Category / kind badges ("Surfactant", "Conditioning polymer", "Hair
+   * science"). These are short labels, so they must wrap at WORD boundaries
+   * only — the global `overflow-wrap: anywhere` otherwise splits them mid-word
+   * ("surfacta / nt") inside any narrow column. */
+  .term-badge {
+    overflow-wrap: normal;
+    word-break: keep-all;
+    word-wrap: normal;
+    hyphens: none;
+    max-width: 100%;
+  }
   .tracking-strand {
     letter-spacing: 0.2em;
   }

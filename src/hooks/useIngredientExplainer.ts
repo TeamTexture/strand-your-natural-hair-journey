@@ -31,6 +31,8 @@ export interface IngredientExplainer {
     _source?: "product_analysis" | "profile";
   } | null;
   fit_note?: "not_flagged" | null;
+  /** True when no verified glossary entry exists for the captured name. */
+  unresolved?: boolean;
 }
 
 export interface ShelfMatch {
@@ -61,6 +63,10 @@ export function useIngredientExplainer(
     queryKey: ["ingredient-explainer", key, userProductId ?? null, user?.id],
     enabled: Boolean(key && user?.id),
     staleTime: 1000 * 60 * 30,
+    // A single transient function failure must not leave the member staring at
+    // "we couldn't load this ingredient" — retry quietly before showing that.
+    retry: 2,
+    retryDelay: (attempt) => 600 * (attempt + 1),
     queryFn: async (): Promise<IngredientExplainer> => {
       const { data, error } = await supabase.functions.invoke("ingredient-explainer", {
         body: { mode: "sheet", name, userProductId: userProductId ?? null },

@@ -548,7 +548,8 @@ RULES:
 1. for_you: MAX 45 words, and it MUST name a real data point from the supplied profile. If the profile is too sparse to personalise honestly, say what the ingredient suits in terms of the traits they DO have — never invent a trait.
 2. usage_tip: MAX 30 words, technique only, about this ingredient in the products they already use. HARD BAN on referencing any other product, product type, category, brand, accessory or routine step, and on frequency caps or prohibitions.
 3. ${NO_MEDICAL_RULE}
-4. ${NO_SOURCE_NAMING_RULE}`,
+4. ${NO_SOURCE_NAMING_RULE}
+5. NEVER say a product or ingredient seals, locks, traps or holds moisture IN. The author's position: it forms a barrier around the water already in the hair and slows evaporation. Sentences using sealing/locking/trapping language are removed wholesale, which leaves the member with nothing — so write the barrier/slower-evaporation wording first time.`,
     user_payload: userPayload,
     force_topic_ids: ["porosity", "scalp-conditions"],
     rag_query: `${ingredient.display_name} ${ingredient.category ?? ""} suitability for textured hair porosity density`,
@@ -844,14 +845,58 @@ Deno.serve(async (req) => {
     if (!rawName) return json(400, { error: "name is required" });
     const key = normaliseInciKey(rawName);
 
-    const glossary = await resolveGlossary(supabase, [rawName]);
+    // RELIABILITY: a tap must ALWAYS render something. Glossary resolution,
+    // definition fill, role and fit are each allowed to fail independently —
+    // one model hiccup, cap or timeout must never turn the whole sheet into
+    // "we couldn't load this ingredient just now".
+    let glossary = new Map<string, GlossaryRow>();
+    try {
+      glossary = await resolveGlossary(supabase, [rawName]);
+    } catch (e) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "glossary",
+        soft_error: e instanceof Error ? e.message : String(e),
+        name: rawName,
+      }));
+    }
     let entry = glossary.get(key);
-    // A compound label or descriptive phrase resolves to nothing by design —
-    // the client renders it as plain text rather than a token that 404s.
-    if (!entry) return json(404, { error: "ingredient could not be resolved" });
+    // A compound label or descriptive phrase resolves to nothing by design, and
+    // a generation failure must not look different to the member: serve the
+    // captured name with an honest "no verified entry yet" note.
+    if (!entry) {
+      return json(200, {
+        glossary: {
+          id: "",
+          inci_key: key,
+          display_name: rawName.replace(/\s+/g, " "),
+          phonetic: null,
+          category: null,
+          what_it_is: null,
+          aliases: [],
+          is_common: false,
+          kind: "molecule" as const,
+        },
+        kind: "molecule",
+        role_in_product: null,
+        product_category: body.productCategory ?? null,
+        fit: null,
+        fit_note: null,
+        unresolved: true,
+      });
+    }
 
     // Seeded class/concept rows carry no definition until first tapped.
-    entry = await fillTermDefinition(entry);
+    try {
+      entry = await fillTermDefinition(entry);
+    } catch (e) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "term-definition",
+        soft_error: e instanceof Error ? e.message : String(e),
+        name: rawName,
+      }));
+    }
     const kind = entry.kind ?? "molecule";
 
     // SPEED: layer 2 (role in this product) and layer 3 (per-user fit) are
@@ -996,7 +1041,7 @@ Deno.serve(async (req) => {
         name: e.name,
         severity: e.severity,
       }));
-      const generated = await generateFit({
+      const args = {
         ingredient: term,
         userPayload: {
           ingredient: {
@@ -1012,11 +1057,18 @@ Deno.serve(async (req) => {
             topical_sensitivities: topicalSensitivities.slice(0, 40),
           },
         },
-      });
+      };
+      // The explanation IS the answer: a blank `for_you` is a failed generation,
+      // never something to cache and serve. Ask once more, then give up rather
+      // than persist an empty personalised line.
+      let generated = await generateFit(args);
+      if (!generated.for_you.trim()) generated = await generateFit(args);
+      if (!generated.for_you.trim()) throw new Error("fit generation returned no personalised line");
       generated._model_version = FIT_MODEL_VERSION;
       generated._profile_fingerprint = fingerprint;
       generated._generated_at = new Date().toISOString();
       generated._source = "profile";
+
 
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -1035,25 +1087,88 @@ Deno.serve(async (req) => {
       return generated;
     };
 
+    // NO BOILERPLATE. "Not flagged in this product's analysis" is a fact about
+    // the analysis, never an answer to "what does this mean for MY hair".
+    //
+    //  - A CONCEPT or a CLASS (cuticle, porosity, surfactants, protein) is a
+    //    property of her hair or a family of ingredients — a product analysis
+    //    never scores it, so it always resolves against her stored profile.
+    //  - A MOLECULE the product analysis DID single out keeps that verdict (it
+    //    is the authoritative, product-specific line).
+    //  - A MOLECULE the analysis did not single out falls back to the cached
+    //    profile-level line, so she still gets something specific to her hair
+    //    rather than a non-answer. The note travels with it so the UI can frame
+    //    it as general-to-her rather than a verdict on this formula.
     const resolveFit = async (): Promise<{ fit: FitPayload | null; note: string | null }> => {
-      if (body.userProductId) return await resolveProductFit();
+      if (body.userProductId && kind === "molecule") {
+        const product = await resolveProductFit();
+        if (product.fit) return product;
+        return { fit: await resolveProfileFit(), note: product.note };
+      }
       return { fit: await resolveProfileFit(), note: null };
     };
 
-    const [roleResult, fitResult] = await Promise.all([resolveRole(), resolveFit()]);
+    const [roleResult, fitResult] = await Promise.all([
+      resolveRole().catch((e) => {
+        console.log(JSON.stringify({
+          function: "ingredient-explainer",
+          layer: "role",
+          soft_error: e instanceof Error ? e.message : String(e),
+        }));
+        return { role: null, category: body.productCategory ?? null };
+      }),
+      resolveFit().catch((e) => {
+        console.log(JSON.stringify({
+          function: "ingredient-explainer",
+          layer: "fit",
+          soft_error: e instanceof Error ? e.message : String(e),
+        }));
+        return { fit: null, note: null };
+      }),
+    ]);
     const roleInProduct = roleResult.role;
     const productCategory = roleResult.category;
 
 
-    const response = {
+    const buildResponse = (fit: FitPayload | null, note: string | null) => ({
       glossary: { ...entry, display_name: displayName },
       kind,
       role_in_product: roleInProduct,
       product_category: productCategory,
-      fit: fitResult.fit,
-      fit_note: fitResult.note,
-    };
-    return json(200, await sanitiseAndLog(response, "ingredient-explainer"));
+      fit,
+      fit_note: note,
+    });
+
+    type SheetResponse = ReturnType<typeof buildResponse>;
+    let sanitised = await sanitiseAndLog(
+      buildResponse(fitResult.fit, fitResult.note),
+      "ingredient-explainer",
+    ) as SheetResponse;
+
+    // A guardrail can legitimately strip the ONLY sentence in the personalised
+    // line (e.g. the author's rejection of "locks moisture in"), which would
+    // leave the member with an empty block. When that happens, regenerate once
+    // — the prompt is told the rule — and re-run the guardrails on the result.
+    const blank = (f: FitPayload | null | undefined) => !((f?.for_you ?? "").trim());
+    if (!blank(fitResult.fit) && blank(sanitised.fit)) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "fit",
+        event: "regenerate_after_guardrail_stripped_for_you",
+        term: entry.inci_key,
+      }));
+      body.force = true;
+      try {
+        const fresh = await resolveProfileFit();
+        sanitised = await sanitiseAndLog(
+          buildResponse(fresh, fitResult.note),
+          "ingredient-explainer",
+        ) as SheetResponse;
+      } catch { /* fall through: UI renders its honest fallback */ }
+    }
+    // Never serve a hollow block — the client renders its own honest line.
+    if (blank(sanitised.fit)) sanitised = { ...sanitised, fit: null };
+    return json(200, sanitised);
   } catch (e) {
     return aiErrorResponse(e, "ingredient-explainer");
   }
