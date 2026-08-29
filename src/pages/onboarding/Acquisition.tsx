@@ -50,6 +50,7 @@ const OPTIONS: { value: string; label: string; icon: React.ComponentType<{ class
 const Acquisition = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const invalidateOnboarding = useInvalidateOnboardingStatus();
   const [checking, setChecking] = useState(true);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -96,6 +97,9 @@ const Acquisition = () => {
       setSaving(false);
       return;
     }
+    // The TrialWall reads acquisitionAnswered from this shared cached query —
+    // refresh it before navigating or the wall bounces straight back here.
+    await invalidateOnboarding();
     navigate(TRIAL_PAYWALL_PATH, { replace: true });
   };
 
