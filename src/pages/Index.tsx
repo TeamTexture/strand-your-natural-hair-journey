@@ -118,6 +118,7 @@ const Index = () => {
         ? walledDestination({
             basicComplete: onboardingStatus.basicComplete,
             goalCaptured: trialState.goalCaptured,
+            acquisitionAnswered: onboardingStatus.acquisitionAnswered,
           })
         : onboardingStatus.completed
         ? hasAccess
