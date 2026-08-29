@@ -100,11 +100,11 @@ const ToolProfile = () => {
               wrapperClassName="size-[84px] rounded-[12px] overflow-hidden bg-secondary shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-[19px] leading-tight [overflow-wrap:anywhere]">
+              <h1 className="wrap-words font-display text-[19px] leading-tight">
                 {tool.name}
               </h1>
               {tool.brand && (
-                <p className="text-[13px] text-muted-foreground [overflow-wrap:anywhere]">
+                <p className="wrap-words text-[13px] text-muted-foreground">
                   {tool.brand}
                 </p>
               )}
