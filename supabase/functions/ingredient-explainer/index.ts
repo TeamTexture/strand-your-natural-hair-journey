@@ -548,7 +548,8 @@ RULES:
 1. for_you: MAX 45 words, and it MUST name a real data point from the supplied profile. If the profile is too sparse to personalise honestly, say what the ingredient suits in terms of the traits they DO have — never invent a trait.
 2. usage_tip: MAX 30 words, technique only, about this ingredient in the products they already use. HARD BAN on referencing any other product, product type, category, brand, accessory or routine step, and on frequency caps or prohibitions.
 3. ${NO_MEDICAL_RULE}
-4. ${NO_SOURCE_NAMING_RULE}`,
+4. ${NO_SOURCE_NAMING_RULE}
+5. NEVER say a product or ingredient seals, locks, traps or holds moisture IN. The author's position: it forms a barrier around the water already in the hair and slows evaporation. Sentences using sealing/locking/trapping language are removed wholesale, which leaves the member with nothing — so write the barrier/slower-evaporation wording first time.`,
     user_payload: userPayload,
     force_topic_ids: ["porosity", "scalp-conditions"],
     rag_query: `${ingredient.display_name} ${ingredient.category ?? ""} suitability for textured hair porosity density`,
