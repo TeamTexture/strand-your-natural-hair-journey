@@ -37,6 +37,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import UnifiedCampaignCalendar from "@/components/admin/UnifiedCampaignCalendar";
+import AdminAcquisitionBreakdown from "@/components/admin/AdminAcquisitionBreakdown";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAdminDropOffCounts } from "@/hooks/useAdminDropOffCounts";
@@ -508,6 +509,12 @@ const AdminHub = () => {
               />
 
             </div>
+
+            <SectionLabel className="!px-0">Where members find us</SectionLabel>
+            <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
+              Answers to "How did you find STRAND?" during onboarding — biggest channels first.
+            </p>
+            <AdminAcquisitionBreakdown />
 
             <SectionLabel className="!px-0">Campaign calendar</SectionLabel>
             <p className="text-[11px] text-muted-foreground font-body -mt-2 leading-snug">
