@@ -17,6 +17,7 @@ import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
 
 
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
+import AcquisitionAskPrompt from "@/components/onboarding/AcquisitionAskPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
 import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
 
