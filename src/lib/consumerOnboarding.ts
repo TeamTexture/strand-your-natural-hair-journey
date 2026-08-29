@@ -51,7 +51,7 @@ export async function getConsumerOnboardingStatus(userId: string) {
   const [profileRes, healthRes, hairRes, styleRes, bloodResultsRes, bloodPanelsRes, proRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("onboarding_completed_at, avatar_url, display_name, phone_number, birth_year, postcode, country")
+      .select("onboarding_completed_at, avatar_url, display_name, phone_number, birth_year, postcode, country, acquisition_source, acquisition_asked_at")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase

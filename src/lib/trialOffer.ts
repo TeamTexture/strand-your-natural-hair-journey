@@ -55,6 +55,8 @@ export type TrialOfferState = {
   trialEligible: boolean;
   /** True when step 1 (goal & challenges) is already answered. */
   goalCaptured: boolean;
+  /** True once the attribution question has been answered or skipped. */
+  acquisitionAnswered: boolean;
 };
 
 /**

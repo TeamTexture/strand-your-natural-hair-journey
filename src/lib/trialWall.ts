@@ -61,7 +61,14 @@ export function isTrialWallAllowedPath(pathname: string) {
 export function walledDestination(opts: {
   basicComplete: boolean;
   goalCaptured: boolean;
+  /**
+   * Whether the attribution question has been answered or skipped. Omitted by
+   * legacy callers — treated as answered so they keep their old behaviour.
+   */
+  acquisitionAnswered?: boolean;
 }): string {
-  if (opts.basicComplete) return TRIAL_PAYWALL_PATH;
+  if (opts.basicComplete) {
+    return opts.acquisitionAnswered === false ? ACQUISITION_PATH : TRIAL_PAYWALL_PATH;
+  }
   return opts.goalCaptured ? TRIAL_REGISTRATION_PATH : TRIAL_GOAL_PATH;
 }
