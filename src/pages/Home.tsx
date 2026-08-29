@@ -454,7 +454,9 @@ const Home = () => {
 
   return (
     <ScreenLayout bottomNav>
+      <AcquisitionAskPrompt />
       <ProfileReconfirmPrompt />
+
       <PersonalisedOffersCard />
       {/* greeting */}
       <header className="px-5 pt-3 pb-2 flex items-start justify-between gap-2">
