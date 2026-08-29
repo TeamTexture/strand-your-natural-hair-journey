@@ -125,17 +125,26 @@ export function memberDataTokens(input: {
 export function referencesMemberData(text: string, tokens: string[]): boolean {
   const w = new Set(words(text));
   if (w.size === 0) return false;
+
+  // A stored value of hers appearing verbatim is unambiguous personalisation.
+  const tokenSet = new Set(tokens);
+  for (const word of w) {
+    if (word.length >= 5 && tokenSet.has(word)) return true;
+  }
+
+  // A trait noun on its own is NOT enough — generic ingredient copy says
+  // "cleanses the scalp and hair" all day. It only counts when the sentence is
+  // addressed to her hair specifically ("your porosity", "you shed at the ends").
+  const addressesHer = /\byour\b|\byours\b|\byou\b/i.test(text ?? "");
+  if (!addressesHer) return false;
   for (const t of TRAIT_WORDS) {
     for (const word of w) {
       if (word === t || word.startsWith(t)) return true;
     }
   }
-  const tokenSet = new Set(tokens);
-  for (const word of w) {
-    if (word.length >= 4 && tokenSet.has(word)) return true;
-  }
   return false;
 }
+
 
 /**
  * True when the personalised line is effectively a rephrase of the factual
