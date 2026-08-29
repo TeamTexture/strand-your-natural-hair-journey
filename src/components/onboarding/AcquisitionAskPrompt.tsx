@@ -17,7 +17,7 @@ import { ACQUISITION_OPTIONS } from "@/components/onboarding/acquisitionOptions"
  * reach it naturally, so it is offered once as a light interstitial over Home.
  * It shows only when:
  *   - the member is a consumer (not a professional, brand or admin account),
- *   - onboarding is already finished,
+ *   - she has reached Home (every onboarding/paywall gate runs before it),
  *   - acquisition_source AND acquisition_asked_at are both still empty,
  *   - the app is not in admin shadow view (never writes as another member).
  *
@@ -41,19 +41,16 @@ export function useAcquisitionAsk() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("acquisition_source, acquisition_asked_at, onboarding_completed_at")
+        .select("acquisition_source, acquisition_asked_at")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       const row = data as {
         acquisition_source?: string | null;
         acquisition_asked_at?: string | null;
-        onboarding_completed_at?: string | null;
       } | null;
       if (!row) return false;
-      return (
-        !!row.onboarding_completed_at && !row.acquisition_source && !row.acquisition_asked_at
-      );
+      return !row.acquisition_source && !row.acquisition_asked_at;
     },
   });
 
