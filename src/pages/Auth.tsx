@@ -59,6 +59,7 @@ const getPostSignInTarget = async (userId: string, requestedNext: string | null)
     return walledDestination({
       basicComplete: onboardingStatus.basicComplete,
       goalCaptured: trialState.goalCaptured,
+      acquisitionAnswered: onboardingStatus.acquisitionAnswered,
     });
   }
   if (!onboardingStatus.completed) return onboardingStatus.entryPath;

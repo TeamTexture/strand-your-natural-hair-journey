@@ -4761,6 +4761,8 @@ export type Database = {
       profiles: {
         Row: {
           access_restricted: boolean
+          acquisition_asked_at: string | null
+          acquisition_source: string | null
           avatar_url: string | null
           birth_year: number | null
           complimentary_access: boolean
@@ -4803,6 +4805,8 @@ export type Database = {
         }
         Insert: {
           access_restricted?: boolean
+          acquisition_asked_at?: string | null
+          acquisition_source?: string | null
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
@@ -4845,6 +4849,8 @@ export type Database = {
         }
         Update: {
           access_restricted?: boolean
+          acquisition_asked_at?: string | null
+          acquisition_source?: string | null
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean

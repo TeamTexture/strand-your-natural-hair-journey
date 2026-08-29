@@ -47,7 +47,14 @@ const GUIDES: Record<string, Guide> = {
     label: "About you",
     what: "Tell us who you are and where you are — a few basics only.",
     why: "Your location sets your water hardness, which changes how your hair behaves.",
-    next: "Next: your health profile.",
+    next: "Next: one quick question, then your free trial.",
+  },
+  "/onboarding/acquisition": {
+    step: 2,
+    optional: true,
+    label: "Quick question",
+    what: "One optional question — skip it if you'd rather not say.",
+    next: "Next: start your free trial.",
   },
   "/onboarding/profile-step-2": {
     step: 3,

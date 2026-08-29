@@ -13,6 +13,7 @@ import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
  */
 export const ONBOARDING_PREV: Record<string, string> = {
   "/onboarding/profile-step-1": "/onboarding/goal",
+  "/onboarding/acquisition": "/onboarding/profile-step-1",
   "/onboarding/profile-step-2": "/onboarding/profile-step-1",
   "/onboarding/profile-supplements": "/onboarding/profile-step-2",
   "/onboarding/profile-step-3-hair": "/onboarding/profile-supplements",

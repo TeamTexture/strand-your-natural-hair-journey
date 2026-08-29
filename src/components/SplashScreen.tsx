@@ -65,6 +65,7 @@ const SplashScreen = () => {
       return walledDestination({
         basicComplete: onboardingStatus.basicComplete,
         goalCaptured: trialState.goalCaptured,
+        acquisitionAnswered: onboardingStatus.acquisitionAnswered,
       });
     }
     const hasAccess = await getConsumerAccessForUser(userId, roles);

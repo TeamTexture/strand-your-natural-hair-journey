@@ -64,7 +64,12 @@ const OnboardingGateInner = ({ children }: { children: ReactNode }) => {
     // The goal/challenge step is the first screen and gates nothing, so it is
     // always reachable — a new member must not be bounced past it.
     const allowed = new Set(["/onboarding/goal", "/onboarding/profile-step-1"]);
-    if (status?.basicComplete) allowed.add("/onboarding/profile-step-2");
+    if (status?.basicComplete) {
+      allowed.add("/onboarding/profile-step-2");
+      // The optional attribution question sits between About You and the
+      // paywall — reachable exactly then, never a gate of its own.
+      allowed.add("/onboarding/acquisition");
+    }
     // The pick-up-where-you-left-off prompt is reachable from the moment the
     // hair/blood section opens, so a returning member can always get back in.
     if (status?.healthComplete) {

@@ -55,6 +55,8 @@ export type TrialOfferState = {
   trialEligible: boolean;
   /** True when step 1 (goal & challenges) is already answered. */
   goalCaptured: boolean;
+  /** True once the attribution question has been answered or skipped. */
+  acquisitionAnswered: boolean;
 };
 
 /**
@@ -70,11 +72,11 @@ export type TrialOfferState = {
  * all). A member must never tap "Start my 3 days free" and be charged today.
  */
 export async function getTrialOfferState(userId: string): Promise<TrialOfferState> {
-  const none: TrialOfferState = { walled: false, trialEligible: false, goalCaptured: false };
+  const none: TrialOfferState = { walled: false, trialEligible: false, goalCaptured: false, acquisitionAnswered: true };
   const [{ data: profile }, { data: sub }, { data: roleRows }, goalRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("trial_offer_at, complimentary_access")
+      .select("trial_offer_at, complimentary_access, acquisition_source, acquisition_asked_at")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
@@ -90,8 +92,14 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
   ]);
   const goalCaptured = (goalRes.count ?? 0) > 0;
   const row = profile as
-    | { trial_offer_at?: string | null; complimentary_access?: boolean | null }
+    | {
+        trial_offer_at?: string | null;
+        complimentary_access?: boolean | null;
+        acquisition_source?: string | null;
+        acquisition_asked_at?: string | null;
+      }
     | null;
+  const acquisitionAnswered = !!(row?.acquisition_source || row?.acquisition_asked_at);
   if (!row?.trial_offer_at) return none;
   if (row.complimentary_access) return none;
 
@@ -110,7 +118,7 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
 
   const trialEligible =
     !s?.stripe_subscription_id && !s?.trial_end && (!s?.status || s.status === "none");
-  return { walled: true, trialEligible, goalCaptured };
+  return { walled: true, trialEligible, goalCaptured, acquisitionAnswered };
 }
 
 /**
