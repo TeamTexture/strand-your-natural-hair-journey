@@ -2851,6 +2851,66 @@ export type Database = {
           },
         ]
       }
+      hair_concepts: {
+        Row: {
+          created_at: string
+          definition: string
+          domain: string
+          id: string
+          label: string
+          manuscript_source: string
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          domain: string
+          id: string
+          label: string
+          manuscript_source: string
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          domain?: string
+          id?: string
+          label?: string
+          manuscript_source?: string
+        }
+        Relationships: []
+      }
+      hair_relationships: {
+        Row: {
+          created_at: string
+          id: string
+          manuscript_source: string
+          object: string
+          polarity: string
+          reason: string
+          relation: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          manuscript_source: string
+          object: string
+          polarity: string
+          reason: string
+          relation: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manuscript_source?: string
+          object?: string
+          polarity?: string
+          reason?: string
+          relation?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       hair_strand_summaries: {
         Row: {
           action_plan: Json
