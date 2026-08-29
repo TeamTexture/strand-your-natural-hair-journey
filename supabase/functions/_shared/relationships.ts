@@ -235,7 +235,16 @@ export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
       "forbidden",
     ),
     polarity: "forbidden",
-    detect: (s) => POROSITY.test(s) && OILY.test(s) && CAUSAL.test(s) && !MOIST.test(s.replace(OILY, "")),
+    detect: (s) =>
+      // A strand property stated as the reason oil/sebum behaves a certain way,
+      // in either direction. Mentioning oils AND porosity in one sentence is
+      // fine ("an oil slows moisture loss on high porosity hair") — asserting
+      // that porosity governs oil is not.
+      (POROSITY.test(s) &&
+        /\b(los(?:e|es|ing|t)|strips?|stripp\w+|produces?|holds?|retains?|need\w*)\b[^.]{0,30}\b(oil|oils|sebum|lipids?|grease)\b/.test(s)) ||
+      (/\b(oil|oils|sebum|lipids?|grease|oiliness)\b/.test(s) &&
+        /\b(because|due to|since|thanks to|as a result of|driven by|caused by)\b[^.]{0,40}\b(porosity|porous|cuticle)\b/.test(s)),
+
   },
   {
     ...rel(
