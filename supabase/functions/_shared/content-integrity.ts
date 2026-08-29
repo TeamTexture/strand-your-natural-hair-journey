@@ -1,3 +1,5 @@
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 // CONTENT INTEGRITY — the single guardrail every member-facing generation runs
 // ===========================================================================
 // 2026-08-28. Today produced three separate fabrication incidents on three
