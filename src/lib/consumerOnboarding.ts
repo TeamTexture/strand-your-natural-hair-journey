@@ -104,6 +104,12 @@ export async function getConsumerOnboardingStatus(userId: string) {
   const health = healthRes.data;
   const hair = hairRes.data;
   const style = styleRes.data;
+  // The attribution question counts as settled when it was answered OR skipped.
+  const acquisitionAnswered = !!(
+    (profile as { acquisition_source?: string | null; acquisition_asked_at?: string | null } | null)
+      ?.acquisition_source ||
+    (profile as { acquisition_asked_at?: string | null } | null)?.acquisition_asked_at
+  );
   const basicComplete = !!(
     profile?.avatar_url && profile.display_name?.trim() && profile.phone_number?.trim() &&
     profile.birth_year && profile.postcode?.trim() && profile.country?.trim()

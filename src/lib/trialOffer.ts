@@ -72,11 +72,11 @@ export type TrialOfferState = {
  * all). A member must never tap "Start my 3 days free" and be charged today.
  */
 export async function getTrialOfferState(userId: string): Promise<TrialOfferState> {
-  const none: TrialOfferState = { walled: false, trialEligible: false, goalCaptured: false };
+  const none: TrialOfferState = { walled: false, trialEligible: false, goalCaptured: false, acquisitionAnswered: true };
   const [{ data: profile }, { data: sub }, { data: roleRows }, goalRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("trial_offer_at, complimentary_access")
+      .select("trial_offer_at, complimentary_access, acquisition_source, acquisition_asked_at")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
