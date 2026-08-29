@@ -4,16 +4,20 @@ import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 export const TRIAL_GOAL_PATH = "/onboarding/goal";
 /** Step 2 — About You (photo, name, mobile, age, postcode, country, heritage). */
 export const TRIAL_REGISTRATION_PATH = "/onboarding/profile-step-1";
+/** Optional attribution question — sits between About You and the paywall. */
+export const ACQUISITION_PATH = "/onboarding/acquisition";
 
 /**
- * The two steps a stamped member may complete BEFORE the paywall.
+ * The steps a stamped member may complete BEFORE the paywall.
  *
  * About You captures her postcode, which drives water hardness and everything
  * personalised on top of it — so it has to be answered before we take a card.
- * Step 3 onward (health, supplements, hair characteristics, colour & style,
- * blood work) needs a trialing or active membership.
+ * The acquisition question is optional but is asked once, after About You and
+ * before the paywall. Step 3 onward (health, supplements, hair
+ * characteristics, colour & style, blood work) needs a trialing or active
+ * membership.
  */
-export const PRE_PAYWALL_PATHS = [TRIAL_GOAL_PATH, TRIAL_REGISTRATION_PATH];
+export const PRE_PAYWALL_PATHS = [TRIAL_GOAL_PATH, TRIAL_REGISTRATION_PATH, ACQUISITION_PATH];
 
 export const isPrePaywallPath = (pathname: string) => PRE_PAYWALL_PATHS.includes(pathname);
 
