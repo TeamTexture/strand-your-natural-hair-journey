@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import ScreenLayout from "@/components/ScreenLayout";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +24,7 @@ import { ACQUISITION_OPTIONS } from "@/components/onboarding/acquisitionOptions"
  * Answering or skipping stamps acquisition_asked_at, so it can never return —
  * the read is the same condition, on a durable database field, not a local flag.
  */
-const AcquisitionAskPrompt = () => {
+export function useAcquisitionAsk() {
   const { user, isViewingAs } = useAuth();
   const { isConsumer, isProfessional, isBrand, isAdmin, loading: rolesLoading } = useRoles();
   const qc = useQueryClient();
@@ -57,34 +58,50 @@ const AcquisitionAskPrompt = () => {
   });
 
   const [dismissed, setDismissed] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
-  if (!eligibleAccount || ask !== true || dismissed) return null;
-
-  const finish = async (source: string | null) => {
-    if (saving) return;
-    setSaving(true);
+  const markAnswered = async (source: string | null) => {
     const { error } = await supabase
       .from("profiles")
       .update({ acquisition_source: source, acquisition_asked_at: new Date().toISOString() })
       .eq("user_id", user!.id);
-    if (error) {
-      console.warn("[strand] retro acquisition save failed", error);
-      toast.error("Could not save that — please try again.");
-      setSaving(false);
-      return;
-    }
+    if (error) throw error;
     qc.setQueryData(["acquisition_retro_ask", user!.id], false);
     setDismissed(true);
-    if (source) toast.success("Thank you — that really helps.");
+  };
+
+  return { due: eligibleAccount && ask === true && !dismissed, markAnswered };
+}
+
+/**
+ * The one-off screen itself. Rendered in place of Home exactly once, so it reads
+ * as a quick ask rather than a trip back through onboarding.
+ */
+const AcquisitionAskScreen = ({
+  onDone,
+}: {
+  onDone: (source: string | null) => Promise<void>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const finish = async (source: string | null) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onDone(source);
+      if (source) toast.success("Thank you — that really helps.");
+    } catch (err) {
+      console.warn("[strand] retro acquisition save failed", err);
+      toast.error("Could not save that — please try again.");
+      setSaving(false);
+    }
   };
 
   const selectedOption = ACQUISITION_OPTIONS.find((o) => o.value === selected) ?? null;
 
   return (
-    <div className="absolute inset-0 z-50 bg-background flex flex-col overflow-y-auto">
+    <ScreenLayout>
       <div className="flex items-center justify-between px-5 pt-6 pb-2">
         <span className="font-display text-[15px] tracking-wide text-foreground">My STRAND</span>
         <button
@@ -177,8 +194,8 @@ const AcquisitionAskPrompt = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </ScreenLayout>
   );
 };
 
-export default AcquisitionAskPrompt;
+export default AcquisitionAskScreen;
