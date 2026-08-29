@@ -221,6 +221,15 @@
     hyphens: none;
     max-width: 100%;
   }
+  /* Body/ingredient copy: wrap at WORD boundaries only — never push part of
+   * a word onto the next line ("peptid / e"). Only a genuinely unbreakable
+   * string longer than its column may overflow-wrap. */
+  .wrap-words {
+    overflow-wrap: break-word;
+    word-break: normal;
+    word-wrap: break-word;
+    hyphens: none;
+  }
   .tracking-strand {
     letter-spacing: 0.2em;
   }

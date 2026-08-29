@@ -7,6 +7,7 @@ import { useIngredientExplainer } from "@/hooks/useIngredientExplainer";
 import { useIngredientGlossary } from "@/hooks/useIngredientGlossary";
 import { matchScoreOf } from "@/lib/matchStars";
 import ProseText from "@/components/guidance/ProseText";
+import AiProgressBar from "@/components/AiProgressBar";
 
 const VERDICT = {
   good: { label: "Works with your hair", icon: CheckCircle2, cls: "bg-good/12 border-good/30" },
@@ -131,11 +132,16 @@ export default function IngredientExplainerSheet({
                 <Sparkles className="size-3.5 animate-pulse" aria-hidden />
                 What it means for you
               </p>
-              <div className="mt-2 space-y-1.5">
-                <div className="h-3 w-full animate-pulse rounded bg-muted" />
-                <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
-                <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
-              </div>
+              <AiProgressBar
+                compact
+                className="mt-2"
+                expectedMs={9000}
+                stages={[
+                  "Reading your hair profile",
+                  "Looking this up in the manuscript",
+                  "Writing what it means for you",
+                ]}
+              />
             </div>
           </div>
         )}

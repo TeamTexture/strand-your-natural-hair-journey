@@ -71,7 +71,7 @@ const IngredientFlagRow = ({
         <Icon className={cn("size-3.5", t.icon)} aria-hidden />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold leading-snug text-foreground break-words font-body">
+        <p className="wrap-words text-[13px] font-semibold leading-snug text-foreground font-body">
           {explainable && as !== "button"
             ? <GlossaryLabel label={name} className="font-semibold" forceToken />
             : name}
@@ -84,7 +84,7 @@ const IngredientFlagRow = ({
         </p>
 
         {reason && (
-          <p className="mt-0.5 text-[11.5px] leading-relaxed text-foreground/70 break-words font-body">
+          <p className="wrap-words mt-0.5 text-[11.5px] leading-relaxed text-foreground/70 font-body">
             {reason}
           </p>
         )}
