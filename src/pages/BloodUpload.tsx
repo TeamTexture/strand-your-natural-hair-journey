@@ -529,9 +529,15 @@ export default function BloodUpload() {
       clearBloodDraft();
       window.dispatchEvent(new Event("strand:blood-update"));
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
-      const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
+      const params = new URLSearchParams(window.location.search);
+      const isOnboarding = params.get("onboarding") === "1";
+      // Home's empty-state "Add blood test" button asks for the analysis
+      // landing (AI blood summary -> nutrition plan) rather than the raw panel.
+      const wantsAnalysis = params.get("next") === "analysis";
       if (isOnboarding) {
         navigate(await resolveMembershipPath(), { replace: true });
+      } else if (wantsAnalysis) {
+        navigate(POST_PAYMENT_ANALYSIS_PATH, { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
