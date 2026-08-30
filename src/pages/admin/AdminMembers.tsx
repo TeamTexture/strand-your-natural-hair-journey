@@ -30,6 +30,7 @@ import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import AccountTypeControl, { AccountTypeBadge } from "@/components/admin/AccountTypeControl";
+import AccountDeletionControl from "@/components/admin/AccountDeletionControl";
 import { deriveAccountType, type AccountType } from "@/hooks/useAccountTypes";
 import { useMemberCancellations, cancellationReasonLabel } from "@/hooks/useMemberCancellation";
 
@@ -804,6 +805,13 @@ const AdminMembers = () => {
                 })()}
 
                 <AccountTypeControl
+                  userId={r.user_id}
+                  name={r.display_name}
+                  currentType={r.account_type}
+                  isSelf={isSelf}
+                />
+
+                <AccountDeletionControl
                   userId={r.user_id}
                   name={r.display_name}
                   currentType={r.account_type}

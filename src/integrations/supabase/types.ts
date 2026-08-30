@@ -272,6 +272,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_account_deletion_log: {
+        Row: {
+          action: string
+          created_at: string
+          erase_on: string | null
+          id: string
+          performed_by: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          erase_on?: string | null
+          id?: string
+          performed_by?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          erase_on?: string | null
+          id?: string
+          performed_by?: string | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_broadcasts: {
         Row: {
           admin_user_id: string
@@ -7210,6 +7240,18 @@ export type Database = {
         Returns: number
       }
       ad_style_code: { Args: { _style: string }; Returns: string }
+      admin_account_deletion_history: {
+        Args: { _user_id: string }
+        Returns: {
+          action: string
+          created_at: string
+          erase_on: string
+          id: string
+          performed_by: string
+          performed_by_name: string
+          reason: string
+        }[]
+      }
       admin_broadcast_message: {
         Args: {
           _audience: string
