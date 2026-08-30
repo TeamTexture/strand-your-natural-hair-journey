@@ -209,7 +209,12 @@ const HomeTour = () => {
   // Live read of "does she have a photo" — shared query key, so an upload from
   // the picker invalidates it and this step re-renders without reopening.
   const { photos: stylePhotos, refresh: refreshStylePhotos } = useStyleCardPhoto();
-  const hasStylePhoto = stylePhotos.length > 0;
+  // Sticky: once we have seen a photo we never render the empty state again for
+  // this tour run. Guards against the query key flipping to "anon" during a
+  // token refresh (which momentarily yields zero photos) and re-prompting.
+  const sawStylePhotoRef = useRef(false);
+  if (stylePhotos.length > 0) sawStylePhotoRef.current = true;
+  const hasStylePhoto = stylePhotos.length > 0 || sawStylePhotoRef.current;
 
   const [active, setActive] = useState(false);
   const [steps, setSteps] = useState<Step[]>(STEPS);
@@ -506,7 +511,23 @@ const HomeTour = () => {
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
       {/* Dimmed backdrop with a cutout around the spotlit element */}
-      <svg className="absolute inset-0 w-full h-full">
+      {/* Tapping the dim area closes the tour (same as Minimise / X): it can be
+       *  resumed from the "Take the tour" button. Taps inside the spotlight
+       *  cutout are ignored so the highlighted element stays interactive. */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        onPointerDown={(e) => {
+          if (rect) {
+            const insideTarget =
+              e.clientX >= rect.left - pad &&
+              e.clientX <= rect.right + pad &&
+              e.clientY >= rect.top - pad &&
+              e.clientY <= rect.bottom + pad;
+            if (insideTarget) return;
+          }
+          setActive(false);
+        }}
+      >
         <defs>
           <mask id="strand-tour-mask">
             <rect width="100%" height="100%" fill="white" />
@@ -601,9 +622,20 @@ const HomeTour = () => {
           />
         )}
 
+        {/* Close (X) — same behaviour as Minimise: closes without marking the
+         *  tour finished, so it can be resumed from "Take the tour". */}
+        <button
+          type="button"
+          onClick={() => setActive(false)}
+          aria-label="Close the tour"
+          className="absolute top-0 right-0 z-10 inline-flex size-11 items-center justify-center text-primary/60 hover:text-primary"
+        >
+          <X className="size-4" />
+        </button>
+
         {/* Body — scrolls when the copy is longer than the space available */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-1">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 pr-9">
             <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.22em] text-primary font-semibold font-body">
               <Sparkles className="size-3" />
               {current.eyebrow}

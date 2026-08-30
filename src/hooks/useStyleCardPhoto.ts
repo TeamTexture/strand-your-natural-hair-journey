@@ -13,6 +13,7 @@
 // main_photo_id NULL is AUTO MODE: the newest photo wins with no writes
 // required. Pinning is purely an override.
 
+import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,10 +68,17 @@ export function useStyleCardPhoto() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Last non-empty result, kept so a refetch — or the query key flipping while
+  // the auth user rehydrates — never renders a "no photos" false negative.
+  const lastGood = useRef<{ mainPhotoId: string | null; photos: MilestonePhoto[] } | undefined>(
+    undefined,
+  );
+
   const query = useQuery({
     queryKey: styleCardPhotoKey(user?.id),
     enabled: !!user,
     staleTime: 30_000,
+    placeholderData: (prev) => prev ?? lastGood.current,
     queryFn: async () => {
       if (!user) return { mainPhotoId: null as string | null, photos: [] as MilestonePhoto[] };
 
@@ -127,6 +135,8 @@ export function useStyleCardPhoto() {
       };
     },
   });
+
+  if (query.data && query.data.photos.length > 0) lastGood.current = query.data;
 
   const photos = query.data?.photos ?? [];
   const mainPhotoId = query.data?.mainPhotoId ?? null;
