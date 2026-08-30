@@ -11,6 +11,7 @@
 //                said to any user is invalid and dropped.
 
 import { FIT_FIRST_SCORE_RULES } from "./fit-first-score.ts";
+import { CONCERN_FIT_RULES } from "./concern-fit.ts";
 
 export interface ScoreReason {
   direction: "plus" | "minus";
@@ -55,6 +56,8 @@ export const SCORE_REASONS_SCHEMA_PROPERTY = {
 // another — the same way `sanitiseScoreReasons` already can't.
 export const ANALYSIS_FAILSAFE_RULES = `
 ${FIT_FIRST_SCORE_RULES}
+
+${CONCERN_FIT_RULES}
 
 CLOSED HAIR/SCALP VOCABULARY (hard validation runs on your output):
 Porosity, elasticity, cuticle, cortex, strand diameter, surface texture and curl pattern describe the HAIR STRAND. Density, sebum, follicles, flaking, irritation, hairline, edges and partings describe the SCALP. Never cross the two and never weld them into a new term: "porosity scalp", "scalp porosity", "follicle elasticity" and "cuticle of the scalp" are not real concepts and are rejected outright. Use only terminology the app already teaches; if no approved term fits, say nothing or return null for the field.
