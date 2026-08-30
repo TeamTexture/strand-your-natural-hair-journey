@@ -440,6 +440,16 @@ const HomeTour = () => {
   /* ---- tooltip placement: above or below the target, never over it ---- */
   const bounds = frameBox();
   const GAP = 14;
+  // Hard cap so the card can never be taller than the space it has to live in.
+  const viewportH =
+    typeof window !== "undefined"
+      ? window.visualViewport?.height ?? window.innerHeight
+      : 812;
+  const maxCardH = Math.max(
+    200,
+    Math.min(Math.round(viewportH * 0.7), bounds.bottom - bounds.top - 24),
+  );
+
   // Small icons need more breathing room than large cards so the ring does not
   // crowd them.
   const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
