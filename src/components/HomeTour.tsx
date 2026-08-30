@@ -209,7 +209,12 @@ const HomeTour = () => {
   // Live read of "does she have a photo" — shared query key, so an upload from
   // the picker invalidates it and this step re-renders without reopening.
   const { photos: stylePhotos, refresh: refreshStylePhotos } = useStyleCardPhoto();
-  const hasStylePhoto = stylePhotos.length > 0;
+  // Sticky: once we have seen a photo we never render the empty state again for
+  // this tour run. Guards against the query key flipping to "anon" during a
+  // token refresh (which momentarily yields zero photos) and re-prompting.
+  const sawStylePhotoRef = useRef(false);
+  if (stylePhotos.length > 0) sawStylePhotoRef.current = true;
+  const hasStylePhoto = stylePhotos.length > 0 || sawStylePhotoRef.current;
 
   const [active, setActive] = useState(false);
   const [steps, setSteps] = useState<Step[]>(STEPS);
