@@ -163,13 +163,26 @@ const Acquisition = () => {
           )}
         </div>
 
+        {selected === "other" && (
+          <div className="mt-3">
+            <input
+              type="text"
+              value={otherText}
+              onChange={(e) => setOtherText(e.target.value)}
+              maxLength={120}
+              placeholder="Tell us where, if you like (optional)"
+              className="w-full bg-surface-raised rounded-[10px] border border-border focus:border-primary/60 outline-none px-3.5 py-3 font-body text-[14.5px] text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        )}
+
         <div className="mt-auto pt-6">
           <Button
             variant="gold"
             size="pill"
-            className="w-full"
+            className="w-full disabled:opacity-50"
             disabled={!selected || saving}
-            onClick={() => void finish(selected)}
+            onClick={() => selected && void finish(selected)}
           >
             {saving ? "Saving…" : "Continue"}
           </Button>
