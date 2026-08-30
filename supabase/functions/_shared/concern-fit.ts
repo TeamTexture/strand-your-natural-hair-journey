@@ -332,7 +332,7 @@ export function concernContribution(input: {
   }).length;
 
   const raw =
-    Math.round(20 * centrality * breadthMultiplier) +
+    Math.round(30 * centrality * breadthMultiplier) +
     3 * Math.min(supportivePluses, 2) -
     6 * input.conflicts;
 
@@ -341,7 +341,7 @@ export function concernContribution(input: {
     breadth,
     supportivePluses,
     conflicts: input.conflicts,
-    bonus: Math.max(0, Math.min(22, raw)),
+    bonus: Math.max(0, Math.min(30, raw)),
   };
 }
 
