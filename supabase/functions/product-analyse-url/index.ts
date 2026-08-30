@@ -1021,8 +1021,10 @@ Deno.serve(async (req: Request) => {
         score: typeof a.match_score === "number" ? a.match_score : null,
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
+        areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
       });
       a.score_reasons = failsafe.reasons;
+      if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
       if (failsafe.score != null) a.match_score = failsafe.score;
       if (failsafe.violations.length) {
