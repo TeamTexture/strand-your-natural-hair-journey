@@ -9,7 +9,8 @@ import {
   ShieldAlert,
   Store,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +55,7 @@ type Item = {
 const NotificationsBell = () => {
   const { user } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const { notifications, unreadCount, markAllRead, markRead, markManyRead } = useNotifications();
   const admin = useAdminNotifications();
@@ -83,7 +85,9 @@ const NotificationsBell = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, notifications, admin.notifications]);
 
-  if (!user) return null;
+  // Second line of defence: never render on an onboarding / pre-paywall route,
+  // whatever the caller does. See src/lib/chromeFreeRoutes.ts.
+  if (!user || isChromeFreeRoute(location.pathname)) return null;
 
 
   const items: Item[] = [

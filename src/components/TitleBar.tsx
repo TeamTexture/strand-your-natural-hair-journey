@@ -7,6 +7,7 @@ import { pinnedBackTarget, RESUME_PATH } from "@/lib/onboardingLock";
 import { ONBOARDING_PREV, onboardingPrevPath } from "@/lib/onboardingFlow";
 
 import NotificationsBell from "@/components/NotificationsBell";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 import { onboardingStepLabel } from "@/components/onboarding/OnboardingGuide";
 
 interface Props {
@@ -78,7 +79,9 @@ const TitleBar = ({ title, right, back = true, onBack, backFallback = "/home", t
         </div>
         <div className="flex-shrink-0 flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-body">
           {right ?? onboardingStepLabel(location.pathname)}
-          <NotificationsBell />
+          {/* Onboarding / pre-paywall screens carry no app chrome — see
+              src/lib/chromeFreeRoutes.ts. */}
+          {!isChromeFreeRoute(location.pathname) && <NotificationsBell />}
         </div>
 
       </div>
