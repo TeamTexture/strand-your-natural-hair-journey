@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 import {
   messageIsMine,
   mySideRole,
@@ -32,9 +33,6 @@ import {
   type ChatThread,
 } from "@/hooks/useChat";
 
-// Hide on splash / auth / restricted screens (parity with GlobalMenu).
-const HIDDEN_PREFIXES = ["/auth", "/.lovable", "/onboarding", "/walkthrough", "/setup", "/subscribe", "/blood-upload"];
-
 const GlobalChatWidget = () => {
   const { user, session } = useAuth();
   const location = useLocation();
@@ -46,8 +44,7 @@ const GlobalChatWidget = () => {
 
   const hidden =
     !session ||
-    location.pathname === "/" ||
-    HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
+    isChromeFreeRoute(location.pathname);
 
   // Reset expanded thread when panel closes.
   useEffect(() => {

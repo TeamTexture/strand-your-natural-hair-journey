@@ -31,6 +31,7 @@ import BookingReturnPrompt from "@/components/booking/BookingReturnPrompt";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 import { useResponsiveTipRefresh } from "@/hooks/useResponsiveTipRefresh";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 import { TipsLevelProvider } from "@/hooks/useTipsLevel";
 import { IngredientSheetProvider } from "@/components/ingredients/IngredientToken";
@@ -297,6 +298,21 @@ const GlobalEffects = () => {
   return null;
 };
 
+// These components can surface names, message previews, professional enquiries,
+// or booking controls. Do not merely hide their DOM: keep them unmounted so
+// they cannot query, subscribe, or open over registration/onboarding/paywalls.
+const AuthenticatedAppOverlays = () => {
+  const location = useLocation();
+  if (isChromeFreeRoute(location.pathname)) return null;
+  return (
+    <>
+      <MessageNotifications />
+      <NewEnquiriesAlert />
+      <BookingReturnPrompt />
+    </>
+  );
+};
+
 // Resets the crash boundary on navigation so a broken screen never sticks.
 const RouteCrashGuard = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
@@ -316,9 +332,7 @@ const App = () => (
           <IngredientSheetProvider>
           <BackButtonProvider>
             <GlobalEffects />
-            <MessageNotifications />
-            <NewEnquiriesAlert />
-            <BookingReturnPrompt />
+            <AuthenticatedAppOverlays />
             <PhoneShell>
               <div className="flex flex-col h-full">
                 <GlobalMenu />

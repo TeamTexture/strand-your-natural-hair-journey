@@ -21,6 +21,7 @@ import { useIncomingChatMessages } from "@/hooks/useIncomingChatMessages";
 import { useAppBadgeSync } from "@/hooks/useAppBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 const RETURN_KEY = (uid: string) => `strand.chat.lastSeen.${uid}`;
 const RETURN_SHOWN_KEY = "strand.chat.returnShownThisSession";
@@ -40,6 +41,7 @@ const MessageNotifications = () => {
   const { user } = useAuth();
   const nav = useNavigate();
   const location = useLocation();
+  const chromeFree = isChromeFreeRoute(location.pathname);
   const { data: unread = 0 } = useUnreadChatCount();
   const { data: threads = [] } = useChatThreads();
 
@@ -98,6 +100,7 @@ const MessageNotifications = () => {
   };
 
   useIncomingChatMessages((m: ChatMessage) => {
+    if (chromeFree) return;
     if (activeThreadId === m.thread_id) return; // Already reading it.
     // Scope notifications to the current role view: if the thread isn't
     // in the view-scoped threads map, the message belongs to a different
@@ -130,7 +133,7 @@ const MessageNotifications = () => {
   } | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || chromeFree) return;
     if (sessionStorage.getItem(RETURN_SHOWN_KEY) === "1") return;
     let cancelled = false;
     (async () => {
@@ -167,7 +170,7 @@ const MessageNotifications = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, threads]);
+  }, [user?.id, threads, chromeFree]);
 
   // Update the "last seen" watermark whenever the total unread drops to 0.
   useEffect(() => {
@@ -177,7 +180,7 @@ const MessageNotifications = () => {
     }
   }, [unread, user?.id]);
 
-  if (!user?.id) return null;
+  if (!user?.id || chromeFree) return null;
 
   const dismiss = () => setReturnState(null);
   const openWidget = () => {
