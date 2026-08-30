@@ -71,7 +71,7 @@ const CHALLENGE_MECHANISMS: Array<{ label: string; challenge: RegExp; mechanism:
     label: "breakage",
     challenge: /\bbreak(?:age|ing)\b|\bsnapping\b|\bfragil/i,
     mechanism:
-      /\bprotein\b|\bpeptide\b|\bkeratin\b|\bamino acid\b|\bcystein/i,
+      /\bprotein\b|(?:di|tri|tetra|penta|oligo)?peptide\b|\bkeratin\b|\bamino acid\b|\bcystein/i,
   },
   {
     label: "breakage",
@@ -419,7 +419,9 @@ export function applyConcernFit(input: ConcernFitInput): ConcernFitResult {
   // sized by how central the matching mechanism is to this formula.
   const conflicts = ordered.filter((r) => r.direction === "minus").length;
   const contribution = concernContribution({
-    reasons: ordered,
+    // The model's ORIGINAL rows are included so the "does the verdict name the
+    // hero active?" test still sees a name that our own reframing dropped.
+    reasons: [...ordered, ...input.reasons],
     cards,
     ingredients: input.ingredients,
     concerns,
