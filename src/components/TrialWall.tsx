@@ -8,6 +8,7 @@ import {
   isPrePaywallPath,
   isTrialWallAllowedPath,
   walledDestination,
+  hasAcquisitionBypass,
 } from "@/lib/trialWall";
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 
@@ -60,7 +61,12 @@ const TrialWall = ({ children }: { children: ReactNode }) => {
   // About You is done but the one-off attribution question hasn't been asked
   // yet: it sits between About You and the paywall, so the paywall (and
   // everything else) bounces here until it is answered or skipped.
-  if (walled && onboarding?.basicComplete && onboarding?.acquisitionAnswered === false) {
+  if (
+    walled &&
+    onboarding?.basicComplete &&
+    onboarding?.acquisitionAnswered === false &&
+    !hasAcquisitionBypass()
+  ) {
     if (onboardingLoading) return <LoadingDot />;
     if (location.pathname === ACQUISITION_PATH) return <>{children}</>;
     if (isPrePaywallPath(location.pathname)) return <>{children}</>;

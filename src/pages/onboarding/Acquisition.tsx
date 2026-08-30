@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
+import { markAcquisitionBypass } from "@/lib/trialWall";
 import { toast } from "sonner";
 import { ACQUISITION_OPTIONS as OPTIONS } from "@/components/onboarding/acquisitionOptions";
 
@@ -72,6 +73,7 @@ const Acquisition = () => {
       // FAIL-OPEN: a failed attribution write must never trap a member on this
       // screen. Log it and carry her forward to the trial paywall regardless.
       console.warn("[strand] acquisition save failed — continuing anyway", err);
+      markAcquisitionBypass();
     }
     // The TrialWall reads acquisitionAnswered from this shared cached query —
     // refresh it before navigating or the wall bounces straight back here.
