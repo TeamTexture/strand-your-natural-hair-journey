@@ -150,7 +150,9 @@ export function alignScoreWithReasons(score: number, reasons: ScoreReason[]): nu
   const minus = reasons.filter(
     (r) => r.direction !== "plus" && minusIsScoreWorthy(r),
   ).length;
-  if (minus === 0 && score < 65) return 65;
+  // No genuine conflict or harm: the number may not read as a caution, even if
+  // the model wrote every reason as a relevance observation.
+  if (minus === 0) return score < 65 ? 65 : score;
   if (plus === 0 && score > 55) return 55;
   return score;
 }
