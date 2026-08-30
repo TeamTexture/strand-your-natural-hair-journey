@@ -140,11 +140,19 @@ export function sanitiseScoreReasons(value: unknown): ScoreReason[] {
  * from nothing — this only prevents the contradictory cases the prompt bans:
  * an all-plus list scoring low, or an all-minus list scoring high.
  */
+import { minusIsScoreWorthy } from "./fit-first-score.ts";
+
 export function alignScoreWithReasons(score: number, reasons: ScoreReason[]): number {
   if (reasons.length < 2 || !Number.isFinite(score)) return score;
   const plus = reasons.filter((r) => r.direction === "plus").length;
-  const minus = reasons.length - plus;
-  if (minus === 0 && score < 65) return 65;
+  // Only genuine conflicts/harms count against the score. A relevance
+  // observation ("targets a different concern") is not a minus (2026-08-30).
+  const minus = reasons.filter(
+    (r) => r.direction !== "plus" && minusIsScoreWorthy(r),
+  ).length;
+  // No genuine conflict or harm: the number may not read as a caution, even if
+  // the model wrote every reason as a relevance observation.
+  if (minus === 0) return score < 65 ? 65 : score;
   if (plus === 0 && score > 55) return 55;
   return score;
 }

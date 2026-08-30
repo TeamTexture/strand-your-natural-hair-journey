@@ -89,8 +89,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v20-ranked-verdict-2026-08-29";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v20-ranked-verdict-2026-08-29";
+const MODEL_VERSION = "claude-sonnet-4-6@v22-relevance-axis-2026-08-30";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v22-relevance-axis-2026-08-30";
 
 
 /** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,
@@ -189,7 +189,7 @@ Voice for this task: every prose field (ai_summary, key_ingredients[].reason, us
 
 3. ingredients[] in your output must be the COMPLETE INCI list. product_name and brand must match what the brand actually calls it (not just descriptor text from the label).
 
-4. Compose the analysis using the user's specific profile data passed in the user message. Reference porosity, density, scalp condition, diagnosed conditions, blood markers (only when this product directly intersects them), the user's consistently flagged ingredients, and goals when they actually move the verdict. Generic responses are forbidden when user data is available.
+4. Compose the analysis using the user's specific profile data passed in the user message. Reference porosity, density, scalp condition, diagnosed conditions, hairProfile.areas_of_concern (the physical areas she flagged — edges, hairline, crown, nape), blood markers (only when this product directly intersects them), the user's consistently flagged ingredients, and goals when they actually move the verdict. Density, regrowth, shedding and scalp-health support IS relevant to thinning edges or a receding hairline — score it as a plus, never as a mismatch. Never use hair-typing terminology (3C, 4C, "type 4"); say "Afro and textured hair" or name the recorded characteristic. Generic responses are forbidden when user data is available.
 
 5. Grounding rule: when your guidance is rooted in the retrieved manuscript passages, reason from them and blend the underlying idea into your prose in STRAND's voice — do NOT name the book, its author, chapters, or page numbers, and do NOT emit any "Read more — …" line. When facts come from web_search (e.g. "the brand's site states this is a low-pH cleanser"), reference them inline naturally in prose. Never claim something "comes from the book" unless the specific point is supported by a retrieved passage.
 

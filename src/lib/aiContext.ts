@@ -463,6 +463,9 @@ async function buildAiContextUncached(): Promise<AiContext> {
         scalp: clinical.hair.scalp,
         diagnosed: clinical.hair.diagnosed,
         areas: clinical.hair.areas,
+        // Same data, explicitly named so prompts can reason about thinning
+        // edges / hairline as a first-class goal signal.
+        areas_of_concern: clinical.hair.areas,
         length_inches: clinical.hair.length_inches,
         length_bucket: clinical.hair.length_bucket,
       }
