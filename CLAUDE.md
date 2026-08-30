@@ -132,3 +132,13 @@ The vocabulary lockdown and the source lockdown police **nouns**. They do not ca
 - Validation runs inside `checkContentIntegrity` as the `relationship_integrity` check, so **every** surface that already has the closed-vocabulary check gets it with no per-function work, and rejections log to `public.ai_content_rejections` alongside the others. Outcome is the same: reject-and-regenerate inside a retry loop, or null the field.
 - Hard invariants: strand properties (porosity, density, elasticity) never connect to oil, sebum or a scalp condition; only water gives moisture (oils/butters/emollients slow its loss); humectants attract from the atmosphere while emollients lock in what is already there; silicones and preservatives are never framed as inherently bad; no topical product stimulates growth or reaches the follicle unless genuinely medicinal.
 - Extending the library is a data change, not a code change: add the concept + the approved relationships + the forbidden ones with detectors, re-seed the two tables, and add a case to `src/test/relationship_integrity.test.ts`. Never widen a detector to make a generation pass.
+
+## STANDING RULE — areas of concern are a first-class scoring input (2026-08-30, permanent)
+
+`hairProfile.areas_of_concern` (edges, hairline, temples, crown, nape, parting, thinning) is weighted as strongly as the written goal and challenge. A formula whose mechanism is root anchoring, follicle-level support, shedding reduction, density/regrowth support or scalp condition is directly relevant to those areas and must score as a **plus** — never "targets X rather than her Y", never a warn/avoid ingredient flag.
+
+- Deterministic enforcement lives in `supabase/functions/_shared/concern-fit.ts` (`applyConcernFit`), run inside `enforceAnalysisFailsafes` for every analysis surface and directly in `ingredient-analysis`. Callers must pass `areasOfConcern` and re-assign the returned `cards`.
+- The prompt contract is `CONCERN_FIT_RULES`, appended to `ANALYSIS_FAILSAFE_RULES`, so it reaches every analysis prompt at once.
+- Relevance framing in any phrasing ("targets … not …", "rather than", "instead of") is never score-worthy — it becomes a Strand Tip (`minusIsScoreWorthy`).
+- `src/test/concern_fit.test.ts` guards the K18 regression (score 52 → 88). Do not weaken it.
+- `user_products.marketed_purpose` is a dead column — the marketed-purpose feature was removed and nothing writes it. Null is correct.
