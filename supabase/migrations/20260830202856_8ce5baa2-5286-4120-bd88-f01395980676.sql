@@ -1,0 +1,16 @@
+REVOKE SELECT, INSERT, UPDATE, DELETE ON public.notifications FROM anon;
+REVOKE SELECT, INSERT, UPDATE, DELETE ON public.admin_notifications FROM anon;
+REVOKE SELECT, INSERT, UPDATE, DELETE ON public.chat_threads FROM anon;
+REVOKE SELECT, INSERT, UPDATE, DELETE ON public.chat_messages FROM anon;
+REVOKE SELECT, UPDATE, DELETE ON public.contact_messages FROM anon;
+GRANT INSERT ON public.contact_messages TO anon;
+GRANT SELECT, UPDATE, DELETE ON public.notifications TO authenticated;
+GRANT SELECT, UPDATE ON public.admin_notifications TO authenticated;
+GRANT SELECT ON public.chat_threads TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.chat_messages TO authenticated;
+GRANT SELECT, INSERT ON public.contact_messages TO authenticated;
+GRANT ALL ON public.notifications TO service_role;
+GRANT ALL ON public.admin_notifications TO service_role;
+GRANT ALL ON public.chat_threads TO service_role;
+GRANT ALL ON public.chat_messages TO service_role;
+GRANT ALL ON public.contact_messages TO service_role;
