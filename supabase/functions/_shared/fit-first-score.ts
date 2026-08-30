@@ -48,7 +48,23 @@ The score answers ONE question: how well does this product serve THIS member's s
 - NOTHING ELSE LOWERS IT. Routine preservatives, fragrance she has never reacted to, colourants, pH adjusters, "some people find", "worth knowing", "monitor how your scalp feels", ownership frequency, an ingredient sitting low in the list with no relevance to her goal — none of these cost a single point.
 - A product with strong goal-relevant ingredients and no real conflict SCORES HIGH (80+). Do not hedge the number downward for balance, and never split the difference to look cautious.
 - score_reasons must LEAD with the fit: the first item is a "plus" stating clearly WHY it scored as high as it did, in terms of her goal or challenge. Only include a "minus" when it meets test 1 or test 2 above — there is no requirement to produce a minus at all.
+- RELEVANCE IS NOT A PENALTY. "This targets X rather than her stated Y", "no ingredients aimed specifically at her goal", "formulated for a different concern" are RELEVANCE observations, not conflicts and not harm. They may NEVER lower the score and may never appear as a "minus" — put them in strand_tip. A well-formulated product that simply addresses a different area of her hair still scores on its own quality and safety.
+- Read her recorded AREAS OF CONCERN (e.g. edges, hairline, crown, nape) as first-class goal signals alongside her written goal and challenges: work on density, regrowth, shedding or scalp condition IS directly relevant to thinning edges or a receding hairline, and must be scored as a plus when the formula supports it.
+- Never use hair-typing terminology (3C, 4C, "type 4", numeric/letter types). Say "Afro and textured hair", or name the recorded characteristic (porosity, density, strand diameter, curl pattern description).
 - Mild, non-harmful observations go in strand_tip instead, and strand_tip NEVER affects the score. Never describe a strand_tip item as a reason for the score.`;
+
+/** Relevance framing: a mismatch of purpose, not a conflict or a harm. */
+const RELEVANCE_MISMATCH = [
+  /\brather than\b/i,
+  /\binstead of\b/i,
+  /\bnot (?:aimed|targeted|formulated|designed|intended)\b/i,
+  /\bdoes(?:n't| not) (?:target|address|focus)\b/i,
+  /\bdifferent (?:concern|goal|priority|purpose|area)\b/i,
+  /\bno ingredients (?:specifically |directly )?(?:for|aimed|targeting)\b/i,
+  /\bunrelated to (?:her|your) (?:goal|concern|challenge)\b/i,
+  /\blittle (?:direct )?(?:benefit|relevance) (?:for|to) (?:her|your) (?:goal|concern|challenge)\b/i,
+];
+
 
 const HARM_MARKERS = [
   /\bsensitivit/i,
