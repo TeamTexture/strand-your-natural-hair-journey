@@ -165,15 +165,33 @@ const scrollParentOf = (el: HTMLElement): HTMLElement | null => {
   return null;
 };
 
-/** The visible bounds the tooltip must stay inside (the phone frame). */
+const cssPx = (name: string) => {
+  if (typeof window === "undefined") return 0;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** The visible bounds the tooltip must stay inside (the phone frame),
+ *  intersected with the real viewport and inset by the safe areas. */
 const frameBox = () => {
+  const vh =
+    typeof window !== "undefined"
+      ? window.visualViewport?.height ?? window.innerHeight
+      : 812;
+  const safeTop = cssPx("--strand-safe-top");
+  const safeBottom = cssPx("--strand-safe-bottom");
+  let top = 0;
+  let bottom = vh;
   const frame = document.querySelector<HTMLElement>("[data-app-frame]");
   if (frame) {
     const r = frame.getBoundingClientRect();
-    return { top: r.top, bottom: r.bottom };
+    top = Math.max(top, r.top);
+    bottom = Math.min(bottom, r.bottom);
   }
-  return { top: 0, bottom: typeof window !== "undefined" ? window.innerHeight : 812 };
+  return { top: top + safeTop, bottom: bottom - safeBottom };
 };
+
 
 /** Steps whose target is absent are dropped, so the counter is honest.
  *  Steps on other routes cannot be probed from Home and are always kept. */
