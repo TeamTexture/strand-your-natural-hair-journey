@@ -8,7 +8,11 @@
 
 @layer base {
   :root {
+    /* Safe-area insets, readable from JS for viewport clamping */
+    --strand-safe-top: env(safe-area-inset-top, 0px);
+    --strand-safe-bottom: env(safe-area-inset-bottom, 0px);
     /* Warm sand background #F2E8D9 */
+
     --background: 37 44% 90%;
     /* Dark charcoal text #2C2416 */
     --foreground: 36 32% 13%;
