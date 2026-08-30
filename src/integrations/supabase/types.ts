@@ -4763,6 +4763,7 @@ export type Database = {
           access_restricted: boolean
           acquisition_asked_at: string | null
           acquisition_source: string | null
+          acquisition_source_other: string | null
           avatar_url: string | null
           birth_year: number | null
           complimentary_access: boolean
@@ -4807,6 +4808,7 @@ export type Database = {
           access_restricted?: boolean
           acquisition_asked_at?: string | null
           acquisition_source?: string | null
+          acquisition_source_other?: string | null
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
@@ -4851,6 +4853,7 @@ export type Database = {
           access_restricted?: boolean
           acquisition_asked_at?: string | null
           acquisition_source?: string | null
+          acquisition_source_other?: string | null
           avatar_url?: string | null
           birth_year?: number | null
           complimentary_access?: boolean
