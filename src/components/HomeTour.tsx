@@ -165,15 +165,33 @@ const scrollParentOf = (el: HTMLElement): HTMLElement | null => {
   return null;
 };
 
-/** The visible bounds the tooltip must stay inside (the phone frame). */
+const cssPx = (name: string) => {
+  if (typeof window === "undefined") return 0;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** The visible bounds the tooltip must stay inside (the phone frame),
+ *  intersected with the real viewport and inset by the safe areas. */
 const frameBox = () => {
+  const vh =
+    typeof window !== "undefined"
+      ? window.visualViewport?.height ?? window.innerHeight
+      : 812;
+  const safeTop = cssPx("--strand-safe-top");
+  const safeBottom = cssPx("--strand-safe-bottom");
+  let top = 0;
+  let bottom = vh;
   const frame = document.querySelector<HTMLElement>("[data-app-frame]");
   if (frame) {
     const r = frame.getBoundingClientRect();
-    return { top: r.top, bottom: r.bottom };
+    top = Math.max(top, r.top);
+    bottom = Math.min(bottom, r.bottom);
   }
-  return { top: 0, bottom: typeof window !== "undefined" ? window.innerHeight : 812 };
+  return { top: top + safeTop, bottom: bottom - safeBottom };
 };
+
 
 /** Steps whose target is absent are dropped, so the counter is honest.
  *  Steps on other routes cannot be probed from Home and are always kept. */
@@ -422,39 +440,53 @@ const HomeTour = () => {
   /* ---- tooltip placement: above or below the target, never over it ---- */
   const bounds = frameBox();
   const GAP = 14;
+  // Hard cap so the card can never be taller than the space it has to live in.
+  const viewportH =
+    typeof window !== "undefined"
+      ? window.visualViewport?.height ?? window.innerHeight
+      : 812;
+  const maxCardH = Math.max(
+    200,
+    Math.min(Math.round(viewportH * 0.7), bounds.bottom - bounds.top - 24),
+  );
+
   // Small icons need more breathing room than large cards so the ring does not
   // crowd them.
   const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
   const spotTop = rect ? rect.top - pad : 0;
   const spotBottom = rect ? rect.bottom + pad : 0;
+  // Effective height: never reason with a height the card cannot have.
+  const effH = Math.min(cardH, maxCardH);
   const placement: "below" | "above" | "float" = (() => {
     if (!rect) return "float";
-    if (bounds.bottom - spotBottom - GAP >= cardH + 8) return "below";
-    if (spotTop - bounds.top - GAP >= cardH + 8) return "above";
+    if (bounds.bottom - spotBottom - GAP >= effH + 8) return "below";
+    if (spotTop - bounds.top - GAP >= effH + 8) return "above";
     // Neither side fits cleanly — take the roomier side and clamp.
     return bounds.bottom - spotBottom >= spotTop - bounds.top ? "below" : "above";
   })();
 
   const clamp = (v: number) =>
-    Math.max(bounds.top + 12, Math.min(v, bounds.bottom - cardH - 12));
+    Math.max(
+      bounds.top + 12,
+      Math.min(v, Math.max(bounds.top + 12, bounds.bottom - effH - 12)),
+    );
 
   const tooltipTop = (() => {
     if (rect == null) return null;
     const below = clamp(spotBottom + GAP);
-    const above = clamp(spotTop - GAP - cardH);
-    const overlaps = (top: number) => top < spotBottom && top + cardH > spotTop;
+    const above = clamp(spotTop - GAP - effH);
+    const overlaps = (top: number) => top < spotBottom && top + effH > spotTop;
     const first = placement === "below" ? below : above;
     if (!overlaps(first)) return first;
     const other = placement === "below" ? above : below;
     // Never sit over the very thing being highlighted — flip if clamping
     // would have pushed the card onto the target.
     if (!overlaps(other)) return other;
-    // Both sides collide (very tall card, very tall target): hug the roomier
-    // edge of the frame so at least the target stays clear.
-    return placement === "below"
-      ? Math.max(spotBottom + GAP, bounds.bottom - cardH - 12)
-      : Math.min(spotTop - GAP - cardH, bounds.top + 12);
+    // Both sides collide (very tall card, very tall target): stay inside the
+    // frame — visibility of the card wins over clearing the target.
+    return clamp(placement === "below" ? spotBottom + GAP : spotTop - GAP - effH);
   })();
+
 
 
   // Arrow points at the target from whichever edge faces it.
@@ -543,11 +575,16 @@ const HomeTour = () => {
             if (h && Math.abs(h - cardH) > 4) setCardH(h);
           }
         }}
-        className="absolute left-1/2 -translate-x-1/2 w-[88%] max-w-[340px] rounded-[20px] bg-background border border-primary/30 shadow-2xl p-5 transition-opacity duration-150"
+        className="absolute left-1/2 -translate-x-1/2 w-[86%] max-w-[320px] rounded-[20px] bg-background border border-primary/30 shadow-2xl flex flex-col transition-opacity duration-150"
         style={
           tooltipTop != null
-            ? { top: tooltipTop, opacity: settled ? 1 : 0 }
-            : { top: "50%", transform: "translate(-50%, -50%)", opacity: settled ? 1 : 0 }
+            ? { top: tooltipTop, maxHeight: maxCardH, opacity: settled ? 1 : 0 }
+            : {
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                maxHeight: maxCardH,
+                opacity: settled ? 1 : 0,
+              }
         }
       >
         {/* Pointer towards the highlighted element */}
@@ -564,103 +601,108 @@ const HomeTour = () => {
           />
         )}
 
-        <div className="flex items-center gap-2 mb-2">
-          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.22em] text-primary font-semibold font-body">
-            <Sparkles className="size-3" />
-            {current.eyebrow}
-          </span>
-          <span className="ml-auto text-[10px] tracking-[0.15em] text-foreground/50 font-body">
-            {step + 1} / {total}
-          </span>
+        {/* Body — scrolls when the copy is longer than the space available */}
+        <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-1">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.22em] text-primary font-semibold font-body">
+              <Sparkles className="size-3" />
+              {current.eyebrow}
+            </span>
+            <span className="ml-auto text-[10px] tracking-[0.15em] text-foreground/50 font-body">
+              {step + 1} / {total}
+            </span>
+          </div>
+          <h3 className="font-display text-[18px] leading-snug">{current.title}</h3>
+          <p className="text-[12.5px] text-foreground/80 font-body mt-1.5 leading-relaxed">
+            {current.body}
+          </p>
         </div>
-        <h3 className="font-display text-[20px] leading-tight">{current.title}</h3>
-        <p className="text-[13.5px] text-foreground/80 font-body mt-2 leading-relaxed">
-          {current.body}
-        </p>
 
-        {current.action === "add-photo" && !hasStylePhoto && (
-          <Button
-            variant="gold"
-            size="pill"
-            className="w-full mt-4"
-            onClick={openPhotoPicker}
-          >
-            {current.actionLabel ?? "Add a photo now"}
-          </Button>
-        )}
-
-        {current.action === "add-photo" && hasStylePhoto && (
-          <>
-            <div className="flex items-center gap-2 mt-4 text-[12.5px] font-body text-primary">
-              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/15">
-                <Check className="size-3.5" />
-              </span>
-              Photo added
-            </div>
-            <button
-              type="button"
+        {/* Sticky action footer — never clipped, never scrolls away */}
+        <div className="shrink-0 px-4 pt-2.5 pb-3.5 border-t border-primary/15 bg-background rounded-b-[20px]">
+          {current.action === "add-photo" && !hasStylePhoto && (
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full mb-2"
               onClick={openPhotoPicker}
-              className="mt-2 text-[11px] uppercase tracking-[0.2em] text-foreground/55 hover:text-foreground font-body font-medium"
             >
-              Change photo
-            </button>
-          </>
-        )}
-
-        <div className="flex items-center gap-2 mt-4">
-          {step > 0 && (
-            <Button variant="goldOutline" size="pill" className="flex-1" onClick={prev}>
-              Back
+              {current.actionLabel ?? "Add a photo now"}
             </Button>
           )}
-          <Button
-            variant={current.action && !actionDone ? "goldOutline" : "gold"}
-            size="pill"
-            className="flex-1"
-            onClick={next}
-          >
-            {step === total - 1
-              ? "Finish"
-              : current.action && !actionDone
-                ? "Later →"
-                : "Next →"}
-          </Button>
+
+          {current.action === "add-photo" && hasStylePhoto && (
+            <div className="mb-2 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-body text-primary">
+                <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/15">
+                  <Check className="size-3.5" />
+                </span>
+                Photo added
+              </span>
+              <button
+                type="button"
+                onClick={openPhotoPicker}
+                className="ml-auto text-[10.5px] uppercase tracking-[0.18em] text-foreground/55 hover:text-foreground font-body font-medium"
+              >
+                Change photo
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <Button variant="goldOutline" size="pill" className="flex-1" onClick={prev}>
+                Back
+              </Button>
+            )}
+            <Button
+              variant={current.action && !actionDone ? "goldOutline" : "gold"}
+              size="pill"
+              className="flex-1"
+              onClick={next}
+            >
+              {step === total - 1
+                ? "Finish"
+                : current.action && !actionDone
+                  ? "Later →"
+                  : "Next →"}
+            </Button>
+          </div>
+
+          <div className="flex justify-center gap-1.5 mt-2.5">
+            {steps.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1 rounded-full transition-all ${
+                  i === step ? "w-5 bg-primary" : "w-1.5 bg-primary/25"
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="mt-2.5 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setActive(false)}
+              aria-label="Minimise tour"
+              className="inline-flex items-center gap-1 text-[10.5px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+            >
+              Minimise
+              <Minus className="size-3" />
+            </button>
+            <span aria-hidden className="h-3 w-px bg-foreground/20" />
+            <button
+              type="button"
+              onClick={() => finish(true)}
+              className="inline-flex items-center gap-1 text-[10.5px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
+            >
+              Skip the tour
+              <X className="size-3" />
+            </button>
+          </div>
         </div>
-
-
-        <div className="flex justify-center gap-1.5 mt-3">
-          {steps.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1 rounded-full transition-all ${
-                i === step ? "w-5 bg-primary" : "w-1.5 bg-primary/25"
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="mt-3 flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => setActive(false)}
-            aria-label="Minimise tour"
-            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
-          >
-            Minimise
-            <Minus className="size-3" />
-          </button>
-          <span aria-hidden className="h-3 w-px bg-foreground/20" />
-          <button
-            type="button"
-            onClick={() => finish(true)}
-            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55 hover:text-foreground font-body font-medium"
-          >
-            Skip the tour
-            <X className="size-3" />
-          </button>
-        </div>
-
       </div>
+
     </div>
   );
 };
