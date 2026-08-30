@@ -2,6 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
+import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
 import {
   addToKlaviyoList,
   logKlaviyoSync,
@@ -181,6 +182,17 @@ async function upsertFromSubscription(
     { onConflict: "user_id" },
   );
   if (error) throw error;
+
+  // Cancellation audit (admin-only table). Always captures the timing data,
+  // with reason/comment null when Stripe supplies none.
+  await recordSubscriptionCancellation(admin, {
+    userId: userId,
+    accountType: "consumer",
+    sub,
+    eventType: sub.status === "canceled"
+      ? "customer.subscription.deleted"
+      : "customer.subscription.updated",
+  });
 
   // STRAND_PAYWALL_LIST: she started checkout but the subscription is not
   // paying. Marketing-consent gated inside the helper, and never blocks the

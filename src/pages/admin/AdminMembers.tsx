@@ -31,6 +31,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import AccountTypeControl, { AccountTypeBadge } from "@/components/admin/AccountTypeControl";
 import { deriveAccountType, type AccountType } from "@/hooks/useAccountTypes";
+import { useMemberCancellations, cancellationReasonLabel } from "@/hooks/useMemberCancellation";
 
 interface MemberRow {
   user_id: string;
@@ -137,6 +138,7 @@ const AdminMembers = () => {
   const nav = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { data: cancellations } = useMemberCancellations();
   const [searchParams] = useSearchParams();
   const initialFilter = ((): Filter => {
     const f = searchParams.get("filter");
@@ -768,6 +770,38 @@ const AdminMembers = () => {
                     className="h-9"
                   />
                 </div>
+
+                {isCancelled(r) && (() => {
+                  const c = cancellations?.get(r.user_id);
+                  const reason = cancellationReasonLabel(c?.cancellation_reason ?? null);
+                  const when = c?.canceled_at ?? c?.recorded_at ?? null;
+                  return (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <p className="text-[12px] font-body font-medium text-destructive">
+                        Cancellation reason
+                      </p>
+                      {reason ? (
+                        <p className="text-[12px] font-body text-destructive leading-snug break-words">
+                          {reason}
+                        </p>
+                      ) : (
+                        <p className="text-[12px] font-body text-muted-foreground italic leading-snug">
+                          No reason given
+                        </p>
+                      )}
+                      {when && (
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          Cancelled {new Date(when).toLocaleDateString("en-GB")}
+                        </p>
+                      )}
+                      {c?.cancellation_comment && (
+                        <p className="mt-1 text-[11px] font-body text-muted-foreground leading-snug break-words">
+                          “{c.cancellation_comment}”
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <AccountTypeControl
                   userId={r.user_id}

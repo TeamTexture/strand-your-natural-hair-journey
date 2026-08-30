@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
+import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
 
 // Public endpoint — Stripe cannot present a Supabase JWT. We verify with
 // STRIPE_WEBHOOK_SECRET instead. Configure verify_jwt = false in config.toml.
@@ -110,4 +111,15 @@ async function upsertFromSubscription(
     },
     { onConflict: "pro_user_id" },
   );
+
+  // Cancellation audit (admin-only table). Always captures the timing data,
+  // with reason/comment null when Stripe supplies none.
+  await recordSubscriptionCancellation(admin, {
+    userId: proUserId,
+    accountType: "professional",
+    sub,
+    eventType: sub.status === "canceled"
+      ? "customer.subscription.deleted"
+      : "customer.subscription.updated",
+  });
 }

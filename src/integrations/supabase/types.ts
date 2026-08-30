@@ -5093,6 +5093,57 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_cancellations: {
+        Row: {
+          account_type: string
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          cancellation_comment: string | null
+          cancellation_reason: string | null
+          cancellation_source: string | null
+          created_at: string
+          id: string
+          recorded_at: string
+          stripe_customer_id: string | null
+          stripe_event_key: string
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_type: string
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          cancellation_comment?: string | null
+          cancellation_reason?: string | null
+          cancellation_source?: string | null
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          stripe_customer_id?: string | null
+          stripe_event_key: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_type?: string
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          cancellation_comment?: string | null
+          cancellation_reason?: string | null
+          cancellation_source?: string | null
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          stripe_customer_id?: string | null
+          stripe_event_key?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tip_evidence_sets: {
         Row: {
           attempts: number

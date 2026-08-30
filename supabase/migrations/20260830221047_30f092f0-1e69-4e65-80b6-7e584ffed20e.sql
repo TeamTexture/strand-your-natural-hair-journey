@@ -1,0 +1,1 @@
+REVOKE ALL ON public.subscription_cancellations FROM anon;
