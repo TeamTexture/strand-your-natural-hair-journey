@@ -32,19 +32,20 @@ const Acquisition = () => {
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Already answered (or skipped) once — never ask again.
+  // Already answered once — never ask again. Only a stored source counts: this
+  // step is mandatory, so a skipped/stamped-but-empty profile must ask again.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("acquisition_source, acquisition_asked_at")
+        .select("acquisition_source")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
-      const row = data as { acquisition_source?: string | null; acquisition_asked_at?: string | null } | null;
-      if (row?.acquisition_source || row?.acquisition_asked_at) {
+      const row = data as { acquisition_source?: string | null } | null;
+      if (row?.acquisition_source) {
         navigate(TRIAL_PAYWALL_PATH, { replace: true });
         return;
       }
@@ -55,7 +56,7 @@ const Acquisition = () => {
     };
   }, [user, navigate]);
 
-  const finish = async (source: string | null) => {
+  const finish = async (source: string) => {
     if (!user || saving) return;
     setSaving(true);
     try {
@@ -63,6 +64,7 @@ const Acquisition = () => {
         .from("profiles")
         .update({
           acquisition_source: source,
+          acquisition_source_other: source === "other" ? otherText.trim() || null : null,
           acquisition_asked_at: new Date().toISOString(),
         })
         .eq("user_id", user.id);
