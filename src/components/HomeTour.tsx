@@ -511,7 +511,23 @@ const HomeTour = () => {
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
       {/* Dimmed backdrop with a cutout around the spotlit element */}
-      <svg className="absolute inset-0 w-full h-full">
+      {/* Tapping the dim area closes the tour (same as Minimise / X): it can be
+       *  resumed from the "Take the tour" button. Taps inside the spotlight
+       *  cutout are ignored so the highlighted element stays interactive. */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        onPointerDown={(e) => {
+          if (rect) {
+            const insideTarget =
+              e.clientX >= rect.left - pad &&
+              e.clientX <= rect.right + pad &&
+              e.clientY >= rect.top - pad &&
+              e.clientY <= rect.bottom + pad;
+            if (insideTarget) return;
+          }
+          setActive(false);
+        }}
+      >
         <defs>
           <mask id="strand-tour-mask">
             <rect width="100%" height="100%" fill="white" />
