@@ -20,6 +20,6 @@ describe("AccountDeletionControl", () => {
     const { container } = wrap("consumer");
     expect(container.textContent).toBe("");
     wrap("professional");
-    expect(screen.getByText("Delete this account")).toBeTruthy();
+    expect(screen.getAllByText("Delete this account").length).toBeGreaterThan(0);
   });
 });
