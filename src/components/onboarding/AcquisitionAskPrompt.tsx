@@ -56,7 +56,9 @@ export function useAcquisitionAsk() {
       .from("profiles")
       .update({ acquisition_source: source, acquisition_asked_at: new Date().toISOString() })
       .eq("user_id", user!.id);
-    if (error) throw error;
+    // FAIL-OPEN: a failed write must never block Home. Log it and let her
+    // through — the question will simply be asked again on a later session.
+    if (error) console.warn("[strand] retro acquisition save failed — continuing anyway", error);
     qc.setQueryData(["acquisition_retro_ask", user!.id], false);
     setAnswered(true);
   };
