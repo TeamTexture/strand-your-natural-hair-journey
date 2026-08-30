@@ -39,7 +39,8 @@ describe("relevance mismatches are not score-worthy minuses", () => {
 
   it("alignScoreWithReasons ignores relevance minuses", () => {
     expect(alignScoreWithReasons(88, [k18Minus, { ...k18Minus }])).toBe(88);
-    expect(alignScoreWithReasons(88, [realConflict, { ...realConflict }])).toBe(88);
-    expect(alignScoreWithReasons(90, [realConflict, { ...realConflict }])).toBe(90);
+    // Two real conflicts with no plus still reads as a caution.
+    expect(alignScoreWithReasons(88, [realConflict, { ...realConflict }])).toBe(55);
+
   });
 });
