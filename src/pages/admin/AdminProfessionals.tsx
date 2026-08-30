@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import MessageButton from "@/components/admin/MessageButton";
 import ViewAsUserButton from "@/components/admin/ViewAsUserButton";
+import AccountDeletionControl from "@/components/admin/AccountDeletionControl";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
@@ -688,6 +689,11 @@ const AdminProfessionals = () => {
                     </Button>
                   </div>
                 )}
+                <AccountDeletionControl
+                  userId={r.user_id}
+                  name={r.display_name}
+                  currentType="professional"
+                />
               </SurfaceCard>
             );
           })
