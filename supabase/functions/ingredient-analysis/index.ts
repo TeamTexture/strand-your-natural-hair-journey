@@ -67,6 +67,8 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   SCORE_REASONS_RULES,
   SCORE_REASONS_SCHEMA_PROPERTY,
+  rankScoreReasons,
+  heroActiveOmissions,
   sanitiseScoreReasons,
   alignScoreWithReasons,
   firstSentence,
