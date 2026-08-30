@@ -94,20 +94,8 @@ const Acquisition = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar
-        title="My STRAND"
-        onBack={onboardingBack(navigate, ACQUISITION_PATH)}
-        right={
-          <button
-            type="button"
-            onClick={() => void finish(null)}
-            disabled={saving}
-            className="text-xs font-body text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
-          >
-            Skip
-          </button>
-        }
-      />
+      {/* Mandatory step: no back arrow, no skip. */}
+      <TitleBar title="My STRAND" />
       <OnboardingGuide className="pt-2 pb-1" />
       <OnboardingScreenHeading
         title="One last thing — how did you find us?"
