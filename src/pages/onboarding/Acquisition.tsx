@@ -69,14 +69,17 @@ const Acquisition = () => {
         .eq("user_id", user.id);
       if (error) throw error;
     } catch (err) {
-      console.warn("[strand] acquisition save failed", err);
-      toast.error("Could not save that — please try again.");
-      setSaving(false);
-      return;
+      // FAIL-OPEN: a failed attribution write must never trap a member on this
+      // screen. Log it and carry her forward to the trial paywall regardless.
+      console.warn("[strand] acquisition save failed — continuing anyway", err);
     }
     // The TrialWall reads acquisitionAnswered from this shared cached query —
     // refresh it before navigating or the wall bounces straight back here.
-    await invalidateOnboarding();
+    try {
+      await invalidateOnboarding();
+    } catch (err) {
+      console.warn("[strand] onboarding status refresh failed", err);
+    }
     navigate(TRIAL_PAYWALL_PATH, { replace: true });
   };
 
