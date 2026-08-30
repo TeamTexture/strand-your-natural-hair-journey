@@ -882,6 +882,12 @@ Deno.serve(async (req: Request) => {
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
         areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
+        // STANDING RULE (2026-08-30): recorded challenges are always an
+        // analysis input, weighted alongside the goal and areas of concern.
+        challenges: (ctx as Record<string, unknown> | undefined)?.challenges,
+        declaredSensitivities:
+          (ctx as Record<string, unknown> | undefined)?.sensitivities ??
+          (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
       });
       a.score_reasons = failsafe.reasons;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
