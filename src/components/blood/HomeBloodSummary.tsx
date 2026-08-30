@@ -1,5 +1,7 @@
-import { Droplet } from "lucide-react";
+import { Droplet, Stethoscope, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import SurfaceCard from "@/components/SurfaceCard";
+import { Button } from "@/components/ui/button";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import { titleCase } from "@/lib/humanise";
 import { limitSupporting } from "@/lib/tipsRender";
@@ -26,6 +28,7 @@ const HomeBloodSummary = ({
   tipsLevel: TipsLevel;
   onOpen: () => void;
 }) => {
+  const navigate = useNavigate();
   return (
     <SurfaceCard data-tour="blood-work">
       <div className="flex items-center justify-between mb-2">
@@ -86,11 +89,32 @@ const HomeBloodSummary = ({
           </div>
         </button>
       ) : (
-        <button onClick={onOpen} className="text-left w-full">
-          <p className="text-sm text-muted-foreground">
-            No blood work logged yet. Tap to add your first panel.
+        <div>
+          <p className="text-sm text-muted-foreground font-body leading-relaxed">
+            No blood work logged yet. Add a test you already have, or book one —
+            STRAND uses your markers to guide your hair care.
           </p>
-        </button>
+          <div className="mt-3 flex flex-col gap-2">
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/blood-upload?next=analysis")}
+            >
+              <Upload className="size-4" />
+              Add blood test
+            </Button>
+            <Button
+              variant="goldOutline"
+              size="pill"
+              className="w-full"
+              onClick={() => navigate("/blood-history?book=1")}
+            >
+              <Stethoscope className="size-4" />
+              Book a blood test
+            </Button>
+          </div>
+        </div>
       )}
     </SurfaceCard>
   );

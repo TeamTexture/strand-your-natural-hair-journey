@@ -181,7 +181,12 @@ const BloodHistory = () => {
   const [cursor, setCursor] = useState<Date>(new Date());
   const [editing, setEditing] = useState<PanelRow | null>(null);
   const [scheduling, setScheduling] = useState<boolean>(false);
-  const [booking, setBooking] = useState<boolean>(false);
+  // Home's empty-state "Book a blood test" button deep-links straight into the
+  // existing routes sheet (at-home kits + blood-capable professionals).
+  const [booking, setBooking] = useState<boolean>(
+    typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("book") === "1",
+  );
   // Kept for backwards compatibility with any earlier UI paths, but the new
   // thumbnail routes to /blood-panel/:id via a "Review results" button.
   const [, setExpanded] = useState<Set<string>>(new Set());

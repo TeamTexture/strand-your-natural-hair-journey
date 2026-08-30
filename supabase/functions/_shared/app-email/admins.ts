@@ -2,11 +2,23 @@
 // ONE place, so every admin alert reaches the same inbox set.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
-/** Always notified, regardless of platform settings or role rows. */
-export const ADMIN_FALLBACK_EMAIL = "paige.lewin@gmail.com";
+declare const Deno: { env: { get(key: string): string | undefined } };
+
+/**
+ * Fallback admin inbox. Held in the `ADMIN_FALLBACK_EMAIL` secret — never
+ * hard-coded, so member data can't be posted to an address baked into the repo.
+ * When it is unset we simply do not add one; if that leaves NO recipients,
+ * `resolveAdminEmails` throws so the failure is loud instead of silent.
+ */
+export function adminFallbackEmail(): string | null {
+  const raw = (Deno.env.get("ADMIN_FALLBACK_EMAIL") ?? "").trim().toLowerCase();
+  return raw.includes("@") ? raw : null;
+}
 
 export async function resolveAdminEmails(admin: SupabaseClient): Promise<string[]> {
-  const emails = new Set<string>([ADMIN_FALLBACK_EMAIL]);
+  const emails = new Set<string>();
+  const fallback = adminFallbackEmail();
+  if (fallback) emails.add(fallback);
 
   // 1. platform_settings override (JSON string, comma/semicolon separated).
   try {
@@ -39,5 +51,13 @@ export async function resolveAdminEmails(admin: SupabaseClient): Promise<string[
     console.warn("resolveAdminEmails: role lookup failed", e);
   }
 
-  return Array.from(emails);
+  const list = Array.from(emails);
+  if (list.length === 0) {
+    // Loud failure: no configured fallback, no platform setting, no admin role
+    // rows. Better to error and log than to guess an inbox.
+    throw new Error(
+      "resolveAdminEmails: no admin recipients configured (set the ADMIN_FALLBACK_EMAIL secret or the admin_notification_email platform setting)",
+    );
+  }
+  return list;
 }

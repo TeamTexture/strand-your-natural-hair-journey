@@ -6,12 +6,17 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { dispatchEmail, serviceClient } from "../_shared/app-email/core.ts";
 import { resolveAdminEmails } from "../_shared/app-email/admins.ts";
+import { authoriseTriggerCall } from "../_shared/app-email/trigger-auth.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Only the database trigger (or a service-role caller) may send these emails.
+  const denied = authoriseTriggerCall(req);
+  if (denied) return json(denied.body, denied.status);
 
   try {
     const { message_id } = await req.json().catch(() => ({}));

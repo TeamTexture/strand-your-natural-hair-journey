@@ -2,6 +2,8 @@
 // and confirms, then saves as a new blood panel + results.
 import { smartBack } from "@/lib/smartBack";
 import { onboardingBack } from "@/lib/onboardingFlow";
+import { POST_PAYMENT_ANALYSIS_PATH } from "@/lib/consumerOnboarding";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, FileText, ImageIcon, Loader2, X, Lock, Eye, EyeOff, AlertTriangle, Camera, ChevronDown } from "lucide-react";
@@ -529,9 +531,15 @@ export default function BloodUpload() {
       clearBloodDraft();
       window.dispatchEvent(new Event("strand:blood-update"));
       toast.success(`Saved ${res.count ?? usable.length} marker${(res.count ?? usable.length) === 1 ? "" : "s"} to your history.`);
-      const isOnboarding = new URLSearchParams(window.location.search).get("onboarding") === "1";
+      const params = new URLSearchParams(window.location.search);
+      const isOnboarding = params.get("onboarding") === "1";
+      // Home's empty-state "Add blood test" button asks for the analysis
+      // landing (AI blood summary -> nutrition plan) rather than the raw panel.
+      const wantsAnalysis = params.get("next") === "analysis";
       if (isOnboarding) {
         navigate(await resolveMembershipPath(), { replace: true });
+      } else if (wantsAnalysis) {
+        navigate(POST_PAYMENT_ANALYSIS_PATH, { replace: true });
       } else if (savedPanelId) {
         navigate(`/blood-panel/${savedPanelId}`);
       } else {
