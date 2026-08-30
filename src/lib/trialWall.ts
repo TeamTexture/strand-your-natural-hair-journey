@@ -58,6 +58,29 @@ export function isTrialWallAllowedPath(pathname: string) {
  * Every resolver (sign-in, splash, welcome screen, the About You form itself)
  * calls this, so there is exactly one place that decides.
  */
+/**
+ * FAIL-OPEN escape hatch: when the attribution write itself fails (RLS, network,
+ * schema), the member has still answered the question. We must never bounce her
+ * back into the step in a loop — one attempt is enough for this session.
+ */
+const ACQUISITION_BYPASS_KEY = "strand_acquisition_bypass";
+
+export const markAcquisitionBypass = () => {
+  try {
+    sessionStorage.setItem(ACQUISITION_BYPASS_KEY, "1");
+  } catch {
+    /* storage unavailable — the in-flight navigation still proceeds */
+  }
+};
+
+export const hasAcquisitionBypass = () => {
+  try {
+    return sessionStorage.getItem(ACQUISITION_BYPASS_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
 export function walledDestination(opts: {
   basicComplete: boolean;
   goalCaptured: boolean;
@@ -68,7 +91,9 @@ export function walledDestination(opts: {
   acquisitionAnswered?: boolean;
 }): string {
   if (opts.basicComplete) {
-    return opts.acquisitionAnswered === false ? ACQUISITION_PATH : TRIAL_PAYWALL_PATH;
+    return opts.acquisitionAnswered === false && !hasAcquisitionBypass()
+      ? ACQUISITION_PATH
+      : TRIAL_PAYWALL_PATH;
   }
   return opts.goalCaptured ? TRIAL_REGISTRATION_PATH : TRIAL_GOAL_PATH;
 }
