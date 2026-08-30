@@ -30,6 +30,7 @@ const Acquisition = () => {
   const [checking, setChecking] = useState(true);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [otherText, setOtherText] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Already answered once — never ask again. Only a stored source counts: this
