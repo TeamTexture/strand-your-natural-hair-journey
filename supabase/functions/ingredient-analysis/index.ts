@@ -116,7 +116,9 @@ import {
   retryReasonFromRules,
 } from "../_shared/guardrail-retry.ts";
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
-import { applyConcernFit, parseConcerns } from "../_shared/concern-fit.ts";
+import { applyConcernFit, parseChallenges, parseConcerns } from "../_shared/concern-fit.ts";
+import { validateMechanismSpecificity } from "../_shared/mechanism-specificity.ts";
+import { applyBenignFlagPolicy } from "../_shared/benign-flags.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -130,7 +132,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v23-concern-fit-2026-08-30";
+const MODEL_VERSION = "claude-sonnet-4-6@v24-mechanism-substance-2026-08-30";
 
 
 
@@ -1593,7 +1595,13 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         ),
         // STANDING RULE (2026-08-30): recorded challenges are always an
         // analysis input, weighted alongside goal and areas of concern.
-        challenges: parseChallenges(challengeLabels),
+        challenges: parseChallenges(
+          (challenges && challenges.length)
+            ? challenges
+            : allChallenges(
+              (goals && goals.length ? goals : dbGoals) as Array<Record<string, unknown>>,
+            ),
+        ),
         ingredients: rawIngredients,
       });
       // Routine preservatives, pH adjusters, colourants, emulsifiers and
