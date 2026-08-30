@@ -454,12 +454,11 @@ const Home = () => {
 
   const shelfCount = shelfProducts.length;
 
-  // Members who joined before the attribution step exists get the one-off ask
-  // in place of Home, once. Answering or skipping stamps the profile for good.
-  if (acquisitionAsk.due) return <AcquisitionAskScreen onDone={acquisitionAsk.markAnswered} />;
-
   return (
     <ScreenLayout bottomNav>
+      {/* Members who finished onboarding before the attribution step existed get
+          a one-time blocking ask over Home; answering stores it for good. */}
+      {acquisitionAsk.due && <AcquisitionAskModal onDone={acquisitionAsk.markAnswered} />}
       <ProfileReconfirmPrompt />
 
       <PersonalisedOffersCard />
