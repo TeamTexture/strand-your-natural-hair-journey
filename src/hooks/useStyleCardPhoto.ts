@@ -67,10 +67,17 @@ export function useStyleCardPhoto() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Last non-empty result, kept so a refetch — or the query key flipping while
+  // the auth user rehydrates — never renders a "no photos" false negative.
+  const lastGood = useRef<{ mainPhotoId: string | null; photos: MilestonePhoto[] } | undefined>(
+    undefined,
+  );
+
   const query = useQuery({
     queryKey: styleCardPhotoKey(user?.id),
     enabled: !!user,
     staleTime: 30_000,
+    placeholderData: (prev) => prev ?? lastGood.current,
     queryFn: async () => {
       if (!user) return { mainPhotoId: null as string | null, photos: [] as MilestonePhoto[] };
 
