@@ -99,7 +99,8 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
         acquisition_asked_at?: string | null;
       }
     | null;
-  const acquisitionAnswered = !!(row?.acquisition_source || row?.acquisition_asked_at);
+  // Mandatory step — a skip stamp no longer settles it, only a stored source.
+  const acquisitionAnswered = !!row?.acquisition_source;
   if (!row?.trial_offer_at) return none;
   if (row.complimentary_access) return none;
 

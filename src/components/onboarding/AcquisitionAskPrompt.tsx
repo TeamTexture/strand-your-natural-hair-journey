@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import ScreenLayout from "@/components/ScreenLayout";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,18 +8,19 @@ import { useRoles } from "@/hooks/useRoles";
 import { ACQUISITION_OPTIONS } from "@/components/onboarding/acquisitionOptions";
 
 /**
- * ONE-TIME retro ask — "How did you find STRAND?"
+ * MANDATORY retro ask — "How did you first find STRAND?"
  *
- * Members who joined before the onboarding attribution step exists will never
- * reach it naturally, so it is offered once as a light interstitial over Home.
+ * Members who finished onboarding before the attribution step existed will never
+ * reach it naturally, so it is shown as a blocking one-time modal over Home.
  * It shows only when:
  *   - the member is a consumer (not a professional, brand or admin account),
  *   - she has reached Home (every onboarding/paywall gate runs before it),
- *   - acquisition_source AND acquisition_asked_at are both still empty,
+ *   - acquisition_source is still empty,
  *   - the app is not in admin shadow view (never writes as another member).
  *
- * Answering or skipping stamps acquisition_asked_at, so it can never return —
- * the read is the same condition, on a durable database field, not a local flag.
+ * There is no close control, no backdrop dismiss and no escape key: selecting an
+ * option is the only exit. The answer is stored on the profile, so once given the
+ * modal can never return on any device.
  */
 export function useAcquisitionAsk() {
   const { user, isViewingAs } = useAuth();
@@ -41,158 +39,97 @@ export function useAcquisitionAsk() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("acquisition_source, acquisition_asked_at")
+        .select("acquisition_source")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
-      const row = data as {
-        acquisition_source?: string | null;
-        acquisition_asked_at?: string | null;
-      } | null;
+      const row = data as { acquisition_source?: string | null } | null;
       if (!row) return false;
-      return !row.acquisition_source && !row.acquisition_asked_at;
+      return !row.acquisition_source;
     },
   });
 
-  const [dismissed, setDismissed] = useState(false);
+  const [answered, setAnswered] = useState(false);
 
-  const markAnswered = async (source: string | null) => {
+  const markAnswered = async (source: string) => {
     const { error } = await supabase
       .from("profiles")
       .update({ acquisition_source: source, acquisition_asked_at: new Date().toISOString() })
       .eq("user_id", user!.id);
     if (error) throw error;
     qc.setQueryData(["acquisition_retro_ask", user!.id], false);
-    setDismissed(true);
+    setAnswered(true);
   };
 
-  return { due: eligibleAccount && ask === true && !dismissed, markAnswered };
+  return { due: eligibleAccount && ask === true && !answered, markAnswered };
 }
 
 /**
- * The one-off screen itself. Rendered in place of Home exactly once, so it reads
- * as a quick ask rather than a trip back through onboarding.
+ * The blocking modal itself — pill options, no dismissal path.
  */
-const AcquisitionAskScreen = ({
+const AcquisitionAskModal = ({
   onDone,
 }: {
-  onDone: (source: string | null) => Promise<void>;
+  onDone: (source: string) => Promise<void>;
 }) => {
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
 
-  const finish = async (source: string | null) => {
+  const choose = async (source: string) => {
     if (saving) return;
-    setSaving(true);
+    setSaving(source);
     try {
       await onDone(source);
-      if (source) toast.success("Thank you — that really helps.");
     } catch (err) {
       console.warn("[strand] retro acquisition save failed", err);
       toast.error("Could not save that — please try again.");
-      setSaving(false);
+      setSaving(null);
     }
   };
 
-  const selectedOption = ACQUISITION_OPTIONS.find((o) => o.value === selected) ?? null;
-
   return (
-    <ScreenLayout>
-      <div className="flex items-center justify-between px-5 pt-6 pb-2">
-        <span className="font-display text-[15px] tracking-wide text-foreground">My STRAND</span>
-        <button
-          type="button"
-          onClick={() => void finish(null)}
-          disabled={saving}
-          className="text-xs font-body text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="acquisition-ask-title"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-foreground/45 backdrop-blur-[2px] p-4"
+    >
+      <div className="w-full max-w-[340px] rounded-[20px] bg-background border border-border shadow-2xl p-5 max-h-[85%] overflow-y-auto">
+        <h2
+          id="acquisition-ask-title"
+          className="font-display text-[20px] leading-snug text-foreground break-words"
         >
-          Skip
-        </button>
-      </div>
-
-      <div className="px-5 pt-4">
-        <h1 className="font-display text-[22px] leading-snug text-foreground break-words">
-          One quick thing — how did you find us?
-        </h1>
-        <p className="mt-2 font-body text-[13px] leading-relaxed text-muted-foreground">
-          Helps us know where to focus, so we can keep bringing this to more people like you.
+          Quick one before you carry on
+        </h2>
+        <p className="mt-1.5 font-body text-[13px] leading-relaxed text-muted-foreground">
+          How did you first find STRAND?
         </p>
-      </div>
 
-      <div className="px-5 pb-8 pt-6 flex flex-col flex-1">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            className={cn(
-              "relative flex w-full items-center gap-2.5 bg-surface-raised rounded-[10px] border transition-colors px-3.5 py-3 text-left",
-              open || selected ? "border-primary/60" : "border-border",
-            )}
-          >
-            {selectedOption && <selectedOption.icon className="size-4 shrink-0 text-primary" aria-hidden />}
-            <span
-              className={cn(
-                "flex-1 min-w-0 font-body text-[14.5px]",
-                selectedOption ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {selectedOption ? selectedOption.label : "Choose one…"}
-            </span>
-            <ChevronDown
-              className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
-              aria-hidden
-            />
-          </button>
-
-          {open && (
-            <div
-              role="listbox"
-              aria-label="How did you find STRAND?"
-              className="absolute z-20 inset-x-0 top-full mt-1.5 rounded-[12px] border border-primary/30 bg-background shadow-xl overflow-hidden"
-            >
-              {ACQUISITION_OPTIONS.map((opt) => {
-                const active = opt.value === selected;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    onClick={() => {
-                      setSelected(opt.value);
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-body text-[14px] transition-colors",
-                      active ? "bg-primary/12 text-foreground" : "text-foreground/85 hover:bg-primary/[0.06]",
-                    )}
-                  >
-                    <opt.icon className={cn("size-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} aria-hidden />
-                    <span className="flex-1 min-w-0 break-words">{opt.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-auto pt-6">
-          <Button
-            variant="gold"
-            size="pill"
-            className="w-full"
-            disabled={!selected || saving}
-            onClick={() => void finish(selected)}
-          >
-            {saving ? "Saving…" : "Continue"}
-          </Button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {ACQUISITION_OPTIONS.map((opt) => {
+            const busy = saving === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => void choose(opt.value)}
+                disabled={!!saving}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-pill border px-3 py-2 font-body text-[13px] transition-colors",
+                  busy
+                    ? "border-primary bg-primary/15 text-foreground"
+                    : "border-border bg-surface-raised text-foreground/85 hover:border-primary/60 hover:bg-primary/[0.06]",
+                  saving && !busy && "opacity-50",
+                )}
+              >
+                <opt.icon className="size-3.5 shrink-0 text-primary" aria-hidden />
+                <span className="break-words">{busy ? "Saving…" : opt.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
-    </ScreenLayout>
+    </div>
   );
 };
 
-export default AcquisitionAskScreen;
+export default AcquisitionAskModal;

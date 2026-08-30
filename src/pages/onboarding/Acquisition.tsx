@@ -10,9 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { onboardingBack } from "@/lib/onboardingFlow";
 import { useInvalidateOnboardingStatus } from "@/hooks/useOnboardingStatus";
-import { ACQUISITION_PATH } from "@/lib/trialWall";
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
 import { toast } from "sonner";
 import { ACQUISITION_OPTIONS as OPTIONS } from "@/components/onboarding/acquisitionOptions";
@@ -30,21 +28,23 @@ const Acquisition = () => {
   const [checking, setChecking] = useState(true);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [otherText, setOtherText] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Already answered (or skipped) once — never ask again.
+  // Already answered once — never ask again. Only a stored source counts: this
+  // step is mandatory, so a skipped/stamped-but-empty profile must ask again.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("acquisition_source, acquisition_asked_at")
+        .select("acquisition_source")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
-      const row = data as { acquisition_source?: string | null; acquisition_asked_at?: string | null } | null;
-      if (row?.acquisition_source || row?.acquisition_asked_at) {
+      const row = data as { acquisition_source?: string | null } | null;
+      if (row?.acquisition_source) {
         navigate(TRIAL_PAYWALL_PATH, { replace: true });
         return;
       }
@@ -55,7 +55,7 @@ const Acquisition = () => {
     };
   }, [user, navigate]);
 
-  const finish = async (source: string | null) => {
+  const finish = async (source: string) => {
     if (!user || saving) return;
     setSaving(true);
     try {
@@ -63,6 +63,7 @@ const Acquisition = () => {
         .from("profiles")
         .update({
           acquisition_source: source,
+          acquisition_source_other: source === "other" ? otherText.trim() || null : null,
           acquisition_asked_at: new Date().toISOString(),
         })
         .eq("user_id", user.id);
@@ -91,20 +92,8 @@ const Acquisition = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar
-        title="My STRAND"
-        onBack={onboardingBack(navigate, ACQUISITION_PATH)}
-        right={
-          <button
-            type="button"
-            onClick={() => void finish(null)}
-            disabled={saving}
-            className="text-xs font-body text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
-          >
-            Skip
-          </button>
-        }
-      />
+      {/* Mandatory step: no back arrow, no skip. */}
+      <TitleBar title="My STRAND" />
       <OnboardingGuide className="pt-2 pb-1" />
       <OnboardingScreenHeading
         title="One last thing — how did you find us?"
@@ -172,13 +161,26 @@ const Acquisition = () => {
           )}
         </div>
 
+        {selected === "other" && (
+          <div className="mt-3">
+            <input
+              type="text"
+              value={otherText}
+              onChange={(e) => setOtherText(e.target.value)}
+              maxLength={120}
+              placeholder="Tell us where, if you like (optional)"
+              className="w-full bg-surface-raised rounded-[10px] border border-border focus:border-primary/60 outline-none px-3.5 py-3 font-body text-[14.5px] text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        )}
+
         <div className="mt-auto pt-6">
           <Button
             variant="gold"
             size="pill"
-            className="w-full"
+            className="w-full disabled:opacity-50"
             disabled={!selected || saving}
-            onClick={() => void finish(selected)}
+            onClick={() => selected && void finish(selected)}
           >
             {saving ? "Saving…" : "Continue"}
           </Button>
