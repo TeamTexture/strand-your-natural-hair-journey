@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { routeToView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import { TRIAL_PAYWALL_PATH } from "@/lib/trialOffer";
+import { CHROME_FREE_PREFIXES, isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 import {
   Menu,
@@ -114,7 +115,7 @@ const BRAND_NAV: NavItem[] = [
 
 // Keep app navigation hidden until the member is inside the paid app.
 const HIDDEN_PREFIXES = ["/auth", "/.lovable"];
-const ONBOARDING_PREFIXES = ["/onboarding", "/walkthrough", "/setup", "/blood-upload", "/subscribe"];
+const ONBOARDING_PREFIXES = CHROME_FREE_PREFIXES;
 
 const GlobalMenu = () => {
   const { session, signOut } = useAuth();
@@ -176,8 +177,7 @@ const GlobalMenu = () => {
     // Accounts blocked as outside the UK get the waiting-list splash and no
     // chrome at all — no menu, so no route back into onboarding or the app.
     internationalBlocked ||
-    ONBOARDING_PREFIXES.some((p) => location.pathname.startsWith(p)) ||
-    location.pathname === "/" ||
+    isChromeFreeRoute(location.pathname) ||
     HIDDEN_PREFIXES.some((p) => location.pathname.startsWith(p));
 
   if (hidden) return null;
