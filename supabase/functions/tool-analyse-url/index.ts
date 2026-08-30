@@ -56,8 +56,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v20-ranked-verdict-2026-08-29";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v20-ranked-verdict-2026-08-29";
+const MODEL_VERSION = "claude-haiku-4-5@v23-concern-fit-2026-08-30";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v23-concern-fit-2026-08-30";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
@@ -881,6 +881,7 @@ Deno.serve(async (req: Request) => {
         score: typeof a.match_score === "number" ? a.match_score : null,
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
+        areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
       });
       a.score_reasons = failsafe.reasons;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;

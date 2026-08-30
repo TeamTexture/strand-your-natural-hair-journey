@@ -65,6 +65,17 @@ const RELEVANCE_MISMATCH = [
   /\blittle (?:direct )?(?:benefit|relevance) (?:for|to) (?:her|your) (?:goal|concern|challenge)\b/i,
 ];
 
+/** "Targets X … not / rather than her Y" in any phrasing is relevance framing.
+ *  The K18 regression slipped past the list above because the model wrote
+ *  "targets ageing and shedding — not the breakage challenge": no listed
+ *  phrase matched, so a purpose mismatch was scored as a conflict. */
+const TARGETS_VERB = /\btarget(?:s|ed|ing)?\b|\baimed at\b|\bformulated for\b|\bdesigned for\b|\bintended for\b|\bfocus(?:es|ed)? on\b/i;
+const NEGATION = /\bnot\b|\brather than\b|\binstead of\b|\bwhereas\b/i;
+
+const isRelevanceFraming = (text: string) =>
+  any(RELEVANCE_MISMATCH, text) || (TARGETS_VERB.test(text) && NEGATION.test(text));
+
+
 
 const HARM_MARKERS = [
   /\bsensitivit/i,
@@ -130,7 +141,7 @@ export function minusIsScoreWorthy(r: ScoreReason): boolean {
   // "breakage" appears in both lists, so a purpose mismatch capped a
   // well-formulated product at 55. Relevance framing with no harm marker is
   // never score-worthy — it becomes a Strand Tip instead.
-  if (any(RELEVANCE_MISMATCH, text)) return false;
+  if (isRelevanceFraming(text)) return false;
   return any(CONFLICT_MECHANISM, text) && any(PROFILE_SIGNAL, text);
 }
 

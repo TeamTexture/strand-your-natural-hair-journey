@@ -87,8 +87,8 @@ declare const Deno: {
 };
 
 // v5 invalidates scans cached before product-specific hero-image extraction.
-const MODEL_VERSION = "claude-sonnet-4-6@v20-ranked-verdict-2026-08-29";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v20-ranked-verdict-2026-08-29";
+const MODEL_VERSION = "claude-sonnet-4-6@v23-concern-fit-2026-08-30";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v23-concern-fit-2026-08-30";
 
 
 function levelCap(level: TipsLevel): number {
@@ -1021,8 +1021,10 @@ Deno.serve(async (req: Request) => {
         score: typeof a.match_score === "number" ? a.match_score : null,
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
+        areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
       });
       a.score_reasons = failsafe.reasons;
+      if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
       if (failsafe.score != null) a.match_score = failsafe.score;
       if (failsafe.violations.length) {

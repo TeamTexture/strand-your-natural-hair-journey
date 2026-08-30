@@ -22,6 +22,7 @@ import type { ScoreReason } from "./score-reasons.ts";
 import { checkContentIntegrity, type IntegrityCheck } from "./content-integrity.ts";
 import type { UsageDirections } from "./usage-grounding.ts";
 import { applyFitFirst, sanitiseStrandTips, type StrandTipNote } from "./fit-first-score.ts";
+import { applyConcernFit, parseConcerns } from "./concern-fit.ts";
 
 /**
  * THE enumeration. Every function named here must route its generated payload
@@ -58,6 +59,11 @@ export interface FailsafeInput {
   /** Real manufacturer directions, when the surface has a product. Enables
    *  the technique-grounding check inside the shared integrity module. */
   directions?: UsageDirections | null;
+  /** The member's recorded physical areas of concern (edges, hairline, crown,
+   *  nape, thinning) — `aiContext.hairProfile.areas_of_concern`. A first-class
+   *  scoring input: a root/density/shedding mechanism serving one of these is
+   *  a plus, never a mismatch (see _shared/concern-fit.ts). */
+  areasOfConcern?: unknown;
   /** Rejection-log metadata, so failures are queryable in ai_content_rejections. */
   functionName?: string;
   userId?: string | null;
@@ -80,6 +86,10 @@ export interface FailsafeResult {
   reasons: ScoreReason[];
   strandTips: StrandTipNote[];
   score: number | null;
+  /** The ingredient cards, with concern-driven flags corrected. */
+  cards: unknown;
+  /** Counts of concern corrections applied — for logs, never member-facing. */
+  concernCorrections: { reframed: number; reflagged: number };
 }
 
 /**
@@ -105,12 +115,22 @@ export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
     sanitiseStrandTips(input.modelTips),
   );
 
+  // Areas of concern are scored as goals, not mismatches.
+  const concern = applyConcernFit({
+    score: fit.score,
+    reasons: fit.reasons,
+    cards: input.cards,
+    concerns: parseConcerns(input.areasOfConcern),
+  });
+
   return {
     problems: [...new Set(violations.map((v) => v.rule))].slice(0, 8),
     violations,
-    reasons: fit.reasons,
+    reasons: concern.reasons,
     strandTips: fit.strandTips,
-    score: fit.score,
+    score: concern.score,
+    cards: concern.cards,
+    concernCorrections: { reframed: concern.reframed, reflagged: concern.reflagged },
   };
 }
 

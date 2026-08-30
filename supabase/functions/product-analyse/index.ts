@@ -89,8 +89,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v22-relevance-axis-2026-08-30";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v22-relevance-axis-2026-08-30";
+const MODEL_VERSION = "claude-sonnet-4-6@v23-concern-fit-2026-08-30";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v23-concern-fit-2026-08-30";
 
 
 /** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,
@@ -744,8 +744,17 @@ Deno.serve(async (req: Request) => {
         score: typeof a.match_score === "number" ? a.match_score : null,
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
+        areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
       });
       a.score_reasons = failsafe.reasons;
+      if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
+      if (failsafe.concernCorrections.reframed || failsafe.concernCorrections.reflagged) {
+        console.log(JSON.stringify({
+          function: "product-analyse",
+          event: "concern_fit_applied",
+          ...failsafe.concernCorrections,
+        }));
+      }
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
       if (failsafe.score != null) a.match_score = failsafe.score;
       if (failsafe.violations.length) {
