@@ -1589,7 +1589,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         reasons: fitFirst.reasons,
         cards: analysis.ingredients,
         concerns: parseConcerns(
-          ((ctx?.hairProfile ?? {}) as Record<string, unknown>).areas_of_concern,
+          ((hairProfile ?? {}) as Record<string, unknown>).areas_of_concern,
         ),
       });
       analysis.score_reasons = concernFit.reasons;
