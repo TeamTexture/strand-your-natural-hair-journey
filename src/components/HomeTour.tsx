@@ -455,34 +455,38 @@ const HomeTour = () => {
   const pad = rect ? (Math.min(rect.width, rect.height) < 48 ? 12 : 8) : 8;
   const spotTop = rect ? rect.top - pad : 0;
   const spotBottom = rect ? rect.bottom + pad : 0;
+  // Effective height: never reason with a height the card cannot have.
+  const effH = Math.min(cardH, maxCardH);
   const placement: "below" | "above" | "float" = (() => {
     if (!rect) return "float";
-    if (bounds.bottom - spotBottom - GAP >= cardH + 8) return "below";
-    if (spotTop - bounds.top - GAP >= cardH + 8) return "above";
+    if (bounds.bottom - spotBottom - GAP >= effH + 8) return "below";
+    if (spotTop - bounds.top - GAP >= effH + 8) return "above";
     // Neither side fits cleanly — take the roomier side and clamp.
     return bounds.bottom - spotBottom >= spotTop - bounds.top ? "below" : "above";
   })();
 
   const clamp = (v: number) =>
-    Math.max(bounds.top + 12, Math.min(v, bounds.bottom - cardH - 12));
+    Math.max(
+      bounds.top + 12,
+      Math.min(v, Math.max(bounds.top + 12, bounds.bottom - effH - 12)),
+    );
 
   const tooltipTop = (() => {
     if (rect == null) return null;
     const below = clamp(spotBottom + GAP);
-    const above = clamp(spotTop - GAP - cardH);
-    const overlaps = (top: number) => top < spotBottom && top + cardH > spotTop;
+    const above = clamp(spotTop - GAP - effH);
+    const overlaps = (top: number) => top < spotBottom && top + effH > spotTop;
     const first = placement === "below" ? below : above;
     if (!overlaps(first)) return first;
     const other = placement === "below" ? above : below;
     // Never sit over the very thing being highlighted — flip if clamping
     // would have pushed the card onto the target.
     if (!overlaps(other)) return other;
-    // Both sides collide (very tall card, very tall target): hug the roomier
-    // edge of the frame so at least the target stays clear.
-    return placement === "below"
-      ? Math.max(spotBottom + GAP, bounds.bottom - cardH - 12)
-      : Math.min(spotTop - GAP - cardH, bounds.top + 12);
+    // Both sides collide (very tall card, very tall target): stay inside the
+    // frame — visibility of the card wins over clearing the target.
+    return clamp(placement === "below" ? spotBottom + GAP : spotTop - GAP - effH);
   })();
+
 
 
   // Arrow points at the target from whichever edge faces it.
