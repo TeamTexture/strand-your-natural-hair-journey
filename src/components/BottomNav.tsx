@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Home, FlaskConical, Droplets, Apple, User } from "lucide-react";
 import { tap } from "@/lib/haptics";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
@@ -6,6 +6,7 @@ import { allowsMemberFeatures } from "@/lib/viewFeatures";
 import { useMemberAppUnlocked } from "@/hooks/useMemberAppUnlocked";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 import { requestTourAutostart } from "@/lib/firstRunTour";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 const tabs = [
   { to: "/home", label: "Home", Icon: Home },
@@ -20,6 +21,7 @@ const tabs = [
  * the iPhone home-bar safe-area-inset-bottom.
  */
 const BottomNav = () => {
+  const location = useLocation();
   // Hard wall: the member tab bar is a consumer-view feature only. Pro, brand
   // and admin views never render it, even on shared routes (messages, chat).
   const view = useActiveRoleView();
@@ -33,6 +35,7 @@ const BottomNav = () => {
   // member has taken the guided tour. Tapping it flags the tour to open the
   // moment Home mounts, so the tour always actually starts.
   const { eligible: tourPending } = useFirstRunNudge("home_tour_seen_at");
+  if (isChromeFreeRoute(location.pathname)) return null;
   if (!allowsMemberFeatures(view)) return null;
   if (!unlocked) return null;
 

@@ -2,7 +2,7 @@
 // the last time this pro was active, show a centred prompt with the count and
 // a direct route into the Enquiries tab.
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Inbox } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,7 @@ import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import { allowsProFeatures } from "@/lib/viewFeatures";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 const SEEN_KEY = (uid: string) => `strand.pro.enquiriesLastSeen.${uid}`;
 const SHOWN_KEY = "strand.pro.enquiriesPopupShownThisSession";
@@ -19,12 +20,14 @@ const NewEnquiriesAlert = () => {
   const { user } = useAuth();
   const { isProfessional, isAdmin, loading } = useRoles();
   const nav = useNavigate();
+  const location = useLocation();
+  const chromeFree = isChromeFreeRoute(location.pathname);
   const view = useActiveRoleView();
   const inProView = allowsProFeatures(view);
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (loading || !user?.id) return;
+    if (loading || !user?.id || chromeFree) return;
     if (!isProfessional && !isAdmin) return;
     // Professional-only popup: never interrupt the member/brand/admin views.
     if (!inProView) return;
@@ -54,7 +57,7 @@ const NewEnquiriesAlert = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, isProfessional, isAdmin, loading, inProView]);
+  }, [user?.id, isProfessional, isAdmin, loading, inProView, chromeFree]);
 
   const dismiss = () => setCount(0);
   const review = () => {
@@ -63,7 +66,7 @@ const NewEnquiriesAlert = () => {
   };
 
   return (
-    <Dialog open={inProView && count > 0} onOpenChange={(o) => !o && dismiss()}>
+    <Dialog open={!chromeFree && inProView && count > 0} onOpenChange={(o) => !o && dismiss()}>
       <DialogContent className="max-w-[320px] p-5 rounded-[18px]">
         <DialogHeader className="space-y-2">
           <div className="flex justify-center">

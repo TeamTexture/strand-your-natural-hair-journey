@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CalendarPlus, Check, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ import {
   isPastDateIso,
 } from "@/lib/appointmentState";
 import { cn } from "@/lib/utils";
+import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 /**
  * Phase 2 — the return prompt after a member leaves for a professional's
@@ -49,6 +50,8 @@ const FIELD =
 const BookingReturnPrompt = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const chromeFree = isChromeFreeRoute(location.pathname);
   const view = useActiveRoleView();
   const isMemberView = allowsMemberFeatures(view);
   const { data: pending = [] } = usePendingBookingClicks();
@@ -56,7 +59,7 @@ const BookingReturnPrompt = () => {
   const resolve = useResolveBookingClick();
 
   // Strictly one at a time, oldest first. Never stack modals.
-  const click: PendingBookingClick | null = isMemberView ? (pending[0] ?? null) : null;
+  const click: PendingBookingClick | null = isMemberView && !chromeFree ? (pending[0] ?? null) : null;
 
   const [step, setStep] = useState<Step>("ask");
   const [date, setDate] = useState(""); // no pre-filled guess
