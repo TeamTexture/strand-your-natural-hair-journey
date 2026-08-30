@@ -22,7 +22,10 @@ import type { ScoreReason } from "./score-reasons.ts";
 import { checkContentIntegrity, type IntegrityCheck } from "./content-integrity.ts";
 import type { UsageDirections } from "./usage-grounding.ts";
 import { applyFitFirst, sanitiseStrandTips, type StrandTipNote } from "./fit-first-score.ts";
-import { applyConcernFit, parseConcerns } from "./concern-fit.ts";
+import { applyConcernFit, parseChallenges, parseConcerns, type ConcernContribution } from "./concern-fit.ts";
+import { heroActiveOmissions, rankScoreReasons } from "./score-reasons.ts";
+import { validateMechanismSpecificity } from "./mechanism-specificity.ts";
+import { applyBenignFlagPolicy } from "./benign-flags.ts";
 
 /**
  * THE enumeration. Every function named here must route its generated payload
@@ -64,6 +67,15 @@ export interface FailsafeInput {
    *  scoring input: a root/density/shedding mechanism serving one of these is
    *  a plus, never a mismatch (see _shared/concern-fit.ts). */
   areasOfConcern?: unknown;
+  /** `user_goals.challenges` — Breakage, Dryness, Shedding, … STANDING RULE
+   *  (2026-08-30): every analysis surface passes this, always, weighted
+   *  alongside the goal and the areas of concern. */
+  challenges?: unknown;
+  /** Declared topical sensitivities / documented allergies. Used only to keep
+   *  a genuine caution flag: never to add one. */
+  declaredSensitivities?: unknown;
+  /** The member's documented avoid-ingredients list. */
+  avoidIngredients?: unknown;
   /** Rejection-log metadata, so failures are queryable in ai_content_rejections. */
   functionName?: string;
   userId?: string | null;
@@ -89,7 +101,9 @@ export interface FailsafeResult {
   /** The ingredient cards, with concern-driven flags corrected. */
   cards: unknown;
   /** Counts of concern corrections applied — for logs, never member-facing. */
-  concernCorrections: { reframed: number; reflagged: number };
+  concernCorrections: { reframed: number; reflagged: number; downgradedFlags: number };
+  /** The proportional concern/challenge maths that moved the score. */
+  concernContribution: ConcernContribution;
 }
 
 /**
@@ -115,22 +129,50 @@ export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
     sanitiseStrandTips(input.modelTips),
   );
 
-  // Areas of concern are scored as goals, not mismatches.
+  // Areas of concern AND recorded challenges are scored as goals, not
+  // mismatches, and the lift they earn is proportional to how central the
+  // matching mechanism is to the formula (see _shared/concern-fit.ts).
   const concern = applyConcernFit({
     score: fit.score,
     reasons: fit.reasons,
     cards: input.cards,
     concerns: parseConcerns(input.areasOfConcern),
+    challenges: parseChallenges(input.challenges),
+    ingredients: input.allowedIngredients ?? [],
   });
 
+  // Benign functional ingredients (preservatives, pH adjusters, colourants,
+  // emulsifiers, fragrance) may not carry a caution flag on class grounds.
+  const benign = applyBenignFlagPolicy({
+    cards: concern.cards,
+    declaredSensitivities: input.declaredSensitivities,
+    avoidIngredients: input.avoidIngredients,
+  });
+
+  // Hero actives lead the verdict; the supporting cast never does.
+  const ranked = rankScoreReasons(concern.reasons);
+
+  // RETRY-ONLY problems: they never null a field, they re-ask for substance.
+  const substanceProblems = [
+    ...validateMechanismSpecificity(benign.cards).map((v) => v.rule),
+    ...heroActiveOmissions(ranked, input.allowedIngredients ?? []),
+  ];
+
   return {
-    problems: [...new Set(violations.map((v) => v.rule))].slice(0, 8),
+    problems: [
+      ...new Set([...violations.map((v) => v.rule), ...substanceProblems]),
+    ].slice(0, 8),
     violations,
-    reasons: concern.reasons,
+    reasons: ranked,
     strandTips: fit.strandTips,
     score: concern.score,
-    cards: concern.cards,
-    concernCorrections: { reframed: concern.reframed, reflagged: concern.reflagged },
+    cards: benign.cards,
+    concernCorrections: {
+      reframed: concern.reframed,
+      reflagged: concern.reflagged,
+      downgradedFlags: benign.downgraded,
+    },
+    concernContribution: concern.contribution,
   };
 }
 
