@@ -141,7 +141,7 @@ export function minusIsScoreWorthy(r: ScoreReason): boolean {
   // "breakage" appears in both lists, so a purpose mismatch capped a
   // well-formulated product at 55. Relevance framing with no harm marker is
   // never score-worthy — it becomes a Strand Tip instead.
-  if (any(RELEVANCE_MISMATCH, text)) return false;
+  if (isRelevanceFraming(text)) return false;
   return any(CONFLICT_MECHANISM, text) && any(PROFILE_SIGNAL, text);
 }
 
