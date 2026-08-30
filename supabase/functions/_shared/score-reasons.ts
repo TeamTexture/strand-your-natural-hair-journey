@@ -12,6 +12,8 @@
 
 import { FIT_FIRST_SCORE_RULES } from "./fit-first-score.ts";
 import { CONCERN_FIT_RULES } from "./concern-fit.ts";
+import { MECHANISM_SPECIFICITY_RULES } from "./mechanism-specificity.ts";
+import { BENIGN_FLAG_RULES } from "./benign-flags.ts";
 
 export interface ScoreReason {
   direction: "plus" | "minus";
@@ -59,6 +61,10 @@ ${FIT_FIRST_SCORE_RULES}
 
 ${CONCERN_FIT_RULES}
 
+${MECHANISM_SPECIFICITY_RULES}
+
+${BENIGN_FLAG_RULES}
+
 CLOSED HAIR/SCALP VOCABULARY (hard validation runs on your output):
 Porosity, elasticity, cuticle, cortex, strand diameter, surface texture and curl pattern describe the HAIR STRAND. Density, sebum, follicles, flaking, irritation, hairline, edges and partings describe the SCALP. Never cross the two and never weld them into a new term: "porosity scalp", "scalp porosity", "follicle elasticity" and "cuticle of the scalp" are not real concepts and are rejected outright. Use only terminology the app already teaches; if no approved term fits, say nothing or return null for the field.
 
@@ -75,6 +81,7 @@ Return score_reasons: 2–4 items, each { direction: "plus" | "minus", factor, r
 - reason is ≤28 words and MUST do BOTH: state the MECHANISM (what the ingredient physically does — cleanses, binds water, coats, evaporates, softens, buffers pH, adds surface film) AND name the user characteristic, goal or flagged marker it lands on — their porosity, density, texture, elasticity, scalp condition, current style, a stated goal/challenge, or a flagged marker where THIS product directly intersects it. A reason with no mechanism, or one that could be written for any user, is INVALID; rewrite it or drop the item.
 - USE THE APP'S OWN VOCABULARY. Where a mechanism has a taught term, name it: surfactant, humectant, emollient, occlusive, protein, cuticle, cortex, porosity, elasticity, sebum, build-up, slip, pH, hygral fatigue, molecular weight. These render as tappable definitions for the member, so the plain-English mechanism plus the correct term is better than either alone. Never coin a term that is not taught.
 - RANKED: the rows are displayed as a numbered ranking, strongest driver first. Row 1 must be the single biggest reason the score is what it is. Include at least one minus unless this formula genuinely has no downside for this user, and at least one plus unless nothing in it helps them.
+- HERO ACTIVES FIRST — NEVER THE SUPPORTING CAST: lead with the ingredients that genuinely drive the fit to HER profile, concerns and challenges — the functional actives the formula is built around (peptides, cysteinates, hydrolysed proteins, ceramides, bond builders, named scalp actives, the working surfactant or conditioning system). Humectants (glycerin), preservatives, pH adjusters, buffers, emulsifiers and solvents go LAST or not at all. If the formula's headline mechanism serves her recorded area of concern or a recorded challenge, that ingredient MUST appear in the reasons BY NAME — omitting it and citing glycerin instead is a failed answer and is rejected.
 - CONSISTENCY: match_score must agree with the reasons. Mostly pluses cannot produce a 55; heavy minuses cannot produce an 85. Re-check the number against the list before returning.
 - GROUNDING: where the retrieved manuscript passages teach the ingredient or mechanism, reason from that teaching — never name the book, chapters or pages.
 - ONE IDEA ONCE: a score reason may NOT restate a use_cases item, a tip, or a key_ingredients reason verbatim. The verdict explains the score; "how to use" builds on it and never repeats it.
@@ -189,3 +196,78 @@ AI SUMMARY — ONE SENTENCE ONLY:
 ai_summary is now exactly ONE tight sentence: the overall call (good fit / mixed fit / poor fit) and the single signal driving it. The score_reasons carry the why, so do NOT explain the reasoning again in ai_summary and never exceed one sentence.
 
 ${ANALYSIS_FAILSAFE_RULES}`;
+
+// ── HERO ACTIVES LEAD THE VERDICT (2026-08-30) ────────────────────────────
+// The K18 row scored 88 for a member with thinning edges and the three plus
+// reasons named niacinamide, zinc sulfate and glycerin — the supporting cast —
+// while the peptide system that is the actual reason the product suits her was
+// never mentioned. Two deterministic guards:
+//   1. `rankScoreReasons` re-orders pluses so headline actives outrank
+//      humectants, pH adjusters, preservatives and emulsifiers,
+//   2. `heroActiveOmissions` produces a RETRY instruction when the formula
+//      holds a headline active and no reason names it.
+
+/** Support-cast classes: real, useful, never the headline of a verdict. */
+const SUPPORT_CAST_FACTOR =
+  /\bwater\b|\baqua\b|\bglycerin\b|\bpreservative\b|\bsodium benzoate\b|\bpotassium sorbate\b|\bphenoxyethanol\b|\bcitric acid\b|\bsodium hydroxide\b|\bphosphate\b|\bpolysorbate\b|\bpeg-\d+\b|\bxanthan\b|\bcellulose\b|\bcarbomer\b|\bfragrance\b|\bparfum\b|\bmica\b|\bph adjust|\bbuffer|\bemulsifier\b|\bthickener\b|\bsolvent\b|\bhumectant\b/i;
+
+/** Headline functional actives — what a formula is actually built around. */
+const HEADLINE_ACTIVE_FACTOR =
+  /\bpeptide\b|\bdipeptide\b|\btripeptide\b|\btetrapeptide\b|\bcysteinate\b|\bcystein\b|\bkeratin\b|\bhydroly[sz]ed\b|\bceramide\b|\bbond\b|\bprotein\b|\bamino acid\b/i;
+
+const SECONDARY_ACTIVE_FACTOR =
+  /\bniacinamide\b|\bzinc\b|\bpanthenol\b|\bcaffeine\b|\bbiotin\b|\bsurfactant\b|\bbehentrimonium\b|\bsilicone\b|\bemollient\b|\bocclusive\b|\boil\b|\bbutter\b/i;
+
+const factorWeight = (r: ScoreReason): number => {
+  const hay = `${r.factor} ${r.reason}`;
+  if (HEADLINE_ACTIVE_FACTOR.test(hay)) return 3;
+  if (SECONDARY_ACTIVE_FACTOR.test(hay) && !SUPPORT_CAST_FACTOR.test(r.factor)) return 2;
+  if (SUPPORT_CAST_FACTOR.test(hay)) return 0;
+  return 1;
+};
+
+/**
+ * Stable re-ordering: pluses first (fit-first already guarantees that), and
+ * inside the pluses, headline actives above the supporting cast. Never drops or
+ * rewrites a row — ordering only.
+ */
+export function rankScoreReasons(reasons: ScoreReason[]): ScoreReason[] {
+  const withIndex = reasons.map((r, i) => ({ r, i, w: factorWeight(r) }));
+  const plus = withIndex.filter((x) => x.r.direction === "plus");
+  const minus = withIndex.filter((x) => x.r.direction !== "plus");
+  const sort = (rows: typeof withIndex) =>
+    [...rows].sort((a, b) => (b.w - a.w) || (a.i - b.i)).map((x) => x.r);
+  return [...sort(plus), ...sort(minus)];
+}
+
+/** Names of the formula's headline actives, from the verified INCI list. */
+export function headlineActives(ingredients: string[] | undefined | null): string[] {
+  return (ingredients ?? [])
+    .map((i) => String(i ?? "").trim())
+    .filter((n) => n && HEADLINE_ACTIVE_FACTOR.test(n) && !SUPPORT_CAST_FACTOR.test(n));
+}
+
+/**
+ * Retry instruction when the verdict ignores the formula's hero actives.
+ * Deterministic and conservative: only fires when such an ingredient exists in
+ * the verified list and no reason mentions any distinctive word from its name.
+ */
+export function heroActiveOmissions(
+  reasons: ScoreReason[],
+  ingredients: string[] | undefined | null,
+): string[] {
+  const heroes = headlineActives(ingredients);
+  if (!heroes.length || !reasons.length) return [];
+  const hay = reasons.map((r) => `${r.factor} ${r.reason}`).join(" | ").toLowerCase();
+  const named = heroes.some((h) =>
+    h
+      .toLowerCase()
+      .split(/[^a-z0-9-]+/)
+      .filter((w) => w.length > 4)
+      .some((w) => hay.includes(w))
+  );
+  if (named) return [];
+  return [
+    `score_reasons ignore this formula's headline actives (${heroes.slice(0, 3).join(", ")}) and cite supporting-cast ingredients instead. Rewrite the reasons so the ingredient(s) that genuinely drive the fit to this member's profile, recorded challenges and areas of concern are named FIRST, with their real mechanism. Humectants, preservatives, pH adjusters and emulsifiers may only appear after them, or not at all.`,
+  ];
+}

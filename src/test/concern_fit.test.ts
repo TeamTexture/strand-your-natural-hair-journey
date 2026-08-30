@@ -41,10 +41,15 @@ describe("areas of concern are a first-class scoring input", () => {
         { name: "Palmitoyl dipeptide-52", benefit: "supports root anchorage", flag: "warn" },
       ],
       concerns: ["edges", "hairline"],
+      challenges: ["breakage"],
+      ingredients: ["Water", "Palmitoyl dipeptide-52", "Glycerin"],
     });
     expect(out.reasons[0].direction).toBe("plus");
     expect(out.reasons[0].reason).toMatch(/root anchoring/);
-    expect(out.score).toBe(80);
+    // Proportional now (2026-08-30), not a flat 80 floor: a headline active
+    // the reasons name, serving recorded concerns, lands in the good-fit band.
+    expect(out.score!).toBeGreaterThanOrEqual(75);
+    expect(out.contribution.centrality).toBe(1);
     expect((out.cards as Array<{ flag: string }>)[0].flag).toBe("good");
   });
 

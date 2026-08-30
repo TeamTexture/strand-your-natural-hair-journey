@@ -67,6 +67,8 @@ import { sanitiseAndLog } from "../_shared/citation-log.ts";
 import {
   SCORE_REASONS_RULES,
   SCORE_REASONS_SCHEMA_PROPERTY,
+  rankScoreReasons,
+  heroActiveOmissions,
   sanitiseScoreReasons,
   alignScoreWithReasons,
   firstSentence,
@@ -116,7 +118,9 @@ import {
   retryReasonFromRules,
 } from "../_shared/guardrail-retry.ts";
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
-import { applyConcernFit, parseConcerns } from "../_shared/concern-fit.ts";
+import { applyConcernFit, parseChallenges, parseConcerns } from "../_shared/concern-fit.ts";
+import { validateMechanismSpecificity } from "../_shared/mechanism-specificity.ts";
+import { applyBenignFlagPolicy } from "../_shared/benign-flags.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -130,7 +134,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v23-concern-fit-2026-08-30";
+const MODEL_VERSION = "claude-sonnet-4-6@v24-mechanism-substance-2026-08-30";
 
 
 
@@ -1591,13 +1595,54 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         concerns: parseConcerns(
           ((hairProfile ?? {}) as Record<string, unknown>).areas_of_concern,
         ),
+        // STANDING RULE (2026-08-30): recorded challenges are always an
+        // analysis input, weighted alongside goal and areas of concern.
+        challenges: parseChallenges(
+          (challenges && challenges.length)
+            ? challenges
+            : allChallenges(
+              (goals && goals.length ? goals : dbGoals) as Array<Record<string, unknown>>,
+            ),
+        ),
+        ingredients: rawIngredients,
       });
-      analysis.score_reasons = concernFit.reasons;
+      // Routine preservatives, pH adjusters, colourants, emulsifiers and
+      // fragrance may not carry a caution flag on class grounds alone — only a
+      // declared sensitivity or a real safety issue does.
+      const benign = applyBenignFlagPolicy({
+        cards: concernFit.cards,
+        declaredSensitivities: sens,
+      });
+      // Hero actives lead the verdict; humectants and preservatives never do.
+      analysis.score_reasons = rankScoreReasons(concernFit.reasons);
       analysis.strand_tip = fitFirst.strandTips.length ? fitFirst.strandTips : null;
       if (concernFit.score != null) analysis.match_score = concernFit.score;
-      if (Array.isArray(concernFit.cards)) {
-        (analysis as Record<string, unknown>).ingredients = concernFit.cards;
+      if (Array.isArray(benign.cards)) {
+        (analysis as Record<string, unknown>).ingredients = benign.cards;
       }
+
+      // SUBSTANCE CHECK — an ingredient card must state what the ingredient
+      // physically does and where, and the verdict must name the actives that
+      // actually drive the fit. Generic category filler ("a conditioning
+      // agent") and a verdict built on glycerin are re-asked, not served.
+      const substanceProblems = [
+        ...validateMechanismSpecificity(benign.cards).map((v) => v.rule),
+        ...heroActiveOmissions(
+          sanitiseScoreReasons(analysis.score_reasons),
+          rawIngredients,
+        ),
+      ];
+      if (substanceProblems.length && attemptNumber < MAX_REJECTION_ATTEMPTS) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "mechanism_substance",
+          attempt: attemptNumber,
+          problems: substanceProblems.slice(0, 4),
+        }));
+        retryRules = [...new Set(substanceProblems)].slice(0, 6);
+        continue;
+      }
+
       if (concernFit.reasons.length >= 2) {
         const one = firstSentence(analysis.summary);
         if (one) analysis.summary = one;

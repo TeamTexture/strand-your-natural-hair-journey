@@ -89,8 +89,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v23-concern-fit-2026-08-30";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v23-concern-fit-2026-08-30";
+const MODEL_VERSION = "claude-sonnet-4-6@v24-mechanism-substance-2026-08-30";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v24-mechanism-substance-2026-08-30";
 
 
 /** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,
@@ -745,6 +745,12 @@ Deno.serve(async (req: Request) => {
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
         areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
+        // STANDING RULE (2026-08-30): recorded challenges are always an
+        // analysis input, weighted alongside the goal and areas of concern.
+        challenges: (ctx as Record<string, unknown> | undefined)?.challenges,
+        declaredSensitivities:
+          (ctx as Record<string, unknown> | undefined)?.sensitivities ??
+          (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
       });
       a.score_reasons = failsafe.reasons;
       if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
