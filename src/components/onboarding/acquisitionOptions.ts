@@ -33,5 +33,5 @@ export const ACQUISITION_OPTIONS: AcquisitionOption[] = [
   { value: "app_store", label: "App Store / Google Play search", icon: Smartphone },
   { value: "press", label: "Press / article", icon: Newspaper },
   { value: "friend_family", label: "A friend or family member", icon: Users },
-  { value: "other", label: "Other", icon: MoreHorizontal },
+  { value: "other", label: "Something else", icon: MoreHorizontal },
 ];
