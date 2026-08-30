@@ -51,9 +51,8 @@ const GUIDES: Record<string, Guide> = {
   },
   "/onboarding/acquisition": {
     step: 2,
-    optional: true,
     label: "Quick question",
-    what: "One optional question — skip it if you'd rather not say.",
+    what: "Tell us how you found STRAND.",
     next: "Next: start your free trial.",
   },
   "/onboarding/profile-step-2": {
