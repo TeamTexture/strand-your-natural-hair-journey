@@ -13,6 +13,7 @@
 // main_photo_id NULL is AUTO MODE: the newest photo wins with no writes
 // required. Pinning is purely an override.
 
+import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -134,6 +135,8 @@ export function useStyleCardPhoto() {
       };
     },
   });
+
+  if (query.data && query.data.photos.length > 0) lastGood.current = query.data;
 
   const photos = query.data?.photos ?? [];
   const mainPhotoId = query.data?.mainPhotoId ?? null;
