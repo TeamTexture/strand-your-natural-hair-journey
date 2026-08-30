@@ -56,8 +56,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v23-concern-fit-2026-08-30";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v23-concern-fit-2026-08-30";
+const MODEL_VERSION = "claude-haiku-4-5@v24-mechanism-substance-2026-08-30";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v24-mechanism-substance-2026-08-30";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
