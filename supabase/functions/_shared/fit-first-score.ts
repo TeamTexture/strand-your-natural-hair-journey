@@ -125,8 +125,15 @@ const any = (res: RegExp[], text: string) => res.some((re) => re.test(text));
 export function minusIsScoreWorthy(r: ScoreReason): boolean {
   const text = `${r.factor} ${r.reason}`;
   if (any(HARM_MARKERS, text)) return true;
+  // RELEVANCE ≠ CONFLICT (2026-08-30). "Targets ageing and shedding rather than
+  // her breakage concern" matched CONFLICT_MECHANISM only because the word
+  // "breakage" appears in both lists, so a purpose mismatch capped a
+  // well-formulated product at 55. Relevance framing with no harm marker is
+  // never score-worthy — it becomes a Strand Tip instead.
+  if (any(RELEVANCE_MISMATCH, text)) return false;
   return any(CONFLICT_MECHANISM, text) && any(PROFILE_SIGNAL, text);
 }
+
 
 const stripCautionVoice = (s: string) =>
   s
