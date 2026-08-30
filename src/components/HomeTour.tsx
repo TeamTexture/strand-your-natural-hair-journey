@@ -622,9 +622,20 @@ const HomeTour = () => {
           />
         )}
 
+        {/* Close (X) — same behaviour as Minimise: closes without marking the
+         *  tour finished, so it can be resumed from "Take the tour". */}
+        <button
+          type="button"
+          onClick={() => setActive(false)}
+          aria-label="Close the tour"
+          className="absolute top-0 right-0 z-10 inline-flex size-11 items-center justify-center text-primary/60 hover:text-primary"
+        >
+          <X className="size-4" />
+        </button>
+
         {/* Body — scrolls when the copy is longer than the space available */}
         <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 pt-4 pb-1">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1.5 pr-9">
             <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.22em] text-primary font-semibold font-body">
               <Sparkles className="size-3" />
               {current.eyebrow}
