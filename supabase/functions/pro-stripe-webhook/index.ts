@@ -111,4 +111,15 @@ async function upsertFromSubscription(
     },
     { onConflict: "pro_user_id" },
   );
+
+  // Cancellation audit (admin-only table). Always captures the timing data,
+  // with reason/comment null when Stripe supplies none.
+  await recordSubscriptionCancellation(admin, {
+    userId: proUserId,
+    accountType: "professional",
+    sub,
+    eventType: sub.status === "canceled"
+      ? "customer.subscription.deleted"
+      : "customer.subscription.updated",
+  });
 }

@@ -183,6 +183,17 @@ async function upsertFromSubscription(
   );
   if (error) throw error;
 
+  // Cancellation audit (admin-only table). Always captures the timing data,
+  // with reason/comment null when Stripe supplies none.
+  await recordSubscriptionCancellation(admin, {
+    userId: userId,
+    accountType: "consumer",
+    sub,
+    eventType: sub.status === "canceled"
+      ? "customer.subscription.deleted"
+      : "customer.subscription.updated",
+  });
+
   // STRAND_PAYWALL_LIST: she started checkout but the subscription is not
   // paying. Marketing-consent gated inside the helper, and never blocks the
   // webhook. Outcome logged to klaviyo_sync_log as paywall_list_webhook.
