@@ -2,6 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
+import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
 import {
   addToKlaviyoList,
   logKlaviyoSync,

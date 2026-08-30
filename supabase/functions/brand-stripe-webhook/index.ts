@@ -7,6 +7,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { dispatchEmail } from "../_shared/app-email/core.ts";
+import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
 
 /**
  * A relaunched campaign has just been paid for. Tell the members who registered
