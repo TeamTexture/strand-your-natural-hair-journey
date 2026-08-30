@@ -116,6 +116,7 @@ import {
   retryReasonFromRules,
 } from "../_shared/guardrail-retry.ts";
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
+import { applyConcernFit, parseConcerns } from "../_shared/concern-fit.ts";
 
 declare const Deno: { env: { get(key: string): string | undefined }; serve: (h: (req: Request) => Promise<Response>) => void };
 
@@ -129,7 +130,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v22-relevance-axis-2026-08-30";
+const MODEL_VERSION = "claude-sonnet-4-6@v23-concern-fit-2026-08-30";
 
 
 
@@ -1580,10 +1581,24 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         reasons,
         sanitiseStrandTips(analysis.strand_tip),
       );
-      analysis.score_reasons = fitFirst.reasons;
+      // Areas of concern are scored as goals, never as a mismatch: a root,
+      // shedding, density or scalp-condition mechanism serving her recorded
+      // edges/hairline/crown/nape is a plus (see _shared/concern-fit.ts).
+      const concernFit = applyConcernFit({
+        score: fitFirst.score,
+        reasons: fitFirst.reasons,
+        cards: analysis.ingredients,
+        concerns: parseConcerns(
+          ((ctx?.hairProfile ?? {}) as Record<string, unknown>).areas_of_concern,
+        ),
+      });
+      analysis.score_reasons = concernFit.reasons;
       analysis.strand_tip = fitFirst.strandTips.length ? fitFirst.strandTips : null;
-      if (fitFirst.score != null) analysis.match_score = fitFirst.score;
-      if (fitFirst.reasons.length >= 2) {
+      if (concernFit.score != null) analysis.match_score = concernFit.score;
+      if (Array.isArray(concernFit.cards)) {
+        (analysis as Record<string, unknown>).ingredients = concernFit.cards;
+      }
+      if (concernFit.reasons.length >= 2) {
         const one = firstSentence(analysis.summary);
         if (one) analysis.summary = one;
       }
