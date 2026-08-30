@@ -1591,13 +1591,48 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         concerns: parseConcerns(
           ((hairProfile ?? {}) as Record<string, unknown>).areas_of_concern,
         ),
+        // STANDING RULE (2026-08-30): recorded challenges are always an
+        // analysis input, weighted alongside goal and areas of concern.
+        challenges: parseChallenges(challengeLabels),
+        ingredients: rawIngredients,
       });
-      analysis.score_reasons = concernFit.reasons;
+      // Routine preservatives, pH adjusters, colourants, emulsifiers and
+      // fragrance may not carry a caution flag on class grounds alone — only a
+      // declared sensitivity or a real safety issue does.
+      const benign = applyBenignFlagPolicy({
+        cards: concernFit.cards,
+        declaredSensitivities: sens,
+      });
+      // Hero actives lead the verdict; humectants and preservatives never do.
+      analysis.score_reasons = rankScoreReasons(concernFit.reasons);
       analysis.strand_tip = fitFirst.strandTips.length ? fitFirst.strandTips : null;
       if (concernFit.score != null) analysis.match_score = concernFit.score;
-      if (Array.isArray(concernFit.cards)) {
-        (analysis as Record<string, unknown>).ingredients = concernFit.cards;
+      if (Array.isArray(benign.cards)) {
+        (analysis as Record<string, unknown>).ingredients = benign.cards;
       }
+
+      // SUBSTANCE CHECK — an ingredient card must state what the ingredient
+      // physically does and where, and the verdict must name the actives that
+      // actually drive the fit. Generic category filler ("a conditioning
+      // agent") and a verdict built on glycerin are re-asked, not served.
+      const substanceProblems = [
+        ...validateMechanismSpecificity(benign.cards).map((v) => v.rule),
+        ...heroActiveOmissions(
+          sanitiseScoreReasons(analysis.score_reasons),
+          rawIngredients,
+        ),
+      ];
+      if (substanceProblems.length && attemptNumber < MAX_REJECTION_ATTEMPTS) {
+        console.log(JSON.stringify({
+          function: "ingredient-analysis",
+          violation: "mechanism_substance",
+          attempt: attemptNumber,
+          problems: substanceProblems.slice(0, 4),
+        }));
+        retryRules = [...new Set(substanceProblems)].slice(0, 6);
+        continue;
+      }
+
       if (concernFit.reasons.length >= 2) {
         const one = firstSentence(analysis.summary);
         if (one) analysis.summary = one;
