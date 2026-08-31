@@ -33,6 +33,29 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AFTER_TRIAL_PATH = "/onboarding/goal";
 
+/**
+ * Backoff between verification attempts after returning from Stripe, indexed by
+ * attempt number. Stripe webhook delivery is usually sub-second but can lag by
+ * tens of seconds under retry; the old fixed 5 x 2.5s (12.5s) window gave up far
+ * too early and put the subscribe CTA back in front of a member who had already
+ * paid. This covers ~2 minutes before we stop polling.
+ */
+const POLL_BACKOFF_MS: Record<number, number> = {
+  1: 1_500,
+  2: 2_000,
+  3: 3_000,
+  4: 4_000,
+  5: 5_000,
+  6: 6_000,
+  7: 8_000,
+  8: 10_000,
+  9: 12_000,
+  10: 15_000,
+  11: 15_000,
+  12: 15_000,
+  13: 15_000,
+};
+
 type Tier = "standard" | "plus";
 
 
