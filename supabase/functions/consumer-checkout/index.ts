@@ -116,7 +116,10 @@ Deno.serve(async (req) => {
     if (settling) {
       return json({ already_processing: true, reason: "checkout_settling" });
     }
-    const reusable = recentSessions.find((s) => s.status === "open" && s.url);
+    // Only reuse an open session for the SAME plan she is asking for now.
+    const reusable = recentSessions.find(
+      (s) => s.status === "open" && !!s.url && s.metadata?.price_id === priceId,
+    );
     if (reusable) {
       return json({ url: reusable.url, reused: true });
     }
@@ -143,6 +146,7 @@ Deno.serve(async (req) => {
       // is deliberately NOT set — that is only for trials without a payment
       // method, which is not what this is.
       ...(trialAllowed ? { payment_method_collection: "always" as const } : {}),
+      metadata: { consumer_user_id: userId, tier, price_id: priceId },
       subscription_data: {
         metadata: { consumer_user_id: userId, tier },
         ...(trialAllowed ? { trial_period_days: 3 } : {}),
