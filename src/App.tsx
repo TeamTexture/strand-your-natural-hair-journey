@@ -354,6 +354,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/legal/:doc" element={<Legal />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
+              <Route path="/dev-payment-confirming" element={<DevPaymentConfirmingPreview />} />
 
               {/* Onboarding (auth required so data persists) */}
               <Route path="/onboarding/goal" element={<Onboard><GoalAndChallenge /></Onboard>} />
