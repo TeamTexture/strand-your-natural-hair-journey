@@ -56,6 +56,8 @@ const TrialPaywall = () => {
   const [tier, setTier] = useState<Tier>("plus");
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
+  const [stalled, setStalled] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const nextPath = isSafeInternalPath(params.get("next")) ? params.get("next")! : AFTER_TRIAL_PATH;
   const price = tier === "plus" ? plus : standard;
