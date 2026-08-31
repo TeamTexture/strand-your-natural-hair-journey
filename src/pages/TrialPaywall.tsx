@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import ScreenLayout from "@/components/ScreenLayout";
 import StatusBar from "@/components/StatusBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
