@@ -8,6 +8,7 @@ import ScreenLayout from "@/components/ScreenLayout";
 import StatusBar from "@/components/StatusBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
+import PaymentConfirming from "@/components/subscribe/PaymentConfirming";
 import MembershipMarketing, {
   AdvisoryNotes,
   PaymentsNote,
