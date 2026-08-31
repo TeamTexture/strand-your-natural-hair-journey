@@ -72,7 +72,12 @@ import {
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
-import ScoreReasons, { parseScoreReasons, scoreReasonsHeading, type ScoreReason } from "@/components/product/ScoreReasons";
+import ScoreReasons, {
+  parseScoreReasons,
+  cautionReasonsHeading,
+  formulationReasonsHeading,
+  type ScoreReason,
+} from "@/components/product/ScoreReasons";
 import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
 
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
