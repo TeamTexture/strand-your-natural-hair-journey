@@ -58,6 +58,19 @@ export function scoreReasonsHeading(score: number | null | undefined): string {
   return "Why it scored this low";
 }
 
+/** Heading for the caution ("minus") drivers, rendered above the formulation
+ *  drivers so a low-scoring product leads with what to watch for rather than
+ *  praising it first. Used by IngredientDetail's split rendering. */
+export function cautionReasonsHeading(): string {
+  return "Things to watch for";
+}
+
+/** Heading for the benefit/property ("plus") drivers — what the formulation
+ *  actually brings. Rendered below the cautions in the split layout. */
+export function formulationReasonsHeading(): string {
+  return "What's inside this formulation";
+}
+
 /**
  * The STANDARD verdict rationale: ranked "why it scored this" callouts, the
  * strongest driver first, each naming the ingredient or formulation property

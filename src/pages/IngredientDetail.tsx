@@ -72,7 +72,12 @@ import {
 import { aiInvoke } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
-import ScoreReasons, { parseScoreReasons, scoreReasonsHeading, type ScoreReason } from "@/components/product/ScoreReasons";
+import ScoreReasons, {
+  parseScoreReasons,
+  cautionReasonsHeading,
+  formulationReasonsHeading,
+  type ScoreReason,
+} from "@/components/product/ScoreReasons";
 import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
 
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
@@ -1334,7 +1339,29 @@ const IngredientDetail = () => {
                         </p>
                       );
                     }
-                    return <ScoreReasons reasons={reasons} heading={scoreReasonsHeading(displayScore)} />;
+                    // Split the ranked drivers into two labelled sections so a
+                    // low-scoring product leads with its cautions rather than
+                    // praising it first. Each section keeps its own fresh
+                    // numbering; neutral frequency observations keep their
+                    // styling inside the shared ScoreReasons renderer.
+                    const cautionReasons = reasons.filter((r) => r.direction === "minus");
+                    const formulationReasons = reasons.filter((r) => r.direction === "plus");
+                    return (
+                      <>
+                        {cautionReasons.length > 0 && (
+                          <ScoreReasons
+                            reasons={cautionReasons}
+                            heading={cautionReasonsHeading()}
+                          />
+                        )}
+                        {formulationReasons.length > 0 && (
+                          <ScoreReasons
+                            reasons={formulationReasons}
+                            heading={formulationReasonsHeading()}
+                          />
+                        )}
+                      </>
+                    );
                   })()}
 
                 </StatusCallout>
