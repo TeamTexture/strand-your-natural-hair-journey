@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import DevPaymentStates from "@/pages/DevPaymentStates";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Suspense, type ReactNode } from "react";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
@@ -651,7 +650,6 @@ const App = () => (
               {/* 3-day free trial paywall — auth only, deliberately outside the
                   onboarding and paywall gates so an abandoned trial can always
                   be reopened without hitting a redirect loop. */}
-              <Route path="/__dev/payment-states" element={<DevPaymentStates />} />
               <Route path="/start-trial" element={<Protected><TrialPaywall /></Protected>} />
               <Route path="/admin/international" element={<RoleGate allow={["admin"]}><AdminInternational /></RoleGate>} />
               <Route path="/admin/members" element={<RoleGate allow={["admin"]}><AdminMembers /></RoleGate>} />
