@@ -508,7 +508,7 @@ const FIT_SCHEMA = {
   type: "object",
   properties: {
     tone: { type: "string", enum: ["good", "warn", "bad"] },
-    for_you: { type: "string", description: "1-2 sentences, MAX 45 WORDS. Why this ingredient does or does not suit THIS user, tied to a real named data point from their profile (porosity, density, hair type, length, current style, a stated goal or challenge, or an entry in their avoid list). Never generic." },
+    for_you: { type: "string", description: "1-2 sentences, MAX 45 WORDS. Why this ingredient does or does not suit THIS user, tied to a real named data point from their profile (porosity, density, curl pattern, elasticity, scalp condition, length, chemical/colour treatment history from styleProfile.chemical_history or current_colour_status, current style, a stated goal or challenge, or an entry in their avoid list). Never generic." },
     usage_tip: { type: "string", description: "ONE sentence, MAX 30 WORDS. How this user gets the most from this ingredient when it appears in a product they are using. Technique only. Must NOT reference, name, pair with, layer with or suggest ANY other product, product type, category, brand, accessory or routine step." },
   },
   required: ["tone", "for_you", "usage_tip"],
