@@ -5,6 +5,7 @@ import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
 import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
 import {
   addToKlaviyoList,
+  removeFromKlaviyoList,
   logKlaviyoSync,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
@@ -259,6 +260,41 @@ async function upsertFromSubscription(
         user_id: userId,
         list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
         action: "paid_list_webhook",
+        ok: false,
+        error: e instanceof Error ? e.message : "threw",
+      });
+    }
+  } else {
+    // Subscription is no longer paying/trialing (canceled, past_due,
+    // incomplete, incomplete_expired, unpaid) — mirror that off the Klaviyo
+    // paid-members list. Membership only; marketing consent is never touched
+    // here. Never blocks the webhook: a Klaviyo outage must not cause Stripe
+    // retries, but the failure is logged to klaviyo_sync_log so it is queryable.
+    try {
+      const { data: authUser } = await admin.auth.admin.getUserById(userId);
+      const email = (authUser?.user?.email ?? "").toLowerCase();
+      if (email) {
+        const err = await removeFromKlaviyoList({
+          listId: KLAVIYO_PAID_MEMBER_LIST_ID,
+          email,
+        });
+        if (err) console.error("[consumer-stripe-webhook] klaviyo paid removal failed", err);
+        await logKlaviyoSync(admin as any, {
+          email,
+          user_id: userId,
+          list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
+          action: "paid_list_removal_webhook",
+          ok: !err,
+          error: err,
+          context: { status: sub.status, tier },
+        });
+      }
+    } catch (e) {
+      console.error("[consumer-stripe-webhook] klaviyo paid removal threw", e);
+      await logKlaviyoSync(admin as any, {
+        user_id: userId,
+        list_id: KLAVIYO_PAID_MEMBER_LIST_ID,
+        action: "paid_list_removal_webhook",
         ok: false,
         error: e instanceof Error ? e.message : "threw",
       });
