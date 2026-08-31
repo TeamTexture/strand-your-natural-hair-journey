@@ -92,6 +92,39 @@ Deno.serve(async (req) => {
       );
     }
 
+    // DOUBLE-CHARGE GUARD. A member returning from a successful checkout before
+    // the webhook lands used to be dropped back on the paywall; tapping again
+    // created a SECOND subscription, at full price, because the first one had
+    // already consumed her one trial. Never blindly open a second session:
+    //   - already subscribed  -> tell the client, no new session
+    //   - a completed session in the last 15 minutes still settling -> "processing"
+    //   - an abandoned but still-open session -> reuse its URL
+    if (existing?.status && ["active", "trialing"].includes(existing.status)) {
+      return json({ already_processing: true, reason: "already_subscribed" });
+    }
+    const cutoff = Math.floor(Date.now() / 1000) - 15 * 60;
+    let recentSessions: Stripe.Checkout.Session[] = [];
+    try {
+      const list = await stripe.checkout.sessions.list({ customer: customerId, limit: 5 });
+      recentSessions = list.data.filter((s) => (s.created ?? 0) >= cutoff);
+    } catch (e) {
+      console.warn("could not list recent checkout sessions", e);
+    }
+    const settling = recentSessions.find(
+      (s) => s.status === "complete" || s.payment_status === "paid",
+    );
+    if (settling) {
+      return json({ already_processing: true, reason: "checkout_settling" });
+    }
+    // Only reuse an open session for the SAME plan she is asking for now.
+    const reusable = recentSessions.find(
+      (s) => s.status === "open" && !!s.url && s.metadata?.price_id === priceId,
+    );
+    if (reusable) {
+      return json({ url: reusable.url, reused: true });
+    }
+
+
     const origin = req.headers.get("origin") ?? "https://mystrand.co.uk";
     const nextParam = encodeURIComponent(nextPath);
     const successUrl = trialAllowed
@@ -113,6 +146,7 @@ Deno.serve(async (req) => {
       // is deliberately NOT set — that is only for trials without a payment
       // method, which is not what this is.
       ...(trialAllowed ? { payment_method_collection: "always" as const } : {}),
+      metadata: { consumer_user_id: userId, tier, price_id: priceId },
       subscription_data: {
         metadata: { consumer_user_id: userId, tier },
         ...(trialAllowed ? { trial_period_days: 3 } : {}),

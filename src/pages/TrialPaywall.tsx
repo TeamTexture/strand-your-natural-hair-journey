@@ -4,10 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import ScreenLayout from "@/components/ScreenLayout";
 import StatusBar from "@/components/StatusBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import HairStrandIcon from "@/components/HairStrandIcon";
+import PaymentConfirming from "@/components/subscribe/PaymentConfirming";
 import MembershipMarketing, {
   AdvisoryNotes,
   PaymentsNote,
@@ -33,6 +33,29 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 const AFTER_TRIAL_PATH = "/onboarding/goal";
 
+/**
+ * Backoff between verification attempts after returning from Stripe, indexed by
+ * attempt number. Stripe webhook delivery is usually sub-second but can lag by
+ * tens of seconds under retry; the old fixed 5 x 2.5s (12.5s) window gave up far
+ * too early and put the subscribe CTA back in front of a member who had already
+ * paid. This covers ~2 minutes before we stop polling.
+ */
+const POLL_BACKOFF_MS: Record<number, number> = {
+  1: 1_500,
+  2: 2_000,
+  3: 3_000,
+  4: 4_000,
+  5: 5_000,
+  6: 6_000,
+  7: 8_000,
+  8: 10_000,
+  9: 12_000,
+  10: 15_000,
+  11: 15_000,
+  12: 15_000,
+  13: 15_000,
+};
+
 type Tier = "standard" | "plus";
 
 
@@ -56,6 +79,8 @@ const TrialPaywall = () => {
   const [tier, setTier] = useState<Tier>("plus");
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
+  const [stalled, setStalled] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const nextPath = isSafeInternalPath(params.get("next")) ? params.get("next")! : AFTER_TRIAL_PATH;
   const price = tier === "plus" ? plus : standard;
@@ -139,37 +164,70 @@ const TrialPaywall = () => {
       return;
     }
     if (!confirming) return;
-    let attempts = 0;
+    let cancelled = false;
+    let attempt = 0;
+    let timer = 0;
     const verify = async () => {
       const active = await verifyConsumerMembership(qc, user?.id);
-      if (!active) {
-        attempts += 1;
-        if (attempts >= 5) {
-          const cleaned = new URLSearchParams(params);
-          cleaned.delete("checkout");
-          setParams(cleaned, { replace: true });
-          setConfirming(false);
-          toast.error("We couldn't confirm an active trial or membership yet.");
-        }
+      if (cancelled) return;
+      if (active) {
+        await resumeAfterTrial();
         return;
       }
-      await resumeAfterTrial();
+      attempt += 1;
+      const delay = POLL_BACKOFF_MS[attempt];
+      if (delay === undefined) {
+        // Polling window exhausted. She stays on a payment-confirming screen —
+        // the subscribe CTA is never restored, because a second tap would open
+        // a second Stripe checkout at full price on top of the first charge.
+        setStalled(true);
+        return;
+      }
+      timer = window.setTimeout(() => void verify(), delay);
     };
     void verify();
-    const poll = window.setInterval(() => void verify(), 2500);
     return () => {
-      window.clearInterval(poll);
+      cancelled = true;
+      window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirming, hasAccess]);
 
+  // Manual re-check from the stalled state: asks Stripe again and restarts the
+  // backoff window if it still cannot confirm. It never starts a checkout.
+  const checkAgain = async () => {
+    setChecking(true);
+    try {
+      const active = await verifyConsumerMembership(qc, user?.id);
+      if (active) {
+        await resumeAfterTrial();
+        return;
+      }
+      toast("Still confirming with our payment provider — please try again in a moment.");
+      setStalled(false);
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const startTrial = async () => {
     setBusy(true);
     try {
+      // Last line of defence before spending money: if a subscription already
+      // exists (webhook landed while she sat here) we resume instead of paying.
+      if (await verifyConsumerMembership(qc, user?.id)) {
+        await resumeAfterTrial();
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("consumer-checkout", {
         body: { next: AFTER_TRIAL_PATH, tier, trial: offerTrial, returnTo: "/start-trial" },
       });
       if (error) throw error;
+      if ((data as { already_processing?: boolean } | null)?.already_processing && !data?.url) {
+        setConfirming(true);
+        setStalled(false);
+        return;
+      }
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e) {
@@ -183,14 +241,12 @@ const TrialPaywall = () => {
 
   if (confirming && !hasAccess) {
     return (
-      <ScreenLayout>
-        <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
-          <Loader2 className="size-5 animate-spin text-primary" />
-          <p className="font-body text-sm text-muted-foreground">
-            {offerTrial ? "Setting up your free trial…" : "Setting up your membership…"}
-          </p>
-        </div>
-      </ScreenLayout>
+      <PaymentConfirming
+        stalled={stalled}
+        trial={offerTrial}
+        checking={checking}
+        onCheckAgain={() => void checkAgain()}
+      />
     );
   }
   if (isLoading && !hasAccess) return <LoadingDot />;
