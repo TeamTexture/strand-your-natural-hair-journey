@@ -5,6 +5,7 @@ import { priceIsStrandPlus } from "../_shared/stripe-prices.ts";
 import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
 import {
   addToKlaviyoList,
+  removeFromKlaviyoList,
   logKlaviyoSync,
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
