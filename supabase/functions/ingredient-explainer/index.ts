@@ -1079,6 +1079,8 @@ Deno.serve(async (req) => {
           },
           hairProfile: hair ?? {},
           healthProfile: health ?? {},
+          styleProfile: style ?? {},
+
           goals: goalRes.data ?? [],
           context: {
             ...(body.context ?? {}),
