@@ -508,7 +508,7 @@ const FIT_SCHEMA = {
   type: "object",
   properties: {
     tone: { type: "string", enum: ["good", "warn", "bad"] },
-    for_you: { type: "string", description: "1-2 sentences, MAX 45 WORDS. Why this ingredient does or does not suit THIS user, tied to a real named data point from their profile (porosity, density, hair type, length, current style, a stated goal or challenge, or an entry in their avoid list). Never generic." },
+    for_you: { type: "string", description: "1-2 sentences, MAX 45 WORDS. Why this ingredient does or does not suit THIS user, tied to a real named data point from their profile (porosity, density, curl pattern, elasticity, scalp condition, length, chemical/colour treatment history from styleProfile.chemical_history or current_colour_status, current style, a stated goal or challenge, or an entry in their avoid list). Never generic." },
     usage_tip: { type: "string", description: "ONE sentence, MAX 30 WORDS. How this user gets the most from this ingredient when it appears in a product they are using. Technique only. Must NOT reference, name, pair with, layer with or suggest ANY other product, product type, category, brand, accessory or routine step." },
   },
   required: ["tone", "for_you", "usage_tip"],
@@ -554,7 +554,9 @@ TONE — apply this exact decision tree:
 - "warn" = neutral / context-dependent / "fine for most people, watch how your scalp responds".
 
 RULES:
-1. for_you: MAX 45 words. It MUST name at least one real data point from the supplied profile (her porosity, density, curl pattern, elasticity, scalp condition, length, current style, a stated goal or challenge, or a declared sensitivity) and say what this term does ON THAT trait. It must NOT be a rephrase of "What it is" above it: do not restate what the ingredient generally does. Sentences like "a gentle plant-based surfactant that cleanses without stripping" are REJECTED — they describe the ingredient, not her hair. If the profile is too sparse to personalise honestly, reason from the traits she DOES have — never invent a trait.
+1. for_you: MAX 45 words. It MUST name at least one real data point from the supplied profile (her porosity, density, curl pattern, elasticity, scalp condition, length, her chemical/colour treatment history in user_payload.styleProfile — chemical_history, current_colour_status, colour_type, colour_last_treated — her current style, a stated goal or challenge, or a declared sensitivity) and say what this term does ON THAT trait. It must NOT be a rephrase of "What it is" above it: do not restate what the ingredient generally does. Sentences like "a gentle plant-based surfactant that cleanses without stripping" are REJECTED — they describe the ingredient, not her hair. If the profile is too sparse to personalise honestly, reason from the traits she DOES have — never invent a trait.
+1a. PROTEIN RULE — for protein / peptide / amino-acid / keratin / hydrolysed-protein ingredients and classes, the PRIMARY data point is her chemical/colour treatment history, not porosity. Chemically virgin hair (no colour, relaxer, perm or bleach history) tolerates far less added protein and is where overload risk sits; chemically processed or colour-treated hair has lost internal protein and generally benefits from it. Porosity may be mentioned only as a secondary supporting point and must NEVER be written as the deciding factor for protein sensitivity. Never tell a colour-treated member to avoid protein because of her porosity.
+
 2. usage_tip: MAX 30 words, technique only, about this ingredient in the products they already use. HARD BAN on referencing any other product, product type, category, brand, accessory or routine step, and on frequency caps or prohibitions.
 3. ${NO_MEDICAL_RULE}
 4. ${NO_SOURCE_NAMING_RULE}
@@ -594,19 +596,28 @@ async function profileFingerprint(supabase: SupabaseClient, userId: string): Pro
   fingerprint: string;
   hair: Record<string, unknown> | null;
   health: Record<string, unknown> | null;
+  style: Record<string, unknown> | null;
 }> {
-  const [hairRes, healthRes] = await Promise.all([
+  const [hairRes, healthRes, styleRes] = await Promise.all([
     supabase.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("user_health_profile").select("*").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("user_style_profile")
+      .select("chemical_history, current_colour_status, colour_type, colour_last_treated, updated_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
   const hair = (hairRes.data ?? null) as Record<string, unknown> | null;
   const health = (healthRes.data ?? null) as Record<string, unknown> | null;
+  const style = (styleRes.data ?? null) as Record<string, unknown> | null;
   const fingerprint = [
     (hair?.updated_at as string) ?? "none",
     (health?.updated_at as string) ?? "none",
+    (style?.updated_at as string) ?? "none",
   ].join("|");
-  return { fingerprint, hair, health };
+  return { fingerprint, hair, health, style };
 }
+
 
 // ── BACKFILL (admin only) ───────────────────────────────────────────────
 //
@@ -1019,7 +1030,7 @@ Deno.serve(async (req) => {
     // product to be authoritative, so a profile-level line is generated and
     // cached. Never used when a product analysis exists.
     const resolveProfileFit = async (): Promise<FitPayload> => {
-      const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
+      const { fingerprint, hair, health, style } = await profileFingerprint(supabase, user.id);
       const fitIntegrity = (payload: FitPayload) => checkContentIntegrity({
         functionName: "ingredient-explainer",
         surface: "ingredient-explainer-fit",
@@ -1070,6 +1081,8 @@ Deno.serve(async (req) => {
           },
           hairProfile: hair ?? {},
           healthProfile: health ?? {},
+          styleProfile: style ?? {},
+
           goals: goalRes.data ?? [],
           context: {
             ...(body.context ?? {}),
