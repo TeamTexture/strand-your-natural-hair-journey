@@ -1028,7 +1028,7 @@ Deno.serve(async (req) => {
     // product to be authoritative, so a profile-level line is generated and
     // cached. Never used when a product analysis exists.
     const resolveProfileFit = async (): Promise<FitPayload> => {
-      const { fingerprint, hair, health } = await profileFingerprint(supabase, user.id);
+      const { fingerprint, hair, health, style } = await profileFingerprint(supabase, user.id);
       const fitIntegrity = (payload: FitPayload) => checkContentIntegrity({
         functionName: "ingredient-explainer",
         surface: "ingredient-explainer-fit",
