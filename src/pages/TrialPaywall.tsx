@@ -139,37 +139,70 @@ const TrialPaywall = () => {
       return;
     }
     if (!confirming) return;
-    let attempts = 0;
+    let cancelled = false;
+    let attempt = 0;
+    let timer = 0;
     const verify = async () => {
       const active = await verifyConsumerMembership(qc, user?.id);
-      if (!active) {
-        attempts += 1;
-        if (attempts >= 5) {
-          const cleaned = new URLSearchParams(params);
-          cleaned.delete("checkout");
-          setParams(cleaned, { replace: true });
-          setConfirming(false);
-          toast.error("We couldn't confirm an active trial or membership yet.");
-        }
+      if (cancelled) return;
+      if (active) {
+        await resumeAfterTrial();
         return;
       }
-      await resumeAfterTrial();
+      attempt += 1;
+      const delay = POLL_BACKOFF_MS[attempt];
+      if (delay === undefined) {
+        // Polling window exhausted. She stays on a payment-confirming screen —
+        // the subscribe CTA is never restored, because a second tap would open
+        // a second Stripe checkout at full price on top of the first charge.
+        setStalled(true);
+        return;
+      }
+      timer = window.setTimeout(() => void verify(), delay);
     };
     void verify();
-    const poll = window.setInterval(() => void verify(), 2500);
     return () => {
-      window.clearInterval(poll);
+      cancelled = true;
+      window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirming, hasAccess]);
 
+  // Manual re-check from the stalled state: asks Stripe again and restarts the
+  // backoff window if it still cannot confirm. It never starts a checkout.
+  const checkAgain = async () => {
+    setChecking(true);
+    try {
+      const active = await verifyConsumerMembership(qc, user?.id);
+      if (active) {
+        await resumeAfterTrial();
+        return;
+      }
+      toast("Still confirming with our payment provider — please try again in a moment.");
+      setStalled(false);
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const startTrial = async () => {
     setBusy(true);
     try {
+      // Last line of defence before spending money: if a subscription already
+      // exists (webhook landed while she sat here) we resume instead of paying.
+      if (await verifyConsumerMembership(qc, user?.id)) {
+        await resumeAfterTrial();
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("consumer-checkout", {
         body: { next: AFTER_TRIAL_PATH, tier, trial: offerTrial, returnTo: "/start-trial" },
       });
       if (error) throw error;
+      if ((data as { already_processing?: boolean } | null)?.already_processing && !data?.url) {
+        setConfirming(true);
+        setStalled(false);
+        return;
+      }
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e) {
@@ -183,14 +216,12 @@ const TrialPaywall = () => {
 
   if (confirming && !hasAccess) {
     return (
-      <ScreenLayout>
-        <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
-          <Loader2 className="size-5 animate-spin text-primary" />
-          <p className="font-body text-sm text-muted-foreground">
-            {offerTrial ? "Setting up your free trial…" : "Setting up your membership…"}
-          </p>
-        </div>
-      </ScreenLayout>
+      <PaymentConfirming
+        stalled={stalled}
+        trial={offerTrial}
+        checking={checking}
+        onCheckAgain={() => void checkAgain()}
+      />
     );
   }
   if (isLoading && !hasAccess) return <LoadingDot />;
