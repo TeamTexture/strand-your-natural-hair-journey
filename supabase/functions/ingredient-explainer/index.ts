@@ -594,19 +594,28 @@ async function profileFingerprint(supabase: SupabaseClient, userId: string): Pro
   fingerprint: string;
   hair: Record<string, unknown> | null;
   health: Record<string, unknown> | null;
+  style: Record<string, unknown> | null;
 }> {
-  const [hairRes, healthRes] = await Promise.all([
+  const [hairRes, healthRes, styleRes] = await Promise.all([
     supabase.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("user_health_profile").select("*").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("user_style_profile")
+      .select("chemical_history, current_colour_status, colour_type, colour_last_treated, updated_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
   const hair = (hairRes.data ?? null) as Record<string, unknown> | null;
   const health = (healthRes.data ?? null) as Record<string, unknown> | null;
+  const style = (styleRes.data ?? null) as Record<string, unknown> | null;
   const fingerprint = [
     (hair?.updated_at as string) ?? "none",
     (health?.updated_at as string) ?? "none",
+    (style?.updated_at as string) ?? "none",
   ].join("|");
-  return { fingerprint, hair, health };
+  return { fingerprint, hair, health, style };
 }
+
 
 // ── BACKFILL (admin only) ───────────────────────────────────────────────
 //
