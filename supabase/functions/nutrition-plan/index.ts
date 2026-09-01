@@ -914,13 +914,21 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!payload) throw new Error("Nutrition plan generation returned no payload");
+    if (!payload.summary && payload.diet.length > 0) {
+      payload = { ...payload, summary: deriveSummary(payload) };
+    }
     if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
       const priorPayload = await lastGoodPlan();
       if (priorPayload) return json(200, { cached: true, stale: true, plan: priorPayload });
-      throw new Error(
-        `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
+      // Nothing survivable came back and she has no stored plan. Never a 500:
+      // the screen falls back to its own deterministic food-first guidance when
+      // `plan` is null, which is far better than a broken section.
+      console.error(
+        `[nutrition-plan] empty plan, serving deterministic fallback (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
       );
+      return json(200, { plan: null, unavailable: true });
     }
+
 
     const stamped = {
       ...payload,
