@@ -510,9 +510,35 @@ Return JSON only via the return_product_analysis tool.`;
 import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
 import {
   buildGroundingBlock,
+  type GroundingResult,
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { evidencePromptBlock } from "../_shared/evidence.ts";
+
+/** The Lovable/Gemini path's grounding gather, extracted so the pipeline can
+ *  start it before the model call rather than inside it (Part 4, 2026-09-01). */
+function buildLovableGrounding(
+  context: Record<string, unknown> | undefined,
+): Promise<GroundingResult> {
+  return buildGroundingBlock({
+    surface: "product-analyse",
+    fn: "product-analyse",
+    functionKind: "product-analyse",
+    selectorContext: selectorFromAiContext(context ?? {}),
+    forceTopics: [
+      "wash-day-mechanics",
+      "porosity",
+      "scalp-conditions",
+      "diagnosed-conditions",
+    ],
+    ragQuery: ragQueryFromAiContext(
+      context ?? {},
+      "hair product ingredients suitability moisture protein scalp",
+    ),
+    ragK: 5,
+  });
+}
 import { gatewayFetch } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
