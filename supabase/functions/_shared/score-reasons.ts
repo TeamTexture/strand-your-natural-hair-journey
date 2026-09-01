@@ -163,12 +163,21 @@ export function alignScoreWithReasons(score: number, reasons: ScoreReason[]): nu
   const minus = reasons.filter(
     (r) => r.direction !== "plus" && minusIsScoreWorthy(r),
   ).length;
-  // No genuine conflict or harm: the number may not read as a caution, even if
-  // the model wrote every reason as a relevance observation.
-  if (minus === 0) return score < 65 ? 65 : score;
-  if (plus === 0 && score > 55) return 55;
+  // NO FLOOR (2026-09-01). The old rule lifted any conflict-free verdict to 65,
+  // which — stacked on the fit-first floor and the concern bonus — left the
+  // quality/safety axis with nowhere to go but up. The absence of a conflict is
+  // not evidence of quality: a thin formula may honestly sit in the 50s.
+  //
+  // Ceilings only, and only where the working genuinely contradicts a high
+  // number: a verdict carrying real conflicts and no plus at all cannot read as
+  // strong. A list of pure relevance observations is NOT evidence against the
+  // formula, so it never triggers a cap — that is the standing two-axes rule.
+  if (plus === 0 && minus >= 1) return Math.min(score, 55);
+  if (minus >= 2) return Math.min(score, 70);
   return score;
+
 }
+
 
 /** Trims ai_summary to a single sentence (the overall call). */
 export function firstSentence(text: unknown): string {
