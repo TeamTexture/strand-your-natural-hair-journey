@@ -131,17 +131,6 @@ const WashStep3 = () => {
           <SurfaceCard tone="gold">
             <div className="flex items-center justify-between gap-3 mb-1">
               <p className="text-xs font-semibold">Previous entry — {formatDate(previous.date)}</p>
-              {previous.audioUrl && (
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? "Pause previous voicenote" : "Play previous voicenote"}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 hover:bg-primary/25 text-primary text-[11px] font-medium border border-primary/30 transition-colors min-h-[32px]"
-                >
-                  {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-                  {isPlaying ? "Pause" : "Replay"}
-                </button>
-              )}
             </div>
             {previous.note ? (
               <p className="font-body text-sm text-muted-foreground leading-snug">
@@ -152,6 +141,14 @@ const WashStep3 = () => {
                 Voicenote only — tap replay to hear it.
               </p>
             )}
+            {previous.audioUrl && (
+              <VoicePlayer
+                url={previous.audioUrl}
+                variant="onSurface"
+                className="mt-2 text-primary"
+              />
+            )}
+
           </SurfaceCard>
         )}
 
