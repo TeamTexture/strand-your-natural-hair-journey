@@ -100,6 +100,8 @@ const ANNOTATIONS: Record<string, Record<string, string>> = {
 };
 
 interface TGProps {
+  /** Stable id used for the outstanding-answer list and the scroll target. */
+  id: string;
   label: string;
   options: string[];
   value: string[];
@@ -116,8 +118,24 @@ interface TGProps {
   term?: string;
   /** Key into ANNOTATIONS, when this question's options carry shorthand. */
   annotationSet?: keyof typeof ANNOTATIONS;
+  invalid: boolean;
+  registerRef: (id: string, el: HTMLDivElement | null) => void;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, definition, helper, term, annotationSet }: TGProps) => {
+const TagGroup = ({
+  id,
+  label,
+  options,
+  value,
+  onChange,
+  multi = true,
+  noneLabel,
+  definition,
+  helper,
+  term,
+  annotationSet,
+  invalid,
+  registerRef,
+}: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   const annotations = annotationSet ? ANNOTATIONS[annotationSet] : undefined;
   const toggle = (opt: string) => {
@@ -128,10 +146,16 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, de
     }
   };
   return (
-    <div>
-      <OnboardingQuestion term={term} definition={definition} helper={helper}>
-        {label}
-      </OnboardingQuestion>
+    <RequiredField
+      id={id}
+      label={label}
+      term={term}
+      definition={definition}
+      hint={helper}
+      answered={safeValue.length > 0}
+      invalid={invalid}
+      registerRef={registerRef}
+    >
       <div className="flex flex-wrap gap-[7px]">
         {options.map((o) => (
           <Tag key={o} selected={safeValue.includes(o)} annotation={annotations?.[o]} onClick={() => toggle(o)}>
@@ -139,9 +163,10 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, de
           </Tag>
         ))}
       </div>
-    </div>
+    </RequiredField>
   );
 };
+
 
 
 const ProfileStep3Hair = () => {
