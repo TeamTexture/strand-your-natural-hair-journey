@@ -11,6 +11,8 @@ import { ImageIcon } from "lucide-react";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ReactableBubble, { stopBubbleGesture } from "@/components/chat/MessageReaction";
+import type { ReactionState } from "@/hooks/useMessageReactions";
 
 const SIGN_SECONDS = 60 * 60;
 
@@ -36,6 +38,9 @@ interface Props {
   mine: boolean;
   senderName?: string;
   showName?: boolean;
+  reaction?: ReactionState;
+  onToggleReaction?: () => void;
+  reactionsDisabled?: boolean;
 }
 
 const ChatImageBubble = ({
@@ -46,12 +51,15 @@ const ChatImageBubble = ({
   mine,
   senderName,
   showName,
+  reaction,
+  onToggleReaction,
+  reactionsDisabled,
 }: Props) => {
   const { data: url, isLoading } = useChatImageUrl(path);
   const [open, setOpen] = useState(false);
 
   return (
-    <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1.5`}>
+    <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-3`}>
       {showName && senderName && (
         <span
           className={`text-[10.5px] font-body font-semibold mb-0.5 px-1 ${
@@ -61,7 +69,11 @@ const ChatImageBubble = ({
           {senderName}
         </span>
       )}
-      <div
+      <ReactableBubble
+        mine={mine}
+        reaction={reaction}
+        disabled={reactionsDisabled || !onToggleReaction}
+        onToggle={() => onToggleReaction?.()}
         className={`max-w-[80%] p-1.5 rounded-[16px] ${
           mine
             ? "bg-primary text-primary-foreground rounded-br-[6px]"
@@ -69,7 +81,7 @@ const ChatImageBubble = ({
         }`}
       >
         {url ? (
-          <button type="button" onClick={() => setOpen(true)} className="block">
+          <button type="button" onClick={() => setOpen(true)} className="block" {...stopBubbleGesture}>
             <img
               src={url}
               alt={caption?.trim() ? caption : "Image sent in this conversation"}
@@ -98,7 +110,7 @@ const ChatImageBubble = ({
             <DeliveryTicks readAt={readAt ?? null} className={readAt ? "" : "text-primary-foreground/85"} />
           )}
         </div>
-      </div>
+      </ReactableBubble>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[340px] p-2">

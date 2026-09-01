@@ -12,6 +12,8 @@ import DeliveryTicks from "@/components/chat/DeliveryTicks";
 import VoicePlayer from "@/components/voice/VoicePlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { CHAT_MEDIA_BUCKET } from "@/lib/chatVoice";
+import ReactableBubble, { stopBubbleGesture } from "@/components/chat/MessageReaction";
+import type { ReactionState } from "@/hooks/useMessageReactions";
 
 
 const SIGN_SECONDS = 60 * 60;
@@ -39,6 +41,9 @@ interface Props {
   mine: boolean;
   senderName?: string;
   showName?: boolean;
+  reaction?: ReactionState;
+  onToggleReaction?: () => void;
+  reactionsDisabled?: boolean;
 }
 
 const ChatVoiceBubble = ({
@@ -50,6 +55,9 @@ const ChatVoiceBubble = ({
   mine,
   senderName,
   showName,
+  reaction,
+  onToggleReaction,
+  reactionsDisabled,
 }: Props) => {
   const { data: url } = useChatAudioUrl(path);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -61,7 +69,7 @@ const ChatVoiceBubble = ({
   const soft = mine ? "text-primary-foreground/75" : "text-brown-foreground/75";
 
   return (
-    <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1.5`}>
+    <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-3`}>
       {showName && senderName && (
         <span
           className={`text-[10.5px] font-body font-semibold mb-0.5 px-1 ${
@@ -71,8 +79,14 @@ const ChatVoiceBubble = ({
           {senderName}
         </span>
       )}
-      <div className={`max-w-[80%] px-3 py-2.5 rounded-[16px] ${tone}`}>
-        <div className="w-[210px] max-w-full">
+      <ReactableBubble
+        mine={mine}
+        reaction={reaction}
+        disabled={reactionsDisabled || !onToggleReaction}
+        onToggle={() => onToggleReaction?.()}
+        className={`max-w-[80%] px-3 py-2.5 rounded-[16px] ${tone}`}
+      >
+        <div className="w-[210px] max-w-full" {...stopBubbleGesture}>
           <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-body font-semibold">
             <Mic className="size-3" />
             Voice note
@@ -107,7 +121,7 @@ const ChatVoiceBubble = ({
             />
           )}
         </div>
-      </div>
+      </ReactableBubble>
     </div>
   );
 };
