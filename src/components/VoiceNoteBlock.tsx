@@ -41,7 +41,7 @@ const VoiceNoteBlock = ({
 
       {hasAudio && (
         <div className="text-foreground">
-          <VoicePlayer url={audioUrl} variant="onSurface" />
+          <VoicePlayer url={audioUrl} variant="onSurface" mediaName="recording" />
 
         </div>
       )}

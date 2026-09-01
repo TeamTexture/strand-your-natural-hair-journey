@@ -173,7 +173,7 @@ const VoicePlayer = ({
         type="button"
         onClick={toggle}
         disabled={!url}
-        aria-label={playing ? "Pause voice note" : "Play voice note"}
+        aria-label={`${playing ? "Pause" : "Play"} ${mediaName}`}
         className={cn(
           "shrink-0 size-9 rounded-full flex items-center justify-center disabled:opacity-50",
           buttonTone,
@@ -187,7 +187,7 @@ const VoicePlayer = ({
           ref={trackRef}
           role="slider"
           tabIndex={0}
-          aria-label="Seek voice note"
+          aria-label={`Seek ${mediaName}`}
           aria-valuemin={0}
           aria-valuemax={hasTotal ? Math.round(total as number) : 0}
           aria-valuenow={Math.round(elapsed)}
