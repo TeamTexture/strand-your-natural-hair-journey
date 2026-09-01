@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 
 type Props = {
   url: string | null;
