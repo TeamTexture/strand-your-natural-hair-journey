@@ -381,6 +381,20 @@ function scrubScanUsage(payload: Record<string, unknown>): number {
   return removed;
 }
 
+// ─── Manuscript evidence: one gather, started early, shared everywhere ──
+// LATENCY (2026-09-01, Part 4). Stage 1 (whole-chapter read → evidence set) is
+// the second-largest wait on a scan, and it depends ONLY on the member's own
+// facts — never on the product being photographed. It is therefore kicked off
+// as soon as the scan is known to need a model call, runs alongside the
+// vocabulary load and the workspace ceiling check, and the SAME resolved set
+// is reused by every retry attempt and by the stage 3 citation verification
+// (via noteEvidence). Nothing about the prompt content changes.
+export function scanRagQuery(context: Record<string, unknown> | undefined): string {
+  return `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
+    context?.hairProfile ? JSON.stringify(context.hairProfile).slice(0, 200) : ""
+  }`;
+}
+
 // ─── Provider: Claude ──────────────────────────────────────────────────
 
 
@@ -396,6 +410,8 @@ async function runClaude(args: {
   tierBlock?: string;
   /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
   retryInstruction?: string;
+  /** Pre-resolved stage 1 evidence (see scanRagQuery). */
+  prefetchedEvidence?: { block: string; grounded: boolean };
   /** SPEED: when set, the model call streams and this receives the
    *  accumulated tool JSON so the caller can push partial results to the
    *  member while the verdict is still being written. */
@@ -446,11 +462,8 @@ Return JSON only via the return_product_analysis tool.`;
       "scalp-conditions",
       "diagnosed-conditions",
     ],
-    rag_query: `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
-      (args.context as Record<string, unknown> | undefined)?.hairProfile
-        ? JSON.stringify((args.context as Record<string, unknown>).hairProfile).slice(0, 200)
-        : ""
-    }`,
+    rag_query: scanRagQuery(args.context as Record<string, unknown> | undefined),
+    prefetched_evidence: args.prefetchedEvidence,
     rag_k: 4,
     tool: {
       name: "return_product_analysis",
@@ -578,12 +591,16 @@ async function runLovable(args: {
   tierBlock?: string;
   /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
   retryInstruction?: string;
+  /** Pre-resolved grounding block, gathered early and shared across attempts. */
+  prefetchedGrounding?: GroundingResult;
 }): Promise<ProductAnalysisPayload> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
   // Manuscript grounding parity with the Claude path.
-  const grounding = await buildGroundingBlock({
+  const grounding = args.prefetchedGrounding ?? await buildLovableGrounding(args.context);
+  const _unusedGrounding = false as const;
+  const _legacyGrounding = () => buildGroundingBlock({
     surface: "product-analyse",
     fn: "product-analyse",
     functionKind: "product-analyse",
