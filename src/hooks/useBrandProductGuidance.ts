@@ -252,11 +252,19 @@ async function loadGuidance(
     // positives — and a false positive means a paid regeneration on every
     // single view. The grounding gate stays on the reads that genuinely can be
     // out of date: the stale-prefix read and the un-fingerprinted wash day key.
-    const cachedPayload = cached?.payload as unknown as BrandGuidance | null;
+    const cachedRow = cached?.payload as unknown as BrandGuidance | null;
+    // The wash day key carries NO profile fingerprint (it is pre-generated), so
+    // this is the same row the fast path already read: it must go through the
+    // style-grounding gate, or a rejected tip is handed straight back and never
+    // regenerates. Every other surface is fingerprinted, so it is trusted.
+    const cachedPayload = surface === "wash_day"
+      ? groundedPayload(cachedRow, null, surface)
+      : cachedRow;
     // The wash day surface returns a single tip body and no benefit rows, so a
     // cached payload is valid if it carries either shape.
     if (cachedPayload && (Array.isArray(cachedPayload.benefits) || cachedPayload.wash_day_tip))
       return cachedPayload;
+
 
 
 
