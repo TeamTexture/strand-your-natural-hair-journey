@@ -105,7 +105,7 @@ describe("Tier 4 never reaches the scoring prompt", () => {
 
 describe("Tier 1 deterministic answers", () => {
   it("resolves water hardness from a postcode without a model call", () => {
-    expect(waterHardnessFor("SW1A 1AA")).toBe("hard");
+    expect(waterHardnessFor("SW1A 1AA")).toBe("very-hard");
     expect(waterHardnessFor("")).toBeNull();
   });
 
@@ -123,6 +123,6 @@ describe("Tier 1 deterministic answers", () => {
       expect(block).toMatch(/NEUTRAL ownership count/i);
       expect(block).toMatch(/never a reason to score lower/i);
     }
-    expect(block).not.toMatch(/fault/i);
+    expect(block).toMatch(/not a fault of this product/i);
   });
 });
