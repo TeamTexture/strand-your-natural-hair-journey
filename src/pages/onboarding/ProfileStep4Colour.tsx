@@ -39,33 +39,48 @@ import { getDisplayedAuthUser } from "@/lib/displayedUser";
 const NATURAL_NEVER = "Natural (never coloured)";
 
 interface TGProps {
+  /** Stable id used for the outstanding-answer list and the scroll target. */
+  id: string;
   label: string;
   options: string[];
   value: string[];
   onChange: (n: string[]) => void;
   multi?: boolean;
+  /** Italic helper line — e.g. what to tap when nothing applies. */
+  helper?: string;
+  invalid: boolean;
+  registerRef: (id: string, el: HTMLDivElement | null) => void;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
+const TagGroup = ({ id, label, options, value, onChange, multi = true, helper, invalid, registerRef }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
-  return <div>
-    <OnboardingQuestion>{label}</OnboardingQuestion>
-    <div className="flex flex-wrap gap-[7px]">
-      {options.map((o) => (
-        <Tag
-          key={o}
-          selected={safeValue.includes(o)}
-          onClick={() =>
-            multi
-              ? onChange(safeValue.includes(o) ? safeValue.filter((v) => v !== o) : [...safeValue, o])
-              : onChange([o])
-          }
-        >
-          {o}
-        </Tag>
-      ))}
-    </div>
-  </div>;
+  return (
+    <RequiredField
+      id={id}
+      label={label}
+      hint={helper}
+      answered={safeValue.length > 0}
+      invalid={invalid}
+      registerRef={registerRef}
+    >
+      <div className="flex flex-wrap gap-[7px]">
+        {options.map((o) => (
+          <Tag
+            key={o}
+            selected={safeValue.includes(o)}
+            onClick={() =>
+              multi
+                ? onChange(safeValue.includes(o) ? safeValue.filter((v) => v !== o) : [...safeValue, o])
+                : onChange([o])
+            }
+          >
+            {o}
+          </Tag>
+        ))}
+      </div>
+    </RequiredField>
+  );
 };
+
 
 const COLOUR_TYPES = ["Professional colour", "Box dye", "Henna", "Not sure"];
 const COLOUR_PRODUCTS = ["Colour", "Lightener (bleach)", "Not sure"];
