@@ -7,6 +7,7 @@ import {
   minusIsScoreWorthy,
 } from "../../supabase/functions/_shared/fit-first-score.ts";
 import { alignScoreWithReasons } from "../../supabase/functions/_shared/score-reasons.ts";
+import { resolveScoreAxes } from "../../supabase/functions/_shared/relevance-axis.ts";
 
 const k18Minus = {
   direction: "minus" as const,
@@ -42,5 +43,45 @@ describe("relevance mismatches are not score-worthy minuses", () => {
     // Two real conflicts with no plus still reads as a caution.
     expect(alignScoreWithReasons(88, [realConflict, { ...realConflict }])).toBe(55);
 
+  });
+});
+
+// ── PART 2 (2026-09-01): quality/safety and relevance are SEPARATE axes ────
+describe("two axes: quality/safety vs relevance", () => {
+  it("derives the score from the quality axis, not the contaminated match_score", () => {
+    const axes = resolveScoreAxes({ matchScore: 52, qualityScore: 88, reasons: [k18Minus] });
+    expect(axes.score).toBe(88);
+    expect(axes.qualityScore).toBe(88);
+  });
+
+  it("keeps the single number when the model gave no quality axis", () => {
+    expect(resolveScoreAxes({ matchScore: 74 }).score).toBe(74);
+  });
+
+  it("uses the model's relevance_note when supplied", () => {
+    const axes = resolveScoreAxes({
+      matchScore: 80,
+      relevanceNote: "This is built around density and regrowth rather than the breakage you recorded.",
+    });
+    expect(axes.relevanceNote).toMatch(/density and regrowth/);
+  });
+
+  it("recovers a relevance note from a mismatch the model filed as a minus", () => {
+    const axes = resolveScoreAxes({ matchScore: 52, qualityScore: 88, reasons: [k18Minus] });
+    expect(axes.relevanceNote).toMatch(/ageing and shedding/);
+  });
+
+  it("never turns a real conflict into a relevance note", () => {
+    expect(resolveScoreAxes({ matchScore: 55, reasons: [realConflict] }).relevanceNote).toBeNull();
+  });
+
+  it("catches a purpose mismatch phrased without the old giveaway wording", () => {
+    expect(
+      minusIsScoreWorthy({
+        direction: "minus",
+        factor: "Built for scalp fullness",
+        reason: "The formula is built for crown fullness; your goal is length retention.",
+      }),
+    ).toBe(false);
   });
 });

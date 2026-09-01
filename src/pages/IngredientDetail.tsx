@@ -81,6 +81,7 @@ import ScoreReasons, {
 import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
 
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
+import RelevanceNote from "@/components/product/RelevanceNote";
 import PurposeInsight, { parsePurposeInsight, type ProductPurposeInsight } from "@/components/product/PurposeInsight";
 import { cn } from "@/lib/utils";
 import BrandLink from "@/components/BrandLink";
@@ -126,6 +127,8 @@ interface Analysis {
   score_reasons?: ScoreReason[];
   /** Mild observations shown separately, never part of the score. */
   strand_tip?: StrandTipNote[] | null;
+  /** Purpose-match sentence — its own row, never score rationale. */
+  relevance_note?: string | null;
   insight?: ProductPurposeInsight | null;
   summary: string;
   ingredients: Ingredient[];
@@ -1371,6 +1374,10 @@ const IngredientDetail = () => {
 
             {/* Mild, non-harmful observations — outside the score callout on
                 purpose: food for thought, not score rationale. */}
+            {/* Relevance is a separate axis from the rating: what the formula
+                is aimed at, never a reason the score is what it is. */}
+            <RelevanceNote note={analysis.relevance_note} />
+
             <StrandTipNotes tips={parseStrandTips(analysis.strand_tip)} />
 
             {/* Personalised "How to use this for your hair" */}

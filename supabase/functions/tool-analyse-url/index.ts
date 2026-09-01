@@ -56,8 +56,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-haiku-4-5@v24-mechanism-substance-2026-08-30";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v24-mechanism-substance-2026-08-30";
+const MODEL_VERSION = "claude-haiku-4-5@v26-two-axes-2026-09-01";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v26-two-axes-2026-09-01";
 const INVALID_URL_MESSAGE = "STRAND needs a valid product page URL to analyse.";
 
 // Legacy categories the Lovable path returns (kept stable for back-compat with
@@ -879,6 +879,10 @@ Deno.serve(async (req: Request) => {
         userId: user.id,
         fields: productProseFields(a),
         score: typeof a.match_score === "number" ? a.match_score : null,
+        // TWO AXES (2026-09-01): the quality/safety number is the basis for
+        // match_score; a purpose mismatch becomes relevance_note instead.
+        qualityScore: (a as Record<string, unknown>).quality_score,
+        relevanceNote: (a as Record<string, unknown>).relevance_note,
         reasons: (a.score_reasons ?? []) as never,
         modelTips: a.strand_tip,
         areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
@@ -892,6 +896,8 @@ Deno.serve(async (req: Request) => {
       a.score_reasons = failsafe.reasons;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
       if (failsafe.score != null) a.match_score = failsafe.score;
+        (a as Record<string, unknown>).quality_score = failsafe.qualityScore;
+        (a as Record<string, unknown>).relevance_note = failsafe.relevanceNote;
       if (failsafe.violations.length) {
         const cleared = applyFieldNulls(a, failsafe.violations);
         console.log(JSON.stringify({

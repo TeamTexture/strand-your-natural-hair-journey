@@ -57,7 +57,7 @@ The score answers ONE question: how well does this product serve THIS member's s
 const RELEVANCE_MISMATCH = [
   /\brather than\b/i,
   /\binstead of\b/i,
-  /\bnot (?:aimed|targeted|formulated|designed|intended)\b/i,
+  /\bnot (?:aimed|targeted|formulated|designed|intended|built)\b/i,
   /\bdoes(?:n't| not) (?:target|address|focus)\b/i,
   /\bdifferent (?:concern|goal|priority|purpose|area)\b/i,
   /\bno ingredients (?:specifically |directly )?(?:for|aimed|targeting)\b/i,
@@ -69,11 +69,20 @@ const RELEVANCE_MISMATCH = [
  *  The K18 regression slipped past the list above because the model wrote
  *  "targets ageing and shedding — not the breakage challenge": no listed
  *  phrase matched, so a purpose mismatch was scored as a conflict. */
-const TARGETS_VERB = /\btarget(?:s|ed|ing)?\b|\baimed at\b|\bformulated for\b|\bdesigned for\b|\bintended for\b|\bfocus(?:es|ed)? on\b/i;
+const TARGETS_VERB =
+  /\btarget(?:s|ed|ing)?\b|\baimed at\b|\bformulated for\b|\bdesigned for\b|\bintended for\b|\bbuilt (?:for|around)\b|\bmade for\b|\bgeared (?:to|toward|towards)\b|\bfocus(?:es|ed)? on\b/i;
 const NEGATION = /\bnot\b|\brather than\b|\binstead of\b|\bwhereas\b/i;
 
-const isRelevanceFraming = (text: string) =>
-  any(RELEVANCE_MISMATCH, text) || (TARGETS_VERB.test(text) && NEGATION.test(text));
+/** "built for X, your concern is Y" — a purpose mismatch stated without any of
+ *  the giveaway connectives above. The member's own signal is named on the
+ *  other side of the sentence, which is what makes it relevance framing. */
+const HER_SIGNAL =
+  /\byour (?:goal|concern|concerns|challenge|challenges|focus|priority)\b|\b(?:her|your) (?:stated|recorded)\b/i;
+
+export const isRelevanceFraming = (text: string) =>
+  any(RELEVANCE_MISMATCH, text) ||
+  (TARGETS_VERB.test(text) && (NEGATION.test(text) || HER_SIGNAL.test(text)));
+
 
 
 

@@ -128,3 +128,35 @@ describe("ingredient cards must state a mechanism", () => {
     ).toHaveLength(0);
   });
 });
+
+// ── PART 2 (2026-09-01): a fit-relevant formula always holds one plus ──────
+describe("guaranteed fit plus", () => {
+  it("synthesises a plus from a real matched ingredient when the model returned none", () => {
+    const out = applyConcernFit({
+      score: 70,
+      reasons: [],
+      cards: [
+        { name: "Acetyl tetrapeptide-3", body: "Supports root anchoring at the follicle." },
+      ],
+      concerns: ["edges", "hairline"],
+      challenges: ["shedding"],
+      ingredients: ["water", "acetyl tetrapeptide-3", "glycerin"],
+    });
+    const pluses = out.reasons.filter((r) => r.direction === "plus");
+    expect(pluses.length).toBeGreaterThanOrEqual(1);
+    expect(pluses[0].factor.toLowerCase()).toContain("tetrapeptide");
+    expect(out.synthesisedPluses).toBe(1);
+  });
+
+  it("does not synthesise when the model already returned a plus", () => {
+    const out = applyConcernFit({
+      score: 80,
+      reasons: [{ direction: "plus", factor: "Acetyl tetrapeptide-3", reason: "Root anchoring." }],
+      cards: [{ name: "Acetyl tetrapeptide-3", body: "Supports root anchoring." }],
+      concerns: ["edges"],
+      challenges: ["shedding"],
+      ingredients: ["acetyl tetrapeptide-3"],
+    });
+    expect(out.synthesisedPluses ?? 0).toBe(0);
+  });
+});

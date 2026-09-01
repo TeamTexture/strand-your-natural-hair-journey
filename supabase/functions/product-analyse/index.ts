@@ -100,8 +100,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v25-scan-repair-2026-09-01";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v25-scan-repair-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v26-two-axes-2026-09-01";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v26-two-axes-2026-09-01";
 
 
 /** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,
@@ -844,6 +844,10 @@ Deno.serve(async (req: Request) => {
             : [],
           vocabulary,
           score: typeof a.match_score === "number" ? a.match_score : null,
+        // TWO AXES (2026-09-01): the quality/safety number is the basis for
+        // match_score; a purpose mismatch becomes relevance_note instead.
+        qualityScore: (a as Record<string, unknown>).quality_score,
+        relevanceNote: (a as Record<string, unknown>).relevance_note,
           reasons: (a.score_reasons ?? []) as never,
           modelTips: a.strand_tip,
           areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
@@ -865,6 +869,8 @@ Deno.serve(async (req: Request) => {
         }
         a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
         if (failsafe.score != null) a.match_score = failsafe.score;
+        (a as Record<string, unknown>).quality_score = failsafe.qualityScore;
+        (a as Record<string, unknown>).relevance_note = failsafe.relevanceNote;
 
         // USAGE GROUNDING GATE (2026-09-01) — parity with ingredient-analysis:
         // a technique specific must appear in the directions read off the pack.

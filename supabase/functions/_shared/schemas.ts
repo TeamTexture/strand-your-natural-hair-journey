@@ -11,6 +11,10 @@
 
 import { STRAND_TIP_SCHEMA_PROPERTY } from "./fit-first-score.ts";
 import {
+  QUALITY_SCORE_SCHEMA_PROPERTY,
+  RELEVANCE_NOTE_SCHEMA_PROPERTY,
+} from "./relevance-axis.ts";
+import {
   SCORE_REASONS_SCHEMA_PROPERTY,
   type ScoreReason,
 } from "./score-reasons.ts";
@@ -52,6 +56,10 @@ export const RETURN_PRODUCT_ANALYSIS_SCHEMA = {
     // member ~10s earlier when the long per-ingredient block comes last.
 
     match_score: { type: "integer", minimum: 0, maximum: 100 },
+    // TWO AXES (2026-09-01): quality/safety is the basis for match_score;
+    // a purpose mismatch lives in relevance_note and never moves the number.
+    quality_score: QUALITY_SCORE_SCHEMA_PROPERTY,
+    relevance_note: RELEVANCE_NOTE_SCHEMA_PROPERTY,
     score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
     // Fit-first (2026-08-28): mild, non-harmful observations live here so they
     // stop costing score points. Nullable — no tip is the preferred answer.

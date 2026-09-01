@@ -208,7 +208,11 @@ export interface ConcernFitResult {
   /** How many rows/cards were corrected — logged, never shown. */
   reframed: number;
   reflagged: number;
+  /** 1 when the guaranteed fit plus was synthesised from a real matched
+   *  ingredient because the model returned no plus at all. */
+  synthesisedPluses?: number;
   /** The proportional maths, for the logs. */
+
   contribution: ConcernContribution;
 }
 
@@ -429,10 +433,79 @@ export function applyConcernFit(input: ConcernFitInput): ConcernFitResult {
     conflicts,
   });
 
+  // AT LEAST ONE PLUS (2026-09-01). A verdict with no positive rationale is a
+  // failed answer whenever the formula genuinely holds something that serves
+  // her recorded goal, challenges or areas of concern. The synthesised row
+  // reuses a REAL matched ingredient name and only states the mechanism family
+  // that matched — it never invents a benefit.
+  let synthesised = 0;
+  const withPlus = [...ordered];
+  if (contribution.centrality > 0 && !withPlus.some((r) => r.direction === "plus")) {
+    const plus = synthesiseFitPlus(cards, input.ingredients ?? [], concerns, challenges);
+    if (plus) {
+      withPlus.unshift(plus);
+      synthesised = 1;
+    }
+  }
+
   let score = input.score ?? null;
   if (score != null && contribution.bonus > 0) {
     score = Math.min(95, Math.max(score, score + contribution.bonus));
   }
 
-  return { score, reasons: ordered, cards, reframed, reflagged, contribution };
+  return {
+    score,
+    reasons: withPlus,
+    cards,
+    reframed,
+    reflagged,
+    synthesisedPluses: synthesised,
+    contribution,
+  };
 }
+
+/**
+ * Builds the guaranteed plus from real data only: the first ingredient (card
+ * name, else INCI entry) whose mechanism serves a recorded concern or
+ * challenge, plus the mechanism family that matched.
+ */
+export function synthesiseFitPlus(
+  cards: unknown,
+  ingredients: string[],
+  concerns: string[],
+  challenges: string[],
+): ScoreReason | null {
+  const candidates: Array<{ name: string; text: string }> = [];
+  if (Array.isArray(cards)) {
+    for (const raw of cards) {
+      if (!raw || typeof raw !== "object") continue;
+      const row = raw as Record<string, unknown>;
+      const name = typeof row.name === "string" ? row.name : "";
+      const text = [row.body, row.benefit, row.reason]
+        .filter((v) => typeof v === "string")
+        .join(" ");
+      if (name) candidates.push({ name, text });
+    }
+  }
+  for (const ing of ingredients) {
+    const name = String(ing ?? "");
+    if (name && !SUPPORT_CAST.test(name)) candidates.push({ name, text: "" });
+  }
+
+  for (const c of candidates) {
+    const hay = `${c.name} ${c.text}`;
+    const mechanism = concernMechanism(hay, concerns);
+    const challenge = challengeMechanism(hay, challenges);
+    if (!mechanism && !challenge) continue;
+    const target = mechanism
+      ? `the concern you recorded at ${areaPhrase(concerns)}`
+      : `the ${challenge} you recorded`;
+    return {
+      direction: "plus",
+      factor: c.name,
+      reason: `Works on ${mechanism ?? challenge}, which is what ${target} needs.`,
+    };
+  }
+  return null;
+}
+
