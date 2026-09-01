@@ -1,7 +1,8 @@
 import { smartBack } from "@/lib/smartBack";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pause, Play } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import StepProgress from "@/components/nav/StepProgress";
