@@ -314,6 +314,8 @@ async function runClaude(args: {
   selectorContext: SelectorContext;
   ledgerBlock: string;
   sensitivityBlock?: string;
+  /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
+  retryInstruction?: string;
   /** SPEED: when set, the model call streams and this receives the
    *  accumulated tool JSON so the caller can push partial results to the
    *  member while the verdict is still being written. */
@@ -323,8 +325,9 @@ async function runClaude(args: {
 
 User context (use to compute key_ingredients flags, match_score, ai_summary, use_cases, and tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}
-
+${args.retryInstruction ? `\n${args.retryInstruction}\n` : ""}
 Return JSON only via the return_product_analysis tool.`;
+
 
 
   const userContent: ContentBlockInput[] = [
