@@ -10,15 +10,16 @@
 // signed-URL + play/pause pattern of ChatVoiceBubble, and the transcript stays
 // behind a "Read transcript" toggle.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Mic, Pause, Play, X } from "lucide-react";
+import { Mic, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatAudioUrl } from "@/components/chat/ChatVoiceBubble";
-import { formatVoiceDuration } from "@/hooks/useVoiceRecorder";
+import VoicePlayer from "@/components/voice/VoicePlayer";
 import { TOUR_DONE_EVENT } from "@/lib/firstRunTour";
+
 
 /** One popup per message, ever — separate from chat's own read_at handling. */
 const shownKey = (id: string) => `strand_welcome_vn_shown_${id}`;
@@ -51,9 +52,8 @@ const WelcomeVoicenotePopup = () => {
   const navigate = useNavigate();
   const [armed, setArmed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
 
   // Only look for the message once the tour has genuinely finished/skipped.
   useEffect(() => {
@@ -99,47 +99,21 @@ const WelcomeVoicenotePopup = () => {
 
   const { data: url } = useChatAudioUrl(open ? message?.audio_path : null);
 
-  useEffect(
-    () => () => {
-      audioRef.current?.pause();
-      audioRef.current = null;
-    },
-    [],
-  );
-
-  const stopAudio = () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-    setPlaying(false);
-  };
-
-  const toggle = () => {
-    if (!url) return;
-    if (playing) {
-      audioRef.current?.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = audioRef.current ?? new Audio(url);
-    a.onended = () => setPlaying(false);
-    a.onerror = () => setPlaying(false);
-    audioRef.current = a;
-    void a.play();
-    setPlaying(true);
-  };
-
   if (!open || !message) return null;
 
+  // Unmounting the popup unmounts VoicePlayer, which pauses and tears down its
+  // own audio element — nothing else to stop here.
   const minimise = () => {
-    stopAudio();
     setDismissed(true);
   };
 
   const openChat = () => {
-    stopAudio();
     setDismissed(true);
     navigate(`/messages/${message.thread_id}`);
   };
+
+
+
 
   const transcript = message.transcript?.trim();
 
@@ -173,30 +147,19 @@ const WelcomeVoicenotePopup = () => {
           New message from STRAND Team
         </h2>
 
-        <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-border bg-muted/40 px-3 py-3">
-          <button
-            type="button"
-            onClick={toggle}
-            disabled={!url}
-            aria-label={playing ? "Pause voice note" : "Play voice note"}
-            className="shrink-0 size-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
-          >
-            {playing ? <Pause className="size-5" /> : <Play className="size-5" />}
-          </button>
-          <div className="min-w-0">
-            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-body font-semibold text-foreground">
-              <Mic className="size-3" />
-              Voice note
-            </span>
-            <span className="block text-[11.5px] font-body text-muted-foreground">
-              {message.duration_ms
-                ? formatVoiceDuration(message.duration_ms)
-                : url
-                  ? "Tap to play"
-                  : "Loading…"}
-            </span>
-          </div>
+        <div className="mt-4 rounded-[14px] border border-border bg-muted/40 px-3 py-3">
+          <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-body font-semibold text-foreground">
+            <Mic className="size-3" />
+            Voice note
+          </span>
+          <VoicePlayer
+            url={url}
+            durationMs={message.duration_ms}
+            variant="onSurface"
+            className="mt-2 text-foreground"
+          />
         </div>
+
 
         {transcript && (
           <>

@@ -6,12 +6,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { useEffect, useRef, useState } from "react";
-import { Mic, Pause, Play } from "lucide-react";
+import { useState } from "react";
+import { Mic } from "lucide-react";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import VoicePlayer from "@/components/voice/VoicePlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { CHAT_MEDIA_BUCKET } from "@/lib/chatVoice";
-import { formatVoiceDuration } from "@/hooks/useVoiceRecorder";
+
 
 const SIGN_SECONDS = 60 * 60;
 
@@ -51,32 +52,8 @@ const ChatVoiceBubble = ({
   showName,
 }: Props) => {
   const { data: url } = useChatAudioUrl(path);
-  const [playing, setPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(
-    () => () => {
-      audioRef.current?.pause();
-      audioRef.current = null;
-    },
-    [],
-  );
-
-  const toggle = () => {
-    if (!url) return;
-    if (playing) {
-      audioRef.current?.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = audioRef.current ?? new Audio(url);
-    a.onended = () => setPlaying(false);
-    a.onerror = () => setPlaying(false);
-    audioRef.current = a;
-    void a.play();
-    setPlaying(true);
-  };
 
   const tone = mine
     ? "bg-primary text-primary-foreground rounded-br-[6px]"
@@ -95,26 +72,14 @@ const ChatVoiceBubble = ({
         </span>
       )}
       <div className={`max-w-[80%] px-3 py-2.5 rounded-[16px] ${tone}`}>
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={toggle}
-            disabled={!url}
-            aria-label={playing ? "Pause voice note" : "Play voice note"}
-            className="shrink-0 size-9 rounded-full bg-background/25 flex items-center justify-center disabled:opacity-50"
-          >
-            {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-          </button>
-          <div className="min-w-0">
-            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-body font-semibold">
-              <Mic className="size-3" />
-              Voice note
-            </span>
-            <span className={`block text-[11px] font-body ${soft}`}>
-              {durationMs ? formatVoiceDuration(durationMs) : url ? "Tap to play" : "Loading…"}
-            </span>
-          </div>
+        <div className="w-[210px] max-w-full">
+          <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-body font-semibold">
+            <Mic className="size-3" />
+            Voice note
+          </span>
+          <VoicePlayer url={url} durationMs={durationMs ?? null} variant="onDark" className="mt-1.5" />
         </div>
+
 
         {transcript?.trim() && (
           <>

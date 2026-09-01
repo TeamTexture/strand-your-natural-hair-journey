@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Play, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProductThumb from "@/components/ProductThumb";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import MatchStars from "@/components/MatchStars";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
@@ -131,7 +133,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
         {step.voice_transcript?.trim() ? (
           <Transcript text={step.voice_transcript} />
         ) : voiceUrl ? (
-          <audio src={voiceUrl} controls className="w-full h-9" />
+          <VoicePlayer url={voiceUrl} variant="onSurface" className="text-foreground" />
         ) : null}
 
         {step.media.length > 0 && (
