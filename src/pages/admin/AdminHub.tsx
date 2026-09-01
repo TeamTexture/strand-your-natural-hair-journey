@@ -19,6 +19,7 @@ import {
   Store,
   MessageSquare,
   MessageSquareHeart,
+  Mic,
   Library,
   ShieldAlert,
   CalendarDays,
@@ -600,6 +601,12 @@ const AdminHub = () => {
                 : "No unread member messages"
             }
             onClick={() => nav("/admin/member-messages")}
+          />
+          <NavCard
+            icon={Mic}
+            title="Welcome voicenote"
+            description="Record the automated voice note sent to every new trial or subscriber"
+            onClick={() => nav("/admin/welcome-voicenote")}
           />
           <NavCard
             icon={ClipboardCheck}

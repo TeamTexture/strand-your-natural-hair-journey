@@ -370,6 +370,26 @@ const AdminSettings = () => {
       <TitleBar title="Settings" onBack={smartBack(nav, "/admin")} />
 
       <div className="px-5 pb-10 space-y-4">
+        {/* Automated welcome voicenote */}
+        <SurfaceCard>
+          <button
+            type="button"
+            onClick={() => nav("/admin/welcome-voicenote")}
+            className="w-full flex items-center gap-3 text-left"
+          >
+            <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
+              <Mic className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-body font-semibold leading-tight">Welcome voicenote</p>
+              <p className="text-[11px] text-muted-foreground font-body leading-snug">
+                Recorded once, sent automatically to every new trial or subscriber
+              </p>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+          </button>
+        </SurfaceCard>
+
         {/* Header context */}
         <SurfaceCard tone="gold">
           <div className="flex items-start gap-2.5">
@@ -446,25 +466,6 @@ const AdminSettings = () => {
           </p>
         </SurfaceCard>
 
-        {/* Automated welcome voicenote */}
-        <SurfaceCard>
-          <button
-            type="button"
-            onClick={() => nav("/admin/welcome-voicenote")}
-            className="w-full flex items-center gap-3 text-left"
-          >
-            <div className="size-9 rounded-full bg-primary/12 text-primary flex items-center justify-center shrink-0">
-              <Mic className="size-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-body font-semibold leading-tight">Welcome voicenote</p>
-              <p className="text-[11px] text-muted-foreground font-body leading-snug">
-                Recorded once, sent automatically to every new trial or subscriber
-              </p>
-            </div>
-            <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-          </button>
-        </SurfaceCard>
 
         {/* Manage in Stripe */}
 
