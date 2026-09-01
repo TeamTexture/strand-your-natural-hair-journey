@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Play, Pause, Trash2, Loader2, Type } from "lucide-react";
+import { Mic, Square, Trash2, Loader2, Type } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
