@@ -52,6 +52,8 @@ import {
   type ChatMessage,
 } from "@/hooks/useChat";
 import ChatImageBubble from "@/components/chat/ChatImageBubble";
+import ReactableBubble from "@/components/chat/MessageReaction";
+import { useMessageReactions, type ReactionState } from "@/hooks/useMessageReactions";
 import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
 import { formatVoiceDuration, useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import ChatUpgradeNotice from "@/components/chat/ChatUpgradeNotice";
@@ -194,13 +196,19 @@ const MessageBubble = ({
   mine,
   senderName,
   showName,
+  reaction,
+  onToggleReaction,
+  reactionsDisabled,
 }: {
   m: ChatMessage;
   mine: boolean;
   senderName: string;
   showName: boolean;
+  reaction?: ReactionState;
+  onToggleReaction?: () => void;
+  reactionsDisabled?: boolean;
 }) => (
-  <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-1.5`}>
+  <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-3`}>
     {showName && (
       <span
         className={`text-[10.5px] font-body font-semibold mb-0.5 px-1 ${
@@ -210,7 +218,11 @@ const MessageBubble = ({
         {senderName}
       </span>
     )}
-    <div
+    <ReactableBubble
+      mine={mine}
+      reaction={reaction}
+      disabled={reactionsDisabled || !onToggleReaction}
+      onToggle={() => onToggleReaction?.()}
       className={`max-w-[80%] px-3.5 py-2 rounded-[16px] text-sm font-body leading-snug whitespace-pre-wrap break-words ${
         mine
           ? "bg-primary text-primary-foreground rounded-br-[6px]"
@@ -227,7 +239,7 @@ const MessageBubble = ({
           />
         )}
       </div>
-    </div>
+    </ReactableBubble>
   </div>
 );
 
@@ -243,6 +255,15 @@ const ChatThreadPage = () => {
   const sendVoice = useSendChatVoice(threadId);
   const book = useBookAppointmentInThread();
   const markRead = useMarkThreadRead(threadId);
+  // Heart reactions for every message in this thread (double-tap a bubble).
+  const reactableIds = useMemo(
+    () =>
+      (messages.data ?? [])
+        .filter((m) => m.kind === "text" || m.kind === "image" || m.kind === "voice")
+        .map((m) => m.id),
+    [messages.data],
+  );
+  const { reactions, canReact, toggleReaction } = useMessageReactions(threadId, reactableIds);
   const [draft, setDraft] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -569,6 +590,9 @@ const ChatThreadPage = () => {
                       mine={mine}
                       senderName={senderName}
                       showName={showName}
+                      reaction={reactions[m.id]}
+                      onToggleReaction={() => toggleReaction(m.id)}
+                      reactionsDisabled={!canReact}
                     />
                   );
                 }
@@ -583,6 +607,9 @@ const ChatThreadPage = () => {
                       mine={mine}
                       senderName={senderName}
                       showName={showName}
+                      reaction={reactions[m.id]}
+                      onToggleReaction={() => toggleReaction(m.id)}
+                      reactionsDisabled={!canReact}
                     />
                   );
                 }
@@ -593,6 +620,9 @@ const ChatThreadPage = () => {
                     mine={mine}
                     senderName={senderName}
                     showName={showName}
+                    reaction={reactions[m.id]}
+                    onToggleReaction={() => toggleReaction(m.id)}
+                    reactionsDisabled={!canReact}
                   />
                 );
               })}

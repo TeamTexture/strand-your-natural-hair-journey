@@ -1801,6 +1801,38 @@ export type Database = {
           },
         ]
       }
+      chat_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           body: string
@@ -7608,6 +7640,10 @@ export type Database = {
       }
       can_send_chat_message: {
         Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_view_chat_message: {
+        Args: { _message_id: string; _user_id: string }
         Returns: boolean
       }
       can_write_consumer_onboarding: {
