@@ -164,6 +164,18 @@ A well-made product aimed at a different area of the member's hair is not a bad 
 - Whenever the formula genuinely holds something serving her goal, challenges or areas of concern, the verdict carries at least one plus — `synthesiseFitPlus` (`_shared/concern-fit.ts`) builds it from a real matched ingredient and the mechanism family that matched.
 - Tests: `src/test/relevance_axis.test.ts`, `src/test/concern_fit_proportional.test.ts`.
 
+## STANDING RULE — the score has a real downside path, and no field is structurally louder (2026-09-01, permanent)
+
+Scores clustered at 90+ because three independent FLOORS stacked: `alignScoreWithReasons` lifted any conflict-free verdict to 65, `applyFitFirst` lifted any zero-minus product to 70 (80 with two pluses), and `applyConcernFit` clamped its bonus with `max(0, …)` so the fit maths could only ever raise the number. Combined with the deliberately narrow `minusIsScoreWorthy` bar, almost nothing could travel downwards.
+
+- **No floors anywhere on the quality/safety axis.** The absence of a conflict is not evidence of quality: a thin-but-harmless formula must be able to land honestly in the 50s. Only evidence-based CEILINGS remain — no plus AND a real conflict caps at 55, a genuine harm marker at 65, two or more real conflicts at 70, and nothing ever exceeds 95.
+- **The concern/challenge bonus is SIGNED** (`concernContribution`, −18…+26). Genuine conflicts subtract, including when nothing in the formula serves a recorded signal. Do not reintroduce a `max(0, …)` clamp or a floor.
+- **Relevance is still never a penalty and never a licence to lift.** A verdict whose only minuses are relevance observations is never capped and never raised — the quality axis keeps its own number.
+- **No recorded characteristic leads every prompt.** The context blob is serialised in key order, and `porosity` used to sit near the top of `hairProfile` on every call, which is why real scans kept reasoning about porosity alone. `rotateProfileSignals` (`_shared/tiers.ts`) puts her own recorded areas of concern first and rotates the durable characteristics on a product-seeded order; `PROFILE_BALANCE_BLOCK` tells the model the order means nothing. Rotation is deterministic per product, so caching is unaffected. Never re-privilege one characteristic.
+- **QA can see what happened.** Every analysis writes one admin-only row to `public.analysis_score_debug` (`_shared/score-debug.ts`): the tiers that travelled, the profile fields in exact prompt order with which were on file, and the score breakdown (model axes, base, signed bonus, ceiling applied, final). Rendered at `/admin/score-debug` — internal QA only, never member-facing, and a failed debug write must never break a scan.
+- Tests: `src/test/score_range.test.ts` plus the updated `relevance_axis` / `concern_fit_proportional` expectations.
+
+
 ## STANDING RULE — personalisation data is tiered (2026-09-01, permanent)
 
 Member data reaching an analysis prompt is sliced by **`supabase/functions/_shared/tiers.ts`**. Sending everything on every call cost tokens and diluted the reasoning; the tiers are the fix and every new analysis surface uses them.
