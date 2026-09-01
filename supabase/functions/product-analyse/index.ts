@@ -754,139 +754,207 @@ Deno.serve(async (req: Request) => {
     const ledgerBlock = buildAdviceLedgerBlock(ledgerRows);
 
 
-    let analysis: ProductAnalysisPayload;
+    const vocabulary = await loadIngredientVocabulary(supabase as never);
 
-    if (provider === "claude") {
-      const { payload, web_search_invocations } = await runClaude({
-        front_image_url: frontPhoto!,
-        back_image_url: backPhoto!,
-        context: ctx,
-        selectorContext: buildSelectorContext(body),
-        ledgerBlock,
-        sensitivityBlock,
-        onPartialJson: emit
-          ? (acc) => emit("partial", { json: acc })
-          : undefined,
-      });
+    // ── GENERATE + REPAIR (2026-09-01) ────────────────────────────────
+    // The scan path used to generate once, null whatever a guardrail objected
+    // to, and serve the remains — which is how a member got an empty verdict
+    // with a single minus reason. It now runs the SAME bounded repair loop the
+    // shelf path has always had (_shared/guardrail-loop.ts): a rejected field is
+    // re-asked with the rejection fed back into the prompt, and only at the
+    // attempt cap is anything nulled.
+    const loop = await runGuardrailLoop<ProductAnalysisPayload, FailsafeViolation>({
+      functionName: "product-analyse",
+      generate: async (info) => {
+        if (provider === "claude") {
+          const { payload, web_search_invocations } = await runClaude({
+            front_image_url: frontPhoto!,
+            back_image_url: backPhoto!,
+            context: ctx,
+            selectorContext: buildSelectorContext(body),
+            ledgerBlock,
+            sensitivityBlock,
+            retryInstruction: info.retryInstruction,
+            // Only the first attempt streams: a retry would otherwise rewrite
+            // the preview the member is already reading.
+            onPartialJson: emit && info.attemptNumber === 1
+              ? (acc) => emit("partial", { json: acc })
+              : undefined,
+          });
+          return {
+            ...payload,
+            _model_version: MODEL_VERSION,
+            _generated_at: new Date().toISOString(),
+            _provider: "claude",
+            _used_web_search: web_search_invocations > 0,
+            _web_search_count: web_search_invocations,
+          };
+        }
+        const lovable = await runLovable({
+          image_url: body.image_url!,
+          context: ctx,
+          ledgerBlock,
+          sensitivityBlock,
+          retryInstruction: info.retryInstruction,
+        });
+        return {
+          ...lovable,
+          _provider: "lovable",
+          _model_version: LOVABLE_MODEL_VERSION,
+          _generated_at: new Date().toISOString(),
+        };
+      },
+      postProcess: async (analysis, info) => {
+        const a = analysis as unknown as Record<string, unknown>;
+        // ── Level-aware server-side truncation — belt-and-braces on top of the
+        // prompt instructions (models occasionally over-produce).
+        {
+          const cap = levelCap(tipsLevelForHash);
+          if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
+          if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
+        }
+        // ── Score reasons: normalise, keep the number honest, and reduce
+        // ai_summary to the single overall-call sentence.
+        {
+          a.insight = sanitisePurposeInsight(a.insight) ?? undefined;
+          const reasons = sanitiseScoreReasons(a.score_reasons);
+          a.score_reasons = reasons;
+          if (typeof a.match_score === "number") {
+            a.match_score = alignScoreWithReasons(a.match_score, reasons);
+          }
+          if (reasons.length >= 2) {
+            const one = firstSentence(a.ai_summary);
+            if (one) a.ai_summary = one;
+          }
+        }
 
-      analysis = {
-        ...payload,
-        _model_version: MODEL_VERSION,
-        _generated_at: new Date().toISOString(),
-        _provider: "claude",
-        _used_web_search: web_search_invocations > 0,
-        _web_search_count: web_search_invocations,
-      };
-    } else {
-      const lovable = await runLovable({ image_url: body.image_url!, context: ctx, ledgerBlock, sensitivityBlock });
-      analysis = {
-        ...lovable,
-        _provider: "lovable",
-        _model_version: LOVABLE_MODEL_VERSION,
-        _generated_at: new Date().toISOString(),
-      };
-    }
-    // ── Level-aware server-side truncation — belt-and-braces on top of the
-    // prompt instructions (models occasionally over-produce).
-    {
-      const cap = levelCap(tipsLevelForHash);
-      const a = analysis as Record<string, unknown>;
-      if (Array.isArray(a.use_cases)) a.use_cases = (a.use_cases as unknown[]).slice(0, cap);
-      if (Array.isArray(a.tips)) a.tips = (a.tips as unknown[]).slice(0, cap);
-    }
-    // ── Score reasons: normalise, keep the number honest, and reduce
-    // ai_summary to the single overall-call sentence.
-    {
-      const a = analysis as Record<string, unknown>;
-      a.insight = sanitisePurposeInsight(a.insight) ?? undefined;
-      const reasons = sanitiseScoreReasons(a.score_reasons);
-      a.score_reasons = reasons;
-      if (typeof a.match_score === "number") {
-        a.match_score = alignScoreWithReasons(a.match_score, reasons);
-      }
-      if (reasons.length >= 2) {
-        const one = firstSentence(a.ai_summary);
-        if (one) a.ai_summary = one;
-      }
-    }
-
-    // ── Shared analysis failsafes (fit-first score, Strand Tip, closed
-    // vocabulary, ingredient-name lockdown). Identical module, identical
-    // behaviour, in every analysis function — see _shared/analysis-failsafes.ts.
-    {
-      const a = analysis as Record<string, unknown>;
-      const failsafe = enforceAnalysisFailsafes({
-        functionName: "product-analyse",
-        userId: user.id,
-        fields: productProseFields(a),
-        cards: a.key_ingredients,
-        allowedIngredients: Array.isArray(a.ingredients)
-          ? (a.ingredients as unknown[]).map((i) => String(i))
-          : [],
-        vocabulary: await loadIngredientVocabulary(supabase as never),
-        score: typeof a.match_score === "number" ? a.match_score : null,
-        reasons: (a.score_reasons ?? []) as never,
-        modelTips: a.strand_tip,
-        areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
-        // STANDING RULE (2026-08-30): recorded challenges are always an
-        // analysis input, weighted alongside the goal and areas of concern.
-        challenges: (ctx as Record<string, unknown> | undefined)?.challenges,
-        declaredSensitivities:
-          (ctx as Record<string, unknown> | undefined)?.sensitivities ??
-          (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
-      });
-      a.score_reasons = failsafe.reasons;
-      if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
-      if (failsafe.concernCorrections.reframed || failsafe.concernCorrections.reflagged) {
-        console.log(JSON.stringify({
-          function: "product-analyse",
-          event: "concern_fit_applied",
-          ...failsafe.concernCorrections,
-        }));
-      }
-      a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
-      if (failsafe.score != null) a.match_score = failsafe.score;
-      if (failsafe.violations.length) {
-        const cleared = applyFieldNulls(a, failsafe.violations);
-        console.log(JSON.stringify({
-          function: "product-analyse",
-          violation: "vocabulary_or_name_lock",
-          cleared,
-          problems: failsafe.problems,
-        }));
-        // Author review: every rejection lands in ai_content_rejections.
-        await logContentIntegrityRejections(failsafe.violations, {
+        // ── Shared analysis failsafes (fit-first score, Strand Tip, closed
+        // vocabulary, ingredient-name lockdown). Identical module, identical
+        // behaviour, in every analysis function — see _shared/analysis-failsafes.ts.
+        const failsafe = enforceAnalysisFailsafes({
           functionName: "product-analyse",
           userId: user.id,
-          action: "field_nulled",
+          fields: productProseFields(a),
+          cards: a.key_ingredients,
+          allowedIngredients: Array.isArray(a.ingredients)
+            ? (a.ingredients as unknown[]).map((i) => String(i))
+            : [],
+          vocabulary,
+          score: typeof a.match_score === "number" ? a.match_score : null,
+          reasons: (a.score_reasons ?? []) as never,
+          modelTips: a.strand_tip,
+          areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
+          // STANDING RULE (2026-08-30): recorded challenges are always an
+          // analysis input, weighted alongside the goal and areas of concern.
+          challenges: (ctx as Record<string, unknown> | undefined)?.challenges,
+          declaredSensitivities:
+            (ctx as Record<string, unknown> | undefined)?.sensitivities ??
+            (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
         });
-      }
-      // The label the member reads is derived from the score; the prose must
-      // not contradict it.
-      a.ai_summary = alignFitLanguage(
-        a.ai_summary,
-        typeof a.match_score === "number" ? a.match_score : null,
-      );
+        a.score_reasons = failsafe.reasons;
+        if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
+        if (failsafe.concernCorrections.reframed || failsafe.concernCorrections.reflagged) {
+          console.log(JSON.stringify({
+            function: "product-analyse",
+            event: "concern_fit_applied",
+            ...failsafe.concernCorrections,
+          }));
+        }
+        a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
+        if (failsafe.score != null) a.match_score = failsafe.score;
+
+        // USAGE GROUNDING GATE (2026-09-01) — parity with ingredient-analysis:
+        // a technique specific must appear in the directions read off the pack.
+        const usageProblems = scanUsageProblems(a);
+
+        const retryRules = [
+          ...failsafe.violations.map((v) => v.rule),
+          ...usageProblems,
+        ].filter(Boolean) as string[];
+
+        if (retryRules.length && !info.isFinalAttempt) {
+          // Nothing is nulled yet — the next attempt regenerates it.
+          await logContentIntegrityRejections(failsafe.violations, {
+            functionName: "product-analyse",
+            userId: user.id,
+            action: "rejected",
+          });
+          return { retryRules, violations: failsafe.violations };
+        }
+
+        if (failsafe.violations.length) {
+          const cleared = applyFieldNulls(a, failsafe.violations);
+          console.log(JSON.stringify({
+            function: "product-analyse",
+            violation: "vocabulary_or_name_lock",
+            cleared,
+            problems: failsafe.problems,
+          }));
+          // Author review: every rejection lands in ai_content_rejections.
+          await logContentIntegrityRejections(failsafe.violations, {
+            functionName: "product-analyse",
+            userId: user.id,
+            action: "field_nulled",
+          });
+        }
+        if (usageProblems.length) {
+          const removed = scrubScanUsage(a);
+          console.warn(JSON.stringify({
+            function: "product-analyse",
+            event: "usage_grounding_scrub",
+            removed,
+          }));
+        }
+
+        // The label the member reads is derived from the score; the prose must
+        // not contradict it.
+        a.ai_summary = alignFitLanguage(
+          a.ai_summary,
+          typeof a.match_score === "number" ? a.match_score : null,
+        );
+
+        // ── Topical sensitivity warnings (deterministic, post-generation).
+        // Runs AFTER score-reason normalisation so the named warning and its
+        // score reason survive into the payload the member sees.
+        annotateProductSensitivities(a, sens, "product-analyse");
+
+        return { retryRules: [], violations: failsafe.violations };
+      },
+      // ── Sanitise BEFORE caching (2026-08-28) ──────────────────────────
+      // The citation/fidelity sanitiser can DROP a whole score reason whose
+      // prose it strips (an emptied `reason` makes the item hollow). Caching the
+      // pre-sanitise payload and returning the post-sanitise one is what made
+      // `ai_summaries` hold four reasons while the member read three. One
+      // payload now: what we store is exactly what we deliver.
+      sanitise: async (payload, info) =>
+        await sanitiseAndLog(payload, "product-analyse", {
+          surface: "product-analyse",
+          userId: user.id,
+          generationId: info.generationId,
+          attemptNumber: info.attemptNumber,
+          maxAttempts: MAX_REJECTION_ATTEMPTS,
+          retryReason: info.retryReason,
+          onRejected: info.onRejected,
+        }) as unknown as ProductAnalysisPayload,
+    });
+
+    let analysis = loop.payload;
+    if (loop.unresolvedRules.length) {
+      console.warn(JSON.stringify({
+        function: "product-analyse",
+        event: "served_after_guardrail_cap",
+        attempts: loop.attempts,
+        rules: loop.unresolvedRules.slice(0, 6),
+      }));
     }
 
-    // ── Topical sensitivity warnings (deterministic, post-generation).
-    // Runs AFTER score-reason normalisation so the named warning and its
-    // score reason survive into the payload the member sees.
-    analysis = annotateProductSensitivities(
-      analysis as unknown as Record<string, unknown>,
-      sens,
-      "product-analyse",
-    ) as unknown as ProductAnalysisPayload;
+    // NEVER-HOLLOW SUMMARY (shared with ingredient-analysis). A summary the
+    // guardrails blanked leads with the strongest surviving reason instead of
+    // reaching the member empty.
+    backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
 
     (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
-    // ── Sanitise BEFORE caching (2026-08-28) ──────────────────────────
-    // The citation/fidelity sanitiser can DROP a whole score reason whose
-    // prose it strips (an emptied `reason` makes the item hollow). Caching the
-    // pre-sanitise payload and returning the post-sanitise one is what made
-    // `ai_summaries` hold four reasons while the member read three. One
-    // payload now: what we store is exactly what we deliver.
-    analysis = await sanitiseAndLog(analysis, "product-analyse") as unknown as ProductAnalysisPayload;
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
     if (cacheKind) {
