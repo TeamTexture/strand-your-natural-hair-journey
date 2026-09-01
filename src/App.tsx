@@ -20,6 +20,7 @@ import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import HomeTour from "@/components/HomeTour";
+import WelcomeVoicenotePopup from "@/components/WelcomeVoicenotePopup";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import BrandPaywallGate from "@/components/BrandPaywallGate";
 import BrandSubGate from "@/components/BrandSubGate";
