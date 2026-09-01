@@ -85,25 +85,8 @@ const WashStep3 = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  const togglePlay = () => {
-    if (!previous?.audioUrl) return;
-    if (!audioRef.current) {
-      audioRef.current = new Audio(previous.audioUrl);
-      audioRef.current.addEventListener("ended", () => setIsPlaying(false));
-    }
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play().catch(() => setIsPlaying(false));
-      setIsPlaying(true);
-    }
-  };
 
-  useEffect(() => () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-  }, []);
+
 
   return (
     <ScreenLayout>
