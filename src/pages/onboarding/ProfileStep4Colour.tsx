@@ -175,36 +175,49 @@ const ProfileStep4Colour = () => {
   const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
 
+  // Every answer on this step stays required. The list is what makes the
+  // outstanding ones visible, in the same shape as the health step.
+  const missing = useMemo(() => {
+    const m: { id: string; label: string }[] = [];
+    if (colour.length === 0) m.push({ id: "colour", label: "Current colour status" });
+    if (!isNaturalNever) {
+      if (chemHist.length === 0) m.push({ id: "chemHist", label: "Chemical history" });
+      if (!colourType) m.push({ id: "colourType", label: "Colour type" });
+      if (!colourProduct) m.push({ id: "colourProduct", label: "Product used" });
+      if (!colourLast) m.push({ id: "colourLast", label: "Last colour treatment" });
+      if (!colourReaction) m.push({ id: "colourReaction", label: "Colour reaction" });
+    }
+    if (!style[0]) m.push({ id: "style", label: "Current hairstyle" });
+    if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
+      m.push({ id: "howLong", label: "How long in this style" });
+    }
+    if (!plansToChange) m.push({ id: "plansToChange", label: "Plans to change style" });
+    if (plansToChange === "yes") {
+      if (changeNum.trim() === "") m.push({ id: "changeWhen", label: "When you plan to change" });
+      if (changingTo.length === 0) m.push({ id: "changingTo", label: "What you are changing to" });
+    }
+    if (defaultStyle.length === 0) m.push({ id: "defaultStyle", label: "Usual style" });
+    return m;
+  }, [
+    colour, isNaturalNever, chemHist, colourType, colourProduct, colourLast, colourReaction,
+    style, howLongNum, plansToChange, changeNum, changingTo, defaultStyle,
+  ]);
+
+  const invalid = (id: string) => showErrors && missing.some((m) => m.id === id);
+
   /**
    * Validate and persist the colour/style answers. Returns false when anything
    * is missing so the caller can leave her on the form — both the "add blood
    * results" and the "skip to membership" routes save exactly the same way.
    */
   const saveStyle = async (): Promise<boolean> => {
-    // Every answer on this step must be explicit.
-    const gaps: string[] = [];
-    if (colour.length === 0) gaps.push("current colour status");
-    if (!isNaturalNever) {
-      if (chemHist.length === 0) gaps.push("chemical history");
-      if (!colourType) gaps.push("colour type");
-      if (!colourProduct) gaps.push("product used");
-      if (!colourLast) gaps.push("last colour treatment");
-      if (!colourReaction) gaps.push("colour reaction");
-    }
-    if (!style[0]) gaps.push("current hairstyle");
-    if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
-      gaps.push("how long in this style");
-    }
-    if (!plansToChange) gaps.push("plans to change style");
-    if (plansToChange === "yes") {
-      if (changeNum.trim() === "") gaps.push("when you plan to change");
-      if (changingTo.length === 0) gaps.push("what you are changing to");
-    }
-    if (defaultStyle.length === 0) gaps.push("default / normal style");
-    if (gaps.length > 0) {
-      toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+    if (missing.length > 0) {
+      setShowErrors(true);
+      refs.current[missing[0].id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast.error(`Please answer ${missing[0].label.toLowerCase()} — ${missing.length} question${missing.length === 1 ? "" : "s"} still to go.`);
       return false;
     }
+
 
     // Require reaction details (text or voice note) when a reaction is flagged.
     if (
