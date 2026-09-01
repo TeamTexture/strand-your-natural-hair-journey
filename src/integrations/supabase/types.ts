@@ -1914,6 +1914,7 @@ export type Database = {
           trial_end: string | null
           updated_at: string
           user_id: string
+          welcome_dm_sent_at: string | null
         }
         Insert: {
           cancel_at_period_end?: boolean
@@ -1930,6 +1931,7 @@ export type Database = {
           trial_end?: string | null
           updated_at?: string
           user_id: string
+          welcome_dm_sent_at?: string | null
         }
         Update: {
           cancel_at_period_end?: boolean
@@ -1946,6 +1948,7 @@ export type Database = {
           trial_end?: string | null
           updated_at?: string
           user_id?: string
+          welcome_dm_sent_at?: string | null
         }
         Relationships: []
       }
@@ -7113,6 +7116,33 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wash_date?: string
+        }
+        Relationships: []
+      }
+      welcome_voicenote: {
+        Row: {
+          audio_path: string
+          duration_ms: number | null
+          id: string
+          transcript: string | null
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          audio_path: string
+          duration_ms?: number | null
+          id?: string
+          transcript?: string | null
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          audio_path?: string
+          duration_ms?: number | null
+          id?: string
+          transcript?: string | null
+          updated_at?: string
+          updated_by?: string
         }
         Relationships: []
       }
