@@ -125,6 +125,8 @@ import {
 } from "../_shared/guardrail-retry.ts";
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
 import { applyConcernFit, parseChallenges, parseConcerns } from "../_shared/concern-fit.ts";
+import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
+
 import {
   QUALITY_SCORE_SCHEMA_PROPERTY,
   RELEVANCE_NOTE_SCHEMA_PROPERTY,
@@ -145,7 +147,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v27-ingredient-list-preserved-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v28-score-range-2026-09-01";
 
 
 
@@ -811,7 +813,9 @@ async function runClaude(args: {
 import { allChallenges } from "../_shared/challenges.ts";
 import {
   compactHealthTier,
+  rotateProfileSignals,
   runTier1,
+
   shouldIncludeHealthTier,
   tier1Block,
   tierRulesBlock,
@@ -1452,7 +1456,13 @@ Deno.serve(async (req) => {
       },
 
       ingredients: rawIngredients,
-      hairProfile: hairProfile ?? {},
+      // Rotated so porosity is not structurally first on every single call
+      // (2026-09-01) — values unchanged, order seeded on the product.
+      hairProfile: rotateProfileSignals(
+        hairProfile ?? {},
+        [productBrand, productName, productCategory].filter(Boolean).join("|"),
+      ) ?? {},
+
       // ── TIER 3 (Part 3, 2026-09-01) — conditional health data ───────
       // This surface knows the product's real INCI list, category and
       // application area, so the gate runs on genuine signals: the full
@@ -1780,6 +1790,51 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       if (Array.isArray(benign.cards)) {
         (analysis as Record<string, unknown>).ingredients = benign.cards;
       }
+
+      // INTERNAL QA TRAIL — admin-only. Records which tiers travelled, the
+      // profile fields in the exact order they were serialised into the prompt,
+      // and how the number was arrived at. Never member-facing, never awaited
+      // in a way that can fail the scan.
+      void logScoreDebug({
+        userId: memberId,
+        functionName: "ingredient-analysis",
+        subject: productName,
+        brand: productBrand,
+        healthTierMode: healthTier.mode,
+        tierIncluded: [
+          "tier1:water_hardness",
+          "tier1:shelf_overlap",
+          "tier2:hairProfile",
+          "tier2:goal",
+          "tier2:challenges",
+          "tier2:areas_of_concern",
+          "tier2:sensitivities",
+          `tier3:health_${healthTier.mode}`,
+        ],
+        tierWithheld: [...TIER_4_KEYS],
+        profileFields: describeProfileFields(hairProfile, {
+          goal_count: (goals ?? dbGoals ?? []).length,
+          challenges: challenges ?? [],
+          sensitivities_declared: Array.isArray(sens) ? sens.length : 0,
+          ingredient_count: rawIngredients.length,
+        }),
+        scoreBreakdown: scoreBreakdown({
+          modelMatchScore: analysis.match_score,
+          modelQualityScore: axes.qualityScore,
+          baseScore: fitFirst.score,
+          finalScore: concernFit.score,
+          bonus: concernFit.contribution.bonus,
+          centrality: concernFit.contribution.centrality,
+          breadth: concernFit.contribution.breadth,
+          conflicts: concernFit.contribution.conflicts,
+          supportivePluses: concernFit.contribution.supportivePluses,
+          relevanceNote: axes.relevanceNote,
+          reasons: sanitiseScoreReasons(analysis.score_reasons) as Array<
+            { direction: string; factor: string }
+          >,
+        }),
+      });
+
 
       // SUBSTANCE CHECK — an ingredient card must state what the ingredient
       // physically does and where, and the verdict must name the actives that

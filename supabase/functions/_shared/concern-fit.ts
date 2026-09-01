@@ -238,11 +238,12 @@ export interface ConcernContribution {
  *   breadth     served signals ÷ recorded signals (concerns + challenges),
  *               applied as (0.5 + 0.5 × breadth) so serving one of four still
  *               counts, but serving all four counts double
- *   bonus       round(20 × centrality × breadthMultiplier)
- *                 + 3 × min(other supportive pluses, 2)
- *                 − 6 × genuine conflicts
- *               clamped to 0…22
- *   final       min(95, base + bonus), never below base
+ *   bonus       round(30 × centrality × breadthMultiplier)
+ *                 + 2 × min(other supportive pluses, 2)
+ *                 − 8 × genuine conflicts
+ *               clamped to −18…+26 (SIGNED since 2026-09-01)
+ *   final       clamp(0, 95, base + bonus) — may be BELOW base
+
  */
 export function concernContribution(input: {
   reasons: ScoreReason[];
@@ -322,8 +323,19 @@ export function concernContribution(input: {
   if (headlineMatch) centrality = named ? 1 : 0.7;
   else if (supportMatch) centrality = 0.4;
   if (centrality === 0) {
-    return { centrality: 0, breadth: 0, supportivePluses: 0, conflicts: input.conflicts, bonus: 0 };
+    // Nothing in the formula serves a recorded signal. That is not a penalty in
+    // itself (relevance is never a penalty), but any GENUINE conflict still has
+    // to pull the number down — it used to be silently discarded here, which was
+    // one of the reasons the score could only ever travel upwards.
+    return {
+      centrality: 0,
+      breadth: 0,
+      supportivePluses: 0,
+      conflicts: input.conflicts,
+      bonus: Math.max(-18, -8 * input.conflicts),
+    };
   }
+
 
   const breadth = Math.min(1, servedLabels.size / Math.max(1, recorded));
   const breadthMultiplier = 0.5 + 0.5 * breadth;
@@ -335,19 +347,25 @@ export function concernContribution(input: {
     return !concernMechanism(hay, concerns) && !challengeMechanism(hay, challenges);
   }).length;
 
+  // TWO-DIRECTIONAL (2026-09-01). The clamp used to be `max(0, …)`, so the
+  // concern/challenge maths could only ever RAISE the score — combined with the
+  // fit-first floor, almost nothing had anywhere to go but up. Genuine
+  // conflicts now pull the number down, and the top of the lift is smaller so a
+  // mediocre formulation cannot be carried into the strong band by fit alone.
   const raw =
     Math.round(30 * centrality * breadthMultiplier) +
-    3 * Math.min(supportivePluses, 2) -
-    6 * input.conflicts;
+    2 * Math.min(supportivePluses, 2) -
+    8 * input.conflicts;
 
   return {
     centrality,
     breadth,
     supportivePluses,
     conflicts: input.conflicts,
-    bonus: Math.max(0, Math.min(30, raw)),
+    bonus: Math.max(-18, Math.min(26, raw)),
   };
 }
+
 
 /**
  * Deterministic correction. Runs AFTER fit-first scoring, so anything already
@@ -449,9 +467,11 @@ export function applyConcernFit(input: ConcernFitInput): ConcernFitResult {
   }
 
   let score = input.score ?? null;
-  if (score != null && contribution.bonus > 0) {
-    score = Math.min(95, Math.max(score, score + contribution.bonus));
+  if (score != null && contribution.bonus !== 0) {
+    // Signed: the fit maths can lower the score as well as raise it. No floor.
+    score = Math.max(0, Math.min(95, score + contribution.bonus));
   }
+
 
   return {
     score,

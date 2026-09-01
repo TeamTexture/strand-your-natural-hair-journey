@@ -758,6 +758,13 @@ const AdminHub = () => {
           />
           <NavCard
             icon={ScrollText}
+            title="Score debug"
+            description="Per scan: tiers sent, profile fields in prompt order, score breakdown"
+            onClick={() => nav("/admin/score-debug")}
+          />
+
+          <NavCard
+            icon={ScrollText}
             title="Author clarifications"
             description="Your current positions — they override the book in every tip"
             onClick={() => nav("/admin/clarifications")}

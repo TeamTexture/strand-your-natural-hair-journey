@@ -108,8 +108,8 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-sonnet-4-6@v27-ingredient-list-preserved-2026-09-01";
-const LOVABLE_MODEL_VERSION = "lovable-gemini@v27-ingredient-list-preserved-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v28-score-range-2026-09-01";
+const LOVABLE_MODEL_VERSION = "lovable-gemini@v28-score-range-2026-09-01";
 
 
 /** Level-aware item cap for use_cases/tips: 1 Minimal -> 1, 2 Essential -> 3,

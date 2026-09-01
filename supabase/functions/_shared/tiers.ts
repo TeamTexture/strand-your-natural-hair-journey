@@ -215,7 +215,74 @@ export function compactHealthTier(context: Ctx): Ctx {
   return out;
 }
 
+// ── PROFILE SIGNAL PROMINENCE — no field is privileged ────────────────────
+//
+// 2026-09-01. Real scans kept reasoning about POROSITY and little else. The
+// scoring validators were never porosity-only, but the context blob is
+// JSON.stringify'd in object-key order, and `porosity` sat near the top of
+// `hairProfile` on every single call. LLMs weight what they read first, so one
+// recorded characteristic was structurally louder than the rest.
+//
+// The durable characteristics are therefore ROTATED per product: the same
+// member sees the same fields, in a different order, for a different product,
+// so no one signal is consistently first. Rotation is deterministic (seeded on
+// the product identity) so a re-scan of the same product is reproducible and
+// the analysis cache is unaffected.
+
+/** The recorded characteristics that must all carry equal prominence. */
+export const ROTATING_PROFILE_KEYS = [
+  "porosity",
+  "density",
+  "elasticity",
+  "diameter",
+  "texture",
+  "curlPattern",
+  "surface_texture",
+  "length_bucket",
+  "scalp",
+] as const;
+
+/** Signals that always lead, because the member typed them herself. */
+const LEADING_PROFILE_KEYS = ["areas_of_concern", "areas", "diagnosed"] as const;
+
+const seedIndex = (seed: string, modulo: number): number => {
+  if (modulo <= 0) return 0;
+  let h = 5381;
+  for (let i = 0; i < seed.length; i++) h = (((h << 5) + h) + seed.charCodeAt(i)) | 0;
+  return Math.abs(h >>> 0) % modulo;
+};
+
+/**
+ * Rebuilds a hairProfile object so that (a) the member's own recorded areas of
+ * concern lead, and (b) the durable characteristics appear in a rotated order
+ * seeded by the product. Values are never changed, added or dropped.
+ */
+export function rotateProfileSignals(
+  profile: unknown,
+  seed: string,
+): Record<string, unknown> | null {
+  const src = obj(profile);
+  if (!src) return src as null;
+  const present = ROTATING_PROFILE_KEYS.filter((k) => src[k] !== undefined);
+  const offset = present.length > 1 ? seedIndex(seed, present.length) : 0;
+  const rotated = [...present.slice(offset), ...present.slice(0, offset)];
+  const out: Record<string, unknown> = {};
+  for (const k of LEADING_PROFILE_KEYS) {
+    if (src[k] !== undefined) out[k] = src[k];
+  }
+  for (const k of rotated) out[k] = src[k];
+  for (const [k, v] of Object.entries(src)) {
+    if (out[k] === undefined) out[k] = v;
+  }
+  return out;
+}
+
+/** Prompt block: every recorded signal is equally available. */
+export const PROFILE_BALANCE_BLOCK =
+  `\n\nHER RECORDED SIGNALS CARRY EQUAL WEIGHT\n- No single characteristic is more important than the others. Porosity is NOT the default lens: density, elasticity, strand diameter, surface texture, scalp condition, her recorded areas of concern and her recorded challenges are all equally valid reasoning anchors, and the order they appear in below means nothing.\n- Choose the signal THIS product's mechanism actually lands on, and say which one you chose. If the honest answer is a characteristic other than porosity, use it — do not fall back on porosity because it is familiar.\n- Never reason about a characteristic that is not on record, and never infer one from the product.`;
+
 // ── The tiering itself ────────────────────────────────────────────────────
+
 export interface TieredContext {
   /** The context to send to the SCORING prompt. */
   context: Ctx;
@@ -236,6 +303,13 @@ export interface TieredContext {
  */
 export function tierContext(context: Ctx | null | undefined, signals: ProductSignals): TieredContext {
   const src = obj(context) ?? {};
+  // No recorded characteristic is structurally louder than the others: the
+  // durable signals are rotated per product before the blob is serialised.
+  const profileSeed = [signals.brand, signals.productName, signals.category]
+    .map((v) => str(v))
+    .filter(Boolean)
+    .join("|") || "strand";
+
   const health = shouldIncludeHealthTier(signals);
   const out: Ctx = {};
   const guidance: Ctx = {};
@@ -252,8 +326,9 @@ export function tierContext(context: Ctx | null | undefined, signals: ProductSig
       continue;
     }
     if (tier3.has(key)) continue; // handled below, as one decision
-    out[key] = value;
+    out[key] = key === "hairProfile" ? rotateProfileSignals(value, profileSeed) : value;
     included.push(key);
+
   }
 
   if (health.mode === "full") {
@@ -398,5 +473,5 @@ export function tierRulesBlock(t: TieredContext): string {
     : t.health.mode === "compact"
     ? "Only a reduced health slice is included: recorded conditions, medications, life stage, and the hair-relevant markers that are outside range. There is no fuller panel to reason about, and its absence means nothing."
     : "Her health data is deliberately NOT included: nothing about this product plausibly interacts with blood markers, supplements or medications. Do not mention them, do not speculate about them, and never note that they are missing.";
-  return `\n\nWHAT YOU CAN SEE\n- ${health}\n- Wash-day and journal behaviour is NOT part of this judgement. The score comes from the formulation, her strand characteristics, her goal, her challenges and her areas of concern.\n- Absent data is never a finding. Say less rather than reaching for a signal you were not given.`;
+  return `\n\nWHAT YOU CAN SEE\n- ${health}\n- Wash-day and journal behaviour is NOT part of this judgement. The score comes from the formulation, her strand characteristics, her goal, her challenges and her areas of concern.\n- Absent data is never a finding. Say less rather than reaching for a signal you were not given.${PROFILE_BALANCE_BLOCK}`;
 }

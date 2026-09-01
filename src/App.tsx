@@ -131,6 +131,8 @@ const AdminDataProtection = lazyRetry(() => import("./pages/admin/AdminDataProte
 const AdminApplications = lazyRetry(() => import("./pages/admin/AdminApplications"));
 const AdminAudit = lazyRetry(() => import("./pages/admin/AdminAudit"));
 const AdminTipGrounding = lazyRetry(() => import("./pages/admin/AdminTipGrounding"));
+const AdminScoreDebug = lazyRetry(() => import("./pages/admin/AdminScoreDebug"));
+
 const AdminAuthorClarifications = lazyRetry(() => import("./pages/admin/AdminAuthorClarifications"));
 
 
@@ -638,6 +640,15 @@ const App = () => (
                   </RoleGate>
                 }
               />
+              <Route
+                path="/admin/score-debug"
+                element={
+                  <RoleGate allow={["admin"]}>
+                    <AdminScoreDebug />
+                  </RoleGate>
+                }
+              />
+
               <Route
                 path="/admin/clarifications"
                 element={

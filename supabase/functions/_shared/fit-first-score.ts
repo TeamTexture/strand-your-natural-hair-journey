@@ -46,7 +46,14 @@ The score answers ONE question: how well does this product serve THIS member's s
   1. a genuine CONFLICT — an ingredient or property that works against her stated goal, challenge or recorded profile (e.g. something that works against length retention for her recorded porosity), or
   2. a genuine HARM risk — a declared sensitivity or allergy in her record, or a real safety concern.
 - NOTHING ELSE LOWERS IT. Routine preservatives, fragrance she has never reacted to, colourants, pH adjusters, "some people find", "worth knowing", "monitor how your scalp feels", ownership frequency, an ingredient sitting low in the list with no relevance to her goal — none of these cost a single point.
-- A product with strong goal-relevant ingredients and no real conflict SCORES HIGH (80+). Do not hedge the number downward for balance, and never split the difference to look cautious.
+- SCORE CALIBRATION — USE THE WHOLE RANGE (2026-09-01). The absence of a conflict is NOT evidence of quality. Judge how much real substance the formulation holds and place it honestly:
+    90-95  exceptional: several meaningful actives at meaningful positions, coherently formulated, nothing working against her.
+    75-89  strong: a real headline active doing real work for her, sensibly supported.
+    60-74  competent but unremarkable: it will do its job, the actives are modest or sit low in the list.
+    45-59  thin: mostly water, glycerin, conditioning base and preservative with no meaningful active, or an active present at token level.
+    below 45  poorly made, or a genuine conflict/harm for her.
+  A thin formula scores thin even when nothing in it conflicts with her. Do NOT default to the 80s or 90s, do not cluster, and never reach for a high number just because you could not find a fault.
+
 - score_reasons must LEAD with the fit: the first item is a "plus" stating clearly WHY it scored as high as it did, in terms of her goal or challenge. Only include a "minus" when it meets test 1 or test 2 above — there is no requirement to produce a minus at all.
 - RELEVANCE IS NOT A PENALTY. "This targets X rather than her stated Y", "no ingredients aimed specifically at her goal", "formulated for a different concern" are RELEVANCE observations, not conflicts and not harm. They may NEVER lower the score and may never appear as a "minus" — put them in strand_tip. A well-formulated product that simply addresses a different area of her hair still scores on its own quality and safety.
 - Read her recorded AREAS OF CONCERN (e.g. edges, hairline, crown, nape) as first-class goal signals alongside her written goal and challenges: work on density, regrowth, shedding or scalp condition IS directly relevant to thinning edges or a receding hairline, and must be scored as a plus when the formula supports it.
@@ -194,15 +201,24 @@ export function applyFitFirst(
 
   let out = typeof score === "number" && Number.isFinite(score) ? score : null;
   if (out != null) {
-    if (minus.length === 0) {
-      // Nothing genuinely conflicts or harms — the score may not read as a
-      // caution. Floor it at a level that matches "good fit, no real downside".
-      const floor = plus.length >= 2 ? 80 : 70;
-      if (out < floor) out = floor;
-    } else if (plus.length === 0 && out > 55) {
-      out = 55;
+    // NO ARTIFICIAL FLOOR (2026-09-01). The old rule lifted any zero-minus
+    // product to 70 (or 80 with two pluses), so a thin-but-harmless formula
+    // could not land below the good-fit band no matter how little was in it.
+    // The quality/safety axis now keeps whatever range the model gave it; only
+    // CEILINGS apply, and every one of them is evidence-based:
+    //   • no plus AND a real conflict → nothing shown to work for her (55)
+    //   • a genuine harm risk → cannot read as a good fit (65)
+    //   • 2+ real conflicts   → cannot read as a strong fit (70)
+    // A verdict whose only minuses were relevance observations is NOT evidence
+    // against the formula and is never capped (standing two-axes rule).
+    if (plus.length === 0 && minus.length >= 1) out = Math.min(out, 55);
+
+    if (minus.some((r) => any(HARM_MARKERS, `${r.factor} ${r.reason}`))) {
+      out = Math.min(out, 65);
     }
+    if (minus.length >= 2) out = Math.min(out, 70);
   }
+
 
   const tips = [...modelTips, ...moved]
     .filter((t) => t.title && t.note)

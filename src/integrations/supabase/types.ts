@@ -686,6 +686,51 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_score_debug: {
+        Row: {
+          brand: string | null
+          created_at: string
+          function_name: string
+          generation_id: string | null
+          health_tier_mode: string | null
+          id: string
+          profile_fields: Json
+          score_breakdown: Json
+          subject: string | null
+          tier_included: string[]
+          tier_withheld: string[]
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          function_name: string
+          generation_id?: string | null
+          health_tier_mode?: string | null
+          id?: string
+          profile_fields?: Json
+          score_breakdown?: Json
+          subject?: string | null
+          tier_included?: string[]
+          tier_withheld?: string[]
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          function_name?: string
+          generation_id?: string | null
+          health_tier_mode?: string | null
+          id?: string
+          profile_fields?: Json
+          score_breakdown?: Json
+          subject?: string | null
+          tier_included?: string[]
+          tier_withheld?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       appointment_photos: {
         Row: {
           appointment_id: string

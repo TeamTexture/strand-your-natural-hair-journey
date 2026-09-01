@@ -31,12 +31,15 @@ describe("relevance mismatches are not score-worthy minuses", () => {
     expect(minusIsScoreWorthy(realConflict)).toBe(true);
   });
 
-  it("does not cap a relevance-only verdict at 55", () => {
+  it("neither penalises nor lifts a relevance-only verdict", () => {
     const out = applyFitFirst(52, [k18Minus], []);
     expect(out.reasons.some((r) => r.direction === "minus")).toBe(false);
     expect(out.strandTips.length).toBe(1);
-    expect(out.score).toBeGreaterThanOrEqual(70);
+    // 2026-09-01: relevance is not a penalty, but it is not a licence to lift
+    // either. The old 70 floor is gone — the quality axis keeps its own number.
+    expect(out.score).toBe(52);
   });
+
 
   it("alignScoreWithReasons ignores relevance minuses", () => {
     expect(alignScoreWithReasons(88, [k18Minus, { ...k18Minus }])).toBe(88);

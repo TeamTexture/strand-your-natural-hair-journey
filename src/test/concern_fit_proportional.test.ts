@@ -57,7 +57,7 @@ describe("concern fit is proportional, not a flat floor", () => {
     expect(trace.contribution.bonus).toBeLessThan(12);
   });
 
-  it("does not floor an unrelated formula", () => {
+  it("does not floor an unrelated formula, and lets a real conflict pull it down", () => {
     const out = applyConcernFit({
       score: 45,
       reasons: [{ direction: "minus", factor: "Denatured alcohol", reason: "Dries the cuticle." }],
@@ -66,8 +66,12 @@ describe("concern fit is proportional, not a flat floor", () => {
       challenges,
       ingredients: ["Alcohol denat."],
     });
-    expect(out.score).toBe(45);
+    // 2026-09-01: the bonus is signed. Nothing here serves a recorded signal AND
+    // there is a genuine drying conflict, so the number travels down, not up.
+    expect(out.score).toBe(37);
+    expect(out.contribution.bonus).toBeLessThan(0);
   });
+
 });
 
 describe("hero actives lead the verdict", () => {
