@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useBloodSkipped } from "@/lib/bloodSkip";
 import { useNavigate } from "react-router-dom";
