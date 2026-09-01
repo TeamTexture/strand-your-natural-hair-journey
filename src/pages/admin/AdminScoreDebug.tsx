@@ -150,7 +150,7 @@ export default function AdminScoreDebug() {
 
       <SectionLabel>Runs</SectionLabel>
       {rows.length === 0
-        ? <EmptyState title="Nothing recorded yet" body="Run a product analysis and it will appear here." />
+        ? <EmptyState message="Nothing recorded yet" hint="Run a product analysis and it will appear here." />
         : (
           <div className="space-y-3">
             {rows.map((r) => {
