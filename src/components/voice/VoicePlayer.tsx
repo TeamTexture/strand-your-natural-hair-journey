@@ -36,6 +36,8 @@ export interface VoicePlayerProps {
   durationMs?: number | null;
   /** "onDark" for coloured chat bubbles, "onSurface" for cards and sand. */
   variant?: "onDark" | "onSurface";
+  /** Overrides the play/pause accessible name, e.g. "recording". */
+  mediaName?: string;
   className?: string;
 }
 
@@ -43,8 +45,10 @@ const VoicePlayer = ({
   url,
   durationMs,
   variant = "onSurface",
+  mediaName = "voice note",
   className,
 }: VoicePlayerProps) => {
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [playing, setPlaying] = useState(false);
