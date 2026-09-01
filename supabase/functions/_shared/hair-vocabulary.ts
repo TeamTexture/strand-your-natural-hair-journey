@@ -238,11 +238,21 @@ function unknownTechnicalTerms(text: string): string[] {
         if (after && SCALP_WORDS.includes(after)) hits.push(`${core} ${after}`);
         continue;
       }
-      // A morphological variant of an approved root ("porous", "follicular",
-      // "trichologist") is allowed; a compound with a body-part word is not.
-      const rootedOnApproved = APPROVED_HAIR_TERMS.some((t) => core.startsWith(t.term.split(" ")[0]));
+      // A morphological variant of an approved science root ("porous",
+      // "keratinisation", "trichologist") is allowed — the roots list is itself
+      // curated approved terminology, so a word built directly on one of them is
+      // real. Only a compound with a body-part word crosses domains.
+      // (The old `core.startsWith(approvedTerm)` test was inverted — "porous"
+      // never starts with "porosity" — so ordinary words were rejected and the
+      // whole write-up was nulled.)
+      const rootedOnApproved = core.startsWith(root.toLowerCase()) ||
+        APPROVED_HAIR_TERMS.some((t) => {
+          const word = t.term.split(" ")[0].toLowerCase();
+          return word.length >= 5 && (core.startsWith(word.slice(0, 5)) || word.startsWith(core.slice(0, 5)));
+        });
       if (!rootedOnApproved) hits.push(core);
       else if (before && SCALP_WORDS.includes(before)) hits.push(`${before} ${core}`);
+
     }
   }
   return [...new Set(hits)];

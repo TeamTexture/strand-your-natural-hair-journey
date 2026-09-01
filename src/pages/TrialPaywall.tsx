@@ -80,6 +80,9 @@ const TrialPaywall = () => {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
   const [stalled, setStalled] = useState(false);
+  // Bumped by "Check again" so the polling effect starts a fresh backoff window.
+  const [pollNonce, setPollNonce] = useState(0);
+
   const [checking, setChecking] = useState(false);
 
   const nextPath = isSafeInternalPath(params.get("next")) ? params.get("next")! : AFTER_TRIAL_PATH;
@@ -191,7 +194,7 @@ const TrialPaywall = () => {
       window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirming, hasAccess]);
+  }, [confirming, hasAccess, pollNonce]);
 
   // Manual re-check from the stalled state: asks Stripe again and restarts the
   // backoff window if it still cannot confirm. It never starts a checkout.
@@ -204,11 +207,17 @@ const TrialPaywall = () => {
         return;
       }
       toast("Still confirming with our payment provider — please try again in a moment.");
+      // Bumping the nonce re-runs the polling effect, so she goes back to an
+      // actively-polling screen and lands on the stalled state (with Check again
+      // and support copy) if it still cannot confirm. Without it she was left on
+      // a dead spinner with no action.
       setStalled(false);
+      setPollNonce((n) => n + 1);
     } finally {
       setChecking(false);
     }
   };
+
 
   const startTrial = async () => {
     setBusy(true);

@@ -67,6 +67,19 @@ interface NutritionPlanPayload {
   avoid: NutritionCard[];
 }
 
+/**
+ * Deterministic stand-in summary. Used only when a generation returns real food
+ * rows but no summary line — the rows are the plan, so the request must not
+ * fail over a missing intro.
+ */
+function deriveSummary(p: { diet: NutritionCard[]; avoid: NutritionCard[] }): string {
+  const foods = p.diet.slice(0, 3).map((d) => d.name).filter(Boolean).join(", ");
+  const watch = p.avoid.slice(0, 2).map((d) => d.name).filter(Boolean).join(" and ");
+  const first = foods ? `Food first: build your meals around ${foods}.` : "Food first: build your meals around whole foods you already enjoy.";
+  return watch ? `${first} Keep an eye on ${watch}.` : first;
+}
+
+
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
 import { dietConstraintBlock } from "../_shared/diet.ts";
@@ -871,11 +884,18 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+      // A missing summary is a formatting gap, not an empty plan: the food rows
+      // are the plan, so derive a neutral one-liner rather than fail the whole
+      // request (members with many exclusions were getting a 500 here).
+      if (!payload.summary && payload.diet.length > 0) {
+        payload = { ...payload, summary: deriveSummary(payload) };
+      }
+      if (payload.diet.length === 0 || payload.avoid.length === 0) {
         throw new Error(
           `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
         );
       }
+
 
       const rejected: string[] = [];
       payload = await sanitiseAndLog(payload, "nutrition-plan", {
@@ -894,13 +914,21 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!payload) throw new Error("Nutrition plan generation returned no payload");
+    if (!payload.summary && payload.diet.length > 0) {
+      payload = { ...payload, summary: deriveSummary(payload) };
+    }
     if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
       const priorPayload = await lastGoodPlan();
       if (priorPayload) return json(200, { cached: true, stale: true, plan: priorPayload });
-      throw new Error(
-        `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
+      // Nothing survivable came back and she has no stored plan. Never a 500:
+      // the screen falls back to its own deterministic food-first guidance when
+      // `plan` is null, which is far better than a broken section.
+      console.error(
+        `[nutrition-plan] empty plan, serving deterministic fallback (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
       );
+      return json(200, { plan: null, unavailable: true });
     }
+
 
     const stamped = {
       ...payload,
