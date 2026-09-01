@@ -224,17 +224,12 @@ export async function gatherEvidence(input: {
   const chapters = input.chapters?.length
     ? [...new Set(input.chapters)].sort((a, b) => a - b)
     : chaptersForSurface(input.surface);
-  const rows = await loadChapterRows(chapters);
-  if (!rows.length || !key) return EMPTY_EVIDENCE;
 
-  // Numbered source passages: stage 1 references them by number, which lets us
-  // resolve chapter/page metadata OURSELVES rather than trusting the model with
-  // it. The model can therefore never invent a page number (author's rule:
-  // never invent or infer metadata).
-  const numbered = rows
-    .map((r, i) => `[${i + 1}]\n${r.body}`)
-    .join("\n\n");
-
+  // LATENCY (2026-09-01, Part 4). The cache keys off the surface, the member
+  // context and the chapter ids — none of which need the chapter BODIES. The
+  // whole-chapter read used to run first, so a cache hit still paid for
+  // loading the entire manuscript text it was about to throw away. Cache
+  // first, and load the chapters only when stage 1 genuinely has to run.
   const ck = cacheKey(input.surface, input.memberContext, chapters);
   const cached = stage1Cache.get(ck);
   if (cached) return cached;
@@ -248,6 +243,18 @@ export async function gatherEvidence(input: {
     stage1Cache.set(ck, persisted);
     return persisted;
   }
+
+  const rows = await loadChapterRows(chapters);
+  if (!rows.length || !key) return EMPTY_EVIDENCE;
+
+  // Numbered source passages: stage 1 references them by number, which lets us
+  // resolve chapter/page metadata OURSELVES rather than trusting the model with
+  // it. The model can therefore never invent a page number (author's rule:
+  // never invent or infer metadata).
+  const numbered = rows
+    .map((r, i) => `[${i + 1}]\n${r.body}`)
+    .join("\n\n");
+
 
   let raw: Stage1Raw[] = [];
   let tokens = 0;
