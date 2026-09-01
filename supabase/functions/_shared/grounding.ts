@@ -139,6 +139,11 @@ export async function buildGroundingBlock(
   // call that WRITES the copy, stage 2 — contains the evidence set and the
   // member's own facts ONLY. The chapters are never passed to the writer, so
   // general hair knowledge is not available to it. See _shared/evidence.ts.
+  // LATENCY (2026-09-01, Part 4). The clarifications read and the terminology
+  // lexicon are independent of the evidence gather, so they are started here
+  // and awaited after it instead of queueing behind it.
+  const clarificationsPromise = surfaceClarifications(input.surface ?? null);
+  const lexiconPromise = loadLexicon();
   let evidence: EvidenceSet | null = null;
   if (input.surface) {
     const set = await gatherEvidence({
@@ -148,6 +153,7 @@ export async function buildGroundingBlock(
     });
     if (set.items.length > 0) evidence = set;
   }
+
 
   let passageBlocks: string[] = [];
   let grounded = Boolean(evidence);
