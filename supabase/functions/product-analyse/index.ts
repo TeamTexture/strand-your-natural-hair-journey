@@ -80,9 +80,19 @@ import {
   topicalSensitivityBlock,
   annotateProductSensitivities,
 } from "../_shared/topical-sensitivity.ts";
+import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
+import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
+import {
+  usageGroundingBlock,
+  validateUsageGrounding,
+  scrubUngroundedUsage,
+  type UsageDirections,
+} from "../_shared/usage-grounding.ts";
+import type { FailsafeViolation } from "../_shared/analysis-failsafes.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
+
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
