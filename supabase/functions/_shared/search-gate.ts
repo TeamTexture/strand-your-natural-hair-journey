@@ -76,10 +76,10 @@ export function decideUrlSearch(args: {
 
 /** Photo flow: first attempt never gets search. */
 export function decidePhotoSearch(attempt: number, grantedRetry: boolean): SearchDecision {
-  if (attempt === 1 && !grantedRetry) {
+  if (!grantedRetry) {
     return { enabled: false, maxUses: 0, reason: "pack_is_the_source" };
   }
-  return { enabled: true, maxUses: 2, reason: "label_unreadable" };
+  return { enabled: true, maxUses: attempt > 1 ? 2 : 1, reason: "label_unreadable" };
 }
 
 const UNREADABLE_MARKERS = [

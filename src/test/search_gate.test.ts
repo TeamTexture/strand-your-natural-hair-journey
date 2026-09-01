@@ -20,6 +20,7 @@ import {
 
 const readable = {
   brand: "Nylah",
+  productName: "Marula & Baobab Nourishing Serum",
   product_name: "Marula & Baobab Nourishing Serum",
   ingredients: ["Aqua", "Glycerin", "Sclerocarya Birrea Seed Oil", "Panthenol"],
   ai_summary: "A lightweight oil-in-water serum that seals the cuticle after a wash day.",

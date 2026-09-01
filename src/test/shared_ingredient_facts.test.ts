@@ -102,13 +102,14 @@ describe("nothing member-specific is ever shared", () => {
   );
 
   it("a card carrying a personal sensitivity overlay blocks the write", () => {
-    expect(src).toMatch(/sensitivity === true\) return;/);
+    expect(src).toMatch(/sensitivity === true\)\) return;/);
   });
 
   it("only the four formula-level fields survive into the row", () => {
     expect(src).toMatch(/function cleanFact/);
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     for (const personal of ["match_score", "score_reasons", "personalised_guidance", "relevance_note", "user_id"]) {
-      expect(src).not.toContain(personal);
+      expect(code).not.toContain(personal);
     }
   });
 });
