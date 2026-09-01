@@ -192,7 +192,7 @@ export async function buildGroundingBlock(
   // manuscript. They go into EVERY hair care generation: merged into the
   // evidence set on the grounded path, and injected as their own block on the
   // legacy fragment path.
-  const clarifications = await surfaceClarifications(input.surface ?? null);
+  const clarifications = await clarificationsPromise;
   if (evidence && clarifications.length > 0) {
     evidence = withClarifications(evidence, clarifications).set;
   }
@@ -209,7 +209,7 @@ export async function buildGroundingBlock(
   }
   if (evidence) {
     parts.push(renderEvidenceBlock(evidence));
-    const lex = terminologyBlock(await loadLexicon());
+    const lex = terminologyBlock(await lexiconPromise);
     if (lex) parts.push(lex);
     parts.push(FIDELITY_RULE);
   }
