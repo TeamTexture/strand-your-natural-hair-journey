@@ -674,6 +674,8 @@ const App = () => (
               <Route path="/admin/messages" element={<RoleGate allow={["admin"]}><AdminMessages /></RoleGate>} />
               <Route path="/admin/member-messages" element={<RoleGate allow={["admin"]}><AdminMemberMessages /></RoleGate>} />
               <Route path="/admin/broadcast" element={<RoleGate allow={["admin"]}><AdminBroadcast /></RoleGate>} />
+              <Route path="/admin/welcome-voicenote" element={<RoleGate allow={["admin"]}><AdminWelcomeVoicenote /></RoleGate>} />
+
 
               {/* Consumer-facing brand directory */}
               <Route path="/brands" element={<Paid><BrandsDirectory /></Paid>} />
