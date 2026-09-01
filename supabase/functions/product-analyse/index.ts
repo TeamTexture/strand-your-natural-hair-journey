@@ -353,7 +353,8 @@ Return JSON only via the return_product_analysis tool.`;
     function_kind: "product-analyse",
     task_instructions: `${buildTaskInstructions(tipsLevel)}${
       args.sensitivityBlock ?? ""
-    }${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}`,
+    }${SCAN_USAGE_GROUNDING_BLOCK}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}`,
+
 
     user_payload: {}, // unused — user_content overrides
     user_content: userContent,
