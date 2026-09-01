@@ -51,8 +51,8 @@ const WashStep3 = () => {
 
   const [previous, setPrevious] = useState<PreviousEntry | null>(null);
   const [loadingPrev, setLoadingPrev] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+
 
   useEffect(() => {
     if (!user) { setLoadingPrev(false); return; }
