@@ -164,23 +164,8 @@ const ReviewVoicenoteRecorder = ({
     }
   };
 
-  const playPause = () => {
-    if (!signedUrl) return;
-    if (playing && audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = new Audio(signedUrl);
-    a.onended = () => setPlaying(false);
-    a.onerror = () => {
-      toast.error("Could not play that back");
-      setPlaying(false);
-    };
-    a.play();
-    audioRef.current = a;
-    setPlaying(true);
-  };
+
+
 
   const reRecord = async () => {
     if (!audioPath) return;
