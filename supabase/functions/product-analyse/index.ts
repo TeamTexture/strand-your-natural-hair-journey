@@ -597,26 +597,10 @@ async function runLovable(args: {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-  // Manuscript grounding parity with the Claude path.
+  // Manuscript grounding parity with the Claude path. Reuses the set the
+  // pipeline already gathered when one was passed in (Part 4).
   const grounding = args.prefetchedGrounding ?? await buildLovableGrounding(args.context);
-  const _unusedGrounding = false as const;
-  const _legacyGrounding = () => buildGroundingBlock({
-    surface: "product-analyse",
-    fn: "product-analyse",
-    functionKind: "product-analyse",
-    selectorContext: selectorFromAiContext(args.context),
-    forceTopics: [
-      "wash-day-mechanics",
-      "porosity",
-      "scalp-conditions",
-      "diagnosed-conditions",
-    ],
-    ragQuery: ragQueryFromAiContext(
-      args.context,
-      "hair product ingredients suitability moisture protein scalp",
-    ),
-    ragK: 5,
-  });
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const tipsBlock = buildTipsLevelBlock(tipsLevel);
