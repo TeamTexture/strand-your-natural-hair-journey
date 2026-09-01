@@ -81,6 +81,7 @@ import {
   annotateProductSensitivities,
 } from "../_shared/topical-sensitivity.ts";
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
+import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
 import {
   usageGroundingBlock,
@@ -563,6 +564,8 @@ async function runLovable(args: {
   context: Record<string, unknown>;
   ledgerBlock?: string;
   sensitivityBlock?: string;
+  /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
+  retryInstruction?: string;
 }): Promise<ProductAnalysisPayload> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -593,7 +596,7 @@ async function runLovable(args: {
 
 User context (use to compute flags, match_score, ai_summary, and use_cases):
 ${JSON.stringify(args.context ?? {}, null, 2)}
-
+${args.retryInstruction ? `\n${args.retryInstruction}\n` : ""}
 Return strict JSON matching the schema in your system prompt.`;
 
   const aiResp = await gatewayFetch(AI_METER_META, "https://ai.gateway.lovable.dev/v1/chat/completions",
