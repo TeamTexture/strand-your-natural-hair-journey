@@ -16,7 +16,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { assertAnalysisTrigger } from "@/lib/analysisGate";
-import { isViewAsReadOnly } from "@/lib/viewAsReadOnly";
+import { isViewingAsUser } from "@/lib/displayedUser";
 
 export interface WarmIngredientAnalysisInput {
   productKey: string;
@@ -39,7 +39,7 @@ export async function warmIngredientAnalysis(
 ): Promise<void> {
   // An admin viewing the app as a member must never spend a model call or write
   // an analysis row as that member.
-  if (isViewAsReadOnly()) return;
+  if (isViewingAsUser()) return;
   if (!input.productKey || !input.productName) return;
 
   const trigger = assertAnalysisTrigger("no_stored_analysis");
