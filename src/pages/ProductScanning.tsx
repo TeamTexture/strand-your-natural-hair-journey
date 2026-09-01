@@ -239,7 +239,7 @@ const ProductScanning = () => {
           leaveOn: (saveFields as { leave_on?: boolean | null }).leave_on ?? null,
           usageInstructions:
             (saveFields as { usage_instructions?: string | null }).usage_instructions ?? null,
-          context: ctx,
+          context,
         });
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
         // Snap the ring to a full circle on real success so the user sees
