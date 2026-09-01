@@ -189,6 +189,15 @@ const ProfileStep3Hair = () => {
   const [density, setDensity] = useState<string[]>([]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
+  // Shown only after a failed Continue, so a member is never greeted by red.
+  const [showErrors, setShowErrors] = useState(false);
+
+  const refs = useRef<Record<string, HTMLDivElement | null>>({});
+  const registerRef = (id: string, el: HTMLDivElement | null) => {
+    refs.current[id] = el;
+  };
+
+
 
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
