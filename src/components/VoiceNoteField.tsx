@@ -323,15 +323,11 @@ const VoiceNoteField = ({
       {audioPath && signedUrl && !recording && (
         <div className="space-y-2 p-3 bg-card border border-border rounded-[10px]">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={playPause}
-              className="size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
-              aria-label={playing ? "Pause" : "Play"}
-            >
-              {playing ? <Pause className="size-4" /> : <Play className="size-4 ml-0.5" />}
-            </button>
-            <p className="text-xs flex-1 font-body">Voice note saved</p>
+            <VoicePlayer
+              url={signedUrl}
+              variant="onSurface"
+              className="flex-1 min-w-0 text-foreground"
+            />
             <button
               type="button"
               onClick={removeNote}
@@ -341,6 +337,8 @@ const VoiceNoteField = ({
               <Trash2 className="size-4" />
             </button>
           </div>
+          <p className="text-xs font-body">Voice note saved</p>
+
           <div className="flex flex-wrap gap-2 items-center">
             <button
               type="button"
