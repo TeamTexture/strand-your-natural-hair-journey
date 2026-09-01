@@ -10,6 +10,7 @@ import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { resolveProductKey } from "@/lib/productIdentity";
+import { warmIngredientAnalysis } from "@/lib/warmIngredientAnalysis";
 import {
   streamProductAnalyse,
   type PartialAnalysis,
@@ -223,6 +224,23 @@ const ProductScanning = () => {
           console.error("user_products upsert after scan failed", insErr);
           throw new Error("Couldn't save the scanned product. Please try again.");
         }
+        // POST-SCAN WARM-UP (2026-09-01): kick off the ingredient/how-to-use
+        // pass now, in the background, so a freshly scanned product has cards
+        // and personalised guidance on first view instead of only the verdict.
+        // Fire-and-forget — it must never delay navigation.
+        void warmIngredientAnalysis({
+          productKey: product_key,
+          productName: saveFields.name,
+          productBrand: saveFields.brand ?? null,
+          ingredients: saveFields.ingredients ?? null,
+          category: (saveFields as { category?: string | null }).category ?? null,
+          applicationArea:
+            (saveFields as { application_area?: string | null }).application_area ?? null,
+          leaveOn: (saveFields as { leave_on?: boolean | null }).leave_on ?? null,
+          usageInstructions:
+            (saveFields as { usage_instructions?: string | null }).usage_instructions ?? null,
+          context,
+        });
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
         // Snap the ring to a full circle on real success so the user sees
         // it complete before we navigate away. Short hold so the
