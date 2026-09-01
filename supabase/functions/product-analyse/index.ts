@@ -93,6 +93,13 @@ import type { FailsafeViolation } from "../_shared/analysis-failsafes.ts";
 
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
+import {
+  runTier1,
+  tier1Block,
+  tierContext,
+  tierRulesBlock,
+  type ProductSignals,
+} from "../_shared/tiers.ts";
 
 
 declare const Deno: {
@@ -384,6 +391,9 @@ async function runClaude(args: {
   selectorContext: SelectorContext;
   ledgerBlock: string;
   sensitivityBlock?: string;
+  /** TIERS (Part 3): the deterministic Tier 1 findings plus the rules telling
+   *  the model which tiers it can actually see. */
+  tierBlock?: string;
   /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
   retryInstruction?: string;
   /** SPEED: when set, the model call streams and this receives the
@@ -423,7 +433,7 @@ Return JSON only via the return_product_analysis tool.`;
     function_kind: "product-analyse",
     task_instructions: `${buildTaskInstructions(tipsLevel)}${
       args.sensitivityBlock ?? ""
-    }${SCAN_USAGE_GROUNDING_BLOCK}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}`,
+    }${SCAN_USAGE_GROUNDING_BLOCK}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}`,
 
 
     user_payload: {}, // unused — user_content overrides
@@ -564,6 +574,8 @@ async function runLovable(args: {
   context: Record<string, unknown>;
   ledgerBlock?: string;
   sensitivityBlock?: string;
+  /** TIERS (Part 3) — see runClaude. */
+  tierBlock?: string;
   /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
   retryInstruction?: string;
 }): Promise<ProductAnalysisPayload> {
@@ -609,7 +621,7 @@ Return strict JSON matching the schema in your system prompt.`;
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: `${buildLovableSystem(tipsLevel)}\n\n${tipsBlock}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.sensitivityBlock ?? ""}${SCAN_USAGE_GROUNDING_BLOCK}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
+          { role: "system", content: `${buildLovableSystem(tipsLevel)}\n\n${tipsBlock}\n\n${CHAPTER_WHITELIST_PROMPT}${grounding.block}${args.sensitivityBlock ?? ""}${SCAN_USAGE_GROUNDING_BLOCK}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}` },
           {
             role: "user",
             content: [
@@ -756,6 +768,27 @@ Deno.serve(async (req: Request) => {
 
     const ledgerBlock = buildAdviceLedgerBlock(ledgerRows);
 
+    // ── TIERED PERSONALISATION DATA (Part 3, 2026-09-01) ──────────────
+    // A photo scan reads the pack INSIDE the model call, so at this point we
+    // genuinely know nothing about the product: no name, no category, no INCI
+    // list. The health tier therefore resolves to "compact" — her recorded
+    // conditions, medications, life stage and the hair-relevant markers that
+    // are out of range — rather than the full panel history, supplement list
+    // and professional notes that used to travel on every single scan. The
+    // URL and shelf surfaces DO know the product and get the full gate.
+    // Tier 4 (wash-day / journal behaviour) never reaches the scoring prompt.
+    const scanSignals: ProductSignals = {};
+    const tiered = tierContext(ctx as Record<string, unknown>, scanSignals);
+    const tier1 = runTier1(ctx as Record<string, unknown>, scanSignals);
+    const tierBlock = `${tier1Block(tier1)}${tierRulesBlock(tiered)}`;
+    console.log("[tiers] product-analyse", {
+      health_mode: tiered.health.mode,
+      health_reason: tiered.health.reason,
+      withheld: tiered.withheld,
+      water_hardness: tier1.waterHardness,
+      shelf_overlap: tier1.shelfOverlap.length,
+    });
+
 
     const vocabulary = await loadIngredientVocabulary(supabase as never);
 
@@ -773,10 +806,11 @@ Deno.serve(async (req: Request) => {
           const { payload, web_search_invocations } = await runClaude({
             front_image_url: frontPhoto!,
             back_image_url: backPhoto!,
-            context: ctx,
+            context: tiered.context,
             selectorContext: buildSelectorContext(body),
             ledgerBlock,
             sensitivityBlock,
+            tierBlock,
             retryInstruction: info.retryInstruction,
             // Only the first attempt streams: a retry would otherwise rewrite
             // the preview the member is already reading.
@@ -795,9 +829,10 @@ Deno.serve(async (req: Request) => {
         }
         const lovable = await runLovable({
           image_url: body.image_url!,
-          context: ctx,
+          context: tiered.context,
           ledgerBlock,
           sensitivityBlock,
+          tierBlock,
           retryInstruction: info.retryInstruction,
         });
         return {

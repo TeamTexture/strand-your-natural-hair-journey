@@ -66,6 +66,13 @@ import {
 } from "../_shared/schemas.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { currentProfileHash } from "../_shared/profile-snapshot.ts";
+import {
+  runTier1,
+  tier1Block,
+  tierContext,
+  tierRulesBlock,
+  type ProductSignals,
+} from "../_shared/tiers.ts";
 import { SURFACTANT_STRENGTH_RULES } from "../_shared/surfactant-strength.ts";
 import {
   SCORE_REASONS_RULES,
@@ -230,6 +237,8 @@ async function runClaude(args: {
    *  need an agentic web_fetch round-trip, which halves wall-clock time. */
   pageText?: string | null;
   pageTitle?: string | null;
+  /** TIERS (Part 3): deterministic Tier 1 findings + which tiers are visible. */
+  tierBlock?: string;
 }): Promise<{
   payload: ProductAnalysisPayload;
   web_search_invocations: number;
@@ -273,7 +282,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse-url",
-    task_instructions: buildTaskInstructions(tipsLevel),
+    task_instructions: `${buildTaskInstructions(tipsLevel)}${args.tierBlock ?? ""}`,
     user_payload: {},
     user_content: userContent,
     user_context: args.context,
@@ -929,12 +938,31 @@ Deno.serve(async (req: Request) => {
       const pre = await prefetchPage(resolvedUrl);
       const ogImage = pre.imageUrl;
       console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
+      // ── TIERED PERSONALISATION DATA (Part 3, 2026-09-01) ──────────
+      // The page is already fetched here, so this surface knows the product
+      // before the writer call and gets the FULL health gate: her blood
+      // panels, supplements, medications and professional notes travel only
+      // when the page's own text plausibly interacts with them. Tier 4
+      // (wash-day / journal behaviour) never reaches the scoring prompt.
+      const urlSignals: ProductSignals = {
+        productName: pre.title || null,
+        claims: pre.text ? pre.text.slice(0, 6000) : null,
+      };
+      const tiered = tierContext(ctx as Record<string, unknown>, urlSignals);
+      const tier1 = runTier1(ctx as Record<string, unknown>, urlSignals);
+      console.log("[tiers] product-analyse-url", {
+        health_mode: tiered.health.mode,
+        health_reason: tiered.health.reason,
+        matched: tiered.health.matched ?? null,
+        withheld: tiered.withheld,
+      });
       const claudeRes = await runClaude({
         url: resolvedUrl,
-        context: ctx,
+        context: tiered.context,
         selectorContext: buildSelectorContext(body),
         pageText: pre.text,
         pageTitle: pre.title,
+        tierBlock: `${tier1Block(tier1)}${tierRulesBlock(tiered)}`,
       });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({
