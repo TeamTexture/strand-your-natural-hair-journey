@@ -171,7 +171,13 @@ const CheckinVoiceNotes = ({
                 {n.duration_seconds ? formatClock(Number(n.duration_seconds)) : `Note ${i + 1}`}
               </span>
               {urls[n.storage_path] ? (
-                <audio src={urls[n.storage_path]} controls className="h-8 flex-1 min-w-0" />
+                <VoicePlayer
+                  url={urls[n.storage_path]}
+                  durationMs={n.duration_seconds != null ? Number(n.duration_seconds) * 1000 : null}
+                  variant="onSurface"
+                  className="flex-1 min-w-0 text-foreground"
+                />
+
               ) : (
                 <Loader2 className="size-4 animate-spin text-muted-foreground flex-1" />
               )}
