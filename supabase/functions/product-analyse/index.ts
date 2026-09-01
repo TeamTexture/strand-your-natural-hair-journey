@@ -305,7 +305,76 @@ OUTPUT ECONOMY — HARD RULES (latency: the member is watching a spinner):
 - Never restate the same point in two fields, and never re-list the full ingredient panel in prose.
 - Brevity is a formatting rule only: it must NEVER reduce the number of ingredients you transcribe into "ingredients", change a flag, or soften a warning.`;
 
+// ─── Usage grounding on the scan path (2026-09-01) ─────────────────────
+// The directions aren't known before the call — the model reads them off photo 2
+// in the same generation — so the prompt anchors every technique specific to what
+// it transcribes into `usage_instructions`, and we validate against that after.
+const SCAN_USAGE_GROUNDING_BLOCK = usageGroundingBlock(
+  { text: null, source: "label_photo" },
+  { selfTranscribed: true },
+);
+
+/** The directions this generation actually claims to have read off the pack. */
+function scanDirections(payload: Record<string, unknown>): UsageDirections {
+  const text = typeof payload.usage_instructions === "string"
+    ? payload.usage_instructions.trim()
+    : "";
+  return { text: text || null, source: text ? "label_photo" : "none" };
+}
+
+function usageGroundedFields(
+  payload: Record<string, unknown>,
+): Array<{ field: string; text?: string | null }> {
+  const list = (key: string) =>
+    (Array.isArray(payload[key]) ? payload[key] as unknown[] : []).map((v, i) => ({
+      field: `${key}[${i}]`,
+      text: typeof v === "string" ? v : null,
+    }));
+  return [
+    ...list("use_cases"),
+    ...list("tips"),
+    {
+      field: "routine_suggestion",
+      text: typeof payload.routine_suggestion === "string" ? payload.routine_suggestion : null,
+    },
+  ];
+}
+
+/** Rules that force a re-ask when the copy invents an application condition. */
+function scanUsageProblems(payload: Record<string, unknown>): string[] {
+  const directions = scanDirections(payload);
+  return [
+    ...new Set(
+      validateUsageGrounding(usageGroundedFields(payload), directions).map((p) => p.rule),
+    ),
+  ];
+}
+
+/** Terminal fallback at the attempt cap: strip the ungrounded sentences. */
+function scrubScanUsage(payload: Record<string, unknown>): number {
+  const directions = scanDirections(payload);
+  let removed = 0;
+  for (const key of ["use_cases", "tips"]) {
+    if (!Array.isArray(payload[key])) continue;
+    payload[key] = (payload[key] as unknown[])
+      .map((v) => {
+        if (typeof v !== "string") return v;
+        const out = scrubUngroundedUsage(v, directions);
+        removed += out.removed;
+        return out.text;
+      })
+      .filter((v) => typeof v !== "string" || v.trim().length > 0);
+  }
+  if (typeof payload.routine_suggestion === "string") {
+    const out = scrubUngroundedUsage(payload.routine_suggestion, directions);
+    removed += out.removed;
+    payload.routine_suggestion = out.text;
+  }
+  return removed;
+}
+
 // ─── Provider: Claude ──────────────────────────────────────────────────
+
 
 async function runClaude(args: {
   front_image_url: string;
