@@ -238,10 +238,10 @@ export interface ConcernContribution {
  *   breadth     served signals ÷ recorded signals (concerns + challenges),
  *               applied as (0.5 + 0.5 × breadth) so serving one of four still
  *               counts, but serving all four counts double
- *   bonus       round(22 × centrality × breadthMultiplier)
+ *   bonus       round(30 × centrality × breadthMultiplier)
  *                 + 2 × min(other supportive pluses, 2)
  *                 − 8 × genuine conflicts
- *               clamped to −18…+22 (SIGNED since 2026-09-01)
+ *               clamped to −18…+26 (SIGNED since 2026-09-01)
  *   final       clamp(0, 95, base + bonus) — may be BELOW base
 
  */
@@ -353,7 +353,7 @@ export function concernContribution(input: {
   // conflicts now pull the number down, and the top of the lift is smaller so a
   // mediocre formulation cannot be carried into the strong band by fit alone.
   const raw =
-    Math.round(22 * centrality * breadthMultiplier) +
+    Math.round(30 * centrality * breadthMultiplier) +
     2 * Math.min(supportivePluses, 2) -
     8 * input.conflicts;
 
@@ -362,7 +362,7 @@ export function concernContribution(input: {
     breadth,
     supportivePluses,
     conflicts: input.conflicts,
-    bonus: Math.max(-18, Math.min(22, raw)),
+    bonus: Math.max(-18, Math.min(26, raw)),
   };
 }
 
