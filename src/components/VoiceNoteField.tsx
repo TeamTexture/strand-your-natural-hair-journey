@@ -203,23 +203,8 @@ const VoiceNoteField = ({
     }
   };
 
-  const playPause = () => {
-    if (!signedUrl) return;
-    if (playing && audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = new Audio(signedUrl);
-    a.onended = () => setPlaying(false);
-    a.onerror = () => {
-      toast.error("Could not play");
-      setPlaying(false);
-    };
-    a.play();
-    audioRef.current = a;
-    setPlaying(true);
-  };
+
+
 
   const removeNote = async () => {
     if (!audioPath) return;
