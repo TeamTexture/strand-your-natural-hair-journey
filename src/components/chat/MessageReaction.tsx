@@ -24,12 +24,12 @@ export const stopBubbleGesture = {
 export const ReactionPill = ({
   reaction,
   mine,
-  onRemove,
+  onToggle,
   disabled,
 }: {
   reaction: ReactionState | undefined;
   mine: boolean;
-  onRemove: () => void;
+  onToggle: () => void;
   disabled?: boolean;
 }) => {
   const total = reaction?.total ?? 0;
@@ -54,7 +54,7 @@ export const ReactionPill = ({
       aria-pressed={iReacted}
       onClick={(e) => {
         e.stopPropagation();
-        if (!disabled) onRemove();
+        if (!disabled) onToggle();
       }}
       {...stopBubbleGesture}
       className={`absolute -bottom-[11px] ${mine ? "-right-[6px]" : "-left-[6px]"} z-10 inline-flex items-center gap-0.5 rounded-pill border bg-card px-1.5 py-[2px] shadow-sm transition-opacity ${
@@ -137,10 +137,9 @@ const ReactableBubble = ({
         reaction={reaction}
         mine={mine}
         disabled={disabled}
-        onRemove={() => {
-          // Tapping the pill only ever removes my own heart.
-          if (reaction?.mine) onToggle();
-        }}
+        // Tapping the pill removes my own heart; keyboard users can add one
+        // the same way, so the gesture is not the only route in.
+        onToggle={onToggle}
       />
     </div>
   );
