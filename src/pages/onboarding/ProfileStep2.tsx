@@ -411,16 +411,8 @@ const ProfileStep2 = () => {
           <MedicationPicker value={meds} onChange={setMeds} />
         </OnboardingSectionCard>
 
-        {missing.length > 0 && (
-          <div className="rounded-[14px] border border-border bg-card px-4 py-3">
-            <p className="text-[12px] font-body text-foreground">
-              {missing.length} question{missing.length === 1 ? "" : "s"} still to answer:
-            </p>
-            <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug">
-              {missing.map((m) => m.label).join(" · ")}
-            </p>
-          </div>
-        )}
+        <MissingAnswersCard missing={missing} />
+
 
         <Button variant="gold" size="pill" className="mt-4" disabled={saving} onClick={onContinue}>
           {saving ? "Saving…" : "Continue →"}
