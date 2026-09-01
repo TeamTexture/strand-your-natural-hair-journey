@@ -4652,6 +4652,48 @@ export type Database = {
           },
         ]
       }
+      product_ingredient_facts: {
+        Row: {
+          created_at: string
+          facts: Json
+          id: string
+          identity_key: string
+          ingredient_names: Json
+          ingredients_hash: string
+          model_version: string
+          product_brand: string | null
+          product_name: string | null
+          source_function: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facts?: Json
+          id?: string
+          identity_key: string
+          ingredient_names?: Json
+          ingredients_hash: string
+          model_version: string
+          product_brand?: string | null
+          product_name?: string | null
+          source_function?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facts?: Json
+          id?: string
+          identity_key?: string
+          ingredient_names?: Json
+          ingredients_hash?: string
+          model_version?: string
+          product_brand?: string | null
+          product_name?: string | null
+          source_function?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_ingredients: {
         Row: {
           created_at: string

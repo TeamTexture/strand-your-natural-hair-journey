@@ -87,6 +87,7 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
+import { decideUrlSearch } from "../_shared/search-gate.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -253,7 +254,7 @@ async function runClaude(args: {
 ${preScraped.slice(0, 18000)}
 """
 
-If the brand name or full ingredient list is missing above, then use web_search (cap 2) to fill only that gap.`
+If the brand name or full ingredient list is missing above, then use web_search (cap 2) to fill only that gap. If no search tool is available to you, work from the page content and the ingredient list exactly as supplied.`
     : `Use web_fetch on this URL first. If the fetched body is thin, gated, or missing the brand/INCI, fall back to web_search (combined cap of 4 across both tools).`;
 
   const userText = `Product page URL to analyse: ${args.url}
@@ -272,11 +273,22 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     name: "web_fetch",
     max_uses: havePage ? 1 : 2,
   };
+  // CONDITIONAL SEARCH (2026-09-01): when the prefetched page already carries
+  // the brand, the name and a real INCI panel, the tool is not attached at all
+  // — the page IS the source. A thin/gated page keeps the full budget.
+  const searchDecision = decideUrlSearch({ havePage, pageText: preScraped });
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
-    max_uses: 2,
+    max_uses: searchDecision.maxUses,
   };
+  console.log(JSON.stringify({
+    function: "product-analyse-url",
+    event: "search_gate",
+    enabled: searchDecision.enabled,
+    max_uses: searchDecision.maxUses,
+    reason: searchDecision.reason,
+  }));
 
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
@@ -301,7 +313,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
         "Return the structured product analysis. Always invoke this tool exactly once at the end with the final analysis.",
       input_schema: RETURN_PRODUCT_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
     },
-    server_tools: [webFetchTool, webSearchTool],
+    server_tools: searchDecision.enabled ? [webFetchTool, webSearchTool] : [webFetchTool],
     max_tokens: 4096,
   });
 
