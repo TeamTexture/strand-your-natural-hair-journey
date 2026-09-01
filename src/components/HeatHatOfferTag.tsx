@@ -7,8 +7,8 @@ import { Tag } from "lucide-react";
 const TEAM_TEXTURE_URL = "https://www.teamtexture.co.uk";
 
 /**
- * A small promotional chip advertising the member discount on Team Texture
- * Heat Hats. Main line is the offer; the muted line is the expiry date.
+ * A small promotional chip advertising the STRAND subscription trial.
+ * Main line is the offer; no expiry date is shown.
  */
 const HeatHatOfferTag = () => (
   <div className="mt-6 flex flex-col items-center gap-1.5 text-center">
@@ -20,12 +20,9 @@ const HeatHatOfferTag = () => (
     >
       <Tag className="size-3.5 shrink-0 text-primary-foreground" aria-hidden />
       <span className="font-body text-[12px] font-bold uppercase leading-tight text-primary-foreground">
-        Subscribe for 15% off TT Heat Hats
+        GET 3 DAYS FREE WHEN YOU SUBSCRIBE
       </span>
     </a>
-    <p className="text-[10.5px] font-body text-muted-foreground">
-      until September 1st 2026
-    </p>
   </div>
 );
 
