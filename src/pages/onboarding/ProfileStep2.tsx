@@ -34,41 +34,13 @@ import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /* ── shared field shell ───────────────────────────────────────────────── */
 
-interface FieldProps {
-  id: string;
-  label: string;
-  answered: boolean;
-  invalid: boolean;
-  hint?: string;
-  registerRef: (id: string, el: HTMLDivElement | null) => void;
-  children: React.ReactNode;
-}
-const Field = ({ id, label, answered, invalid, hint, registerRef, children }: FieldProps) => (
-  <div
-    ref={(el) => registerRef(id, el)}
-    className={cn(
-      "rounded-[14px] transition-all scroll-mt-24",
-      invalid && "ring-2 ring-destructive/70 bg-destructive/5 -mx-2 px-2 py-2",
-    )}
-  >
-    <div className="flex items-baseline justify-between gap-2">
-      <OnboardingQuestion helper={hint} className="mb-[9px] min-w-0">
-        {label}
-      </OnboardingQuestion>
-      {!answered && (
-        <span
-          className={cn(
-            "shrink-0 text-[10px] uppercase tracking-[0.14em] font-body",
-            invalid ? "text-destructive" : "text-muted-foreground/70",
-          )}
-        >
-          Required
-        </span>
-      )}
-    </div>
-    {children}
-  </div>
-);
+/**
+ * The required-answer shell now lives in one place so every onboarding capture
+ * screen shows the identical "Required" label, error ring and scroll target.
+ */
+type FieldProps = RequiredFieldProps;
+const Field = RequiredField;
+
 
 interface ChipFieldProps extends Omit<FieldProps, "children" | "answered" | "invalid"> {
   options: readonly string[];
