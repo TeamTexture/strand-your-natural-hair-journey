@@ -20,6 +20,7 @@ import ProSubGate from "./components/ProSubGate";
 import ProProfileGate from "./components/ProProfileGate";
 import GlobalMenu from "@/components/GlobalMenu";
 import HomeTour from "@/components/HomeTour";
+import WelcomeVoicenotePopup from "@/components/WelcomeVoicenotePopup";
 import AccessRestrictedGate from "@/components/AccessRestrictedGate";
 import BrandPaywallGate from "@/components/BrandPaywallGate";
 import BrandSubGate from "@/components/BrandSubGate";
@@ -766,6 +767,9 @@ const App = () => (
                 its children by pathname; inside it, the tour would remount and
                 lose its place every time it walked to the next page. */}
             <HomeTour />
+            {/* Welcome voice note popup — surfaces once the tour is finished
+                or skipped (never on Minimise). Additive to HomeTour. */}
+            <WelcomeVoicenotePopup />
           </BackButtonProvider>
           </IngredientSheetProvider>
           </TipsLevelProvider>
