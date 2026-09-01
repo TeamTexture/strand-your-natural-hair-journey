@@ -85,6 +85,11 @@ export interface ContentIntegrityInput {
    * card naming an ingredient outside the formula is caught too.
    */
   cards?: unknown;
+  /** The payload key the cards live under (`ingredients` on
+   *  ingredient-analysis, `key_ingredients` on the product surfaces). Used so a
+   *  card-name rejection is repaired by dropping that card, never by nulling
+   *  the verified ingredient list. */
+  cardsField?: string;
   /**
    * SOURCE LOCKDOWN: the verified ingredient list held for this product.
    * `null`/omitted disables the name lock (a surface with no product context,
@@ -146,7 +151,7 @@ export function checkContentIntegrity(
       input.allowedIngredients,
       input.ingredientVocabulary ?? [],
     );
-    for (const v of validateIngredientCardNames(input.cards, lock)) {
+    for (const v of validateIngredientCardNames(input.cards, lock, input.cardsField)) {
       violations.push(tag("ingredient_name_lock", v));
     }
     for (const v of validateNameLockFields(fields, lock)) {

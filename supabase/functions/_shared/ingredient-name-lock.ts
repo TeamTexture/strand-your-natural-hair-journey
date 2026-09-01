@@ -123,26 +123,30 @@ const PROSE_ALIASES: Record<string, string[]> = {
 export function validateIngredientCardNames(
   cards: unknown,
   ctx: NameLockContext,
+  /** The payload key the cards live under, so the violation names the CARD
+   *  (`key_ingredients[2].name`) and a repair drops that one card instead of
+   *  nulling the whole verified ingredient list. */
+  cardsField = "ingredients",
 ): NameLockViolation[] {
   if (!Array.isArray(cards)) return [];
   const allow = allowedKeys(ctx);
   if (allow.size === 0) return [];
   const haystacks = allowedHaystacks(ctx);
   const out: NameLockViolation[] = [];
-  for (const raw of cards) {
+  cards.forEach((raw, i) => {
     const name = typeof (raw as { name?: unknown })?.name === "string"
       ? (raw as { name: string }).name.trim()
       : "";
-    if (!name) continue;
+    if (!name) return;
     if (!allow.has(normaliseInciKey(name)) && !isSuppliedName(name, haystacks)) {
       out.push({
-        field: "ingredients[].name",
+        field: `${cardsField}[${i}].name`,
         phrase: name,
         rule:
           `"${name}" is not in this product's supplied ingredient list. Every ingredient card must use a name EXACTLY as supplied — never a corrected spelling, a more specific chemical, a merged name, or an ingredient you expect to be in this kind of product.`,
       });
     }
-  }
+  });
   return out;
 }
 
