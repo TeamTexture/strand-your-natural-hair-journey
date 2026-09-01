@@ -238,12 +238,27 @@ export function extractDirectionsFromPage(pageText: string): string | null {
 }
 
 /** Prompt block. Goes into the task instructions of every function that
- *  generates "how to use this for your hair" copy. */
+ *  generates "how to use this for your hair" copy.
+ *
+ *  `selfTranscribed` is the SCAN path (2026-09-01): the directions are not known
+ *  before the call because the model is reading them off the photographed pack in
+ *  the same generation, so the rule is anchored to whatever it transcribes into
+ *  `usage_instructions`. Validation afterwards is identical. */
 export function usageGroundingBlock(
   directions: UsageDirections,
-  opts: { profileExample?: boolean; recentTraits?: string[] } = {},
+  opts: { profileExample?: boolean; recentTraits?: string[]; selfTranscribed?: boolean } = {},
 ): string {
-  const base = directions.text
+  const base = opts.selfTranscribed
+    ? `
+
+HOW-TO-USE GROUNDING — THE PACK'S OWN DIRECTIONS ARE THE BASE:
+You are reading this product's directions off the photographed pack in this same answer. Whatever you transcribe VERBATIM into "usage_instructions" is treated as the only permitted source for a specific application condition.
+RULES (validated after you answer — a violation is rejected and re-asked):
+- A specific application condition — whether the hair or scalp is wet/damp/dry, how much to use, how long it stays on or is massaged, any tool or applicator, how often, water temperature, whether it is rinsed — may only appear in use_cases, tips or routine_suggestion when that same condition appears in the directions you transcribed.
+- If the pack does not state it, either leave it out or say plainly in that sentence that it is general guidance, never this product's instruction.
+- Keep the manufacturer's own intent intact (where the product goes, what it is for). Never contradict or "improve" it.`
+    : directions.text
+
     ? `
 
 HOW-TO-USE GROUNDING — MANUFACTURER DIRECTIONS ARE THE BASE (source: ${usageSourceLabel(directions.source)}):
