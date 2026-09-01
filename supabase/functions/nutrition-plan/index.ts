@@ -871,11 +871,18 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      if (payload.diet.length === 0 || payload.avoid.length === 0 || !payload.summary) {
+      // A missing summary is a formatting gap, not an empty plan: the food rows
+      // are the plan, so derive a neutral one-liner rather than fail the whole
+      // request (members with many exclusions were getting a 500 here).
+      if (!payload.summary && payload.diet.length > 0) {
+        payload = { ...payload, summary: deriveSummary(payload) };
+      }
+      if (payload.diet.length === 0 || payload.avoid.length === 0) {
         throw new Error(
           `Refusing to cache empty nutrition plan (provider=${providerStamp}, diet=${payload.diet.length}, avoid=${payload.avoid.length})`,
         );
       }
+
 
       const rejected: string[] = [];
       payload = await sanitiseAndLog(payload, "nutrition-plan", {
