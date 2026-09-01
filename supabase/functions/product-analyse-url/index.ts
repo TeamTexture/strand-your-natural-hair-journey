@@ -1042,6 +1042,7 @@ Deno.serve(async (req: Request) => {
         userId: user.id,
         fields: productProseFields(a),
         cards: a.key_ingredients,
+          cardsField: "key_ingredients",
         allowedIngredients: Array.isArray(a.ingredients)
           ? (a.ingredients as unknown[]).map((i) => String(i))
           : [],
