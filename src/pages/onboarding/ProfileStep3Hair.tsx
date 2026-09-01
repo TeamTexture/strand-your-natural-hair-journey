@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toggleWithNone } from "@/lib/healthOptions";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +9,10 @@ import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
-import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
+import RequiredField, { MissingAnswersCard } from "@/components/onboarding/RequiredField";
 import Tag from "@/components/Tag";
 import CurlPatternPicker from "@/components/onboarding/CurlPatternPicker";
+
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
