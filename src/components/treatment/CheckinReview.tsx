@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { CHECKIN_METRICS, ratingLabel } from "@/lib/treatmentCheckin";
 import { signedMediaUrls } from "@/lib/treatmentMedia";
 
