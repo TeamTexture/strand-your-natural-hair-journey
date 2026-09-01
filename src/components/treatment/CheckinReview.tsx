@@ -100,7 +100,13 @@ const CheckinReview = ({
             {media
               .filter((m) => m.media_type === "audio")
               .map((m) => (
-                <audio key={m.id} controls src={urls[m.storage_path] ?? ""} className="w-full" />
+                <VoicePlayer
+                  key={m.id}
+                  url={urls[m.storage_path] ?? null}
+                  variant="onSurface"
+                  className="text-foreground"
+                />
+
               ))}
             {media
               .filter((m) => m.media_type === "video")
