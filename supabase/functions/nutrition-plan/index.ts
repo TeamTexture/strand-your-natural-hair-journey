@@ -67,6 +67,19 @@ interface NutritionPlanPayload {
   avoid: NutritionCard[];
 }
 
+/**
+ * Deterministic stand-in summary. Used only when a generation returns real food
+ * rows but no summary line — the rows are the plan, so the request must not
+ * fail over a missing intro.
+ */
+function deriveSummary(p: { diet: NutritionCard[]; avoid: NutritionCard[] }): string {
+  const foods = p.diet.slice(0, 3).map((d) => d.name).filter(Boolean).join(", ");
+  const watch = p.avoid.slice(0, 2).map((d) => d.name).filter(Boolean).join(" and ");
+  const first = foods ? `Food first: build your meals around ${foods}.` : "Food first: build your meals around whole foods you already enjoy.";
+  return watch ? `${first} Keep an eye on ${watch}.` : first;
+}
+
+
 const STRAND_PERSONA = STRAND_PERSONA_WITH_RULES;
 
 import { dietConstraintBlock } from "../_shared/diet.ts";
