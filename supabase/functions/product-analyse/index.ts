@@ -817,7 +817,36 @@ Deno.serve(async (req: Request) => {
     });
 
 
-    const vocabulary = await loadIngredientVocabulary(supabase as never);
+    // ── LATENCY (Part 4, 2026-09-01) ──────────────────────────────────
+    // The manuscript evidence gather (stage 1) depends only on her recorded
+    // facts, so it starts HERE — the moment the scan is known to need a model
+    // call — instead of inside the writer call, and runs alongside the
+    // ingredient-vocabulary load. One resolved set then serves every retry
+    // attempt AND the stage 3 citation verification, so the same passages are
+    // never gathered twice. It is deliberately started AFTER the cache and cap
+    // checks above so a cache hit still spends nothing.
+    const evidencePromise = provider === "claude"
+      ? evidencePromptBlock({
+        fn: "product-analyse",
+        surface: "product-analyse",
+        memberContext: scanRagQuery(tiered.context as Record<string, unknown>).slice(0, 4000),
+      }).catch((e) => {
+        console.error("[product-analyse] evidence prefetch failed", e);
+        return null;
+      })
+      : Promise.resolve(null);
+    const lovableGroundingPromise = provider === "claude"
+      ? Promise.resolve(null)
+      : buildLovableGrounding(tiered.context as Record<string, unknown>).catch((e) => {
+        console.error("[product-analyse] grounding prefetch failed", e);
+        return null;
+      });
+
+    const [vocabulary, prefetchedEvidence, prefetchedGrounding] = await Promise.all([
+      loadIngredientVocabulary(supabase as never),
+      evidencePromise,
+      lovableGroundingPromise,
+    ]);
 
     // ── GENERATE + REPAIR (2026-09-01) ────────────────────────────────
     // The scan path used to generate once, null whatever a guardrail objected
@@ -839,6 +868,9 @@ Deno.serve(async (req: Request) => {
             sensitivityBlock,
             tierBlock,
             retryInstruction: info.retryInstruction,
+            prefetchedEvidence: prefetchedEvidence
+              ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
+              : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
             // the preview the member is already reading.
             onPartialJson: emit && info.attemptNumber === 1
@@ -861,6 +893,7 @@ Deno.serve(async (req: Request) => {
           sensitivityBlock,
           tierBlock,
           retryInstruction: info.retryInstruction,
+          prefetchedGrounding: prefetchedGrounding ?? undefined,
         });
         return {
           ...lovable,
