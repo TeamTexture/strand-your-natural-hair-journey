@@ -484,11 +484,18 @@ const ProfileStep4Colour = () => {
 
         <OnboardingSectionCard number={2} title="Your current style">
         <div className="space-y-4">
-        <div>
-          <OnboardingQuestion>
-            Current hairstyle{" "}
-            <span className="font-semibold text-foreground">(choose one)</span>
-          </OnboardingQuestion>
+        <RequiredField
+          id="style"
+          label={
+            <>
+              Current hairstyle{" "}
+              <span className="font-semibold text-foreground">(choose one)</span>
+            </>
+          }
+          answered={!!style[0]}
+          invalid={invalid("style")}
+          registerRef={registerRef}
+        >
           <StylePicker
             collapseOnSelect
             value={style[0] ?? null}
@@ -503,12 +510,15 @@ const ProfileStep4Colour = () => {
             }}
             attributeError={attrError}
           />
-        </div>
+        </RequiredField>
 
-        <div>
-          <OnboardingQuestion>
-            How Long in This Style
-          </OnboardingQuestion>
+        <RequiredField
+          id="howLong"
+          label="How Long in This Style"
+          answered={howLongNum.trim() !== "" && Number.isFinite(parseInt(howLongNum, 10))}
+          invalid={invalid("howLong")}
+          registerRef={registerRef}
+        >
           <div className="flex gap-3">
             <Input
               type="number"
@@ -531,26 +541,31 @@ const ProfileStep4Colour = () => {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </RequiredField>
         </div>
         </OnboardingSectionCard>
 
         <OnboardingSectionCard number={3} title="Changing your style">
         <div className="space-y-4">
         <TagGroup
+          id="plansToChange"
           label="Plans to Change Style"
           options={["Yes", "No"]}
           value={plansToChange === "yes" ? ["Yes"] : plansToChange === "no" ? ["No"] : []}
           onChange={(v) => setPlansToChange(v.includes("Yes") ? "yes" : "no")}
           multi={false}
+          invalid={invalid("plansToChange")} registerRef={registerRef}
         />
 
         {isChanging && (
           <>
-            <div>
-              <OnboardingQuestion>
-                When do you plan to change it?
-              </OnboardingQuestion>
+            <RequiredField
+              id="changeWhen"
+              label="When do you plan to change it?"
+              answered={changeNum.trim() !== ""}
+              invalid={invalid("changeWhen")}
+              registerRef={registerRef}
+            >
               <div className="flex gap-3">
                 <Input
                   type="number"
@@ -573,16 +588,24 @@ const ProfileStep4Colour = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </RequiredField>
 
-            <MultiSelectDropdown
+            <RequiredField
+              id="changingTo"
               label="Changing To"
-              options={HAIRSTYLE_OPTIONS}
-              value={changingTo}
-              onChange={setChangingTo}
-              placeholder="Select your next style…"
-              maxSelected={1}
-            />
+              answered={changingTo.length > 0}
+              invalid={invalid("changingTo")}
+              registerRef={registerRef}
+            >
+              <MultiSelectDropdown
+                label=""
+                options={HAIRSTYLE_OPTIONS}
+                value={changingTo}
+                onChange={setChangingTo}
+                placeholder="Select your next style…"
+                maxSelected={1}
+              />
+            </RequiredField>
 
             {(styleAsksTension(changingTo[0]) || styleAsksExtensions(changingTo[0])) && (
               <StylePicker
@@ -601,14 +624,25 @@ const ProfileStep4Colour = () => {
         </OnboardingSectionCard>
 
         <OnboardingSectionCard number={4} title="Your usual style">
-        <MultiSelectDropdown
+        <RequiredField
+          id="defaultStyle"
           label="Default / Normal Style"
-          options={HAIRSTYLE_OPTIONS}
-          value={defaultStyle}
-          onChange={setDefaultStyle}
-          placeholder="Select your usual styles…"
-        />
+          answered={defaultStyle.length > 0}
+          invalid={invalid("defaultStyle")}
+          registerRef={registerRef}
+        >
+          <MultiSelectDropdown
+            label=""
+            options={HAIRSTYLE_OPTIONS}
+            value={defaultStyle}
+            onChange={setDefaultStyle}
+            placeholder="Select your usual styles…"
+          />
+        </RequiredField>
         </OnboardingSectionCard>
+
+        <MissingAnswersCard missing={missing} />
+
 
 
         <Button
