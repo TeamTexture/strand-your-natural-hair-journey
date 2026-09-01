@@ -10,6 +10,8 @@ import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
+import RequiredField, { MissingAnswersCard } from "@/components/onboarding/RequiredField";
+
 import Tag from "@/components/Tag";
 
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
