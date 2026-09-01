@@ -9,6 +9,11 @@ import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
+import RequiredField, {
+  MissingAnswersCard,
+  type RequiredFieldProps,
+} from "@/components/onboarding/RequiredField";
+
 import Tag from "@/components/Tag";
 import MedicationPicker from "@/components/MedicationPicker";
 import { Button } from "@/components/ui/button";
