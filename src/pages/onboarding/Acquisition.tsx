@@ -70,11 +70,22 @@ const Acquisition = () => {
         .eq("user_id", user.id);
       if (error) throw error;
     } catch (err) {
-      // FAIL-OPEN: a failed attribution write must never trap a member on this
-      // screen. Log it and carry her forward to the trial paywall regardless.
-      console.warn("[strand] acquisition save failed — continuing anyway", err);
-      markAcquisitionBypass();
+      console.warn("[strand] acquisition save failed — retrying minimal payload", err);
+      // One retry with the smallest possible payload: the write guard on
+      // profiles only ever allows the attribution columns while the rest of the
+      // profile is locked, so a narrower update is the most likely to land.
+      const { error: retryError } = await supabase
+        .from("profiles")
+        .update({ acquisition_source: source, acquisition_asked_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+      if (retryError) {
+        // FAIL-OPEN: a failed attribution write must never trap a member on this
+        // screen. Log it and carry her forward to the trial paywall regardless.
+        console.warn("[strand] acquisition save failed — continuing anyway", retryError);
+        markAcquisitionBypass();
+      }
     }
+
     // The TrialWall reads acquisitionAnswered from this shared cached query —
     // refresh it before navigating or the wall bounces straight back here.
     try {
