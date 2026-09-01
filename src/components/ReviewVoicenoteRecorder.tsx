@@ -259,17 +259,11 @@ const ReviewVoicenoteRecorder = ({
       {audioPath && (
         <div className="rounded-[14px] border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={playPause}
-              aria-label={playing ? "Pause" : "Play your voicenote"}
-              className="size-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
-            >
-              {playing ? <Pause className="size-5" /> : <Play className="size-5 ml-0.5" />}
-            </button>
-            <p className="flex-1 text-[13px] font-body text-foreground">
-              {playing ? "Playing your voicenote" : "Your voicenote is ready"}
-            </p>
+            <VoicePlayer
+              url={signedUrl}
+              variant="onSurface"
+              className="flex-1 min-w-0 text-foreground"
+            />
             <button
               type="button"
               onClick={reRecord}
@@ -279,6 +273,8 @@ const ReviewVoicenoteRecorder = ({
               <Trash2 className="size-4" />
             </button>
           </div>
+          <p className="text-[13px] font-body text-foreground">Your voicenote is ready</p>
+
 
           <div className="flex flex-wrap gap-2">
             <button
