@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toggleWithNone } from "@/lib/healthOptions";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +9,10 @@ import { onboardingBack } from "@/lib/onboardingFlow";
 import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
-import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
+import RequiredField, { MissingAnswersCard } from "@/components/onboarding/RequiredField";
 import Tag from "@/components/Tag";
 import CurlPatternPicker from "@/components/onboarding/CurlPatternPicker";
+
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +101,8 @@ const ANNOTATIONS: Record<string, Record<string, string>> = {
 };
 
 interface TGProps {
+  /** Stable id used for the outstanding-answer list and the scroll target. */
+  id: string;
   label: string;
   options: string[];
   value: string[];
@@ -116,8 +119,24 @@ interface TGProps {
   term?: string;
   /** Key into ANNOTATIONS, when this question's options carry shorthand. */
   annotationSet?: keyof typeof ANNOTATIONS;
+  invalid: boolean;
+  registerRef: (id: string, el: HTMLDivElement | null) => void;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, definition, helper, term, annotationSet }: TGProps) => {
+const TagGroup = ({
+  id,
+  label,
+  options,
+  value,
+  onChange,
+  multi = true,
+  noneLabel,
+  definition,
+  helper,
+  term,
+  annotationSet,
+  invalid,
+  registerRef,
+}: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
   const annotations = annotationSet ? ANNOTATIONS[annotationSet] : undefined;
   const toggle = (opt: string) => {
@@ -128,10 +147,16 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, de
     }
   };
   return (
-    <div>
-      <OnboardingQuestion term={term} definition={definition} helper={helper}>
-        {label}
-      </OnboardingQuestion>
+    <RequiredField
+      id={id}
+      label={label}
+      term={term}
+      definition={definition}
+      hint={helper}
+      answered={safeValue.length > 0}
+      invalid={invalid}
+      registerRef={registerRef}
+    >
       <div className="flex flex-wrap gap-[7px]">
         {options.map((o) => (
           <Tag key={o} selected={safeValue.includes(o)} annotation={annotations?.[o]} onClick={() => toggle(o)}>
@@ -139,9 +164,10 @@ const TagGroup = ({ label, options, value, onChange, multi = true, noneLabel, de
           </Tag>
         ))}
       </div>
-    </div>
+    </RequiredField>
   );
 };
+
 
 
 const ProfileStep3Hair = () => {
@@ -163,6 +189,15 @@ const ProfileStep3Hair = () => {
   const [density, setDensity] = useState<string[]>([]);
   const [lengthInches, setLengthInches] = useState("");
   const [lengthBucket, setLengthBucket] = useState("");
+  // Shown only after a failed Continue, so a member is never greeted by red.
+  const [showErrors, setShowErrors] = useState(false);
+
+  const refs = useRef<Record<string, HTMLDivElement | null>>({});
+  const registerRef = (id: string, el: HTMLDivElement | null) => {
+    refs.current[id] = el;
+  };
+
+
 
   // Keep everything selected on this step if the member navigates back and forth.
   useOnboardingDraft(
@@ -186,6 +221,23 @@ const ProfileStep3Hair = () => {
     },
   );
 
+  // Every question here stays required — we never assume a member has nothing
+  // to declare. The list below is what makes the ask visible instead.
+  const missing = useMemo(() => {
+    const m: { id: string; label: string }[] = [];
+    if (!curlPattern) m.push({ id: "curlPattern", label: "Curl pattern" });
+    if (diameter.length === 0) m.push({ id: "diameter", label: "Strand diameter" });
+    if (surfaceTexture.length === 0) m.push({ id: "surfaceTexture", label: "Surface texture" });
+    if (density.length === 0) m.push({ id: "density", label: "Density" });
+    if (porosity.length === 0) m.push({ id: "porosity", label: "Porosity" });
+    if (elasticity.length === 0) m.push({ id: "elasticity", label: "Elasticity" });
+    if (scalp.length === 0) m.push({ id: "scalp", label: "Scalp condition" });
+    if (diagnosed.length === 0) m.push({ id: "diagnosed", label: "Diagnosed conditions" });
+    if (areas.length === 0) m.push({ id: "areas", label: "Areas of concern" });
+    return m;
+  }, [curlPattern, diameter, surfaceTexture, density, porosity, elasticity, scalp, diagnosed, areas]);
+
+  const invalid = (id: string) => showErrors && missing.some((m) => m.id === id);
 
   const goNext = async () => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
@@ -193,6 +245,8 @@ const ProfileStep3Hair = () => {
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", data.user?.id] });
     navigate("/onboarding/profile-step-4-colour");
   };
+
+
 
 
   return (
@@ -206,15 +260,23 @@ const ProfileStep3Hair = () => {
 
       <div className="px-5 pb-8 space-y-3">
         <OnboardingSectionCard number={1} title="Curl pattern">
-          <OnboardingQuestion term="Curl pattern" helper="Not sure? Give it your best guess — you can book a consultation once you're in the app to confirm it.">
-            Which is your hair most closely matched to?
-          </OnboardingQuestion>
-          <CurlPatternPicker value={curlPattern} onChange={setCurlPattern} />
+          <RequiredField
+            id="curlPattern"
+            label="Which is your hair most closely matched to?"
+            term="Curl pattern"
+            hint="Not sure? Give it your best guess — you can book a consultation once you're in the app to confirm it."
+            answered={!!curlPattern}
+            invalid={invalid("curlPattern")}
+            registerRef={registerRef}
+          >
+            <CurlPatternPicker value={curlPattern} onChange={setCurlPattern} />
+          </RequiredField>
         </OnboardingSectionCard>
 
         <OnboardingSectionCard number={2} title="Feel and look">
           <div className="space-y-4">
             <TagGroup
+              id="diameter"
               multi={false}
               label="Roll one strand between your finger and thumb"
               term="strand diameter"
@@ -222,8 +284,10 @@ const ProfileStep3Hair = () => {
               definition="Strand diameter is how thick a single hair is, from the finest to the coarsest."
               options={["I can barely feel it", "I can feel it clearly", "Thick and wiry", "Different across my head", "Not sure"]}
               value={diameter} onChange={setDiameter}
+              invalid={invalid("diameter")} registerRef={registerRef}
             />
             <TagGroup
+              id="surfaceTexture"
               multi={false}
               label="Slide your fingers down a strand, root to tip"
               term="surface texture"
@@ -231,8 +295,10 @@ const ProfileStep3Hair = () => {
               definition="Surface texture is how smooth or uneven the outside of a strand feels along its length."
               options={["Smooth all the way", "A little grip", "Bumpy, it catches", "Not sure"]}
               value={surfaceTexture} onChange={setSurfaceTexture}
+              invalid={invalid("surfaceTexture")} registerRef={registerRef}
             />
             <TagGroup
+              id="density"
               multi={false}
               label="Part your hair and look along the line"
               term="density"
@@ -241,6 +307,7 @@ const ProfileStep3Hair = () => {
               helper="Make a parting with a comb, then look at how much scalp shows along it."
               options={["A wide band of scalp", "A clear line with a little scalp either side", "The parting closes up as soon as I let go", "Not sure"]}
               value={density} onChange={setDensity}
+              invalid={invalid("density")} registerRef={registerRef}
             />
           </div>
         </OnboardingSectionCard>
@@ -248,6 +315,7 @@ const ProfileStep3Hair = () => {
         <OnboardingSectionCard number={3} title="Water and stretch">
           <div className="space-y-4">
             <TagGroup
+              id="porosity"
               multi={false}
               label="How your hair takes water"
               term="porosity"
@@ -255,8 +323,10 @@ const ProfileStep3Hair = () => {
               definition="Porosity is how readily your hair takes in water and lets it go again."
               options={["Soaks it up fast", "Water beads and sits on top", "Somewhere in between"]}
               value={porosity} onChange={setPorosity}
+              invalid={invalid("porosity")} registerRef={registerRef}
             />
             <TagGroup
+              id="elasticity"
               multi={false}
               label="How a wet strand behaves when you stretch it"
               term="elasticity"
@@ -264,6 +334,7 @@ const ProfileStep3Hair = () => {
               definition="Elasticity is how far a wet strand can stretch and come back without breaking."
               options={["Stretches and springs back", "Snaps, or stays stretched", "Not sure"]}
               value={elasticity} onChange={setElasticity}
+              invalid={invalid("elasticity")} registerRef={registerRef}
             />
           </div>
 
@@ -271,23 +342,37 @@ const ProfileStep3Hair = () => {
 
         <OnboardingSectionCard number={4} title="Scalp and concerns">
           <div className="space-y-4">
-            <TagGroup multi={false} label="Scalp Condition" options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]} value={scalp} onChange={setScalp} />
             <TagGroup
+              id="scalp"
+              multi={false}
+              label="Scalp Condition"
+              options={["Dry", "Oily", "Normal", "Sensitive", "Combination"]}
+              value={scalp} onChange={setScalp}
+              invalid={invalid("scalp")} registerRef={registerRef}
+            />
+            <TagGroup
+              id="diagnosed"
               label="Diagnosed Conditions"
+              helper="Tap “None diagnosed” if nothing applies — we will not assume it."
               options={[
                 "Traction alopecia", "Androgenetic alopecia", "Alopecia areata", "CCCA",
                 "Telogen effluvium", "Seborrheic dermatitis", "Folliculitis",
                 "Scalp psoriasis", "Scalp eczema", "None diagnosed",
               ]}
               value={diagnosed} onChange={setDiagnosed} noneLabel="None diagnosed"
+              invalid={invalid("diagnosed")} registerRef={registerRef}
             />
             <TagGroup
+              id="areas"
               label="Areas of Concern"
+              helper="Tap “None” if nothing applies — we will not assume it."
               options={["Edges / hairline", "Temples", "Crown", "Nape", "Overall thinning", "None"]}
               value={areas} onChange={setAreas} noneLabel="None"
+              invalid={invalid("areas")} registerRef={registerRef}
             />
           </div>
         </OnboardingSectionCard>
+
 
         <OnboardingSectionCard number={5} title="Length">
           <HairLengthPicker
@@ -299,25 +384,16 @@ const ProfileStep3Hair = () => {
             }}
           />
         </OnboardingSectionCard>
-
-
-
+        <MissingAnswersCard missing={missing} />
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
-          const gaps: string[] = [];
-          if (!curlPattern) gaps.push("which pattern your hair most closely matches");
-          if (diameter.length === 0) gaps.push("rolling a strand between your fingers");
-          if (surfaceTexture.length === 0) gaps.push("sliding your fingers down a strand");
-          if (density.length === 0) gaps.push("parting your hair and looking along the line");
-          if (porosity.length === 0) gaps.push("how your hair takes water");
-          if (elasticity.length === 0) gaps.push("how a wet strand behaves");
-          if (scalp.length === 0) gaps.push("scalp condition");
-          if (diagnosed.length === 0) gaps.push("diagnosed conditions");
-          if (areas.length === 0) gaps.push("areas of concern");
-          if (gaps.length > 0) {
-            toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+          if (missing.length > 0) {
+            setShowErrors(true);
+            refs.current[missing[0].id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+            toast.error(`Please answer ${missing[0].label.toLowerCase()} — ${missing.length} question${missing.length === 1 ? "" : "s"} still to go.`);
             return;
           }
+
           // Map the self-assessed labels to the column values a professional
           // would enter, so downstream consumers see the same convention.
           const diameterVal = mapHairFeelLabel("diameter", diameter[0]);

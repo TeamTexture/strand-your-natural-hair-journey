@@ -56,9 +56,12 @@ const MultiSelectDropdown = ({
 
   return (
     <div className="space-y-2">
-      <span className="block font-body text-[14.5px] font-medium leading-[1.3] text-foreground">
-        {label}
-      </span>
+      {label && (
+        <span className="block font-body text-[14.5px] font-medium leading-[1.3] text-foreground">
+          {label}
+        </span>
+      )}
+
 
       <div ref={wrapRef} className="relative">
         <button

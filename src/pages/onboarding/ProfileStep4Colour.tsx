@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useOnboardingDraft } from "@/hooks/useOnboardingDraft";
 import { useBloodSkipped } from "@/lib/bloodSkip";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +10,8 @@ import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
+import RequiredField, { MissingAnswersCard } from "@/components/onboarding/RequiredField";
+
 import Tag from "@/components/Tag";
 
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
@@ -39,33 +41,48 @@ import { getDisplayedAuthUser } from "@/lib/displayedUser";
 const NATURAL_NEVER = "Natural (never coloured)";
 
 interface TGProps {
+  /** Stable id used for the outstanding-answer list and the scroll target. */
+  id: string;
   label: string;
   options: string[];
   value: string[];
   onChange: (n: string[]) => void;
   multi?: boolean;
+  /** Italic helper line — e.g. what to tap when nothing applies. */
+  helper?: string;
+  invalid: boolean;
+  registerRef: (id: string, el: HTMLDivElement | null) => void;
 }
-const TagGroup = ({ label, options, value, onChange, multi = true }: TGProps) => {
+const TagGroup = ({ id, label, options, value, onChange, multi = true, helper, invalid, registerRef }: TGProps) => {
   const safeValue = Array.isArray(value) ? value : [];
-  return <div>
-    <OnboardingQuestion>{label}</OnboardingQuestion>
-    <div className="flex flex-wrap gap-[7px]">
-      {options.map((o) => (
-        <Tag
-          key={o}
-          selected={safeValue.includes(o)}
-          onClick={() =>
-            multi
-              ? onChange(safeValue.includes(o) ? safeValue.filter((v) => v !== o) : [...safeValue, o])
-              : onChange([o])
-          }
-        >
-          {o}
-        </Tag>
-      ))}
-    </div>
-  </div>;
+  return (
+    <RequiredField
+      id={id}
+      label={label}
+      hint={helper}
+      answered={safeValue.length > 0}
+      invalid={invalid}
+      registerRef={registerRef}
+    >
+      <div className="flex flex-wrap gap-[7px]">
+        {options.map((o) => (
+          <Tag
+            key={o}
+            selected={safeValue.includes(o)}
+            onClick={() =>
+              multi
+                ? onChange(safeValue.includes(o) ? safeValue.filter((v) => v !== o) : [...safeValue, o])
+                : onChange([o])
+            }
+          >
+            {o}
+          </Tag>
+        ))}
+      </div>
+    </RequiredField>
+  );
 };
+
 
 const COLOUR_TYPES = ["Professional colour", "Box dye", "Henna", "Not sure"];
 const COLOUR_PRODUCTS = ["Colour", "Lightener (bleach)", "Not sure"];
@@ -115,6 +132,15 @@ const ProfileStep4Colour = () => {
     extensions: null,
   });
   const [attrError, setAttrError] = useState(false);
+  // Shown only after a failed Continue, so a member is never greeted by red.
+  const [showErrors, setShowErrors] = useState(false);
+
+  const refs = useRef<Record<string, HTMLDivElement | null>>({});
+  const registerRef = (id: string, el: HTMLDivElement | null) => {
+    refs.current[id] = el;
+  };
+
+
 
   // Keep everything entered on this step if the member navigates back and forth.
   useOnboardingDraft(
@@ -149,36 +175,49 @@ const ProfileStep4Colour = () => {
   const isNaturalNever = colour[0] === NATURAL_NEVER;
   const isChanging = plansToChange === "yes";
 
+  // Every answer on this step stays required. The list is what makes the
+  // outstanding ones visible, in the same shape as the health step.
+  const missing = useMemo(() => {
+    const m: { id: string; label: string }[] = [];
+    if (colour.length === 0) m.push({ id: "colour", label: "Current colour status" });
+    if (!isNaturalNever) {
+      if (chemHist.length === 0) m.push({ id: "chemHist", label: "Chemical history" });
+      if (!colourType) m.push({ id: "colourType", label: "Colour type" });
+      if (!colourProduct) m.push({ id: "colourProduct", label: "Product used" });
+      if (!colourLast) m.push({ id: "colourLast", label: "Last colour treatment" });
+      if (!colourReaction) m.push({ id: "colourReaction", label: "Colour reaction" });
+    }
+    if (!style[0]) m.push({ id: "style", label: "Current hairstyle" });
+    if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
+      m.push({ id: "howLong", label: "How long in this style" });
+    }
+    if (!plansToChange) m.push({ id: "plansToChange", label: "Plans to change style" });
+    if (plansToChange === "yes") {
+      if (changeNum.trim() === "") m.push({ id: "changeWhen", label: "When you plan to change" });
+      if (changingTo.length === 0) m.push({ id: "changingTo", label: "What you are changing to" });
+    }
+    if (defaultStyle.length === 0) m.push({ id: "defaultStyle", label: "Usual style" });
+    return m;
+  }, [
+    colour, isNaturalNever, chemHist, colourType, colourProduct, colourLast, colourReaction,
+    style, howLongNum, plansToChange, changeNum, changingTo, defaultStyle,
+  ]);
+
+  const invalid = (id: string) => showErrors && missing.some((m) => m.id === id);
+
   /**
    * Validate and persist the colour/style answers. Returns false when anything
    * is missing so the caller can leave her on the form — both the "add blood
    * results" and the "skip to membership" routes save exactly the same way.
    */
   const saveStyle = async (): Promise<boolean> => {
-    // Every answer on this step must be explicit.
-    const gaps: string[] = [];
-    if (colour.length === 0) gaps.push("current colour status");
-    if (!isNaturalNever) {
-      if (chemHist.length === 0) gaps.push("chemical history");
-      if (!colourType) gaps.push("colour type");
-      if (!colourProduct) gaps.push("product used");
-      if (!colourLast) gaps.push("last colour treatment");
-      if (!colourReaction) gaps.push("colour reaction");
-    }
-    if (!style[0]) gaps.push("current hairstyle");
-    if (howLongNum.trim() === "" || !Number.isFinite(parseInt(howLongNum, 10))) {
-      gaps.push("how long in this style");
-    }
-    if (!plansToChange) gaps.push("plans to change style");
-    if (plansToChange === "yes") {
-      if (changeNum.trim() === "") gaps.push("when you plan to change");
-      if (changingTo.length === 0) gaps.push("what you are changing to");
-    }
-    if (defaultStyle.length === 0) gaps.push("default / normal style");
-    if (gaps.length > 0) {
-      toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+    if (missing.length > 0) {
+      setShowErrors(true);
+      refs.current[missing[0].id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast.error(`Please answer ${missing[0].label.toLowerCase()} — ${missing.length} question${missing.length === 1 ? "" : "s"} still to go.`);
       return false;
     }
+
 
     // Require reaction details (text or voice note) when a reaction is flagged.
     if (
@@ -333,18 +372,23 @@ const ProfileStep4Colour = () => {
         <OnboardingSectionCard number={1} title="Colour and chemical history">
         <div className="space-y-4">
         <TagGroup
+          id="colour"
           label="Current Colour Status"
           options={[NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
           value={colour} onChange={setColour}
           multi={false}
+          invalid={invalid("colour")} registerRef={registerRef}
         />
 
         {!isNaturalNever && (
           <>
             <TagGroup
+              id="chemHist"
               label="Chemical History"
+              helper="Tap “None” if nothing applies — we will not assume it."
               options={["Relaxer current", "Relaxer past", "Texturiser", "Curly perm", "Heat damage", "None"]}
               value={chemHist} onChange={setChemHist}
+              invalid={invalid("chemHist")} registerRef={registerRef}
             />
 
             <div className="border-t border-border" />
@@ -353,18 +397,28 @@ const ProfileStep4Colour = () => {
             <div className="space-y-3">
               <OnboardingQuestion>Colour History</OnboardingQuestion>
 
-              <div>
-                <OnboardingQuestion className="mb-1.5">Colour type</OnboardingQuestion>
+              <RequiredField
+                id="colourType"
+                label="Colour type"
+                answered={!!colourType}
+                invalid={invalid("colourType")}
+                registerRef={registerRef}
+              >
                 <Select value={colourType} onValueChange={setColourType}>
                   <SelectTrigger><SelectValue placeholder="Select colour type…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_TYPES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              </RequiredField>
 
-              <div>
-                <OnboardingQuestion className="mb-1.5">Product used</OnboardingQuestion>
+              <RequiredField
+                id="colourProduct"
+                label="Product used"
+                answered={!!colourProduct}
+                invalid={invalid("colourProduct")}
+                registerRef={registerRef}
+              >
                 <Select value={colourProduct} onValueChange={setColourProduct}>
                   <SelectTrigger><SelectValue placeholder="Select product used…" /></SelectTrigger>
                   <SelectContent>
@@ -376,21 +430,25 @@ const ProfileStep4Colour = () => {
                     Not sure? Select 'Not sure' and your professional will confirm at your appointment.
                   </p>
                 </LevelGate>
-              </div>
+              </RequiredField>
 
-              <div>
-                <OnboardingQuestion className="mb-1.5">
-                  When was your last colour treatment?
-                </OnboardingQuestion>
+              <RequiredField
+                id="colourLast"
+                label="When was your last colour treatment?"
+                answered={!!colourLast}
+                invalid={invalid("colourLast")}
+                registerRef={registerRef}
+              >
                 <Select value={colourLast} onValueChange={setColourLast}>
                   <SelectTrigger><SelectValue placeholder="Select a timeframe…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_TIMEFRAMES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              </RequiredField>
 
               <TagGroup
+                id="colourReaction"
                 label="Have you ever had a reaction to hair colour?"
                 options={["Yes", "No"]}
                 value={colourReaction === "yes" ? ["Yes"] : colourReaction === "no" ? ["No"] : []}
@@ -399,7 +457,9 @@ const ProfileStep4Colour = () => {
                   setReactionError(false);
                 }}
                 multi={false}
+                invalid={invalid("colourReaction")} registerRef={registerRef}
               />
+
 
               {colourReaction === "yes" && (
                 <VoiceNoteField
@@ -424,11 +484,18 @@ const ProfileStep4Colour = () => {
 
         <OnboardingSectionCard number={2} title="Your current style">
         <div className="space-y-4">
-        <div>
-          <OnboardingQuestion>
-            Current hairstyle{" "}
-            <span className="font-semibold text-foreground">(choose one)</span>
-          </OnboardingQuestion>
+        <RequiredField
+          id="style"
+          label={
+            <>
+              Current hairstyle{" "}
+              <span className="font-semibold text-foreground">(choose one)</span>
+            </>
+          }
+          answered={!!style[0]}
+          invalid={invalid("style")}
+          registerRef={registerRef}
+        >
           <StylePicker
             collapseOnSelect
             value={style[0] ?? null}
@@ -443,12 +510,15 @@ const ProfileStep4Colour = () => {
             }}
             attributeError={attrError}
           />
-        </div>
+        </RequiredField>
 
-        <div>
-          <OnboardingQuestion>
-            How Long in This Style
-          </OnboardingQuestion>
+        <RequiredField
+          id="howLong"
+          label="How Long in This Style"
+          answered={howLongNum.trim() !== "" && Number.isFinite(parseInt(howLongNum, 10))}
+          invalid={invalid("howLong")}
+          registerRef={registerRef}
+        >
           <div className="flex gap-3">
             <Input
               type="number"
@@ -471,26 +541,31 @@ const ProfileStep4Colour = () => {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </RequiredField>
         </div>
         </OnboardingSectionCard>
 
         <OnboardingSectionCard number={3} title="Changing your style">
         <div className="space-y-4">
         <TagGroup
+          id="plansToChange"
           label="Plans to Change Style"
           options={["Yes", "No"]}
           value={plansToChange === "yes" ? ["Yes"] : plansToChange === "no" ? ["No"] : []}
           onChange={(v) => setPlansToChange(v.includes("Yes") ? "yes" : "no")}
           multi={false}
+          invalid={invalid("plansToChange")} registerRef={registerRef}
         />
 
         {isChanging && (
           <>
-            <div>
-              <OnboardingQuestion>
-                When do you plan to change it?
-              </OnboardingQuestion>
+            <RequiredField
+              id="changeWhen"
+              label="When do you plan to change it?"
+              answered={changeNum.trim() !== ""}
+              invalid={invalid("changeWhen")}
+              registerRef={registerRef}
+            >
               <div className="flex gap-3">
                 <Input
                   type="number"
@@ -513,16 +588,24 @@ const ProfileStep4Colour = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </RequiredField>
 
-            <MultiSelectDropdown
+            <RequiredField
+              id="changingTo"
               label="Changing To"
-              options={HAIRSTYLE_OPTIONS}
-              value={changingTo}
-              onChange={setChangingTo}
-              placeholder="Select your next style…"
-              maxSelected={1}
-            />
+              answered={changingTo.length > 0}
+              invalid={invalid("changingTo")}
+              registerRef={registerRef}
+            >
+              <MultiSelectDropdown
+                label=""
+                options={HAIRSTYLE_OPTIONS}
+                value={changingTo}
+                onChange={setChangingTo}
+                placeholder="Select your next style…"
+                maxSelected={1}
+              />
+            </RequiredField>
 
             {(styleAsksTension(changingTo[0]) || styleAsksExtensions(changingTo[0])) && (
               <StylePicker
@@ -541,14 +624,25 @@ const ProfileStep4Colour = () => {
         </OnboardingSectionCard>
 
         <OnboardingSectionCard number={4} title="Your usual style">
-        <MultiSelectDropdown
+        <RequiredField
+          id="defaultStyle"
           label="Default / Normal Style"
-          options={HAIRSTYLE_OPTIONS}
-          value={defaultStyle}
-          onChange={setDefaultStyle}
-          placeholder="Select your usual styles…"
-        />
+          answered={defaultStyle.length > 0}
+          invalid={invalid("defaultStyle")}
+          registerRef={registerRef}
+        >
+          <MultiSelectDropdown
+            label=""
+            options={HAIRSTYLE_OPTIONS}
+            value={defaultStyle}
+            onChange={setDefaultStyle}
+            placeholder="Select your usual styles…"
+          />
+        </RequiredField>
         </OnboardingSectionCard>
+
+        <MissingAnswersCard missing={missing} />
+
 
 
         <Button

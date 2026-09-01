@@ -137,9 +137,16 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // flow. onboarding_completed_at is the durable answer; the field checks only
   // drive members who have not finished yet.
   const basicOk = basicComplete || markedComplete;
-  const healthComplete = markedComplete || (basicComplete && healthFieldsComplete);
+  // The chain hangs off basicOk — the SAME value this function reports — so a
+  // profile basic that later goes blank (avatar, phone, postcode, country,
+  // birth year) can never invalidate a health, hair or style row already on
+  // file and bounce her backwards through screens she has finished. A genuinely
+  // new member who has not filled step 1 still has basicOk false, so the field
+  // requirements are unchanged for her.
+  const healthComplete = markedComplete || (basicOk && healthFieldsComplete);
   const hairComplete = markedComplete || (healthComplete && hairFieldsComplete);
   const styleComplete = markedComplete || (hairComplete && styleFieldsComplete);
+
   const bloodOnFile = (bloodResultsRes.count ?? 0) > 0 && (bloodPanelsRes.count ?? 0) > 0;
   // Consultation: logged professional with a consultation date on file. Kept as
   // information only — it gates nothing.
@@ -150,7 +157,8 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // all now: the hair characteristics (markers + colour/style) are what unlock
   // STRAND, and the member answers them herself.
   const fieldsComplete =
-    basicComplete && healthComplete && hairComplete && styleComplete;
+    basicOk && healthComplete && hairComplete && styleComplete;
+
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {

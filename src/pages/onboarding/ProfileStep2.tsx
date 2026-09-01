@@ -9,6 +9,11 @@ import OnboardingGuide from "@/components/onboarding/OnboardingGuide";
 import OnboardingScreenHeading from "@/components/onboarding/OnboardingScreenHeading";
 import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard";
 import OnboardingQuestion from "@/components/onboarding/OnboardingQuestion";
+import RequiredField, {
+  MissingAnswersCard,
+  type RequiredFieldProps,
+} from "@/components/onboarding/RequiredField";
+
 import Tag from "@/components/Tag";
 import MedicationPicker from "@/components/MedicationPicker";
 import { Button } from "@/components/ui/button";
@@ -34,41 +39,13 @@ import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 /* ── shared field shell ───────────────────────────────────────────────── */
 
-interface FieldProps {
-  id: string;
-  label: string;
-  answered: boolean;
-  invalid: boolean;
-  hint?: string;
-  registerRef: (id: string, el: HTMLDivElement | null) => void;
-  children: React.ReactNode;
-}
-const Field = ({ id, label, answered, invalid, hint, registerRef, children }: FieldProps) => (
-  <div
-    ref={(el) => registerRef(id, el)}
-    className={cn(
-      "rounded-[14px] transition-all scroll-mt-24",
-      invalid && "ring-2 ring-destructive/70 bg-destructive/5 -mx-2 px-2 py-2",
-    )}
-  >
-    <div className="flex items-baseline justify-between gap-2">
-      <OnboardingQuestion helper={hint} className="mb-[9px] min-w-0">
-        {label}
-      </OnboardingQuestion>
-      {!answered && (
-        <span
-          className={cn(
-            "shrink-0 text-[10px] uppercase tracking-[0.14em] font-body",
-            invalid ? "text-destructive" : "text-muted-foreground/70",
-          )}
-        >
-          Required
-        </span>
-      )}
-    </div>
-    {children}
-  </div>
-);
+/**
+ * The required-answer shell now lives in one place so every onboarding capture
+ * screen shows the identical "Required" label, error ring and scroll target.
+ */
+type FieldProps = RequiredFieldProps;
+const Field = RequiredField;
+
 
 interface ChipFieldProps extends Omit<FieldProps, "children" | "answered" | "invalid"> {
   options: readonly string[];
@@ -434,16 +411,8 @@ const ProfileStep2 = () => {
           <MedicationPicker value={meds} onChange={setMeds} />
         </OnboardingSectionCard>
 
-        {missing.length > 0 && (
-          <div className="rounded-[14px] border border-border bg-card px-4 py-3">
-            <p className="text-[12px] font-body text-foreground">
-              {missing.length} question{missing.length === 1 ? "" : "s"} still to answer:
-            </p>
-            <p className="mt-1 text-[12px] font-body text-muted-foreground leading-snug">
-              {missing.map((m) => m.label).join(" · ")}
-            </p>
-          </div>
-        )}
+        <MissingAnswersCard missing={missing} />
+
 
         <Button variant="gold" size="pill" className="mt-4" disabled={saving} onClick={onContinue}>
           {saving ? "Saving…" : "Continue →"}
