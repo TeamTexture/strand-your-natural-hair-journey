@@ -221,6 +221,23 @@ const ProfileStep3Hair = () => {
     },
   );
 
+  // Every question here stays required — we never assume a member has nothing
+  // to declare. The list below is what makes the ask visible instead.
+  const missing = useMemo(() => {
+    const m: { id: string; label: string }[] = [];
+    if (!curlPattern) m.push({ id: "curlPattern", label: "Curl pattern" });
+    if (diameter.length === 0) m.push({ id: "diameter", label: "Strand diameter" });
+    if (surfaceTexture.length === 0) m.push({ id: "surfaceTexture", label: "Surface texture" });
+    if (density.length === 0) m.push({ id: "density", label: "Density" });
+    if (porosity.length === 0) m.push({ id: "porosity", label: "Porosity" });
+    if (elasticity.length === 0) m.push({ id: "elasticity", label: "Elasticity" });
+    if (scalp.length === 0) m.push({ id: "scalp", label: "Scalp condition" });
+    if (diagnosed.length === 0) m.push({ id: "diagnosed", label: "Diagnosed conditions" });
+    if (areas.length === 0) m.push({ id: "areas", label: "Areas of concern" });
+    return m;
+  }, [curlPattern, diameter, surfaceTexture, density, porosity, elasticity, scalp, diagnosed, areas]);
+
+  const invalid = (id: string) => showErrors && missing.some((m) => m.id === id);
 
   const goNext = async () => {
     localStorage.setItem("strand_onboarding_step", "/onboarding/profile-step-4-colour");
@@ -228,6 +245,8 @@ const ProfileStep3Hair = () => {
     await queryClient.invalidateQueries({ queryKey: ["consumer_onboarding_route", data.user?.id] });
     navigate("/onboarding/profile-step-4-colour");
   };
+
+
 
 
   return (
