@@ -19,6 +19,7 @@ import {
   Store,
   MessageSquare,
   MessageSquareHeart,
+  Mic,
   Library,
   ShieldAlert,
   CalendarDays,
