@@ -384,25 +384,16 @@ const ProfileStep3Hair = () => {
             }}
           />
         </OnboardingSectionCard>
-
-
-
+        <MissingAnswersCard missing={missing} />
 
         <Button variant="gold" size="pill" className="mt-4" onClick={async () => {
-          const gaps: string[] = [];
-          if (!curlPattern) gaps.push("which pattern your hair most closely matches");
-          if (diameter.length === 0) gaps.push("rolling a strand between your fingers");
-          if (surfaceTexture.length === 0) gaps.push("sliding your fingers down a strand");
-          if (density.length === 0) gaps.push("parting your hair and looking along the line");
-          if (porosity.length === 0) gaps.push("how your hair takes water");
-          if (elasticity.length === 0) gaps.push("how a wet strand behaves");
-          if (scalp.length === 0) gaps.push("scalp condition");
-          if (diagnosed.length === 0) gaps.push("diagnosed conditions");
-          if (areas.length === 0) gaps.push("areas of concern");
-          if (gaps.length > 0) {
-            toast.error(`Please answer ${gaps[0]} — ${gaps.length} question${gaps.length === 1 ? "" : "s"} still to go.`);
+          if (missing.length > 0) {
+            setShowErrors(true);
+            refs.current[missing[0].id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+            toast.error(`Please answer ${missing[0].label.toLowerCase()} — ${missing.length} question${missing.length === 1 ? "" : "s"} still to go.`);
             return;
           }
+
           // Map the self-assessed labels to the column values a professional
           // would enter, so downstream consumers see the same convention.
           const diameterVal = mapHairFeelLabel("diameter", diameter[0]);
