@@ -164,7 +164,7 @@ function buildSelectorContext(body: RequestBody): SelectorContext {
       contraception: arr(hl.contraception),
       conditions: arr(hl.medical_conditions),
     },
-    bloodResults: Array.isArray(ctx.bloodResults) ? ctx.bloodResults : [],
+    bloodResults: (Array.isArray(ctx.bloodResults) ? ctx.bloodResults : []) as SelectorContext["bloodResults"],
   };
 }
 
