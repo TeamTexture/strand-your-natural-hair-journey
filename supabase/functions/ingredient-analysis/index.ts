@@ -731,6 +731,8 @@ async function runClaude(args: {
   attemptNumber?: number | null;
   maxAttempts?: number | null;
   retryReason?: string | null;
+  /** TIERS (Part 3): deterministic Tier 1 findings + which tiers are visible. */
+  tierBlock?: string;
 }): Promise<AnalysisPayload> {
   const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList, level } = args;
   const ingredientCount = ingredients.length;
@@ -740,7 +742,7 @@ async function runClaude(args: {
 
   const req = await buildClaudeRequest({
     function_kind: "ingredient-analysis",
-    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.usageBlock ?? ""}${args.factsBlock ?? ""}`,
+    task_instructions: `${buildTaskInstructions(productBrand, productName, ingredientCount, level, ingredients)}${args.sensitivityBlock ?? ""}${args.usageBlock ?? ""}${args.factsBlock ?? ""}${args.tierBlock ?? ""}`,
     user_payload: userPayload,
     selector_context: selectorContext,
     force_topic_ids: ["wash-day-mechanics", "porosity", "scalp-conditions", "diagnosed-conditions"],
@@ -779,6 +781,15 @@ async function runClaude(args: {
 }
 
 import { allChallenges } from "../_shared/challenges.ts";
+import {
+  compactHealthTier,
+  runTier1,
+  shouldIncludeHealthTier,
+  tier1Block,
+  tierRulesBlock,
+  TIER_4_KEYS,
+  type ProductSignals,
+} from "../_shared/tiers.ts";
 import {
   buildGroundingBlock,
   ragQueryFromAiContext,
@@ -1331,6 +1342,49 @@ Deno.serve(async (req) => {
     }));
 
 
+    // ── TIERED PERSONALISATION DATA (Part 3, 2026-09-01) ──────────────
+    const productSignals: ProductSignals = {
+      productName,
+      brand: productBrand,
+      category: productCategory,
+      applicationArea,
+      ingredients: rawIngredients,
+    };
+    const healthTier = shouldIncludeHealthTier(productSignals);
+    const tier1 = runTier1(
+      (body.context ?? {}) as Record<string, unknown>,
+      productSignals,
+    );
+    const healthTierPayload: Record<string, unknown> = healthTier.mode === "full"
+      ? {
+        healthProfile: healthProfile ?? {},
+        bloodResults: bloodRows,
+        medications: medRows,
+      }
+      : healthTier.mode === "compact"
+      ? {
+        medications: medRows,
+        ...compactHealthTier(
+          { healthProfile, bloodResults: bloodRows } as Record<string, unknown>,
+        ),
+      }
+      : {};
+    const tierBlock = `${tier1Block(tier1)}${
+      tierRulesBlock({
+        context: {},
+        guidance: {},
+        health: healthTier,
+        included: Object.keys(healthTierPayload),
+        withheld: healthTier.mode === "full" ? [] : [...TIER_4_KEYS],
+      })
+    }`;
+    console.log("[tiers] ingredient-analysis", {
+      health_mode: healthTier.mode,
+      health_reason: healthTier.reason,
+      matched: healthTier.matched ?? null,
+      water_hardness: tier1.waterHardness,
+    });
+
     const userPayload: Record<string, unknown> = {
       product: {
         key: productKey,
@@ -1345,10 +1399,15 @@ Deno.serve(async (req) => {
 
       ingredients: rawIngredients,
       hairProfile: hairProfile ?? {},
-      healthProfile: healthProfile ?? {},
+      // ── TIER 3 (Part 3, 2026-09-01) — conditional health data ───────
+      // This surface knows the product's real INCI list, category and
+      // application area, so the gate runs on genuine signals: the full
+      // health tier travels only when the formula could plausibly interact
+      // with it. Otherwise she gets the compact slice — conditions,
+      // medications, life stage and the hair-relevant markers that are out
+      // of range — and panel history stays on the blood surfaces.
+      ...healthTierPayload,
       heritage: heritage ?? [],
-      bloodResults: bloodRows,
-      medications: medRows,
       goals: goals && goals.length ? goals : dbGoals,
       currentStyle: currentStyle ?? null,
       // Never empty when the member has any: fall back to flattening the
@@ -1406,6 +1465,7 @@ Deno.serve(async (req) => {
           sensitivityBlock,
           usageBlock,
           factsBlock,
+          tierBlock,
           generationId,
           attemptNumber,
           maxAttempts: MAX_REJECTION_ATTEMPTS,
@@ -1458,7 +1518,7 @@ Deno.serve(async (req) => {
         const systemPrompt = `${STRAND_PERSONA_INLINE}
 
 TASK
-${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${usageBlock}${factsBlock}`;
+${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, rawIngredients)}${sensitivityBlock}${usageBlock}${factsBlock}${tierBlock}`;
         analysis = await runLovable({
           systemPrompt,
           userPayload: baseRetryPayload,
