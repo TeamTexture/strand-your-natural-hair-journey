@@ -157,7 +157,8 @@ export async function getConsumerOnboardingStatus(userId: string) {
   // all now: the hair characteristics (markers + colour/style) are what unlock
   // STRAND, and the member answers them herself.
   const fieldsComplete =
-    basicComplete && healthComplete && hairComplete && styleComplete;
+    basicOk && healthComplete && hairComplete && styleComplete;
+
   const dataComplete = fieldsComplete || markedComplete;
 
   if (fieldsComplete && !markedComplete) {
