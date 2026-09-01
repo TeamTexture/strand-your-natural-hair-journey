@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, ChevronDown, ChevronUp, Copy, ExternalLink, Loader2, Sparkles,
+  AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Copy, ExternalLink, Loader2, Mic, Sparkles,
   PoundSterling, Wallet, Ticket, Webhook, ShieldOff, ShieldCheck,
 } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
