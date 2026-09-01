@@ -80,6 +80,9 @@ const TrialPaywall = () => {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(() => params.get("checkout") === "success");
   const [stalled, setStalled] = useState(false);
+  // Bumped by "Check again" so the polling effect starts a fresh backoff window.
+  const [pollNonce, setPollNonce] = useState(0);
+
   const [checking, setChecking] = useState(false);
 
   const nextPath = isSafeInternalPath(params.get("next")) ? params.get("next")! : AFTER_TRIAL_PATH;
