@@ -12,6 +12,7 @@
 
 import { FIT_FIRST_SCORE_RULES } from "./fit-first-score.ts";
 import { CONCERN_FIT_RULES } from "./concern-fit.ts";
+import { RELEVANCE_AXIS_RULES } from "./relevance-axis.ts";
 import { MECHANISM_SPECIFICITY_RULES } from "./mechanism-specificity.ts";
 import { BENIGN_FLAG_RULES } from "./benign-flags.ts";
 
@@ -60,6 +61,8 @@ export const ANALYSIS_FAILSAFE_RULES = `
 ${FIT_FIRST_SCORE_RULES}
 
 ${CONCERN_FIT_RULES}
+
+${RELEVANCE_AXIS_RULES}
 
 ${MECHANISM_SPECIFICITY_RULES}
 

@@ -35,6 +35,7 @@ import ScoreReasons, { parseScoreReasons, scoreReasonsHeading, type ScoreReason 
 import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
 
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
+import RelevanceNote, { parseRelevanceNote } from "@/components/product/RelevanceNote";
 import { alignFitLanguage } from "@/lib/fitBand";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
@@ -77,6 +78,7 @@ interface IngredientAnalysisResponse {
     match_score?: number;
     score_reasons?: unknown;
     strand_tip?: unknown;
+    relevance_note?: unknown;
 
   };
 }
@@ -128,6 +130,7 @@ const ProductProfile = () => {
   const [aiScoreReasons, setAiScoreReasons] = useState<ScoreReason[]>([]);
   // Fit-first: mild, non-harmful observations render here, never as score rationale.
   const [strandTips, setStrandTips] = useState<StrandTipNote[]>([]);
+  const [relevanceNote, setRelevanceNote] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -310,6 +313,7 @@ const ProductProfile = () => {
         const reasons = parseScoreReasons(data?.analysis?.score_reasons);
         setAiScoreReasons(reasons);
         setStrandTips(parseStrandTips(data?.analysis?.strand_tip));
+        setRelevanceNote(parseRelevanceNote(data?.analysis?.relevance_note));
 
         // Persist to user_products so the next visit hydrates instantly and
         // never re-triggers the AI call. We save both the summary/score AND
@@ -494,6 +498,7 @@ const ProductProfile = () => {
                     <ScoreReasons reasons={aiScoreReasons} heading={scoreReasonsHeading(score)} />
 
                   </StatusCallout>
+                  <RelevanceNote note={relevanceNote} />
                   <StrandTipNotes tips={strandTips} />
                 </div>
               ) : aiError ? (

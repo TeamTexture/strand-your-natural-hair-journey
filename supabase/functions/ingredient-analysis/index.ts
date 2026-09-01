@@ -119,6 +119,11 @@ import {
 } from "../_shared/guardrail-retry.ts";
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
 import { applyConcernFit, parseChallenges, parseConcerns } from "../_shared/concern-fit.ts";
+import {
+  QUALITY_SCORE_SCHEMA_PROPERTY,
+  RELEVANCE_NOTE_SCHEMA_PROPERTY,
+  resolveScoreAxes,
+} from "../_shared/relevance-axis.ts";
 import { validateMechanismSpecificity } from "../_shared/mechanism-specificity.ts";
 import { applyBenignFlagPolicy } from "../_shared/benign-flags.ts";
 
@@ -134,7 +139,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v24-mechanism-substance-2026-08-30";
+const MODEL_VERSION = "claude-sonnet-4-6@v26-two-axes-2026-09-01";
 
 
 
@@ -161,6 +166,10 @@ interface GuidanceTip {
 }
 interface AnalysisPayload {
   match_score: number;
+  /** Formulation quality + safety only — the basis for match_score. */
+  quality_score?: number | null;
+  /** One sentence when the formula's purpose differs from her recorded focus. */
+  relevance_note?: string | null;
   score_reasons?: ScoreReason[];
   insight?: PurposeInsight;
   summary: string;
@@ -387,6 +396,10 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
     type: "object",
     properties: {
       match_score: { type: "integer", minimum: 0, maximum: 100 },
+      // TWO AXES (2026-09-01): quality/safety is the basis for match_score; a
+      // purpose mismatch lives in relevance_note and never moves the number.
+      quality_score: QUALITY_SCORE_SCHEMA_PROPERTY,
+      relevance_note: RELEVANCE_NOTE_SCHEMA_PROPERTY,
       score_reasons: SCORE_REASONS_SCHEMA_PROPERTY,
       strand_tip: STRAND_TIP_SCHEMA_PROPERTY,
       insight: PURPOSE_INSIGHT_SCHEMA_PROPERTY,
@@ -1578,10 +1591,17 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // Only a real conflict or a real harm may lower the score. Mild,
       // non-harmful observations move to the Strand Tip, which the UI renders
       // separately and never describes as score rationale.
+      // TWO AXES (2026-09-01): resolve quality/safety vs relevance BEFORE any
+      // scoring, so a purpose mismatch never drags the rating down.
+      const axes = resolveScoreAxes({
+        matchScore: analysis.match_score,
+        qualityScore: analysis.quality_score,
+        relevanceNote: analysis.relevance_note,
+        reasons,
+        strandTips: sanitiseStrandTips(analysis.strand_tip),
+      });
       const fitFirst = applyFitFirst(
-        typeof analysis.match_score === "number"
-          ? alignScoreWithReasons(analysis.match_score, reasons)
-          : null,
+        axes.score != null ? alignScoreWithReasons(axes.score, reasons) : null,
         reasons,
         sanitiseStrandTips(analysis.strand_tip),
       );
@@ -1617,6 +1637,8 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       analysis.score_reasons = rankScoreReasons(concernFit.reasons);
       analysis.strand_tip = fitFirst.strandTips.length ? fitFirst.strandTips : null;
       if (concernFit.score != null) analysis.match_score = concernFit.score;
+      analysis.quality_score = axes.qualityScore;
+      analysis.relevance_note = axes.relevanceNote;
       if (Array.isArray(benign.cards)) {
         (analysis as Record<string, unknown>).ingredients = benign.cards;
       }

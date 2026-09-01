@@ -26,6 +26,9 @@ import { applyConcernFit, parseChallenges, parseConcerns, type ConcernContributi
 import { heroActiveOmissions, rankScoreReasons } from "./score-reasons.ts";
 import { validateMechanismSpecificity } from "./mechanism-specificity.ts";
 import { applyBenignFlagPolicy } from "./benign-flags.ts";
+// TWO AXES (2026-09-01): quality/safety drives the number the UI reads;
+// relevance gets its own sentence and never touches the score.
+import { resolveScoreAxes } from "./relevance-axis.ts";
 
 /**
  * THE enumeration. Every function named here must route its generated payload
@@ -56,6 +59,13 @@ export interface FailsafeInput {
   vocabulary?: string[];
   /** Omit (or pass null) on guidance-only surfaces with no score. */
   score?: number | null;
+  /** The model's quality/safety axis (`quality_score`). When present it — not
+   *  `score` — is the basis for `match_score`, so a purpose mismatch can never
+   *  drag the rating down (see _shared/relevance-axis.ts). */
+  qualityScore?: unknown;
+  /** The model's `relevance_note`. Returned sanitised, or derived from a
+   *  relevance-framed row when the model put it in the wrong field. */
+  relevanceNote?: unknown;
   reasons?: ScoreReason[];
   /** Whatever the model returned in `strand_tip`. */
   modelTips?: unknown;
@@ -98,10 +108,20 @@ export interface FailsafeResult {
   reasons: ScoreReason[];
   strandTips: StrandTipNote[];
   score: number | null;
+  /** The quality/safety axis as resolved — the basis for `score`. */
+  qualityScore: number | null;
+  /** One plain sentence when the formula's purpose differs from what she
+   *  recorded. Rendered as its own row, never as score rationale. */
+  relevanceNote: string | null;
   /** The ingredient cards, with concern-driven flags corrected. */
   cards: unknown;
   /** Counts of concern corrections applied — for logs, never member-facing. */
-  concernCorrections: { reframed: number; reflagged: number; downgradedFlags: number };
+  concernCorrections: {
+    reframed: number;
+    reflagged: number;
+    downgradedFlags: number;
+    synthesisedPluses: number;
+  };
   /** The proportional concern/challenge maths that moved the score. */
   concernContribution: ConcernContribution;
 }
@@ -122,9 +142,19 @@ export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
     directions: input.directions ?? null,
   }).violations;
 
-  const hasScore = typeof input.score === "number" && Number.isFinite(input.score);
+  // Split the axes BEFORE any scoring runs, so the fit-first floors, the
+  // concern lift, the stars and the fit band all work off the quality/safety
+  // number and never off a relevance-contaminated one.
+  const axes = resolveScoreAxes({
+    matchScore: input.score,
+    qualityScore: input.qualityScore,
+    relevanceNote: input.relevanceNote,
+    reasons: input.reasons ?? [],
+    strandTips: sanitiseStrandTips(input.modelTips),
+  });
+  const hasScore = axes.score != null;
   const fit = applyFitFirst(
-    hasScore ? (input.score as number) : null,
+    hasScore ? (axes.score as number) : null,
     input.reasons ?? [],
     sanitiseStrandTips(input.modelTips),
   );
@@ -166,8 +196,11 @@ export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
     reasons: ranked,
     strandTips: fit.strandTips,
     score: concern.score,
+    qualityScore: axes.qualityScore,
+    relevanceNote: axes.relevanceNote,
     cards: benign.cards,
     concernCorrections: {
+      synthesisedPluses: concern.synthesisedPluses ?? 0,
       reframed: concern.reframed,
       reflagged: concern.reflagged,
       downgradedFlags: benign.downgraded,

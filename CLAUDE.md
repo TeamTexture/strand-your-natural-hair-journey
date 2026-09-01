@@ -152,3 +152,14 @@ The vocabulary lockdown and the source lockdown police **nouns**. They do not ca
 - **Ingredient cards must state a mechanism and a site of action.** `_shared/mechanism-specificity.ts` rejects generic category filler ("a peptide-derived conditioning agent") inside the retry loop. Watch the interaction with `relationship_integrity`: a peptide's real root/emerging-strand mechanism is legitimate and must not be phrased as a growth or follicle-penetration claim, or the guardrail rejects it and the model falls back to filler.
 - **Routine functional ingredients are not warnings.** `_shared/benign-flags.ts` deterministically downgrades warn/avoid flags on preservatives, pH adjusters, buffers, chelators, emulsifiers, colourants and fragrance unless the member has a declared sensitivity or documented avoid entry. Only a declared sensitivity or a genuine safety issue may read as a caution.
 - Tests: `src/test/concern_fit.test.ts` and `src/test/concern_fit_proportional.test.ts`. Do not weaken them to make a generation pass.
+
+## STANDING RULE — quality/safety and relevance are two separate axes (2026-09-01, permanent)
+
+A well-made product aimed at a different area of the member's hair is not a bad product. The rating and the purpose-match are answered separately.
+
+- `quality_score` (formulation quality + safety, judged on the real ingredient list) is the ONLY basis for `match_score`, and therefore for the stars, the fit band and the passport. Relevance may never move that number.
+- `relevance_note` is one calm sentence naming what the formula is built for and what she recorded, ONLY when they differ. Null is the preferred answer. It renders as its own row under the verdict (`src/components/product/RelevanceNote.tsx`, via `GlossaryRichText`) and NEVER inside "Why it scored this high/low".
+- The split is resolved before any scoring in `supabase/functions/_shared/relevance-axis.ts` (`resolveScoreAxes`), called from `enforceAnalysisFailsafes` and directly in `ingredient-analysis`. When the model files a purpose mismatch as a minus, the note is recovered from its own sentence — never invented.
+- `minusIsScoreWorthy` remains the single gate: relevance framing (including "built for X, your goal is Y") is never score-worthy.
+- Whenever the formula genuinely holds something serving her goal, challenges or areas of concern, the verdict carries at least one plus — `synthesiseFitPlus` (`_shared/concern-fit.ts`) builds it from a real matched ingredient and the mechanism family that matched.
+- Tests: `src/test/relevance_axis.test.ts`, `src/test/concern_fit_proportional.test.ts`.
