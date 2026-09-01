@@ -323,8 +323,19 @@ export function concernContribution(input: {
   if (headlineMatch) centrality = named ? 1 : 0.7;
   else if (supportMatch) centrality = 0.4;
   if (centrality === 0) {
-    return { centrality: 0, breadth: 0, supportivePluses: 0, conflicts: input.conflicts, bonus: 0 };
+    // Nothing in the formula serves a recorded signal. That is not a penalty in
+    // itself (relevance is never a penalty), but any GENUINE conflict still has
+    // to pull the number down — it used to be silently discarded here, which was
+    // one of the reasons the score could only ever travel upwards.
+    return {
+      centrality: 0,
+      breadth: 0,
+      supportivePluses: 0,
+      conflicts: input.conflicts,
+      bonus: Math.max(-18, -8 * input.conflicts),
+    };
   }
+
 
   const breadth = Math.min(1, servedLabels.size / Math.max(1, recorded));
   const breadthMultiplier = 0.5 + 0.5 * breadth;
