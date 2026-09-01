@@ -163,3 +163,14 @@ A well-made product aimed at a different area of the member's hair is not a bad 
 - `minusIsScoreWorthy` remains the single gate: relevance framing (including "built for X, your goal is Y") is never score-worthy.
 - Whenever the formula genuinely holds something serving her goal, challenges or areas of concern, the verdict carries at least one plus — `synthesiseFitPlus` (`_shared/concern-fit.ts`) builds it from a real matched ingredient and the mechanism family that matched.
 - Tests: `src/test/relevance_axis.test.ts`, `src/test/concern_fit_proportional.test.ts`.
+
+## STANDING RULE — personalisation data is tiered (2026-09-01, permanent)
+
+Member data reaching an analysis prompt is sliced by **`supabase/functions/_shared/tiers.ts`**. Sending everything on every call cost tokens and diluted the reasoning; the tiers are the fix and every new analysis surface uses them.
+
+- **Tier 1 — deterministic, never a model call.** Water hardness from postcode (`waterHardnessFor`), shelf ingredient overlap and same-category ownership (`runTier1`). Rendered via `tier1Block` as "already established in code". Shelf overlap is a NEUTRAL ownership count — never a risk and never a reason to score lower.
+- **Tier 2 — always sent.** Strand characteristics, current style, goal, challenges, areas of concern, sensitivities. These are the scoring inputs.
+- **Tier 3 — conditional health data.** Blood panels, supplements, medications, hormonal/clinical notes travel only when `shouldIncludeHealthTier` matches a real product signal (scalp actives, growth/density claims, hormonal or thyroid relevance). Unknown product → `compact` (conditions, medications, life stage, and only the hair-relevant markers out of range) — never a silent omission. No plausible interaction → omitted, and the model is told absence means nothing.
+- **Tier 4 — guidance only.** Wash-day and journal behaviour never reaches the scoring prompt; `tierContext` returns it separately for guidance copy.
+- Surfaces: `product-analyse` (compact — the pack is read inside the model call), `product-analyse-url` (full gate — page prefetched first), `ingredient-analysis` (full gate — real INCI, category and application area).
+- `src/test/tiers.test.ts` guards the gate, the compact slice, the Tier 4 exclusion and the neutral-overlap framing. Do not widen a tier to make a generation pass.
