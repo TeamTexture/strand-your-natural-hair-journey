@@ -174,6 +174,10 @@ export interface ProductAnalysisPayload {
     | "leave-in"
     | "other";
   ingredients: string[];
+  /** Formulation quality + safety only — the basis for match_score. */
+  quality_score?: number | null;
+  /** One sentence when the formula's purpose differs from her recorded focus. */
+  relevance_note?: string | null;
   key_ingredients: Array<{
     name: string;
     benefit: string;

@@ -846,8 +846,8 @@ Deno.serve(async (req: Request) => {
           score: typeof a.match_score === "number" ? a.match_score : null,
         // TWO AXES (2026-09-01): the quality/safety number is the basis for
         // match_score; a purpose mismatch becomes relevance_note instead.
-        qualityScore: (a as Record<string, unknown>).quality_score,
-        relevanceNote: (a as Record<string, unknown>).relevance_note,
+        qualityScore: (a as unknown as Record<string, unknown>).quality_score,
+        relevanceNote: (a as unknown as Record<string, unknown>).relevance_note,
           reasons: (a.score_reasons ?? []) as never,
           modelTips: a.strand_tip,
           areasOfConcern: (ctx?.hairProfile as Record<string, unknown> | undefined)?.areas_of_concern,
@@ -869,8 +869,8 @@ Deno.serve(async (req: Request) => {
         }
         a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
         if (failsafe.score != null) a.match_score = failsafe.score;
-        (a as Record<string, unknown>).quality_score = failsafe.qualityScore;
-        (a as Record<string, unknown>).relevance_note = failsafe.relevanceNote;
+        (a as unknown as Record<string, unknown>).quality_score = failsafe.qualityScore;
+        (a as unknown as Record<string, unknown>).relevance_note = failsafe.relevanceNote;
 
         // USAGE GROUNDING GATE (2026-09-01) — parity with ingredient-analysis:
         // a technique specific must appear in the directions read off the pack.
