@@ -75,6 +75,7 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
+import { decidePhotoSearch, needsSearchRetry } from "../_shared/search-gate.ts";
 import { loadSensitivities, type LoadedSensitivities } from "../_shared/sensitivities.ts";
 import {
   topicalSensitivityBlock,
