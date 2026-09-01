@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { CHECKIN_METRICS, ratingLabel } from "@/lib/treatmentCheckin";
 import { signedMediaUrls } from "@/lib/treatmentMedia";
 
@@ -100,7 +102,13 @@ const CheckinReview = ({
             {media
               .filter((m) => m.media_type === "audio")
               .map((m) => (
-                <audio key={m.id} controls src={urls[m.storage_path] ?? ""} className="w-full" />
+                <VoicePlayer
+                  key={m.id}
+                  url={urls[m.storage_path] ?? null}
+                  variant="onSurface"
+                  className="text-foreground"
+                />
+
               ))}
             {media
               .filter((m) => m.media_type === "video")

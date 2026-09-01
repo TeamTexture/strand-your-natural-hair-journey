@@ -2,6 +2,8 @@ import { challengesOf, type ChallengeBearingGoal } from "@/lib/goalChallenges";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, RefreshCw, ShieldCheck, ShieldOff, Shield, Play, Sparkles, AlertTriangle, FlaskConical, Pill, Package, ListChecks, Clock, Mic, Heart, Leaf, Ban, User, Scissors, Droplet, Camera, Palette, Target, Apple, PenLine, CalendarDays, ImageIcon, Stamp, StickyNote } from "lucide-react";
 import ProClientNotes from "@/components/pro/ProClientNotes";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import PassportTreatmentSection from "@/components/passport/PassportTreatmentSection";
 import { useNavigate } from "react-router-dom";
 
@@ -212,7 +214,7 @@ const AudioPlayer = ({ bucket, path, transcript, label = "Voice note" }: {
           <Play className="size-3.5" /> {loading ? "Loading…" : `Play ${label.toLowerCase()}`}
         </button>
       )}
-      {url && <audio controls src={url} className="w-full h-9" />}
+      {url && <VoicePlayer url={url} variant="onSurface" className="text-foreground" />}
       {transcript && <p className="text-[11px] italic text-muted-foreground leading-snug">"{transcript}"</p>}
     </div>
   );

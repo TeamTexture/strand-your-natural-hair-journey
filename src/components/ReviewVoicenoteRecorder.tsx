@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Play, Pause, Trash2, Loader2, Type } from "lucide-react";
+import { Mic, Square, Trash2, Loader2, Type } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
@@ -164,23 +166,8 @@ const ReviewVoicenoteRecorder = ({
     }
   };
 
-  const playPause = () => {
-    if (!signedUrl) return;
-    if (playing && audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = new Audio(signedUrl);
-    a.onended = () => setPlaying(false);
-    a.onerror = () => {
-      toast.error("Could not play that back");
-      setPlaying(false);
-    };
-    a.play();
-    audioRef.current = a;
-    setPlaying(true);
-  };
+
+
 
   const reRecord = async () => {
     if (!audioPath) return;
@@ -259,17 +246,11 @@ const ReviewVoicenoteRecorder = ({
       {audioPath && (
         <div className="rounded-[14px] border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={playPause}
-              aria-label={playing ? "Pause" : "Play your voicenote"}
-              className="size-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
-            >
-              {playing ? <Pause className="size-5" /> : <Play className="size-5 ml-0.5" />}
-            </button>
-            <p className="flex-1 text-[13px] font-body text-foreground">
-              {playing ? "Playing your voicenote" : "Your voicenote is ready"}
-            </p>
+            <VoicePlayer
+              url={signedUrl}
+              variant="onSurface"
+              className="flex-1 min-w-0 text-foreground"
+            />
             <button
               type="button"
               onClick={reRecord}
@@ -279,6 +260,8 @@ const ReviewVoicenoteRecorder = ({
               <Trash2 className="size-4" />
             </button>
           </div>
+          <p className="text-[13px] font-body text-foreground">Your voicenote is ready</p>
+
 
           <div className="flex flex-wrap gap-2">
             <button

@@ -12,6 +12,8 @@ import { formatDistanceToNow } from "date-fns";
 import { CheckCircle2, Mic, Save, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
@@ -155,7 +157,7 @@ const AdminWelcomeVoicenote = () => {
                 </div>
               </div>
               {existing.url && (
-                <audio controls src={existing.url} className="w-full h-9" />
+                <VoicePlayer url={existing.url} variant="onSurface" className="text-foreground" />
               )}
               {existing.row.transcript && (
                 <p className="text-[12px] font-body leading-relaxed text-foreground/80 [overflow-wrap:anywhere]">
@@ -217,7 +219,10 @@ const AdminWelcomeVoicenote = () => {
                 <Trash2 className="size-3.5" />
               </button>
             </div>
-            {clipUrl && <audio controls src={clipUrl} className="w-full h-9" />}
+            {clipUrl && (
+              <VoicePlayer url={clipUrl} variant="onSurface" className="text-foreground" />
+            )}
+
           </div>
         )}
 

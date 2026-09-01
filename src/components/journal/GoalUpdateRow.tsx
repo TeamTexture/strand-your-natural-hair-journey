@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Play, Pause, Mic } from "lucide-react";
+import { Mic } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { signGoalAudio, type GoalProgressUpdate } from "@/hooks/useGoalProgressUpdates";
+
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -15,8 +17,8 @@ const fmtDate = (iso: string) => {
 const GoalUpdateRow = ({ update }: { update: GoalProgressUpdate }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+
+
 
   useEffect(() => {
     let cancelled = false;
@@ -37,21 +39,8 @@ const GoalUpdateRow = ({ update }: { update: GoalProgressUpdate }) => {
     };
   }, [update.audio_path, update.photo_entry_ref]);
 
-  useEffect(() => () => audio?.pause(), [audio]);
 
-  const playPause = () => {
-    if (!audioUrl) return;
-    if (playing && audio) {
-      audio.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = new Audio(audioUrl);
-    a.onended = () => setPlaying(false);
-    a.play();
-    setAudio(a);
-    setPlaying(true);
-  };
+
 
   return (
     <li className="relative pl-5">
@@ -65,20 +54,14 @@ const GoalUpdateRow = ({ update }: { update: GoalProgressUpdate }) => {
         </p>
       )}
       {update.audio_path && (
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={playPause}
-            aria-label={playing ? "Pause voicenote" : "Play voicenote"}
-            className="size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
-          >
-            {playing ? <Pause className="size-4" /> : <Play className="size-4 ml-0.5" />}
-          </button>
+        <div className="mt-2 text-foreground">
           <span className="text-[11px] font-body text-muted-foreground inline-flex items-center gap-1">
             <Mic className="size-3" /> Voicenote
           </span>
+          <VoicePlayer url={audioUrl} variant="onSurface" className="mt-1" />
         </div>
       )}
+
       {update.transcription_text && (
         <p className="text-[12px] font-body leading-relaxed text-muted-foreground mt-1.5 whitespace-pre-line">
           {update.transcription_text}

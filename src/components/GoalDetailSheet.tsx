@@ -4,6 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserGoal } from "@/hooks/useGoals";
@@ -305,13 +307,13 @@ const GoalDetailSheet = ({ open, onOpenChange, goal, onEdit }: Props) => {
                       </p>
                     )}
                     {u.signedAudioUrl && (
-                      <audio
-                        controls
-                        src={u.signedAudioUrl}
-                        className="w-full mt-2"
-                        preload="metadata"
+                      <VoicePlayer
+                        url={u.signedAudioUrl}
+                        variant="onSurface"
+                        className="mt-2 text-foreground"
                       />
                     )}
+
                   </li>
                 ))}
               </ul>

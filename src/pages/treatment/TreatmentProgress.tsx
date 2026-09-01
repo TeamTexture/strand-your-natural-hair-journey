@@ -8,6 +8,8 @@ import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import LoadingDot from "@/components/LoadingDot";
 import EmptyState from "@/components/EmptyState";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTreatmentPlan } from "@/hooks/useTreatmentPlans";
@@ -302,7 +304,13 @@ const TreatmentProgress = () => {
                     )}
                   </div>
                   {urls[n.storage_path] ? (
-                    <audio src={urls[n.storage_path]} controls preload="none" className="w-full h-8" />
+                    <VoicePlayer
+                      url={urls[n.storage_path]}
+                      durationMs={n.duration_seconds != null ? Number(n.duration_seconds) * 1000 : null}
+                      variant="onSurface"
+                      className="text-foreground"
+                    />
+
                   ) : (
                     <Loader2 className="size-4 animate-spin text-muted-foreground" />
                   )}

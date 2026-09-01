@@ -1,6 +1,8 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Play, Pause, Trash2, Loader2 } from "lucide-react";
+import { Mic, Square, Trash2, Loader2 } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -174,24 +176,8 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
     }
   };
 
-  const playPause = (note: Voicenote) => {
-    if (!note.signedUrl) return;
-    if (playingId === note.id && audioRef.current) {
-      audioRef.current.pause();
-      setPlayingId(null);
-      return;
-    }
-    if (audioRef.current) audioRef.current.pause();
-    const audio = new Audio(note.signedUrl);
-    audio.onended = () => setPlayingId(null);
-    audio.onerror = () => {
-      toast.error("Could not play voicenote");
-      setPlayingId(null);
-    };
-    audio.play();
-    audioRef.current = audio;
-    setPlayingId(note.id);
-  };
+
+
 
   const deleteNote = async (note: Voicenote) => {
     if (!user) return;
@@ -265,25 +251,18 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
       ) : (
         <div className="space-y-2">
           {notes.map((note) => {
-            const playing = playingId === note.id;
             return (
               <div
                 key={note.id}
                 className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-[10px]"
               >
-                <button
-                  type="button"
-                  onClick={() => playPause(note)}
-                  disabled={!note.signedUrl}
-                  className="size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50"
-                  aria-label={playing ? "Pause" : "Play"}
-                >
-                  {playing ? <Pause className="size-4" /> : <Play className="size-4 ml-0.5" />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">
-                    {formatDuration(note.duration_sec)}
-                  </p>
+                <VoicePlayer
+                  url={note.signedUrl}
+                  durationMs={note.duration_sec != null ? note.duration_sec * 1000 : null}
+                  variant="onSurface"
+                  className="flex-1 min-w-0 text-foreground"
+                />
+                <div className="shrink-0">
                   <p className="text-[10px] text-muted-foreground">
                     {new Date(note.created_at).toLocaleDateString(undefined, {
                       day: "numeric",
@@ -302,6 +281,7 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
               </div>
             );
           })}
+
         </div>
       )}
     </div>

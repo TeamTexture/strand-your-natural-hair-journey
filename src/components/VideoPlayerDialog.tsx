@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 
 type Props = {
   url: string | null;
@@ -21,7 +23,10 @@ const VideoPlayerDialog = ({ url, title, onClose }: Props) => {
           <DialogTitle>{title ?? "Media player"}</DialogTitle>
         </VisuallyHidden>
         {isAudio ? (
-          <audio src={url} controls autoPlay className="w-full" />
+          <div className="p-4 text-white">
+            <VoicePlayer url={url} variant="onDark" />
+          </div>
+
         ) : (
           <video
             src={url}

@@ -1,6 +1,8 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Play, Pause, Trash2, Loader2, Type } from "lucide-react";
+import { Mic, Square, Trash2, Loader2, Type } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -203,23 +205,8 @@ const VoiceNoteField = ({
     }
   };
 
-  const playPause = () => {
-    if (!signedUrl) return;
-    if (playing && audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-      return;
-    }
-    const a = new Audio(signedUrl);
-    a.onended = () => setPlaying(false);
-    a.onerror = () => {
-      toast.error("Could not play");
-      setPlaying(false);
-    };
-    a.play();
-    audioRef.current = a;
-    setPlaying(true);
-  };
+
+
 
   const removeNote = async () => {
     if (!audioPath) return;
@@ -323,15 +310,11 @@ const VoiceNoteField = ({
       {audioPath && signedUrl && !recording && (
         <div className="space-y-2 p-3 bg-card border border-border rounded-[10px]">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={playPause}
-              className="size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
-              aria-label={playing ? "Pause" : "Play"}
-            >
-              {playing ? <Pause className="size-4" /> : <Play className="size-4 ml-0.5" />}
-            </button>
-            <p className="text-xs flex-1 font-body">Voice note saved</p>
+            <VoicePlayer
+              url={signedUrl}
+              variant="onSurface"
+              className="flex-1 min-w-0 text-foreground"
+            />
             <button
               type="button"
               onClick={removeNote}
@@ -341,6 +324,8 @@ const VoiceNoteField = ({
               <Trash2 className="size-4" />
             </button>
           </div>
+          <p className="text-xs font-body">Voice note saved</p>
+
           <div className="flex flex-wrap gap-2 items-center">
             <button
               type="button"

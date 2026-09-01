@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Play, Pause, FileText, ShieldCheck } from "lucide-react";
 import StarRating from "@/components/StarRating";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { signReviewAudio } from "@/hooks/useReviews";
 import { cn } from "@/lib/utils";
 
@@ -83,7 +85,7 @@ const ReviewItem = ({
       {audioPath && (
         <div className="space-y-2">
           {audioUrl ? (
-            <audio controls src={audioUrl} className="w-full h-9" />
+            <VoicePlayer url={audioUrl} variant="onSurface" className="text-foreground" />
           ) : (
             <button
               type="button"

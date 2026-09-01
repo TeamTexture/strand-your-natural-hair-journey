@@ -1,7 +1,8 @@
 import { smartBack } from "@/lib/smartBack";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pause, Play } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import StepProgress from "@/components/nav/StepProgress";
@@ -51,8 +52,8 @@ const WashStep3 = () => {
 
   const [previous, setPrevious] = useState<PreviousEntry | null>(null);
   const [loadingPrev, setLoadingPrev] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+
 
   useEffect(() => {
     if (!user) { setLoadingPrev(false); return; }
@@ -85,25 +86,8 @@ const WashStep3 = () => {
     return () => { cancelled = true; };
   }, [user]);
 
-  const togglePlay = () => {
-    if (!previous?.audioUrl) return;
-    if (!audioRef.current) {
-      audioRef.current = new Audio(previous.audioUrl);
-      audioRef.current.addEventListener("ended", () => setIsPlaying(false));
-    }
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play().catch(() => setIsPlaying(false));
-      setIsPlaying(true);
-    }
-  };
 
-  useEffect(() => () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-  }, []);
+
 
   return (
     <ScreenLayout>
@@ -131,17 +115,6 @@ const WashStep3 = () => {
           <SurfaceCard tone="gold">
             <div className="flex items-center justify-between gap-3 mb-1">
               <p className="text-xs font-semibold">Previous entry — {formatDate(previous.date)}</p>
-              {previous.audioUrl && (
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? "Pause previous voicenote" : "Play previous voicenote"}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 hover:bg-primary/25 text-primary text-[11px] font-medium border border-primary/30 transition-colors min-h-[32px]"
-                >
-                  {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-                  {isPlaying ? "Pause" : "Replay"}
-                </button>
-              )}
             </div>
             {previous.note ? (
               <p className="font-body text-sm text-muted-foreground leading-snug">
@@ -152,6 +125,14 @@ const WashStep3 = () => {
                 Voicenote only — tap replay to hear it.
               </p>
             )}
+            {previous.audioUrl && (
+              <VoicePlayer
+                url={previous.audioUrl}
+                variant="onSurface"
+                className="mt-2 text-primary"
+              />
+            )}
+
           </SurfaceCard>
         )}
 

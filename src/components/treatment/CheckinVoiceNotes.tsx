@@ -3,6 +3,8 @@ import { Check, Loader2, Mic, Play, Square, Trash2, Type } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import SurfaceCard from "@/components/SurfaceCard";
+import VoicePlayer from "@/components/voice/VoicePlayer";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
@@ -171,7 +173,13 @@ const CheckinVoiceNotes = ({
                 {n.duration_seconds ? formatClock(Number(n.duration_seconds)) : `Note ${i + 1}`}
               </span>
               {urls[n.storage_path] ? (
-                <audio src={urls[n.storage_path]} controls className="h-8 flex-1 min-w-0" />
+                <VoicePlayer
+                  url={urls[n.storage_path]}
+                  durationMs={n.duration_seconds != null ? Number(n.duration_seconds) * 1000 : null}
+                  variant="onSurface"
+                  className="flex-1 min-w-0 text-foreground"
+                />
+
               ) : (
                 <Loader2 className="size-4 animate-spin text-muted-foreground flex-1" />
               )}
@@ -198,7 +206,15 @@ const CheckinVoiceNotes = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 rounded-[10px] bg-primary/5 border border-primary/20 px-3 py-2">
             <Play className="size-4 text-primary shrink-0" aria-hidden />
-            {previewUrl && <audio src={previewUrl} controls className="h-8 flex-1 min-w-0" />}
+            {previewUrl && (
+              <VoicePlayer
+                url={previewUrl}
+                durationMs={pending.seconds * 1000}
+                variant="onSurface"
+                className="flex-1 min-w-0 text-foreground"
+              />
+            )}
+
             <span className="font-body text-[12px] text-muted-foreground shrink-0">
               {formatClock(pending.seconds)}
             </span>

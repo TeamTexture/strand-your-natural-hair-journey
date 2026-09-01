@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Mic, Pause, Play } from "lucide-react";
+import { useState } from "react";
+import { Mic } from "lucide-react";
+import VoicePlayer from "@/components/voice/VoicePlayer";
 import { toParagraphs } from "@/lib/formatTranscript";
 import { cn } from "@/lib/utils";
 
-const mmss = (s: number) => {
-  const t = Math.max(0, Math.floor(s));
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
-};
+
 
 /**
  * A recorded note: the member's own words, collapsed to a short preview with a
@@ -27,15 +25,6 @@ const VoiceNoteBlock = ({
   id?: string;
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // A new signed URL means a different recording — reset the transport.
-  useEffect(() => {
-    setPlaying(false);
-    setElapsed(0);
-  }, [audioUrl]);
 
   const text = (transcript ?? "").trim();
   const paragraphs = text ? toParagraphs(text) : [];
@@ -44,13 +33,6 @@ const VoiceNoteBlock = ({
   const clampable = text.length > 170 || paragraphs.length > 1;
   if (!text && !hasAudio) return null;
 
-  const toggle = () => {
-    const el = audioRef.current;
-    if (!el) return;
-    if (el.paused) void el.play();
-    else el.pause();
-  };
-
   return (
     <div id={id} className={cn("space-y-2", className)}>
       <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium flex items-center gap-1.5">
@@ -58,28 +40,9 @@ const VoiceNoteBlock = ({
       </p>
 
       {hasAudio && (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={playing ? "Pause recording" : "Play recording"}
-            className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-          >
-            {playing ? <Pause className="size-4" /> : <Play className="size-4 ml-[1px]" />}
-          </button>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            {mmss(elapsed)}
-          </span>
-          <audio
-            ref={audioRef}
-            src={audioUrl ?? undefined}
-            preload="metadata"
-            className="hidden"
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            onEnded={() => { setPlaying(false); setElapsed(0); }}
-            onTimeUpdate={(e) => setElapsed(e.currentTarget.currentTime)}
-          />
+        <div className="text-foreground">
+          <VoicePlayer url={audioUrl} variant="onSurface" mediaName="recording" />
+
         </div>
       )}
 
