@@ -381,6 +381,20 @@ function scrubScanUsage(payload: Record<string, unknown>): number {
   return removed;
 }
 
+// ─── Manuscript evidence: one gather, started early, shared everywhere ──
+// LATENCY (2026-09-01, Part 4). Stage 1 (whole-chapter read → evidence set) is
+// the second-largest wait on a scan, and it depends ONLY on the member's own
+// facts — never on the product being photographed. It is therefore kicked off
+// as soon as the scan is known to need a model call, runs alongside the
+// vocabulary load and the workspace ceiling check, and the SAME resolved set
+// is reused by every retry attempt and by the stage 3 citation verification
+// (via noteEvidence). Nothing about the prompt content changes.
+export function scanRagQuery(context: Record<string, unknown> | undefined): string {
+  return `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
+    context?.hairProfile ? JSON.stringify(context.hairProfile).slice(0, 200) : ""
+  }`;
+}
+
 // ─── Provider: Claude ──────────────────────────────────────────────────
 
 
@@ -396,6 +410,8 @@ async function runClaude(args: {
   tierBlock?: string;
   /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
   retryInstruction?: string;
+  /** Pre-resolved stage 1 evidence (see scanRagQuery). */
+  prefetchedEvidence?: { block: string; grounded: boolean };
   /** SPEED: when set, the model call streams and this receives the
    *  accumulated tool JSON so the caller can push partial results to the
    *  member while the verdict is still being written. */
@@ -446,11 +462,8 @@ Return JSON only via the return_product_analysis tool.`;
       "scalp-conditions",
       "diagnosed-conditions",
     ],
-    rag_query: `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
-      (args.context as Record<string, unknown> | undefined)?.hairProfile
-        ? JSON.stringify((args.context as Record<string, unknown>).hairProfile).slice(0, 200)
-        : ""
-    }`,
+    rag_query: scanRagQuery(args.context as Record<string, unknown> | undefined),
+    prefetched_evidence: args.prefetchedEvidence,
     rag_k: 4,
     tool: {
       name: "return_product_analysis",
@@ -497,9 +510,35 @@ Return JSON only via the return_product_analysis tool.`;
 import { allChallenges, challengeText, challengesOf } from "../_shared/challenges.ts";
 import {
   buildGroundingBlock,
+  type GroundingResult,
   ragQueryFromAiContext,
   selectorFromAiContext,
 } from "../_shared/grounding.ts";
+import { evidencePromptBlock } from "../_shared/evidence.ts";
+
+/** The Lovable/Gemini path's grounding gather, extracted so the pipeline can
+ *  start it before the model call rather than inside it (Part 4, 2026-09-01). */
+function buildLovableGrounding(
+  context: Record<string, unknown> | undefined,
+): Promise<GroundingResult> {
+  return buildGroundingBlock({
+    surface: "product-analyse",
+    fn: "product-analyse",
+    functionKind: "product-analyse",
+    selectorContext: selectorFromAiContext(context ?? {}),
+    forceTopics: [
+      "wash-day-mechanics",
+      "porosity",
+      "scalp-conditions",
+      "diagnosed-conditions",
+    ],
+    ragQuery: ragQueryFromAiContext(
+      context ?? {},
+      "hair product ingredients suitability moisture protein scalp",
+    ),
+    ragK: 5,
+  });
+}
 import { gatewayFetch } from "../_shared/ai-meter.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
@@ -578,28 +617,16 @@ async function runLovable(args: {
   tierBlock?: string;
   /** Guardrail rejection feedback for a re-ask (empty on the first attempt). */
   retryInstruction?: string;
+  /** Pre-resolved grounding block, gathered early and shared across attempts. */
+  prefetchedGrounding?: GroundingResult;
 }): Promise<ProductAnalysisPayload> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-  // Manuscript grounding parity with the Claude path.
-  const grounding = await buildGroundingBlock({
-    surface: "product-analyse",
-    fn: "product-analyse",
-    functionKind: "product-analyse",
-    selectorContext: selectorFromAiContext(args.context),
-    forceTopics: [
-      "wash-day-mechanics",
-      "porosity",
-      "scalp-conditions",
-      "diagnosed-conditions",
-    ],
-    ragQuery: ragQueryFromAiContext(
-      args.context,
-      "hair product ingredients suitability moisture protein scalp",
-    ),
-    ragK: 5,
-  });
+  // Manuscript grounding parity with the Claude path. Reuses the set the
+  // pipeline already gathered when one was passed in (Part 4).
+  const grounding = args.prefetchedGrounding ?? await buildLovableGrounding(args.context);
+
 
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const tipsBlock = buildTipsLevelBlock(tipsLevel);
@@ -788,9 +815,46 @@ Deno.serve(async (req: Request) => {
       water_hardness: tier1.waterHardness,
       shelf_overlap: tier1.shelfOverlap.length,
     });
+    // SPEED (Part 4): the deterministic Tier 1 findings are known before the
+    // model is even called, so they go out on the stream immediately rather
+    // than waiting for the verdict. Unknown events are ignored by older
+    // clients, so this is safe for members mid-session.
+    emit?.("tier1", {
+      water_hardness: tier1.waterHardness ?? null,
+      shelf_overlap: tier1.shelfOverlap.length,
+    });
 
 
-    const vocabulary = await loadIngredientVocabulary(supabase as never);
+    // ── LATENCY (Part 4, 2026-09-01) ──────────────────────────────────
+    // The manuscript evidence gather (stage 1) depends only on her recorded
+    // facts, so it starts HERE — the moment the scan is known to need a model
+    // call — instead of inside the writer call, and runs alongside the
+    // ingredient-vocabulary load. One resolved set then serves every retry
+    // attempt AND the stage 3 citation verification, so the same passages are
+    // never gathered twice. It is deliberately started AFTER the cache and cap
+    // checks above so a cache hit still spends nothing.
+    const evidencePromise = provider === "claude"
+      ? evidencePromptBlock({
+        fn: "product-analyse",
+        surface: "product-analyse",
+        memberContext: scanRagQuery(tiered.context as Record<string, unknown>).slice(0, 4000),
+      }).catch((e) => {
+        console.error("[product-analyse] evidence prefetch failed", e);
+        return null;
+      })
+      : Promise.resolve(null);
+    const lovableGroundingPromise = provider === "claude"
+      ? Promise.resolve(null)
+      : buildLovableGrounding(tiered.context as Record<string, unknown>).catch((e) => {
+        console.error("[product-analyse] grounding prefetch failed", e);
+        return null;
+      });
+
+    const [vocabulary, prefetchedEvidence, prefetchedGrounding] = await Promise.all([
+      loadIngredientVocabulary(supabase as never),
+      evidencePromise,
+      lovableGroundingPromise,
+    ]);
 
     // ── GENERATE + REPAIR (2026-09-01) ────────────────────────────────
     // The scan path used to generate once, null whatever a guardrail objected
@@ -812,6 +876,9 @@ Deno.serve(async (req: Request) => {
             sensitivityBlock,
             tierBlock,
             retryInstruction: info.retryInstruction,
+            prefetchedEvidence: prefetchedEvidence
+              ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
+              : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
             // the preview the member is already reading.
             onPartialJson: emit && info.attemptNumber === 1
@@ -834,6 +901,7 @@ Deno.serve(async (req: Request) => {
           sensitivityBlock,
           tierBlock,
           retryInstruction: info.retryInstruction,
+          prefetchedGrounding: prefetchedGrounding ?? undefined,
         });
         return {
           ...lovable,

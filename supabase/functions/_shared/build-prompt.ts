@@ -100,6 +100,15 @@ export interface BuildPromptInput {
    *  chapters are passed IN FULL — chapter 1 always included — and fragment
    *  retrieval is skipped. See _shared/chapter-context.ts. */
   surface?: SurfaceKey;
+  /**
+   * LATENCY (2026-09-01, Part 4). A pre-resolved stage 1 result from
+   * `evidencePromptBlock`. Callers that can start the evidence gather EARLIER
+   * than the writer call (e.g. product-analyse kicks it off while the member's
+   * sensitivities, vocabulary and spend checks are still resolving) pass it in
+   * here, and every retry attempt reuses the SAME evidence set instead of
+   * re-gathering it. Identical prompt content either way.
+   */
+  prefetched_evidence?: { block: string; grounded: boolean };
   /** LEGACY fragment path. Ignored when `surface` is set. */
   rag_query?: string;
   rag_k?: number;
@@ -187,7 +196,7 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   let ragBlocks: string[] = [];
   let wholeChapters = false;
   if (input.surface) {
-    const evid = await evidencePromptBlock({
+    const evid = input.prefetched_evidence ?? await evidencePromptBlock({
       fn: input.function_kind,
       surface: input.surface,
       memberContext: (input.rag_query ?? "").slice(0, 4000),

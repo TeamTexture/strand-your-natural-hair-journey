@@ -139,6 +139,11 @@ export async function buildGroundingBlock(
   // call that WRITES the copy, stage 2 — contains the evidence set and the
   // member's own facts ONLY. The chapters are never passed to the writer, so
   // general hair knowledge is not available to it. See _shared/evidence.ts.
+  // LATENCY (2026-09-01, Part 4). The clarifications read and the terminology
+  // lexicon are independent of the evidence gather, so they are started here
+  // and awaited after it instead of queueing behind it.
+  const clarificationsPromise = surfaceClarifications(input.surface ?? null);
+  const lexiconPromise = loadLexicon();
   let evidence: EvidenceSet | null = null;
   if (input.surface) {
     const set = await gatherEvidence({
@@ -148,6 +153,7 @@ export async function buildGroundingBlock(
     });
     if (set.items.length > 0) evidence = set;
   }
+
 
   let passageBlocks: string[] = [];
   let grounded = Boolean(evidence);
@@ -186,7 +192,7 @@ export async function buildGroundingBlock(
   // manuscript. They go into EVERY hair care generation: merged into the
   // evidence set on the grounded path, and injected as their own block on the
   // legacy fragment path.
-  const clarifications = await surfaceClarifications(input.surface ?? null);
+  const clarifications = await clarificationsPromise;
   if (evidence && clarifications.length > 0) {
     evidence = withClarifications(evidence, clarifications).set;
   }
@@ -203,7 +209,7 @@ export async function buildGroundingBlock(
   }
   if (evidence) {
     parts.push(renderEvidenceBlock(evidence));
-    const lex = terminologyBlock(await loadLexicon());
+    const lex = terminologyBlock(await lexiconPromise);
     if (lex) parts.push(lex);
     parts.push(FIDELITY_RULE);
   }
