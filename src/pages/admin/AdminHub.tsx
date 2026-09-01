@@ -603,6 +603,12 @@ const AdminHub = () => {
             onClick={() => nav("/admin/member-messages")}
           />
           <NavCard
+            icon={Mic}
+            title="Welcome voicenote"
+            description="Record the automated voice note sent to every new trial or subscriber"
+            onClick={() => nav("/admin/welcome-voicenote")}
+          />
+          <NavCard
             icon={ClipboardCheck}
             title="Applications"
             description="Vet and approve Strand Council professionals"
