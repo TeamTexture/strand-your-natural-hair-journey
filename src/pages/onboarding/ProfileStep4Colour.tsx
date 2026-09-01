@@ -372,18 +372,23 @@ const ProfileStep4Colour = () => {
         <OnboardingSectionCard number={1} title="Colour and chemical history">
         <div className="space-y-4">
         <TagGroup
+          id="colour"
           label="Current Colour Status"
           options={[NATURAL_NEVER, "Permanently dyed", "Bleached", "Demi-permanent", "Semi-permanent", "Henna ⚠"]}
           value={colour} onChange={setColour}
           multi={false}
+          invalid={invalid("colour")} registerRef={registerRef}
         />
 
         {!isNaturalNever && (
           <>
             <TagGroup
+              id="chemHist"
               label="Chemical History"
+              helper="Tap “None” if nothing applies — we will not assume it."
               options={["Relaxer current", "Relaxer past", "Texturiser", "Curly perm", "Heat damage", "None"]}
               value={chemHist} onChange={setChemHist}
+              invalid={invalid("chemHist")} registerRef={registerRef}
             />
 
             <div className="border-t border-border" />
@@ -392,18 +397,28 @@ const ProfileStep4Colour = () => {
             <div className="space-y-3">
               <OnboardingQuestion>Colour History</OnboardingQuestion>
 
-              <div>
-                <OnboardingQuestion className="mb-1.5">Colour type</OnboardingQuestion>
+              <RequiredField
+                id="colourType"
+                label="Colour type"
+                answered={!!colourType}
+                invalid={invalid("colourType")}
+                registerRef={registerRef}
+              >
                 <Select value={colourType} onValueChange={setColourType}>
                   <SelectTrigger><SelectValue placeholder="Select colour type…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_TYPES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              </RequiredField>
 
-              <div>
-                <OnboardingQuestion className="mb-1.5">Product used</OnboardingQuestion>
+              <RequiredField
+                id="colourProduct"
+                label="Product used"
+                answered={!!colourProduct}
+                invalid={invalid("colourProduct")}
+                registerRef={registerRef}
+              >
                 <Select value={colourProduct} onValueChange={setColourProduct}>
                   <SelectTrigger><SelectValue placeholder="Select product used…" /></SelectTrigger>
                   <SelectContent>
@@ -415,21 +430,25 @@ const ProfileStep4Colour = () => {
                     Not sure? Select 'Not sure' and your professional will confirm at your appointment.
                   </p>
                 </LevelGate>
-              </div>
+              </RequiredField>
 
-              <div>
-                <OnboardingQuestion className="mb-1.5">
-                  When was your last colour treatment?
-                </OnboardingQuestion>
+              <RequiredField
+                id="colourLast"
+                label="When was your last colour treatment?"
+                answered={!!colourLast}
+                invalid={invalid("colourLast")}
+                registerRef={registerRef}
+              >
                 <Select value={colourLast} onValueChange={setColourLast}>
                   <SelectTrigger><SelectValue placeholder="Select a timeframe…" /></SelectTrigger>
                   <SelectContent>
                     {COLOUR_TIMEFRAMES.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              </RequiredField>
 
               <TagGroup
+                id="colourReaction"
                 label="Have you ever had a reaction to hair colour?"
                 options={["Yes", "No"]}
                 value={colourReaction === "yes" ? ["Yes"] : colourReaction === "no" ? ["No"] : []}
@@ -438,7 +457,9 @@ const ProfileStep4Colour = () => {
                   setReactionError(false);
                 }}
                 multi={false}
+                invalid={invalid("colourReaction")} registerRef={registerRef}
               />
+
 
               {colourReaction === "yes" && (
                 <VoiceNoteField
