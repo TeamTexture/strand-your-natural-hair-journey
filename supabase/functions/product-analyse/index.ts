@@ -815,6 +815,14 @@ Deno.serve(async (req: Request) => {
       water_hardness: tier1.waterHardness,
       shelf_overlap: tier1.shelfOverlap.length,
     });
+    // SPEED (Part 4): the deterministic Tier 1 findings are known before the
+    // model is even called, so they go out on the stream immediately rather
+    // than waiting for the verdict. Unknown events are ignored by older
+    // clients, so this is safe for members mid-session.
+    emit?.("tier1", {
+      water_hardness: tier1.waterHardness ?? null,
+      shelf_overlap: tier1.shelfOverlap.length,
+    });
 
 
     // ── LATENCY (Part 4, 2026-09-01) ──────────────────────────────────
