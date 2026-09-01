@@ -132,6 +132,15 @@ const ProfileStep4Colour = () => {
     extensions: null,
   });
   const [attrError, setAttrError] = useState(false);
+  // Shown only after a failed Continue, so a member is never greeted by red.
+  const [showErrors, setShowErrors] = useState(false);
+
+  const refs = useRef<Record<string, HTMLDivElement | null>>({});
+  const registerRef = (id: string, el: HTMLDivElement | null) => {
+    refs.current[id] = el;
+  };
+
+
 
   // Keep everything entered on this step if the member navigates back and forth.
   useOnboardingDraft(
