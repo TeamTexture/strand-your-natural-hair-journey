@@ -147,7 +147,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v27-ingredient-list-preserved-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v28-score-range-2026-09-01";
 
 
 
