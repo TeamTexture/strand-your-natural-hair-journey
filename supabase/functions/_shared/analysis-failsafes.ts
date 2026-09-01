@@ -53,6 +53,10 @@ export interface FailsafeInput {
   fields: Array<{ field: string; text: unknown }>;
   /** Per-ingredient cards, when the payload has them. */
   cards?: unknown;
+  /** The payload key those cards live under — defaults to `ingredients`.
+   *  Product surfaces hold them in `key_ingredients` and MUST say so, or a
+   *  card-name rejection nulls the verified ingredient list. */
+  cardsField?: string;
   /** The product's stored ingredient list — the only legal ingredient names. */
   allowedIngredients?: string[];
   /** Known ingredient names (glossary) used as the detection vocabulary. */
@@ -137,6 +141,7 @@ export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
     subject: input.subject ?? null,
     fields: input.fields,
     cards: input.cards,
+    cardsField: input.cardsField ?? "ingredients",
     allowedIngredients: input.allowedIngredients ?? [],
     ingredientVocabulary: input.vocabulary ?? [],
     directions: input.directions ?? null,
@@ -256,6 +261,20 @@ export function applyFieldNulls(
 ): string[] {
   const cleared: string[] = [];
   const dropped = new Map<string, Set<number>>();
+  // STRUCTURAL FIELDS ARE NEVER NULLED. `ingredients` (the verified INCI list
+  // read off the pack), the identity fields and the numbers are held data, not
+  // generated prose: nulling them left members with a saved product that had no
+  // ingredient list at all, so the page read "we couldn't read the ingredients"
+  // and the follow-up ingredient pass refused to run.
+  const STRUCTURAL = new Set([
+    "ingredients",
+    "key_ingredients",
+    "product_name",
+    "brand",
+    "category",
+    "match_score",
+    "quality_score",
+  ]);
   for (const v of violations) {
     const m = v.field.match(/^([A-Za-z_]+)\[(\d+)\]/);
     if (m) {
@@ -265,6 +284,7 @@ export function applyFieldNulls(
       continue;
     }
     const key = v.field.split(/[.[]/)[0];
+    if (STRUCTURAL.has(key)) continue;
     if (key in payload) {
       payload[key] = null;
       cleared.push(key);
