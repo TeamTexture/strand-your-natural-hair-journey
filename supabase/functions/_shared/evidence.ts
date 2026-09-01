@@ -1027,21 +1027,30 @@ export async function evidencePromptBlock(input: {
   /** See `gatherEvidence` — reduced chapter set for sponsored surfaces. */
   chapters?: number[];
 }): Promise<{ block: string; evidence: EvidenceSet; grounded: boolean }> {
-  const base = await gatherEvidence(input);
+  // LATENCY (2026-09-01, Part 4). The clarifications and the terminology
+  // lexicon are independent reads that used to sit BEHIND stage 1 and behind
+  // each other, adding their full round trips to every generation. They now
+  // run alongside the stage 1 gather. Identical inputs to the writer — only
+  // what we wait for changed.
+  const [base, clarifications, lexicon] = await Promise.all([
+    gatherEvidence(input),
+    surfaceClarifications(input.surface),
+    loadLexicon(),
+  ]);
   if (!base.items.length) {
     return { block: "", evidence: base, grounded: false };
   }
-  const clarifications = await surfaceClarifications(input.surface);
   const { set } = withClarifications(base, clarifications);
   const parts: string[] = [];
   const clar = clarificationsBlock(clarifications);
   if (clar) parts.push(clar);
   parts.push(renderEvidenceBlock(set));
-  const lex = terminologyBlock(await loadLexicon());
+  const lex = terminologyBlock(lexicon);
   if (lex) parts.push(lex);
   parts.push(FIDELITY_RULE);
   noteSourceText(input.fn, set.items.map((i) => i.passage).join("\n\n"), set.chapters);
   noteEvidence(input.fn, set);
   return { block: parts.join("\n\n"), evidence: set, grounded: true };
+
 }
 
