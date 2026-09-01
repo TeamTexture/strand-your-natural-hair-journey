@@ -10,6 +10,7 @@ import {
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
 import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
+import { sendWelcomeVoicenote } from "../_shared/welcome-dm.ts";
 import {
   PAYWALL_STATUSES,
   syncPaywallStatusMember,
