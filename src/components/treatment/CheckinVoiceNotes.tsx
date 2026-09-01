@@ -204,7 +204,15 @@ const CheckinVoiceNotes = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 rounded-[10px] bg-primary/5 border border-primary/20 px-3 py-2">
             <Play className="size-4 text-primary shrink-0" aria-hidden />
-            {previewUrl && <audio src={previewUrl} controls className="h-8 flex-1 min-w-0" />}
+            {previewUrl && (
+              <VoicePlayer
+                url={previewUrl}
+                durationMs={pending.seconds * 1000}
+                variant="onSurface"
+                className="flex-1 min-w-0 text-foreground"
+              />
+            )}
+
             <span className="font-body text-[12px] text-muted-foreground shrink-0">
               {formatClock(pending.seconds)}
             </span>
