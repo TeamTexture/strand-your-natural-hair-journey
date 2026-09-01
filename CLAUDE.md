@@ -174,3 +174,35 @@ Member data reaching an analysis prompt is sliced by **`supabase/functions/_shar
 - **Tier 4 — guidance only.** Wash-day and journal behaviour never reaches the scoring prompt; `tierContext` returns it separately for guidance copy.
 - Surfaces: `product-analyse` (compact — the pack is read inside the model call), `product-analyse-url` (full gate — page prefetched first), `ingredient-analysis` (full gate — real INCI, category and application area).
 - `src/test/tiers.test.ts` guards the gate, the compact slice, the Tier 4 exclusion and the neutral-overlap framing. Do not widen a tier to make a generation pass.
+
+## STANDING RULE — formula facts are shared, personalisation is not (2026-09-01, permanent)
+
+An INCI list, what each molecule does, and its safety flags are properties of the
+bottle, not of the member. They are cached ONCE per formula in
+`public.product_ingredient_facts` (keyed on normalised brand+name + a stable
+ingredient hash + model version) and reused by every member. The score, the
+relevance note, the score reasons and the guidance are recomputed fresh for each
+member from her own tiered profile, every single time.
+
+- Never write anything member-specific into `product_ingredient_facts`. Cards
+  carrying a personal sensitivity overlay are not published at all, and homemade
+  recipes are never shared.
+- A shared hit is only used when the facts cover EVERY ingredient the member
+  holds with a real mechanism body; a partial set is treated as a miss.
+- On a hit the model is asked for the personalisation fields only, and the
+  ingredient cards are re-attached deterministically before validation — the
+  model never re-authors a list that already passed the guardrails.
+
+## STANDING RULE — web search must be earned, never automatic (2026-09-01, permanent)
+
+Each server-side search round costs ~8-12s of wall clock. The pack in her hand,
+the fetched product page, and cached shared facts are the primary sources.
+
+- Photo scans run the first read with NO search tool attached, and are told so
+  explicitly. One searching pass is granted only when the payload shows the
+  label could not be resolved (no brand, no name, no panel, or the model's own
+  "couldn't fully read the label" admission) — see `_shared/search-gate.ts`.
+- URL scans skip search entirely when the prefetched page carries the brand, the
+  name and a real INCI panel. A thin or gated page keeps the full budget.
+- The gate decides whether a SEARCH happens, never whether a claim is verified.
+  Grounding and citation verification are unchanged.

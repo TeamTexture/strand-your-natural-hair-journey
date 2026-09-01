@@ -38,6 +38,12 @@ import {
   applySensitivityCeiling,
 } from "../_shared/topical-sensitivity.ts";
 import { inciKeyCandidates, normaliseInciKey } from "../_shared/ingredient-copy.ts";
+import {
+  readSharedFacts,
+  rebuildCardsFromFacts,
+  sharedFactsBlock,
+  writeSharedFacts,
+} from "../_shared/ingredient-facts-cache.ts";
 import { scrapePage } from "../_shared/page-scrape.ts";
 import {
   extractDirectionsFromPage,
@@ -449,6 +455,23 @@ function buildToolSchema(ingredientCount: number, level: TipsLevel = DEFAULT_TIP
   } as Record<string, unknown>;
 }
 
+/**
+ * SHARED FACTS MODE (2026-09-01): the ingredient cards for this exact formula
+ * are already written and validated (public.product_ingredient_facts), so the
+ * model is asked for the PERSONAL half only and the cards are re-attached
+ * deterministically afterwards. Nothing member-specific is reused — only the
+ * facts about the formula.
+ */
+function personalisationOnlySchema(level: TipsLevel = DEFAULT_TIPS_LEVEL) {
+  const schema = buildToolSchema(0, level) as {
+    properties: Record<string, unknown>;
+    required: string[];
+  };
+  delete schema.properties.ingredients;
+  schema.required = schema.required.filter((f) => f !== "ingredients");
+  return schema as unknown as Record<string, unknown>;
+}
+
 // ── SPEED: known ingredient facts (LAYER 1 reuse) ───────────────────────
 //
 // A molecule's category and mechanism do not change with who is asking, and
@@ -733,6 +756,9 @@ async function runClaude(args: {
   retryReason?: string | null;
   /** TIERS (Part 3): deterministic Tier 1 findings + which tiers are visible. */
   tierBlock?: string;
+  /** Shared-facts mode: ask for the personalisation only (see
+   *  personalisationOnlySchema / _shared/ingredient-facts-cache.ts). */
+  personalisationOnly?: boolean;
 }): Promise<AnalysisPayload> {
   const { productName, productBrand, ingredients, hairProfile, userPayload, selectorContext, avoidList, level } = args;
   const ingredientCount = ingredients.length;
@@ -751,7 +777,9 @@ async function runClaude(args: {
     tool: {
       name: "return_analysis",
       description: "Return the structured ingredient analysis.",
-      input_schema: buildToolSchema(ingredientCount, level),
+      input_schema: args.personalisationOnly
+        ? personalisationOnlySchema(level)
+        : buildToolSchema(ingredientCount, level),
     },
     toolChoice: { type: "tool", name: "return_analysis" },
     max_tokens: 2400,
@@ -811,6 +839,8 @@ async function runLovable(args: {
   attemptNumber?: number | null;
   maxAttempts?: number | null;
   retryReason?: string | null;
+  /** Shared-facts mode — personalisation only, cards re-attached after. */
+  personalisationOnly?: boolean;
 }): Promise<AnalysisPayload> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -851,7 +881,9 @@ async function runLovable(args: {
             function: {
               name: "return_analysis",
               description: "Return the structured ingredient analysis.",
-              parameters: buildToolSchema(args.ingredientCount, args.level),
+              parameters: args.personalisationOnly
+                ? personalisationOnlySchema(args.level)
+                : buildToolSchema(args.ingredientCount, args.level),
             },
           },
         ],
@@ -1292,7 +1324,7 @@ Deno.serve(async (req) => {
     // ── Pull personalisation server-side ─────────────────────────────
     // The glossary lookup runs alongside these reads: it is one indexed query
     // and it removes work from the model call that follows.
-    const [bloodRowsRes, medRowsRes, goalRowsRes, knownFacts, glossaryRes] = await Promise.all([
+    const [bloodRowsRes, medRowsRes, goalRowsRes, knownFacts, glossaryRes, sharedFacts] = await Promise.all([
       dataClient.from("blood_results").select("marker, value, unit, status, category").eq("user_id", memberId),
       dataClient.from("user_medications").select("name, category").eq("user_id", memberId),
       dataClient.from("user_goals")
@@ -1306,7 +1338,17 @@ Deno.serve(async (req) => {
       // naming an off-formula ingredient, exhausting the retries and nulling
       // the write-up (2026-08-28 regression).
       dataClient.from("glossary_terms").select("display_name").eq("kind", "molecule").limit(2000),
-
+      // SHARED PRODUCT FACTS (2026-09-01): the ingredient cards for this exact
+      // formula may already have been written for another member. They are
+      // facts about the product, not about her, so they are reused verbatim
+      // and only the personalisation is generated. A homemade recipe is a
+      // one-off formula and is never shared.
+      isHomemade ? Promise.resolve(null) : readSharedFacts({
+        productName,
+        productBrand,
+        ingredients: rawIngredients,
+        modelVersion: MODEL_VERSION,
+      }),
     ]);
     const bloodRows = bloodRowsRes.data ?? [];
     const medRows = medRowsRes.data ?? [];
@@ -1318,7 +1360,19 @@ Deno.serve(async (req) => {
         .filter(Boolean),
     );
 
-    let factsBlock = knownFactsBlock(knownFacts);
+    // Shared-facts mode: the whole INCI panel is already written and validated
+    // for this exact formula, so the model writes the personal half only.
+    const sharedCards = sharedFacts?.complete ? sharedFacts.facts : null;
+    let factsBlock = sharedCards
+      ? sharedFactsBlock(sharedCards)
+      : knownFactsBlock(knownFacts);
+    console.log(JSON.stringify({
+      function: "ingredient-analysis",
+      event: "shared_facts_gate",
+      hit: !!sharedFacts,
+      complete: !!sharedCards,
+      product_key: productKey,
+    }));
     if (isHomemade && homemadeSafety) {
       factsBlock += homemadeRecipeBlock(
         recipe,
@@ -1470,7 +1524,15 @@ Deno.serve(async (req) => {
           attemptNumber,
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason,
+          personalisationOnly: !!sharedCards,
         });
+        if (sharedCards) {
+          analysis.ingredients = rebuildCardsFromFacts(
+            rawIngredients,
+            sharedCards,
+            analysis.ingredients,
+          );
+        }
         analysis = applyKnownCategories(analysis, knownFacts);
         const claudeProblems = [
           ...(guidanceReferencesOtherProduct(analysis)
@@ -1528,7 +1590,15 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           attemptNumber,
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason,
+          personalisationOnly: !!sharedCards,
         });
+        if (sharedCards) {
+          analysis.ingredients = rebuildCardsFromFacts(
+            rawIngredients,
+            sharedCards,
+            analysis.ingredients,
+          );
+        }
         analysis = applyKnownCategories(analysis, knownFacts);
         analysis = scrubGuidance(analysis);
         const lovableProblems = [
@@ -1555,7 +1625,15 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
             attemptNumber,
             maxAttempts: MAX_REJECTION_ATTEMPTS,
             retryReason: retryReason ?? "guidance_floor_retry",
+            personalisationOnly: !!sharedCards,
           });
+          if (sharedCards) {
+            analysis.ingredients = rebuildCardsFromFacts(
+              rawIngredients,
+              sharedCards,
+              analysis.ingredients,
+            );
+          }
           analysis = scrubGuidance(analysis);
         }
         analysis = scrubUsageGrounding(analysis, usageDirections, productKey);
@@ -1866,6 +1944,21 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       const reasonsNow = sanitiseScoreReasons(analysis.score_reasons);
       const lead = reasonsNow.find((r) => r.direction === "plus") ?? reasonsNow[0];
       if (lead?.reason) analysis.summary = lead.reason;
+    }
+
+    // SHARED PRODUCT FACTS: publish the user-independent half so the next
+    // member who owns this exact formula pays for the personalisation only.
+    // Only cards that came through the guardrails intact are written, and a
+    // homemade one-off recipe is never shared.
+    if (!sharedCards && !isHomemade && Array.isArray(analysis.ingredients)) {
+      await writeSharedFacts({
+        productName,
+        productBrand,
+        ingredients: rawIngredients,
+        modelVersion: MODEL_VERSION,
+        cards: analysis.ingredients as Array<Record<string, unknown>>,
+        sourceFunction: "ingredient-analysis",
+      });
     }
 
     if (mode.dryRun) return json(200, { cached: false, analysis });

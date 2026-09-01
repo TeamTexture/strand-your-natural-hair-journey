@@ -75,6 +75,7 @@ import {
 import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
+import { decidePhotoSearch, needsSearchRetry } from "../_shared/search-gate.ts";
 import { loadSensitivities, type LoadedSensitivities } from "../_shared/sensitivities.ts";
 import {
   topicalSensitivityBlock,
@@ -416,8 +417,10 @@ async function runClaude(args: {
    *  accumulated tool JSON so the caller can push partial results to the
    *  member while the verdict is still being written. */
   onPartialJson?: (accumulatedJson: string) => void;
+  /** Search is only granted on a re-ask after an unreadable pack (search-gate). */
+  allowSearch?: boolean;
 }): Promise<{ payload: ProductAnalysisPayload; web_search_invocations: number }> {
-  const userText = `Two photos of the same product follow. Photo 1 is the FRONT of the product (brand + product name + marketing claims). Photo 2 is the BACK of the product (ingredient panel + usage instructions + regulatory text). Read both. Use web_search if anything is missing or unclear.
+  const userText = `Two photos of the same product follow. Photo 1 is the FRONT of the product (brand + product name + marketing claims). Photo 2 is the BACK of the product (ingredient panel + usage instructions + regulatory text). Read both. ${args.allowSearch ? "The first read could not resolve the product from the photos, so you may now use web_search to resolve the brand, product name and INCI list." : "No search tool is available: read the product from these two photos alone."}
 
 User context (use to compute key_ingredients flags, match_score, ai_summary, use_cases, and tips):
 ${JSON.stringify(args.context ?? {}, null, 2)}
@@ -434,13 +437,17 @@ Return JSON only via the return_product_analysis tool.`;
     { type: "text", text: userText },
   ];
 
+  // CONDITIONAL SEARCH (2026-09-01): the pack in her hand IS the source of
+  // truth, so the first read runs with NO search tool attached. Only when the
+  // returned payload shows the label could not be read (no brand, no name, no
+  // panel, or the model's own "couldn't fully read" admission) does the caller
+  // re-ask with the search budget it always had. Each search round costs
+  // ~8-12s of wall clock, and on a legible pack it buys nothing.
+  const searchDecision = decidePhotoSearch(args.allowSearch ? 2 : 1, !!args.allowSearch);
   const webSearchTool: ServerTool = {
     type: "web_search_20250305",
     name: "web_search",
-    // SPEED: each server-side search round costs ~8-12s of wall clock. Two is
-    // enough to resolve a brand + INCI list (observed real scans use 1-2);
-    // four only ever paid for a long tail of repeat searches.
-    max_uses: 2,
+    max_uses: searchDecision.maxUses,
   };
 
 
@@ -449,7 +456,13 @@ Return JSON only via the return_product_analysis tool.`;
     function_kind: "product-analyse",
     task_instructions: `${buildTaskInstructions(tipsLevel)}${
       args.sensitivityBlock ?? ""
-    }${SCAN_USAGE_GROUNDING_BLOCK}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}`,
+    }${SCAN_USAGE_GROUNDING_BLOCK}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}${
+      searchDecision.enabled
+        ? ""
+        : `
+
+NO SEARCH TOOL IS AVAILABLE ON THIS CALL. Ignore every instruction above that offers web_search. Read the brand, product name, INCI list and directions from the two photos ONLY. Invent nothing: if the panel is not legible, return what you can read, leave the rest empty or null, and begin ai_summary with "Couldn't fully read the label —" so the pack can be resolved on a second pass.`
+    }`,
 
 
     user_payload: {}, // unused — user_content overrides
@@ -471,7 +484,7 @@ Return JSON only via the return_product_analysis tool.`;
         "Return the structured product analysis. Always invoke this tool exactly once at the end with the final analysis.",
       input_schema: RETURN_PRODUCT_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
     },
-    server_tools: [webSearchTool],
+    server_tools: searchDecision.enabled ? [webSearchTool] : [],
     // Note: NOT setting toolChoice. With server-side web_search, Anthropic
     // requires the model to remain free to invoke server tools, so we
     // describe the contract in the task instructions instead.
@@ -498,6 +511,8 @@ Return JSON only via the return_product_analysis tool.`;
     output_tokens: result.usage.output_tokens,
     web_search_invocations,
     web_search_queries: result.server_tool_use_queries ?? [],
+    search_allowed: searchDecision.enabled,
+    search_gate_reason: searchDecision.reason,
   }));
 
   if (!result.toolInput) {
@@ -867,7 +882,7 @@ Deno.serve(async (req: Request) => {
       functionName: "product-analyse",
       generate: async (info) => {
         if (provider === "claude") {
-          const { payload, web_search_invocations } = await runClaude({
+          let { payload, web_search_invocations } = await runClaude({
             front_image_url: frontPhoto!,
             back_image_url: backPhoto!,
             context: tiered.context,
@@ -885,6 +900,34 @@ Deno.serve(async (req: Request) => {
               ? (acc) => emit("partial", { json: acc })
               : undefined,
           });
+          // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
+          // Grant one searching pass ONLY when the pack could not be resolved
+          // from the photos — the majority of scans never pay for it.
+          const searchRetry = needsSearchRetry(payload);
+          console.log(JSON.stringify({
+            function: "product-analyse",
+            event: "search_retry_gate",
+            needed: searchRetry.needed,
+            reason: searchRetry.reason,
+          }));
+          if (searchRetry.needed) {
+            const searched = await runClaude({
+              front_image_url: frontPhoto!,
+              back_image_url: backPhoto!,
+              context: tiered.context,
+              selectorContext: buildSelectorContext(body),
+              ledgerBlock,
+              sensitivityBlock,
+              tierBlock,
+              retryInstruction: info.retryInstruction,
+              prefetchedEvidence: prefetchedEvidence
+                ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
+                : undefined,
+              allowSearch: true,
+            });
+            payload = searched.payload;
+            web_search_invocations = searched.web_search_invocations;
+          }
           return {
             ...payload,
             _model_version: MODEL_VERSION,
