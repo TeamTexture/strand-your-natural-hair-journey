@@ -210,6 +210,9 @@ async function upsertFromSubscription(
   // outage must not cause Stripe retries, but the failure is logged to
   // klaviyo_sync_log so it is queryable.
   if (sub.status === "active" || sub.status === "trialing") {
+    // One-off welcome voice note from STRAND Team. Self-guarding and never
+    // throws — same defensive style as the Klaviyo calls below.
+    await sendWelcomeVoicenote(admin as any, userId);
     try {
       const { data: prof } = await admin
         .from("profiles")
