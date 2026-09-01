@@ -174,24 +174,8 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
     }
   };
 
-  const playPause = (note: Voicenote) => {
-    if (!note.signedUrl) return;
-    if (playingId === note.id && audioRef.current) {
-      audioRef.current.pause();
-      setPlayingId(null);
-      return;
-    }
-    if (audioRef.current) audioRef.current.pause();
-    const audio = new Audio(note.signedUrl);
-    audio.onended = () => setPlayingId(null);
-    audio.onerror = () => {
-      toast.error("Could not play voicenote");
-      setPlayingId(null);
-    };
-    audio.play();
-    audioRef.current = audio;
-    setPlayingId(note.id);
-  };
+
+
 
   const deleteNote = async (note: Voicenote) => {
     if (!user) return;
