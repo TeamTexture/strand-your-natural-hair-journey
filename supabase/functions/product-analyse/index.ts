@@ -956,7 +956,7 @@ Deno.serve(async (req: Request) => {
     // reaching the member empty.
     backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
 
-    (analysis as Record<string, unknown>)._profile_snapshot_hash = profileHash;
+    (analysis as unknown as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
