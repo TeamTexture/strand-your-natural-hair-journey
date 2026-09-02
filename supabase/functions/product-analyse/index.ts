@@ -1011,6 +1011,24 @@ Deno.serve(async (req: Request) => {
             (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
         });
         a.score_reasons = failsafe.reasons;
+        scoreDebug = {
+          subject: typeof a.product_name === "string" ? a.product_name : null,
+          brand: typeof a.brand === "string" ? a.brand : null,
+          generationId: info.generationId,
+          breakdown: scoreBreakdown({
+            modelMatchScore: a.match_score,
+            modelQualityScore: failsafe.qualityScore,
+            baseScore: failsafe.baseScore,
+            finalScore: failsafe.score,
+            bonus: failsafe.concernContribution.bonus,
+            centrality: failsafe.concernContribution.centrality,
+            breadth: failsafe.concernContribution.breadth,
+            conflicts: failsafe.concernContribution.conflicts,
+            supportivePluses: failsafe.concernContribution.supportivePluses,
+            relevanceNote: failsafe.relevanceNote,
+            reasons: failsafe.reasons as Array<{ direction: string; factor: string }>,
+          }),
+        };
         if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
         if (failsafe.concernCorrections.reframed || failsafe.concernCorrections.reflagged) {
           console.log(JSON.stringify({
