@@ -1685,8 +1685,6 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // _shared/content-integrity.ts.
       const structuralViolations = checkContentIntegrity({
         functionName: "ingredient-analysis",
-        decryptStatus:
-          ((body.context as Record<string, unknown> | null | undefined)?.decryptStatus as string | undefined) ?? null,
         userId: memberId,
         subject: productKey ?? null,
         fields: termFields,
@@ -1802,6 +1800,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // and how the number was arrived at. Never member-facing, never awaited
       // in a way that can fail the scan.
       void logScoreDebug({
+        decryptStatus: ((body.context as Record<string, unknown> | null | undefined)?.decryptStatus as string | undefined) ?? null,
         userId: memberId,
         functionName: "ingredient-analysis",
         subject: productName,

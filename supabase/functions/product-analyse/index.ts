@@ -886,7 +886,6 @@ Deno.serve(async (req: Request) => {
 
     const loop = await runGuardrailLoop<ProductAnalysisPayload, FailsafeViolation>({
       functionName: "product-analyse",
-        decryptStatus: ((ctx as Record<string, unknown>).decryptStatus as string | undefined) ?? null,
       generate: async (info) => {
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
@@ -1140,6 +1139,7 @@ Deno.serve(async (req: Request) => {
     if (scoreDebug) {
       const dbg = scoreDebug as Record<string, unknown>;
       void logScoreDebug({
+        decryptStatus: ((ctx as Record<string, unknown>).decryptStatus as string | undefined) ?? null,
         userId: user.id,
         functionName: "product-analyse",
         subject: (dbg.subject as string | null) ?? null,

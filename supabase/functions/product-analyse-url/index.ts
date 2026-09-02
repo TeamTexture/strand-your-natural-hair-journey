@@ -1056,7 +1056,6 @@ Deno.serve(async (req: Request) => {
       const a = analysis as Record<string, unknown>;
       const failsafe = enforceAnalysisFailsafes({
         functionName: "product-analyse-url",
-        decryptStatus: ((ctxEarly as Record<string, unknown>).decryptStatus as string | undefined) ?? null,
         userId: user.id,
         fields: productProseFields(a),
         cards: a.key_ingredients,
@@ -1084,6 +1083,7 @@ Deno.serve(async (req: Request) => {
       // INTERNAL QA TRAIL (2026-09-02) — admin-only; URL scans now appear in
       // /admin/score-debug alongside the shelf and photo paths.
       void logScoreDebug({
+        decryptStatus: ((ctxEarly as Record<string, unknown>).decryptStatus as string | undefined) ?? null,
         userId: user.id,
         functionName: "product-analyse-url",
         subject: typeof a.product_name === "string" ? a.product_name : null,
