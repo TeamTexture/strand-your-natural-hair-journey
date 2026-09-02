@@ -474,7 +474,9 @@ export function applyConcernFit(input: ConcernFitInput): ConcernFitResult {
     // single trace component brushed one recorded signal. A near-bottom base is
     // evidence about the formula, so the fit lift may only ever be a token
     // adjustment on top of it; the DOWNWARD half is never capped.
-    const positiveCap = score < 30 ? 4 : score < 45 ? 8 : score < 60 ? 16 : 26;
+    // Only a NEAR-BOTTOM base is treated as evidence against the formula; a
+    // merely middling base (a decent product) still earns the full lift.
+    const positiveCap = score < 30 ? 4 : score < 45 ? 10 : 26;
     const applied = contribution.bonus > 0
       ? Math.min(contribution.bonus, positiveCap)
       : contribution.bonus;
