@@ -940,6 +940,9 @@ Deno.serve(async (req: Request) => {
     const ctx = ctxEarly;
     const profileHash = profileHashEarly;
     let analysis: ProductAnalysisPayload;
+    // Hoisted so the admin score-debug trail below can record which tiers
+    // travelled and the profile order the model was actually given (2026-09-02).
+    let tieredForDebug: ReturnType<typeof tierContext> | null = null;
     const t0 = Date.now();
     console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
 
