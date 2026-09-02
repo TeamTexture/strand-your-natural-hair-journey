@@ -88,6 +88,7 @@ import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import { decideUrlSearch } from "../_shared/search-gate.ts";
+import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -1075,6 +1076,34 @@ Deno.serve(async (req: Request) => {
           (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
       });
       a.score_reasons = failsafe.reasons;
+      // INTERNAL QA TRAIL (2026-09-02) — admin-only; URL scans now appear in
+      // /admin/score-debug alongside the shelf and photo paths.
+      void logScoreDebug({
+        userId: user.id,
+        functionName: "product-analyse-url",
+        subject: typeof a.product_name === "string" ? a.product_name : null,
+        brand: typeof a.brand === "string" ? a.brand : null,
+        healthTierMode: tiered.health.mode,
+        tierIncluded: tiered.included,
+        tierWithheld: tiered.withheld,
+        profileFields: describeProfileFields(
+          (tiered.context as Record<string, unknown>).hairProfile,
+          { challenges: (tiered.context as Record<string, unknown>).challenges ?? [] },
+        ),
+        scoreBreakdown: scoreBreakdown({
+          modelMatchScore: a.match_score,
+          modelQualityScore: failsafe.qualityScore,
+          baseScore: failsafe.baseScore,
+          finalScore: failsafe.score,
+          bonus: failsafe.concernContribution.bonus,
+          centrality: failsafe.concernContribution.centrality,
+          breadth: failsafe.concernContribution.breadth,
+          conflicts: failsafe.concernContribution.conflicts,
+          supportivePluses: failsafe.concernContribution.supportivePluses,
+          relevanceNote: failsafe.relevanceNote,
+          reasons: failsafe.reasons as Array<{ direction: string; factor: string }>,
+        }),
+      });
       if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
       if (failsafe.score != null) a.match_score = failsafe.score;
