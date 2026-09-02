@@ -242,9 +242,10 @@ const contextCache = new Map<string, { at: number; promise: Promise<ClinicalCont
  */
 export async function loadDecryptedContext(): Promise<DecryptedContext | null> {
   const res = await fetchDecryptedContext();
-  if (!res.ok) throw res.error;
-  return res.data;
+  if (res.ok) return res.data;
+  throw res.error;
 }
+
 
 /** Result-shaped read: never throws, always says which of the two states it is. */
 export async function loadDecryptedContextResult(): Promise<DecryptResult> {
