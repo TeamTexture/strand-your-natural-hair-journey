@@ -965,6 +965,7 @@ Deno.serve(async (req: Request) => {
         claims: pre.text ? pre.text.slice(0, 6000) : null,
       };
       const tiered = tierContext(ctx as Record<string, unknown>, urlSignals);
+      tieredForDebug = tiered;
       const tier1 = runTier1(ctx as Record<string, unknown>, urlSignals);
       console.log("[tiers] product-analyse-url", {
         health_mode: tiered.health.mode,
@@ -1086,12 +1087,12 @@ Deno.serve(async (req: Request) => {
         functionName: "product-analyse-url",
         subject: typeof a.product_name === "string" ? a.product_name : null,
         brand: typeof a.brand === "string" ? a.brand : null,
-        healthTierMode: tiered.health.mode,
-        tierIncluded: tiered.included,
-        tierWithheld: tiered.withheld,
+        healthTierMode: tieredForDebug?.health.mode ?? null,
+        tierIncluded: tieredForDebug?.included ?? [],
+        tierWithheld: tieredForDebug?.withheld ?? [],
         profileFields: describeProfileFields(
-          (tiered.context as Record<string, unknown>).hairProfile,
-          { challenges: (tiered.context as Record<string, unknown>).challenges ?? [] },
+          ((tieredForDebug?.context ?? {}) as Record<string, unknown>).hairProfile,
+          { challenges: ((tieredForDebug?.context ?? {}) as Record<string, unknown>).challenges ?? [] },
         ),
         scoreBreakdown: scoreBreakdown({
           modelMatchScore: a.match_score,
