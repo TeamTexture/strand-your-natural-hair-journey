@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import { formatUkMobile, normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
@@ -262,17 +263,18 @@ const PersonalDetailsReview = () => {
 
         <ReviewField
           label="Mobile number"
-          value={(profile as { phone_number?: string | null } | null)?.phone_number ?? ""}
+          value={formatUkMobile(
+            (profile as { phone_number?: string | null } | null)?.phone_number ?? "",
+          )}
           kind={{ type: "text", placeholder: "e.g. 07700 900123", maxLength: 20 }}
           autoEdit={editKey === "phone"}
           onSave={(v) => {
-            const trimmed = String(v).trim();
-            const digits = trimmed.replace(/\D/g, "");
-            if (trimmed && digits.length < 7) {
-              toast.error("Enter a valid mobile number");
+            const problem = ukMobileError(String(v));
+            if (problem) {
+              toast.error(problem);
               throw new Error("invalid phone");
             }
-            return saveField({ phone_number: trimmed || null });
+            return saveField({ phone_number: normaliseUkMobile(String(v)) });
           }}
         />
 
