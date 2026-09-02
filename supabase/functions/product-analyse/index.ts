@@ -84,6 +84,7 @@ import {
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
+import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
 import {
   usageGroundingBlock,
   validateUsageGrounding,
@@ -1131,6 +1132,28 @@ Deno.serve(async (req: Request) => {
     // guardrails blanked leads with the strongest surviving reason instead of
     // reaching the member empty.
     backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
+
+    // INTERNAL QA TRAIL — admin-only, never member-facing, never awaited in a
+    // way that can fail a scan. Profile fields are read off tiered.context, so
+    // the order recorded is the order the model was actually given.
+    if (scoreDebug) {
+      const dbg = scoreDebug as Record<string, unknown>;
+      void logScoreDebug({
+        userId: user.id,
+        functionName: "product-analyse",
+        subject: (dbg.subject as string | null) ?? null,
+        brand: (dbg.brand as string | null) ?? null,
+        generationId: (dbg.generationId as string | null) ?? null,
+        healthTierMode: tiered.health.mode,
+        tierIncluded: tiered.included,
+        tierWithheld: tiered.withheld,
+        profileFields: describeProfileFields(
+          (tiered.context as Record<string, unknown>).hairProfile,
+          { challenges: (tiered.context as Record<string, unknown>).challenges ?? [] },
+        ),
+        scoreBreakdown: dbg.breakdown as Record<string, unknown>,
+      });
+    }
 
     (analysis as unknown as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 
