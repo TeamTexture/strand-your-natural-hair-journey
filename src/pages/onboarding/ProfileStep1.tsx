@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
+import { formatUkMobile, isUkMobile, normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import { getTrialOfferState } from "@/lib/trialOffer";
 import { walledDestination } from "@/lib/trialWall";
@@ -155,7 +156,9 @@ const ProfileStep1 = () => {
         setName((current) => (current.trim() ? current : prefillName));
       }
       if (data?.phone_number) {
-        setPhone((current) => (current.trim() ? current : String(data.phone_number)));
+        setPhone((current) =>
+          current.trim() ? current : formatUkMobile(String(data.phone_number)) || String(data.phone_number),
+        );
       }
       if (data?.birth_year && Number.isFinite(data.birth_year)) {
         const derivedAge = new Date().getFullYear() - data.birth_year;
@@ -275,12 +278,13 @@ const ProfileStep1 = () => {
 
   const postalConfig = postalConfigFor(country);
   // Per-field validity (only surface errors after submit-attempt).
-  const phoneDigits = phone.replace(/\D/g, "");
+  // UK mobile only: validated inline here and mirrored by a CHECK constraint
+  // on profiles.phone_number, so the stored value is always +447XXXXXXXXX.
+  const phoneValid = isUkMobile(phone);
   const errors = {
     photo: !avatarPath ? "Add a profile photo to continue" : "",
     name: name.trim().length === 0 ? "Enter your full name" : "",
-    phone:
-      phoneDigits.length < 7 ? "Enter your mobile number" : "",
+    phone: ukMobileError(phone),
     age: age === "" ? "Select your age" : "",
     // Postcode rules follow the declared country: strict for the UK (it drives
     // the hard-water lookup) and permissive for formats we haven't mapped.
@@ -320,7 +324,11 @@ const ProfileStep1 = () => {
       ageNumForPayload != null && Number.isFinite(ageNumForPayload) && ageNumForPayload >= 1 && ageNumForPayload <= 120
         ? new Date().getFullYear() - ageNumForPayload
         : null;
-    const trimmedPhone = phone.trim();
+    const trimmedPhone = normaliseUkMobile(phone) ?? "";
+    if (!trimmedPhone) {
+      toast.error("Enter a valid UK mobile number.");
+      return;
+    }
     const payload = {
       name: name.trim(),
       phone: trimmedPhone,
@@ -561,7 +569,7 @@ const ProfileStep1 = () => {
         <label className="block">
           <FieldLabel>Mobile Number <span className="text-primary">*</span></FieldLabel>
           <FieldFrame
-            filled={phoneDigits.length >= 7}
+            filled={phoneValid}
             invalid={submitted && !!errors.phone}
           >
             <input
@@ -570,6 +578,7 @@ const ProfileStep1 = () => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 07700 900123"
+              onBlur={() => setPhone((v) => formatUkMobile(v) || v)}
               maxLength={20}
               autoComplete="tel"
               inputMode="tel"
@@ -582,7 +591,7 @@ const ProfileStep1 = () => {
               }}
               className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
             />
-            {phoneDigits.length >= 7 && <Check className="size-4 text-good mr-3 shrink-0" />}
+            {phoneValid && <Check className="size-4 text-good mr-3 shrink-0" />}
           </FieldFrame>
           {submitted && errors.phone && <FieldError>{errors.phone}</FieldError>}
         </label>
