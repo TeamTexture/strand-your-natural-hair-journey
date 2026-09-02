@@ -690,6 +690,7 @@ export type Database = {
         Row: {
           brand: string | null
           created_at: string
+          decrypt_status: string | null
           function_name: string
           generation_id: string | null
           health_tier_mode: string | null
@@ -704,6 +705,7 @@ export type Database = {
         Insert: {
           brand?: string | null
           created_at?: string
+          decrypt_status?: string | null
           function_name: string
           generation_id?: string | null
           health_tier_mode?: string | null
@@ -718,6 +720,7 @@ export type Database = {
         Update: {
           brand?: string | null
           created_at?: string
+          decrypt_status?: string | null
           function_name?: string
           generation_id?: string | null
           health_tier_mode?: string | null

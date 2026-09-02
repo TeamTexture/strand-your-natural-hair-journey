@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { loadDecryptedContext } from "@/lib/clinicalContext";
+import { loadDecryptedContextResult } from "@/lib/clinicalContext";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { aiInvoke } from "@/lib/aiInvoke";
 import {
@@ -82,7 +82,7 @@ async function loadContext(userId: string) {
     goalsRes,
     bloodsRes,
     washRes,
-    decrypted,
+    decryptRes,
   ] = await Promise.all([
     supabase.from("user_hair_profile").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("user_health_profile").select("*").eq("user_id", userId).maybeSingle(),
@@ -102,10 +102,15 @@ async function loadContext(userId: string) {
       .select("marker, value, unit, status, category")
       .eq("user_id", userId),
     supabase.from("wash_days").select("id").eq("user_id", userId).limit(1),
-    loadDecryptedContext(),
+    loadDecryptedContextResult(),
   ]);
 
+  // A failed decrypt is UNKNOWN, never "nothing recorded" — the merge below is
+  // additive, so a failure simply leaves the plaintext row untouched.
+  const decrypted = decryptRes.ok ? decryptRes.data : null;
+
   // The scalp condition and diagnosed conditions live encrypted — merge the
+
   // decrypted values in so the prompt sees the real clinical picture.
   const hair = cleanRow(hairRes.data as Record<string, unknown> | null) as Record<string, unknown> | null;
   if (hair) {
