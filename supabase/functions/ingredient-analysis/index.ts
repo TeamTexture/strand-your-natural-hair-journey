@@ -1443,6 +1443,13 @@ Deno.serve(async (req) => {
       water_hardness: tier1.waterHardness,
     });
 
+    // Rotated ONCE, then reused for both the prompt and the QA debug trail, so
+    // the debug view records the exact order the model saw (2026-09-02).
+    const promptHairProfile = rotateProfileSignals(
+      hairProfile ?? {},
+      [productBrand, productName, productCategory].filter(Boolean).join("|"),
+    ) ?? {};
+
     const userPayload: Record<string, unknown> = {
       product: {
         key: productKey,
