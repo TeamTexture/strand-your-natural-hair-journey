@@ -1816,7 +1816,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           `tier3:health_${healthTier.mode}`,
         ],
         tierWithheld: [...TIER_4_KEYS],
-        profileFields: describeProfileFields(hairProfile, {
+        profileFields: describeProfileFields(promptHairProfile, {
           goal_count: (goals ?? dbGoals ?? []).length,
           challenges: challenges ?? [],
           sensitivities_declared: Array.isArray(sens) ? sens.length : 0,
