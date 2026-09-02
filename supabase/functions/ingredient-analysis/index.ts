@@ -1465,10 +1465,7 @@ Deno.serve(async (req) => {
       ingredients: rawIngredients,
       // Rotated so porosity is not structurally first on every single call
       // (2026-09-01) — values unchanged, order seeded on the product.
-      hairProfile: rotateProfileSignals(
-        hairProfile ?? {},
-        [productBrand, productName, productCategory].filter(Boolean).join("|"),
-      ) ?? {},
+      hairProfile: promptHairProfile,
 
       // ── TIER 3 (Part 3, 2026-09-01) — conditional health data ───────
       // This surface knows the product's real INCI list, category and
