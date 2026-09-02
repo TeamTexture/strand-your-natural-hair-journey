@@ -88,6 +88,7 @@ import { NON_PRESCRIPTIVE_RULES } from "../_shared/non-prescriptive.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { FLAGGED_INGREDIENTS_RULES } from "../_shared/flagged-ingredients.ts";
 import { decideUrlSearch } from "../_shared/search-gate.ts";
+import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -939,6 +940,9 @@ Deno.serve(async (req: Request) => {
     const ctx = ctxEarly;
     const profileHash = profileHashEarly;
     let analysis: ProductAnalysisPayload;
+    // Hoisted so the admin score-debug trail below can record which tiers
+    // travelled and the profile order the model was actually given (2026-09-02).
+    let tieredForDebug: ReturnType<typeof tierContext> | null = null;
     const t0 = Date.now();
     console.log(JSON.stringify({ tag: "url-debug", phase: "start", url, provider, profileHash }));
 
@@ -961,6 +965,7 @@ Deno.serve(async (req: Request) => {
         claims: pre.text ? pre.text.slice(0, 6000) : null,
       };
       const tiered = tierContext(ctx as Record<string, unknown>, urlSignals);
+      tieredForDebug = tiered;
       const tier1 = runTier1(ctx as Record<string, unknown>, urlSignals);
       console.log("[tiers] product-analyse-url", {
         health_mode: tiered.health.mode,
@@ -1075,6 +1080,34 @@ Deno.serve(async (req: Request) => {
           (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
       });
       a.score_reasons = failsafe.reasons;
+      // INTERNAL QA TRAIL (2026-09-02) — admin-only; URL scans now appear in
+      // /admin/score-debug alongside the shelf and photo paths.
+      void logScoreDebug({
+        userId: user.id,
+        functionName: "product-analyse-url",
+        subject: typeof a.product_name === "string" ? a.product_name : null,
+        brand: typeof a.brand === "string" ? a.brand : null,
+        healthTierMode: tieredForDebug?.health.mode ?? null,
+        tierIncluded: tieredForDebug?.included ?? [],
+        tierWithheld: tieredForDebug?.withheld ?? [],
+        profileFields: describeProfileFields(
+          ((tieredForDebug?.context ?? {}) as Record<string, unknown>).hairProfile,
+          { challenges: ((tieredForDebug?.context ?? {}) as Record<string, unknown>).challenges ?? [] },
+        ),
+        scoreBreakdown: scoreBreakdown({
+          modelMatchScore: a.match_score,
+          modelQualityScore: failsafe.qualityScore,
+          baseScore: failsafe.baseScore,
+          finalScore: failsafe.score,
+          bonus: failsafe.concernContribution.bonus,
+          centrality: failsafe.concernContribution.centrality,
+          breadth: failsafe.concernContribution.breadth,
+          conflicts: failsafe.concernContribution.conflicts,
+          supportivePluses: failsafe.concernContribution.supportivePluses,
+          relevanceNote: failsafe.relevanceNote,
+          reasons: failsafe.reasons as Array<{ direction: string; factor: string }>,
+        }),
+      });
       if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
       a.strand_tip = failsafe.strandTips.length ? failsafe.strandTips : null;
       if (failsafe.score != null) a.match_score = failsafe.score;

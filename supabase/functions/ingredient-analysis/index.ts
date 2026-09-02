@@ -1443,6 +1443,13 @@ Deno.serve(async (req) => {
       water_hardness: tier1.waterHardness,
     });
 
+    // Rotated ONCE, then reused for both the prompt and the QA debug trail, so
+    // the debug view records the exact order the model saw (2026-09-02).
+    const promptHairProfile = rotateProfileSignals(
+      hairProfile ?? {},
+      [productBrand, productName, productCategory].filter(Boolean).join("|"),
+    ) ?? {};
+
     const userPayload: Record<string, unknown> = {
       product: {
         key: productKey,
@@ -1458,10 +1465,7 @@ Deno.serve(async (req) => {
       ingredients: rawIngredients,
       // Rotated so porosity is not structurally first on every single call
       // (2026-09-01) — values unchanged, order seeded on the product.
-      hairProfile: rotateProfileSignals(
-        hairProfile ?? {},
-        [productBrand, productName, productCategory].filter(Boolean).join("|"),
-      ) ?? {},
+      hairProfile: promptHairProfile,
 
       // ── TIER 3 (Part 3, 2026-09-01) — conditional health data ───────
       // This surface knows the product's real INCI list, category and
@@ -1812,7 +1816,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           `tier3:health_${healthTier.mode}`,
         ],
         tierWithheld: [...TIER_4_KEYS],
-        profileFields: describeProfileFields(hairProfile, {
+        profileFields: describeProfileFields(promptHairProfile, {
           goal_count: (goals ?? dbGoals ?? []).length,
           challenges: challenges ?? [],
           sensitivities_declared: Array.isArray(sens) ? sens.length : 0,

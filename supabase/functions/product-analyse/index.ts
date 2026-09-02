@@ -84,6 +84,7 @@ import {
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
+import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
 import {
   usageGroundingBlock,
   validateUsageGrounding,
@@ -878,6 +879,11 @@ Deno.serve(async (req: Request) => {
     // shelf path has always had (_shared/guardrail-loop.ts): a rejected field is
     // re-asked with the rejection fed back into the prompt, and only at the
     // attempt cap is anything nulled.
+    // INTERNAL QA TRAIL (2026-09-02) — the scoring summary of the LAST attempt,
+    // captured inside the loop and written once after it settles so photo scans
+    // appear in /admin/score-debug alongside the shelf path.
+    let scoreDebug: Record<string, unknown> | null = null;
+
     const loop = await runGuardrailLoop<ProductAnalysisPayload, FailsafeViolation>({
       functionName: "product-analyse",
       generate: async (info) => {
@@ -1006,6 +1012,24 @@ Deno.serve(async (req: Request) => {
             (ctx as Record<string, unknown> | undefined)?.topicalSensitivities,
         });
         a.score_reasons = failsafe.reasons;
+        scoreDebug = {
+          subject: typeof a.product_name === "string" ? a.product_name : null,
+          brand: typeof a.brand === "string" ? a.brand : null,
+          generationId: info.generationId,
+          breakdown: scoreBreakdown({
+            modelMatchScore: a.match_score,
+            modelQualityScore: failsafe.qualityScore,
+            baseScore: failsafe.baseScore,
+            finalScore: failsafe.score,
+            bonus: failsafe.concernContribution.bonus,
+            centrality: failsafe.concernContribution.centrality,
+            breadth: failsafe.concernContribution.breadth,
+            conflicts: failsafe.concernContribution.conflicts,
+            supportivePluses: failsafe.concernContribution.supportivePluses,
+            relevanceNote: failsafe.relevanceNote,
+            reasons: failsafe.reasons as Array<{ direction: string; factor: string }>,
+          }),
+        };
         if (Array.isArray(failsafe.cards)) a.key_ingredients = failsafe.cards;
         if (failsafe.concernCorrections.reframed || failsafe.concernCorrections.reflagged) {
           console.log(JSON.stringify({
@@ -1108,6 +1132,28 @@ Deno.serve(async (req: Request) => {
     // guardrails blanked leads with the strongest surviving reason instead of
     // reaching the member empty.
     backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
+
+    // INTERNAL QA TRAIL — admin-only, never member-facing, never awaited in a
+    // way that can fail a scan. Profile fields are read off tiered.context, so
+    // the order recorded is the order the model was actually given.
+    if (scoreDebug) {
+      const dbg = scoreDebug as Record<string, unknown>;
+      void logScoreDebug({
+        userId: user.id,
+        functionName: "product-analyse",
+        subject: (dbg.subject as string | null) ?? null,
+        brand: (dbg.brand as string | null) ?? null,
+        generationId: (dbg.generationId as string | null) ?? null,
+        healthTierMode: tiered.health.mode,
+        tierIncluded: tiered.included,
+        tierWithheld: tiered.withheld,
+        profileFields: describeProfileFields(
+          (tiered.context as Record<string, unknown>).hairProfile,
+          { challenges: (tiered.context as Record<string, unknown>).challenges ?? [] },
+        ),
+        scoreBreakdown: dbg.breakdown as Record<string, unknown>,
+      });
+    }
 
     (analysis as unknown as Record<string, unknown>)._profile_snapshot_hash = profileHash;
 

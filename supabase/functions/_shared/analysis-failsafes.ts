@@ -128,6 +128,11 @@ export interface FailsafeResult {
   };
   /** The proportional concern/challenge maths that moved the score. */
   concernContribution: ConcernContribution;
+  /**
+   * The score BEFORE the signed concern/challenge bonus — i.e. the quality axis
+   * after the fit-first ceilings. Internal QA trail only (score-debug.ts).
+   */
+  baseScore: number | null;
 }
 
 /**
@@ -211,6 +216,7 @@ export function enforceAnalysisFailsafes(input: FailsafeInput): FailsafeResult {
       downgradedFlags: benign.downgraded,
     },
     concernContribution: concern.contribution,
+    baseScore: fit.score,
   };
 }
 
