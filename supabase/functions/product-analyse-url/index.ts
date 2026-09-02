@@ -96,8 +96,8 @@ declare const Deno: {
 };
 
 // v5 invalidates scans cached before product-specific hero-image extraction.
-const MODEL_VERSION = "claude-sonnet-4-6@v28-score-range-2026-09-01";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v28-score-range-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v29-decrypt-status-2026-09-02";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v29-decrypt-status-2026-09-02";
 
 
 function levelCap(level: TipsLevel): number {
@@ -1083,6 +1083,7 @@ Deno.serve(async (req: Request) => {
       // INTERNAL QA TRAIL (2026-09-02) — admin-only; URL scans now appear in
       // /admin/score-debug alongside the shelf and photo paths.
       void logScoreDebug({
+        decryptStatus: ((ctxEarly as Record<string, unknown>).decryptStatus as string | undefined) ?? null,
         userId: user.id,
         functionName: "product-analyse-url",
         subject: typeof a.product_name === "string" ? a.product_name : null,

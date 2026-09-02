@@ -468,9 +468,23 @@ export function applyConcernFit(input: ConcernFitInput): ConcernFitResult {
 
   let score = input.score ?? null;
   if (score != null && contribution.bonus !== 0) {
+    // BONUS IS BANDED BY THE MODEL'S OWN QUALITY AXIS (2026-09-02). A scan came
+    // back with a quality/match score of 22 — the model had read the formula as
+    // built for a different job entirely — and still travelled up +19 because a
+    // single trace component brushed one recorded signal. A near-bottom base is
+    // evidence about the formula, so the fit lift may only ever be a token
+    // adjustment on top of it; the DOWNWARD half is never capped.
+    // Only a NEAR-BOTTOM base is treated as evidence against the formula; a
+    // merely middling base (a decent product) still earns the full lift.
+    const positiveCap = score < 30 ? 4 : score < 45 ? 10 : 26;
+    const applied = contribution.bonus > 0
+      ? Math.min(contribution.bonus, positiveCap)
+      : contribution.bonus;
+    contribution.bonus = applied;
     // Signed: the fit maths can lower the score as well as raise it. No floor.
-    score = Math.max(0, Math.min(95, score + contribution.bonus));
+    score = Math.max(0, Math.min(95, score + applied));
   }
+
 
 
   return {

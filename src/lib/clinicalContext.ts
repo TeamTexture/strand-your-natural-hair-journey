@@ -117,13 +117,45 @@ export interface ProfileBasicSlice {
 }
 
 
+/**
+ * Did the encrypted slice actually load?
+ *   "ok"     — the decrypt call succeeded. Empty fields mean genuinely unrecorded.
+ *   "failed" — the decrypt call errored (see `data-decrypt-context`, which 5xxs
+ *              deliberately). The encrypted fields below carry NO information and
+ *              must not be read as "she recorded nothing".
+ */
+export type DecryptStatus = "ok" | "failed";
+
+/** The context fields sourced from the encrypted decrypt payload. */
+export const DECRYPT_BACKED_FIELDS = [
+  "hair.scalp",
+  "hair.diagnosed",
+  "health.lifeStage",
+  "health.contraception",
+  "health.conditions",
+  "professional.notes",
+  "professional.gmc_number",
+  "professional.iot_number",
+] as const;
+
 export interface ClinicalContext {
   hair: HairSlice | null;
   health: HealthSlice | null;
   style: StyleSlice | null;
   professional: ProfessionalSlice | null;
   basic: ProfileBasicSlice | null;
+  /**
+   * 2026-09-02 BUG FIX. The client used to swallow a decrypt 500 into `null`,
+   * which then rendered scalp condition / diagnosed conditions / life stage /
+   * contraception / medical conditions / professional notes as empty — silently
+   * corrupting AI scoring with a half-profile. Callers MUST check this before
+   * treating an empty encrypted field as an answer.
+   */
+  decryptStatus: DecryptStatus;
+  /** Which fields hold no information because the decrypt failed. */
+  decryptFailedFields: string[];
 }
+
 
 interface DecryptedContext {
   hair: { scalp_condition: string | null; diagnosed_conditions: string[] } | null;
@@ -173,7 +205,17 @@ const ensureStringArray = (v: unknown): string[] => {
 
 // ─────────────────── Decrypted-context cache ───────────────────
 
-let decryptCache: { promise: Promise<DecryptedContext | null>; at: number } | null = null;
+/**
+ * A decrypt read is one of exactly two things, and they are NOT the same thing:
+ *   { ok: true,  data }  — the call succeeded. `data === null` means no rows.
+ *   { ok: false, error } — the call failed. We know NOTHING about her data.
+ * Collapsing the second into `null` is the bug this type exists to prevent.
+ */
+export type DecryptResult =
+  | { ok: true; data: DecryptedContext | null }
+  | { ok: false; error: Error };
+
+let decryptCache: { promise: Promise<DecryptResult>; at: number } | null = null;
 const DECRYPT_TTL_MS = 30_000;
 
 /** Drop the cached decrypted payload — call after writes that change encrypted
@@ -190,34 +232,64 @@ export function invalidateClinicalContextCache(): void {
 const CONTEXT_TTL_MS = 30_000;
 const contextCache = new Map<string, { at: number; promise: Promise<ClinicalContext> }>();
 
-/** Shared, 30s-deduped read of the whole decrypted payload. Every consumer
- *  (clinical context, sensitivities) goes through this so a page load costs at
- *  most ONE `data-decrypt-context` invocation, not one per hook. */
+/**
+ * Shared, 30s-deduped read of the whole decrypted payload. Every consumer
+ * (clinical context, sensitivities) goes through this so a page load costs at
+ * most ONE `data-decrypt-context` invocation, not one per hook.
+ *
+ * THROWS when the decrypt call failed. A `null` return means "the call
+ * succeeded and there is nothing recorded" — the two are never conflated.
+ */
 export async function loadDecryptedContext(): Promise<DecryptedContext | null> {
+  const res = await fetchDecryptedContext();
+  if ("error" in res) throw res.error;
+  return res.data;
+}
+
+
+
+/** Result-shaped read: never throws, always says which of the two states it is. */
+export async function loadDecryptedContextResult(): Promise<DecryptResult> {
   return fetchDecryptedContext();
 }
 
-async function fetchDecryptedContext(): Promise<DecryptedContext | null> {
+async function fetchDecryptedContext(): Promise<DecryptResult> {
   const now = Date.now();
   if (decryptCache && now - decryptCache.at < DECRYPT_TTL_MS) {
     return decryptCache.promise;
   }
-  const promise = (async () => {
+  const attempt = async (): Promise<DecryptedContext | null> => {
+    const { data, error } = await supabase.functions.invoke(
+      "data-decrypt-context",
+      { body: {} },
+    );
+    if (error) throw error;
+    return (data as DecryptedContext | null) ?? null;
+  };
+  const promise = (async (): Promise<DecryptResult> => {
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "data-decrypt-context",
-        { body: {} },
-      );
-      if (error) throw error;
-      return (data as DecryptedContext | null) ?? null;
-    } catch (err) {
-      console.warn("[strand] data-decrypt-context failed", err);
-      return null;
+      return { ok: true, data: await attempt() };
+    } catch (first) {
+      // One retry: a timeout or a transient rate limit must not be reported as
+      // "she has no clinical data".
+      try {
+        return { ok: true, data: await attempt() };
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error(
+          "[strand] data-decrypt-context failed twice — encrypted fields are UNKNOWN, not empty",
+          { first, error },
+        );
+        // A failed read is never cached: the next consumer should try again.
+        decryptCache = null;
+        return { ok: false, error };
+      }
     }
   })();
   decryptCache = { promise, at: now };
   return promise;
 }
+
 
 // ─────────────────── Slice builders (local fallback) ───────────────────
 
@@ -459,8 +531,11 @@ export function loadClinicalContextLocal(): ClinicalContext {
     style: styleFromLocal(),
     professional: professionalFromLocal(),
     basic: basicFromLocal(),
+    decryptStatus: "ok",
+    decryptFailedFields: [],
   };
 }
+
 
 
 // ─────────────────── Public loader ───────────────────
@@ -510,7 +585,10 @@ async function loadClinicalContextUncached(
     style: allowLocalFallback ? styleFromLocal() : null,
     professional: allowLocalFallback ? professionalFromLocal() : null,
     basic: allowLocalFallback ? basicFromLocal() : null,
+    decryptStatus: "ok",
+    decryptFailedFields: [],
   };
+
 
   let userId: string | null = null;
   try {
@@ -522,7 +600,7 @@ async function loadClinicalContextUncached(
   if (!userId) return ctx;
 
   try {
-    const [profileRes, hairRes, healthRes, styleRes, proRes, decrypted, medsRes] =
+    const [profileRes, hairRes, healthRes, styleRes, proRes, decryptRes, medsRes] =
       await Promise.all([
         supabase
           .from("profiles")
@@ -565,6 +643,24 @@ async function loadClinicalContextUncached(
           .eq("user_id", userId),
       ]);
 
+    // DECRYPT FAILURE IS NOT "NO DATA" (2026-09-02). When the call failed we
+    // keep whatever the local fallback held and flag the fields as unknown —
+    // never overwrite them with an empty array/null that reads as an answer.
+    const decryptOk = decryptRes.ok;
+    const decrypted = decryptRes.ok ? decryptRes.data : null;
+    if (!decryptOk) {
+      ctx.decryptStatus = "failed";
+      ctx.decryptFailedFields = [...DECRYPT_BACKED_FIELDS];
+    }
+    const encArr = (local: string[] | undefined, dec: string[] | undefined | null): string[] =>
+      decryptOk ? (dec ?? []) : (local ?? []);
+    const encStr = (
+      local: string | null | undefined,
+      dec: string | null | undefined,
+    ): string | null => (decryptOk ? (dec ?? null) : (local ?? null));
+
+
+
     // ── basic (profiles) — overlay onto local fallback ──
     const profileRow = profileRes.data;
     if (profileRow) {
@@ -606,8 +702,9 @@ async function loadClinicalContextUncached(
         density: wrap(hairRow.density),
         porosity: wrap(hairRow.porosity),
         elasticity: wrap(hairRow.elasticity),
-        scalp: wrap(decrypted?.hair?.scalp_condition ?? null),
-        diagnosed: decrypted?.hair?.diagnosed_conditions ?? [],
+        scalp: encArr(ctx.hair?.scalp, wrap(decrypted?.hair?.scalp_condition ?? null)),
+        diagnosed: encArr(ctx.hair?.diagnosed, decrypted?.hair?.diagnosed_conditions),
+
         areas: hairRow.areas_of_concern ?? [],
         length_inches: Number.isFinite(li) && li > 0 ? li : null,
         length_bucket: typeof hairRowAny.length_bucket === "string" && hairRowAny.length_bucket ? (hairRowAny.length_bucket as string) : null,
@@ -619,9 +716,10 @@ async function loadClinicalContextUncached(
     const meds = (medsRes.data ?? []).map((m) => m.name).filter(Boolean);
     if (healthRow) {
       ctx.health = {
-        lifeStage: wrap(decrypted?.health?.life_stage ?? null),
-        contraception: decrypted?.health?.contraception ?? [],
-        conditions: decrypted?.health?.medical_conditions ?? [],
+        lifeStage: encArr(ctx.health?.lifeStage, wrap(decrypted?.health?.life_stage ?? null)),
+        contraception: encArr(ctx.health?.contraception, decrypted?.health?.contraception),
+        conditions: encArr(ctx.health?.conditions, decrypted?.health?.medical_conditions),
+
         diet: healthRow.diet ?? "",
         dietOther: healthRow.diet_other ?? "",
         dietBalance: wrap(healthRow.diet_balance),
@@ -689,9 +787,10 @@ async function loadClinicalContextUncached(
         professional_type: proRow.professional_type ?? null,
         clinic: proRow.clinic ?? null,
         consultation_date: proRow.consultation_date ?? null,
-        notes: decrypted?.professional?.notes ?? null,
-        gmc_number: decrypted?.professional?.gmc_number ?? null,
-        iot_number: decrypted?.professional?.iot_number ?? null,
+        notes: encStr(ctx.professional?.notes, decrypted?.professional?.notes),
+        gmc_number: encStr(ctx.professional?.gmc_number, decrypted?.professional?.gmc_number),
+        iot_number: encStr(ctx.professional?.iot_number, decrypted?.professional?.iot_number),
+
         notes_audio_path: proRow.notes_audio_path ?? null,
         instagram_handle: proRow.instagram_handle ?? null,
         website_url: proRow.website_url ?? null,

@@ -1,0 +1,1 @@
+ALTER TABLE public.analysis_score_debug ADD COLUMN IF NOT EXISTS decrypt_status text;

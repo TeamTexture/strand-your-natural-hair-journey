@@ -25,6 +25,15 @@ import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsL
 import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 export interface AiContext {
+  /**
+   * DECRYPT HEALTH (2026-09-02). "failed" means the encrypted slice
+   * (scalp condition, diagnosed conditions, life stage, contraception, medical
+   * conditions, professional notes) could NOT be read on this build. Those keys
+   * are then OMITTED entirely rather than sent as empty — an empty value would
+   * read to the model as "she recorded nothing" and corrupt the score.
+   */
+  decryptStatus: "ok" | "failed";
+  decryptFailedFields?: string[];
   hairProfile: Record<string, unknown> | null;
   currentStyle: {
     current_hairstyle: string | null;
@@ -453,6 +462,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
   const clinical = await clinicalPromise;
 
   // Build the AiContext-shaped slices from the loaded clinical context.
+  const decryptFailed = clinical.decryptStatus === "failed";
   const hairProfile: Record<string, unknown> | null = clinical.hair
     ? {
         diameter: clinical.hair.diameter,
@@ -460,8 +470,13 @@ async function buildAiContextUncached(): Promise<AiContext> {
         density: clinical.hair.density,
         porosity: clinical.hair.porosity,
         elasticity: clinical.hair.elasticity,
-        scalp: clinical.hair.scalp,
-        diagnosed: clinical.hair.diagnosed,
+        // Encrypted fields are omitted (not emptied) when the decrypt failed.
+        ...(decryptFailed && clinical.hair.scalp.length === 0
+          ? {}
+          : { scalp: clinical.hair.scalp }),
+        ...(decryptFailed && clinical.hair.diagnosed.length === 0
+          ? {}
+          : { diagnosed: clinical.hair.diagnosed }),
         areas: clinical.hair.areas,
         // Same data, explicitly named so prompts can reason about thinning
         // edges / hairline as a first-class goal signal.
@@ -473,9 +488,15 @@ async function buildAiContextUncached(): Promise<AiContext> {
 
   const healthProfile: Record<string, unknown> | null = clinical.health
     ? {
-        lifeStage: clinical.health.lifeStage,
-        contraception: clinical.health.contraception,
-        conditions: clinical.health.conditions,
+        ...(decryptFailed && clinical.health.lifeStage.length === 0
+          ? {}
+          : { lifeStage: clinical.health.lifeStage }),
+        ...(decryptFailed && clinical.health.contraception.length === 0
+          ? {}
+          : { contraception: clinical.health.contraception }),
+        ...(decryptFailed && clinical.health.conditions.length === 0
+          ? {}
+          : { conditions: clinical.health.conditions }),
         diet: clinical.health.diet,
         dietOther: clinical.health.dietOther,
         dietBalance: clinical.health.dietBalance,
@@ -503,6 +524,8 @@ async function buildAiContextUncached(): Promise<AiContext> {
     ? {
         professional_type: clinical.professional.professional_type,
         last_consultation_date: clinical.professional.consultation_date,
+        // Null here can mean "not recorded" OR "decrypt failed" — read it
+        // together with `decryptStatus`, never on its own.
         professional_notes: clinical.professional.notes,
       }
     : null;
@@ -518,6 +541,10 @@ async function buildAiContextUncached(): Promise<AiContext> {
   }
 
   const result: AiContext = {
+    decryptStatus: clinical.decryptStatus,
+    ...(clinical.decryptFailedFields.length
+      ? { decryptFailedFields: clinical.decryptFailedFields }
+      : {}),
     hairProfile,
     currentStyle,
     healthProfile,

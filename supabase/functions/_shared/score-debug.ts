@@ -19,6 +19,13 @@ export interface ScoreDebugRow {
   brand?: string | null;
   generationId?: string | null;
   healthTierMode?: string | null;
+  /**
+   * "ok" | "failed" | null — did the member's ENCRYPTED slice reach this prompt?
+   * A "failed" row means scalp condition / diagnosed conditions / life stage /
+   * contraception / medical conditions were UNKNOWN, so the score was computed
+   * on a half-profile and should not be trusted for QA.
+   */
+  decryptStatus?: string | null;
   tierIncluded?: string[];
   tierWithheld?: string[];
   /** The profile object exactly as it was sent, plus the tier it sat in. */
@@ -67,6 +74,7 @@ export async function logScoreDebug(row: ScoreDebugRow): Promise<void> {
       brand: row.brand ?? null,
       generation_id: row.generationId ?? null,
       health_tier_mode: row.healthTierMode ?? null,
+      decrypt_status: row.decryptStatus ?? null,
       tier_included: row.tierIncluded ?? [],
       tier_withheld: row.tierWithheld ?? [],
       profile_fields: row.profileFields ?? {},

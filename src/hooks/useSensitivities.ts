@@ -121,6 +121,9 @@ export function useSensitivities() {
     entriesFor: (scope: SensitivityScope) =>
       scope === "dietary" ? query.data?.dietary ?? [] : query.data?.topical ?? [],
     loading: query.isLoading,
+    // 2026-09-02: a decrypt failure now surfaces instead of rendering as
+    // "no sensitivities recorded". Callers showing safety copy must check it.
+    failed: query.isError,
     confirmedAt,
     save,
     reload: () => qc.invalidateQueries({ queryKey: sensitivitiesKey(user?.id) }),
