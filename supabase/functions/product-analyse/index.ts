@@ -878,6 +878,11 @@ Deno.serve(async (req: Request) => {
     // shelf path has always had (_shared/guardrail-loop.ts): a rejected field is
     // re-asked with the rejection fed back into the prompt, and only at the
     // attempt cap is anything nulled.
+    // INTERNAL QA TRAIL (2026-09-02) — the scoring summary of the LAST attempt,
+    // captured inside the loop and written once after it settles so photo scans
+    // appear in /admin/score-debug alongside the shelf path.
+    let scoreDebug: Record<string, unknown> | null = null;
+
     const loop = await runGuardrailLoop<ProductAnalysisPayload, FailsafeViolation>({
       functionName: "product-analyse",
       generate: async (info) => {
