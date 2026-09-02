@@ -96,8 +96,8 @@ declare const Deno: {
 };
 
 // v5 invalidates scans cached before product-specific hero-image extraction.
-const MODEL_VERSION = "claude-sonnet-4-6@v28-score-range-2026-09-01";
-const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v28-score-range-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v29-decrypt-status-2026-09-02";
+const LOVABLE_MODEL_VERSION = "lovable-firecrawl@v29-decrypt-status-2026-09-02";
 
 
 function levelCap(level: TipsLevel): number {
@@ -1056,6 +1056,7 @@ Deno.serve(async (req: Request) => {
       const a = analysis as Record<string, unknown>;
       const failsafe = enforceAnalysisFailsafes({
         functionName: "product-analyse-url",
+        decryptStatus: ((ctxEarly as Record<string, unknown>).decryptStatus as string | undefined) ?? null,
         userId: user.id,
         fields: productProseFields(a),
         cards: a.key_ingredients,

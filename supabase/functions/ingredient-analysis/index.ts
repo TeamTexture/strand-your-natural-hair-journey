@@ -147,7 +147,7 @@ async function shortHash(input: string): Promise<string> {
 // descriptive fields and fit-first scoring with the separate Strand Tip.
 // The bump forces regeneration so no member keeps reading a caution-first
 // score or copy written before the terminology gate existed.
-const MODEL_VERSION = "claude-sonnet-4-6@v28-score-range-2026-09-01";
+const MODEL_VERSION = "claude-sonnet-4-6@v29-decrypt-status-2026-09-02";
 
 
 
@@ -1685,6 +1685,8 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // _shared/content-integrity.ts.
       const structuralViolations = checkContentIntegrity({
         functionName: "ingredient-analysis",
+        decryptStatus:
+          ((body.context as Record<string, unknown> | null | undefined)?.decryptStatus as string | undefined) ?? null,
         userId: memberId,
         subject: productKey ?? null,
         fields: termFields,
