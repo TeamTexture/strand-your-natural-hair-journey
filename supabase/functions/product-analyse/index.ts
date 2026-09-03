@@ -83,6 +83,9 @@ import {
 } from "../_shared/topical-sensitivity.ts";
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
+import { startTimeBudget } from "../_shared/time-budget.ts";
+import { recordAiOutcome } from "../_shared/ai-meter.ts";
+
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
 import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
 import {
