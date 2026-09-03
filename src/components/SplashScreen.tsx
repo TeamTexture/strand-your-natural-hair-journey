@@ -139,9 +139,8 @@ const SplashScreen = () => {
           </div>
         )}
 
-        <div className="hidden">
 
-        </div>
+
 
         {/* Sign-in form */}
         <form onSubmit={submit} className="w-full flex flex-col gap-3 selectable">
