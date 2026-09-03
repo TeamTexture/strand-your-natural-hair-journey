@@ -373,17 +373,47 @@ export function useSendChatVoice(threadId: string | null | undefined) {
   const { user } = useAuth();
   const view = useActiveRoleView();
   return useMutation({
-    mutationFn: async ({ blob, mimeType, durationMs }: VoiceRecording) => {
+    mutationFn: async ({
+      blob,
+      mimeType,
+      durationMs,
+      caption,
+      imageFile,
+    }: VoiceRecording & { caption?: string; imageFile?: File | null }) => {
       if (!threadId || !user?.id) throw new Error("Not ready");
       const path = await uploadChatVoice(threadId, blob, mimeType);
       const transcript = await transcribeChatVoice(blob, mimeType);
+      // A single send may carry typed text and/or a photo alongside the audio.
+      // `kind` stays "voice" (the primary type) and the extras ride in meta, so
+      // one row = one message = one notification email.
+      let imagePath: string | null = null;
+      let imageSize: { width?: number; height?: number } = {};
+      if (imageFile) {
+        const prepared = await prepareImageForAi(imageFile);
+        imagePath = `${threadId}/${crypto.randomUUID()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("chat-images")
+          .upload(imagePath, prepared.uploadFile, {
+            contentType: prepared.uploadFile.type || "image/jpeg",
+            upsert: false,
+          });
+        if (upErr) throw upErr;
+        imageSize = { width: prepared.width, height: prepared.height };
+      }
+      const text = caption?.trim() || "";
       const { error } = await supabase.from("chat_messages").insert({
         thread_id: threadId,
         sender_id: user.id,
         sender_role: view,
         kind: "voice",
-        body: transcript ?? "Voice note",
-        meta: { audio_path: path, duration_ms: Math.round(durationMs), transcript },
+        body: text || transcript || "Voice note",
+        meta: {
+          audio_path: path,
+          duration_ms: Math.round(durationMs),
+          transcript,
+          ...(text ? { caption: text } : {}),
+          ...(imagePath ? { image_path: imagePath, ...imageSize } : {}),
+        },
       });
       if (error) throw error;
     },
