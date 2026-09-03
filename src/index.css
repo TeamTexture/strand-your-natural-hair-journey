@@ -334,3 +334,13 @@ iframe {
 [data-radix-popper-content-wrapper] > * {
   max-width: min(calc(100vw - 1.5rem), 351px);
 }
+
+/* Calendly's inline widget sizes its iframe against the viewport when its
+   container has no explicit height, which made it overflow the phone frame and
+   collide with the surfaces above it. Pin it to its holder instead. */
+.strand-calendly-holder iframe {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+}
