@@ -1606,7 +1606,11 @@ Deno.serve(async (req) => {
           ...guidanceFloorProblems(analysis, guidanceTokens),
           ...usageGroundingProblems(analysis, usageDirections),
         ];
-        if (claudeProblems.length) {
+        // The guidance-only re-ask is an EXTRA model call on top of this
+        // attempt; skip it when the budget can't cover it and serve the
+        // guidance that already passed the other checks.
+        if (claudeProblems.length && timeBudget.canAfford(GUIDANCE_PASS_MS + RETRY_TAIL_MS)) {
+
           console.log(JSON.stringify({
             function: "ingredient-analysis",
             violation: "guidance_floor",
