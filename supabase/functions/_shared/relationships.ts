@@ -223,6 +223,48 @@ const ADD_MOISTURE =
   /\b(moisturis\w+|moisturiz\w+|hydrat\w+|adds?\s+moisture|provides?\s+moisture|delivers?\s+moisture|infuses?\s+moisture|replenish\w*\s+moisture|source of moisture)\b/;
 const MEDICINAL = /\b(minoxidil|medicinal|prescri\w+|pharmaceutical)\b/;
 
+/**
+ * CLAUSE SCOPING (2026-09-03). The causal branches used to fire on mere
+ * co-occurrence anywhere in a sentence, which nulled correct, safely-separated
+ * science ("your scalp produces plenty of sebum, and your high porosity means
+ * water escapes quickly"). The rule set is unchanged — only the matcher. A
+ * causal connection now requires the causal verb to sit BETWEEN the two terms,
+ * inside a short window, so two clauses that simply share a sentence pass.
+ */
+const allMatches = (re: RegExp, s: string): Array<[number, number]> => {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+  const out: Array<[number, number]> = [];
+  for (const m of s.matchAll(g)) {
+    if (typeof m.index === "number") out.push([m.index, m.index + m[0].length]);
+  }
+  return out;
+};
+
+/** True when a causal verb sits between a term from A and a term from B,
+ *  within `window` characters of text (either order). */
+function causallyLinked(
+  s: string,
+  a: RegExp,
+  b: RegExp,
+  verb: RegExp = CAUSAL,
+  window = 70,
+): boolean {
+  const as = allMatches(a, s);
+  const bs = allMatches(b, s);
+  if (!as.length || !bs.length) return false;
+  for (const [aStart, aEnd] of as) {
+    for (const [bStart, bEnd] of bs) {
+      const from = Math.min(aEnd, bEnd);
+      const to = Math.max(aStart, bStart);
+      if (to <= from) continue; // overlapping / adjacent same span
+      const between = s.slice(from, to);
+      if (between.length > window) continue;
+      if (verb.test(between)) return true;
+    }
+  }
+  return false;
+}
+
 export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
   {
     ...rel(
@@ -238,12 +280,24 @@ export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
     detect: (s) =>
       // A strand property stated as the reason oil/sebum behaves a certain way,
       // in either direction. Mentioning oils AND porosity in one sentence is
-      // fine ("an oil slows moisture loss on high porosity hair") — asserting
-      // that porosity governs oil is not.
-      (POROSITY.test(s) &&
-        /\b(los(?:e|es|ing|t)|strips?|stripp\w+|produces?|holds?|retains?|need\w*)\b[^.]{0,30}\b(oil|oils|sebum|lipids?|grease)\b/.test(s)) ||
-      (/\b(oil|oils|sebum|lipids?|grease|oiliness)\b/.test(s) &&
-        /\b(because|due to|since|thanks to|as a result of|driven by|caused by)\b[^.]{0,40}\b(porosity|porous|cuticle)\b/.test(s)),
+      // fine ("an oil slows moisture loss on high porosity hair"), and so is
+      // saying each thing in its own clause — the causal verb must actually sit
+      // between the porosity term and the oil term.
+      causallyLinked(
+        s,
+        POROSITY,
+        /\b(oil|oils|sebum|lipids?|grease|oiliness)\b/,
+        /\b(los(?:e|es|ing|t)|strips?|stripp\w+|produces?|holds?|retains?|need\w*)\b/,
+        40,
+      ) ||
+      causallyLinked(
+        s,
+        /\b(oil|oils|sebum|lipids?|grease|oiliness)\b/,
+        POROSITY,
+        /\b(because|due to|since|thanks to|as a result of|driven by|caused by)\b/,
+        50,
+      ),
+
 
   },
   {
@@ -273,7 +327,8 @@ export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
       "forbidden",
     ),
     polarity: "forbidden",
-    detect: (s) => DENSITY.test(s) && (MOIST.test(s) || OILY.test(s)) && CAUSAL.test(s),
+    detect: (s) =>
+      causallyLinked(s, DENSITY, MOIST) || causallyLinked(s, DENSITY, OILY),
   },
   {
     ...rel(
