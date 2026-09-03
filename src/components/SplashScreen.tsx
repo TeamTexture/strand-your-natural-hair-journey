@@ -124,7 +124,23 @@ const SplashScreen = () => {
             Strand
           </h1>
 
-          <HeatHatOfferTag />
+          {paidButSignedOut ? null : <HeatHatOfferTag />}
+        </div>
+
+        {paidButSignedOut && (
+          <div className="w-full rounded-2xl border border-primary/50 bg-primary/5 px-4 py-3 text-center space-y-1">
+            <p className="font-body text-sm text-foreground">
+              Payment confirmed — your 3 days free have started.
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Sign in below with the email and password you just registered with, and
+              you'll pick up exactly where you left off. Nothing you entered is lost.
+            </p>
+          </div>
+        )}
+
+        <div className="hidden">
+
         </div>
 
         {/* Sign-in form */}
