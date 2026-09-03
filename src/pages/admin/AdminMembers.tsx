@@ -840,6 +840,12 @@ const AdminMembers = () => {
                       {isPlusMember(r) ? "STRAND+" : "STRAND"}
                     </span>
                   </div>
+                  {r.retention_offer_used && r.retention_offer_claimed_at && (
+                    <p className="mt-2 text-[11px] font-body text-primary leading-snug">
+                      Retention offer claimed{" "}
+                      {formatDistanceToNow(new Date(r.retention_offer_claimed_at), { addSuffix: true })}
+                    </p>
+                  )}
                   {isPlusMember(r) && (
                     <Button
                       variant="outline"
