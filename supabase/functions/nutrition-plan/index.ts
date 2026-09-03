@@ -307,7 +307,7 @@ OUTPUT RULES
 
 11. SCOPE. Hair-health guidance only. Never diagnose. Never prescribe. Frame everything as "consider" / "worth discussing with your GP" when medication interaction or pregnancy is in play.
 
-12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "helps your follicles build new hair" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
+12. NO chapter citations. NO "Read more" links. NO textbook phrases like "essential for hair follicle mitosis" — say "what new hair growth draws on" instead. NO location, city, region, culture or heritage framing anywhere in the plan.`;
 }
 
 type PlanPart = "supplements" | "diet" | "avoid";
