@@ -357,6 +357,8 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Public landing for admin broadcast emails — resolves state, then forwards. */}
+              <Route path="/open" element={<OpenMessage />} />
               <Route path="/legal/:doc" element={<Legal />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
               
