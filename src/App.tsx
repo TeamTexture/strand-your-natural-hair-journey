@@ -48,6 +48,7 @@ import NotFound from "./pages/NotFound.tsx";
 const Auth = lazyRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyRetry(() => import("./pages/ResetPassword"));
 const ForgotPassword = lazyRetry(() => import("./pages/ForgotPassword"));
+const OpenMessage = lazyRetry(() => import("./pages/OpenMessage"));
 
 const SetupGuide = lazyRetry(() => import("./pages/SetupGuide"));
 const Walkthrough = lazyRetry(() => import("./pages/Walkthrough"));
