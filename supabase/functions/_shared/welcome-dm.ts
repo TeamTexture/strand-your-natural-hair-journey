@@ -96,6 +96,25 @@ export async function sendWelcomeVoicenote(
     });
     if (msgErr) throw msgErr;
 
+    // Same moment, same admin sender: the free 1:1 invitation as a tappable
+    // link card (a normal `text` row whose meta carries the link).
+    const calendlyUrl =
+      "https://calendly.com/paigelewinconsulting/1-1-strand-walkthrough-with-paige";
+    const { error: linkErr } = await admin.from("chat_messages").insert({
+      thread_id: threadId,
+      sender_id: adminUserId,
+      sender_role: "admin",
+      kind: "text",
+      body:
+        "Book your free 1:1 with Paige — a quick walkthrough of STRAND, one to one, no charge. " +
+        calendlyUrl,
+      meta: {
+        link: { url: calendlyUrl, label: "Book your free 1:1 with Paige" },
+        welcome_calendly: true,
+      },
+    });
+    if (linkErr) throw linkErr;
+
     const { error: stampErr } = await admin
       .from("consumer_subscriptions")
       .update({ welcome_dm_sent_at: new Date().toISOString() })
