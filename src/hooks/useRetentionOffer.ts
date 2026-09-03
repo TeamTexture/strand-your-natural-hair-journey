@@ -14,6 +14,9 @@ export interface RetentionOfferCheck {
   eligible: boolean;
   reason: string;
   tier: "standard" | "plus";
+  /** True when the member is still on the free trial (nothing charged yet). */
+  trialing?: boolean;
+  trial_end?: string | null;
   price: number;
   discounted_price: number;
   months: number;

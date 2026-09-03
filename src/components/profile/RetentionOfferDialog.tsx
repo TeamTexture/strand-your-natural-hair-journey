@@ -35,6 +35,19 @@ const RetentionOfferDialog = ({
   const [error, setError] = useState<string | null>(null);
 
   const planName = offer.tier === "plus" ? "STRAND+" : "STRAND";
+  // A trialing member has not been charged yet, so the discount starts when the
+  // trial converts — never imply money is coming off a payment already taken.
+  const trialEnds = (() => {
+    if (!offer.trialing || !offer.trial_end) return null;
+    const d = new Date(offer.trial_end);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  })();
+  const startsLine = offer.trialing
+    ? trialEnds
+      ? `Your free trial still runs to ${trialEnds}. After that it is ${money(offer.discounted_price)} a month for ${offer.months} months, then ${money(offer.price)} a month.`
+      : `Your free trial runs as normal. After that it is ${money(offer.discounted_price)} a month for ${offer.months} months, then ${money(offer.price)} a month.`
+    : `For ${offer.months} months, then ${money(offer.price)}/mo`;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -44,7 +57,9 @@ const RetentionOfferDialog = ({
             Before you cancel
           </AlertDialogTitle>
           <AlertDialogDescription className="font-body text-[13px] leading-snug text-muted-foreground">
-            Half price for your next {offer.months} months on us.
+            {offer.trialing
+              ? `Stay with us and your first ${offer.months} months after the trial are half price.`
+              : `Half price for your next ${offer.months} months on us.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -68,7 +83,7 @@ const RetentionOfferDialog = ({
             <span className="font-body text-[12px] text-muted-foreground pb-0.5">/mo</span>
           </div>
           <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1.5">
-            For {offer.months} months, then {money(offer.price)}/mo
+            {startsLine}
           </p>
         </div>
 

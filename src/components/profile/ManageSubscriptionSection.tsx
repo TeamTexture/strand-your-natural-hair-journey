@@ -169,7 +169,7 @@ const ManageSubscriptionSection = () => {
   const retentionOfferActive =
     !!subscription?.retention_offer_used &&
     !!retentionOfferClaimedAt &&
-    status === "active" &&
+    (status === "active" || status === "trialing") &&
     !paused &&
     !complimentary;
   const retentionOfferUntil = (() => {
@@ -209,9 +209,13 @@ const ManageSubscriptionSection = () => {
             ? `£${price.toFixed(2)} a month · access runs to ${renews}`
             : `£${price.toFixed(2)} a month · cancelling at the end of this period`
         : onTrial
-          ? trialEnds
-            ? `Free trial · £${price.toFixed(2)} a month starts ${trialEnds}`
-            : `Free trial · then £${price.toFixed(2)} a month`
+          ? retentionOfferActive
+            ? trialEnds
+              ? `Free trial · half price £${discountedPrice.toFixed(2)} a month starts ${trialEnds}`
+              : `Free trial · then half price £${discountedPrice.toFixed(2)} a month`
+            : trialEnds
+              ? `Free trial · £${price.toFixed(2)} a month starts ${trialEnds}`
+              : `Free trial · then £${price.toFixed(2)} a month`
           : retentionOfferActive && retentionOfferUntil
             ? `Half price £${discountedPrice.toFixed(2)} a month until ${retentionOfferUntil} · then £${price.toFixed(2)} a month`
             : renews
