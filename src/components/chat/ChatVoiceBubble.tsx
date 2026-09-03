@@ -49,11 +49,14 @@ interface Props {
   reaction?: ReactionState;
   onToggleReaction?: () => void;
   reactionsDisabled?: boolean;
+  /** Fired when playback starts — used to mark the welcome note as listened. */
+  onPlay?: () => void;
 }
 
 const ChatVoiceBubble = ({
   path,
   transcript,
+  onPlay,
   caption,
   imagePath,
   durationMs,
