@@ -17,6 +17,8 @@ export type ConsumerSubscription = {
   paused?: boolean | null;
   pause_resumes_at?: string | null;
   trial_end?: string | null;
+  retention_offer_used?: boolean | null;
+  retention_offer_claimed_at?: string | null;
 };
 
 /**
