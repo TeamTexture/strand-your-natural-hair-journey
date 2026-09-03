@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useUserProducts } from "@/hooks/useUserProducts";
+import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useIngredientLists } from "@/hooks/useIngredientLists";
 import { useGoals } from "@/hooks/useGoals";
