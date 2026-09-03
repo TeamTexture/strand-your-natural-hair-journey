@@ -6,6 +6,12 @@ import { buildAiContext } from "@/lib/aiContext";
 import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
+import { streamProductAnalyse } from "@/lib/streamProductAnalyse";
+import {
+  endUrlScanProgress,
+  setUrlScanPartial,
+  startUrlScanProgress,
+} from "@/lib/urlScanProgress";
 import { toast } from "sonner";
 
 /** Adds a product from a pasted product-page URL. The edge function fetches
