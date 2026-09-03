@@ -35,6 +35,16 @@ const SplashScreen = () => {
   const nextParam = searchParams.get("next");
   const next = safeNext(nextParam, "/home");
 
+  /**
+   * She has just come back from Stripe having started her trial, but the return
+   * hop arrived without a readable session (a browser that partitions storage
+   * for the framed preview, or a fresh top-level context after Stripe broke out
+   * of the frame). The payment IS done — say so, instead of showing a bare
+   * sign-in form that reads as "your signup failed".
+   */
+  const paidButSignedOut = !!nextParam && nextParam.includes("checkout=success");
+
+
   const getPostSignInTarget = async (userId: string) => {
     const [{ data: roleRows }, { data: brandProfile }, { data: proApp }, onboardingStatus] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
