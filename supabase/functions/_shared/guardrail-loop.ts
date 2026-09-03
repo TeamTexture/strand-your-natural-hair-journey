@@ -40,6 +40,18 @@ export interface GuardrailPostProcess<V> {
 export interface GuardrailLoopInput<T, V> {
   functionName: string;
   maxAttempts?: number;
+  /**
+   * Wall-clock budget for the whole request. When supplied, an attempt is only
+   * STARTED if the remaining budget covers the measured cost of the previous
+   * attempt plus the post-loop tail; otherwise the current attempt is treated as
+   * the final one and the caller's existing degrade path takes over. See
+   * _shared/time-budget.ts.
+   */
+  budget?: TimeBudget;
+  /** Milliseconds to reserve for post-loop work (default RETRY_TAIL_MS). */
+  retryTailMs?: number;
+  /** Called once when the budget — not the attempt cap — stopped the retries. */
+  onBudgetStop?: (info: { attemptNumber: number; remainingMs: number }) => void;
   /** Produce a fresh payload for this attempt. */
   generate: (info: GuardrailAttemptInfo) => Promise<T>;
   /**
@@ -56,6 +68,7 @@ export interface GuardrailLoopInput<T, V> {
     info: GuardrailAttemptInfo & { onRejected: (rules: string[]) => void },
   ) => Promise<T>;
 }
+
 
 export interface GuardrailLoopResult<T, V> {
   payload: T;
