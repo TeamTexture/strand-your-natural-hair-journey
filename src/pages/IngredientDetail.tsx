@@ -1824,10 +1824,11 @@ const IngredientDetail = () => {
                       </p>
                       <AiProgressBar
                         compact
-                        expectedMs={14000}
+                        /* ingredient-explainer measured p50 2.6s / p90 3.0s. */
+                        expectedMs={4000}
                         stages={[
                           "Looking this ingredient up",
-                          "Checking the manuscript",
+                          "Reading the manuscript passage",
                           "Tailoring it to your hair",
                         ]}
                       />
