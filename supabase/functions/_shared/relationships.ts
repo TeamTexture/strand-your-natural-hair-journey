@@ -280,12 +280,24 @@ export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
     detect: (s) =>
       // A strand property stated as the reason oil/sebum behaves a certain way,
       // in either direction. Mentioning oils AND porosity in one sentence is
-      // fine ("an oil slows moisture loss on high porosity hair") — asserting
-      // that porosity governs oil is not.
-      (POROSITY.test(s) &&
-        /\b(los(?:e|es|ing|t)|strips?|stripp\w+|produces?|holds?|retains?|need\w*)\b[^.]{0,30}\b(oil|oils|sebum|lipids?|grease)\b/.test(s)) ||
-      (/\b(oil|oils|sebum|lipids?|grease|oiliness)\b/.test(s) &&
-        /\b(because|due to|since|thanks to|as a result of|driven by|caused by)\b[^.]{0,40}\b(porosity|porous|cuticle)\b/.test(s)),
+      // fine ("an oil slows moisture loss on high porosity hair"), and so is
+      // saying each thing in its own clause — the causal verb must actually sit
+      // between the porosity term and the oil term.
+      causallyLinked(
+        s,
+        POROSITY,
+        /\b(oil|oils|sebum|lipids?|grease|oiliness)\b/,
+        /\b(los(?:e|es|ing|t)|strips?|stripp\w+|produces?|holds?|retains?|need\w*)\b/,
+        40,
+      ) ||
+      causallyLinked(
+        s,
+        /\b(oil|oils|sebum|lipids?|grease|oiliness)\b/,
+        POROSITY,
+        /\b(because|due to|since|thanks to|as a result of|driven by|caused by)\b/,
+        50,
+      ),
+
 
   },
   {
