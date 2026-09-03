@@ -244,10 +244,11 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
               <AiProgressBar
                 compact
                 className="mt-2"
-                expectedMs={12000}
+                /* brand-product-guidance measured p50 5.1s / p90 14.9s. */
+                expectedMs={13000}
                 stages={[
-                  "Reading your hair profile",
-                  "Checking this product's ingredients",
+                  "Reading this product's ingredient list",
+                  "Matching it to your hair profile",
                   "Writing your tip",
                 ]}
               />
