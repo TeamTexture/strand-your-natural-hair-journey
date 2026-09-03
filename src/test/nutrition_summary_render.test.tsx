@@ -35,7 +35,7 @@ describe("nutrition plan summary rendering", () => {
       "**What to prioritise:** rebuild your iron stores and top up your vitamin D.";
     const out = wrap(text);
     expect(out).toContain("stored iron");
-    expect(out).toContain("rebuild your iron stores");
+    expect(out).toContain("Rebuild your iron stores");
   });
 
   it("never renders a label with an empty body", () => {
