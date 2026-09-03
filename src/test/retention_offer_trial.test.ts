@@ -43,4 +43,15 @@ describe("retention offer — trialing members", () => {
     expect(fn).toContain('if (tier === "standard")');
     expect(fn).toContain("consumer_monthly_price_gbp");
   });
+
+  it("exposes already_used so the UI can render the feedback-only state", () => {
+    expect(fn).toContain("already_used: row?.retention_offer_used ?? false");
+    expect(dialog).toContain("alreadyUsed = offer.already_used");
+    expect(dialog).toContain("{!alreadyUsed && (");
+  });
+
+  it("opens the retention dialog for already-used memberships, not straight to cancel", () => {
+    expect(manage).toContain("retention.data?.already_used");
+    expect(manage).toContain("retention.data?.eligible || retention.data?.already_used");
+  });
 });
