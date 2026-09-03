@@ -122,11 +122,15 @@ export function useClaimRetentionOffer() {
   return useMutation({
     mutationFn: () =>
       invoke<{ ok: true; discounted_price: number; months: number }>({ action: "claim" }),
-    onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["consumer_subscription", user?.id] }),
-        qc.invalidateQueries({ queryKey: retentionOfferKey(user?.id) }),
-      ]);
+    // NEVER await the refetches here. `mutation.isPending` stays true until this
+    // callback's promise settles, and `invalidateQueries` only resolves once the
+    // dependent queries have refetched — a paused/disabled/slow refetch left the
+    // button on "Applying…" forever even though Stripe and the database had both
+    // already succeeded. Refresh in the background instead.
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["consumer_subscription", user?.id] });
+      void qc.invalidateQueries({ queryKey: retentionOfferKey(user?.id) });
     },
+
   });
 }
