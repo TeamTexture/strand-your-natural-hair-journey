@@ -120,8 +120,10 @@ const PaigeWalkthroughCard = () => {
           <div className="mt-3.5">
             <div
               ref={holderRef}
-              className="w-full min-h-[620px] rounded-2xl overflow-hidden border border-border bg-background"
+              style={{ height: 560 }}
+              className="strand-calendly-holder relative z-0 w-full rounded-2xl overflow-hidden border border-border bg-background"
             />
+
             <button
               type="button"
               onClick={() => setOpen(false)}
