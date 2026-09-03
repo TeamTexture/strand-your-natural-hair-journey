@@ -709,6 +709,9 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     undefined,
     {
       eyebrow: "Message",
+      // Same standing as strand-message-received: required to provide the
+      // service, so it is never held back by the global new-email flag.
+      legacy: true,
       rows: (d) => [{ label: "Sent", value: s(d.received) }],
     },
   ),
