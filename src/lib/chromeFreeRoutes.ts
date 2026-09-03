@@ -27,6 +27,8 @@ export const CHROME_FREE_PREFIXES = [
   "/brand/reset-password",
   "/brand/subscribe",
   "/international",
+  // Email landing resolver: it only forwards, so it carries no app chrome.
+  "/open",
   "/.lovable",
 ];
 

@@ -7,6 +7,7 @@ import { useChallenges } from "@/hooks/useChallenges";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 import { setTourActive, TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
 import { useLateFirstRunSlot } from "@/hooks/useLateFirstRunSlot";
+import { consumePendingMessageThread } from "@/lib/pendingMessageLink";
 
 /**
  * FIRST-RUN SEQUENCE — runs immediately after the guided tour, in this order:
@@ -85,6 +86,15 @@ const FirstRunSequence = () => {
   useEffect(() => {
     setTourActive(false);
   }, []);
+
+  // She arrived from a STRAND ADMIN broadcast email but had onboarding still to
+  // finish. Now the tour is done, take her to the chat the message is in rather
+  // than leaving her on Home.
+  useEffect(() => {
+    if (!tourDone) return;
+    const threadId = consumePendingMessageThread();
+    if (threadId) navigate(`/messages/${threadId}`, { replace: true });
+  }, [tourDone, navigate]);
 
 
   // The mandatory goals/challenges gate has been retired. Goal and challenge are

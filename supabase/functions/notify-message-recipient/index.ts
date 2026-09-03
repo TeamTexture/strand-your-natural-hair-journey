@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const { data: msg } = await admin
       .from("chat_messages")
-      .select("id, thread_id, sender_id, sender_role, kind, created_at")
+      .select("id, thread_id, sender_id, sender_role, kind, created_at, meta")
       .eq("id", message_id)
       .maybeSingle();
     if (!msg) return json({ ok: false, reason: "message_not_found" });
@@ -125,7 +125,32 @@ Deno.serve(async (req) => {
       timeStyle: "short",
     });
 
-    const result = await dispatchEmail(
+    // A broadcast reaches EVERY account, including people who never paid or
+    // never finished onboarding, so its link must not point straight at a
+    // protected route. Those recipients get the /open resolver instead; ordinary
+    // one-to-one admin replies keep the existing template untouched.
+    const meta = (msg.meta ?? null) as Record<string, unknown> | null;
+    const broadcastId =
+      meta && typeof meta.broadcast_id === "string" ? meta.broadcast_id : null;
+
+    const result = broadcastId
+      ? await dispatchEmail(
+          {
+            templateKey: "admin-broadcast-received",
+            to: email,
+            recipientUserId: recipientId,
+            triggerEvent: "chat_message.broadcast_sent",
+            relatedTable: "chat_messages",
+            relatedId: String(msg.id),
+            idempotencyKey: `admin-broadcast-received:${msg.id}`,
+            data: {
+              received,
+              path: `/open?t=${msg.thread_id}&b=${broadcastId}`,
+            },
+          },
+          admin,
+        )
+      : await dispatchEmail(
       {
         templateKey: "strand-message-received",
         to: email,

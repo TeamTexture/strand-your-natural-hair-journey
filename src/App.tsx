@@ -48,6 +48,7 @@ import NotFound from "./pages/NotFound.tsx";
 const Auth = lazyRetry(() => import("./pages/Auth"));
 const ResetPassword = lazyRetry(() => import("./pages/ResetPassword"));
 const ForgotPassword = lazyRetry(() => import("./pages/ForgotPassword"));
+const OpenMessage = lazyRetry(() => import("./pages/OpenMessage"));
 
 const SetupGuide = lazyRetry(() => import("./pages/SetupGuide"));
 const Walkthrough = lazyRetry(() => import("./pages/Walkthrough"));
@@ -357,6 +358,8 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Public landing for admin broadcast emails — resolves state, then forwards. */}
+              <Route path="/open" element={<OpenMessage />} />
               <Route path="/legal/:doc" element={<Legal />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
               
