@@ -9,6 +9,12 @@
 // Additive by design: nothing in HomeTour changes. Playback reuses the exact
 // signed-URL + play/pause pattern of ChatVoiceBubble, and the transcript stays
 // behind a "Read transcript" toggle.
+//
+// PERSISTENCE (2026-09-03): the popup used to write a "shown" flag the instant
+// it opened and then re-read that same flag inside its own `open` expression, so
+// the next render (the signed audio URL landing) closed it — the member saw a
+// flash and lost the message. It now stays up until she has genuinely LISTENED
+// (VoicePlayer's onPlay), and "Minimise" only snoozes it for the session.
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -19,24 +25,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useChatAudioUrl } from "@/components/chat/ChatVoiceBubble";
 import VoicePlayer from "@/components/voice/VoicePlayer";
 import { TOUR_DONE_EVENT } from "@/lib/firstRunTour";
+import {
+  hasListenedToWelcome,
+  isWelcomeSnoozed,
+  markWelcomeListened,
+  snoozeWelcome,
+} from "@/lib/welcomeVoicenote";
 
-
-/** One popup per message, ever — separate from chat's own read_at handling. */
-const shownKey = (id: string) => `strand_welcome_vn_shown_${id}`;
-const alreadyShown = (id: string) => {
-  try {
-    return localStorage.getItem(shownKey(id)) === "1";
-  } catch {
-    return false;
-  }
-};
-const markShown = (id: string) => {
-  try {
-    localStorage.setItem(shownKey(id), "1");
-  } catch {
-    /* private mode */
-  }
-};
 
 interface WelcomeMessage {
   id: string;
@@ -52,6 +47,7 @@ const WelcomeVoicenotePopup = () => {
   const navigate = useNavigate();
   const [armed, setArmed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [listened, setListened] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
 
@@ -72,7 +68,6 @@ const WelcomeVoicenotePopup = () => {
         .select("id, thread_id, body, meta, created_at")
         .eq("kind", "voice")
         .eq("meta->>welcome_voicenote", "true")
-        .is("read_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -91,11 +86,13 @@ const WelcomeVoicenotePopup = () => {
     },
   });
 
-  const open = armed && !dismissed && !!message && !alreadyShown(message.id);
-
-  useEffect(() => {
-    if (open && message) markShown(message.id);
-  }, [open, message]);
+  const open =
+    armed &&
+    !dismissed &&
+    !listened &&
+    !!message &&
+    !isWelcomeSnoozed(user?.id) &&
+    !hasListenedToWelcome(user?.id, message.id);
 
   const { data: url } = useChatAudioUrl(open ? message?.audio_path : null);
 
@@ -104,12 +101,22 @@ const WelcomeVoicenotePopup = () => {
   // Unmounting the popup unmounts VoicePlayer, which pauses and tears down its
   // own audio element — nothing else to stop here.
   const minimise = () => {
+    // Not dismissed for good — it comes back next time she opens the app until
+    // the voice note has actually been played.
+    snoozeWelcome(user?.id);
     setDismissed(true);
   };
 
   const openChat = () => {
     setDismissed(true);
     navigate(`/messages/${message.thread_id}`);
+  };
+
+  // Playing it here counts as listened, and so does playing it in the thread
+  // (ChatThreadPage marks the same flag).
+  const onListened = () => {
+    markWelcomeListened(user?.id, message.id);
+    setListened(true);
   };
 
 
@@ -156,6 +163,7 @@ const WelcomeVoicenotePopup = () => {
             url={url}
             durationMs={message.duration_ms}
             variant="onSurface"
+            onPlay={onListened}
             className="mt-2 text-foreground"
           />
         </div>
