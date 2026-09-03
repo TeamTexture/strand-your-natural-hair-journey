@@ -894,6 +894,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // SPEED (2026-09-03): when the caller asks for a stream, the same pipeline
+    // runs unchanged — every gate, cache check, guardrail and cache write —
+    // but the deterministic Tier 1 findings and the partial model output are
+    // pushed to the member as they land. Same wrapper product-analyse uses.
+    const wantsStream = body.stream === true;
+    const pipeline = async (
+      emit: SseEmit | null,
+    ): Promise<Record<string, unknown> | Response> => {
+
     // ── Input validation ────────────────────────────────────────────
     if (!body.url || typeof body.url !== "string") {
       return json(400, { error: INVALID_URL_MESSAGE });
@@ -978,6 +987,12 @@ Deno.serve(async (req: Request) => {
       const tiered = tierContext(ctx as Record<string, unknown>, urlSignals);
       tieredForDebug = tiered;
       const tier1 = runTier1(ctx as Record<string, unknown>, urlSignals);
+      // Known before the model is called, so it goes out immediately.
+      emit?.("tier1", {
+        water_hardness: tier1.waterHardness ?? null,
+        shelf_overlap: tier1.shelfOverlap.length,
+        product_name: pre.title || null,
+      });
       console.log("[tiers] product-analyse-url", {
         health_mode: tiered.health.mode,
         health_reason: tiered.health.reason,
@@ -991,6 +1006,7 @@ Deno.serve(async (req: Request) => {
         pageText: pre.text,
         pageTitle: pre.title,
         tierBlock: `${tier1Block(tier1)}${tierRulesBlock(tiered)}`,
+        onPartialJson: emit ? (acc) => emit("partial", { json: acc }) : undefined,
       });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({
@@ -1173,10 +1189,21 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    return new Response(
-      JSON.stringify(analysis),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return analysis as unknown as Record<string, unknown>;
+    };
+
+    if (!wantsStream) {
+      const result = await pipeline(null);
+      return result instanceof Response
+        ? result
+        : new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
+    return sseResponse({
+      pipeline: (emit) => pipeline(emit),
+      onError: (e) => aiErrorResponse(e, "product-analyse-url"),
+    });
   } catch (e) {
     return aiErrorResponse(e, "product-analyse-url");
   }
