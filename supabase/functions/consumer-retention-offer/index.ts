@@ -25,6 +25,7 @@ const STANDARD_FALLBACK = 9.99;
 
 type Row = {
   status: string | null;
+  trial_end: string | null;
   tier: string | null;
   paused: boolean | null;
   cancel_at_period_end: boolean | null;
@@ -42,8 +43,15 @@ function assess(row: Row | null) {
   if (row.paused) return ineligible("paused");
   if (row.cancel_at_period_end) return ineligible("already_cancelling");
   const status = (row.status ?? "").toLowerCase();
-  // Nothing has been paid on a trial yet, so there is no price to halve.
-  if (status !== "active" && status !== "past_due") return ineligible(`status_${status || "none"}`);
+  // TRIALING IS ELIGIBLE (2026-09-03). The original build excluded it on the
+  // reasoning that "nothing has been paid yet, so there is no price to halve" —
+  // which silently made the retention offer unreachable for exactly the members
+  // most likely to cancel. The Stripe coupon attaches to the subscription and
+  // applies to the first three invoices AFTER the trial converts, so the
+  // discount is real and correctly timed. Copy is trial-aware in the dialog.
+  if (status !== "active" && status !== "past_due" && status !== "trialing") {
+    return ineligible(`status_${status || "none"}`);
+  }
   return { eligible: true as const, reason: "eligible" };
 }
 
@@ -70,7 +78,7 @@ Deno.serve(async (req) => {
     const { data, error } = await admin
       .from("consumer_subscriptions")
       .select(
-        "status, tier, paused, cancel_at_period_end, stripe_subscription_id, retention_offer_used",
+        "status, trial_end, tier, paused, cancel_at_period_end, stripe_subscription_id, retention_offer_used",
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -93,12 +101,18 @@ Deno.serve(async (req) => {
       price = Number.isFinite(n) ? Number(n) : STANDARD_FALLBACK;
     }
     const discountedPrice = Math.round(price * 50) / 100; // half price, 2dp
+    // The dialog needs to say WHEN the half price starts: now for a paying
+    // member, at trial conversion for a trialing one.
+    const trialing = (row?.status ?? "").toLowerCase() === "trialing";
+    const trialEnd = trialing ? (row?.trial_end ?? null) : null;
 
     if (action === "check") {
       return json(200, {
         eligible: verdict.eligible,
         reason: verdict.reason,
         tier,
+        trialing,
+        trial_end: trialEnd,
         price,
         discounted_price: discountedPrice,
         months: RETENTION_MONTHS,
@@ -137,6 +151,8 @@ Deno.serve(async (req) => {
     return json(200, {
       ok: true,
       tier,
+      trialing,
+      trial_end: trialEnd,
       price,
       discounted_price: discountedPrice,
       months: RETENTION_MONTHS,
