@@ -87,9 +87,12 @@ const RetentionOfferDialog = ({
           </p>
         </div>
 
+        <RetentionHelpSection />
+
         {error && (
           <p className="font-body text-[12px] leading-snug text-destructive">{error}</p>
         )}
+
 
         <div className="space-y-2 pt-1">
           <Button
