@@ -2,11 +2,14 @@
 //
 // Shown only once the member has finished onboarding (hair characteristics
 // saved). Tapping the CTA reveals Calendly's INLINE embed in place, so booking
-// never leaves the app. Dismissal and booking are both remembered in
-// `alert_dismissals` (key `paige_walkthrough`), so it survives reload and
-// device changes and is never shown again.
+// never leaves the app. "Not now" never removes the invitation: it COLLAPSES it
+// to a small persistent row that expands back to the full card on tap. State
+// lives in `alert_dismissals` so it survives reload and device changes:
+//   `paige_walkthrough::v1`       → legacy dismissal, read as "collapsed"
+//   `paige_walkthrough::collapsed` → collapsed row
+//   `paige_walkthrough::booked`    → booking completed (stays as a small row)
 import { useEffect, useRef, useState } from "react";
-import { CalendarHeart, X } from "lucide-react";
+import { CalendarHeart, Check, ChevronRight } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import { useAlertDismissals } from "@/hooks/useAlertDismissals";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
@@ -16,7 +19,10 @@ const CALENDLY_URL =
 const CALENDLY_SCRIPT = "https://assets.calendly.com/assets/external/widget.js";
 
 const ALERT_KEY = "paige_walkthrough";
-const ALERT_SIGNATURE = "v1";
+const SIG_LEGACY = "v1";
+const SIG_COLLAPSED = "collapsed";
+const SIG_BOOKED = "booked";
+
 
 /** Load Calendly's widget script once per document. */
 const useCalendlyScript = (enabled: boolean) => {
