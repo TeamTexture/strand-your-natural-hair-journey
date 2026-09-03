@@ -327,7 +327,8 @@ export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
       "forbidden",
     ),
     polarity: "forbidden",
-    detect: (s) => DENSITY.test(s) && (MOIST.test(s) || OILY.test(s)) && CAUSAL.test(s),
+    detect: (s) =>
+      causallyLinked(s, DENSITY, MOIST) || causallyLinked(s, DENSITY, OILY),
   },
   {
     ...rel(
