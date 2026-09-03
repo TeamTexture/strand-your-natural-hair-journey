@@ -928,6 +928,11 @@ Deno.serve(async (req) => {
   const kill = checkKillSwitch();
   if (kill) return kill;
 
+  // Wall-clock budget for this whole request, retries included.
+  const timeBudget = startTimeBudget();
+
+
+
 
   try {
     // ── Caller resolution ─────────────────────────────────────────────
