@@ -704,6 +704,11 @@ Deno.serve(async (req: Request) => {
   const kill = checkKillSwitch();
   if (kill) return kill;
 
+  // Wall-clock budget for this whole request, retries included.
+  const timeBudget = startTimeBudget();
+
+
+
 
   try {
     const auth = await requireAuthedUser(req);
