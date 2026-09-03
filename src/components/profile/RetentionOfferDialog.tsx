@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import RetentionHelpSection from "@/components/profile/RetentionHelpSection";
 import { useClaimRetentionOffer, type RetentionOfferCheck } from "@/hooks/useRetentionOffer";
 
 const money = (n: number) => `£${n.toFixed(2)}`;
