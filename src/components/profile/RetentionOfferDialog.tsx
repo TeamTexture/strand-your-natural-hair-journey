@@ -102,28 +102,30 @@ const RetentionOfferDialog = ({
 
 
         <div className="space-y-2 pt-1">
-          <Button
-            variant="gold"
-            size="pill"
-            className="w-full"
-            disabled={claim.isPending}
-            onClick={() => {
-              setError(null);
-              claim.mutate(undefined, {
-                onSuccess: () => {
-                  onOpenChange(false);
-                  toast("Your discount is on — half price for the next 3 months");
-                },
-                onError: (e) => {
-                  const msg = e instanceof Error ? e.message : "Could not apply your discount";
-                  setError(msg);
-                  toast.error(msg);
-                },
-              });
-            }}
-          >
-            {claim.isPending ? "Applying…" : `Claim ${offer.months} months half price`}
-          </Button>
+          {!alreadyUsed && (
+            <Button
+              variant="gold"
+              size="pill"
+              className="w-full"
+              disabled={claim.isPending}
+              onClick={() => {
+                setError(null);
+                claim.mutate(undefined, {
+                  onSuccess: () => {
+                    onOpenChange(false);
+                    toast("Your discount is on — half price for the next 3 months");
+                  },
+                  onError: (e) => {
+                    const msg = e instanceof Error ? e.message : "Could not apply your discount";
+                    setError(msg);
+                    toast.error(msg);
+                  },
+                });
+              }}
+            >
+              {claim.isPending ? "Applying…" : `Claim ${offer.months} months half price`}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="pill"
