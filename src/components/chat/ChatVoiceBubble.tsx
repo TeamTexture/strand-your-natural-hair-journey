@@ -13,6 +13,7 @@ import VoicePlayer from "@/components/voice/VoicePlayer";
 import { supabase } from "@/integrations/supabase/client";
 import { CHAT_MEDIA_BUCKET } from "@/lib/chatVoice";
 import ReactableBubble, { stopBubbleGesture } from "@/components/chat/MessageReaction";
+import { useChatImageUrl } from "@/components/chat/ChatImageBubble";
 import type { ReactionState } from "@/hooks/useMessageReactions";
 
 
@@ -35,6 +36,10 @@ export const useChatAudioUrl = (path: string | null | undefined) =>
 interface Props {
   path: string | null | undefined;
   transcript?: string | null;
+  /** Typed text sent in the same message as the voice note. */
+  caption?: string | null;
+  /** Photo attached to the same message as the voice note. */
+  imagePath?: string | null;
   durationMs?: number | null;
   createdAt: string;
   readAt?: string | null;
@@ -49,6 +54,8 @@ interface Props {
 const ChatVoiceBubble = ({
   path,
   transcript,
+  caption,
+  imagePath,
   durationMs,
   createdAt,
   readAt,
@@ -60,6 +67,7 @@ const ChatVoiceBubble = ({
   reactionsDisabled,
 }: Props) => {
   const { data: url } = useChatAudioUrl(path);
+  const { data: imageUrl } = useChatImageUrl(imagePath);
   const [showTranscript, setShowTranscript] = useState(false);
 
 
@@ -86,6 +94,14 @@ const ChatVoiceBubble = ({
         onToggle={() => onToggleReaction?.()}
         className={`max-w-[80%] px-3 py-2.5 rounded-[16px] ${tone}`}
       >
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={caption?.trim() ? caption : "Photo sent in this conversation"}
+            loading="lazy"
+            className="mb-2 max-h-[220px] w-auto max-w-full rounded-[11px] object-cover"
+          />
+        )}
         <div className="w-[210px] max-w-full" {...stopBubbleGesture}>
           <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-body font-semibold">
             <Mic className="size-3" />
@@ -95,7 +111,13 @@ const ChatVoiceBubble = ({
         </div>
 
 
-        {transcript?.trim() && (
+        {caption?.trim() && (
+          <p className="mt-2 text-sm font-body leading-snug whitespace-pre-wrap break-words">
+            {caption}
+          </p>
+        )}
+
+        {transcript?.trim() && transcript.trim() !== caption?.trim() && (
           <>
             <button
               type="button"
