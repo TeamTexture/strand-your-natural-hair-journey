@@ -82,6 +82,12 @@ export class ProductAnalyseError extends Error {}
 
 export async function streamProductAnalyse(opts: {
   body: Record<string, unknown>;
+  /**
+   * Which analysis function to stream. Defaults to the photo scan; the URL
+   * scan streams the identical event contract (2026-09-03), so both surfaces
+   * share this transport and parser rather than each rolling their own.
+   */
+  fn?: "product-analyse" | "product-analyse-url";
   onPartial?: (partial: PartialAnalysis) => void;
   signal?: AbortSignal;
 }): Promise<Record<string, unknown>> {
@@ -89,7 +95,7 @@ export async function streamProductAnalyse(opts: {
   const token = sessionData.session?.access_token;
   if (!token) throw new ProductAnalyseError("Please sign in again to analyse a product.");
 
-  const resp = await fetch(`${FUNCTIONS_BASE}/product-analyse`, {
+  const resp = await fetch(`${FUNCTIONS_BASE}/${opts.fn ?? "product-analyse"}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
