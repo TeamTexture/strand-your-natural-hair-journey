@@ -692,6 +692,26 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
       rows: (d) => [{ label: "Sent", value: s(d.received) }],
     },
   ),
+  // An admin broadcast reached this recipient. Same privacy rule as above (the
+  // body is never reproduced), but the CTA goes to the state-aware /open
+  // resolver so an unpaid or half-onboarded recipient is not dropped on a
+  // protected route.
+  "admin-broadcast-received": t(
+    "admin-broadcast-received",
+    "transactional",
+    true,
+    () => "STRAND has reached out to you",
+    () => [
+      "The STRAND team has sent you a message.",
+      "For your privacy we do not include it here — open STRAND to read it and reply. If you have not finished setting up your account, the link takes you to the right place first and your message will be waiting.",
+    ],
+    (d) => ({ label: "Open your message", path: s(d.path, "/open") }),
+    undefined,
+    {
+      eyebrow: "Message",
+      rows: (d) => [{ label: "Sent", value: s(d.received) }],
+    },
+  ),
   // Already live in production — bypasses the global flag.
 
 
