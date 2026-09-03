@@ -60,35 +60,39 @@ const RetentionOfferDialog = ({
             Before you cancel
           </AlertDialogTitle>
           <AlertDialogDescription className="font-body text-[13px] leading-snug text-muted-foreground">
-            {offer.trialing
-              ? `Stay with us and your first ${offer.months} months after the trial are half price.`
-              : `Half price for your next ${offer.months} months on us.`}
+            {alreadyUsed
+              ? "We know plans change — before you go, tell us what would have made STRAND better for you."
+              : offer.trialing
+                ? `Stay with us and your first ${offer.months} months after the trial are half price.`
+                : `Half price for your next ${offer.months} months on us.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="rounded-[14px] border border-primary/40 bg-primary/5 px-4 py-3.5 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="size-6 shrink-0 rounded-full bg-primary/20 text-primary flex items-center justify-center">
-              <Sparkles className="size-3.5" />
-            </span>
-            <p className="font-body text-[13px] font-semibold text-foreground min-w-0 flex-1 break-words">
-              {planName}
+        {!alreadyUsed && (
+          <div className="rounded-[14px] border border-primary/40 bg-primary/5 px-4 py-3.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-6 shrink-0 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                <Sparkles className="size-3.5" />
+              </span>
+              <p className="font-body text-[13px] font-semibold text-foreground min-w-0 flex-1 break-words">
+                {planName}
+              </p>
+            </div>
+            <div className="mt-2.5 flex items-end gap-2 flex-wrap">
+              <span className="font-body text-[13px] text-muted-foreground line-through">
+                {money(offer.price)}
+              </span>
+              <span className="font-display text-[26px] font-bold leading-none text-[hsl(var(--gold-deep))]">
+                {money(offer.discounted_price)}
+              </span>
+
+              <span className="font-body text-[12px] text-muted-foreground pb-0.5">/mo</span>
+            </div>
+            <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1.5">
+              {startsLine}
             </p>
           </div>
-          <div className="mt-2.5 flex items-end gap-2 flex-wrap">
-            <span className="font-body text-[13px] text-muted-foreground line-through">
-              {money(offer.price)}
-            </span>
-            <span className="font-display text-[26px] font-bold leading-none text-[hsl(var(--gold-deep))]">
-              {money(offer.discounted_price)}
-            </span>
-
-            <span className="font-body text-[12px] text-muted-foreground pb-0.5">/mo</span>
-          </div>
-          <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1.5">
-            {startsLine}
-          </p>
-        </div>
+        )}
 
         <RetentionHelpSection />
 
