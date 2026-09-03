@@ -82,8 +82,9 @@ const PaigeWalkthroughCard = () => {
   if (isDismissed(ALERT_KEY, ALERT_SIGNATURE)) return null;
 
   return (
-    <div className="px-5 pb-2">
-      <SurfaceCard className="py-4 relative">
+    <div className="px-5 pb-2 relative z-0 isolate">
+      <SurfaceCard className="py-4 relative overflow-hidden">
+
         <button
           type="button"
           onClick={() => void dismiss([{ key: ALERT_KEY, signature: ALERT_SIGNATURE }])}
