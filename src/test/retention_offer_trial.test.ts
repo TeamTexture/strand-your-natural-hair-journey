@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
+const manage = readFileSync(
+  "src/components/profile/ManageSubscriptionSection.tsx",
+  "utf8",
+);
+
 /**
  * The retention offer was unreachable for TRIALING members: the server-side
  * eligibility check only allowed `active` / `past_due`, so "Continue to cancel"
