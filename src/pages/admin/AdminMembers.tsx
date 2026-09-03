@@ -47,6 +47,8 @@ interface MemberRow {
   subscription_tier: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  retention_offer_used: boolean;
+  retention_offer_claimed_at: string | null;
   has_billing_account: boolean;
   session_count: number;
   last_session: string | null;
