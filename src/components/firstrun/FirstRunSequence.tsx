@@ -7,6 +7,7 @@ import { useChallenges } from "@/hooks/useChallenges";
 import { useFirstRunNudge } from "@/hooks/useFirstRunNudge";
 import { setTourActive, TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
 import { useLateFirstRunSlot } from "@/hooks/useLateFirstRunSlot";
+import { consumePendingMessageThread } from "@/lib/pendingMessageLink";
 
 /**
  * FIRST-RUN SEQUENCE — runs immediately after the guided tour, in this order:
