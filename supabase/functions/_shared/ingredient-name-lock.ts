@@ -74,7 +74,18 @@ const allowedHaystacks = (ctx: NameLockContext): string[] =>
     })
     .filter(Boolean);
 
-/** True when the vocabulary name's words appear, in order, in a supplied name. */
+/**
+ * True when the vocabulary name's words all appear in one supplied name.
+ *
+ * ORDER-INSENSITIVE FIX (2026-09-03). Labels and models write the same
+ * ingredient with the common name on either side — the pack says
+ * "butyrospermum parkii (shea) butter", the write-up says "Shea butter
+ * (Butyrospermum parkii)". The word-order requirement rejected that as an
+ * ingredient not in the formula and threw the whole generation away, so the
+ * match now only requires that EVERY word of the name is present in the same
+ * supplied ingredient string. That cannot admit an ingredient the product does
+ * not hold: an unrelated name still has words the supplied string lacks.
+ */
 function isSuppliedName(name: string, haystacks: string[]): boolean {
   const key = name
     .toLowerCase()
@@ -83,9 +94,11 @@ function isSuppliedName(name: string, haystacks: string[]): boolean {
     .trim()
     .replace(/\s+/g, " ");
   if (!key) return false;
-  const words = key.split(" ").map(escape);
-  const seq = new RegExp(`\\b${words.join("\\s+(?:\\w+\\s+){0,2}")}\\b`);
-  return haystacks.some((h) => h.includes(key) || seq.test(h));
+  const words = key.split(" ");
+  const seq = new RegExp(`\\b${words.map(escape).join("\\s+(?:\\w+\\s+){0,2}")}\\b`);
+  const allWordsPresent = (h: string) =>
+    words.every((w) => new RegExp(`\\b${escape(w)}\\b`).test(h));
+  return haystacks.some((h) => h.includes(key) || seq.test(h) || allWordsPresent(h));
 }
 
 
