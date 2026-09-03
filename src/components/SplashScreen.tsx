@@ -35,6 +35,16 @@ const SplashScreen = () => {
   const nextParam = searchParams.get("next");
   const next = safeNext(nextParam, "/home");
 
+  /**
+   * She has just come back from Stripe having started her trial, but the return
+   * hop arrived without a readable session (a browser that partitions storage
+   * for the framed preview, or a fresh top-level context after Stripe broke out
+   * of the frame). The payment IS done — say so, instead of showing a bare
+   * sign-in form that reads as "your signup failed".
+   */
+  const paidButSignedOut = !!nextParam && nextParam.includes("checkout=success");
+
+
   const getPostSignInTarget = async (userId: string) => {
     const [{ data: roleRows }, { data: brandProfile }, { data: proApp }, onboardingStatus] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -114,8 +124,23 @@ const SplashScreen = () => {
             Strand
           </h1>
 
-          <HeatHatOfferTag />
+          {paidButSignedOut ? null : <HeatHatOfferTag />}
         </div>
+
+        {paidButSignedOut && (
+          <div className="w-full rounded-2xl border border-primary/50 bg-primary/5 px-4 py-3 text-center space-y-1">
+            <p className="font-body text-sm text-foreground">
+              Payment confirmed — your 3 days free have started.
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Sign in below with the email and password you just registered with, and
+              you'll pick up exactly where you left off. Nothing you entered is lost.
+            </p>
+          </div>
+        )}
+
+
+
 
         {/* Sign-in form */}
         <form onSubmit={submit} className="w-full flex flex-col gap-3 selectable">
