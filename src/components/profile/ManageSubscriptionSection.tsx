@@ -272,8 +272,8 @@ const ManageSubscriptionSection = () => {
             </p>
             <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1">
               {trialEnds
-                ? `You have full access now. Your first payment of £${price.toFixed(2)} is taken on ${trialEnds} unless you cancel before then.`
-                : `You have full access now. Your first payment of £${price.toFixed(2)} is taken when the trial ends unless you cancel before then.`}
+                ? `You have full access now. Your first payment of £${(retentionOfferActive ? discountedPrice : price).toFixed(2)} is taken on ${trialEnds} unless you cancel before then.`
+                : `You have full access now. Your first payment of £${(retentionOfferActive ? discountedPrice : price).toFixed(2)} is taken when the trial ends unless you cancel before then.`}
             </p>
           </div>
         )}
