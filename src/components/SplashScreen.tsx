@@ -59,7 +59,9 @@ const SplashScreen = () => {
       return getBrandEntryPath(userId, roles);
     }
     if (proApp) return "/pro/landing";
-    if (!onboardingStatus.completed) return onboardingStatus.entryPath;
+    // PAYWALL FIRST. The trial wall outranks an unfinished onboarding step:
+    // sending a card-less account to its onboarding entry path first is what let
+    // a member see (and briefly write to) member content without paying.
     const trialState = await getTrialOfferState(userId);
     if (trialState.walled) {
       return walledDestination({
@@ -68,8 +70,10 @@ const SplashScreen = () => {
         acquisitionAnswered: onboardingStatus.acquisitionAnswered,
       });
     }
+    if (!onboardingStatus.completed) return onboardingStatus.entryPath;
     const hasAccess = await getConsumerAccessForUser(userId, roles);
     if (!hasAccess) return getSubscribePath(onboardingStatus.analysisPath);
+
     return next;
   };
 
