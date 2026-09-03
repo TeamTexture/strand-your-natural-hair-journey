@@ -1987,6 +1987,8 @@ export type Database = {
           pause_resumes_at: string | null
           paused: boolean
           price_id: string | null
+          retention_offer_claimed_at: string | null
+          retention_offer_used: boolean
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -2004,6 +2006,8 @@ export type Database = {
           pause_resumes_at?: string | null
           paused?: boolean
           price_id?: string | null
+          retention_offer_claimed_at?: string | null
+          retention_offer_used?: boolean
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -2021,6 +2025,8 @@ export type Database = {
           pause_resumes_at?: string | null
           paused?: boolean
           price_id?: string | null
+          retention_offer_claimed_at?: string | null
+          retention_offer_used?: boolean
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null

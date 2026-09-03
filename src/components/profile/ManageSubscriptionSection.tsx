@@ -21,6 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import RetentionOfferDialog from "@/components/profile/RetentionOfferDialog";
+import { useRetentionOffer } from "@/hooks/useRetentionOffer";
 
 const PLUS_PRICE = 14.99;
 
@@ -85,6 +87,21 @@ const ManageSubscriptionSection = () => {
 
   const [pauseOpen, setPauseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [retentionOpen, setRetentionOpen] = useState(false);
+  // Server-side eligibility for the one-time half-price retention offer. Never a
+  // client-only check: the same verdict is re-run when the offer is claimed.
+  const retention = useRetentionOffer();
+
+  /**
+   * Cancel tap. If the SERVER says the member still has the retention offer,
+   * show it first; otherwise go straight to the existing cancellation
+   * confirmation, unchanged.
+   */
+  const startCancel = () => {
+    if (retention.data?.eligible) setRetentionOpen(true);
+    else setCancelOpen(true);
+  };
+
 
   const basePriceQ = useQuery({
     queryKey: ["platform_settings", "consumer_monthly_price_gbp"],
@@ -290,8 +307,8 @@ const ManageSubscriptionSection = () => {
                         ? `Runs to ${renews}, then stops`
                         : "Runs to the end of your paid period, then stops"
                   }
-                  onClick={() => setCancelOpen(true)}
-                  disabled={portal.isPending}
+                  onClick={startCancel}
+                  disabled={portal.isPending || retention.isLoading}
                 />
               )}
             </div>
@@ -337,6 +354,16 @@ const ManageSubscriptionSection = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Retention offer — shown before cancellation, once per member */}
+      {retention.data?.eligible && (
+        <RetentionOfferDialog
+          open={retentionOpen}
+          onOpenChange={setRetentionOpen}
+          offer={retention.data}
+          onCancelAnyway={() => setCancelOpen(true)}
+        />
+      )}
 
       {/* Cancel confirmation */}
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
