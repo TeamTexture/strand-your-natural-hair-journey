@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatAudioUrl } from "@/components/chat/ChatVoiceBubble";
 import VoicePlayer from "@/components/voice/VoicePlayer";
-import { TOUR_DONE_EVENT } from "@/lib/firstRunTour";
+import { TOUR_DONE_EVENT, tourFinished } from "@/lib/firstRunTour";
 import {
   hasListenedToWelcome,
   isWelcomeSnoozed,
@@ -45,7 +45,9 @@ interface WelcomeMessage {
 const WelcomeVoicenotePopup = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [armed, setArmed] = useState(false);
+  // Armed by the tour finishing — and on any later app open once the tour is
+  // already done, so a voice note she minimised comes back until she plays it.
+  const [armed, setArmed] = useState(() => tourFinished());
   const [dismissed, setDismissed] = useState(false);
   const [listened, setListened] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
