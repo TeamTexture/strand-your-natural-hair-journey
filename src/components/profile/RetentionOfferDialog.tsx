@@ -51,7 +51,7 @@ const RetentionOfferDialog = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-background border-border">
+      <AlertDialogContent className="bg-background border-border max-h-[88vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-display text-[20px] leading-tight text-foreground">
             Before you cancel
