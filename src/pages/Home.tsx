@@ -20,6 +20,7 @@ import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
 import AcquisitionAskModal, { useAcquisitionAsk } from "@/components/onboarding/AcquisitionAskPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
 import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
+import PaigeWalkthroughCard from "@/components/home/PaigeWalkthroughCard";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
@@ -518,6 +519,9 @@ const Home = () => {
       <div className="px-5 pb-2">
         <SpeakToStrandCard />
       </div>
+
+      {/* Invitation, never a gate — hides itself once booked or dismissed. */}
+      <PaigeWalkthroughCard />
 
       {/* Anchor-first dashboard — the numbers that matter, tappable. */}
       <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
