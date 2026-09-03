@@ -156,9 +156,12 @@ Deno.serve(async (req) => {
       }
       return json(200, {
         active: false,
-        reason: candidates.size ? "no_subscription" : "no_customer",
-        customers_checked: candidates.size,
+        reason: owned.size ? "no_subscription" : "no_owned_customer",
+        customers_checked: owned.size,
+        email_matches: emailMatches,
+        customers_rejected: rejectedCustomers,
       });
+
     }
 
     const customerId = typeof chosen.customer === "string"
