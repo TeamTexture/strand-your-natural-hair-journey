@@ -271,7 +271,21 @@ export function renderInlineWithProducts(
   return nodes;
 }
 
+/**
+ * The text that will actually survive the render-time transforms (coherence
+ * rewrite + blood guardrail). Presentation code uses this to decide whether a
+ * labelled section has anything left to show — a label with an empty body must
+ * never render.
+ */
+export const renderableAiText = (text: string | null | undefined): string =>
+  scrubBloodClaims(safeRewrite(String(text ?? ""), stripDefinitionBrackets(String(text ?? "")))).trim();
+
+/** True when a block of AI copy still has visible content after the transforms. */
+export const hasRenderableAiText = (text: string | null | undefined): boolean =>
+  renderableAiText(text).length > 0;
+
 /** Hook that yields a `renderInline(text, key)` bound to the current user's shelf. */
+
 export function useSmartInline() {
   const { products } = useUserProducts("all");
   const { tokenNames } = useIngredientGlossary();
