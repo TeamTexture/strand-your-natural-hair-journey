@@ -82,8 +82,9 @@ const PaigeWalkthroughCard = () => {
   if (isDismissed(ALERT_KEY, ALERT_SIGNATURE)) return null;
 
   return (
-    <div className="px-5 pb-2">
-      <SurfaceCard className="py-4 relative">
+    <div className="px-5 pb-2 relative z-0 isolate">
+      <SurfaceCard className="py-4 relative overflow-hidden">
+
         <button
           type="button"
           onClick={() => void dismiss([{ key: ALERT_KEY, signature: ALERT_SIGNATURE }])}
@@ -119,8 +120,10 @@ const PaigeWalkthroughCard = () => {
           <div className="mt-3.5">
             <div
               ref={holderRef}
-              className="w-full min-h-[620px] rounded-2xl overflow-hidden border border-border bg-background"
+              style={{ height: 560 }}
+              className="strand-calendly-holder relative z-0 w-full rounded-2xl overflow-hidden border border-border bg-background"
             />
+
             <button
               type="button"
               onClick={() => setOpen(false)}
