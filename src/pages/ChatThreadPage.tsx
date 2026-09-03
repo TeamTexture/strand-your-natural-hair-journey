@@ -51,6 +51,7 @@ import {
   useSendChatVoice,
   type ChatMessage,
 } from "@/hooks/useChat";
+import ChatLinkCard from "@/components/chat/ChatLinkCard";
 import ChatImageBubble from "@/components/chat/ChatImageBubble";
 import ReactableBubble from "@/components/chat/MessageReaction";
 import { useMessageReactions, type ReactionState } from "@/hooks/useMessageReactions";
@@ -207,7 +208,14 @@ const MessageBubble = ({
   reaction?: ReactionState;
   onToggleReaction?: () => void;
   reactionsDisabled?: boolean;
-}) => (
+}) => {
+  // A `text` message may carry meta.link — a tappable card (same pattern as
+  // booking_request). The url is dropped from the prose so it isn't repeated.
+  const link = ((m.meta ?? {}) as { link?: { url?: unknown; label?: unknown } }).link;
+  const linkUrl = typeof link?.url === "string" ? link.url : null;
+  const linkLabel = typeof link?.label === "string" ? link.label : "Open link";
+  const bodyText = linkUrl ? m.body.replace(linkUrl, "").trim() : m.body;
+  return (
   <div className={`flex flex-col ${mine ? "items-end" : "items-start"} mb-3`}>
     {showName && (
       <span
@@ -229,7 +237,13 @@ const MessageBubble = ({
           : "bg-brown text-brown-foreground rounded-bl-[6px]"
       }`}
     >
-      {renderMentions(m.body)}
+      {renderMentions(bodyText)}
+      {linkUrl && (
+        <div className="mt-2">
+          <ChatLinkCard url={linkUrl} label={linkLabel} />
+        </div>
+      )}
+
       <div className={`flex items-center justify-end gap-1 text-[9.5px] mt-0.5 ${mine ? "text-primary-foreground/75" : "text-brown-foreground/70"}`}>
         <span>{format(new Date(m.created_at), "HH:mm")}</span>
         {mine && (
@@ -241,7 +255,9 @@ const MessageBubble = ({
       </div>
     </ReactableBubble>
   </div>
-);
+  );
+};
+
 
 
 const ChatThreadPage = () => {
