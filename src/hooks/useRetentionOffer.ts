@@ -52,11 +52,40 @@ async function serverMessage(error: unknown): Promise<string | null> {
   }
 }
 
+/**
+ * Nothing on this path may hang forever. The claim button sat on "Applying…"
+ * indefinitely, so every invoke is bounded by a hard client-side timeout and
+ * resolves into a friendly, readable message either way.
+ */
+const INVOKE_TIMEOUT_MS = 20_000;
+
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   // Billing acts as the SIGNED-IN user, so impersonation would hit the admin's
   // own membership. Refuse.
   assertNotViewingAs("Billing");
-  const { data, error } = await supabase.functions.invoke("consumer-retention-offer", { body });
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, INVOKE_TIMEOUT_MS);
+  let data: unknown;
+  let error: unknown;
+  try {
+    ({ data, error } = await supabase.functions.invoke("consumer-retention-offer", {
+      body,
+      signal: controller.signal,
+    }));
+  } catch (e) {
+    error = e;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (timedOut) {
+    throw new Error(
+      "This is taking longer than expected. Your membership has not been changed — please try again.",
+    );
+  }
   if (error) {
     // Generic fallback ONLY when there is genuinely no body to read (network
     // failure, CORS, function unreachable).
@@ -69,6 +98,7 @@ async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   if (payload?.error) throw new Error(payload.error);
   return data as T;
 }
+
 
 
 export function retentionOfferKey(userId: string | undefined) {
@@ -92,11 +122,15 @@ export function useClaimRetentionOffer() {
   return useMutation({
     mutationFn: () =>
       invoke<{ ok: true; discounted_price: number; months: number }>({ action: "claim" }),
-    onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["consumer_subscription", user?.id] }),
-        qc.invalidateQueries({ queryKey: retentionOfferKey(user?.id) }),
-      ]);
+    // NEVER await the refetches here. `mutation.isPending` stays true until this
+    // callback's promise settles, and `invalidateQueries` only resolves once the
+    // dependent queries have refetched — a paused/disabled/slow refetch left the
+    // button on "Applying…" forever even though Stripe and the database had both
+    // already succeeded. Refresh in the background instead.
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["consumer_subscription", user?.id] });
+      void qc.invalidateQueries({ queryKey: retentionOfferKey(user?.id) });
     },
+
   });
 }
