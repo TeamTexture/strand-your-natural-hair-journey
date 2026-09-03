@@ -126,6 +126,12 @@ import {
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
 import { applyConcernFit, parseChallenges, parseConcerns } from "../_shared/concern-fit.ts";
 import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
+import {
+  GUIDANCE_PASS_MS,
+  RETRY_TAIL_MS,
+  startTimeBudget,
+} from "../_shared/time-budget.ts";
+
 
 import {
   QUALITY_SCORE_SCHEMA_PROPERTY,
