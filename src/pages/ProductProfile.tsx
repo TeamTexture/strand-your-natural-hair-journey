@@ -134,7 +134,32 @@ const ProductProfile = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const product = useMemo(() => allProducts.find(p => p.id === id) ?? null, [allProducts, id]);
+  // LOAD PATH (2026-09-03): this page used to wait for the member's ENTIRE
+  // shelf (`select *` on every user_products row, then a photo backfill and a
+  // brand-offer lookup in series) before it could even find the one product
+  // being opened — so a result that was already stored sat behind a queue of
+  // unrelated queries. One targeted row read paints the stored analysis as
+  // soon as it lands. The shelf copy still wins once it arrives (it carries
+  // the photo backfill), so nothing about the data shown changes.
+  const [directProduct, setDirectProduct] = useState<UserProduct | null>(null);
+  useEffect(() => {
+    if (!id || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("user_products")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (!cancelled && data) setDirectProduct(data as unknown as UserProduct);
+    })();
+    return () => { cancelled = true; };
+  }, [id, user]);
+
+  const product = useMemo(
+    () => allProducts.find(p => p.id === id) ?? directProduct ?? null,
+    [allProducts, id, directProduct],
+  );
   useIngredientIndex(product);
 
   // Single unified "flagged" set — appears in 3+ of the user's products.
