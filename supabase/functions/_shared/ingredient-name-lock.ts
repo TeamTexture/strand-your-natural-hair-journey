@@ -209,5 +209,11 @@ No ingredient list was supplied for this product. Do NOT name a single ingredien
 INGREDIENT NAMING — LOCKED (hard validation runs on your output):
 The ONLY ingredient names you may write, anywhere in any field, are these, spelled exactly as given:
 ${allowed.map((n) => `- ${n}`).join("\n")}
-Any other ingredient name — a corrected spelling, a more specific chemical than the list states, a merged name, a synonym, or one you expect a product like this to contain — is a hard failure and the whole generation is rejected. If the list does not contain an ingredient you want to talk about, talk about one that IS in the list instead.`;
+COPY, DO NOT TRANSLATE. Every ingredient name you write must be copied character-for-character from that list. This is the single most common reason a generation is thrown away (2026-09-03: the top rejections were all common-name substitutions), so read these before you write:
+- If the list says "Ricinus Communis Seed Oil", write that — NOT "Castor Oil".
+- If the list says "Cocos Nucifera (Coconut) Oil", write it in full — NOT "Coconut Oil", NOT "Cocos Nucifera Oil".
+- If the list says "Lavandula Angustifolia Oil", do NOT write "Lavender" or "Lavender Oil".
+- If the list says "Hydrolyzed Keratin", do NOT write "Hydrolysed Keratin", "Keratin" or "Silk Protein".
+- Never shorten, never anglicise, never add or remove a bracketed part, never merge two entries, never pluralise, never swap a British and American spelling.
+Any other ingredient name — a corrected spelling, a common name, a more specific chemical than the list states, a merged name, a synonym, or one you expect a product like this to contain — is a hard failure and the whole generation is rejected. If you want to talk about something that is not on the list, talk about one that IS in the list instead, or describe the ingredient family in general words with no name at all.`;
 }

@@ -966,11 +966,11 @@ const Home = () => {
 
               <AiProgressBar
                 compact
-                expectedMs={16000}
+                /* goal-tip measured p50 3.0s / p90 3.8s (7-day ai_call_log). */
+                expectedMs={5000}
                 stages={[
-                  "Reading your hair profile",
-                  "Checking your goal and challenges",
-                  "Looking this up in the manuscript",
+                  "Reading your goal and challenges",
+                  "Finding the strongest tip",
                   "Writing your Strand tip",
                 ]}
               />

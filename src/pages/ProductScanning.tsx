@@ -48,37 +48,33 @@ const ProductScanning = () => {
   const ranRef = useRef(false);
 
 
-  // Rotate the headline through a sequence of progress signals so the
-  // ~60s wait feels like activity rather than a frozen state. These
-  // delays are NOT tied to real backend events — purely cosmetic UX.
+  // HONEST TIMING (2026-09-03). Measured from ai_call_log over the last 7
+  // days: product-analyse p50 55.6s, p90 68.5s (worst 162.9s). The old pacing
+  // assumed a "~15–25s" analysis, so the ring hit 75% in 12s and then crawled
+  // for the remaining ~45s. Stage copy and ring pacing now follow the real
+  // pipeline: read the label, resolve the brand, then the guarded write-up.
+  // Streamed partials still overwrite this copy with real details.
   useEffect(() => {
     if (phase !== "analysing") return;
     const sequence = [
       { at: 0, msg: "Reading the front of the label…" },
-      { at: 8000, msg: "Reading the back of the label…" },
-      { at: 18000, msg: "Looking up the brand…" },
-      { at: 30000, msg: "Cross-referencing the ingredients…" },
-      { at: 42000, msg: "Matching to your hair profile…" },
-      { at: 54000, msg: "Almost there — writing your summary…" },
+      { at: 6000, msg: "Reading the ingredient panel on the back…" },
+      { at: 16000, msg: "Looking up the brand and product…" },
+      { at: 28000, msg: "Cross-referencing the ingredients…" },
+      { at: 40000, msg: "Matching to your hair profile…" },
+      { at: 52000, msg: "Checking every claim before we show it…" },
+      { at: 64000, msg: "Almost there — writing your summary…" },
     ];
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
-    // Drive the circular progress ring. Two-phase pacing so the bar
-    // is ALWAYS moving (even if only incrementally) and tends to land
-    // near "full" right as the backend returns:
-    //   1) Fast linear sweep to 75% over ~12s — covers the bulk of
-    //      typical analyses (which now finish in ~15–25s).
-    //   2) Slow asymptotic crawl from 75% → 99% over the long tail,
-    //      so the ring never visually freezes if the backend is slow.
-    // On real success we kick `progressPct` to 100 and the
-    // stroke-dashoffset CSS transition snaps the ring closed.
-    // Use setInterval (200ms) for reliable, visible motion. RAF was
-    // theoretically smoother but appears to not actually drive
-    // re-renders in some preview environments — switching to a simple
-    // interval guarantees the ring keeps moving.
+    // Two-phase pacing against the measured p50:
+    //   1) linear sweep to 75% over ~40s (≈ 0.72 × p50 of 55.6s),
+    //   2) slow asymptotic crawl 75% → 99% for the tail past p90,
+    // so the ring is always moving and lands near full as the stream
+    // completes. On success we kick it to 100.
     const start = Date.now();
-    const FAST_MS = 12000; // reach 75% by here
+    const FAST_MS = 40000; // reach 75% by here
     const interval = window.setInterval(() => {
       const elapsed = Date.now() - start;
       let pct: number;
@@ -86,7 +82,7 @@ const ProductScanning = () => {
         pct = (elapsed / FAST_MS) * 75;
       } else {
         const extra = elapsed - FAST_MS;
-        pct = 75 + 24 * (1 - Math.exp(-extra / 18000));
+        pct = 75 + 24 * (1 - Math.exp(-extra / 30000));
       }
       setProgressPct((prev) => Math.max(prev, Math.min(99, pct)));
     }, 200);
@@ -95,6 +91,7 @@ const ProductScanning = () => {
       window.clearInterval(interval);
     };
   }, [phase]);
+
 
   useEffect(() => {
     if (ranRef.current) return;

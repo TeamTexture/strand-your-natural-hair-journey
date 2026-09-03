@@ -903,13 +903,18 @@ const NutritionPlan = () => {
           <p className="font-body text-[13px] text-foreground/80">
             Building your nutrition plan
           </p>
+          {/* nutrition-plan runs three model passes; summed per generation the
+              measured wall clock is p50 129.9s / p75 136.7s / p90 141.1s. */}
           <AiProgressBar
-            expectedMs={22000}
+            expectedMs={135000}
+            overrunNote="Still working — your plan is written in a few passes, so this one takes a minute or two."
             stages={[
               "Reading your health profile",
-              "Checking your blood results",
+              "Checking your blood markers against the ranges",
               "Honouring your dietary pattern",
+              "Choosing the foods that fit",
               "Writing your meals and food list",
+              "Checking every claim against the manuscript",
             ]}
           />
         </div>

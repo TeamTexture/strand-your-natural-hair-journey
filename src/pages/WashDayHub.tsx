@@ -660,12 +660,15 @@ const DynamicWashTipCard = ({ onShown }: { onShown?: (shown: boolean) => void })
             : "We couldn't finish your tip just now."}
         </p>
         {working ? (
+          // wash-day-tip measured per generation (retries included):
+          // p50 14.5s / p75 25.2s / p90 39.8s. 26s ≈ p75.
           <AiProgressBar
-            expectedMs={18000}
+            expectedMs={26000}
+            overrunNote="Still working — the tip is being re-checked before we show it."
             stages={[
               "Reading your hair profile",
               "Checking your recent wash days",
-              "Looking this up in the manuscript",
+              "Finding the manuscript passage",
               "Writing your wash day tip",
             ]}
           />

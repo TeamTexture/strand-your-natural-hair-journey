@@ -6,6 +6,12 @@ import { buildAiContext } from "@/lib/aiContext";
 import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
+import { streamProductAnalyse } from "@/lib/streamProductAnalyse";
+import {
+  endUrlScanProgress,
+  setUrlScanPartial,
+  startUrlScanProgress,
+} from "@/lib/urlScanProgress";
 import { toast } from "sonner";
 
 /** Adds a product from a pasted product-page URL. The edge function fetches
@@ -85,14 +91,25 @@ export function useProductUrlScan() {
       }
 
       // ── fresh_scan or re_analyse: invoke edge function ────────────
+      // SPEED (2026-09-03): streamed over SSE with the same client the photo
+      // scan uses, so the real product name, brand and ingredient count show
+      // within a few seconds instead of a silent ~57s wait. Only the final
+      // `complete` payload is ever saved or scored.
       const tStart = Date.now();
       console.log("[url-debug] client invoke start", { url: normalised });
-      const { data, error } = await supabase.functions.invoke("product-analyse-url", {
-        body: { url: normalised, context },
-      });
+      startUrlScanProgress();
+      let data: Record<string, unknown>;
+      try {
+        data = await streamProductAnalyse({
+          fn: "product-analyse-url",
+          body: { url: normalised, context },
+          onPartial: setUrlScanPartial,
+        });
+      } finally {
+        endUrlScanProgress();
+      }
       console.log("[url-debug] client invoke done", { ms: Date.now() - tStart });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) throw new Error(String(data.error));
 
       const remoteImage =
         (data?._source_image_url as string | undefined) ??

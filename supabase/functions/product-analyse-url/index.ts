@@ -34,6 +34,7 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { sseResponse, type SseEmit } from "../_shared/sse.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
@@ -121,6 +122,10 @@ interface RequestBody {
     flagged_ingredients?: string[];
   };
   force?: boolean;
+  /** SPEED (2026-09-03): stream the analysis back as SSE (see _shared/sse.ts)
+   *  so the member sees the real product details while the guarded verdict is
+   *  still being written. Same pipeline either way. */
+  stream?: boolean;
 }
 
 // ─── Selector context for KB topic matching ────────────────────────────
@@ -241,6 +246,9 @@ async function runClaude(args: {
   pageTitle?: string | null;
   /** TIERS (Part 3): deterministic Tier 1 findings + which tiers are visible. */
   tierBlock?: string;
+  /** SPEED: when set, the model call streams and this receives the accumulated
+   *  tool JSON. Preview only — the caller still gets the fully parsed result. */
+  onPartialJson?: (accumulatedJson: string) => void;
 }): Promise<{
   payload: ProductAnalysisPayload;
   web_search_invocations: number;
@@ -318,7 +326,10 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     max_tokens: 4096,
   });
 
-  const result = await callClaude<ProductAnalysisPayload>(req);
+  const result = await callClaude<ProductAnalysisPayload>({
+    ...req,
+    onPartialJson: args.onPartialJson,
+  });
 
   const byName = result.server_tool_use_by_name ?? {};
   const web_search_invocations = byName["web_search"] ?? 0;
@@ -883,6 +894,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // SPEED (2026-09-03): when the caller asks for a stream, the same pipeline
+    // runs unchanged — every gate, cache check, guardrail and cache write —
+    // but the deterministic Tier 1 findings and the partial model output are
+    // pushed to the member as they land. Same wrapper product-analyse uses.
+    const wantsStream = body.stream === true;
+    const pipeline = async (
+      emit: SseEmit | null,
+    ): Promise<Record<string, unknown> | Response> => {
+
     // ── Input validation ────────────────────────────────────────────
     if (!body.url || typeof body.url !== "string") {
       return json(400, { error: INVALID_URL_MESSAGE });
@@ -967,6 +987,12 @@ Deno.serve(async (req: Request) => {
       const tiered = tierContext(ctx as Record<string, unknown>, urlSignals);
       tieredForDebug = tiered;
       const tier1 = runTier1(ctx as Record<string, unknown>, urlSignals);
+      // Known before the model is called, so it goes out immediately.
+      emit?.("tier1", {
+        water_hardness: tier1.waterHardness ?? null,
+        shelf_overlap: tier1.shelfOverlap.length,
+        product_name: pre.title || null,
+      });
       console.log("[tiers] product-analyse-url", {
         health_mode: tiered.health.mode,
         health_reason: tiered.health.reason,
@@ -980,6 +1006,7 @@ Deno.serve(async (req: Request) => {
         pageText: pre.text,
         pageTitle: pre.title,
         tierBlock: `${tier1Block(tier1)}${tierRulesBlock(tiered)}`,
+        onPartialJson: emit ? (acc) => emit("partial", { json: acc }) : undefined,
       });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({
@@ -1162,10 +1189,21 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    return new Response(
-      JSON.stringify(analysis),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return analysis as unknown as Record<string, unknown>;
+    };
+
+    if (!wantsStream) {
+      const result = await pipeline(null);
+      return result instanceof Response
+        ? result
+        : new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
+    return sseResponse({
+      pipeline: (emit) => pipeline(emit),
+      onError: (e) => aiErrorResponse(e, "product-analyse-url"),
+    });
   } catch (e) {
     return aiErrorResponse(e, "product-analyse-url");
   }

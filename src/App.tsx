@@ -9,6 +9,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
+import UrlScanProgressOverlay from "@/components/product/UrlScanProgressOverlay";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ViewAsProvider } from "@/hooks/useViewAs";
 import RequireAuth from "@/components/RequireAuth";
@@ -776,6 +777,10 @@ const App = () => (
 
                 </div>
               </div>
+              {/* Live wait state for pasted-link product scans — mounted once
+                  inside the phone frame so all seven surfaces that can start a
+                  link scan share it (src/lib/urlScanProgress.ts). */}
+              <UrlScanProgressOverlay />
             </PhoneShell>
             {/* Guided first-run tour — mounted OUTSIDE PhoneShell, which keys
                 its children by pathname; inside it, the tour would remount and

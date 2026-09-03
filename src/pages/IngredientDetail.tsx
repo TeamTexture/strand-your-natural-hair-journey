@@ -1250,13 +1250,21 @@ const IngredientDetail = () => {
             <p className="font-body text-[12px] text-foreground/80">
               Analysing these ingredients for your profile
             </p>
+            {/* HONEST TIMING (2026-09-03): measured from ai_call_log over the
+                last 7 days, summed per generation (retries included):
+                ingredient-analysis p50 25.3s, p75 49.8s, p90 80.9s. The old
+                20s estimate meant the bar sat at 95% with an overrun note for
+                most of a normal wait. 50s ≈ p75, so the bar tracks the real
+                pipeline and the overrun note only fires on genuine tails. */}
             <AiProgressBar
-              expectedMs={20000}
+              expectedMs={50000}
+              overrunNote="Still working — a couple of the write-ups needed re-checking against the manuscript."
               stages={[
-                "Reading the ingredient list",
-                "Matching against your hair profile",
-                "Looking these up in the manuscript",
-                "Writing your analysis",
+                "Reading the verified ingredient list",
+                "Looking each ingredient up in the manuscript",
+                "Matching the mechanisms to your profile",
+                "Checking every claim against the guardrails",
+                "Writing your breakdown",
               ]}
             />
           </SurfaceCard>
@@ -1816,10 +1824,11 @@ const IngredientDetail = () => {
                       </p>
                       <AiProgressBar
                         compact
-                        expectedMs={14000}
+                        /* ingredient-explainer measured p50 2.6s / p90 3.0s. */
+                        expectedMs={4000}
                         stages={[
                           "Looking this ingredient up",
-                          "Checking the manuscript",
+                          "Reading the manuscript passage",
                           "Tailoring it to your hair",
                         ]}
                       />
