@@ -1142,7 +1142,7 @@ const NutritionPlan = () => {
           onOpenChange={setSensitivitySheet}
         />
 
-        {plan?.summary && (
+        {hasRenderableAiText(plan?.summary) && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
             <div className="flex items-start gap-2 mb-2">
               <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
