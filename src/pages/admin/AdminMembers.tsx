@@ -47,6 +47,8 @@ interface MemberRow {
   subscription_tier: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
+  retention_offer_used: boolean;
+  retention_offer_claimed_at: string | null;
   has_billing_account: boolean;
   session_count: number;
   last_session: string | null;
@@ -197,11 +199,13 @@ const AdminMembers = () => {
           tier?: string | null;
           current_period_end: string | null;
           cancel_at_period_end: boolean | null;
+          retention_offer_used: boolean | null;
+          retention_offer_claimed_at: string | null;
           stripe_customer_id: string | null;
         }>((from, to) =>
           supabase
             .from("consumer_subscriptions")
-            .select("user_id, status, current_period_end, cancel_at_period_end, tier, stripe_customer_id")
+            .select("user_id, status, current_period_end, cancel_at_period_end, tier, retention_offer_used, retention_offer_claimed_at, stripe_customer_id")
             .range(from, to),
         ),
         supabase.rpc("admin_list_member_emails"),
@@ -231,6 +235,8 @@ const AdminMembers = () => {
             subscription_tier: (s as { tier?: string | null }).tier ?? null,
             current_period_end: s.current_period_end,
             cancel_at_period_end: s.cancel_at_period_end,
+            retention_offer_used: !!s.retention_offer_used,
+            retention_offer_claimed_at: s.retention_offer_claimed_at ?? null,
             has_billing_account: !!s.stripe_customer_id,
           },
         ]),
@@ -275,6 +281,8 @@ const AdminMembers = () => {
           subscription_tier: subMap.get(p.user_id)?.subscription_tier ?? null,
           current_period_end: subMap.get(p.user_id)?.current_period_end ?? null,
           cancel_at_period_end: subMap.get(p.user_id)?.cancel_at_period_end ?? null,
+          retention_offer_used: subMap.get(p.user_id)?.retention_offer_used ?? false,
+          retention_offer_claimed_at: subMap.get(p.user_id)?.retention_offer_claimed_at ?? null,
           has_billing_account: !!subMap.get(p.user_id)?.has_billing_account,
           session_count: act?.session_count ?? 0,
           last_session: act?.last_session ?? null,
@@ -832,6 +840,12 @@ const AdminMembers = () => {
                       {isPlusMember(r) ? "STRAND+" : "STRAND"}
                     </span>
                   </div>
+                  {r.retention_offer_used && r.retention_offer_claimed_at && (
+                    <p className="mt-2 text-[11px] font-body text-primary leading-snug">
+                      Retention offer claimed{" "}
+                      {formatDistanceToNow(new Date(r.retention_offer_claimed_at), { addSuffix: true })}
+                    </p>
+                  )}
                   {isPlusMember(r) && (
                     <Button
                       variant="outline"

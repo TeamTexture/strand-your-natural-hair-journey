@@ -84,6 +84,10 @@ const ManageSubscriptionSection = () => {
   const pause = usePauseMembership();
   const resume = useResumeMembership();
   const portal = useBillingPortal();
+  // An admin viewing as a member must never be able to open that member's
+  // Stripe portal — the edge function authenticates as the ADMIN, so the
+  // portal would be the admin's own billing under the member's name.
+  const { isViewingAs } = useAuth();
 
   const [pauseOpen, setPauseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -160,10 +164,22 @@ const ManageSubscriptionSection = () => {
     if (Number.isNaN(ms)) return null;
     return Math.max(0, Math.ceil(ms / 86_400_000));
   })();
-  // An admin viewing as a member must never be able to open that member's
-  // Stripe portal — the edge function authenticates as the ADMIN, so the
-  // portal would be the admin's own billing under the member's name.
-  const { isViewingAs } = useAuth();
+  // Retention offer: 50% off for 3 months from the moment it was claimed.
+  const retentionOfferClaimedAt = subscription?.retention_offer_claimed_at ?? null;
+  const retentionOfferActive =
+    !!subscription?.retention_offer_used &&
+    !!retentionOfferClaimedAt &&
+    status === "active" &&
+    !paused &&
+    !complimentary;
+  const retentionOfferUntil = (() => {
+    if (!retentionOfferClaimedAt) return null;
+    const d = new Date(retentionOfferClaimedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setMonth(d.getMonth() + 3);
+    return formatLong(d.toISOString());
+  })();
+  const discountedPrice = Math.round(price * 50) / 100;
 
 
   const pill: { label: string; tone: string } = complimentary
@@ -196,9 +212,11 @@ const ManageSubscriptionSection = () => {
           ? trialEnds
             ? `Free trial · £${price.toFixed(2)} a month starts ${trialEnds}`
             : `Free trial · then £${price.toFixed(2)} a month`
-          : renews
-          ? `£${price.toFixed(2)} a month · renews ${renews}`
-          : `£${price.toFixed(2)} a month`;
+          : retentionOfferActive && retentionOfferUntil
+            ? `Half price £${discountedPrice.toFixed(2)} a month until ${retentionOfferUntil} · then £${price.toFixed(2)} a month`
+            : renews
+              ? `£${price.toFixed(2)} a month · renews ${renews}`
+              : `£${price.toFixed(2)} a month`;
 
   const openPortal = (label: string, flow: "subscription_update" | "subscription_cancel" | "portal") =>
     portal.mutate({ returnPath: "/profile", flow }, {
