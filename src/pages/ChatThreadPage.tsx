@@ -56,6 +56,7 @@ import ChatImageBubble from "@/components/chat/ChatImageBubble";
 import ReactableBubble from "@/components/chat/MessageReaction";
 import { useMessageReactions, type ReactionState } from "@/hooks/useMessageReactions";
 import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
+import { markWelcomeListened } from "@/lib/welcomeVoicenote";
 import { formatVoiceDuration, useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import ChatUpgradeNotice from "@/components/chat/ChatUpgradeNotice";
 import { isChatLockError, useCanSendChatMessage } from "@/hooks/useCanSendChatMessage";
@@ -636,6 +637,11 @@ const ChatThreadPage = () => {
                       reaction={reactions[m.id]}
                       onToggleReaction={() => toggleReaction(m.id)}
                       reactionsDisabled={!canReact}
+                      onPlay={
+                        meta.welcome_voicenote
+                          ? () => markWelcomeListened(user?.id, m.id)
+                          : undefined
+                      }
                     />
                   );
                 }

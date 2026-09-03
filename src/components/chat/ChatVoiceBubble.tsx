@@ -49,11 +49,14 @@ interface Props {
   reaction?: ReactionState;
   onToggleReaction?: () => void;
   reactionsDisabled?: boolean;
+  /** Fired when playback starts — used to mark the welcome note as listened. */
+  onPlay?: () => void;
 }
 
 const ChatVoiceBubble = ({
   path,
   transcript,
+  onPlay,
   caption,
   imagePath,
   durationMs,
@@ -107,7 +110,13 @@ const ChatVoiceBubble = ({
             <Mic className="size-3" />
             Voice note
           </span>
-          <VoicePlayer url={url} durationMs={durationMs ?? null} variant="onDark" className="mt-1.5" />
+          <VoicePlayer
+            url={url}
+            durationMs={durationMs ?? null}
+            variant="onDark"
+            onPlay={onPlay}
+            className="mt-1.5"
+          />
         </div>
 
 

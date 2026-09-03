@@ -38,6 +38,10 @@ export interface VoicePlayerProps {
   variant?: "onDark" | "onSurface";
   /** Overrides the play/pause accessible name, e.g. "recording". */
   mediaName?: string;
+  /** Fired the first time playback actually starts (used to mark "listened"). */
+  onPlay?: () => void;
+  /** Fired when playback reaches the end. */
+  onEnded?: () => void;
   className?: string;
 }
 
@@ -46,6 +50,8 @@ const VoicePlayer = ({
   durationMs,
   variant = "onSurface",
   mediaName = "voice note",
+  onPlay,
+  onEnded,
   className,
 }: VoicePlayerProps) => {
 
@@ -227,11 +233,13 @@ const VoicePlayer = ({
         onPlay={() => {
           if (audioRef.current) pauseOthers(audioRef.current);
           setPlaying(true);
+          onPlay?.();
         }}
         onPause={() => setPlaying(false)}
         onEnded={() => {
           setPlaying(false);
           setElapsed(0);
+          onEnded?.();
         }}
         onLoadedMetadata={(e) => {
           const d = e.currentTarget.duration;
