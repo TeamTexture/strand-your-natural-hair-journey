@@ -61,9 +61,10 @@ const RetentionOfferDialog = ({
             <span className="font-body text-[13px] text-muted-foreground line-through">
               {money(offer.price)}
             </span>
-            <span className="font-display text-[26px] font-bold leading-none text-[hsl(var(--gold-deep,42_60%_34%))] text-primary">
+            <span className="font-display text-[26px] font-bold leading-none text-[hsl(var(--gold-deep))]">
               {money(offer.discounted_price)}
             </span>
+
             <span className="font-body text-[12px] text-muted-foreground pb-0.5">/mo</span>
           </div>
           <p className="font-body text-[11.5px] leading-snug text-muted-foreground mt-1.5">
