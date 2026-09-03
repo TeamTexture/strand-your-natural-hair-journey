@@ -1705,7 +1705,11 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         analysis._generated_at = new Date().toISOString();
       }
 
+      // Measured cost of this attempt — the estimate for the next one.
+      lastAttemptMs = Math.max(lastAttemptMs, Date.now() - attemptStartedAt);
+
       analysis.insight = sanitisePurposeInsight(analysis.insight) ?? undefined;
+
       // Nullable schema: a null descriptive field is a legitimate "not
       // established" answer, so it must never render as the string "null".
       if (analysis.summary == null) analysis.summary = "";
