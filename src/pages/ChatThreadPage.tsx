@@ -254,7 +254,9 @@ const MessageBubble = ({
       </div>
     </ReactableBubble>
   </div>
-);
+  );
+};
+
 
 
 const ChatThreadPage = () => {
