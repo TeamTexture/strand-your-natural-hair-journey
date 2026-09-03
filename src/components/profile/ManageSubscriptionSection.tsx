@@ -84,6 +84,10 @@ const ManageSubscriptionSection = () => {
   const pause = usePauseMembership();
   const resume = useResumeMembership();
   const portal = useBillingPortal();
+  // An admin viewing as a member must never be able to open that member's
+  // Stripe portal — the edge function authenticates as the ADMIN, so the
+  // portal would be the admin's own billing under the member's name.
+  const { isViewingAs } = useAuth();
 
   const [pauseOpen, setPauseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
