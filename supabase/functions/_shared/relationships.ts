@@ -223,6 +223,48 @@ const ADD_MOISTURE =
   /\b(moisturis\w+|moisturiz\w+|hydrat\w+|adds?\s+moisture|provides?\s+moisture|delivers?\s+moisture|infuses?\s+moisture|replenish\w*\s+moisture|source of moisture)\b/;
 const MEDICINAL = /\b(minoxidil|medicinal|prescri\w+|pharmaceutical)\b/;
 
+/**
+ * CLAUSE SCOPING (2026-09-03). The causal branches used to fire on mere
+ * co-occurrence anywhere in a sentence, which nulled correct, safely-separated
+ * science ("your scalp produces plenty of sebum, and your high porosity means
+ * water escapes quickly"). The rule set is unchanged — only the matcher. A
+ * causal connection now requires the causal verb to sit BETWEEN the two terms,
+ * inside a short window, so two clauses that simply share a sentence pass.
+ */
+const allMatches = (re: RegExp, s: string): Array<[number, number]> => {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+  const out: Array<[number, number]> = [];
+  for (const m of s.matchAll(g)) {
+    if (typeof m.index === "number") out.push([m.index, m.index + m[0].length]);
+  }
+  return out;
+};
+
+/** True when a causal verb sits between a term from A and a term from B,
+ *  within `window` characters of text (either order). */
+function causallyLinked(
+  s: string,
+  a: RegExp,
+  b: RegExp,
+  verb: RegExp = CAUSAL,
+  window = 70,
+): boolean {
+  const as = allMatches(a, s);
+  const bs = allMatches(b, s);
+  if (!as.length || !bs.length) return false;
+  for (const [aStart, aEnd] of as) {
+    for (const [bStart, bEnd] of bs) {
+      const from = Math.min(aEnd, bEnd);
+      const to = Math.max(aStart, bStart);
+      if (to <= from) continue; // overlapping / adjacent same span
+      const between = s.slice(from, to);
+      if (between.length > window) continue;
+      if (verb.test(between)) return true;
+    }
+  }
+  return false;
+}
+
 export const FORBIDDEN_RELATIONSHIPS: ForbiddenRelationship[] = [
   {
     ...rel(
