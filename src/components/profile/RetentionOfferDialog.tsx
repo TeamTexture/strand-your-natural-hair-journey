@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import RetentionHelpSection from "@/components/profile/RetentionHelpSection";
 import { useClaimRetentionOffer, type RetentionOfferCheck } from "@/hooks/useRetentionOffer";
 
 const money = (n: number) => `£${n.toFixed(2)}`;
@@ -51,7 +52,7 @@ const RetentionOfferDialog = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-background border-border">
+      <AlertDialogContent className="bg-background border-border max-h-[88vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-display text-[20px] leading-tight text-foreground">
             Before you cancel
@@ -87,9 +88,12 @@ const RetentionOfferDialog = ({
           </p>
         </div>
 
+        <RetentionHelpSection />
+
         {error && (
           <p className="font-body text-[12px] leading-snug text-destructive">{error}</p>
         )}
+
 
         <div className="space-y-2 pt-1">
           <Button
