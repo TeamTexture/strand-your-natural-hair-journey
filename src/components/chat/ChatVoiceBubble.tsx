@@ -110,7 +110,13 @@ const ChatVoiceBubble = ({
             <Mic className="size-3" />
             Voice note
           </span>
-          <VoicePlayer url={url} durationMs={durationMs ?? null} variant="onDark" className="mt-1.5" />
+          <VoicePlayer
+            url={url}
+            durationMs={durationMs ?? null}
+            variant="onDark"
+            onPlay={onPlay}
+            className="mt-1.5"
+          />
         </div>
 
 
