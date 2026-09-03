@@ -715,27 +715,45 @@ const IngredientDetail = () => {
       // signature suffix, so match on the prefix), then fall back to any level:
       // the edge function downshifts a richer payload for a lower level, and a
       // level change is not a profile change, so it must never spend a call.
+      // LOAD PATH (2026-09-03): both level lookups fire together. They used to
+      // run in series, so a product whose payload was stored at another level
+      // paid two full round trips before anything could render.
       const readStored = async (): Promise<Analysis | null> => {
-        const forLevel = await supabase
-          .from("ai_summaries")
-          .select("payload")
-          .like("kind", `ingredient_analysis:${productKey}:L${tipsLevel}%`)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const [forLevel, anyLevel] = await Promise.all([
+          supabase
+            .from("ai_summaries")
+            .select("payload")
+            .like("kind", `ingredient_analysis:${productKey}:L${tipsLevel}%`)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase
+            .from("ai_summaries")
+            .select("payload")
+            .like("kind", `ingredient_analysis:${productKey}:%`)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
         if (forLevel.data?.payload) return forLevel.data.payload as unknown as Analysis;
-        const anyLevel = await supabase
-          .from("ai_summaries")
-          .select("payload")
-          .like("kind", `ingredient_analysis:${productKey}:%`)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
         return (anyLevel.data?.payload as unknown as Analysis) ?? null;
       };
 
       const storedPayload = row ? await readStored() : null;
       if (cancelled) return;
+
+      // PAINT FIRST (2026-09-03). A stored payload is rendered the moment it is
+      // read, BEFORE the profile fingerprint is computed. Computing that hash
+      // needs the whole AI context (11 table reads plus the data-decrypt-context
+      // invocation), which was costing tens of seconds on a result that was
+      // already sitting in the database. The gate below is unchanged and still
+      // decides everything — it just no longer holds up the paint. Nothing about
+      // what the verdict says or how it is generated changes here.
+      if (storedPayload) {
+        setAnalysis(storedPayload);
+        setError(null);
+        setLoading(false);
+      }
 
       // ── THE GATE ──────────────────────────────────────────────────────────
       // Pure decision, unit-tested in src/test/analysis_no_reanalyse.test.ts.
@@ -773,14 +791,15 @@ const IngredientDetail = () => {
         return;
       }
       if (decision.action === "use_stored") {
+        // Already painted above when a payload was found; this keeps the
+        // no-payload-but-valid-row case behaving exactly as before.
         setAnalysis(storedPayload);
         setError(null);
         setLoading(false);
         return;
       }
       // Last-resort belt: even on `generate`, if anything is stored for this
-      // product, render it first so the member never waits on a blank screen.
-      if (storedPayload) setAnalysis(storedPayload);
+      // product, it is already on screen — the fresh run replaces it when done.
       runAnalysis(decision.reason);
 
     })();
