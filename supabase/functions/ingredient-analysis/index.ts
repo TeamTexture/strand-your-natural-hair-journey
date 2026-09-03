@@ -1906,7 +1906,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           rawIngredients,
         ),
       ];
-      if (substanceProblems.length && attemptNumber < MAX_REJECTION_ATTEMPTS) {
+      if (substanceProblems.length && canRetry(attemptNumber)) {
         console.log(JSON.stringify({
           function: "ingredient-analysis",
           violation: "mechanism_substance",
