@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { useSmartInline } from "@/lib/smartInline";
+import { hasRenderableAiText, useSmartInline } from "@/lib/smartInline";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import { emphasisSplit, splitToBlocks } from "@/lib/tipsRender";
@@ -43,7 +43,17 @@ const SegmentBlock = ({
     () => (looksSequential(body) ? splitNumberedSteps(body) : []),
     [body],
   );
-  const blocks = useMemo(() => splitToBlocks(body).map((b) => capitaliseSentences(b)), [body]);
+  const blocks = useMemo(
+    () =>
+      splitToBlocks(body)
+        .map((b) => capitaliseSentences(b))
+        // Never render the label with an empty body: if the render-time
+        // transforms remove the copy, the whole block is dropped.
+        .filter((b) => hasRenderableAiText(b)),
+    [body],
+  );
+
+  if (steps.length === 0 && blocks.length === 0) return null;
 
   return (
     <div className={cn("rounded-[12px] border p-3", t.box, className)}>

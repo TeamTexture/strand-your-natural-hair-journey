@@ -25,6 +25,7 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { useSavedMeals, mealKey, type MealDraft, type SavedMeal } from "@/hooks/useSavedMeals";
 import { toast } from "sonner";
 import AiProse from "@/components/tips/AiProse";
+import { hasRenderableAiText } from "@/lib/smartInline";
 
 import { condenseProse, limitSupporting, wantsDetail, wantsWhy } from "@/lib/tipsRender";
 import type { TipsLevel } from "@/lib/tipsLevel";
@@ -1142,7 +1143,7 @@ const NutritionPlan = () => {
           onOpenChange={setSensitivitySheet}
         />
 
-        {plan?.summary && (
+        {hasRenderableAiText(plan?.summary) && (
           <div className="mb-4 rounded-[14px] bg-gradient-to-br from-primary/15 via-primary/8 to-transparent border border-primary/20 p-4">
             <div className="flex items-start gap-2 mb-2">
               <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">

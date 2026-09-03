@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { capitaliseSentences, sentenceGroups, splitParagraphs } from "@/lib/paragraphs";
-import { useSmartInline } from "@/lib/smartInline";
+import { hasRenderableAiText, useSmartInline } from "@/lib/smartInline";
 import { plainLanguage } from "@/components/beginner/BeginnerGuide";
 import {
   condenseProse,
@@ -60,7 +60,10 @@ const GuidanceBlock = ({
     const lead = dedupeSentences(plainLanguage(parsed.lead), seen);
     const segments = parsed.segments
       .map((s) => ({ ...s, body: dedupeSentences(plainLanguage(s.body), seen) }))
-      .filter((s) => s.body.trim().length > 0);
+      // A labelled section whose body does not survive the render-time
+      // transforms (coherence rewrite / blood guardrail) is dropped whole —
+      // never a heading with nothing underneath it.
+      .filter((s) => hasRenderableAiText(s.body));
     return { lead, segments };
   }, [parsed]);
 
@@ -68,13 +71,17 @@ const GuidanceBlock = ({
 
   const lead = deduped.lead;
   const leadSteps = looksSequential(lead) ? splitNumberedSteps(lead) : [];
-  const leadBlocks = splitToBlocks(lead).map((b) => capitaliseSentences(b));
+  const leadBlocks = splitToBlocks(lead)
+    .map((b) => capitaliseSentences(b))
+    .filter((b) => hasRenderableAiText(b));
   // ICON DISCIPLINE: one picker per rendered body — no icon is ever repeated,
   // and a line with no confident match gets a neutral dot instead of a wrong
   // icon.
   const pickIcon = createIconPicker();
 
   // Level 1–2: a single tight paragraph, segments appended as compact lines.
+  if (leadBlocks.length === 0 && deduped.segments.length === 0 && leadSteps.length === 0) return null;
+
   if (level <= 2) {
     return (
       <div key={level} className={cn("space-y-2 animate-in fade-in-0 duration-300", className)}>
@@ -181,7 +188,8 @@ const GuidanceBody = ({
       .map((block) => dedupeSentences(condenseProse(block, level), seen).trim())
       .filter(Boolean)
       // DISPLAY ONLY — long blocks become short paragraphs, same words.
-      .flatMap((block) => sentenceGroups(block, 2));
+      .flatMap((block) => sentenceGroups(block, 2))
+      .filter((block) => hasRenderableAiText(block));
   }, [text, level]);
 
   if (paragraphs.length === 0) return null;
