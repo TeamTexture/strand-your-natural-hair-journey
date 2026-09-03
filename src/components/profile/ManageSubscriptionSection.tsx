@@ -117,7 +117,29 @@ const ManageSubscriptionSection = () => {
     },
   });
 
-  if (isLoading) return null;
+  // While the subscription loads the card still occupies its place — and keeps
+  // its tour anchor — so the Home tour's "Manage your membership" step always
+  // has something to point at instead of being dropped from the run.
+  if (isLoading)
+    return (
+      <div className="px-5 pb-4" data-tour="manage-subscription">
+        <div className="rounded-[14px] border border-border bg-card p-4 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="size-[26px] shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+              <CreditCard className="size-3.5" />
+            </span>
+            <h2 className="font-display text-[17px] font-bold leading-tight text-foreground min-w-0 flex-1">
+              Manage subscription
+            </h2>
+          </div>
+          <div className="mt-3 mb-3.5 h-px bg-gradient-to-r from-primary to-transparent" />
+          <p className="font-body text-[12px] leading-snug text-muted-foreground">
+            Loading your membership details…
+          </p>
+        </div>
+      </div>
+    );
+
 
   const hasStripe = !!subscription?.stripe_customer_id && !!subscription?.stripe_subscription_id;
   const tier = subscription?.tier === "plus" ? "plus" : "standard";
