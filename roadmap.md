@@ -8,3 +8,7 @@
 ## Done
 - [x] "Book your free 1:1 with Paige" dashboard card with inline Calendly embed, shown after
       onboarding is complete, dismissible and remembered per member.
+
+## In progress
+- [ ] Calendly 1:1 link delivered with the admin welcome voicenote in chat (same admin account,
+      same trigger), as a tappable card bubble. Plan awaiting approval.
