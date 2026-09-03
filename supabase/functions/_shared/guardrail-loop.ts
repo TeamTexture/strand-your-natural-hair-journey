@@ -17,6 +17,8 @@ import {
   makeGenerationId,
   retryReasonFromRules,
 } from "./guardrail-retry.ts";
+import { RETRY_TAIL_MS, type TimeBudget } from "./time-budget.ts";
+
 
 export interface GuardrailAttemptInfo {
   attemptNumber: number;
@@ -38,6 +40,18 @@ export interface GuardrailPostProcess<V> {
 export interface GuardrailLoopInput<T, V> {
   functionName: string;
   maxAttempts?: number;
+  /**
+   * Wall-clock budget for the whole request. When supplied, an attempt is only
+   * STARTED if the remaining budget covers the measured cost of the previous
+   * attempt plus the post-loop tail; otherwise the current attempt is treated as
+   * the final one and the caller's existing degrade path takes over. See
+   * _shared/time-budget.ts.
+   */
+  budget?: TimeBudget;
+  /** Milliseconds to reserve for post-loop work (default RETRY_TAIL_MS). */
+  retryTailMs?: number;
+  /** Called once when the budget — not the attempt cap — stopped the retries. */
+  onBudgetStop?: (info: { attemptNumber: number; remainingMs: number }) => void;
   /** Produce a fresh payload for this attempt. */
   generate: (info: GuardrailAttemptInfo) => Promise<T>;
   /**
@@ -54,6 +68,7 @@ export interface GuardrailLoopInput<T, V> {
     info: GuardrailAttemptInfo & { onRejected: (rules: string[]) => void },
   ) => Promise<T>;
 }
+
 
 export interface GuardrailLoopResult<T, V> {
   payload: T;
@@ -74,11 +89,31 @@ export async function runGuardrailLoop<T, V>(
   let payload: T | null = null;
   let violations: V[] = [];
   let attemptNumber = 1;
+  const tailMs = input.retryTailMs ?? RETRY_TAIL_MS;
+  // Cost of the previous attempt — the estimate for the next one. Zero on the
+  // first attempt, which therefore always runs.
+  let lastAttemptMs = 0;
 
   for (; attemptNumber <= maxAttempts; attemptNumber++) {
+    const affordable = !input.budget || input.budget.canAfford(lastAttemptMs + tailMs);
+    if (!affordable) {
+      console.warn(JSON.stringify({
+        function: input.functionName,
+        event: "guardrail_budget_exhausted",
+        attempt: attemptNumber,
+        remaining_ms: input.budget?.remaining() ?? null,
+        last_attempt_ms: lastAttemptMs,
+      }));
+      input.onBudgetStop?.({
+        attemptNumber,
+        remainingMs: input.budget?.remaining() ?? 0,
+      });
+    }
     const info: GuardrailAttemptInfo = {
       attemptNumber,
-      isFinalAttempt: attemptNumber === maxAttempts,
+      // A budget stop is treated exactly like the attempt cap: this attempt is
+      // sanitised and served (or degraded) rather than re-asked.
+      isFinalAttempt: attemptNumber === maxAttempts || !affordable,
       retryInstruction: retryRules?.length
         ? buildRejectionRetryInstruction(retryRules, input.functionName)
         : "",
@@ -86,8 +121,11 @@ export async function runGuardrailLoop<T, V>(
       generationId,
     };
 
+    const attemptStartedAt = Date.now();
     payload = await input.generate(info);
     const post = await input.postProcess(payload, info);
+    lastAttemptMs = Math.max(lastAttemptMs, Date.now() - attemptStartedAt);
+
     violations = post.violations;
 
     if (post.retryRules.length && !info.isFinalAttempt) {

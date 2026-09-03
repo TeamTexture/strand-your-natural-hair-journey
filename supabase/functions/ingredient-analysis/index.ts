@@ -126,6 +126,12 @@ import {
 import { applyFieldNulls } from "../_shared/analysis-failsafes.ts";
 import { applyConcernFit, parseChallenges, parseConcerns } from "../_shared/concern-fit.ts";
 import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
+import {
+  GUIDANCE_PASS_MS,
+  RETRY_TAIL_MS,
+  startTimeBudget,
+} from "../_shared/time-budget.ts";
+
 
 import {
   QUALITY_SCORE_SCHEMA_PROPERTY,
@@ -922,6 +928,11 @@ Deno.serve(async (req) => {
   const kill = checkKillSwitch();
   if (kill) return kill;
 
+  // Wall-clock budget for this whole request, retries included.
+  const timeBudget = startTimeBudget();
+
+
+
 
   try {
     // ── Caller resolution ─────────────────────────────────────────────
@@ -1510,7 +1521,45 @@ Deno.serve(async (req) => {
     // Violations from the final attempt, so the terminal fallback can null just
     // the offending fields rather than failing the whole generation.
     let retryViolations: NameLockViolation[] = [];
+    // WALL-CLOCK BUDGET (2026-09-03). Each attempt now costs 30-70s, and three
+    // attempts plus the guidance re-ask ran past the edge worker's limit — the
+    // worker was killed MID-LOOP, before the graceful fallbacks below could
+    // run, so the member got a server error or an endless spinner. A retry is
+    // only started when the remaining budget covers the measured cost of the
+    // previous attempt plus the post-loop tail; otherwise the loop stops here
+    // and the existing degrade path (stale-serve → field-null → never-hollow
+    // summary) serves what already passed. No guardrail is weakened.
+    let lastAttemptMs = 0;
+    let budgetStopped = false;
+    const canRetry = (attemptNumber: number): boolean => {
+      if (attemptNumber >= MAX_REJECTION_ATTEMPTS) return false;
+      if (timeBudget.canAfford(lastAttemptMs + RETRY_TAIL_MS)) return true;
+      if (!budgetStopped) {
+        budgetStopped = true;
+        console.warn(JSON.stringify({
+          function: "ingredient-analysis",
+          event: "guardrail_budget_exhausted",
+          attempt: attemptNumber,
+          remaining_ms: timeBudget.remaining(),
+          last_attempt_ms: lastAttemptMs,
+        }));
+        recordAiOutcome({
+          function_name: "ingredient-analysis",
+          surface: "ingredient-analysis",
+          user_id: memberId,
+          outcome: "rejected",
+          rejection_rule: "budget_exhausted",
+          retry_reason: "budget_exhausted",
+          generation_id: generationId,
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+        });
+      }
+      return false;
+    };
     for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+      const attemptStartedAt = Date.now();
+
       const baseRetryPayload = retryRules?.length
         ? {
           ...userPayload,
@@ -1557,7 +1606,11 @@ Deno.serve(async (req) => {
           ...guidanceFloorProblems(analysis, guidanceTokens),
           ...usageGroundingProblems(analysis, usageDirections),
         ];
-        if (claudeProblems.length) {
+        // The guidance-only re-ask is an EXTRA model call on top of this
+        // attempt; skip it when the budget can't cover it and serve the
+        // guidance that already passed the other checks.
+        if (claudeProblems.length && timeBudget.canAfford(GUIDANCE_PASS_MS + RETRY_TAIL_MS)) {
+
           console.log(JSON.stringify({
             function: "ingredient-analysis",
             violation: "guidance_floor",
@@ -1656,7 +1709,11 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         analysis._generated_at = new Date().toISOString();
       }
 
+      // Measured cost of this attempt — the estimate for the next one.
+      lastAttemptMs = Math.max(lastAttemptMs, Date.now() - attemptStartedAt);
+
       analysis.insight = sanitisePurposeInsight(analysis.insight) ?? undefined;
+
       // Nullable schema: a null descriptive field is a legitimate "not
       // established" answer, so it must never render as the string "null".
       if (analysis.summary == null) analysis.summary = "";
@@ -1718,9 +1775,10 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           userId: memberId,
           subject: productKey ?? null,
           attempt: attemptNumber,
-          action: attemptNumber < MAX_REJECTION_ATTEMPTS ? "rejected" : "field_nulled",
+          action: canRetry(attemptNumber) ? "rejected" : "field_nulled",
         });
-        if (attemptNumber < MAX_REJECTION_ATTEMPTS) continue;
+        if (canRetry(attemptNumber)) continue;
+
 
         // A third otherwise-valid generation must not become a total 503 just
         // because one prose field still used rejected wording. The schemas are
@@ -1852,7 +1910,7 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           rawIngredients,
         ),
       ];
-      if (substanceProblems.length && attemptNumber < MAX_REJECTION_ATTEMPTS) {
+      if (substanceProblems.length && canRetry(attemptNumber)) {
         console.log(JSON.stringify({
           function: "ingredient-analysis",
           violation: "mechanism_substance",

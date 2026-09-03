@@ -83,6 +83,9 @@ import {
 } from "../_shared/topical-sensitivity.ts";
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
+import { startTimeBudget } from "../_shared/time-budget.ts";
+import { recordAiOutcome } from "../_shared/ai-meter.ts";
+
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
 import { describeProfileFields, logScoreDebug, scoreBreakdown } from "../_shared/score-debug.ts";
 import {
@@ -704,6 +707,11 @@ Deno.serve(async (req: Request) => {
   const kill = checkKillSwitch();
   if (kill) return kill;
 
+  // Wall-clock budget for this whole request, retries included.
+  const timeBudget = startTimeBudget();
+
+
+
 
   try {
     const auth = await requireAuthedUser(req);
@@ -886,7 +894,30 @@ Deno.serve(async (req: Request) => {
 
     const loop = await runGuardrailLoop<ProductAnalysisPayload, FailsafeViolation>({
       functionName: "product-analyse",
+      // WALL-CLOCK BUDGET (2026-09-03) — a retry is only started if it can
+      // finish. Without this the worker was killed mid-loop and the member saw
+      // a server error instead of the degraded-but-valid payload below.
+      budget: timeBudget,
+      onBudgetStop: ({ attemptNumber, remainingMs }) => {
+        recordAiOutcome({
+          function_name: "product-analyse",
+          surface: "product-analyse",
+          user_id: user.id,
+          outcome: "rejected",
+          rejection_rule: "budget_exhausted",
+          retry_reason: "budget_exhausted",
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+        });
+        console.warn(JSON.stringify({
+          function: "product-analyse",
+          event: "budget_exhausted",
+          attempt: attemptNumber,
+          remaining_ms: remainingMs,
+        }));
+      },
       generate: async (info) => {
+
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
             front_image_url: frontPhoto!,
