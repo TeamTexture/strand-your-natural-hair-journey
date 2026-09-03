@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
       return json(200, {
         eligible: verdict.eligible,
         reason: verdict.reason,
+        already_used: row?.retention_offer_used ?? false,
         tier,
         trialing,
         trial_end: trialEnd,

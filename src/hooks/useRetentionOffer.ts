@@ -13,6 +13,8 @@ import { assertNotViewingAs } from "@/lib/viewAsReadOnly";
 export interface RetentionOfferCheck {
   eligible: boolean;
   reason: string;
+  /** True when the member has already claimed the one-time retention offer. */
+  already_used: boolean;
   tier: "standard" | "plus";
   /** True when the member is still on the free trial (nothing charged yet). */
   trialing?: boolean;

@@ -98,11 +98,12 @@ const ManageSubscriptionSection = () => {
 
   /**
    * Cancel tap. If the SERVER says the member still has the retention offer,
-   * show it first; otherwise go straight to the existing cancellation
-   * confirmation, unchanged.
+   * show it first; if they have already used it, still show the "Before you
+   * cancel" dialog so the feedback section is reachable. Otherwise go straight
+   * to the existing cancellation confirmation, unchanged.
    */
   const startCancel = () => {
-    if (retention.data?.eligible) setRetentionOpen(true);
+    if (retention.data?.eligible || retention.data?.already_used) setRetentionOpen(true);
     else setCancelOpen(true);
   };
 
@@ -399,8 +400,8 @@ const ManageSubscriptionSection = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Retention offer — shown before cancellation, once per member */}
-      {retention.data?.eligible && (
+      {/* Retention offer / feedback — shown before cancellation */}
+      {retention.data && (retention.data.eligible || retention.data.already_used) && (
         <RetentionOfferDialog
           open={retentionOpen}
           onOpenChange={setRetentionOpen}
