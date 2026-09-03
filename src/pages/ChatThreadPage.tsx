@@ -281,6 +281,16 @@ const ChatThreadPage = () => {
   );
   const { reactions, canReact, toggleReaction } = useMessageReactions(threadId, reactableIds);
   const [draft, setDraft] = useState("");
+  // A photo is STAGED, not sent on pick, so one send can carry text + photo
+  // (+ a voice note) as a single message row.
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  // The voice recorder's finish callback fires outside render, so it reads the
+  // latest draft/photo through refs rather than a stale closure.
+  const draftRef = useRef("");
+  const pendingImageRef = useRef<File | null>(null);
+  draftRef.current = draft;
+  pendingImageRef.current = pendingImage;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -435,12 +445,23 @@ const ChatThreadPage = () => {
     return out;
   }, [messages.data]);
 
+  const clearPendingImage = () => {
+    setPendingImage(null);
+    setPendingImageUrl((u) => {
+      if (u) URL.revokeObjectURL(u);
+      return null;
+    });
+  };
+
   const submit = async () => {
     const body = draft.trim();
-    if (!body) return;
+    const photo = pendingImage;
+    if (!body && !photo) return;
     setDraft("");
+    clearPendingImage();
     try {
-      await send.mutateAsync(body);
+      if (photo) await sendImage.mutateAsync({ file: photo, caption: body || undefined });
+      else await send.mutateAsync(body);
     } catch (err) {
       if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
       else toast.error(err instanceof Error ? err.message : "Could not send");
@@ -449,14 +470,20 @@ const ChatThreadPage = () => {
   };
 
   // Voice note: recording stops, then the audio is uploaded, transcribed and
-  // sent as its own message. The typed draft is left untouched.
+  // sent as ONE message together with whatever text was typed and any staged
+  // photo — never one-or-the-other.
   const voice = useVoiceRecorder((rec) => {
+    const caption = draftRef.current.trim();
+    const imageFile = pendingImageRef.current;
+    setDraft("");
+    clearPendingImage();
     sendVoice
-      .mutateAsync(rec)
+      .mutateAsync({ ...rec, caption: caption || undefined, imageFile })
       .then(() => toast.success("Voice note sent"))
       .catch((err) => {
         if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
         else toast.error(err instanceof Error ? err.message : "Could not send that voice note");
+        setDraft((d) => d || caption);
       });
   });
 
@@ -475,13 +502,11 @@ const ChatThreadPage = () => {
       toast.error("That photo is over 20MB — please choose a smaller one.");
       return;
     }
-    try {
-      await sendImage.mutateAsync({ file, caption: draft.trim() || undefined });
-      setDraft("");
-    } catch (err) {
-      if (chatLock.lockRelevant && isChatLockError(err)) setLockedByRls(true);
-      else toast.error(err instanceof Error ? err.message : "Could not send that photo");
-    }
+    setPendingImage(file);
+    setPendingImageUrl((u) => {
+      if (u) URL.revokeObjectURL(u);
+      return URL.createObjectURL(file);
+    });
   };
 
 
@@ -596,8 +621,10 @@ const ChatThreadPage = () => {
                       key={m.id}
                       path={typeof meta.audio_path === "string" ? meta.audio_path : null}
                       transcript={
-                        typeof meta.transcript === "string" ? meta.transcript : m.body || null
+                        typeof meta.transcript === "string" ? meta.transcript : null
                       }
+                      caption={typeof meta.caption === "string" ? meta.caption : null}
+                      imagePath={typeof meta.image_path === "string" ? meta.image_path : null}
                       durationMs={
                         typeof meta.duration_ms === "number" ? meta.duration_ms : null
                       }
@@ -806,16 +833,17 @@ const ChatThreadPage = () => {
             className="max-h-[120px] text-sm p-2.5 rounded-[14px] border border-border bg-card resize-none focus:outline-none focus:border-primary/60"
           />
         </div>
-        {draft.trim() ? (
+        {draft.trim() || pendingImage ? (
           <button
             onClick={submit}
-            disabled={send.isPending || isViewingAs || chatLocked}
+            disabled={send.isPending || sendImage.isPending || isViewingAs || chatLocked}
             aria-label="Send"
             className="shrink-0 size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
           >
-            <Send className="size-4" />
+            {sendImage.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </button>
-        ) : (
+        ) : null}
+        {(
           <button
             type="button"
             onClick={voice.recording ? voice.stop : () => void voice.start()}
