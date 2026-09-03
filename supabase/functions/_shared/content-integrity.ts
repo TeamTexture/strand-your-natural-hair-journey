@@ -310,6 +310,7 @@ export function contentIntegrityBlock(opts: {
     `
 CONTENT INTEGRITY — hard validation runs on your output:
 - TERMINOLOGY IS CLOSED. Use only hair/scalp terms this app already teaches (porosity, cuticle, cortex, elasticity, strand diameter, surface texture, curl pattern, density, scalp condition, sebum, follicle, moisture retention, protein balance, build-up, length retention). Never invent a compound term, and never attach a strand property to the scalp — "high porosity scalp" is a hard failure.
+- USE THE TAUGHT NOUN, NOT A VARIANT OF IT. Write "porosity" (never "porous", "porousness"), "elasticity" (never "elastic"), "sebum" (never "oil the scalp makes"). A grammatical variant of a taught term is treated as an invented term and the whole generation is rejected.
 - NOTHING INVENTED TO FILL A GAP. Every ingredient, claim and technique detail must be traceable to the data supplied in this prompt. Established general knowledge is allowed only when no product-specific claim is attached to it.
 - "NOT ESTABLISHED" IS A CORRECT ANSWER. Every descriptive field is nullable. If the supplied data does not support a claim, return null for that field or leave it out. That is expected, not a failure.`,
     relationshipBlock(),
@@ -317,7 +318,7 @@ CONTENT INTEGRITY — hard validation runs on your output:
   if (Array.isArray(opts.allowedIngredients)) {
     lines.push(
       opts.allowedIngredients.length
-        ? `- The ONLY ingredient names you may write anywhere are: ${opts.allowedIngredients.join(", ")}.`
+        ? `- The ONLY ingredient names you may write anywhere are, copied character-for-character: ${opts.allowedIngredients.join(", ")}. Never substitute a common name for the listed name (no "Castor Oil" for "Ricinus Communis Seed Oil", no "Coconut Oil" for "Cocos Nucifera (Coconut) Oil", no "Lavender" for "Lavandula Angustifolia Oil"), and never change its spelling, brackets or plural.`
         : `- No ingredient list was read for this product. Do NOT name a single ingredient anywhere, and do not infer a typical formulation.`,
     );
   }
