@@ -34,6 +34,7 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { sseResponse, type SseEmit } from "../_shared/sse.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
