@@ -1,91 +1,27 @@
-# Paywall bypass — cause found, fix plan
+# Calendly 1:1 link in the welcome chat moment
 
-## What is actually happening
+## What I found
 
-The auth session is not the bug. Sign-up does create a real session immediately (that is
-by design — the trial funnel needs a signed-in account to stamp and to take a card), and
-the route guards do check entitlement server-side, not just "is someone logged in".
+**1. Where the welcome voicenote lives**
+- Content: one admin-recorded row in `public.welcome_voicenote` (`audio_path`, `transcript`, `duration_ms`, `updated_by`), managed at `/admin/welcome-voicenote`.
+- Send logic: `supabase/functions/_shared/welcome-dm.ts` → `sendWelcomeVoicenote(admin, userId)`.
+- Sender account: the admin who recorded the note (`welcome_voicenote.updated_by`), posting into the member's `admin_support` thread in `chat_threads` (created on first send, with a `system` "Chat opened by STRAND Team." message).
+- Trigger: the Stripe consumer webhook, the first time the member reaches `trialing`/`active`. One-per-account forever, guarded by `consumer_subscriptions.welcome_dm_sent_at`. The helper never throws, so a failure can't retry the webhook.
 
-The bypass is that **a brand-new account can inherit a stranger's/old Stripe
-subscription by email match**, and that stale record grants grace access.
+**2. What chat messages support today**
+`chat_messages.kind` is constrained to exactly `text | system | booking_request | image | voice`. There is no link/card kind, but every row already has a `meta` jsonb column, and `booking_request` proves the pattern: a normal row whose renderer draws a tappable card from `meta`.
 
-Reproduced from live data: an account created today at 10:54:59 with no onboarding and no
-checkout had a membership row written 49 seconds later carrying an **old Stripe
-subscription id**, status `canceled`, with `current_period_end` in the future
-(25 September). Our entitlement rule honours a paid period even after cancellation, so
-that row reads as "entitled" → the trial wall un-walls the account → full access, no card.
+**Smallest addition:** send a second `text` row in the same send, carrying `meta.link = { url, label }`, and teach the two text-bubble renderers to draw a small tappable card when that meta is present (plain body text remains the fallback everywhere else, e.g. notification previews). No migration, no enum/constraint change, no new trigger.
 
-How the row gets written without a payment:
+## Implementation
 
-1. On `/start-trial`, tapping "Start my 3 days free" first calls
-   `consumer-verify-subscription` (double-charge guard) — before any card is entered.
-2. That function collects candidate Stripe customers **by email address**
-   (`stripe.customers.list({ email })`), gathers every subscription on those customers,
-   and if nothing is active it still adopts `all[0]` — any old, cancelled subscription.
-3. It upserts that subscription onto the *new* `user_id`. Nothing verifies the
-   subscription or customer actually belongs to this account.
+1. `supabase/functions/_shared/welcome-dm.ts` — after the voice row, insert one more `text` row in the same call, same thread, same admin sender:
+   - `body`: "Book your free 1:1 with Paige — a quick walkthrough of STRAND, one to one, no charge. https://calendly.com/paigelewinconsulting/1-1-strand-walkthrough-with-paige"
+   - `meta`: `{ link: { url: "<calendly url>", label: "Book your free 1:1 with Paige" }, welcome_calendly: true }`
+   Both inserts happen before `welcome_dm_sent_at` is stamped, so the moment stays atomic and still one-per-account.
+2. New `src/components/chat/ChatLinkCard.tsx` — sand/cream card with a gold pill CTA using existing tokens (Playfair heading, Jost body, `rounded-pill`), opening in a new tab with `target="_blank" rel="noopener noreferrer"`.
+3. Render it from the text branch of `src/pages/ChatThreadPage.tsx` and `src/components/chat/InlineThreadChat.tsx` when `meta.link.url` is present; unchanged behaviour otherwise.
+4. Existing members who already received the voicenote are not re-messaged — the dashboard card added last turn covers them.
 
-So anyone re-registering with an email that has ever existed in Stripe — a previously
-deleted account, a test account, a family member's email, a re-signup after cancelling —
-lands inside the app with no payment method on file.
-
-## The flash of the hair characteristics page (separate, real bug)
-
-`SplashScreen.tsx` (login on `/`) resolves the destination in the wrong order compared
-with `Auth.tsx`: it returns `onboardingStatus.entryPath` **before** checking the trial
-wall. So login navigates to an onboarding step (hair characteristics for a
-part-completed member), that screen mounts, and only then does `TrialWall`'s async read
-resolve and bounce back to `/start-trial`. Hence a visible flash of member content.
-`Auth.tsx` already checks the wall first — the two resolvers disagree.
-
-## The fix
-
-### 1. Ownership check in `consumer-verify-subscription` (the actual bypass)
-
-A subscription may only be adopted onto a `user_id` when it is provably theirs:
-
-- `subscription.metadata.consumer_user_id === userId`, or
-- `customer.metadata.consumer_user_id === userId`, or
-- the customer id is already recorded on **this member's own** row.
-
-Email-only matches are used solely to *discover* candidates; they are never adopted
-unless one of the above holds. Additionally, refuse any customer/subscription already
-linked to a different `user_id` in `consumer_subscriptions`. When nothing qualifies, the
-function returns `active: false` and writes no membership row — the member goes to
-checkout, which is the correct outcome.
-
-### 2. Never let a stale record be more generous than a real one
-
-The membership row is only written from a subscription that passed the ownership check,
-so grace access (`canceled` with a future period end) can no longer be inherited. The
-entitlement rule itself is left unchanged — genuinely cancelled paying members keep the
-period they paid for.
-
-### 3. Fix the login destination order in `SplashScreen.tsx`
-
-Move the trial-wall check above the onboarding `entryPath` return, mirroring `Auth.tsx`,
-so a walled account is sent to the paywall (or its pre-paywall step) and never briefly
-renders a members-only onboarding screen.
-
-### 4. Repair the affected live row
-
-Clear the wrongly inherited subscription record on the affected account
-(`8171b821-…`, status `canceled`, `sub_1U8HJnIu…`) back to `status: none` with no Stripe
-subscription id, and sweep for any other row whose Stripe subscription is shared across
-more than one `user_id`. This is a direct mutation of live member data and will be
-reported explicitly.
-
-### 5. Regression test
-
-Add a test asserting that a subscription discovered only by email, with no matching
-`consumer_user_id` metadata and no prior link on the member's own row, is not adopted.
-
-## What this touches
-
-- `supabase/functions/consumer-verify-subscription/index.ts` (redeployed and boot-verified)
-- `src/components/SplashScreen.tsx` (destination order only)
-- One data repair query on `public.consumer_subscriptions`
-- New test file
-
-Not touched: Stripe pricing, the webhook, checkout session creation, `lib/entitlement.ts`,
-`TrialWall`, `PaidGate`, or the retention/cancellation flow.
+## Out of scope
+Retention offer, cancellation flow, and the paywall investigation are untouched.
