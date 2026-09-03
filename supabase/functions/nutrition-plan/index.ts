@@ -30,7 +30,7 @@ declare const Deno: {
   serve: (h: (req: Request) => Promise<Response>) => void;
 };
 
-const MODEL_VERSION = "claude-opus-4-7@v3-manuscript-2026-08-09";
+const MODEL_VERSION = "claude-opus-4-7@v4-render-safe-copy-2026-09-03";
 
 interface RequestBody {
   dryRun?: boolean;
@@ -240,11 +240,11 @@ function buildClaudeTaskInstructions(): string {
 CRITICAL LANGUAGE RULE — PLAIN ENGLISH FOR AMATEURS.
 Every card body must read like a knowledgeable friend explaining it, not a science textbook. Assume the reader has no clinical training. Translate every clinical term the FIRST time it appears — "ferritin (your body's stored iron)", "biotin (a B-vitamin your hair uses to build keratin)", "TSH (a thyroid hormone marker)". Prefer everyday words: "shedding" not "telogen effluvium", "hair strength" not "tensile integrity", "regrowth" not "anagen recovery". Short, warm, direct sentences. No jargon dumps.
 
-Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what your follicles draw on for new growth"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their alcohol intake). "You", never "your hair".
+Voice for this task: follow the VOICE PRINCIPLES from the system block. Every card body should read like a clinician thinking out loud in plain English — start with the MECHANISM in everyday words ("Iron is what new growth draws on"), then bridge with a connective ("which is why", "so", "this means") into ONE specific thing you know about this user (a flagged blood marker, a medication they take, their life stage, a stated goal, their alcohol intake). "You", never "your hair".
 
 FORMATTING — SCANNABLE, AND FULLY DETAILED.
 Nutrition is the one place in STRAND that is always given at FULL detail. Never abbreviate a card.
-Every "body" field MUST be structured as THREE or FOUR short paragraphs separated by blank lines ("\\n\\n"). Each paragraph is ONE or TWO short sentences. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what your follicles draw on for new growth."
+Every "body" field MUST be structured as THREE or FOUR short paragraphs separated by blank lines ("\\n\\n"). Each paragraph is ONE or TWO short sentences. Each paragraph MUST open with a 2-4 word bold lead phrase wrapped in markdown asterisks, followed by a colon, then the sentence — for example: "**Why it matters:** iron is what new hair growth draws on."
 
 Use ONLY these bold lead phrases, in this order, skipping none that apply:
 - For SUPPLEMENTS: "**Why it matters:**" (required), "**How to use it:**" (required — when in the day and what to take it with), "**Best paired with:**" (name the foods that help it absorb), "**Watch out for:**" (required — the interaction, medication or timing clash)
@@ -258,9 +258,17 @@ SUMMARY FORMATTING — SHORT, EDUCATIONAL, SCANNABLE.
 The top-level "summary" field is the "Why this plan" block at the top of the page. It must be BRIEF and read like a friend translating the blood work into plain English — not a preamble to the cards below.
 - Exactly TWO short paragraphs separated by "\\n\\n".
 - Each paragraph is ONE sentence, max 22 words. No second sentence. No commas stacked into a list.
-- Paragraph 1 opens "**Why it matters:**" — name 1-2 specific data points (a flagged marker with its everyday meaning in brackets, a medication, or a life stage) and what it means for hair in the simplest words possible. Example: "**Why it matters:** your ferritin (stored iron) is low, which is what your follicles pull from to grow new strands."
+- Paragraph 1 opens "**Why it matters:**" — name 1-2 specific data points (a flagged marker with its everyday meaning in brackets, a medication, or a life stage) and what it means for hair in the simplest words possible. Example: "**Why it matters:** your ferritin (stored iron) is low, and stored iron is what new hair growth draws on."
 - Paragraph 2 opens "**What to prioritise:**" — name the 1-2 levers this plan pulls (e.g. "rebuild iron stores", "steady blood sugar", "top up vitamin D") in everyday language. No jargon, no supplement doses, no food names here — those live in the cards.
 - Never repeat the same marker in both paragraphs. Never write "this plan will…" or "we recommend…". Speak directly to her.
+
+RENDER-SAFE WORDING — NON-NEGOTIABLE.
+The app strips, at display time, any sentence that (a) describes follicle-level or cellular biology, or (b) joins a named blood marker to a hair statement with a causal connector. A stripped sentence leaves the member with a heading and NO text, so wording that trips this is a failed answer.
+- NEVER use these words anywhere: follicle, follicles, follicular, cell division, keratinisation, hair shaft, dermal papilla, anagen, telogen, catagen, sebum production, DHT, protein synthesis.
+- NEVER write a marker and a hair outcome in one sentence joined by "so", "because", "which is why", "means", "causes", "leads to", "affects", "drives", "supports", "helps your". State the marker factually in one sentence, then say what the nutrient does for hair in the NEXT sentence.
+  BAD: "your ferritin is low, which is why your hair is shedding."
+  GOOD: "your ferritin (stored iron) is low. Iron is what new hair growth draws on."
+- Plain everyday phrasing instead of biology: "new growth", "hair strength", "your scalp feels", "how quickly hair sheds".
 
 OUTPUT RULES
 
@@ -270,7 +278,7 @@ OUTPUT RULES
 
 3. SUPPLEMENTS — PERSONALISED, NOT GENERIC.
    - Every supplement card must be tied to something SPECIFIC about this user (a flagged marker, their medication depleting a nutrient, their diet pattern, their life stage). Never a generic "everyone should take X".
-   - Iron: only recommend if ferritin/iron is flagged low, or the user is menstruating heavily / vegetarian / vegan with known risk. Explain iron in plain English ("iron is what carries oxygen to every follicle").
+   - Iron: only recommend if ferritin/iron is flagged low, or the user is menstruating heavily / vegetarian / vegan with known risk. Explain iron in plain English ("iron is what carries oxygen around your body").
    - Vitamin D: recommend if a marker is flagged, if the user has limited sun exposure, or if life stage / diet pattern warrants it. Explain WHY in plain English.
    - B12: mandatory for vegan / vegetarian; also flag for anyone on metformin or long-term PPIs (explain the medication link in one line).
    - Zinc, magnesium, folate, omega-3, biotin, collagen: include only where the data supports it. Explain what each does for hair in one plain-English sentence.
