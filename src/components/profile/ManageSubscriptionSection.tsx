@@ -85,6 +85,21 @@ const ManageSubscriptionSection = () => {
 
   const [pauseOpen, setPauseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [retentionOpen, setRetentionOpen] = useState(false);
+  // Server-side eligibility for the one-time half-price retention offer. Never a
+  // client-only check: the same verdict is re-run when the offer is claimed.
+  const retention = useRetentionOffer();
+
+  /**
+   * Cancel tap. If the SERVER says the member still has the retention offer,
+   * show it first; otherwise go straight to the existing cancellation
+   * confirmation, unchanged.
+   */
+  const startCancel = () => {
+    if (retention.data?.eligible) setRetentionOpen(true);
+    else setCancelOpen(true);
+  };
+
 
   const basePriceQ = useQuery({
     queryKey: ["platform_settings", "consumer_monthly_price_gbp"],
