@@ -121,6 +121,10 @@ interface RequestBody {
     flagged_ingredients?: string[];
   };
   force?: boolean;
+  /** SPEED (2026-09-03): stream the analysis back as SSE (see _shared/sse.ts)
+   *  so the member sees the real product details while the guarded verdict is
+   *  still being written. Same pipeline either way. */
+  stream?: boolean;
 }
 
 // ─── Selector context for KB topic matching ────────────────────────────
@@ -241,6 +245,9 @@ async function runClaude(args: {
   pageTitle?: string | null;
   /** TIERS (Part 3): deterministic Tier 1 findings + which tiers are visible. */
   tierBlock?: string;
+  /** SPEED: when set, the model call streams and this receives the accumulated
+   *  tool JSON. Preview only — the caller still gets the fully parsed result. */
+  onPartialJson?: (accumulatedJson: string) => void;
 }): Promise<{
   payload: ProductAnalysisPayload;
   web_search_invocations: number;
@@ -318,7 +325,10 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
     max_tokens: 4096,
   });
 
-  const result = await callClaude<ProductAnalysisPayload>(req);
+  const result = await callClaude<ProductAnalysisPayload>({
+    ...req,
+    onPartialJson: args.onPartialJson,
+  });
 
   const byName = result.server_tool_use_by_name ?? {};
   const web_search_invocations = byName["web_search"] ?? 0;
