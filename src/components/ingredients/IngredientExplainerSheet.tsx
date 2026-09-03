@@ -135,10 +135,11 @@ export default function IngredientExplainerSheet({
               <AiProgressBar
                 compact
                 className="mt-2"
-                expectedMs={9000}
+                /* ingredient-explainer measured p50 2.6s / p90 3.0s. */
+                expectedMs={4000}
                 stages={[
                   "Reading your hair profile",
-                  "Looking this up in the manuscript",
+                  "Finding the manuscript passage",
                   "Writing what it means for you",
                 ]}
               />
