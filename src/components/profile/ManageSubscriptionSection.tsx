@@ -21,6 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import RetentionOfferDialog from "@/components/profile/RetentionOfferDialog";
+import { useRetentionOffer } from "@/hooks/useRetentionOffer";
 
 const PLUS_PRICE = 14.99;
 
@@ -305,8 +307,8 @@ const ManageSubscriptionSection = () => {
                         ? `Runs to ${renews}, then stops`
                         : "Runs to the end of your paid period, then stops"
                   }
-                  onClick={() => setCancelOpen(true)}
-                  disabled={portal.isPending}
+                  onClick={startCancel}
+                  disabled={portal.isPending || retention.isLoading}
                 />
               )}
             </div>
@@ -352,6 +354,16 @@ const ManageSubscriptionSection = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Retention offer — shown before cancellation, once per member */}
+      {retention.data?.eligible && (
+        <RetentionOfferDialog
+          open={retentionOpen}
+          onOpenChange={setRetentionOpen}
+          offer={retention.data}
+          onCancelAnyway={() => setCancelOpen(true)}
+        />
+      )}
 
       {/* Cancel confirmation */}
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
