@@ -886,7 +886,30 @@ Deno.serve(async (req: Request) => {
 
     const loop = await runGuardrailLoop<ProductAnalysisPayload, FailsafeViolation>({
       functionName: "product-analyse",
+      // WALL-CLOCK BUDGET (2026-09-03) — a retry is only started if it can
+      // finish. Without this the worker was killed mid-loop and the member saw
+      // a server error instead of the degraded-but-valid payload below.
+      budget: timeBudget,
+      onBudgetStop: ({ attemptNumber, remainingMs }) => {
+        recordAiOutcome({
+          function_name: "product-analyse",
+          surface: "product-analyse",
+          user_id: user.id,
+          outcome: "rejected",
+          rejection_rule: "budget_exhausted",
+          retry_reason: "budget_exhausted",
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+        });
+        console.warn(JSON.stringify({
+          function: "product-analyse",
+          event: "budget_exhausted",
+          attempt: attemptNumber,
+          remaining_ms: remainingMs,
+        }));
+      },
       generate: async (info) => {
+
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
             front_image_url: frontPhoto!,
