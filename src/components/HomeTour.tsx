@@ -338,21 +338,38 @@ const HomeTour = () => {
     let cancelled = false;
     let raf = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // A target can be legitimately late: the screen has just been navigated to
+    // and its section is still waiting on a query (Profile's "Manage
+    // subscription" card renders nothing while the subscription loads). Give it
+    // a real grace window before concluding the step has no target, otherwise
+    // the step is dropped mid-run and the tour appears to skip it.
+    let tries = 0;
+    const MAX_TRIES = 14; // ~2.1s at 150ms
 
     const align = () => {
       const el = findTarget(current.target);
       if (!el) {
-        // Target genuinely absent on this screen (empty state / no data yet):
-        // drop the step from the run so the counter stays truthful.
         if ((current.route ?? "/home") === location.pathname) {
-          setSteps((prev) => prev.filter((s) => s !== current));
-          setStep((s) => Math.min(s, Math.max(0, steps.length - 2)));
+          if (tries < MAX_TRIES) {
+            tries += 1;
+            timer = setTimeout(align, 150);
+            return;
+          }
+          // Target genuinely absent on this screen (empty state / no data yet):
+          // drop the step from the run so the counter stays truthful, and land
+          // on the step that has taken its place — never bounce backwards.
+          const remaining = steps.filter((s) => s !== current);
+          setSteps(remaining);
+          setStep((s) => Math.max(0, Math.min(s, remaining.length - 1)));
+
           return;
         }
         setRect(null);
         setSettled(true);
         return;
       }
+
+
 
       const scroller = scrollParentOf(el);
       if (scroller) {
