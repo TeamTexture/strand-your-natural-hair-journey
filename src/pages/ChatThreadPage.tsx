@@ -51,6 +51,7 @@ import {
   useSendChatVoice,
   type ChatMessage,
 } from "@/hooks/useChat";
+import ChatLinkCard from "@/components/chat/ChatLinkCard";
 import ChatImageBubble from "@/components/chat/ChatImageBubble";
 import ReactableBubble from "@/components/chat/MessageReaction";
 import { useMessageReactions, type ReactionState } from "@/hooks/useMessageReactions";

@@ -8,6 +8,7 @@ import { renderMentions } from "@/lib/renderMentions";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveRoleView } from "@/hooks/useActiveRoleView";
 import DeliveryTicks from "@/components/chat/DeliveryTicks";
+import ChatLinkCard from "@/components/chat/ChatLinkCard";
 import ChatVoiceBubble from "@/components/chat/ChatVoiceBubble";
 import ChatUpgradeNotice from "@/components/chat/ChatUpgradeNotice";
 import { isChatLockError, useCanSendChatMessage } from "@/hooks/useCanSendChatMessage";
@@ -104,6 +105,10 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
                 </div>
               );
             }
+            const tm = (m.meta ?? {}) as { link?: { url?: unknown; label?: unknown } };
+            const linkUrl = typeof tm.link?.url === "string" ? tm.link.url : null;
+            const linkLabel = typeof tm.link?.label === "string" ? tm.link.label : "Open link";
+            const bodyText = linkUrl ? m.body.replace(linkUrl, "").trim() : m.body;
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div
@@ -114,8 +119,13 @@ const InlineThreadChat = ({ thread, otherName }: Props) => {
                   }`}
                 >
                   <p className="text-[11.5px] font-body leading-snug whitespace-pre-wrap break-words">
-                    {renderMentions(m.body)}
+                    {renderMentions(bodyText)}
                   </p>
+                  {linkUrl && (
+                    <div className="mt-1.5 mb-0.5">
+                      <ChatLinkCard url={linkUrl} label={linkLabel} />
+                    </div>
+                  )}
                   {mine && (
                     <span className="flex justify-end mt-0.5">
                       <DeliveryTicks readAt={m.read_at} />
