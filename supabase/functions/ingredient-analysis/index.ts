@@ -1771,9 +1771,10 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
           userId: memberId,
           subject: productKey ?? null,
           attempt: attemptNumber,
-          action: attemptNumber < MAX_REJECTION_ATTEMPTS ? "rejected" : "field_nulled",
+          action: canRetry(attemptNumber) ? "rejected" : "field_nulled",
         });
-        if (attemptNumber < MAX_REJECTION_ATTEMPTS) continue;
+        if (canRetry(attemptNumber)) continue;
+
 
         // A third otherwise-valid generation must not become a total 503 just
         // because one prose field still used rejected wording. The schemas are
