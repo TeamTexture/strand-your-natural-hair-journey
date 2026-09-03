@@ -17,6 +17,8 @@ import {
   makeGenerationId,
   retryReasonFromRules,
 } from "./guardrail-retry.ts";
+import { RETRY_TAIL_MS, type TimeBudget } from "./time-budget.ts";
+
 
 export interface GuardrailAttemptInfo {
   attemptNumber: number;
