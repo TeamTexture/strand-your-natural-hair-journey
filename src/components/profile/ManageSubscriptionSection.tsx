@@ -212,9 +212,11 @@ const ManageSubscriptionSection = () => {
           ? trialEnds
             ? `Free trial · £${price.toFixed(2)} a month starts ${trialEnds}`
             : `Free trial · then £${price.toFixed(2)} a month`
-          : renews
-          ? `£${price.toFixed(2)} a month · renews ${renews}`
-          : `£${price.toFixed(2)} a month`;
+          : retentionOfferActive && retentionOfferUntil
+            ? `Half price £${discountedPrice.toFixed(2)} a month until ${retentionOfferUntil} · then £${price.toFixed(2)} a month`
+            : renews
+              ? `£${price.toFixed(2)} a month · renews ${renews}`
+              : `£${price.toFixed(2)} a month`;
 
   const openPortal = (label: string, flow: "subscription_update" | "subscription_cancel" | "portal") =>
     portal.mutate({ returnPath: "/profile", flow }, {
