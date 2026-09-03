@@ -199,11 +199,13 @@ const AdminMembers = () => {
           tier?: string | null;
           current_period_end: string | null;
           cancel_at_period_end: boolean | null;
+          retention_offer_used: boolean | null;
+          retention_offer_claimed_at: string | null;
           stripe_customer_id: string | null;
         }>((from, to) =>
           supabase
             .from("consumer_subscriptions")
-            .select("user_id, status, current_period_end, cancel_at_period_end, tier, stripe_customer_id")
+            .select("user_id, status, current_period_end, cancel_at_period_end, tier, retention_offer_used, retention_offer_claimed_at, stripe_customer_id")
             .range(from, to),
         ),
         supabase.rpc("admin_list_member_emails"),
