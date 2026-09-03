@@ -386,7 +386,9 @@ const ProductProfile = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id, user?.id, isViewingAs]);
 
-  if (loading) {
+  // Only block on the shelf query while we have nothing to show — the targeted
+  // row read above usually resolves first.
+  if (loading && !product) {
     return (
       <ScreenLayout bottomNav={false}>
         <TitleBar title="Product" back />
