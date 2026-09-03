@@ -17,7 +17,8 @@ const money = (n: number) => `£${n.toFixed(2)}`;
 /**
  * "Before you cancel" — the one-time half-price-for-3-months retention offer.
  *
- * Shown only when the SERVER has said the member is eligible. Claiming calls the
+ * Shown when the SERVER says the member is eligible, OR when they have already
+ * used the offer and should still see the feedback section. Claiming calls the
  * edge function, which applies the Stripe coupon and burns the offer. "Cancel
  * anyway" hands straight back to the existing cancellation confirmation.
  */
@@ -35,6 +36,7 @@ const RetentionOfferDialog = ({
   const claim = useClaimRetentionOffer();
   const [error, setError] = useState<string | null>(null);
 
+  const alreadyUsed = offer.already_used;
   const planName = offer.tier === "plus" ? "STRAND+" : "STRAND";
   // A trialing member has not been charged yet, so the discount starts when the
   // trial converts — never imply money is coming off a payment already taken.
