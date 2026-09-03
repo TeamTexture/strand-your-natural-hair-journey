@@ -1516,7 +1516,45 @@ Deno.serve(async (req) => {
     // Violations from the final attempt, so the terminal fallback can null just
     // the offending fields rather than failing the whole generation.
     let retryViolations: NameLockViolation[] = [];
+    // WALL-CLOCK BUDGET (2026-09-03). Each attempt now costs 30-70s, and three
+    // attempts plus the guidance re-ask ran past the edge worker's limit — the
+    // worker was killed MID-LOOP, before the graceful fallbacks below could
+    // run, so the member got a server error or an endless spinner. A retry is
+    // only started when the remaining budget covers the measured cost of the
+    // previous attempt plus the post-loop tail; otherwise the loop stops here
+    // and the existing degrade path (stale-serve → field-null → never-hollow
+    // summary) serves what already passed. No guardrail is weakened.
+    let lastAttemptMs = 0;
+    let budgetStopped = false;
+    const canRetry = (attemptNumber: number): boolean => {
+      if (attemptNumber >= MAX_REJECTION_ATTEMPTS) return false;
+      if (timeBudget.canAfford(lastAttemptMs + RETRY_TAIL_MS)) return true;
+      if (!budgetStopped) {
+        budgetStopped = true;
+        console.warn(JSON.stringify({
+          function: "ingredient-analysis",
+          event: "guardrail_budget_exhausted",
+          attempt: attemptNumber,
+          remaining_ms: timeBudget.remaining(),
+          last_attempt_ms: lastAttemptMs,
+        }));
+        recordAiOutcome({
+          function_name: "ingredient-analysis",
+          surface: "ingredient-analysis",
+          user_id: memberId,
+          outcome: "rejected",
+          rejection_rule: "budget_exhausted",
+          retry_reason: "budget_exhausted",
+          generation_id: generationId,
+          attempt_number: attemptNumber,
+          max_attempts: MAX_REJECTION_ATTEMPTS,
+        });
+      }
+      return false;
+    };
     for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
+      const attemptStartedAt = Date.now();
+
       const baseRetryPayload = retryRules?.length
         ? {
           ...userPayload,
