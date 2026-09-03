@@ -62,23 +62,59 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // 1. Collect every plausible Stripe customer for this member.
-    const candidates = new Set<string>();
+    // 1. Collect every plausible Stripe customer for this member, then keep ONLY
+    //    the ones this account genuinely owns.
+    //
+    //    PAYWALL INTEGRITY: an email match is NOT ownership. A brand-new account
+    //    registered with an address that once belonged to a cancelled customer
+    //    used to adopt that old subscription — and a `canceled` row with a future
+    //    period end grants grace access, so the member walked past the trial
+    //    paywall with no card on file. Ownership now requires either the customer
+    //    already linked to this user row, or Stripe metadata naming this user id
+    //    (which `consumer-checkout` always writes when it creates a customer).
     const { data: existing } = await admin
       .from("consumer_subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", userId)
       .maybeSingle();
     const known = (existing as any)?.stripe_customer_id as string | null ?? null;
-    if (known) candidates.add(known);
 
+    const owned = new Set<string>();
+    if (known) owned.add(known);
+
+    let emailMatches = 0;
+    let rejectedCustomers = 0;
     if (email) {
       const found = await stripe.customers.list({ email, limit: 20 });
-      for (const c of found.data) candidates.add(c.id);
+      emailMatches = found.data.length;
+      for (const c of found.data) {
+        if (owned.has(c.id)) continue;
+        const tag = (c.metadata as Record<string, string> | null)?.consumer_user_id ?? null;
+        if (tag && tag === userId) {
+          owned.add(c.id);
+          continue;
+        }
+        rejectedCustomers++;
+      }
+    }
+
+    // A customer already linked to a DIFFERENT member is never usable here.
+    if (owned.size) {
+      const { data: linkedElsewhere } = await admin
+        .from("consumer_subscriptions")
+        .select("user_id, stripe_customer_id")
+        .in("stripe_customer_id", [...owned])
+        .neq("user_id", userId);
+      for (const row of (linkedElsewhere ?? []) as any[]) {
+        if (row?.stripe_customer_id && owned.delete(row.stripe_customer_id)) {
+          rejectedCustomers++;
+          console.warn("refusing customer linked to another user", row.stripe_customer_id);
+        }
+      }
     }
 
     // 2. Collect subscriptions: any tagged with the user id, plus every
-    //    subscription belonging to a candidate customer.
+    //    subscription belonging to an OWNED customer.
     const subs: Stripe.Subscription[] = [];
     try {
       const tagged = await stripe.subscriptions.search({
@@ -89,7 +125,7 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.warn("subscription search unavailable", e);
     }
-    for (const customer of candidates) {
+    for (const customer of owned) {
       const list = await stripe.subscriptions.list({
         customer,
         status: "all",
@@ -100,8 +136,16 @@ Deno.serve(async (req) => {
     }
 
     const unique = new Map(subs.map((s) => [s.id, s]));
-    const all = [...unique.values()];
+    // Belt and braces: a subscription must itself be owned — tagged with this
+    // user id, or sitting on an owned customer.
+    const all = [...unique.values()].filter((s) => {
+      const cust = typeof s.customer === "string" ? s.customer : s.customer?.id;
+      const tag = (s.metadata as Record<string, string> | null)?.consumer_user_id ?? null;
+      return tag === userId || (cust ? owned.has(cust) : false);
+    });
     const chosen = all.find((s) => ACTIVE.has(s.status)) ?? all[0] ?? null;
+
+
 
     if (!chosen) {
       if (known) {
