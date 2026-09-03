@@ -81,6 +81,10 @@ describe("approved relationships pass untouched", () => {
     "Too much oil on your scalp can suppress its own sebum production.",
     "Your density is the number of strands per square inch of your scalp.",
     "Elasticity tells you about your protein and moisture balance.",
+    // CLAUSE SCOPING (2026-09-03) — safely separated science must survive.
+    "Your scalp produces plenty of sebum, and your high porosity means water escapes quickly.",
+    "This cream is dense enough to weigh down finer strands, so keep it to your ends.",
+    "High porosity takes water in fast, and an occlusive butter slows how quickly it leaves.",
   ];
   for (const text of approved) {
     it(`accepts: ${text.slice(0, 48)}…`, () => {
