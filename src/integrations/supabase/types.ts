@@ -4977,6 +4977,7 @@ export type Database = {
           pro_tour_seen_at: string | null
           product_prompt_seen_at: string | null
           profile_confirmed_at: string | null
+          superchat_contact_id: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           tips_level: number
@@ -4985,6 +4986,8 @@ export type Database = {
           trial_offer_at: string | null
           updated_at: string
           user_id: string
+          whatsapp_opt_in: boolean
+          whatsapp_opt_in_at: string | null
         }
         Insert: {
           access_restricted?: boolean
@@ -5022,6 +5025,7 @@ export type Database = {
           pro_tour_seen_at?: string | null
           product_prompt_seen_at?: string | null
           profile_confirmed_at?: string | null
+          superchat_contact_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           tips_level?: number
@@ -5030,6 +5034,8 @@ export type Database = {
           trial_offer_at?: string | null
           updated_at?: string
           user_id: string
+          whatsapp_opt_in?: boolean
+          whatsapp_opt_in_at?: string | null
         }
         Update: {
           access_restricted?: boolean
@@ -5067,6 +5073,7 @@ export type Database = {
           pro_tour_seen_at?: string | null
           product_prompt_seen_at?: string | null
           profile_confirmed_at?: string | null
+          superchat_contact_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           tips_level?: number
@@ -5075,6 +5082,8 @@ export type Database = {
           trial_offer_at?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp_opt_in?: boolean
+          whatsapp_opt_in_at?: string | null
         }
         Relationships: []
       }

@@ -76,6 +76,10 @@ const ProfileStep1 = () => {
   // No default: country feeds the hard-water logic, so it must be an explicit answer.
   const [country, setCountry] = useState("");
   const [heritage, setHeritage] = useState("");
+  // WhatsApp marketing consent. Always starts false: consent must be affirmative.
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  // The consent timestamp already on file, so a re-save never re-dates consent.
+  const [optInAtOnFile, setOptInAtOnFile] = useState<string | null>(null);
 
   // Profile photo state
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
@@ -139,7 +143,7 @@ const ProfileStep1 = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage")
+        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage, whatsapp_opt_in, whatsapp_opt_in_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -176,6 +180,12 @@ const ProfileStep1 = () => {
       if (Array.isArray(h) && h[0]) {
         setHeritage((current) => (current ? current : String(h[0])));
       }
+      // Only an existing "yes" on file ever ticks the box.
+      if ((data as { whatsapp_opt_in?: boolean | null } | null)?.whatsapp_opt_in === true) {
+        setWhatsappOptIn(true);
+        const at = (data as { whatsapp_opt_in_at?: string | null } | null)?.whatsapp_opt_in_at;
+        if (at) setOptInAtOnFile(at);
+      }
       if (p) {
         const { data: sig } = await supabase.storage
           .from(AVATAR_BUCKET)
@@ -192,7 +202,7 @@ const ProfileStep1 = () => {
   // Keep anything typed on this step if the member navigates away and returns.
   useOnboardingDraft(
     "profile-step-1",
-    { name, phone, age, postcode, country, heritage },
+    { name, phone, age, postcode, country, heritage, whatsappOptIn },
     (d) => {
       if (d.name) setName(d.name);
       if (d.phone) setPhone(d.phone);
@@ -200,6 +210,7 @@ const ProfileStep1 = () => {
       if (d.postcode) setPostcode(d.postcode);
       if (d.country) setCountry(d.country);
       if (d.heritage) setHeritage(d.heritage);
+      if (d.whatsappOptIn === true) setWhatsappOptIn(true);
     },
   );
 
@@ -359,12 +370,19 @@ const ProfileStep1 = () => {
         postcode: string;
         country: string;
         birth_year?: number;
+        whatsapp_opt_in: boolean;
+        whatsapp_opt_in_at: string | null;
       } = {
         display_name: name.trim(),
         phone_number: trimmedPhone || null,
         heritage: heritageArr,
         postcode: trimmedPostcode,
         country,
+        whatsapp_opt_in: whatsappOptIn,
+        // Stamped when she first says yes, kept as-is on a re-save, cleared on no.
+        whatsapp_opt_in_at: whatsappOptIn
+          ? (optInAtOnFile ?? new Date().toISOString())
+          : null,
       };
       if (birth_year !== null) update.birth_year = birth_year;
       try {
@@ -595,6 +613,34 @@ const ProfileStep1 = () => {
           </FieldFrame>
           {submitted && errors.phone && <FieldError>{errors.phone}</FieldError>}
         </label>
+
+        {/* WhatsApp opt-in — affirmative consent only, never pre-ticked, never required. */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setWhatsappOptIn((v) => !v)}
+            aria-pressed={whatsappOptIn}
+            className="flex items-start gap-2.5 text-left w-full"
+          >
+            <span
+              className={cn(
+                "mt-[1px] size-5 rounded-[6px] border flex items-center justify-center shrink-0 transition-colors",
+                whatsappOptIn
+                  ? "bg-primary border-primary"
+                  : "bg-transparent border-primary/60",
+              )}
+            >
+              {whatsappOptIn && <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />}
+            </span>
+            <span className="font-body text-[13px] leading-[1.35] text-foreground">
+              Send me STRAND tips, live sessions and offers on WhatsApp. You can reply STOP at any time.
+            </span>
+          </button>
+          <p className="mt-1.5 pl-[30px] font-body text-[11px] leading-[1.35] text-muted-foreground">
+            We only use your number for STRAND messages. Never shared.
+          </p>
+        </div>
+
 
         {/* Age */}
         <label className="block">

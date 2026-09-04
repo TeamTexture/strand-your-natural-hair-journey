@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.sync_superchat_contact_trigger() FROM PUBLIC, anon, authenticated;
