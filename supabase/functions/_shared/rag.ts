@@ -37,6 +37,36 @@ const EMBEDDING_MODEL = "text-embedding-3-small";
 const EMBEDDING_DIMS = 1536;
 const OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
 
+/**
+ * OBSERVABILITY (2026-09-04) — how many manuscript retrieval round-trips a
+ * request actually spends, and how long they took in total. Purely a counter:
+ * it never changes which passages are retrieved or how they are used.
+ *
+ * The counter is isolate-wide, so a caller reads a DELTA (see
+ * `retrievalStatsSnapshot` / `retrievalStatsSince`) rather than resetting it —
+ * that keeps the numbers honest when two requests share a warm isolate.
+ */
+const retrievalStats = { calls: 0, ms: 0 };
+
+export interface RetrievalStats {
+  calls: number;
+  ms: number;
+}
+
+/** Current cumulative counters for this isolate. */
+export function retrievalStatsSnapshot(): RetrievalStats {
+  return { ...retrievalStats };
+}
+
+/** Retrieval work done since `from` was taken. */
+export function retrievalStatsSince(from: RetrievalStats): RetrievalStats {
+  return {
+    calls: Math.max(0, retrievalStats.calls - from.calls),
+    ms: Math.max(0, retrievalStats.ms - from.ms),
+  };
+}
+
+
 // Embedding a query is a full OpenAI round-trip (~300-800ms) on the critical
 // path of every AI call. The same query strings recur constantly (same product,
 // same marker, same wash step), so memoise per warm isolate.
