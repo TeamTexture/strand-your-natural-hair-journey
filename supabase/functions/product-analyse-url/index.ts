@@ -323,7 +323,9 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       input_schema: RETURN_PRODUCT_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
     },
     server_tools: searchDecision.enabled ? [webFetchTool, webSearchTool] : [webFetchTool],
-    max_tokens: 4096,
+    // See product-analyse: long ingredient panels truncated at 4096 and the
+    // truncated tool call cost a full retry.
+    max_tokens: 8192,
   });
 
   const result = await callClaude<ProductAnalysisPayload>({
