@@ -144,7 +144,7 @@ const ProductScanning = () => {
         );
         if (labelErr) {
           throw new Error(
-            memberSafeMessage(labelErr, "We couldn't read that label. Try both photos again."),
+            memberSafeMessage(labelErr, "We couldn’t read the ingredient panel on the back. Retake just the back photo — the front was fine."),
           );
         }
         const data = (label ?? {}) as {
@@ -159,7 +159,7 @@ const ProductScanning = () => {
         };
         if (!data.product_name && !(data.ingredients?.length)) {
           throw new Error(
-            "We couldn't read the brand, the name or the ingredient panel on those photos. Try again in better light.",
+            "We couldn’t read the ingredient panel on the back. Retake just the back photo in better light — you don’t need to redo the front.",
           );
         }
         setPartial({
