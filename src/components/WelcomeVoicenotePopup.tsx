@@ -70,6 +70,9 @@ const WelcomeVoicenotePopup = () => {
         .select("id, thread_id, body, meta, created_at")
         .eq("kind", "voice")
         .eq("meta->>welcome_voicenote", "true")
+        // Already opened in the thread = already seen. Without this every
+        // long-standing member was re-interrupted on each app open.
+        .is("read_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -110,6 +113,8 @@ const WelcomeVoicenotePopup = () => {
   };
 
   const openChat = () => {
+    // Going to the thread counts as engaging with it — never pop up again.
+    markWelcomeListened(user?.id, message.id);
     setDismissed(true);
     navigate(`/messages/${message.thread_id}`);
   };
