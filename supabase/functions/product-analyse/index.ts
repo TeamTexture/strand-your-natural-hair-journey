@@ -1012,7 +1012,18 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             needed: searchRetry.needed,
             reason: searchRetry.reason,
           }));
-          if (searchRetry.needed) {
+          // A searching pass is a SECOND full model call inside one attempt.
+          // Only start it if the budget can still finish the tail afterwards.
+          const canAffordSearch = timeBudget.canAfford(firstReadMs + RETRY_TAIL_MS);
+          if (searchRetry.needed && !canAffordSearch) {
+            console.warn(JSON.stringify({
+              function: "product-analyse",
+              event: "search_retry_skipped_budget",
+              first_read_ms: firstReadMs,
+              remaining_ms: timeBudget.remaining(),
+            }));
+          }
+          if (searchRetry.needed && canAffordSearch) {
             const searched = await runClaude({
               front_image_url: frontPhoto!,
               back_image_url: backPhoto!,
