@@ -837,6 +837,16 @@ Deno.serve(async (req: Request) => {
         : cached._model_version === LOVABLE_MODEL_VERSION;
       const hashOk = cached._profile_snapshot_hash === profileHash;
       if (versionOk && hashOk) {
+        void logScanTiming({
+          function_name: "product-analyse",
+          surface: "product-analyse",
+          user_id: user.id,
+          total_ms: Date.now() - startedAt,
+          cache_hit: true,
+          retrieval_call_count: 0,
+          retrieval_ms: 0,
+          meta: { provider },
+        });
         return await sanitiseAndLog(
           annotateProductSensitivities(
             cached as unknown as Record<string, unknown>,
@@ -846,6 +856,7 @@ Deno.serve(async (req: Request) => {
           "product-analyse",
         ) as unknown as Record<string, unknown>;
       }
+
 
     }
 
