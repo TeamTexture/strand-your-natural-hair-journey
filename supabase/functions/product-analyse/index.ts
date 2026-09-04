@@ -1284,7 +1284,33 @@ Deno.serve(async (req: Request) => {
         : [],
     );
 
+      // SUCCESS TIMINGS (2026-09-04) — fire-and-forget, admin-only.
+      {
+        const finishedAt = Date.now();
+        const retrieval = retrievalStatsSince(retrievalAtStart);
+        const ingredientCount = Array.isArray(
+          (analysis as { ingredients?: unknown }).ingredients,
+        )
+          ? ((analysis as { ingredients: unknown[] }).ingredients.length)
+          : diag.ingredientCount;
+        void logScanTiming({
+          function_name: "product-analyse",
+          surface: "product-analyse",
+          user_id: user.id,
+          ocr_ms: labelReadAt ? labelReadAt - startedAt : null,
+          retrieval_ms: retrieval.ms,
+          retrieval_call_count: retrieval.calls,
+          analysis_ms: analysisStartedAt ? finishedAt - analysisStartedAt : null,
+          total_ms: finishedAt - startedAt,
+          ingredient_count: ingredientCount,
+          attempts: loop.attempts,
+          cache_hit: false,
+          meta: { provider, streamed: wantsStream },
+        });
+      }
+
       return analysis as unknown as Record<string, unknown>;
+
     };
 
     if (!wantsStream) {
