@@ -1253,7 +1253,26 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     // reaching the member empty.
     backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
 
+    (analysis as unknown as Record<string, unknown>)._profile_snapshot_hash = profileHash;
+
+    // ── NEVER LOSE FINISHED WORK (2026-09-04, moved 2026-09-04 pm) ─────
+    // The guarded analysis is FINISHED at this point. It is persisted HERE,
+    // before the QA trail, the cache upsert, the advice ledger and the timing
+    // write — every one of which used to run first, and one of which the worker
+    // was killed inside ("CPU Time exceeded" one second after the guardrail
+    // stage settled), discarding a complete analysis. Nothing but the payload
+    // itself is needed for the member to see her result, so nothing else runs
+    // before it is safe on the server.
+    await saveScanRecovery({
+      supabase,
+      userId: user.id,
+      scanId: body.scan_id,
+      functionName: "product-analyse",
+      payload: analysis as unknown as Record<string, unknown>,
+    });
+
     // INTERNAL QA TRAIL — admin-only, never member-facing, never awaited in a
+
     // way that can fail a scan. Profile fields are read off tiered.context, so
     // the order recorded is the order the model was actually given.
     if (scoreDebug) {
