@@ -399,7 +399,9 @@ const ProductScanning = () => {
         ) : (
           <>
             <p className="font-display text-lg mt-6 text-destructive">Couldn't analyse</p>
-            <p className="text-xs text-muted-foreground mt-2 max-w-xs">{error}</p>
+            <p className="text-xs text-muted-foreground mt-2 max-w-xs whitespace-pre-line break-words">
+              {error}
+            </p>
             <div className="mt-5 max-w-xs text-left bg-card border border-border rounded-[12px] p-3 space-y-1">
               <p className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">For best results</p>
               <p className="text-[11px] text-muted-foreground leading-snug">• Hold the bottle steady, brand and title clearly visible on the front</p>
