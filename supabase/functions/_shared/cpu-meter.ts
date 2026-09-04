@@ -26,17 +26,25 @@ export interface CpuMeter {
 
 type Usage = { user: number; system: number };
 
-// deno-lint-ignore no-explicit-any
+// Deno exposes the Node globals, so `process.cpuUsage` is available on the
+// edge runtime without an import. If a runtime ever drops it we fall back to
+// the node: module, and failing that to null readings.
+let nodeProcess: { cpuUsage?: (prev?: Usage) => Usage } | null = null;
+try {
+  // deno-lint-ignore no-explicit-any
+  nodeProcess = (globalThis as any).process ?? null;
+  if (!nodeProcess?.cpuUsage) {
+    // @ts-ignore — Deno-native node compat specifier.
+    nodeProcess = (await import("node:process")).default ?? nodeProcess;
+  }
+} catch { /* leave null — readings become null */ }
+
 const cpuUsage = (): ((prev?: Usage) => Usage) | null => {
-  try {
-    // @ts-ignore — node compat shim, present on the Deno-based edge runtime.
-    const proc = (globalThis as any).process;
-    if (proc && typeof proc.cpuUsage === "function") {
-      return (prev?: Usage) => proc.cpuUsage(prev) as Usage;
-    }
-  } catch { /* not available */ }
+  const fn = nodeProcess?.cpuUsage;
+  if (typeof fn === "function") return (prev?: Usage) => fn.call(nodeProcess, prev) as Usage;
   return null;
 };
+
 
 const NULL_METER: CpuMeter = { cpuMs: () => null, cpuPctOfLimit: () => null };
 
