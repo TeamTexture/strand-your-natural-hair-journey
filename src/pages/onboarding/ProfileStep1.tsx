@@ -78,6 +78,8 @@ const ProfileStep1 = () => {
   const [heritage, setHeritage] = useState("");
   // WhatsApp marketing consent. Always starts false: consent must be affirmative.
   const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  // The consent timestamp already on file, so a re-save never re-dates consent.
+  const [optInAtOnFile, setOptInAtOnFile] = useState<string | null>(null);
 
   // Profile photo state
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
@@ -141,7 +143,7 @@ const ProfileStep1 = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage, whatsapp_opt_in")
+        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage, whatsapp_opt_in, whatsapp_opt_in_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -181,6 +183,8 @@ const ProfileStep1 = () => {
       // Only an existing "yes" on file ever ticks the box.
       if ((data as { whatsapp_opt_in?: boolean | null } | null)?.whatsapp_opt_in === true) {
         setWhatsappOptIn(true);
+        const at = (data as { whatsapp_opt_in_at?: string | null } | null)?.whatsapp_opt_in_at;
+        if (at) setOptInAtOnFile(at);
       }
       if (p) {
         const { data: sig } = await supabase.storage
