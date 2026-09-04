@@ -175,7 +175,12 @@ const Subscribe = () => {
       if (!data?.url) throw new Error("Portal URL missing");
       window.location.href = data.url;
     } catch (e) {
-      toast.error((e as Error).message ?? "Could not open billing portal");
+      toast.error(
+        await friendlyInvokeError(
+          e,
+          "We couldn't open your billing page just now. Please try again in a moment.",
+        ),
+      );
       setBusy(null);
     }
   };
