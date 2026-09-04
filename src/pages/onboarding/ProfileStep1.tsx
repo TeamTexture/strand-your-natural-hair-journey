@@ -366,12 +366,17 @@ const ProfileStep1 = () => {
         postcode: string;
         country: string;
         birth_year?: number;
+        whatsapp_opt_in: boolean;
+        whatsapp_opt_in_at: string | null;
       } = {
         display_name: name.trim(),
         phone_number: trimmedPhone || null,
         heritage: heritageArr,
         postcode: trimmedPostcode,
         country,
+        whatsapp_opt_in: whatsappOptIn,
+        // Stamped when she says yes, cleared when she says no.
+        whatsapp_opt_in_at: whatsappOptIn ? new Date().toISOString() : null,
       };
       if (birth_year !== null) update.birth_year = birth_year;
       try {
