@@ -8,6 +8,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { Button } from "@/components/ui/button";
 import HairStrandIcon from "@/components/HairStrandIcon";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyInvokeError } from "@/lib/invokeError";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
 import { useUpgradeEligibility } from "@/hooks/useUpgradeEligibility";
 import LoadingDot from "@/components/LoadingDot";
@@ -46,14 +47,12 @@ const PlusUpgrade = () => {
     try {
       const { data, error } = await supabase.functions.invoke("create-consumer-upgrade");
       if (error) {
-        let msg = error.message;
-        try {
-          const body = await (error as { context?: Response }).context?.json();
-          if (body?.error) msg = body.error;
-        } catch {
-          /* keep generic message */
-        }
-        throw new Error(msg);
+        throw new Error(
+          await friendlyInvokeError(
+            error,
+            "We couldn't start your upgrade just now. Nothing has changed on your membership — please try again.",
+          ),
+        );
       }
       if (data?.already_plus || data?.upgraded) {
         await refetch();
