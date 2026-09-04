@@ -70,6 +70,7 @@ import {
 } from "@/lib/analysisGate";
 
 import { aiInvoke } from "@/lib/aiInvoke";
+import { analysisErrorMessage } from "@/lib/analysisError";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import ScoreReasons, {
@@ -585,7 +586,13 @@ const IngredientDetail = () => {
             force: force || stale,
           },
         );
-        if (fnError) throw fnError;
+        if (fnError) {
+          const msg = analysisErrorMessage(fnError, data as { message?: unknown } | null);
+          setError(msg);
+          toast.error(msg);
+          setLoading(false);
+          return;
+        }
         // Ingredients could not be read: the backend hard-blocks generation, so
         // show that plainly and never render an analysis for this product.
         if ((data as { ingredients_unreadable?: boolean } | null)?.ingredients_unreadable) {
@@ -643,7 +650,7 @@ const IngredientDetail = () => {
         }
 
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Could not analyse this product.";
+        const msg = analysisErrorMessage(e);
         setError(msg);
         toast.error(msg);
       } finally {
