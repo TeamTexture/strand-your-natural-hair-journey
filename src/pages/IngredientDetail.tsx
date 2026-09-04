@@ -10,6 +10,7 @@ import TipsBlock from "@/components/tips/TipsBlock";
 import LevelGate from "@/components/tips/LevelGate";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
+import { cleanIngredientName, formatIngredientName } from "@/lib/ingredientName";
 import ActionList from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
@@ -326,7 +327,12 @@ const IngredientDetail = () => {
         )
       : [];
     const fromAnalysis = (analysis?.ingredients ?? []).map((i) => i.name).filter(Boolean);
-    return Array.from(new Set([...rawStored, ...fresh, ...fromAnalysis]));
+    // Footnote glyphs on the pack ("…SHEA) BUTTER*\u2665") are legend marks, not
+    // part of the name — stripped before display, matching or lookup.
+    const cleaned = [...rawStored, ...fresh, ...fromAnalysis]
+      .map((n) => cleanIngredientName(n))
+      .filter((n) => n.length > 0);
+    return Array.from(new Set(cleaned));
   }, [productRow, freshAnalysis, analysis?.ingredients]);
   const sensitivityHits = useTopicalAlert(inciNames);
   const hasSensitivity = sensitivityHits.length > 0;
@@ -1222,8 +1228,10 @@ const IngredientDetail = () => {
             onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
             onRemove={() => removePhoto(productKey)}
           />
-          <div className="flex items-center gap-2 max-w-[300px]">
-            <h1 className="font-display text-xl font-semibold leading-tight">
+          {/* The title is optically centred in the card. The heart is pinned to
+              the right so its width can never push the centred name off-centre. */}
+          <div className="relative w-full px-9">
+            <h1 className="font-display text-xl font-semibold leading-tight text-center break-words [overflow-wrap:anywhere]">
               {productName || "Untitled product"}
             </h1>
             {productRow && (
@@ -1233,7 +1241,7 @@ const IngredientDetail = () => {
                 disabled={shelfBusy}
                 aria-label={productRow.on_favourite ? "Remove from favourites" : "Add to favourites"}
                 aria-pressed={productRow.on_favourite}
-                className="shrink-0 p-1 -m-1 transition active:scale-90 disabled:opacity-50"
+                className="absolute right-0 top-0 p-1 transition active:scale-90 disabled:opacity-50"
               >
                 <Heart
                   className={cn(
@@ -1246,6 +1254,7 @@ const IngredientDetail = () => {
               </button>
             )}
           </div>
+
           {productBrand && (
             <button
               type="button"
@@ -1356,36 +1365,55 @@ const IngredientDetail = () => {
             are already on screen from Phase A; this is the honest state of the
             Phase B work, which is running in its own invocation server-side. */}
         {job?.status === "running" && !analysis && !loading && (
-          <SurfaceCard className="space-y-2">
-            <p className="font-display text-[15px]">Working on your breakdown</p>
-            <p className="font-body text-[12px] text-foreground/80">
-              We've read your label{inciNames.length ? ` and ${inciNames.length} ingredients` : ""}.
-              The full breakdown is being written now. You can close this and carry on —
-              it keeps going, and it'll be here when you come back.
-            </p>
-            <AiProgressBar
-              expectedMs={60000}
-              overrunNote="Still working — a couple of the write-ups needed re-checking against the manuscript."
-              stages={[
-                "Reading the verified ingredient list",
-                "Looking each ingredient up in the manuscript",
-                "Matching the mechanisms to your profile",
-                "Checking every claim against the guardrails",
-                "Writing your breakdown",
-              ]}
-            />
+          <>
+            {/* The in-progress state lives in the SAME card, position and styling
+                the finished verdict fills, so nothing shifts when it lands. */}
+            <StatusCallout tone="gold" label="Verdict">
+              <p className="font-body text-[13px] text-foreground/75">
+                We've read your label{inciNames.length ? ` and ${inciNames.length} ingredients` : ""}.
+                Your breakdown is being written now. You can close this and carry on —
+                it keeps going, and it'll be here when you come back.
+              </p>
+              <AiProgressBar
+                className="mt-3"
+                expectedMs={60000}
+                overrunNote="Still working — a couple of the write-ups needed re-checking against the manuscript."
+                stages={[
+                  "Reading the verified ingredient list",
+                  "Looking each ingredient up in the manuscript",
+                  "Matching the mechanisms to your profile",
+                  "Checking every claim against the guardrails",
+                  "Writing your breakdown",
+                ]}
+              />
+            </StatusCallout>
+
+            {/* Her ingredient list in the app's own ingredient design, in the
+                place the finished list appears — not raw panel text. */}
             {inciNames.length > 0 && (
-              <div className="pt-1">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
-                  Ingredients we read
-                </p>
-                <p className="font-body text-[11px] leading-relaxed text-foreground/70 break-words">
-                  {inciNames.join(", ")}
-                </p>
-              </div>
+              <>
+                <SectionLabel>Ingredients</SectionLabel>
+                <div className="rounded-2xl bg-white border border-border/60 p-4">
+                  <div className="flex flex-wrap gap-1.5">
+                    {inciNames.map((name, idx) => (
+                      <span
+                        key={`reading-${name}-${idx}`}
+                        className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/25 text-foreground/70 text-[11px] font-medium leading-tight"
+                      >
+                        {formatIngredientName(name)}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[11px] text-muted-foreground">
+                    {inciNames.length} of {inciNames.length} ingredients read. Tap to
+                    explore each one once your breakdown lands.
+                  </p>
+                </div>
+              </>
             )}
-          </SurfaceCard>
+          </>
         )}
+
 
         {job?.status === "failed" && !analysis && !loading && (
           <SurfaceCard tone="orange" className="space-y-2">
@@ -1603,7 +1631,7 @@ const IngredientDetail = () => {
                                 aria-label="flagged ingredient"
                               />
                             )}
-                            <span className="truncate max-w-[180px]">{i.name}</span>
+                            <span className="max-w-[180px] break-words">{formatIngredientName(i.name)}</span>
                           </button>
                         );
                       })}
