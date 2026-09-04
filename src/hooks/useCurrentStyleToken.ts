@@ -10,7 +10,8 @@
 // Scoping the last-good cache by this token keeps stale-while-revalidate for the
 // SAME style and guarantees copy for a different style is never rendered.
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { hashString } from "@/lib/tipSignature";
@@ -41,6 +42,20 @@ export const styleTokenOf = (style: Record<string, unknown> | null): string => {
  */
 export function useCurrentStyleToken(): { token: string | undefined; ready: boolean } {
   const { user } = useAuth();
+  const qc = useQueryClient();
+  // A style save dispatches `strand:style-updated` — re-read immediately so the
+  // style-scoped caches move in the same beat.
+  useEffect(() => {
+    const onUpdate = () => {
+      void qc.invalidateQueries({ queryKey: ["current-style-token"] });
+    };
+    window.addEventListener("strand:style-updated", onUpdate);
+    window.addEventListener("storage", onUpdate);
+    return () => {
+      window.removeEventListener("strand:style-updated", onUpdate);
+      window.removeEventListener("storage", onUpdate);
+    };
+  }, [qc]);
   const { data } = useQuery({
     queryKey: ["current-style-token", user?.id],
     enabled: !!user?.id,
