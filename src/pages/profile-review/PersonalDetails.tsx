@@ -278,6 +278,43 @@ const PersonalDetailsReview = () => {
           }}
         />
 
+        {/* WhatsApp consent — she can turn it off here at any time. */}
+        <div className="rounded-[14px] border border-border bg-card p-4">
+          <button
+            type="button"
+            onClick={() => {
+              const next = !whatsappOptIn;
+              void saveField({
+                whatsapp_opt_in: next,
+                whatsapp_opt_in_at: next
+                  ? ((profile as { whatsapp_opt_in_at?: string | null } | null)
+                      ?.whatsapp_opt_in_at ?? new Date().toISOString())
+                  : null,
+              });
+            }}
+            aria-pressed={whatsappOptIn}
+            className="flex items-start gap-2.5 text-left w-full"
+          >
+            <span
+              className={cn(
+                "mt-[1px] size-5 rounded-[6px] border flex items-center justify-center shrink-0 transition-colors",
+                whatsappOptIn ? "bg-primary border-primary" : "bg-transparent border-primary/60",
+              )}
+            >
+              {whatsappOptIn && (
+                <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />
+              )}
+            </span>
+            <span className="font-body text-[13px] leading-[1.35] text-foreground">
+              Send me STRAND tips, live sessions and offers on WhatsApp. You can reply STOP at any time.
+            </span>
+          </button>
+          <p className="mt-1.5 pl-[30px] font-body text-[11px] leading-[1.35] text-muted-foreground">
+            We only use your number for STRAND messages. Never shared.
+          </p>
+        </div>
+
+
         <ReviewField
           label="Age"
           value={age ?? ""}
