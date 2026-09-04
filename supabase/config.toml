@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.product-analysis-start]
 verify_jwt = false
+
+[functions.sync-superchat-contact]
+verify_jwt = false
