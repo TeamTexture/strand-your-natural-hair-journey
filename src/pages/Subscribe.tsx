@@ -157,7 +157,12 @@ const Subscribe = () => {
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e) {
-      toast.error((e as Error).message ?? "Could not start checkout");
+      toast.error(
+        await friendlyInvokeError(
+          e,
+          "We couldn't open the payment page just now. Please try again in a moment.",
+        ),
+      );
       setBusy(null);
     }
   };
