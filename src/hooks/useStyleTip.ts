@@ -6,6 +6,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
+import { useCurrentStyleToken } from "@/hooks/useCurrentStyleToken";
 import { useAuth } from "@/hooks/useAuth";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { loadStyleTipContext } from "@/hooks/useDynamicWashTip";
@@ -37,15 +38,18 @@ const errorMessage = (error: unknown): string =>
 export function useStyleTip() {
   const { user } = useAuth();
   const { level, ready: levelReady } = useTipsLevel();
+  // Last-good copy is scoped to the style it was written for — never render a
+  // tip about a style she no longer wears.
+  const { token: styleToken, ready: styleReady } = useCurrentStyleToken();
 
   return useQuery({
-    queryKey: ["style_tip_v2_procedural", user?.id, level],
-    enabled: !!user?.id && levelReady,
+    queryKey: ["style_tip_v2_procedural", user?.id, level, styleToken],
+    enabled: !!user?.id && levelReady && styleReady,
     staleTime: Infinity,
     gcTime: Infinity,
     // Stale-while-revalidate — see src/lib/lastGoodTip.ts.
     placeholderData: () =>
-      readLastGood<GuidanceTip[]>("style-tip", level, undefined, (t) =>
+      readLastGood<GuidanceTip[]>("style-tip", level, styleToken, (t) =>
         Array.isArray(t) && t.length > 0),
     queryFn: async (): Promise<GuidanceTip[]> => {
       if (!user?.id) return [];
@@ -117,7 +121,7 @@ export function useStyleTip() {
       if (tip.technique) {
         tips.push({ priority: 5, short: tip.technique });
       }
-      writeLastGood<GuidanceTip[]>("style-tip", tips, level, undefined, (t) =>
+      writeLastGood<GuidanceTip[]>("style-tip", tips, level, styleToken, (t) =>
         Array.isArray(t) && t.length > 0);
       return tips;
     },

@@ -9,6 +9,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { readLastGood, writeLastGood } from "@/lib/lastGoodTip";
+import { useCurrentStyleToken } from "@/hooks/useCurrentStyleToken";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { loadDecryptedContextResult } from "@/lib/clinicalContext";
@@ -176,16 +177,18 @@ async function loadWashHistory(userId: string) {
 export function useDynamicWashTip() {
   const { user } = useAuth();
   const { level, ready: levelReady } = useTipsLevel();
+  // Last-good copy is scoped to the style it was written for.
+  const { token: styleToken, ready: styleReady } = useCurrentStyleToken();
 
   return useQuery({
-    queryKey: ["wash_day_tip_v4_reason", user?.id, level],
-    enabled: !!user?.id && levelReady,
+    queryKey: ["wash_day_tip_v4_reason", user?.id, level, styleToken],
+    enabled: !!user?.id && levelReady && styleReady,
     staleTime: Infinity,
     gcTime: Infinity,
     // Stale-while-revalidate: a style change invalidates this tip, so render the
     // last good one until the freshly personalised tip arrives.
     placeholderData: () =>
-      readLastGood<DynamicWashTip>("wash-day-tip", level, undefined, (t) =>
+      readLastGood<DynamicWashTip>("wash-day-tip", level, styleToken, (t) =>
         !!t?.action && !!(t?.reason ?? t?.why)),
     queryFn: async (): Promise<DynamicWashTip | null> => {
       if (!user?.id) return null;
@@ -269,13 +272,13 @@ export function useDynamicWashTip() {
         // passed the guardrails rather than the "we couldn't finish" state.
         // Nothing new is invented — this is her own previously served tip.
         return (
-          readLastGood<DynamicWashTip>("wash-day-tip", level, undefined, (t) =>
+          readLastGood<DynamicWashTip>("wash-day-tip", level, styleToken, (t) =>
             !!t?.action && !!(t?.reason ?? t?.why)) ?? null
         );
       }
 
       const tip = data?.tip ?? null;
-      writeLastGood<DynamicWashTip>("wash-day-tip", tip, level, undefined, (t) =>
+      writeLastGood<DynamicWashTip>("wash-day-tip", tip, level, styleToken, (t) =>
         !!t?.action && !!(t?.reason ?? t?.why));
       return tip;
     },
