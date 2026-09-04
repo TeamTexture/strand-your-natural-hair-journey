@@ -39,7 +39,10 @@ import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
+import { logScanTiming } from "../_shared/scan-timing-log.ts";
+import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
+
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
