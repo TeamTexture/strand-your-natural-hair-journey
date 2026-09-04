@@ -39,9 +39,11 @@ describe("partial emission is throttled", () => {
     try {
       const emit = vi.fn();
       const onPartial = createPartialEmitter(emit);
-      onPartial(buffer(["Aqua"], false));
+      // Prose still arriving, but brand/name/ingredient count are unchanged.
+      const head = '{"brand":"CANTU","product_name":"Leave-In","ai_summary":"';
+      onPartial(head + 'she is ');
       vi.advanceTimersByTime(PARTIAL_THROTTLE_MS + 1);
-      onPartial(buffer(["Aqua"], false) + ',"ai_summary":"more prose"');
+      onPartial(head + 'she is reading the label"');
       expect(emit).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
