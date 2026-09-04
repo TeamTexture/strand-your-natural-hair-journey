@@ -446,11 +446,13 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   try {
     const est = (s: string) => Math.round(s.length / 3.7);
     let cacheable = 0;
-    let seenBreakpoint = false;
+    const lastCacheBreakpoint = systemBlocks.reduce(
+      (last, block, i) => block.cache_control ? i : last,
+      -1,
+    );
     const sections = systemBlocks.map((b, i) => {
       const text = typeof b.text === "string" ? b.text : "";
-      const inPrefix = !seenBreakpoint;
-      if (b.cache_control) seenBreakpoint = true;
+      const inPrefix = i <= lastCacheBreakpoint;
       if (inPrefix) cacheable += est(text);
       return {
         i,
