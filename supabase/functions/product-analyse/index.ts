@@ -1355,16 +1355,10 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         });
       }
 
-      // NEVER LOSE FINISHED WORK (2026-09-04) — the guarded payload is
-      // persisted under the client's scan id BEFORE it is streamed, so a
-      // dropped connection cannot discard a finished analysis.
-      await saveScanRecovery({
-        supabase,
-        userId: user.id,
-        scanId: body.scan_id,
-        functionName: "product-analyse",
-        payload: analysis as unknown as Record<string, unknown>,
-      });
+      // (the recovery row was written immediately after the guardrail stage —
+      // see NEVER LOSE FINISHED WORK above. Nothing is persisted here.)
+
+
 
       return analysis as unknown as Record<string, unknown>;
 
