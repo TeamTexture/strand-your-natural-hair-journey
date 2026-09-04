@@ -937,9 +937,15 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         return null;
       });
 
-    const [vocabulary, prefetchedEvidence, prefetchedGrounding] = await Promise.all([
+    // CRITICAL PATH (2026-09-04) — the photo writer prompt does NOT consume the
+    // stage 1 evidence block (this surface grounds the writer on the retrieved
+    // manuscript passages instead), but the gather registers the source text the
+    // fidelity/citation sanitiser verifies against. So it is no longer AWAITED
+    // before the model call — it runs alongside the ~40s generation and is
+    // awaited only where it is genuinely needed, in the sanitise step. Grounding
+    // and fidelity verification are unchanged; ~6.5s leaves the serial path.
+    const [vocabulary, prefetchedGrounding] = await Promise.all([
       loadIngredientVocabulary(supabase as never),
-      evidencePromise,
       lovableGroundingPromise,
     ]);
 
@@ -995,9 +1001,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             sensitivityBlock,
             tierBlock,
             retryInstruction: info.retryInstruction,
-            prefetchedEvidence: prefetchedEvidence
-              ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
-              : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
             // the preview the member is already reading. Emission is throttled
             // and stops once the ingredient array closes — per-delta emission
@@ -1045,9 +1048,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               sensitivityBlock,
               tierBlock,
               retryInstruction: info.retryInstruction,
-              prefetchedEvidence: prefetchedEvidence
-                ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
-                : undefined,
               allowSearch: true,
             });
             payload = searched.payload;
@@ -1225,8 +1225,12 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
       // pre-sanitise payload and returning the post-sanitise one is what made
       // `ai_summaries` hold four reasons while the member read three. One
       // payload now: what we store is exactly what we deliver.
-      sanitise: async (payload, info) =>
-        await sanitiseAndLog(payload, "product-analyse", {
+      sanitise: async (payload, info) => {
+        // Fidelity verification reads the stage 1 evidence the gather registers,
+        // so it is awaited here — off the critical path, but always before the
+        // sanitiser runs.
+        await evidencePromise;
+        return await sanitiseAndLog(payload, "product-analyse", {
           surface: "product-analyse",
           userId: user.id,
           generationId: info.generationId,
@@ -1234,7 +1238,8 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason: info.retryReason,
           onRejected: info.onRejected,
-        }) as unknown as ProductAnalysisPayload,
+        }) as unknown as ProductAnalysisPayload;
+      },
     });
 
     diag.phase = "post_model_guardrails";
@@ -1253,7 +1258,26 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     // reaching the member empty.
     backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
 
+    (analysis as unknown as Record<string, unknown>)._profile_snapshot_hash = profileHash;
+
+    // ── NEVER LOSE FINISHED WORK (2026-09-04, moved 2026-09-04 pm) ─────
+    // The guarded analysis is FINISHED at this point. It is persisted HERE,
+    // before the QA trail, the cache upsert, the advice ledger and the timing
+    // write — every one of which used to run first, and one of which the worker
+    // was killed inside ("CPU Time exceeded" one second after the guardrail
+    // stage settled), discarding a complete analysis. Nothing but the payload
+    // itself is needed for the member to see her result, so nothing else runs
+    // before it is safe on the server.
+    await saveScanRecovery({
+      supabase,
+      userId: user.id,
+      scanId: body.scan_id,
+      functionName: "product-analyse",
+      payload: analysis as unknown as Record<string, unknown>,
+    });
+
     // INTERNAL QA TRAIL — admin-only, never member-facing, never awaited in a
+
     // way that can fail a scan. Profile fields are read off tiered.context, so
     // the order recorded is the order the model was actually given.
     if (scoreDebug) {
@@ -1336,16 +1360,10 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         });
       }
 
-      // NEVER LOSE FINISHED WORK (2026-09-04) — the guarded payload is
-      // persisted under the client's scan id BEFORE it is streamed, so a
-      // dropped connection cannot discard a finished analysis.
-      await saveScanRecovery({
-        supabase,
-        userId: user.id,
-        scanId: body.scan_id,
-        functionName: "product-analyse",
-        payload: analysis as unknown as Record<string, unknown>,
-      });
+      // (the recovery row was written immediately after the guardrail stage —
+      // see NEVER LOSE FINISHED WORK above. Nothing is persisted here.)
+
+
 
       return analysis as unknown as Record<string, unknown>;
 
