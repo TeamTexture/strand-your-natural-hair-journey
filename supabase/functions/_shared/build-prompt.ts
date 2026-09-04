@@ -187,7 +187,27 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     });
   }
 
+  // ── STATIC STYLE/SAFETY BLOCKS (every Claude-path function) ───────
+  // PAYLOAD (2026-09-04): these three blocks are byte-identical on every call
+  // (~4.2k tokens between them). They used to sit AFTER the per-query
+  // manuscript passages, which meant the varying passages broke the cacheable
+  // prefix and the whole fixed preamble was re-processed on every single scan.
+  // Moving them up — same content, same order relative to each other — lets a
+  // single cache breakpoint cover persona + chapter whitelist + knowledge base
+  // + voice + paragraph shape + routine guardrails as one warm prefix.
+  //   [voice]     conversational clinician voice (voice.ts)
+  //   [paragraph] break at the bridge (paragraph-rules.ts)
+  //   [routine]   manuscript routine baseline (routine-guidance.ts)
+  systemBlocks.push({ type: "text", text: VOICE_PRINCIPLES });
+  systemBlocks.push({ type: "text", text: PARAGRAPH_RULES });
+  systemBlocks.push({
+    type: "text",
+    text: CORE_ROUTINE_GUARDRAILS_PROMPT,
+    cache_control: { type: "ephemeral" },
+  });
+
   // ── Manuscript source ─────────────────────────────────────────────
+
   // TWO-STAGE GROUNDED GENERATION (preferred): when `surface` is named, stage 1
   // reads the authoritative chapters IN FULL and extracts an evidence set, and
   // THIS call — stage 2, the writer — is given the evidence set only. The
@@ -251,19 +271,10 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     systemBlocks.push({ type: "text", text: METHOD_AND_TIMING_RULE });
   }
 
-  // ── VOICE PRINCIPLES (every Claude-path function) ────────────────
-  // Conversational clinician voice. Single source of truth in voice.ts.
-  systemBlocks.push({ type: "text", text: VOICE_PRINCIPLES });
-
-  // ── PARAGRAPH SHAPE (every Claude-path function) ─────────────────
-  // Break at the bridge: mechanism → what it means for her → what to do.
-  systemBlocks.push({ type: "text", text: PARAGRAPH_RULES });
+  // (voice, paragraph shape and routine guardrails are emitted above, inside
+  // the cacheable prefix — see the STATIC STYLE/SAFETY BLOCKS note.)
 
 
-  // ── CORE ROUTINE GUARDRAILS (every Claude-path function) ─────────
-  // Hard-coded manuscript routine baseline so routine/product/style advice
-  // cannot drift into generic AI hair-care guidance.
-  systemBlocks.push({ type: "text", text: CORE_ROUTINE_GUARDRAILS_PROMPT });
 
   // ── USER SUPPORT LEVEL (tips scale 1–4) ──────────────────────────
   // Controls verbosity, depth and beginner-friendliness of generated copy.
@@ -410,6 +421,56 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   if (input.server_tools && input.server_tools.length > 0) {
     tools.push(...input.server_tools);
   }
+
+  // ── PAYLOAD COMPOSITION (2026-09-04, observation only) ────────────
+  // One line per call naming every system block, its size, and whether it sits
+  // inside the cacheable prefix. This is how "what makes up the input tokens"
+  // is answered from real traffic instead of estimated. It never changes the
+  // prompt: it only measures the blocks that were already assembled.
+  try {
+    const est = (s: string) => Math.round(s.length / 3.7);
+    let cacheable = 0;
+    let seenBreakpoint = false;
+    const sections = systemBlocks.map((b, i) => {
+      const text = typeof b.text === "string" ? b.text : "";
+      const inPrefix = !seenBreakpoint;
+      if (b.cache_control) seenBreakpoint = true;
+      if (inPrefix) cacheable += est(text);
+      return {
+        i,
+        label: text.slice(0, 42).replace(/\s+/g, " "),
+        chars: text.length,
+        est_tokens: est(text),
+        cached_prefix: inPrefix,
+      };
+    });
+    const userText = typeof input.user_content === "string"
+      ? input.user_content
+      : Array.isArray(input.user_content)
+      ? input.user_content
+        .map((c) => (c.type === "text" ? c.text ?? "" : "[image]"))
+        .join("\n")
+      : defaultUserMessageJson;
+    const toolChars = JSON.stringify(tools ?? []).length;
+    console.log(JSON.stringify({
+      event: "prompt_composition",
+      fn: input.function_kind,
+      system_blocks: sections,
+      system_est_tokens: sections.reduce((a, s) => a + s.est_tokens, 0),
+      cacheable_prefix_est_tokens: cacheable,
+      user_message_chars: userText.length,
+      user_message_est_tokens: est(userText),
+      tool_schema_chars: toolChars,
+      tool_schema_est_tokens: Math.round(toolChars / 3.7),
+      images: Array.isArray(input.user_content)
+        ? input.user_content.filter((c) => c.type === "image").length
+        : 0,
+    }));
+  } catch {
+    /* measurement must never break a generation */
+  }
+
+
 
   return {
     // Never leave `model` undefined — an unregistered function_kind would

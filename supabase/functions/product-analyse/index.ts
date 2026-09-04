@@ -46,6 +46,7 @@ import { readAiProvider } from "../_shared/flags.ts";
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
+import { scanRetrievalQuery } from "../_shared/scan-rag-query.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
@@ -415,9 +416,11 @@ function scrubScanUsage(payload: Record<string, unknown>): number {
 // is reused by every retry attempt and by the stage 3 citation verification
 // (via noteEvidence). Nothing about the prompt content changes.
 export function scanRagQuery(context: Record<string, unknown> | undefined): string {
-  return `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
-    context?.hairProfile ? JSON.stringify(context.hairProfile).slice(0, 200) : ""
-  }`;
+  // TARGETED RETRIEVAL (2026-09-04). Same number of passages, chosen for THIS
+  // member instead of by a fixed keyword string. A photo scan reads the label
+  // inside the model call, so no ingredient list exists yet at retrieval time —
+  // the query is built from her recorded signals. See _shared/scan-rag-query.ts.
+  return scanRetrievalQuery({ context: context ?? {} });
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────

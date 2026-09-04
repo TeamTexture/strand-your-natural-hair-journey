@@ -34,6 +34,7 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
+import { scanRetrievalQuery } from "../_shared/scan-rag-query.ts";
 import { sseResponse, type SseEmit } from "../_shared/sse.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
@@ -324,7 +325,15 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       "scalp-conditions",
       "diagnosed-conditions",
     ],
-    rag_query: `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${args.url}`,
+    // TARGETED RETRIEVAL (2026-09-04). The prefetched page carries the real
+    // INCI panel and claims, so the four retrieved passages are chosen from
+    // THIS formula plus THIS member's recorded signals rather than a fixed
+    // keyword string plus the raw URL (which was pure embedding noise).
+    rag_query: scanRetrievalQuery({
+      context: args.context ?? {},
+      pageText: preScraped || null,
+      productName: args.pageTitle ?? null,
+    }),
     rag_k: 4,
     tool: {
       name: "return_product_analysis",
