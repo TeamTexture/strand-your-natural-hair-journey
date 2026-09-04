@@ -123,9 +123,31 @@ export async function scanErrorResponse(
     body = (await base.json()) as Record<string, unknown>;
   } catch { /* non-JSON body — keep the fallback */ }
 
+  // Member-facing sentence + machine code, at the real HTTP status. Never the
+  // upstream text, never a bare throw.
+  const status = base.status;
+  const code = status === 429
+    ? "rate_limited"
+    : status === 529 || status === 503
+    ? "model_overloaded"
+    : status === 502
+    ? "ai_unavailable"
+    : status === 400
+    ? "bad_request"
+    : "analysis_failed";
+  const message = status === 429
+    ? "Our AI is busy right now, so this analysis didn't run. Nothing has been saved — please try again in a moment."
+    : status === 529 || status === 503
+    ? "The AI is overloaded right now, so this analysis didn't finish. Nothing has been saved — please try again shortly."
+    : status === 400
+    ? "We couldn't analyse this product with the details we hold. Nothing has been saved — check the ingredients and try again."
+    : "We couldn't finish this analysis just now. Nothing has been saved — please try again.";
+
   return new Response(
     JSON.stringify({
       ...body,
+      message,
+      code,
       diagnostics: {
         function: record.function_name,
         phase: record.phase,
@@ -137,6 +159,7 @@ export async function scanErrorResponse(
         ...(record.meta ?? {}),
       },
     }),
+
     {
       status: base.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
