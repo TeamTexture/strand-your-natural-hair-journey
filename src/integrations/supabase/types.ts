@@ -5296,6 +5296,57 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_timings: {
+        Row: {
+          analysis_ms: number | null
+          attempts: number | null
+          cache_hit: boolean
+          created_at: string
+          function_name: string
+          id: string
+          ingredient_count: number | null
+          meta: Json | null
+          ocr_ms: number | null
+          retrieval_call_count: number | null
+          retrieval_ms: number | null
+          surface: string | null
+          total_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          analysis_ms?: number | null
+          attempts?: number | null
+          cache_hit?: boolean
+          created_at?: string
+          function_name: string
+          id?: string
+          ingredient_count?: number | null
+          meta?: Json | null
+          ocr_ms?: number | null
+          retrieval_call_count?: number | null
+          retrieval_ms?: number | null
+          surface?: string | null
+          total_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          analysis_ms?: number | null
+          attempts?: number | null
+          cache_hit?: boolean
+          created_at?: string
+          function_name?: string
+          id?: string
+          ingredient_count?: number | null
+          meta?: Json | null
+          ocr_ms?: number | null
+          retrieval_call_count?: number | null
+          retrieval_ms?: number | null
+          surface?: string | null
+          total_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_cancellations: {
         Row: {
           account_type: string
