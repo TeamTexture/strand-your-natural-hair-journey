@@ -904,6 +904,13 @@ Deno.serve(async (req: Request) => {
     const pipeline = async (
       emit: SseEmit | null,
     ): Promise<Record<string, unknown> | Response> => {
+    // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
+    // only: nothing below changes what is generated or how it is grounded.
+    const requestStartedAt = Date.now();
+    const retrievalAtStart = retrievalStatsSnapshot();
+    let labelReadAt: number | null = null;
+    let analysisStartedAt: number | null = null;
+
 
     // ── Input validation ────────────────────────────────────────────
     if (!body.url || typeof body.url !== "string") {
