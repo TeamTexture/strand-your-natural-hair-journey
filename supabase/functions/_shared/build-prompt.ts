@@ -422,6 +422,56 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     tools.push(...input.server_tools);
   }
 
+  // ── PAYLOAD COMPOSITION (2026-09-04, observation only) ────────────
+  // One line per call naming every system block, its size, and whether it sits
+  // inside the cacheable prefix. This is how "what makes up the input tokens"
+  // is answered from real traffic instead of estimated. It never changes the
+  // prompt: it only measures the blocks that were already assembled.
+  try {
+    const est = (s: string) => Math.round(s.length / 3.7);
+    let cacheable = 0;
+    let seenBreakpoint = false;
+    const sections = systemBlocks.map((b, i) => {
+      const text = typeof b.text === "string" ? b.text : "";
+      const inPrefix = !seenBreakpoint;
+      if (b.cache_control) seenBreakpoint = true;
+      if (inPrefix) cacheable += est(text);
+      return {
+        i,
+        label: text.slice(0, 42).replace(/\s+/g, " "),
+        chars: text.length,
+        est_tokens: est(text),
+        cached_prefix: inPrefix,
+      };
+    });
+    const userText = typeof input.user_content === "string"
+      ? input.user_content
+      : Array.isArray(input.user_content)
+      ? input.user_content
+        .map((c) => (c.type === "text" ? c.text ?? "" : "[image]"))
+        .join("\n")
+      : defaultUserMessageJson;
+    const toolChars = JSON.stringify(tools ?? []).length;
+    console.log(JSON.stringify({
+      event: "prompt_composition",
+      fn: input.function_kind,
+      system_blocks: sections,
+      system_est_tokens: sections.reduce((a, s) => a + s.est_tokens, 0),
+      cacheable_prefix_est_tokens: cacheable,
+      user_message_chars: userText.length,
+      user_message_est_tokens: est(userText),
+      tool_schema_chars: toolChars,
+      tool_schema_est_tokens: Math.round(toolChars / 3.7),
+      images: Array.isArray(input.user_content)
+        ? input.user_content.filter((c) => c.type === "image").length
+        : 0,
+    }));
+  } catch {
+    /* measurement must never break a generation */
+  }
+
+
+
   return {
     // Never leave `model` undefined — an unregistered function_kind would
     // otherwise send a request Anthropic rejects with "model: Field required".
