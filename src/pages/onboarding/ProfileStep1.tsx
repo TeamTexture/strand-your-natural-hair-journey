@@ -198,7 +198,7 @@ const ProfileStep1 = () => {
   // Keep anything typed on this step if the member navigates away and returns.
   useOnboardingDraft(
     "profile-step-1",
-    { name, phone, age, postcode, country, heritage },
+    { name, phone, age, postcode, country, heritage, whatsappOptIn },
     (d) => {
       if (d.name) setName(d.name);
       if (d.phone) setPhone(d.phone);
@@ -206,6 +206,7 @@ const ProfileStep1 = () => {
       if (d.postcode) setPostcode(d.postcode);
       if (d.country) setCountry(d.country);
       if (d.heritage) setHeritage(d.heritage);
+      if (d.whatsappOptIn === true) setWhatsappOptIn(true);
     },
   );
 
