@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyInvokeError } from "@/lib/invokeError";
 import { useAuth } from "@/hooks/useAuth";
 import { assertNotViewingAs } from "@/lib/viewAsReadOnly";
 import { myProfileKey } from "@/hooks/useMyProfile";
@@ -45,7 +46,16 @@ async function invoke<T>(fn: string, body?: Record<string, unknown>): Promise<T>
   // during impersonation it would act on the admin's own account. Refuse.
   assertNotViewingAs("Billing");
   const { data, error } = await supabase.functions.invoke(fn, { body: body ?? {} });
-  if (error) throw new Error(error.message);
+  // Read the server's own JSON body — `error.message` is only ever the SDK's
+  // generic "Edge Function returned a non-2xx status code".
+  if (error) {
+    throw new Error(
+      await friendlyInvokeError(
+        error,
+        "We couldn't reach your membership just now, so nothing has changed. Please try again.",
+      ),
+    );
+  }
   const payload = data as { error?: string } | null;
   if (payload?.error) throw new Error(payload.error);
   return data as T;
