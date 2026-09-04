@@ -379,7 +379,7 @@ export async function gatewayFetch(
   } catch { /* body not JSON — keep 'unknown' */ }
 
   const fnName = meta.function_name ?? "gateway";
-  let res: Response;
+  let res!: Response;
   let attempt = 0;
   for (;;) {
     attempt += 1;
