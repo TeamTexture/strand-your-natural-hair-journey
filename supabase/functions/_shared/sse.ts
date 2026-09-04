@@ -65,6 +65,7 @@ export function sseResponse(opts: {
         } catch { /* non-JSON body */ }
         send("error", { status: resp.status, body: parsed });
       } finally {
+        stopHeartbeat();
         try {
           controller.close();
         } catch { /* already closed */ }
