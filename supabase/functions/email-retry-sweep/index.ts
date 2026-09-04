@@ -64,6 +64,29 @@ Deno.serve(async (req) => {
   }
   const limit = Math.min(Math.max(body.limit ?? 50, 1), 200);
 
+  // Reclaim interrupted sends. A row is written `queued` BEFORE transmission,
+  // so a worker killed mid-send (504 during a broadcast burst) leaves it queued
+  // forever — and the idempotency check treats any non-failed row as already
+  // handled, so nothing could ever re-drive it. Anything still queued after ten
+  // minutes never completed.
+  if (!body.ids?.length) {
+    const cutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { error: reclaimErr, count } = await admin
+      .from("email_log")
+      .update(
+        {
+          status: "failed",
+          error: "send interrupted before completion",
+          next_attempt_at: new Date().toISOString(),
+        },
+        { count: "exact" },
+      )
+      .eq("status", "queued")
+      .lt("created_at", cutoff);
+    if (reclaimErr) console.error("[email-retry-sweep] reclaim failed", reclaimErr.message);
+    else if (count) console.log(`[email-retry-sweep] reclaimed ${count} interrupted send(s)`);
+  }
+
   let query = admin
     .from("email_log")
     .select("id,recipient_email,template_key,idempotency_key,attempts,max_attempts,payload")
