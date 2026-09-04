@@ -981,8 +981,11 @@ Deno.serve(async (req: Request) => {
       console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
       const resolvedUrl = await resolveShortLink(url);
       const pre = await prefetchPage(resolvedUrl);
+      labelReadAt = Date.now();
       const ogImage = pre.imageUrl;
+      analysisStartedAt = Date.now();
       console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
+
       // ── TIERED PERSONALISATION DATA (Part 3, 2026-09-01) ──────────
       // The page is already fetched here, so this surface knows the product
       // before the writer call and gets the FULL health gate: her blood
