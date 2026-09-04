@@ -41,9 +41,11 @@ describe("welcome popup no longer dismisses itself", () => {
     expect(popup).not.toContain("alreadyShown");
   });
 
-  it("gates visibility on listened, not on chat read_at", () => {
+  it("gates visibility on listened, and skips messages already opened", () => {
     expect(popup).toContain("hasListenedToWelcome");
     expect(popup).toContain("onPlay={onListened}");
-    expect(popup).not.toContain('.is("read_at", null)');
+    // A member who already opened the thread is never re-interrupted.
+    expect(popup).toContain('.is("read_at", null)');
   });
+
 });
