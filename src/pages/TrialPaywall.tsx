@@ -241,9 +241,15 @@ const TrialPaywall = () => {
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e) {
+      // Read the server's own sentence out of the invoke error — never the SDK's
+      // "Edge Function returned a non-2xx status code".
       toast.error(
-        (e as Error).message ??
-          (offerTrial ? "Could not start your free trial" : "Could not start your membership"),
+        await friendlyInvokeError(
+          e,
+          offerTrial
+            ? "We couldn't start your free trial just now. Please try again in a moment."
+            : "We couldn't start your membership just now. Please try again in a moment.",
+        ),
       );
       setBusy(false);
     }
