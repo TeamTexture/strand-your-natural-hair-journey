@@ -91,7 +91,8 @@ import {
 } from "../_shared/topical-sensitivity.ts";
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
-import { startTimeBudget } from "../_shared/time-budget.ts";
+import { RETRY_TAIL_MS, startTimeBudget } from "../_shared/time-budget.ts";
+import { createPartialEmitter, startHeartbeat } from "../_shared/partial-emitter.ts";
 import { recordAiOutcome } from "../_shared/ai-meter.ts";
 
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
