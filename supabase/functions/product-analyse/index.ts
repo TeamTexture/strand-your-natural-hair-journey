@@ -969,6 +969,8 @@ Deno.serve(async (req: Request) => {
       generate: async (info) => {
         diag.attempt = info.attemptNumber;
         diag.phase = `model_call_attempt_${info.attemptNumber}`;
+        if (analysisStartedAt === null) analysisStartedAt = Date.now();
+
 
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
