@@ -1,7 +1,7 @@
 import { smartBack } from "@/lib/smartBack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Camera, ImagePlus, Loader2, X } from "lucide-react";
+import { Camera, Check, ImagePlus, Loader2, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
@@ -47,7 +47,7 @@ const PersonalDetailsReview = () => {
       const { data } = await supabase
         .from("profiles")
         .select(
-          "display_name, phone_number, birth_year, postcode, country, heritage, avatar_url",
+          "display_name, phone_number, birth_year, postcode, country, heritage, avatar_url, whatsapp_opt_in, whatsapp_opt_in_at",
         )
         .eq("user_id", user.id)
         .maybeSingle();
