@@ -68,6 +68,7 @@ import {
   assertAnalysisTrigger,
   type AnalysisTrigger,
 } from "@/lib/analysisGate";
+import { readAnalysisJob, startProductAnalysis, type AnalysisJob } from "@/lib/analysisJob";
 
 import { aiInvoke } from "@/lib/aiInvoke";
 import { analysisErrorMessage } from "@/lib/analysisError";
@@ -238,9 +239,12 @@ const IngredientDetail = () => {
     external_url?: string | null;
     /** Seed payload only — run the member's own analysis on top of it. */
     needs_analysis?: boolean;
+    /** Phase A just finished; the full analysis is running in the background. */
+    pending_analysis?: boolean;
   } | null;
   const freshAnalysis = navState?.analysis ?? null;
   const needsAnalysis = navState?.needs_analysis ?? false;
+  const pendingAnalysis = navState?.pending_analysis ?? false;
   const navIntent: "shelf" | "wishlist" = navState?.intent ?? "shelf";
   const autoSave = navState?.auto_save ?? false;
   const returnTo = navState?.returnTo ?? null;
@@ -267,6 +271,13 @@ const IngredientDetail = () => {
 
   const { level: tipsLevel, showBeginnerHelp, ready: tipsLevelReady } = useTipsLevel();
   const [showAllIngredients, setShowAllIngredients] = useState(false);
+  // TWO-PHASE SCAN (2026-09-04): Phase B runs in its own edge invocation, so
+  // this page REPORTS on it rather than holding it open. `job` is that
+  // background job's own state, read from storage — which is why closing the
+  // app mid-analysis loses nothing and coming back never restarts it.
+  const [job, setJob] = useState<AnalysisJob | null>(null);
+  const [jobTick, setJobTick] = useState(0);
+  const [restarting, setRestarting] = useState(false);
 
 
   const returnAfterAutoSave = useCallback(
@@ -805,13 +816,76 @@ const IngredientDetail = () => {
         setLoading(false);
         return;
       }
+      // BACKGROUND JOB FIRST (2026-09-04). When Phase B is already running (or
+      // has already failed) in its own invocation, this page must never start a
+      // second analysis on top of it — that is how one scan gets analysed twice.
+      if (!storedPayload) {
+        const existingJob = await readAnalysisJob(productKey);
+        if (cancelled) return;
+        if (existingJob && existingJob.status !== "complete") {
+          setJob(existingJob);
+          setLoading(false);
+          return;
+        }
+        if (existingJob?.status === "complete") {
+          // Finished server-side but not on screen yet — one more read, no call.
+          const late = await readStored();
+          if (cancelled) return;
+          if (late) {
+            setJob(null);
+            setAnalysis(late);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+        }
+      }
       // Last-resort belt: even on `generate`, if anything is stored for this
       // product, it is already on screen — the fresh run replaces it when done.
       runAnalysis(decision.reason);
 
     })();
     return () => { cancelled = true; };
-  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, tipsLevelReady, productsLoading]);
+  }, [runAnalysis, productKey, freshAnalysis, needsAnalysis, profileChecked, tipsLevel, tipsLevelReady, productsLoading, jobTick]);
+
+  // Poll the background job while it is running. Table reads only — polling can
+  // never spend a model call. Stops the moment the result is on screen.
+  useEffect(() => {
+    if (job?.status !== "running" || analysis) return;
+    let stop = false;
+    const id = window.setInterval(async () => {
+      const next = await readAnalysisJob(productKey);
+      if (stop || !next) return;
+      setJob(next);
+      if (next.status === "complete") {
+        // Let the gate re-read the stored payload (a table read, no invocation).
+        ranForRef.current = null;
+        setJobTick((t) => t + 1);
+        void reload();
+      }
+    }, 4000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, [job?.status, analysis, productKey, reload]);
+
+  // Fresh scan: Phase A has just saved the product and Phase B was started
+  // server-side, so show the working state straight away instead of a blank.
+  useEffect(() => {
+    if (!pendingAnalysis || analysis || job) return;
+    setLoading(false);
+    setJob({ status: "running" });
+  }, [pendingAnalysis, analysis, job]);
+
+  const retryAnalysis = useCallback(async () => {
+    setRestarting(true);
+    setError(null);
+    const res = await startProductAnalysis(productKey, { force: true });
+    setRestarting(false);
+    if (res.started) setJob({ status: "running" });
+    else setError(res.message ?? "We couldn't start the analysis just yet.");
+  }, [productKey]);
 
 
   // Save the freshly-scanned product into user_products. The scanning flow
@@ -1278,7 +1352,55 @@ const IngredientDetail = () => {
         )}
 
 
-        {error && !loading && (
+        {/* BACKGROUND ANALYSIS (2026-09-04). Her product and her ingredient list
+            are already on screen from Phase A; this is the honest state of the
+            Phase B work, which is running in its own invocation server-side. */}
+        {job?.status === "running" && !analysis && !loading && (
+          <SurfaceCard className="space-y-2">
+            <p className="font-display text-[15px]">Working on your breakdown</p>
+            <p className="font-body text-[12px] text-foreground/80">
+              We've read your label{inciNames.length ? ` and ${inciNames.length} ingredients` : ""}.
+              The full breakdown is being written now. You can close this and carry on —
+              it keeps going, and it'll be here when you come back.
+            </p>
+            <AiProgressBar
+              expectedMs={60000}
+              overrunNote="Still working — a couple of the write-ups needed re-checking against the manuscript."
+              stages={[
+                "Reading the verified ingredient list",
+                "Looking each ingredient up in the manuscript",
+                "Matching the mechanisms to your profile",
+                "Checking every claim against the guardrails",
+                "Writing your breakdown",
+              ]}
+            />
+            {inciNames.length > 0 && (
+              <div className="pt-1">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground mb-1">
+                  Ingredients we read
+                </p>
+                <p className="font-body text-[11px] leading-relaxed text-foreground/70 break-words">
+                  {inciNames.join(", ")}
+                </p>
+              </div>
+            )}
+          </SurfaceCard>
+        )}
+
+        {job?.status === "failed" && !analysis && !loading && (
+          <SurfaceCard tone="orange" className="space-y-2">
+            <p className="text-sm">We couldn't finish this analysis.</p>
+            <p className="font-body text-[12px] text-foreground/80">
+              Your product and its ingredients are saved — nothing is lost. Tap to pick it
+              back up.
+            </p>
+            <Button variant="goldGhost" size="pill" disabled={restarting} onClick={retryAnalysis}>
+              <RefreshCw className="size-4 mr-1" /> {restarting ? "Starting…" : "Try again"}
+            </Button>
+          </SurfaceCard>
+        )}
+
+        {error && !loading && !job && (
           error.startsWith("We couldn't read") ? (
             <SurfaceCard className="space-y-1">
               <p className="font-body text-[13px] text-foreground/80">{error}</p>
