@@ -39,6 +39,9 @@ import {
   countPartialIngredients,
   scanErrorResponse,
 } from "../_shared/scan-error-log.ts";
+import { logScanTiming } from "../_shared/scan-timing-log.ts";
+import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
+
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
