@@ -172,12 +172,10 @@ const SetCurrentStyle = () => {
               planned_style_extensions: styleAsksExtensions(next[0])
                 ? plannedAttrs.extensions
                 : null,
-              // Preserve any colour/chemical/default-styles already stored —
-              // those come from onboarding step 4. SetCurrentStyle only
-              // changes the active style fields.
-              chemical_history: prev.chemHist ?? [],
-              default_styles: prev.defaultStyle ?? [],
-              current_colour_status: prev.colour?.[0] ?? null,
+              // Colour / chemical history / default styles belong to
+              // onboarding step 4 and are DELIBERATELY not sent here. Sending
+              // them from the local snapshot overwrote real stored answers with
+              // empty arrays whenever this device had no snapshot (2026-09-04).
               planned_change_date: null,
             },
             { onConflict: "user_id" },
@@ -185,8 +183,12 @@ const SetCurrentStyle = () => {
         if (error) throw error;
       }
     } catch (err) {
-      console.warn("[strand] user_style_profile upsert failed", err);
-      // localStorage write succeeded — don't block the user.
+      // NEVER REPORT SUCCESS ON A FAILED SAVE (2026-09-04). The saved style is
+      // what every personalised surface reads; swallowing this left her looking
+      // at guidance for her previous style with no way to know why.
+      console.error("[strand] user_style_profile upsert failed", err);
+      toast.error("We couldn't save your style. Check your connection and try again.");
+      return;
     }
 
     invalidateClinicalContextCache();
