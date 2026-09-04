@@ -5301,6 +5301,8 @@ export type Database = {
           analysis_ms: number | null
           attempts: number | null
           cache_hit: boolean
+          cpu_ms: number | null
+          cpu_pct_of_limit: number | null
           created_at: string
           function_name: string
           id: string
@@ -5317,6 +5319,8 @@ export type Database = {
           analysis_ms?: number | null
           attempts?: number | null
           cache_hit?: boolean
+          cpu_ms?: number | null
+          cpu_pct_of_limit?: number | null
           created_at?: string
           function_name: string
           id?: string
@@ -5333,6 +5337,8 @@ export type Database = {
           analysis_ms?: number | null
           attempts?: number | null
           cache_hit?: boolean
+          cpu_ms?: number | null
+          cpu_pct_of_limit?: number | null
           created_at?: string
           function_name?: string
           id?: string
