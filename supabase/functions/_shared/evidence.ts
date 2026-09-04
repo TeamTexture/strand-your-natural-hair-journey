@@ -31,7 +31,6 @@
 // the writer must never have a chapter number or page to quote.
 
 import { gatewayFetch } from "./ai-meter.ts";
-import { recordManuscriptRetrieval } from "./rag.ts";
 
 // Cost meter attribution (Phase 2) — observation only.
 const AI_METER_META = { function_name: "evidence-gather", stage: 1 } as const;
@@ -245,12 +244,8 @@ export async function gatherEvidence(input: {
     return persisted;
   }
 
-  const retrievalStartedAt = Date.now();
   const rows = await loadChapterRows(chapters);
-  if (!rows.length || !key) {
-    recordManuscriptRetrieval(Date.now() - retrievalStartedAt);
-    return EMPTY_EVIDENCE;
-  }
+  if (!rows.length || !key) return EMPTY_EVIDENCE;
 
   // Numbered source passages: stage 1 references them by number, which lets us
   // resolve chapter/page metadata OURSELVES rather than trusting the model with
@@ -314,8 +309,6 @@ export async function gatherEvidence(input: {
   } catch (e) {
     console.error(JSON.stringify({ event: "stage1_failed", fn: input.fn, error: String(e) }));
     return EMPTY_EVIDENCE;
-  } finally {
-    recordManuscriptRetrieval(Date.now() - retrievalStartedAt);
   }
 
   // Resolve metadata from OUR row index, and drop any item whose passage is not

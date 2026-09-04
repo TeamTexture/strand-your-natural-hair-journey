@@ -39,7 +39,6 @@ import RelevanceNote, { parseRelevanceNote } from "@/components/product/Relevanc
 import { alignFitLanguage } from "@/lib/fitBand";
 import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
-import { analysisErrorMessage } from "@/lib/analysisError";
 import { decideProductAnalysis, assertAnalysisTrigger } from "@/lib/analysisGate";
 
 import BrandLink from "@/components/BrandLink";
@@ -134,8 +133,6 @@ const ProductProfile = () => {
   const [relevanceNote, setRelevanceNote] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  // Bump to re-run the analysis effect after a failure (never automatic).
-  const [aiRetryNonce, setAiRetryNonce] = useState(0);
 
   // LOAD PATH (2026-09-03): this page used to wait for the member's ENTIRE
   // shelf (`select *` on every user_products row, then a photo backfill and a
@@ -330,14 +327,8 @@ const ProductProfile = () => {
             context,
         });
         if (cancelled) return;
-        if (error) {
-          setAiError(analysisErrorMessage(error, data as { message?: unknown } | null));
-          return;
-        }
-        if (data?.error) {
-          setAiError(analysisErrorMessage(null, data as { message?: unknown; error?: unknown }));
-          return;
-        }
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
         const flags = (data?.analysis?.ingredients ?? []) as IngredientFlag[];
         setAiFlags(flags);
         const summary = typeof data?.analysis?.summary === "string" ? data.analysis.summary : null;
@@ -385,14 +376,15 @@ const ProductProfile = () => {
         }
       } catch (e) {
         if (cancelled) return;
-        setAiError(analysisErrorMessage(e));
+        const msg = e instanceof Error ? e.message : "Could not analyse ingredients";
+        setAiError(msg);
       } finally {
         if (!cancelled) setAiLoading(false);
       }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, user?.id, isViewingAs, aiRetryNonce]);
+  }, [product?.id, user?.id, isViewingAs]);
 
   // Only block on the shelf query while we have nothing to show — the targeted
   // row read above usually resolves first.
@@ -537,16 +529,9 @@ const ProductProfile = () => {
                   <StrandTipNotes tips={strandTips} />
                 </div>
               ) : aiError ? (
-                <div className="mt-3">
-                  <p className="text-sm leading-snug text-muted-foreground">{aiError}</p>
-                  <button
-                    type="button"
-                    onClick={() => { setAiError(null); setAiRetryNonce((n) => n + 1); }}
-                    className="mt-2 rounded-pill border border-border px-4 py-1.5 font-body text-[12px] uppercase tracking-wide text-foreground"
-                  >
-                    Try again
-                  </button>
-                </div>
+                <p className="mt-3 text-sm leading-snug text-muted-foreground">
+                  Could not load guidance. {aiError}
+                </p>
               ) : ingredients.length === 0 ? (
                 <p className="mt-3 text-sm leading-snug text-muted-foreground">
                   Add ingredients to this product to get personalised guidance.
@@ -801,16 +786,7 @@ const ProductProfile = () => {
               })}
             </SurfaceCard>
             {aiError && (
-              <div className="mt-2 px-1">
-                <p className="text-[11px] text-destructive">{aiError}</p>
-                <button
-                  type="button"
-                  onClick={() => { setAiError(null); setAiRetryNonce((n) => n + 1); }}
-                  className="mt-1 font-body text-[11px] underline text-foreground"
-                >
-                  Try again
-                </button>
-              </div>
+              <p className="text-[11px] text-destructive mt-2 px-1">{aiError}</p>
             )}
           </div>
         )}

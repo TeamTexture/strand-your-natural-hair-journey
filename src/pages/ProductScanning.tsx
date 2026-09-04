@@ -10,8 +10,11 @@ import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash, ingredientsFingerprint } from "@/lib/profileSnapshot";
 import { resolveProductKey } from "@/lib/productIdentity";
-import { startProductAnalysis } from "@/lib/analysisJob";
-import { memberSafeMessage } from "@/lib/invokeError";
+import { warmIngredientAnalysis } from "@/lib/warmIngredientAnalysis";
+import {
+  streamProductAnalyse,
+  type PartialAnalysis,
+} from "@/lib/streamProductAnalyse";
 import { toast } from "sonner";
 
 
@@ -41,38 +44,48 @@ const ProductScanning = () => {
   const [error, setError] = useState("");
   const [loadingMessage, setLoadingMessage] = useState("Reading the front of the label…");
   const [progressPct, setProgressPct] = useState(0);
-  const [partial, setPartial] = useState<{
-    brand?: string;
-    product_name?: string;
-    ingredients?: string[];
-  }>({});
+  const [partial, setPartial] = useState<PartialAnalysis>({});
   const ranRef = useRef(false);
 
 
-  // TWO-PHASE SCAN (2026-09-04). This screen now only covers PHASE A — reading
-  // the label. Measured Phase A cost is a single vision call, so the pacing is
-  // seconds, not the old ~60s single-invocation pipeline. The verdict is written
-  // in PHASE B, in the background, and the member watches that on the product
-  // page instead of waiting here.
+  // HONEST TIMING (2026-09-03). Measured from ai_call_log over the last 7
+  // days: product-analyse p50 55.6s, p90 68.5s (worst 162.9s). The old pacing
+  // assumed a "~15–25s" analysis, so the ring hit 75% in 12s and then crawled
+  // for the remaining ~45s. Stage copy and ring pacing now follow the real
+  // pipeline: read the label, resolve the brand, then the guarded write-up.
+  // Streamed partials still overwrite this copy with real details.
   useEffect(() => {
     if (phase !== "analysing") return;
     const sequence = [
       { at: 0, msg: "Reading the front of the label…" },
-      { at: 2200, msg: "Reading the ingredient panel on the back…" },
-      { at: 5000, msg: "Almost there — checking the panel…" },
+      { at: 6000, msg: "Reading the ingredient panel on the back…" },
+      { at: 16000, msg: "Looking up the brand and product…" },
+      { at: 28000, msg: "Cross-referencing the ingredients…" },
+      { at: 40000, msg: "Matching to your hair profile…" },
+      { at: 52000, msg: "Checking every claim before we show it…" },
+      { at: 64000, msg: "Almost there — writing your summary…" },
     ];
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
     );
+    // Two-phase pacing against the measured p50:
+    //   1) linear sweep to 75% over ~40s (≈ 0.72 × p50 of 55.6s),
+    //   2) slow asymptotic crawl 75% → 99% for the tail past p90,
+    // so the ring is always moving and lands near full as the stream
+    // completes. On success we kick it to 100.
     const start = Date.now();
-    const FAST_MS = 6000;
+    const FAST_MS = 40000; // reach 75% by here
     const interval = window.setInterval(() => {
       const elapsed = Date.now() - start;
-      const pct = elapsed <= FAST_MS
-        ? (elapsed / FAST_MS) * 85
-        : 85 + 14 * (1 - Math.exp(-(elapsed - FAST_MS) / 8000));
+      let pct: number;
+      if (elapsed <= FAST_MS) {
+        pct = (elapsed / FAST_MS) * 75;
+      } else {
+        const extra = elapsed - FAST_MS;
+        pct = 75 + 24 * (1 - Math.exp(-extra / 30000));
+      }
       setProgressPct((prev) => Math.max(prev, Math.min(99, pct)));
-    }, 120);
+    }, 200);
     return () => {
       timeouts.forEach(window.clearTimeout);
       window.clearInterval(interval);
@@ -135,38 +148,27 @@ const ProductScanning = () => {
           decision: "fresh_scan",
         });
 
-        // PHASE A — label read only. One fast vision call: brand, product name,
-        // the printed ingredient panel, category, application area and the
-        // directions. No verdict, no scoring, no guidance here.
-        const { data: label, error: labelErr } = await supabase.functions.invoke(
-          "product-label-read",
-          { body: { photos: { front, back } } },
-        );
-        if (labelErr) {
-          throw new Error(
-            memberSafeMessage(labelErr, "We couldn’t read the ingredient panel on the back. Retake just the back photo — the front was fine."),
-          );
-        }
-        const data = (label ?? {}) as {
-          brand?: string | null;
-          product_name?: string | null;
-          ingredients?: string[];
-          category?: string | null;
-          application_area?: string | null;
-          leave_on?: boolean | null;
-          usage_instructions?: string | null;
-          label_readable?: boolean;
-        };
-        if (!data.product_name && !(data.ingredients?.length)) {
-          throw new Error(
-            "We couldn’t read the ingredient panel on the back. Retake just the back photo in better light — you don’t need to redo the front.",
-          );
-        }
-        setPartial({
-          brand: data.brand ?? undefined,
-          product_name: data.product_name ?? undefined,
-          ingredients: data.ingredients ?? undefined,
+        console.log("[scan-debug] about to invoke product-analyse (stream)");
+        // SPEED: streamed so the real product name, brand and ingredient
+        // count replace the cosmetic progress copy within a few seconds.
+        // The resolved payload is the guarded `complete` event — the preview
+        // is never saved or scored from.
+        const data = await streamProductAnalyse({
+          body: { photos: { front, back }, context, force: true },
+          onPartial: (p) => {
+            setPartial((prev) => ({ ...prev, ...p }));
+            if (p.ingredients?.length) {
+              setLoadingMessage(
+                `Read ${p.ingredients.length} ingredients — matching to your hair profile…`,
+              );
+            } else if (p.product_name) {
+              setLoadingMessage("Reading the ingredients…");
+            }
+          },
         });
+        if ((data as { error?: string })?.error) {
+          throw new Error((data as { error?: string }).error!);
+        }
         console.log("[scan-debug] function returned ok", { hasData: !!data, productName: data.product_name, brand: data.brand });
 
 
@@ -219,14 +221,23 @@ const ProductScanning = () => {
           console.error("user_products upsert after scan failed", insErr);
           throw new Error("Couldn't save the scanned product. Please try again.");
         }
-        // PHASE B — the real analysis. Started server-side and kept alive
-        // there: her request is never what holds it open, so leaving this
-        // screen, changing app or losing signal cannot interrupt it. The
-        // product page reports its progress and picks up the finished result.
-        const started = await startProductAnalysis(product_key);
-        if (!started.started) {
-          console.warn("[scan] phase B did not start", started.message);
-        }
+        // POST-SCAN WARM-UP (2026-09-01): kick off the ingredient/how-to-use
+        // pass now, in the background, so a freshly scanned product has cards
+        // and personalised guidance on first view instead of only the verdict.
+        // Fire-and-forget — it must never delay navigation.
+        void warmIngredientAnalysis({
+          productKey: product_key,
+          productName: saveFields.name,
+          productBrand: saveFields.brand ?? null,
+          ingredients: saveFields.ingredients ?? null,
+          category: (saveFields as { category?: string | null }).category ?? null,
+          applicationArea:
+            (saveFields as { application_area?: string | null }).application_area ?? null,
+          leaveOn: (saveFields as { leave_on?: boolean | null }).leave_on ?? null,
+          usageInstructions:
+            (saveFields as { usage_instructions?: string | null }).usage_instructions ?? null,
+          context,
+        });
         console.log("[scan-debug] upsert ok, navigating to /products/ingredient", { product_key, payload_keys: Object.keys(payload) });
         // Snap the ring to a full circle on real success so the user sees
         // it complete before we navigate away. Short hold so the
@@ -244,10 +255,7 @@ const ProductScanning = () => {
           {
             replace: true,
             state: {
-              // No verdict yet — Phase B is running. The product page shows the
-              // identified product and her ingredient list immediately, and the
-              // analysis lands underneath it when it's written.
-              pending_analysis: true,
+              analysis: data,
               storage_path: state.storage_path,
               preview_url: state.preview_url,
               product_key,
@@ -377,23 +385,26 @@ const ProductScanning = () => {
             )}
 
             <p className="mt-3 max-w-xs text-xs font-body text-foreground bg-card border border-primary/40 rounded-[12px] px-3 py-2">
-              This part is quick — we’re just reading the label. Your full
-              analysis then carries on in the background, so you can keep using
-              the app and come back to it whenever you like.
+              Stay on this page while we work. Leaving or closing it before the
+              analysis finishes will interrupt it, and you'll need to start
+              again.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2 max-w-xs">
+              Reading both sides of the label, matching ingredients to your
+              hair profile, and flagging anything that already shows up in
+              3 or more of your favourited shelf products.
             </p>
 
           </>
         ) : (
           <>
             <p className="font-display text-lg mt-6 text-destructive">Couldn't analyse</p>
-            <p className="text-xs text-muted-foreground mt-2 max-w-xs whitespace-pre-line break-words">
-              {error}
-            </p>
+            <p className="text-xs text-muted-foreground mt-2 max-w-xs">{error}</p>
             <div className="mt-5 max-w-xs text-left bg-card border border-border rounded-[12px] p-3 space-y-1">
               <p className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">For best results</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• It’s usually just the back photo — if the front looked clear, you only need to retake the back</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• The ingredient panel curves around the bottle, so turn it slowly and take the shot where the small print sits flattest</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• Good lighting, no glare, and hold steady until it’s sharp</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• Hold the bottle steady, brand and title clearly visible on the front</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• Good lighting, no glare on the label</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• On the back, line up the small-print ingredient panel and keep it sharp</p>
             </div>
             <button
               onClick={() => navigate("/products")}

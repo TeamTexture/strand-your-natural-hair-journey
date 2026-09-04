@@ -34,20 +34,12 @@
 // "lovable"; Paige flips to "claude" only after manual verification.
 
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
-import { scanRetrievalQuery } from "../_shared/scan-rag-query.ts";
 import { sseResponse, type SseEmit } from "../_shared/sse.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
-import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
-import { createPartialEmitter } from "../_shared/partial-emitter.ts";
-import { logScanTiming } from "../_shared/scan-timing-log.ts";
-import { startCpuMeter } from "../_shared/cpu-meter.ts";
-import { saveScanRecovery } from "../_shared/scan-recovery.ts";
-import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
-
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
@@ -130,9 +122,6 @@ interface RequestBody {
     flagged_ingredients?: string[];
   };
   force?: boolean;
-  /** RECOVERY (2026-09-04): client-generated UUID; the finished payload is
-   *  persisted under it before `complete` is emitted. */
-  scan_id?: string;
   /** SPEED (2026-09-03): stream the analysis back as SSE (see _shared/sse.ts)
    *  so the member sees the real product details while the guarded verdict is
    *  still being written. Same pipeline either way. */
@@ -189,7 +178,6 @@ Field rules — strict:
 
 - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the fetched page's list is partial or hidden behind tabs; otherwise transcribe what's visible.
 - key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a NEUTRAL frequency count of ingredients she already owns (3+ saved products) and is NEVER a reason to flag "avoid".
-- Lead the analysis with evidenced benefits. Raise a caution only when you are more than 80% certain it is genuinely an issue for this member's recorded characteristics; otherwise omit it. Never use hair-typing terminology (3C, 4C, "type 4"); use "Afro and textured hair" or name the recorded characteristic.
 - match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients she already owns frequently — ownership frequency is not a fit signal in either direction.
 - ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, density, a goal, scalp condition, a challenge — never the style they're in, and never the fact that ingredients recur across her shelf) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
 - usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
@@ -315,8 +303,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse-url",
-    static_task_instructions: buildTaskInstructions(tipsLevel),
-    task_instructions: args.tierBlock ?? "",
+    task_instructions: `${buildTaskInstructions(tipsLevel)}${args.tierBlock ?? ""}`,
     user_payload: {},
     user_content: userContent,
     user_context: args.context,
@@ -327,15 +314,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       "scalp-conditions",
       "diagnosed-conditions",
     ],
-    // TARGETED RETRIEVAL (2026-09-04). The prefetched page carries the real
-    // INCI panel and claims, so the four retrieved passages are chosen from
-    // THIS formula plus THIS member's recorded signals rather than a fixed
-    // keyword string plus the raw URL (which was pure embedding noise).
-    rag_query: scanRetrievalQuery({
-      context: args.context ?? {},
-      pageText: preScraped || null,
-      productName: args.pageTitle ?? null,
-    }),
+    rag_query: `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${args.url}`,
     rag_k: 4,
     tool: {
       name: "return_product_analysis",
@@ -344,9 +323,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
       input_schema: RETURN_PRODUCT_ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
     },
     server_tools: searchDecision.enabled ? [webFetchTool, webSearchTool] : [webFetchTool],
-    // See product-analyse: long ingredient panels truncated at 4096 and the
-    // truncated tool call cost a full retry.
-    max_tokens: 8192,
+    max_tokens: 4096,
   });
 
   const result = await callClaude<ProductAnalysisPayload>({
@@ -894,8 +871,7 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 }
 
 // ─── Edge function entry ───────────────────────────────────────────────
-Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
-  const requestStartedAt = Date.now();
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
   const kill = checkKillSwitch();
@@ -926,14 +902,6 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
     const pipeline = async (
       emit: SseEmit | null,
     ): Promise<Record<string, unknown> | Response> => {
-    // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
-    // only: nothing below changes what is generated or how it is grounded.
-    const requestStartedAt = Date.now();
-    const cpuMeter = startCpuMeter();
-    const retrievalAtStart = retrievalStatsSnapshot();
-    let labelReadAt: number | null = null;
-    let analysisStartedAt: number | null = null;
-
 
     // ── Input validation ────────────────────────────────────────────
     if (!body.url || typeof body.url !== "string") {
@@ -1004,11 +972,8 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
       console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
       const resolvedUrl = await resolveShortLink(url);
       const pre = await prefetchPage(resolvedUrl);
-      labelReadAt = Date.now();
       const ogImage = pre.imageUrl;
-      analysisStartedAt = Date.now();
       console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
-
       // ── TIERED PERSONALISATION DATA (Part 3, 2026-09-01) ──────────
       // The page is already fetched here, so this surface knows the product
       // before the writer call and gets the FULL health gate: her blood
@@ -1041,9 +1006,7 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
         pageText: pre.text,
         pageTitle: pre.title,
         tierBlock: `${tier1Block(tier1)}${tierRulesBlock(tiered)}`,
-        // Throttled + preview-change gated: per-delta emission of the whole
-        // buffer spent the worker's CPU allowance and killed the isolate.
-        onPartialJson: emit ? createPartialEmitter(emit) : undefined,
+        onPartialJson: emit ? (acc) => emit("partial", { json: acc }) : undefined,
       });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({
@@ -1207,18 +1170,6 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
     // which is what made the cache and the rendered card disagree.
     analysis = await sanitiseAndLog(analysis, "product-analyse-url") as typeof analysis;
 
-    // ── NEVER LOSE FINISHED WORK (2026-09-04, moved 2026-09-04 pm) ─────
-    // The analysis is finished and guarded here. It is persisted BEFORE the
-    // cache upsert and the timing write, so a worker killed in that tail can
-    // no longer discard a complete analysis: the client recovers it by scan id.
-    await saveScanRecovery({
-      supabase,
-      userId: user.id,
-      scanId: body.scan_id,
-      functionName: "product-analyse-url",
-      payload: analysis as unknown as Record<string, unknown>,
-    });
-
     // ── Upsert cache ───────────────────────────────────────────────
     const { data: prior } = await supabase
       .from("ai_summaries")
@@ -1238,35 +1189,7 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
       });
     }
 
-    // SUCCESS TIMINGS (2026-09-04) — fire-and-forget, admin-only.
-    {
-      const finishedAt = Date.now();
-      const retrieval = retrievalStatsSince(retrievalAtStart);
-      const a = analysis as Record<string, unknown>;
-      void logScanTiming({
-        function_name: "product-analyse-url",
-        surface: "product-analyse-url",
-        user_id: user.id,
-        ocr_ms: labelReadAt ? labelReadAt - requestStartedAt : null,
-        retrieval_ms: retrieval.ms,
-        retrieval_call_count: retrieval.calls,
-        analysis_ms: analysisStartedAt ? finishedAt - analysisStartedAt : null,
-        total_ms: finishedAt - requestStartedAt,
-        ingredient_count: Array.isArray(a.ingredients)
-          ? (a.ingredients as unknown[]).length
-          : null,
-        cpu_ms: cpuMeter.cpuMs(),
-        cpu_pct_of_limit: cpuMeter.cpuPctOfLimit(),
-        cache_hit: false,
-        meta: { provider, streamed: wantsStream },
-      });
-    }
-
-    // (the recovery row was written immediately after the sanitiser — see
-    // NEVER LOSE FINISHED WORK above. Nothing is persisted here.)
-
     return analysis as unknown as Record<string, unknown>;
-
     };
 
     if (!wantsStream) {
@@ -1278,20 +1201,10 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
         });
     }
     return sseResponse({
-      functionName: "product-analyse-url",
       pipeline: (emit) => pipeline(emit),
-      onError: (e) =>
-        scanErrorResponse(e, {
-          function_name: "product-analyse-url",
-          phase: "stream",
-          elapsed_ms: Date.now() - requestStartedAt,
-        }),
+      onError: (e) => aiErrorResponse(e, "product-analyse-url"),
     });
   } catch (e) {
-    return await scanErrorResponse(e, {
-      function_name: "product-analyse-url",
-      phase: "analysis",
-      elapsed_ms: Date.now() - requestStartedAt,
-    });
+    return aiErrorResponse(e, "product-analyse-url");
   }
-}));
+});

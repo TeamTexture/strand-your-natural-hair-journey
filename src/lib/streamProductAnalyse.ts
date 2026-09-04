@@ -80,33 +80,8 @@ export function readPartialAnalysis(accumulated: string): PartialAnalysis {
 
 export class ProductAnalyseError extends Error {}
 
-/**
- * STEP 1 (2026-09-04): the edge function now returns real diagnostics alongside
- * its friendly message (phase, error name, status, elapsed ms, ingredients read).
- * We append a short technical tail so a failed scan can be diagnosed from the
- * screen instead of guessing between a timeout and a parse failure.
- */
-function withDiagnostics(message: string, body: unknown): string {
-  const d = (body as { diagnostics?: Record<string, unknown> } | null)?.diagnostics;
-  if (!d) return message;
-  const bits: string[] = [];
-  if (d.phase) bits.push(String(d.phase));
-  if (d.error_name) bits.push(String(d.error_name));
-  if (d.status_code) bits.push(`status ${d.status_code}`);
-  if (typeof d.elapsed_ms === "number") bits.push(`${Math.round(d.elapsed_ms / 1000)}s`);
-  if (typeof d.ingredient_count === "number") bits.push(`${d.ingredient_count} ingredients read`);
-  if (d.error_message && d.error_message !== message) bits.push(String(d.error_message));
-  return bits.length ? `${message}\n\n(${bits.join(" · ")})` : message;
-}
-
 export async function streamProductAnalyse(opts: {
   body: Record<string, unknown>;
-  /**
-   * RECOVERY (2026-09-04): called when the stream ends without a `complete`
-   * event. The finished analysis is persisted server-side before `complete` is
-   * emitted, so a dropped connection is recoverable rather than lost work.
-   */
-  recover?: () => Promise<Record<string, unknown> | null>;
   /**
    * Which analysis function to stream. Defaults to the photo scan; the URL
    * scan streams the identical event contract (2026-09-03), so both surfaces
@@ -139,7 +114,6 @@ export async function streamProductAnalyse(opts: {
     try {
       const body = (await resp.json()) as { error?: string };
       if (body?.error) message = body.error;
-      message = withDiagnostics(message, body);
     } catch { /* non-JSON */ }
     throw new ProductAnalyseError(message);
   }
@@ -150,28 +124,6 @@ export async function streamProductAnalyse(opts: {
   let event = "";
   let final: Record<string, unknown> | null = null;
   let failure: string | null = null;
-
-  // EVENT TRACE (2026-09-04). The server logs every event it emits with a
-  // sequence number; we log every event we receive. "complete was never
-  // emitted" and "complete never arrived" are different failures, and the two
-  // traces together say which one happened.
-  const startedAt = Date.now();
-  const received: Record<string, number> = {};
-  let seq = 0;
-  let lastEvent = "none";
-  const note = (name: string) => {
-    seq += 1;
-    received[name] = (received[name] ?? 0) + 1;
-    lastEvent = name;
-    // Partials and heartbeats are frequent; log them at low volume.
-    if (name !== "partial" || received.partial <= 3) {
-      console.log("[scan-sse] received", {
-        event: name,
-        seq,
-        at_ms: Date.now() - startedAt,
-      });
-    }
-  };
 
   const handle = (data: string) => {
     if (event === "partial") {
@@ -193,10 +145,7 @@ export async function streamProductAnalyse(opts: {
     if (event === "error") {
       try {
         const parsed = JSON.parse(data) as { body?: { error?: string } };
-        failure = withDiagnostics(
-          parsed.body?.error ?? "Something went wrong analysing this product.",
-          parsed.body,
-        );
+        failure = parsed.body?.error ?? "Something went wrong analysing this product.";
       } catch {
         failure = "Something went wrong analysing this product.";
       }
@@ -212,45 +161,15 @@ export async function streamProductAnalyse(opts: {
       const line = buffer.slice(0, nl).replace(/\r$/, "");
       buffer = buffer.slice(nl + 1);
       if (line.startsWith("event:")) event = line.slice(6).trim();
-      else if (line.startsWith("data:")) {
-        note(event || "message");
-        handle(line.slice(5).trim());
-      }
+      else if (line.startsWith("data:")) handle(line.slice(5).trim());
       nl = buffer.indexOf("\n");
     }
   }
 
-  const trace = {
-    wall_ms: Date.now() - startedAt,
-    events: { ...received },
-    last_event: lastEvent,
-    heartbeats: received.ping ?? 0,
-    complete_received: (received.complete ?? 0) > 0,
-  };
-  console.log("[scan-sse] stream closed", trace);
-
   if (failure) throw new ProductAnalyseError(failure);
   if (!final) {
-    // The stream ended with no terminal event. The analysis may nevertheless
-    // have finished and been persisted — fetch it before failing.
-    if (opts.recover) {
-      try {
-        const recovered = await opts.recover();
-        if (recovered) {
-          console.log("[scan-sse] recovered persisted analysis", {
-            wall_ms: Date.now() - startedAt,
-          });
-          return recovered;
-        }
-      } catch (e) {
-        console.error("[scan-sse] recovery lookup failed", e);
-      }
-    }
     throw new ProductAnalyseError(
-      "The analysis was interrupted before it finished. Please try again." +
-        `\n\n(stream closed after ${Math.round(trace.wall_ms / 1000)}s · last event ${
-          trace.last_event
-        } · ${trace.heartbeats} heartbeats · no complete)`,
+      "The analysis was interrupted before it finished. Please try again.",
     );
   }
   return final;
