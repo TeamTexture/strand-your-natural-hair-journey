@@ -15,6 +15,7 @@ import {
   streamProductAnalyse,
   type PartialAnalysis,
 } from "@/lib/streamProductAnalyse";
+import { fetchScanRecovery } from "@/lib/scanRecovery";
 import { toast } from "sonner";
 
 
@@ -153,8 +154,13 @@ const ProductScanning = () => {
         // count replace the cosmetic progress copy within a few seconds.
         // The resolved payload is the guarded `complete` event — the preview
         // is never saved or scored from.
+        // RECOVERY (2026-09-04): the server persists the finished, guarded
+        // analysis under this id before it emits `complete`, so a stream that
+        // drops at the last moment is recovered instead of discarded.
+        const scanId = uuid();
         const data = await streamProductAnalyse({
-          body: { photos: { front, back }, context, force: true },
+          body: { photos: { front, back }, context, force: true, scan_id: scanId },
+          recover: () => fetchScanRecovery(scanId),
           onPartial: (p) => {
             setPartial((prev) => ({ ...prev, ...p }));
             if (p.ingredients?.length) {
