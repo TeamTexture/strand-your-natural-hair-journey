@@ -47,11 +47,11 @@ const round = (n: number | null | undefined): number | null =>
 /** Write one row to public.scan_timings. Fire-and-forget; never throws. */
 export async function logScanTiming(record: ScanTimingRecord): Promise<void> {
   console.log(JSON.stringify({ event: "scan_timing", ...record }));
-  // Headroom alarm: passing at 95% of the CPU allowance means the next
-  // slightly longer ingredient panel dies. Surface it in the logs too.
-  if (typeof record.cpu_pct_of_limit === "number" && record.cpu_pct_of_limit >= 70) {
+  // Deno Deploy does not implement process.cpuUsage(), so CPU percentage is
+  // not a trustworthy alert. 42s is 70% of the 60s request envelope.
+  if (typeof record.total_ms === "number" && record.total_ms >= 42_000) {
     console.warn(
-      `[scan-timing] ${record.function_name}: CPU ${record.cpu_ms}ms = ${record.cpu_pct_of_limit}% of the worker limit`,
+      `[scan-timing] ${record.function_name}: wall time ${record.total_ms}ms = ${Math.round((record.total_ms / 60_000) * 100)}% of the request envelope`,
     );
   }
   try {
