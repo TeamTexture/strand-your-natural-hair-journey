@@ -18,6 +18,7 @@
 // leave the worker.
 
 import { corsHeaders } from "./cors.ts";
+import { startHeartbeat } from "./partial-emitter.ts";
 
 export type SseEmit = (event: string, data: unknown) => void;
 
