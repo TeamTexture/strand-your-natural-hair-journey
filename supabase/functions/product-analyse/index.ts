@@ -37,6 +37,7 @@ import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
+import { startCpuMeter } from "../_shared/cpu-meter.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 
 import { readAiProvider } from "../_shared/flags.ts";
@@ -730,6 +731,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
   // the request so a failure can say WHAT failed, WHERE, after how long, and
   // with how many ingredients read. No member content is captured.
   const startedAt = Date.now();
+  // CPU HEADROOM (2026-09-04): wall time alone hid how close we ran to the
+  // worker CPU limit. Measured for every scan, reported in scan_timings.
+  const cpuMeter = startCpuMeter();
   const diag = {
     phase: "start" as string,
     ingredientCount: null as number | null,
@@ -840,6 +844,8 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           surface: "product-analyse",
           user_id: user.id,
           total_ms: Date.now() - startedAt,
+          cpu_ms: cpuMeter.cpuMs(),
+          cpu_pct_of_limit: cpuMeter.cpuPctOfLimit(),
           cache_hit: true,
           retrieval_call_count: 0,
           retrieval_ms: 0,
@@ -1314,6 +1320,8 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           total_ms: finishedAt - startedAt,
           ingredient_count: ingredientCount,
           attempts: loop.attempts,
+          cpu_ms: cpuMeter.cpuMs(),
+          cpu_pct_of_limit: cpuMeter.cpuPctOfLimit(),
           cache_hit: false,
           meta: { provider, streamed: wantsStream },
         });

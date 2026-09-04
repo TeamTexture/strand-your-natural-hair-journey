@@ -42,6 +42,7 @@ import { aiErrorResponse } from "../_shared/errors.ts";
 import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { createPartialEmitter } from "../_shared/partial-emitter.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
+import { startCpuMeter } from "../_shared/cpu-meter.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 
@@ -913,6 +914,7 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
     // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
     // only: nothing below changes what is generated or how it is grounded.
     const requestStartedAt = Date.now();
+    const cpuMeter = startCpuMeter();
     const retrievalAtStart = retrievalStatsSnapshot();
     let labelReadAt: number | null = null;
     let analysisStartedAt: number | null = null;
@@ -1226,6 +1228,8 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
         ingredient_count: Array.isArray(a.ingredients)
           ? (a.ingredients as unknown[]).length
           : null,
+        cpu_ms: cpuMeter.cpuMs(),
+        cpu_pct_of_limit: cpuMeter.cpuPctOfLimit(),
         cache_hit: false,
         meta: { provider, streamed: wantsStream },
       });

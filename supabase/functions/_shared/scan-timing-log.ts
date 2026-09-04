@@ -33,6 +33,10 @@ export interface ScanTimingRecord {
   /** Guardrail-loop attempts the answer took. */
   attempts?: number | null;
   cache_hit?: boolean;
+  /** CPU milliseconds (user + system) the isolate burned on this request. */
+  cpu_ms?: number | null;
+  /** Same figure as a percentage of the worker CPU limit — the headroom read. */
+  cpu_pct_of_limit?: number | null;
   /** Free-form extras (provider, health tier…). Never content. */
   meta?: Record<string, unknown> | null;
 }
@@ -43,6 +47,13 @@ const round = (n: number | null | undefined): number | null =>
 /** Write one row to public.scan_timings. Fire-and-forget; never throws. */
 export async function logScanTiming(record: ScanTimingRecord): Promise<void> {
   console.log(JSON.stringify({ event: "scan_timing", ...record }));
+  // Headroom alarm: passing at 95% of the CPU allowance means the next
+  // slightly longer ingredient panel dies. Surface it in the logs too.
+  if (typeof record.cpu_pct_of_limit === "number" && record.cpu_pct_of_limit >= 70) {
+    console.warn(
+      `[scan-timing] ${record.function_name}: CPU ${record.cpu_ms}ms = ${record.cpu_pct_of_limit}% of the worker limit`,
+    );
+  }
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -64,6 +75,11 @@ export async function logScanTiming(record: ScanTimingRecord): Promise<void> {
       retrieval_call_count: round(record.retrieval_call_count),
       attempts: round(record.attempts),
       cache_hit: record.cache_hit ?? false,
+      cpu_ms: round(record.cpu_ms),
+      cpu_pct_of_limit: typeof record.cpu_pct_of_limit === "number" &&
+          Number.isFinite(record.cpu_pct_of_limit)
+        ? record.cpu_pct_of_limit
+        : null,
       meta: record.meta ?? null,
     });
   } catch (e) {
