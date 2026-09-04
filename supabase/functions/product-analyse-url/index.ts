@@ -1201,7 +1201,30 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // SUCCESS TIMINGS (2026-09-04) — fire-and-forget, admin-only.
+    {
+      const finishedAt = Date.now();
+      const retrieval = retrievalStatsSince(retrievalAtStart);
+      const a = analysis as Record<string, unknown>;
+      void logScanTiming({
+        function_name: "product-analyse-url",
+        surface: "product-analyse-url",
+        user_id: user.id,
+        ocr_ms: labelReadAt ? labelReadAt - requestStartedAt : null,
+        retrieval_ms: retrieval.ms,
+        retrieval_call_count: retrieval.calls,
+        analysis_ms: analysisStartedAt ? finishedAt - analysisStartedAt : null,
+        total_ms: finishedAt - requestStartedAt,
+        ingredient_count: Array.isArray(a.ingredients)
+          ? (a.ingredients as unknown[]).length
+          : null,
+        cache_hit: false,
+        meta: { provider, streamed: wantsStream },
+      });
+    }
+
     return analysis as unknown as Record<string, unknown>;
+
     };
 
     if (!wantsStream) {
