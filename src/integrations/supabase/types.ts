@@ -5254,6 +5254,48 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_errors: {
+        Row: {
+          created_at: string
+          elapsed_ms: number | null
+          error_message: string | null
+          error_name: string | null
+          function_name: string
+          id: string
+          ingredient_count: number | null
+          meta: Json | null
+          phase: string | null
+          status_code: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          elapsed_ms?: number | null
+          error_message?: string | null
+          error_name?: string | null
+          function_name: string
+          id?: string
+          ingredient_count?: number | null
+          meta?: Json | null
+          phase?: string | null
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          elapsed_ms?: number | null
+          error_message?: string | null
+          error_name?: string | null
+          function_name?: string
+          id?: string
+          ingredient_count?: number | null
+          meta?: Json | null
+          phase?: string | null
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_cancellations: {
         Row: {
           account_type: string
