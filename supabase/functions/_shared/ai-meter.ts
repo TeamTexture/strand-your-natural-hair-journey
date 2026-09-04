@@ -309,62 +309,10 @@ interface GatewayUsage {
   prompt_tokens_details?: { cached_tokens?: number };
 }
 
-// ---------------------------------------------------------------------------
-// UPSTREAM RATE LIMIT / OVERLOAD RETRIES (2026-09-04)
-// ---------------------------------------------------------------------------
-// The gateway answers 429 when the workspace is rate limited and 503/529 when
-// the upstream model is overloaded. Both are transient, and both used to
-// travel straight out of the edge function as a hard failure the member saw as
-// "Couldn't analyse". We now retry up to 3 times with exponential backoff plus
-// jitter, honouring Retry-After when the response carries one, and record every
-// retry in public.scan_errors so the rate is visible.
-//
-// Terminal statuses (400, 401, 402, 403) are never retried.
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504, 529]);
-const MAX_RETRIES = 3;
-
-const backoffMs = (attempt: number, retryAfter: string | null): number => {
-  const header = retryAfter ? Number(retryAfter) : NaN;
-  if (Number.isFinite(header) && header > 0) {
-    return Math.min(header * 1000, 20_000);
-  }
-  const base = 800 * Math.pow(2, attempt - 1); // 800ms, 1.6s, 3.2s
-  return Math.round(base + Math.random() * base * 0.5); // + up to 50% jitter
-};
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function noteGatewayRetry(args: {
-  fn: string;
-  status: number | null;
-  attempt: number;
-  model: string;
-  elapsed_ms: number;
-  error_message: string;
-}): Promise<void> {
-  try {
-    const { logScanError } = await import("./scan-error-log.ts");
-    await logScanError({
-      function_name: args.fn,
-      phase: "gateway_retry",
-      user_id: ambientUserId,
-      error_name: "GatewayRetry",
-      error_message: args.error_message.slice(0, 300),
-      status_code: args.status,
-      elapsed_ms: args.elapsed_ms,
-      ingredient_count: null,
-      meta: { attempt: args.attempt, max_retries: MAX_RETRIES, model: args.model },
-    });
-  } catch { /* diagnostics must never break a generation */ }
-}
-
 /**
  * Drop-in wrapper for a Lovable AI Gateway chat-completions POST. Same
  * behaviour and same Response as a direct `fetch` — it only reads a clone of
  * the body to harvest `usage` and the model string, then logs a row.
- *
- * Transient upstream failures (429 / 5xx) are retried internally; the caller
- * still receives the final Response (or the final throw) exactly as before.
  */
 export async function gatewayFetch(
   meta: AiCallMeta,
@@ -378,56 +326,20 @@ export async function gatewayFetch(
     if (body && typeof body.model === "string") requestedModel = body.model;
   } catch { /* body not JSON — keep 'unknown' */ }
 
-  const fnName = meta.function_name ?? "gateway";
-  let res!: Response;
-  let attempt = 0;
-  for (;;) {
-    attempt += 1;
-    try {
-      res = await fetch(url, init);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (attempt <= MAX_RETRIES) {
-        await noteGatewayRetry({
-          fn: fnName,
-          status: null,
-          attempt,
-          model: requestedModel,
-          elapsed_ms: Date.now() - t0,
-          error_message: message,
-        });
-        await sleep(backoffMs(attempt, null));
-        continue;
-      }
-      logAiCall({
-        ...meta,
-        provider: "lovable_gateway",
-        model: requestedModel,
-        outcome: "error",
-        duration_ms: Date.now() - t0,
-        error_text: message,
-      });
-      throw e;
-    }
-
-    if (RETRYABLE_STATUS.has(res.status) && attempt <= MAX_RETRIES) {
-      const retryAfter = res.headers.get("retry-after");
-      await noteGatewayRetry({
-        fn: fnName,
-        status: res.status,
-        attempt,
-        model: requestedModel,
-        elapsed_ms: Date.now() - t0,
-        error_message: `upstream ${res.status} — retrying`,
-      });
-      try { await res.body?.cancel(); } catch { /* nothing buffered */ }
-      await sleep(backoffMs(attempt, retryAfter));
-      continue;
-    }
-    break;
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (e) {
+    logAiCall({
+      ...meta,
+      provider: "lovable_gateway",
+      model: requestedModel,
+      outcome: "error",
+      duration_ms: Date.now() - t0,
+      error_text: e instanceof Error ? e.message : String(e),
+    });
+    throw e;
   }
-
-
 
   const duration_ms = Date.now() - t0;
   if (!res.ok) {

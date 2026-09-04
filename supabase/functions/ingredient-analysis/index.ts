@@ -24,7 +24,6 @@ import { requireAuthedUser as requireSignedInUser, isServiceRoleCaller } from ".
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
-import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
@@ -923,12 +922,8 @@ async function runLovable(args: {
 // Kept inline for the lovable path — persona must travel verbatim.
 const STRAND_PERSONA_INLINE = STRAND_PERSONA_WITH_RULES;
 
-Deno.serve(withScanDiagnostics("ingredient-analysis", async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight();
-
-  // Wall clock for diagnostics — set before ANYTHING can throw.
-  const requestStartedAt = Date.now();
-  let loggedIngredientCount: number | null = null;
 
   const kill = checkKillSwitch();
   if (kill) return kill;
@@ -999,11 +994,7 @@ Deno.serve(withScanDiagnostics("ingredient-analysis", async (req) => {
     } = body;
 
     if (!productKey || !productName) {
-      return json(400, {
-        error: "Missing product info",
-        code: "missing_product_info",
-        message: "We couldn't tell which product to analyse. Nothing has been saved — please reopen it from your shelf and try again.",
-      });
+      return json(400, { error: "Missing product info" });
     }
 
     // THE ingredient list. `user_products.ingredients` is the stored source of
@@ -1518,8 +1509,6 @@ Deno.serve(withScanDiagnostics("ingredient-analysis", async (req) => {
 
 
     const ingredientCount = rawIngredients.length;
-    loggedIngredientCount = ingredientCount;
-
     // Frequency list only — used purely as a RAG retrieval trigger, never as
     // a negative signal. See _shared/flagged-ingredients.ts.
     const avoidList = Array.isArray(body.context?.flagged_ingredients)
@@ -2155,11 +2144,6 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
 
     return json(200, { cached: false, analysis });
   } catch (e) {
-    return await scanErrorResponse(e, {
-      function_name: "ingredient-analysis",
-      phase: "analysis",
-      elapsed_ms: Date.now() - requestStartedAt,
-      ingredient_count: loggedIngredientCount,
-    });
+    return aiErrorResponse(e, "ingredient-analysis");
   }
-}));
+});

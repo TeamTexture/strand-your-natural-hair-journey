@@ -35,18 +35,10 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
-import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
-import { logScanTiming } from "../_shared/scan-timing-log.ts";
-import { startCpuMeter } from "../_shared/cpu-meter.ts";
-import { saveScanRecovery } from "../_shared/scan-recovery.ts";
-import { logStreamOutcome, traceSse } from "../_shared/sse-log.ts";
-import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
-
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
-import { scanRetrievalQuery } from "../_shared/scan-rag-query.ts";
 import {
   CHAPTER_WHITELIST_PROMPT,
 } from "../_shared/book-chapters.ts";
@@ -91,8 +83,7 @@ import {
 } from "../_shared/topical-sensitivity.ts";
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
-import { RETRY_TAIL_MS, startTimeBudget } from "../_shared/time-budget.ts";
-import { createPartialEmitter, startHeartbeat } from "../_shared/partial-emitter.ts";
+import { startTimeBudget } from "../_shared/time-budget.ts";
 import { recordAiOutcome } from "../_shared/ai-meter.ts";
 
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
@@ -158,10 +149,6 @@ interface RequestBody {
    *  `complete` event carries the same fully guarded payload the plain JSON
    *  response returns. */
   stream?: boolean;
-  /** RECOVERY (2026-09-04): client-generated UUID for this scan. The finished
-   *  payload is persisted under it before `complete` is emitted, so a dropped
-   *  connection cannot discard finished work. */
-  scan_id?: string;
 
 }
 
@@ -215,7 +202,11 @@ function toAnthropicImageSource(image_url: string): ImageBlockSource {
 // ─── Task instructions for Claude ──────────────────────────────────────
 function buildTaskInstructions(tipsLevel: TipsLevel): string {
   const cap = levelCap(tipsLevel);
-  return `You're looking at two photos of the same product. Extract product_name and brand primarily from photo 1 (front), and the full INCI list and directions primarily from photo 2 (back).
+  return `You're looking at two photos of the same product — front (brand + product name) and back (ingredient panel + usage instructions). Read both photos carefully. Return JSON only via the return_product_analysis tool.
+
+Voice for this task: every prose field (ai_summary, key_ingredients[].reason, use_cases, tips) follows the VOICE PRINCIPLES from the system block. In short — explain the mechanism FIRST and land the verdict second; use connectives like "this means", "which is why", "so"; talk to "you" not "your hair"; translate any cosmetic-chemistry term the first time it appears in a field; professional, direct, and never over-familiar.
+
+1. Extract product_name and brand primarily from photo 1 (front). Extract the full INCI ingredients list and any directions primarily from photo 2 (back).
 
 2. If either photo is partial, blurry, in a foreign language, or missing critical info: USE web_search to find the canonical product. Search for queries like '[brand] [product name] ingredients' or '[brand] [product name] INCI'. Use web_search up to 2 times — judiciously, only when needed. Do NOT search if the two photos already provide a clear, complete brand + INCI combination.
 
@@ -237,13 +228,16 @@ function buildTaskInstructions(tipsLevel: TipsLevel): string {
 
 6. Field rules — strict:
    - product_name / brand: read from photo 1 if legible; resolve via web_search when partial. NEVER invent. If you can't determine confidently after searching, return the closest readable text and start ai_summary with "Couldn't fully read the label —".
+   - category: pick the single best fit from the enum.
    - application_area / leave_on: read STRICTLY off the label's directions. application_area = "scalp" (scalp/partings only), "lengths_ends" (mid-lengths and ends only), "scalp_and_lengths" (whole head), "rinse_out" (applied then rinsed off during washing). leave_on = true when the directions say it stays on the hair, false when it is rinsed out. If the label does not say, return "unknown" and omit leave_on — NEVER guess from the product name or category.
 
    - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when photo 2's list is partial; otherwise transcribe what's visible.
    - key_ingredients: pick 4–8 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a FREQUENCY COUNT of ingredients she already owns (3+ saved products) — it is NEVER a reason to flag "avoid".
-   - Lead the analysis with evidenced benefits. Raise a caution only when you are more than 80% certain it is genuinely an issue for this member's recorded characteristics; otherwise omit it.
    - match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable hair/health traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients the member already owns frequently (history.flagged_ingredients) — frequency of ownership is not a fit signal in either direction, and must not appear as a negative score factor.
+   - ai_summary: 2 short sentences max, second-person, professional and direct. Open with the SPECIFIC reason from THIS user's context (their goal, challenge, scalp condition, or porosity — never the style they're in, and never the fact that ingredients recur across her shelf) and what that means for the formula in front of them — then land the verdict in the second sentence. Use a connective ("which is why", "so", "this means") to bridge the two. A frequently-owned ingredient may only be mentioned neutrally ("cetearyl alcohol appears in four products on your shelf") and never as a risk, concern or reason the product scores lower.
    - usage_instructions: VERBATIM directions from the manufacturer if visible on photo 2 OR resolved via web_search. If neither source provides directions, return "" — never invent.
+   - use_cases: up to ${cap} concrete tips for how THIS user gets the MOST out of this product for their own hair characteristics specifically. EVERY item must name the actual trait it is written for — their porosity, density, strand width, scalp condition, length or a stated goal — in the sentence itself (e.g. "On low-porosity strands, …"). A tip that would read the same for any hair type is INVALID; rewrite it or drop it. Do NOT repeat manufacturer directions.
+   - tips: up to ${cap} personalised reasoning tips about fit/usage that go beyond use_cases. Anchor each in the user's data.
 
 ${SURFACTANT_STRENGTH_RULES}
 
@@ -263,6 +257,7 @@ MATCH SCORE — RE-REASON EVERY TIME, NEVER ANCHOR:
 match_score must be re-derived from scratch on every generation using ONLY this user's current profile: goals, porosity, hair characteristics (density, texture, elasticity, scalp), and any flagged blood markers relevant to this product, weighed against the product's actual INCI list and key_ingredients flags. Do NOT anchor the score to the product's marketing claims, its brand reputation, review ratings, or a generic judgement of "this is a well-made/premium product" — a well-marketed or high-quality product with a formulation mismatched to THIS user's profile must score LOW, and a plain/inexpensive product that matches THIS user's profile well must score HIGH.
 - pair_with: OPTIONAL. Up to 3 items from the user's shelf (context.shelf), high_rated_products, or existing tools/favourites that layer well with THIS product. Reference each by real name and brand. { item, why } — "why" is one sentence tying the pairing to a user hair goal, challenge, hair characteristic, or wash-day step. Empty array if nothing on the shelf pairs meaningfully. NEVER invent products.
 - routine_suggestion: OPTIONAL. 1–2 short sentences slotting THIS product into the user's routine — reference recent wash-day steps, cadence, or how long the hair has been worn up (a duration, never a style name) when relevant. Empty string if nothing meaningful.
+- ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (their porosity, density, scalp condition, a goal, a challenge, a flagged ingredient pattern, etc. — never the style they're in) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence. Use a connective ("which is why", "so", "this means") between mechanism and verdict. Don't restate the same signal twice.
 - key_ingredients: 4–6 items MAXIMUM. Pick the ingredients that most affect the verdict, not every ingredient with a benefit.
 
 PRODUCT ANALYSIS SCOPE — HARD RULE:
@@ -408,11 +403,9 @@ function scrubScanUsage(payload: Record<string, unknown>): number {
 // is reused by every retry attempt and by the stage 3 citation verification
 // (via noteEvidence). Nothing about the prompt content changes.
 export function scanRagQuery(context: Record<string, unknown> | undefined): string {
-  // TARGETED RETRIEVAL (2026-09-04). Same number of passages, chosen for THIS
-  // member instead of by a fixed keyword string. A photo scan reads the label
-  // inside the model call, so no ingredient list exists yet at retrieval time —
-  // the query is built from her recorded signals. See _shared/scan-rag-query.ts.
-  return scanRetrievalQuery({ context: context ?? {} });
+  return `product ingredients Afro hair porosity scalp moisture protein sulfate silicone oils butters ${
+    context?.hairProfile ? JSON.stringify(context.hairProfile).slice(0, 200) : ""
+  }`;
 }
 
 // ─── Provider: Claude ──────────────────────────────────────────────────
@@ -473,8 +466,9 @@ Return JSON only via the return_product_analysis tool.`;
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse",
-    static_task_instructions: `${buildTaskInstructions(tipsLevel)}${SCAN_USAGE_GROUNDING_BLOCK}${OUTPUT_ECONOMY_RULES}`,
-    task_instructions: `${args.sensitivityBlock ?? ""}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${
+    task_instructions: `${buildTaskInstructions(tipsLevel)}${
+      args.sensitivityBlock ?? ""
+    }${SCAN_USAGE_GROUNDING_BLOCK}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}${
       searchDecision.enabled
         ? ""
         : `
@@ -506,10 +500,7 @@ NO SEARCH TOOL IS AVAILABLE ON THIS CALL. Ignore every instruction above that of
     // Note: NOT setting toolChoice. With server-side web_search, Anthropic
     // requires the model to remain free to invoke server tools, so we
     // describe the contract in the task instructions instead.
-    // 4096 truncated the tool call on long INCI panels: the JSON arrived
-    // incomplete, parsing failed, and a whole retry (plus its model time)
-    // was spent re-writing an answer that was already correct.
-    max_tokens: 8192,
+    max_tokens: 4096,
   });
 
   const result = await callClaude<ProductAnalysisPayload>({
@@ -718,7 +709,7 @@ Return strict JSON matching the schema in your system prompt.`;
 }
 
 // ─── Edge function entry ───────────────────────────────────────────────
-Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
   const kill = checkKillSwitch();
@@ -727,21 +718,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
   // Wall-clock budget for this whole request, retries included.
   const timeBudget = startTimeBudget();
 
-  // STEP 1 (2026-09-04) — real failure diagnostics. These three travel with
-  // the request so a failure can say WHAT failed, WHERE, after how long, and
-  // with how many ingredients read. No member content is captured.
-  const startedAt = Date.now();
-  // CPU HEADROOM (2026-09-04): wall time alone hid how close we ran to the
-  // worker CPU limit. Measured for every scan, reported in scan_timings.
-  const cpuMeter = startCpuMeter();
-  const diag = {
-    phase: "start" as string,
-    ingredientCount: null as number | null,
-    userId: null as string | null,
-    provider: null as string | null,
-    attempt: null as number | null,
-  };
-
 
 
 
@@ -749,8 +725,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
     const { user, supabase } = auth;
-    diag.userId = user.id;
-    diag.phase = "parse_request";
 
     const body = (await req.json()) as RequestBody;
     {
@@ -771,14 +745,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     const pipeline = async (
       emit: ((event: string, data: unknown) => void) | null,
     ): Promise<Record<string, unknown> | Response> => {
-    // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
-    // only: nothing below changes what is generated or how it is grounded.
-    const retrievalAtStart = retrievalStatsSnapshot();
-    let labelReadAt: number | null = null;
-    let analysisStartedAt: number | null = null;
     const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_PHOTO");
-
-    diag.provider = provider;
 
 
     // ── Input validation: provider-specific contracts (audit §5 Step 3) ──
@@ -839,18 +806,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         : cached._model_version === LOVABLE_MODEL_VERSION;
       const hashOk = cached._profile_snapshot_hash === profileHash;
       if (versionOk && hashOk) {
-        void logScanTiming({
-          function_name: "product-analyse",
-          surface: "product-analyse",
-          user_id: user.id,
-          total_ms: Date.now() - startedAt,
-          cpu_ms: cpuMeter.cpuMs(),
-          cpu_pct_of_limit: cpuMeter.cpuPctOfLimit(),
-          cache_hit: true,
-          retrieval_call_count: 0,
-          retrieval_ms: 0,
-          meta: { provider },
-        });
         return await sanitiseAndLog(
           annotateProductSensitivities(
             cached as unknown as Record<string, unknown>,
@@ -860,7 +815,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           "product-analyse",
         ) as unknown as Record<string, unknown>;
       }
-
 
     }
 
@@ -928,15 +882,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         return null;
       });
 
-    // CRITICAL PATH (2026-09-04) — the photo writer prompt does NOT consume the
-    // stage 1 evidence block (this surface grounds the writer on the retrieved
-    // manuscript passages instead), but the gather registers the source text the
-    // fidelity/citation sanitiser verifies against. So it is no longer AWAITED
-    // before the model call — it runs alongside the ~40s generation and is
-    // awaited only where it is genuinely needed, in the sanitise step. Grounding
-    // and fidelity verification are unchanged; ~6.5s leaves the serial path.
-    const [vocabulary, prefetchedGrounding] = await Promise.all([
+    const [vocabulary, prefetchedEvidence, prefetchedGrounding] = await Promise.all([
       loadIngredientVocabulary(supabase as never),
+      evidencePromise,
       lovableGroundingPromise,
     ]);
 
@@ -977,10 +925,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         }));
       },
       generate: async (info) => {
-        diag.attempt = info.attemptNumber;
-        diag.phase = `model_call_attempt_${info.attemptNumber}`;
-        if (analysisStartedAt === null) analysisStartedAt = Date.now();
-
 
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
@@ -992,22 +936,15 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             sensitivityBlock,
             tierBlock,
             retryInstruction: info.retryInstruction,
-            // Only the first attempt streams: a retry would otherwise rewrite
-            // the preview the member is already reading. Emission is throttled
-            // and stops once the ingredient array closes — per-delta emission
-            // spent the worker's 2s CPU allowance and killed the isolate.
-            onPartialJson: info.attemptNumber === 1 && emit
-              ? createPartialEmitter(emit, {
-                onCount: (n) => {
-                  diag.ingredientCount = n;
-                  // First moment the label had been read off the photos.
-                  if (labelReadAt === null) labelReadAt = Date.now();
-                },
-              })
+            prefetchedEvidence: prefetchedEvidence
+              ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
               : undefined,
-
+            // Only the first attempt streams: a retry would otherwise rewrite
+            // the preview the member is already reading.
+            onPartialJson: emit && info.attemptNumber === 1
+              ? (acc) => emit("partial", { json: acc })
+              : undefined,
           });
-          const firstReadMs = Date.now() - (analysisStartedAt ?? Date.now());
           // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
           // Grant one searching pass ONLY when the pack could not be resolved
           // from the photos — the majority of scans never pay for it.
@@ -1018,18 +955,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             needed: searchRetry.needed,
             reason: searchRetry.reason,
           }));
-          // A searching pass is a SECOND full model call inside one attempt.
-          // Only start it if the budget can still finish the tail afterwards.
-          const canAffordSearch = timeBudget.canAfford(firstReadMs + RETRY_TAIL_MS);
-          if (searchRetry.needed && !canAffordSearch) {
-            console.warn(JSON.stringify({
-              function: "product-analyse",
-              event: "search_retry_skipped_budget",
-              first_read_ms: firstReadMs,
-              remaining_ms: timeBudget.remaining(),
-            }));
-          }
-          if (searchRetry.needed && canAffordSearch) {
+          if (searchRetry.needed) {
             const searched = await runClaude({
               front_image_url: frontPhoto!,
               back_image_url: backPhoto!,
@@ -1039,6 +965,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               sensitivityBlock,
               tierBlock,
               retryInstruction: info.retryInstruction,
+              prefetchedEvidence: prefetchedEvidence
+                ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
+                : undefined,
               allowSearch: true,
             });
             payload = searched.payload;
@@ -1216,12 +1145,8 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
       // pre-sanitise payload and returning the post-sanitise one is what made
       // `ai_summaries` hold four reasons while the member read three. One
       // payload now: what we store is exactly what we deliver.
-      sanitise: async (payload, info) => {
-        // Fidelity verification reads the stage 1 evidence the gather registers,
-        // so it is awaited here — off the critical path, but always before the
-        // sanitiser runs.
-        await evidencePromise;
-        return await sanitiseAndLog(payload, "product-analyse", {
+      sanitise: async (payload, info) =>
+        await sanitiseAndLog(payload, "product-analyse", {
           surface: "product-analyse",
           userId: user.id,
           generationId: info.generationId,
@@ -1229,11 +1154,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason: info.retryReason,
           onRejected: info.onRejected,
-        }) as unknown as ProductAnalysisPayload;
-      },
+        }) as unknown as ProductAnalysisPayload,
     });
 
-    diag.phase = "post_model_guardrails";
     let analysis = loop.payload;
     if (loop.unresolvedRules.length) {
       console.warn(JSON.stringify({
@@ -1249,26 +1172,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     // reaching the member empty.
     backfillHollowSummary(analysis as unknown as Record<string, unknown>, "ai_summary");
 
-    (analysis as unknown as Record<string, unknown>)._profile_snapshot_hash = profileHash;
-
-    // ── NEVER LOSE FINISHED WORK (2026-09-04, moved 2026-09-04 pm) ─────
-    // The guarded analysis is FINISHED at this point. It is persisted HERE,
-    // before the QA trail, the cache upsert, the advice ledger and the timing
-    // write — every one of which used to run first, and one of which the worker
-    // was killed inside ("CPU Time exceeded" one second after the guardrail
-    // stage settled), discarding a complete analysis. Nothing but the payload
-    // itself is needed for the member to see her result, so nothing else runs
-    // before it is safe on the server.
-    await saveScanRecovery({
-      supabase,
-      userId: user.id,
-      scanId: body.scan_id,
-      functionName: "product-analyse",
-      payload: analysis as unknown as Record<string, unknown>,
-    });
-
     // INTERNAL QA TRAIL — admin-only, never member-facing, never awaited in a
-
     // way that can fail a scan. Profile fields are read off tiered.context, so
     // the order recorded is the order the model was actually given.
     if (scoreDebug) {
@@ -1295,7 +1199,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
 
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
-    diag.phase = "cache_write";
     if (cacheKind) {
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -1324,40 +1227,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         : [],
     );
 
-      // SUCCESS TIMINGS (2026-09-04) — fire-and-forget, admin-only.
-      {
-        const finishedAt = Date.now();
-        const retrieval = retrievalStatsSince(retrievalAtStart);
-        const ingredientCount = Array.isArray(
-          (analysis as { ingredients?: unknown }).ingredients,
-        )
-          ? ((analysis as { ingredients: unknown[] }).ingredients.length)
-          : diag.ingredientCount;
-        void logScanTiming({
-          function_name: "product-analyse",
-          surface: "product-analyse",
-          user_id: user.id,
-          ocr_ms: labelReadAt ? labelReadAt - startedAt : null,
-          retrieval_ms: retrieval.ms,
-          retrieval_call_count: retrieval.calls,
-          analysis_ms: analysisStartedAt ? finishedAt - analysisStartedAt : null,
-          total_ms: finishedAt - startedAt,
-          ingredient_count: ingredientCount,
-          attempts: loop.attempts,
-          cpu_ms: cpuMeter.cpuMs(),
-          cpu_pct_of_limit: cpuMeter.cpuPctOfLimit(),
-          cache_hit: false,
-          meta: { provider, streamed: wantsStream },
-        });
-      }
-
-      // (the recovery row was written immediately after the guardrail stage —
-      // see NEVER LOSE FINISHED WORK above. Nothing is persisted here.)
-
-
-
       return analysis as unknown as Record<string, unknown>;
-
     };
 
     if (!wantsStream) {
@@ -1372,7 +1242,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
-        const rawSend = (event: string, data: unknown) => {
+        const send = (event: string, data: unknown) => {
           try {
             controller.enqueue(
               encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
@@ -1382,17 +1252,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             // writes its cache row so the next open is free.
           }
         };
-        // EVENT TRACE (2026-09-04): every emitted event is logged with a
-        // sequence number and a wall-clock offset, so "complete was never
-        // emitted" and "complete never arrived" are distinguishable.
-        const trace = traceSse(rawSend, "product-analyse", startedAt);
-        const send = trace.send;
         // Flush immediately so the browser opens the stream (and the member
         // sees the "reading the label" state) without waiting on the model.
         send("open", { ok: true });
-        // Keep the stream alive through the silent stretches (guardrail
-        // retries, post-processing, cache writes) so mobile proxies don't drop it.
-        const stopHeartbeat = startHeartbeat(send);
         try {
           const result = await pipeline(send);
           if (result instanceof Response) {
@@ -1402,32 +1264,17 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               parsed = JSON.parse(text);
             } catch { /* non-JSON body */ }
             send("error", { status: result.status, body: parsed });
-            logStreamOutcome("product-analyse", "error", trace, startedAt);
           } else {
-            // `complete` is emitted directly on the stream — it never travels
-            // the throttled/deduplicated partial path and is never gated by it.
             send("complete", result);
-            logStreamOutcome("product-analyse", "complete", trace, startedAt);
           }
         } catch (e) {
-          // STEP 1: the real error travels to the client and to scan_errors.
-          const resp = await scanErrorResponse(e, {
-            function_name: "product-analyse",
-            phase: diag.phase,
-            user_id: diag.userId,
-            elapsed_ms: Date.now() - startedAt,
-            ingredient_count: diag.ingredientCount,
-            meta: { provider: diag.provider, attempt: diag.attempt, mode: "stream" },
-          });
+          const resp = aiErrorResponse(e, "product-analyse");
           let parsed: unknown = { error: "analysis_failed" };
           try {
             parsed = JSON.parse(await resp.text());
           } catch { /* non-JSON body */ }
           send("error", { status: resp.status, body: parsed });
-          logStreamOutcome("product-analyse", "error", trace, startedAt);
         } finally {
-          // Heartbeat interval always cleared, on every exit path.
-          stopHeartbeat();
           try {
             controller.close();
           } catch { /* already closed */ }
@@ -1444,13 +1291,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     });
 
   } catch (e) {
-    return await scanErrorResponse(e, {
-      function_name: "product-analyse",
-      phase: diag.phase,
-      user_id: diag.userId,
-      elapsed_ms: Date.now() - startedAt,
-      ingredient_count: diag.ingredientCount,
-      meta: { provider: diag.provider, attempt: diag.attempt, mode: "json" },
-    });
+    return aiErrorResponse(e, "product-analyse");
   }
-}));
+});

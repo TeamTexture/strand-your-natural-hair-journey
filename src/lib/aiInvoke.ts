@@ -67,30 +67,10 @@ async function ensureFreshSession(): Promise<boolean> {
   return !!refreshed.session;
 }
 
-/**
- * NO ENDLESS LOADING (2026-09-04). A member opening a product could sit on a
- * spinner forever: if the edge function never answered (isolate killed, upstream
- * hang), the promise simply never settled and no error state was ever shown.
- * Every AI call now resolves within `timeoutMs` — the server keeps working and
- * caches its result, and the caller gets a readable error with a retry.
- */
-export const AI_INVOKE_TIMEOUT_MS = 150_000;
-
-export class AiInvokeTimeout extends Error {
-  readonly code = "client_timeout";
-  constructor() {
-    super(
-      "This is taking longer than expected, so we've stopped waiting. Nothing has been lost — tap retry and it usually completes.",
-    );
-    this.name = "AiInvokeTimeout";
-  }
-}
-
 /** Invoke an AI edge function, sharing any identical call already in flight. */
 export async function aiInvoke<T = unknown>(
   fn: string,
   body?: Record<string, unknown>,
-  opts?: { timeoutMs?: number },
 ): Promise<{ data: T | null; error: unknown }> {
   const invokeBody = await bodyForInvoke(body);
   const key = keyFor(fn, invokeBody);
@@ -114,14 +94,6 @@ export async function aiInvoke<T = unknown>(
     inflight.delete(key);
   });
   inflight.set(key, run);
-
-  const timeoutMs = opts?.timeoutMs ?? AI_INVOKE_TIMEOUT_MS;
-  if (timeoutMs <= 0) return run as Promise<{ data: T | null; error: unknown }>;
-  return Promise.race([
-    run as Promise<{ data: T | null; error: unknown }>,
-    new Promise<{ data: T | null; error: unknown }>((resolve) =>
-      setTimeout(() => resolve({ data: null, error: new AiInvokeTimeout() }), timeoutMs)
-    ),
-  ]);
+  return run as Promise<{ data: T | null; error: unknown }>;
 }
 

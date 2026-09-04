@@ -29,13 +29,8 @@ describe("analysis functions enforce the budget", () => {
     const src = read("supabase/functions/_shared/guardrail-loop.ts");
     expect(src).toContain("canAfford(lastAttemptMs + tailMs)");
     expect(src).toContain("guardrail_budget_exhausted");
-    // A budget stop must return the held safe payload. It must never call the
-    // generator for the attempt that was just declared unaffordable.
-    expect(src).toContain("if (payload !== null)");
-    expect(src).toContain("const terminalPost = await input.postProcess(payload, terminalInfo)");
-    expect(src).toContain("payload = await input.sanitise(payload");
-    expect(src).toContain("attempts: terminalInfo.attemptNumber");
-    expect(src).not.toContain("attemptNumber === maxAttempts || !affordable");
+    // A budget stop must behave like the attempt cap, not like an error.
+    expect(src).toContain("attemptNumber === maxAttempts || !affordable");
   });
 
   it("product-analyse passes a request budget into the loop", () => {
