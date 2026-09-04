@@ -32,6 +32,7 @@ describe("analysis functions enforce the budget", () => {
     // A budget stop must return the held safe payload. It must never call the
     // generator for the attempt that was just declared unaffordable.
     expect(src).toContain("if (payload !== null)");
+    expect(src).toContain("const terminalPost = await input.postProcess(payload, terminalInfo)");
     expect(src).toContain("payload = await input.sanitise(payload");
     expect(src).toContain("attempts: terminalInfo.attemptNumber");
     expect(src).not.toContain("attemptNumber === maxAttempts || !affordable");

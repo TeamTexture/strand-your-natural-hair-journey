@@ -125,6 +125,11 @@ export async function runGuardrailLoop<T, V>(
           retryReason: retryReasonFromRules(retryRules),
           generationId,
         };
+        // Re-run deterministic post-processing as a final attempt so callers
+        // apply their terminal field-null / sentence-scrub fallback. This does
+        // not call the model and is what makes serving the held payload safe.
+        const terminalPost = await input.postProcess(payload, terminalInfo);
+        violations = terminalPost.violations;
         const rejected: string[] = [];
         payload = await input.sanitise(payload, {
           ...terminalInfo,
@@ -134,7 +139,13 @@ export async function runGuardrailLoop<T, V>(
           payload,
           attempts: terminalInfo.attemptNumber,
           generationId,
-          unresolvedRules: [...new Set([...(retryRules ?? []), ...rejected])],
+          unresolvedRules: [
+            ...new Set([
+              ...(retryRules ?? []),
+              ...terminalPost.retryRules,
+              ...rejected,
+            ]),
+          ],
           violations,
         };
       }
