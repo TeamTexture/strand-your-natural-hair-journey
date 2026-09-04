@@ -7,6 +7,7 @@ import TitleBar from "@/components/TitleBar";
 import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyInvokeError, memberSafeMessage } from "@/lib/invokeError";
 import { useProSubscription } from "@/hooks/useProSubscription";
 import { useRoles } from "@/hooks/useRoles";
 import { useQuery } from "@tanstack/react-query";
@@ -81,11 +82,20 @@ const ProBilling = () => {
     setBusy("subscribe");
     try {
       const { data, error } = await supabase.functions.invoke("pro-checkout");
-      if (error) throw error;
+      if (error) {
+        throw new Error(
+          await friendlyInvokeError(
+            error,
+            "We couldn't start checkout just now. Nothing has been charged — please try again.",
+          ),
+        );
+      }
       if (!data?.url) throw new Error("Checkout URL missing");
       window.location.href = data.url;
     } catch (e: any) {
-      toast.error(e.message ?? "Could not start checkout");
+      toast.error(
+        memberSafeMessage(e, "We couldn't start checkout just now. Nothing has been charged — please try again."),
+      );
       setBusy(null);
     }
   };
@@ -94,11 +104,20 @@ const ProBilling = () => {
     setBusy("portal");
     try {
       const { data, error } = await supabase.functions.invoke("pro-portal");
-      if (error) throw error;
+      if (error) {
+        throw new Error(
+          await friendlyInvokeError(
+            error,
+            "We couldn't open your billing portal just now. Your subscription is unchanged — please try again.",
+          ),
+        );
+      }
       if (!data?.url) throw new Error("Portal URL missing");
       window.location.href = data.url;
     } catch (e: any) {
-      toast.error(e.message ?? "Could not open billing portal");
+      toast.error(
+        memberSafeMessage(e, "We couldn't open your billing portal just now. Your subscription is unchanged — please try again."),
+      );
       setBusy(null);
     }
   };

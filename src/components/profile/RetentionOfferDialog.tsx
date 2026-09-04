@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import RetentionHelpSection from "@/components/profile/RetentionHelpSection";
 import { useClaimRetentionOffer, type RetentionOfferCheck } from "@/hooks/useRetentionOffer";
+import { memberSafeMessage } from "@/lib/invokeError";
 
 const money = (n: number) => `£${n.toFixed(2)}`;
 
@@ -111,12 +112,21 @@ const RetentionOfferDialog = ({
               onClick={() => {
                 setError(null);
                 claim.mutate(undefined, {
-                  onSuccess: () => {
+                  onSuccess: (res) => {
                     onOpenChange(false);
-                    toast("Your discount is on — half price for the next 3 months");
+                    // State the outcome without ambiguity: applied, at what
+                    // price, for how long, and that the membership stays.
+                    toast.success(
+                      offer.trialing
+                        ? `Discount applied — ${money(res.discounted_price)} a month for ${res.months} months once your trial ends. Your membership stays active.`
+                        : `Discount applied — ${money(res.discounted_price)} a month for your next ${res.months} months. Your membership stays active and is not cancelled.`,
+                    );
                   },
                   onError: (e) => {
-                    const msg = e instanceof Error ? e.message : "Could not apply your discount";
+                    const msg = memberSafeMessage(
+                      e,
+                      "We couldn't apply your discount just now. Nothing has changed on your membership — please try again.",
+                    );
                     setError(msg);
                     toast.error(msg);
                   },

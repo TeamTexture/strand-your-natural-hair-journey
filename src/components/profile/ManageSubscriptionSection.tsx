@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import RetentionOfferDialog from "@/components/profile/RetentionOfferDialog";
 import { useRetentionOffer } from "@/hooks/useRetentionOffer";
+import { memberSafeMessage } from "@/lib/invokeError";
 
 const PLUS_PRICE = 14.99;
 
@@ -226,7 +227,12 @@ const ManageSubscriptionSection = () => {
   const openPortal = (label: string, flow: "subscription_update" | "subscription_cancel" | "portal") =>
     portal.mutate({ returnPath: "/profile", flow }, {
       onError: (e) =>
-        toast.error(e instanceof Error ? e.message : `Could not open ${label}`),
+        toast.error(
+          memberSafeMessage(
+            e,
+            `We couldn't open ${label} just now. Nothing has changed on your membership — please try again.`,
+          ),
+        ),
     });
 
   return (
@@ -313,7 +319,12 @@ const ManageSubscriptionSection = () => {
                     resume.mutate(undefined, {
                       onSuccess: () => toast("Membership resumed"),
                       onError: (e) =>
-                        toast.error(e instanceof Error ? e.message : "Could not resume"),
+                        toast.error(
+                          memberSafeMessage(
+                            e,
+                            "We couldn't resume your membership just now — it is still paused. Please try again.",
+                          ),
+                        ),
                     })
                   }
                   disabled={resume.isPending}
@@ -390,7 +401,12 @@ const ManageSubscriptionSection = () => {
                     toast("Membership paused — resume whenever you like");
                   },
                   onError: (e) =>
-                    toast.error(e instanceof Error ? e.message : "Could not pause"),
+                    toast.error(
+                      memberSafeMessage(
+                        e,
+                        "We couldn't pause your membership just now — it is still active. Please try again.",
+                      ),
+                    ),
                 })
               }
             >
