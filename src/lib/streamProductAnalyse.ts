@@ -80,6 +80,25 @@ export function readPartialAnalysis(accumulated: string): PartialAnalysis {
 
 export class ProductAnalyseError extends Error {}
 
+/**
+ * STEP 1 (2026-09-04): the edge function now returns real diagnostics alongside
+ * its friendly message (phase, error name, status, elapsed ms, ingredients read).
+ * We append a short technical tail so a failed scan can be diagnosed from the
+ * screen instead of guessing between a timeout and a parse failure.
+ */
+function withDiagnostics(message: string, body: unknown): string {
+  const d = (body as { diagnostics?: Record<string, unknown> } | null)?.diagnostics;
+  if (!d) return message;
+  const bits: string[] = [];
+  if (d.phase) bits.push(String(d.phase));
+  if (d.error_name) bits.push(String(d.error_name));
+  if (d.status_code) bits.push(`status ${d.status_code}`);
+  if (typeof d.elapsed_ms === "number") bits.push(`${Math.round(d.elapsed_ms / 1000)}s`);
+  if (typeof d.ingredient_count === "number") bits.push(`${d.ingredient_count} ingredients read`);
+  if (d.error_message && d.error_message !== message) bits.push(String(d.error_message));
+  return bits.length ? `${message}\n\n(${bits.join(" · ")})` : message;
+}
+
 export async function streamProductAnalyse(opts: {
   body: Record<string, unknown>;
   /**
@@ -114,6 +133,7 @@ export async function streamProductAnalyse(opts: {
     try {
       const body = (await resp.json()) as { error?: string };
       if (body?.error) message = body.error;
+      message = withDiagnostics(message, body);
     } catch { /* non-JSON */ }
     throw new ProductAnalyseError(message);
   }
@@ -145,7 +165,10 @@ export async function streamProductAnalyse(opts: {
     if (event === "error") {
       try {
         const parsed = JSON.parse(data) as { body?: { error?: string } };
-        failure = parsed.body?.error ?? "Something went wrong analysing this product.";
+        failure = withDiagnostics(
+          parsed.body?.error ?? "Something went wrong analysing this product.",
+          parsed.body,
+        );
       } catch {
         failure = "Something went wrong analysing this product.";
       }
