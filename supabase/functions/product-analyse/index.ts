@@ -990,10 +990,15 @@ Deno.serve(async (req: Request) => {
             onPartialJson: info.attemptNumber === 1
               ? (acc) => {
                 const n = countPartialIngredients(acc);
-                if (n !== null) diag.ingredientCount = n;
+                if (n !== null) {
+                  diag.ingredientCount = n;
+                  // First moment the label had been read off the photos.
+                  if (labelReadAt === null) labelReadAt = Date.now();
+                }
                 if (emit) emit("partial", { json: acc });
               }
               : undefined,
+
           });
           // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
           // Grant one searching pass ONLY when the pack could not be resolved
