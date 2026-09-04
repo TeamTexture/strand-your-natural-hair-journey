@@ -35,6 +35,10 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
+import {
+  countPartialIngredients,
+  scanErrorResponse,
+} from "../_shared/scan-error-log.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
@@ -718,6 +722,18 @@ Deno.serve(async (req: Request) => {
   // Wall-clock budget for this whole request, retries included.
   const timeBudget = startTimeBudget();
 
+  // STEP 1 (2026-09-04) — real failure diagnostics. These three travel with
+  // the request so a failure can say WHAT failed, WHERE, after how long, and
+  // with how many ingredients read. No member content is captured.
+  const startedAt = Date.now();
+  const diag = {
+    phase: "start" as string,
+    ingredientCount: null as number | null,
+    userId: null as string | null,
+    provider: null as string | null,
+    attempt: null as number | null,
+  };
+
 
 
 
@@ -725,6 +741,8 @@ Deno.serve(async (req: Request) => {
     const auth = await requireAuthedUser(req);
     if (auth instanceof Response) return auth;
     const { user, supabase } = auth;
+    diag.userId = user.id;
+    diag.phase = "parse_request";
 
     const body = (await req.json()) as RequestBody;
     {
@@ -746,6 +764,7 @@ Deno.serve(async (req: Request) => {
       emit: ((event: string, data: unknown) => void) | null,
     ): Promise<Record<string, unknown> | Response> => {
     const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_PHOTO");
+    diag.provider = provider;
 
 
     // ── Input validation: provider-specific contracts (audit §5 Step 3) ──
@@ -925,6 +944,8 @@ Deno.serve(async (req: Request) => {
         }));
       },
       generate: async (info) => {
+        diag.attempt = info.attemptNumber;
+        diag.phase = `model_call_attempt_${info.attemptNumber}`;
 
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
@@ -941,8 +962,12 @@ Deno.serve(async (req: Request) => {
               : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
             // the preview the member is already reading.
-            onPartialJson: emit && info.attemptNumber === 1
-              ? (acc) => emit("partial", { json: acc })
+            onPartialJson: info.attemptNumber === 1
+              ? (acc) => {
+                const n = countPartialIngredients(acc);
+                if (n !== null) diag.ingredientCount = n;
+                if (emit) emit("partial", { json: acc });
+              }
               : undefined,
           });
           // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
@@ -1157,6 +1182,7 @@ Deno.serve(async (req: Request) => {
         }) as unknown as ProductAnalysisPayload,
     });
 
+    diag.phase = "post_model_guardrails";
     let analysis = loop.payload;
     if (loop.unresolvedRules.length) {
       console.warn(JSON.stringify({
@@ -1199,6 +1225,7 @@ Deno.serve(async (req: Request) => {
 
 
     // ── Upsert cache (only when keyed) ────────────────────────────────
+    diag.phase = "cache_write";
     if (cacheKind) {
       const { data: prior } = await supabase
         .from("ai_summaries")
@@ -1268,7 +1295,15 @@ Deno.serve(async (req: Request) => {
             send("complete", result);
           }
         } catch (e) {
-          const resp = aiErrorResponse(e, "product-analyse");
+          // STEP 1: the real error travels to the client and to scan_errors.
+          const resp = await scanErrorResponse(e, {
+            function_name: "product-analyse",
+            phase: diag.phase,
+            user_id: diag.userId,
+            elapsed_ms: Date.now() - startedAt,
+            ingredient_count: diag.ingredientCount,
+            meta: { provider: diag.provider, attempt: diag.attempt, mode: "stream" },
+          });
           let parsed: unknown = { error: "analysis_failed" };
           try {
             parsed = JSON.parse(await resp.text());
@@ -1291,6 +1326,13 @@ Deno.serve(async (req: Request) => {
     });
 
   } catch (e) {
-    return aiErrorResponse(e, "product-analyse");
+    return await scanErrorResponse(e, {
+      function_name: "product-analyse",
+      phase: diag.phase,
+      user_id: diag.userId,
+      elapsed_ms: Date.now() - startedAt,
+      ingredient_count: diag.ingredientCount,
+      meta: { provider: diag.provider, attempt: diag.attempt, mode: "json" },
+    });
   }
 });
