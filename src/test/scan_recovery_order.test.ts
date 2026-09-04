@@ -23,7 +23,7 @@ describe("scan recovery is persisted before any other tail work", () => {
       // exactly one persist call site
       expect(src.split("saveScanRecovery({").length - 1).toBe(1);
       const cache = src.indexOf('.from("ai_summaries")', save > 0 ? 0 : 0);
-      const timing = src.indexOf("logScanTiming({");
+      const timing = src.lastIndexOf("logScanTiming({");
       expect(timing).toBeGreaterThan(save);
       // the cache upsert block that follows the analysis must come after
       const upsert = src.lastIndexOf('kind: cacheKind');
