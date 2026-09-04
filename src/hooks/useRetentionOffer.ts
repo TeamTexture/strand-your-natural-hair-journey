@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { assertNotViewingAs } from "@/lib/viewAsReadOnly";
+import { friendlyInvokeError } from "@/lib/invokeError";
 
 /**
  * One-time "keep my discount" retention offer: half price for 3 months.
@@ -22,36 +23,6 @@ export interface RetentionOfferCheck {
   price: number;
   discounted_price: number;
   months: number;
-}
-
-/**
- * `supabase.functions.invoke()` does NOT put the JSON body of a non-2xx
- * response on `error.message` — it reports "Edge Function returned a non-2xx
- * status code" and hangs the real Response off `error.context`. The member was
- * therefore shown that raw string instead of the friendly server sentence
- * ("This offer has already been used on your membership."). Read the body.
- */
-async function serverMessage(error: unknown): Promise<string | null> {
-  const res = (error as { context?: unknown })?.context;
-  // FunctionsHttpError carries the actual Response; a network failure does not.
-  if (!res || typeof (res as Response).text !== "function") return null;
-  try {
-    const raw = await (res as Response).clone().text();
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw) as { error?: unknown; message?: unknown };
-      const msg = parsed?.error ?? parsed?.message;
-      if (typeof msg === "string" && msg.trim()) return msg.trim();
-    } catch {
-      // Not JSON — a short plain-text body is still better than the generic
-      // string, but never surface an HTML error page to the member.
-      const text = raw.trim();
-      if (text && text.length <= 200 && !text.startsWith("<")) return text;
-    }
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -85,19 +56,26 @@ async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   }
   if (timedOut) {
     throw new Error(
-      "This is taking longer than expected. Your membership has not been changed — please try again.",
+      "This is taking longer than expected. Your membership has not been changed and nothing has been charged — please try again.",
     );
   }
   if (error) {
-    // Generic fallback ONLY when there is genuinely no body to read (network
-    // failure, CORS, function unreachable).
+    // The server's own sentence when it sent one (offer already used, billing
+    // unreachable, invalid promotion); a written fallback otherwise. The raw SDK
+    // string "Edge Function returned a non-2xx status code" never reaches here.
     throw new Error(
-      (await serverMessage(error)) ??
-        "We couldn't reach your membership just now. Please check your connection and try again.",
+      await friendlyInvokeError(
+        error,
+        "We couldn't reach your membership just now, so nothing has changed. Please check your connection and try again.",
+      ),
     );
   }
-  const payload = data as { error?: string } | null;
-  if (payload?.error) throw new Error(payload.error);
+  const payload = data as { error?: string; message?: string } | null;
+  if (payload?.error || payload?.message) {
+    throw new Error(
+      String(payload.message ?? payload.error),
+    );
+  }
   return data as T;
 }
 
