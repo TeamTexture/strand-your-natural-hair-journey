@@ -24,7 +24,10 @@ export function cleanIngredientName(raw: string): string {
     .trim();
 }
 
-const KEEP_UPPER = /^(?:[IVX]+|[A-Z]{1,3}\d*|PEG|PPG|EDTA|DMDM|SLS|SLES|PVP|EU|USA|UV|BHT|BHA|MEA|TEA|PCA|CI)$/;
+const ACRONYMS = new Set([
+  "PEG", "PPG", "EDTA", "DMDM", "SLS", "SLES", "PVP", "UV", "BHT", "BHA",
+  "MEA", "TEA", "PCA", "CI", "SD", "PG", "PVM", "MA", "VP", "AMP", "HC",
+]);
 
 /** Sentence-style casing for a printed panel name; mixed case is left alone. */
 export function formatIngredientName(raw: string): string {
@@ -32,17 +35,9 @@ export function formatIngredientName(raw: string): string {
   if (!name) return "";
   // Already mixed case — the analyser wrote it, so keep it exactly.
   if (name !== name.toUpperCase()) return name;
-  return name
-    .toLowerCase()
-    .replace(/([a-z])([a-z']*)/g, (_m, first: string, rest: string) => `${first.toUpperCase()}${rest}`)
-    .split(/(\s+)/)
-    .map((token) => {
-      const bare = token.replace(/[^A-Za-z0-9]/g, "");
-      const original = name.split(/\s+/).find((w) => w.replace(/[^A-Za-z0-9]/g, "").toUpperCase() === bare.toUpperCase());
-      if (original && KEEP_UPPER.test(original.replace(/[^A-Za-z0-9]/g, ""))) {
-        return token.replace(bare, bare.toUpperCase());
-      }
-      return token;
-    })
-    .join("");
+  return name.replace(/[A-Za-z][A-Za-z']*/g, (word) => {
+    if (ACRONYMS.has(word.toUpperCase())) return word.toUpperCase();
+    if (/^[IVX]+$/.test(word) && word.length > 1) return word.toUpperCase();
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
 }
