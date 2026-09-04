@@ -1205,6 +1205,18 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
     // which is what made the cache and the rendered card disagree.
     analysis = await sanitiseAndLog(analysis, "product-analyse-url") as typeof analysis;
 
+    // ── NEVER LOSE FINISHED WORK (2026-09-04, moved 2026-09-04 pm) ─────
+    // The analysis is finished and guarded here. It is persisted BEFORE the
+    // cache upsert and the timing write, so a worker killed in that tail can
+    // no longer discard a complete analysis: the client recovers it by scan id.
+    await saveScanRecovery({
+      supabase,
+      userId: user.id,
+      scanId: body.scan_id,
+      functionName: "product-analyse-url",
+      payload: analysis as unknown as Record<string, unknown>,
+    });
+
     // ── Upsert cache ───────────────────────────────────────────────
     const { data: prior } = await supabase
       .from("ai_summaries")
@@ -1248,14 +1260,8 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
       });
     }
 
-    // NEVER LOSE FINISHED WORK (2026-09-04) — persisted before streaming.
-    await saveScanRecovery({
-      supabase,
-      userId: user.id,
-      scanId: body.scan_id,
-      functionName: "product-analyse-url",
-      payload: analysis as unknown as Record<string, unknown>,
-    });
+    // (the recovery row was written immediately after the sanitiser — see
+    // NEVER LOSE FINISHED WORK above. Nothing is persisted here.)
 
     return analysis as unknown as Record<string, unknown>;
 
