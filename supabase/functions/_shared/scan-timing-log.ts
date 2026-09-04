@@ -33,6 +33,10 @@ export interface ScanTimingRecord {
   /** Guardrail-loop attempts the answer took. */
   attempts?: number | null;
   cache_hit?: boolean;
+  /** CPU milliseconds (user + system) the isolate burned on this request. */
+  cpu_ms?: number | null;
+  /** Same figure as a percentage of the worker CPU limit — the headroom read. */
+  cpu_pct_of_limit?: number | null;
   /** Free-form extras (provider, health tier…). Never content. */
   meta?: Record<string, unknown> | null;
 }
@@ -64,6 +68,11 @@ export async function logScanTiming(record: ScanTimingRecord): Promise<void> {
       retrieval_call_count: round(record.retrieval_call_count),
       attempts: round(record.attempts),
       cache_hit: record.cache_hit ?? false,
+      cpu_ms: round(record.cpu_ms),
+      cpu_pct_of_limit: typeof record.cpu_pct_of_limit === "number" &&
+          Number.isFinite(record.cpu_pct_of_limit)
+        ? record.cpu_pct_of_limit
+        : null,
       meta: record.meta ?? null,
     });
   } catch (e) {
