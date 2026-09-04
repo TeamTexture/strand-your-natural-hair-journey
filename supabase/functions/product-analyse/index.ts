@@ -155,6 +155,10 @@ interface RequestBody {
    *  `complete` event carries the same fully guarded payload the plain JSON
    *  response returns. */
   stream?: boolean;
+  /** RECOVERY (2026-09-04): client-generated UUID for this scan. The finished
+   *  payload is persisted under it before `complete` is emitted, so a dropped
+   *  connection cannot discard finished work. */
+  scan_id?: string;
 
 }
 
