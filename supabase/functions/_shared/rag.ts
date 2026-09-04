@@ -135,9 +135,12 @@ export async function retrievePassages(
       chapterFilter && chapterFilter.length > 0 ? chapterFilter : null,
   });
 
+  retrievalStats.ms += Date.now() - retrievalStartedAt;
+
   if (error) {
     throw new Error(`match_manuscript_chunks rpc failed: ${error.message}`);
   }
+
 
   const rows = (data ?? []) as ChunkRow[];
   return rows.map((row) => ({
