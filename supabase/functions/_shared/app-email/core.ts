@@ -126,6 +126,18 @@ async function transmit(
       if (res.status !== 429 && res.status < 500) {
         return { id: null, error, permanent: true, status };
       }
+      // Rate limiting (Resend allows 10 requests/second) happens when a
+      // broadcast fans out one invocation per recipient. Holding the worker
+      // open through three long sleeps is what turned those 429s into 504
+      // timeouts on 3 Sep 2026 — and a worker killed mid-flight left its
+      // email_log row stuck on `queued` forever. So a 429 gets ONE short,
+      // jittered retry and is then handed to the retry sweep, which drains
+      // sequentially and well under the provider's limit.
+      if (res.status === 429) {
+        if (attempt >= 2) return { id: null, error, permanent: false, status };
+        await sleep(400 + Math.floor(Math.random() * 900));
+        continue;
+      }
       await sleep(attempt * 700);
     } catch (e) {
       error = String(e).slice(0, 500);
