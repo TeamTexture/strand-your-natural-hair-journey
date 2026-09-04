@@ -1222,8 +1222,10 @@ const IngredientDetail = () => {
             onPick={(f) => uploadPhoto(productKey, f, { name: productName, brand: productBrand })}
             onRemove={() => removePhoto(productKey)}
           />
-          <div className="flex items-center gap-2 max-w-[300px]">
-            <h1 className="font-display text-xl font-semibold leading-tight">
+          {/* The title is optically centred in the card. The heart is pinned to
+              the right so its width can never push the centred name off-centre. */}
+          <div className="relative w-full px-9">
+            <h1 className="font-display text-xl font-semibold leading-tight text-center break-words [overflow-wrap:anywhere]">
               {productName || "Untitled product"}
             </h1>
             {productRow && (
@@ -1233,7 +1235,7 @@ const IngredientDetail = () => {
                 disabled={shelfBusy}
                 aria-label={productRow.on_favourite ? "Remove from favourites" : "Add to favourites"}
                 aria-pressed={productRow.on_favourite}
-                className="shrink-0 p-1 -m-1 transition active:scale-90 disabled:opacity-50"
+                className="absolute right-0 top-0 p-1 transition active:scale-90 disabled:opacity-50"
               >
                 <Heart
                   className={cn(
@@ -1246,6 +1248,7 @@ const IngredientDetail = () => {
               </button>
             )}
           </div>
+
           {productBrand && (
             <button
               type="button"
