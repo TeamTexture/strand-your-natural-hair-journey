@@ -1518,6 +1518,8 @@ Deno.serve(withScanDiagnostics("ingredient-analysis", async (req) => {
 
 
     const ingredientCount = rawIngredients.length;
+    loggedIngredientCount = ingredientCount;
+
     // Frequency list only — used purely as a RAG retrieval trigger, never as
     // a negative signal. See _shared/flagged-ingredients.ts.
     const avoidList = Array.isArray(body.context?.flagged_ingredients)
