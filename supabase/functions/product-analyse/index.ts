@@ -987,20 +987,21 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
               : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
-            // the preview the member is already reading.
-            onPartialJson: info.attemptNumber === 1
-              ? (acc) => {
-                const n = countPartialIngredients(acc);
-                if (n !== null) {
+            // the preview the member is already reading. Emission is throttled
+            // and stops once the ingredient array closes — per-delta emission
+            // spent the worker's 2s CPU allowance and killed the isolate.
+            onPartialJson: info.attemptNumber === 1 && emit
+              ? createPartialEmitter(emit, {
+                onCount: (n) => {
                   diag.ingredientCount = n;
                   // First moment the label had been read off the photos.
                   if (labelReadAt === null) labelReadAt = Date.now();
-                }
-                if (emit) emit("partial", { json: acc });
-              }
+                },
+              })
               : undefined,
 
           });
+          const firstReadMs = Date.now() - (analysisStartedAt ?? Date.now());
           // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
           // Grant one searching pass ONLY when the pack could not be resolved
           // from the photos — the majority of scans never pay for it.
