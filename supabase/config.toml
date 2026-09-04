@@ -35,11 +35,5 @@ verify_jwt = false
 [functions.email-retry-sweep]
 verify_jwt = false
 
-[functions.product-label-read]
-verify_jwt = false
-
-[functions.product-analysis-start]
-verify_jwt = false
-
 [functions.sync-superchat-contact]
 verify_jwt = false
