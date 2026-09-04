@@ -314,7 +314,8 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse-url",
-    task_instructions: `${buildTaskInstructions(tipsLevel)}${args.tierBlock ?? ""}`,
+    static_task_instructions: buildTaskInstructions(tipsLevel),
+    task_instructions: args.tierBlock ?? "",
     user_payload: {},
     user_content: userContent,
     user_context: args.context,

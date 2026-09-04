@@ -481,9 +481,8 @@ Return JSON only via the return_product_analysis tool.`;
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse",
-    task_instructions: `${buildTaskInstructions(tipsLevel)}${
-      args.sensitivityBlock ?? ""
-    }${SCAN_USAGE_GROUNDING_BLOCK}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${OUTPUT_ECONOMY_RULES}${
+    static_task_instructions: `${buildTaskInstructions(tipsLevel)}${SCAN_USAGE_GROUNDING_BLOCK}${OUTPUT_ECONOMY_RULES}`,
+    task_instructions: `${args.sensitivityBlock ?? ""}${args.tierBlock ?? ""}${args.ledgerBlock ? `\n\n${args.ledgerBlock}` : ""}${
       searchDecision.enabled
         ? ""
         : `
