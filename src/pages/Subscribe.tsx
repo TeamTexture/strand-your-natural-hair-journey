@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { verifyConsumerMembership } from "@/lib/membershipVerify";
+import { friendlyInvokeError } from "@/lib/invokeError";
 import ActivatingMembership from "@/components/ActivatingMembership";
 
 import {

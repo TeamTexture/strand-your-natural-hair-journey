@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useConsumerSubscription } from "@/hooks/useConsumerSubscription";
 import { useConsumerPricing, formatGbp } from "@/hooks/useConsumerPricing";
 import { verifyConsumerMembership } from "@/lib/membershipVerify";
+import { friendlyInvokeError } from "@/lib/invokeError";
 import { formatTrialEnd, TRIAL_DAYS } from "@/lib/trialOffer";
 import {
   getConsumerOnboardingStatus,
