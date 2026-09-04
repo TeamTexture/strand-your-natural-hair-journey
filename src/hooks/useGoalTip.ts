@@ -4,6 +4,7 @@ import { challengeSummary, challengesOf } from "@/lib/goalChallenges";
 import { buildAiContext } from "@/lib/aiContext";
 import type { UserGoal } from "@/hooks/useGoals";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentStyleToken } from "@/hooks/useCurrentStyleToken";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { TIPS_LEVEL_AI_DIRECTIVE } from "@/lib/tipsLevel";
 import { aiRetryDelay, retryTransportOnce } from "@/lib/aiRetry";
@@ -146,13 +147,16 @@ const readCachedTip = (sig: string, goalId?: string, level?: number, variantKey?
  *  misses at once, leaving her watching a spinner while a fresh tip is written.
  *  The last good tip for this goal is rendered in the meantime and swapped out
  *  the moment the new one lands. */
-const lastGoodKey = (goalId?: string, level?: number, variantKey = "n3") =>
-  `strand:goal-tip:last:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
+//  It is scoped by the CURRENT STYLE token: stale-while-revalidate is right for
+//  the same style, but copy written for a style she no longer wears must never
+//  render beside freshly generated copy for her new style.
+const lastGoodKey = (goalId?: string, level?: number, variantKey = "n3", styleToken = "nostyle") =>
+  `strand:goal-tip:last:${styleToken}:${goalId ?? "none"}:l${level ?? 3}:${variantKey}`;
 
-const readLastGoodTip = (goalId?: string, level?: number, variantKey?: string): GoalTip | undefined => {
-  if (!goalId) return undefined;
+const readLastGoodTip = (goalId?: string, level?: number, variantKey?: string, styleToken?: string): GoalTip | undefined => {
+  if (!goalId || !styleToken) return undefined;
   try {
-    const raw = localStorage.getItem(lastGoodKey(goalId, level, variantKey));
+    const raw = localStorage.getItem(lastGoodKey(goalId, level, variantKey, styleToken));
     if (!raw) return undefined;
     const parsed = JSON.parse(raw) as GoalTip;
     return tipHasSubstance(parsed) ? parsed : undefined;
@@ -161,10 +165,10 @@ const readLastGoodTip = (goalId?: string, level?: number, variantKey?: string): 
   }
 };
 
-const writeLastGoodTip = (goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string) => {
-  if (!goalId || !tip || !tipHasSubstance(tip)) return;
+const writeLastGoodTip = (goalId: string | undefined, tip: GoalTip | null, level?: number, variantKey?: string, styleToken?: string) => {
+  if (!goalId || !tip || !styleToken || !tipHasSubstance(tip)) return;
   try {
-    localStorage.setItem(lastGoodKey(goalId, level, variantKey), JSON.stringify(tip));
+    localStorage.setItem(lastGoodKey(goalId, level, variantKey, styleToken), JSON.stringify(tip));
   } catch { /* private mode / quota */ }
 };
 
@@ -199,6 +203,7 @@ export const useGoalTip = (
 
   const { level, ready: levelReady } = useTipsLevel();
   const { data: signature } = useTipSignature(goal, level);
+  const { token: styleToken } = useCurrentStyleToken();
   return useQuery({
     queryKey: ["goal-tip", CACHE_VERSION, signature, goal?.id, level, variantKey],
     enabled:
@@ -218,7 +223,7 @@ export const useGoalTip = (
     initialData: () => readCachedTip(signature ?? "", goal?.id, level, variantKey),
     // Stale-while-revalidate: show the last good tip for this goal while a new
     // signature (style change, goal edit) is being generated.
-    placeholderData: () => readLastGoodTip(goal?.id, level, variantKey),
+    placeholderData: () => readLastGoodTip(goal?.id, level, variantKey, styleToken),
     queryFn: async (): Promise<GoalTip | null> => {
       if (!goal) return null;
       const context = await buildAiContext();
@@ -246,7 +251,7 @@ export const useGoalTip = (
       if (error) throw error;
       const tip = (data?.tip as GoalTip) ?? null;
       writeCachedTip(signature ?? "", goal.id, tip, level, variantKey);
-      writeLastGoodTip(goal.id, tip, level, variantKey);
+      writeLastGoodTip(goal.id, tip, level, variantKey, styleToken);
       return tip;
     },
 
