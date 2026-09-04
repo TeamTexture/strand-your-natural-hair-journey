@@ -42,6 +42,9 @@ export function sseResponse(opts: {
         }
       };
       send("open", { ok: true });
+      // Keep idle stretches (retries, post-processing) from being dropped by
+      // mobile proxies. `ping` is unknown to the client, which ignores it.
+      const stopHeartbeat = startHeartbeat(send);
       try {
         const result = await opts.pipeline(send);
         if (result instanceof Response) {
