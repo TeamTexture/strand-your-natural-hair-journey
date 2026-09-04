@@ -141,7 +141,7 @@ const ProfileStep1 = () => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage")
+        .select("avatar_url, display_name, phone_number, birth_year, postcode, country, heritage, whatsapp_opt_in")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -177,6 +177,10 @@ const ProfileStep1 = () => {
       const h = (data as { heritage?: string[] | null } | null)?.heritage;
       if (Array.isArray(h) && h[0]) {
         setHeritage((current) => (current ? current : String(h[0])));
+      }
+      // Only an existing "yes" on file ever ticks the box.
+      if ((data as { whatsapp_opt_in?: boolean | null } | null)?.whatsapp_opt_in === true) {
+        setWhatsappOptIn(true);
       }
       if (p) {
         const { data: sig } = await supabase.storage
