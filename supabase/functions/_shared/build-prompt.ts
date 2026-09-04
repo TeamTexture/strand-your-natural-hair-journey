@@ -271,19 +271,10 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
     systemBlocks.push({ type: "text", text: METHOD_AND_TIMING_RULE });
   }
 
-  // ── VOICE PRINCIPLES (every Claude-path function) ────────────────
-  // Conversational clinician voice. Single source of truth in voice.ts.
-  systemBlocks.push({ type: "text", text: VOICE_PRINCIPLES });
-
-  // ── PARAGRAPH SHAPE (every Claude-path function) ─────────────────
-  // Break at the bridge: mechanism → what it means for her → what to do.
-  systemBlocks.push({ type: "text", text: PARAGRAPH_RULES });
+  // (voice, paragraph shape and routine guardrails are emitted above, inside
+  // the cacheable prefix — see the STATIC STYLE/SAFETY BLOCKS note.)
 
 
-  // ── CORE ROUTINE GUARDRAILS (every Claude-path function) ─────────
-  // Hard-coded manuscript routine baseline so routine/product/style advice
-  // cannot drift into generic AI hair-care guidance.
-  systemBlocks.push({ type: "text", text: CORE_ROUTINE_GUARDRAILS_PROMPT });
 
   // ── USER SUPPORT LEVEL (tips scale 1–4) ──────────────────────────
   // Controls verbosity, depth and beginner-friendliness of generated copy.
