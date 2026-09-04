@@ -189,6 +189,7 @@ Field rules — strict:
 
 - ingredients: full INCI list, lowercase, in label order. Prefer the canonical web-resolved list when the fetched page's list is partial or hidden behind tabs; otherwise transcribe what's visible.
 - key_ingredients: pick 4–6 of the most decision-relevant. flag = "avoid" ONLY when the ingredient is in the member's DECLARED topical sensitivities / documented allergies, or has a documented mechanism that conflicts with their measurable hair/health profile (e.g. drying alcohols on high porosity or sulphates with dry scalp). flag = "good" when the ingredient appears in their high_rated_products or has a documented mechanism that benefits their measurable traits. flag = "warn" otherwise. Existence of a standard preservative / fragrance / colourant is NOT a reason to flag "avoid". history.flagged_ingredients is a NEUTRAL frequency count of ingredients she already owns (3+ saved products) and is NEVER a reason to flag "avoid".
+- Lead the analysis with evidenced benefits. Raise a caution only when you are more than 80% certain it is genuinely an issue for this member's recorded characteristics; otherwise omit it. Never use hair-typing terminology (3C, 4C, "type 4"); use "Afro and textured hair" or name the recorded characteristic.
 - match_score: 0–100. Weight it on category fit, documented ingredient mechanisms against their measurable traits, declared sensitivities, the durable style pattern they usually wear (default_style), blood-marker deficiencies (only when relevant to the product), and goal alignment. NEVER let current_hairstyle or days_in_style move the score. NEVER reduce the score because the formula contains ingredients she already owns frequently — ownership frequency is not a fit signal in either direction.
 - ai_summary: 2–3 sentences MAXIMUM. Open by naming the SPECIFIC user signal that's driving the call (porosity, density, a goal, scalp condition, a challenge — never the style they're in, and never the fact that ingredients recur across her shelf) and what that means for THIS formula — then land the verdict (good fit / mixed fit / poor fit) in the next sentence, bridged with a connective ("which is why", "so", "this means"). Don't restate the same signal twice.
 - usage_instructions: VERBATIM directions from the manufacturer if visible on the page. If no manufacturer directions are available, return "" — never invent or paraphrase.
@@ -314,7 +315,8 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
   const tipsLevel = coerceTipsLevel((args.context as Record<string, unknown> | undefined)?.tipsLevel);
   const req = await buildClaudeRequest({
     function_kind: "product-analyse-url",
-    task_instructions: `${buildTaskInstructions(tipsLevel)}${args.tierBlock ?? ""}`,
+    static_task_instructions: buildTaskInstructions(tipsLevel),
+    task_instructions: args.tierBlock ?? "",
     user_payload: {},
     user_content: userContent,
     user_context: args.context,

@@ -84,6 +84,9 @@ export const FUNCTION_MODEL_MAP: Record<FunctionKind, ClaudeModel> = {
 
 export interface BuildPromptInput {
   function_kind: FunctionKind;
+  /** Invariant task contract. Placed before per-scan evidence/context and
+   *  covered by the final cache breakpoint. */
+  static_task_instructions?: string;
   task_instructions: string;
   user_context?: Record<string, unknown> | null;
   user_payload: Record<string, unknown>;
@@ -203,8 +206,19 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   systemBlocks.push({
     type: "text",
     text: CORE_ROUTINE_GUARDRAILS_PROMPT,
-    cache_control: { type: "ephemeral" },
   });
+
+  // Product-analysis contracts are large but invariant for a given support
+  // level. Keep them ahead of all retrieved/member/product material so the
+  // fourth and final Anthropic cache breakpoint covers the complete static
+  // prefix. The small per-scan task suffix remains below with the member data.
+  if (input.static_task_instructions?.trim()) {
+    systemBlocks.push({
+      type: "text",
+      text: `STATIC TASK CONTRACT\n\n${input.static_task_instructions}`,
+      cache_control: { type: "ephemeral" },
+    });
+  }
 
   // ── Manuscript source ─────────────────────────────────────────────
 
@@ -393,10 +407,12 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   }
 
   // ── Task instructions ────────────────────────────────────────────
-  systemBlocks.push({
-    type: "text",
-    text: `TASK\n\n${input.task_instructions}`,
-  });
+  if (input.task_instructions.trim()) {
+    systemBlocks.push({
+      type: "text",
+      text: `PER-SCAN TASK CONTEXT\n\n${input.task_instructions}`,
+    });
+  }
 
   const defaultUserMessageJson = JSON.stringify(
     {
@@ -430,11 +446,13 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
   try {
     const est = (s: string) => Math.round(s.length / 3.7);
     let cacheable = 0;
-    let seenBreakpoint = false;
+    const lastCacheBreakpoint = systemBlocks.reduce(
+      (last, block, i) => block.cache_control ? i : last,
+      -1,
+    );
     const sections = systemBlocks.map((b, i) => {
       const text = typeof b.text === "string" ? b.text : "";
-      const inPrefix = !seenBreakpoint;
-      if (b.cache_control) seenBreakpoint = true;
+      const inPrefix = i <= lastCacheBreakpoint;
       if (inPrefix) cacheable += est(text);
       return {
         i,
@@ -452,6 +470,20 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
         .join("\n")
       : defaultUserMessageJson;
     const toolChars = JSON.stringify(tools ?? []).length;
+    const taskSections = input.static_task_instructions
+      ? input.static_task_instructions
+        .split(/\n(?=[A-Z][A-Z0-9 /&()'’.,—-]{3,}(?:\n|:))/)
+        .filter((section) => section.trim())
+        .map((section, i) => {
+          const text = section.trim();
+          return {
+            i,
+            label: text.split("\n", 1)[0].slice(0, 80),
+            chars: text.length,
+            est_tokens: est(text),
+          };
+        })
+      : [];
     console.log(JSON.stringify({
       event: "prompt_composition",
       fn: input.function_kind,
@@ -466,6 +498,15 @@ ${STRAND_AUDIENCE_PSYCHOLOGY}`,
         ? input.user_content.filter((c) => c.type === "image").length
         : 0,
     }));
+    if (taskSections.length > 0) {
+      console.log(JSON.stringify({
+        event: "task_composition",
+        fn: input.function_kind,
+        sections: taskSections,
+        total_chars: taskSections.reduce((sum, section) => sum + section.chars, 0),
+        total_est_tokens: taskSections.reduce((sum, section) => sum + section.est_tokens, 0),
+      }));
+    }
   } catch {
     /* measurement must never break a generation */
   }
