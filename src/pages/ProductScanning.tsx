@@ -16,6 +16,7 @@ import {
   type PartialAnalysis,
 } from "@/lib/streamProductAnalyse";
 import { fetchScanRecovery } from "@/lib/scanRecovery";
+import { uuid } from "@/lib/uuid";
 import { toast } from "sonner";
 
 

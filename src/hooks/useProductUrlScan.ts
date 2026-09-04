@@ -13,6 +13,7 @@ import {
   setUrlScanPartial,
   startUrlScanProgress,
 } from "@/lib/urlScanProgress";
+import { uuid } from "@/lib/uuid";
 import { toast } from "sonner";
 
 /** Adds a product from a pasted product-page URL. The edge function fetches
