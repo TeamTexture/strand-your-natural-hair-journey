@@ -937,9 +937,15 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         return null;
       });
 
-    const [vocabulary, prefetchedEvidence, prefetchedGrounding] = await Promise.all([
+    // CRITICAL PATH (2026-09-04) — the photo writer prompt does NOT consume the
+    // stage 1 evidence block (this surface grounds the writer on the retrieved
+    // manuscript passages instead), but the gather registers the source text the
+    // fidelity/citation sanitiser verifies against. So it is no longer AWAITED
+    // before the model call — it runs alongside the ~40s generation and is
+    // awaited only where it is genuinely needed, in the sanitise step. Grounding
+    // and fidelity verification are unchanged; ~6.5s leaves the serial path.
+    const [vocabulary, prefetchedGrounding] = await Promise.all([
       loadIngredientVocabulary(supabase as never),
-      evidencePromise,
       lovableGroundingPromise,
     ]);
 
@@ -995,9 +1001,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             sensitivityBlock,
             tierBlock,
             retryInstruction: info.retryInstruction,
-            prefetchedEvidence: prefetchedEvidence
-              ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
-              : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
             // the preview the member is already reading. Emission is throttled
             // and stops once the ingredient array closes — per-delta emission
@@ -1045,9 +1048,6 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               sensitivityBlock,
               tierBlock,
               retryInstruction: info.retryInstruction,
-              prefetchedEvidence: prefetchedEvidence
-                ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
-                : undefined,
               allowSearch: true,
             });
             payload = searched.payload;
@@ -1225,8 +1225,12 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
       // pre-sanitise payload and returning the post-sanitise one is what made
       // `ai_summaries` hold four reasons while the member read three. One
       // payload now: what we store is exactly what we deliver.
-      sanitise: async (payload, info) =>
-        await sanitiseAndLog(payload, "product-analyse", {
+      sanitise: async (payload, info) => {
+        // Fidelity verification reads the stage 1 evidence the gather registers,
+        // so it is awaited here — off the critical path, but always before the
+        // sanitiser runs.
+        await evidencePromise;
+        return await sanitiseAndLog(payload, "product-analyse", {
           surface: "product-analyse",
           userId: user.id,
           generationId: info.generationId,
@@ -1234,7 +1238,8 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           maxAttempts: MAX_REJECTION_ATTEMPTS,
           retryReason: info.retryReason,
           onRejected: info.onRejected,
-        }) as unknown as ProductAnalysisPayload,
+        }) as unknown as ProductAnalysisPayload;
+      },
     });
 
     diag.phase = "post_model_guardrails";
