@@ -57,9 +57,9 @@ const ProductScanning = () => {
   useEffect(() => {
     if (phase !== "analysing") return;
     const sequence = [
-      { at: 0, msg: "Reading the front of the label\u2026" },
-      { at: 2200, msg: "Reading the ingredient panel on the back\u2026" },
-      { at: 5000, msg: "Almost there \u2014 checking the panel\u2026" },
+      { at: 0, msg: "Reading the front of the label…" },
+      { at: 2200, msg: "Reading the ingredient panel on the back…" },
+      { at: 5000, msg: "Almost there — checking the panel…" },
     ];
     const timeouts = sequence.map(({ at, msg }) =>
       window.setTimeout(() => setLoadingMessage(msg), at),
@@ -377,7 +377,7 @@ const ProductScanning = () => {
             )}
 
             <p className="mt-3 max-w-xs text-xs font-body text-foreground bg-card border border-primary/40 rounded-[12px] px-3 py-2">
-              This part is quick \u2014 we're just reading the label. Your full
+              This part is quick — we’re just reading the label. Your full
               analysis then carries on in the background, so you can keep using
               the app and come back to it whenever you like.
             </p>
@@ -391,9 +391,9 @@ const ProductScanning = () => {
             </p>
             <div className="mt-5 max-w-xs text-left bg-card border border-border rounded-[12px] p-3 space-y-1">
               <p className="text-[10px] uppercase tracking-[0.15em] text-primary font-medium">For best results</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• Hold the bottle steady, brand and title clearly visible on the front</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• Good lighting, no glare on the label</p>
-              <p className="text-[11px] text-muted-foreground leading-snug">• On the back, line up the small-print ingredient panel and keep it sharp</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• It’s usually just the back photo — if the front looked clear, you only need to retake the back</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• The ingredient panel curves around the bottle, so turn it slowly and take the shot where the small print sits flattest</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">• Good lighting, no glare, and hold steady until it’s sharp</p>
             </div>
             <button
               onClick={() => navigate("/products")}
