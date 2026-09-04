@@ -155,3 +155,34 @@ export function countPartialIngredients(accumulated: string): number | null {
   const items = slice.match(/"(?:[^"\\]|\\.)*"/g);
   return items ? items.length : 0;
 }
+
+/**
+ * OUTERMOST GUARD (2026-09-04).
+ *
+ * `scan_errors` stayed empty through days of real failures because every
+ * function's diagnostics lived INSIDE its own try block: a throw from body
+ * parsing, a missing env var, the kill switch, auth resolution or the time
+ * budget set-up happened before the try and travelled out of the isolate
+ * unlogged, as a bare 500 with no body the client could read.
+ *
+ * Wrap the whole handler in this and nothing can throw past it. Every failure
+ * gets a scan_errors row and a JSON body carrying a member-facing `message`
+ * and a machine `code` at the real HTTP status.
+ */
+export function withScanDiagnostics(
+  functionName: string,
+  handler: (req: Request) => Promise<Response>,
+): (req: Request) => Promise<Response> {
+  return async (req: Request) => {
+    const t0 = Date.now();
+    try {
+      return await handler(req);
+    } catch (e) {
+      return await scanErrorResponse(e, {
+        function_name: functionName,
+        phase: "unhandled",
+        elapsed_ms: Date.now() - t0,
+      });
+    }
+  };
+}
