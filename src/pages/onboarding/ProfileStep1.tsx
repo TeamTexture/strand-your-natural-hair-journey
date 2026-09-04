@@ -379,8 +379,10 @@ const ProfileStep1 = () => {
         postcode: trimmedPostcode,
         country,
         whatsapp_opt_in: whatsappOptIn,
-        // Stamped when she says yes, cleared when she says no.
-        whatsapp_opt_in_at: whatsappOptIn ? new Date().toISOString() : null,
+        // Stamped when she first says yes, kept as-is on a re-save, cleared on no.
+        whatsapp_opt_in_at: whatsappOptIn
+          ? (optInAtOnFile ?? new Date().toISOString())
+          : null,
       };
       if (birth_year !== null) update.birth_year = birth_year;
       try {
