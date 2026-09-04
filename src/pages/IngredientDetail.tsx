@@ -10,6 +10,7 @@ import TipsBlock from "@/components/tips/TipsBlock";
 import LevelGate from "@/components/tips/LevelGate";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import StatusCallout from "@/components/guidance/StatusCallout";
+import { cleanIngredientName, formatIngredientName } from "@/lib/ingredientName";
 import ActionList from "@/components/guidance/ActionList";
 import StepSequence from "@/components/guidance/StepSequence";
 import IngredientFlagRow from "@/components/product/IngredientFlagRow";
@@ -326,7 +327,12 @@ const IngredientDetail = () => {
         )
       : [];
     const fromAnalysis = (analysis?.ingredients ?? []).map((i) => i.name).filter(Boolean);
-    return Array.from(new Set([...rawStored, ...fresh, ...fromAnalysis]));
+    // Footnote glyphs on the pack ("…SHEA) BUTTER*\u2665") are legend marks, not
+    // part of the name — stripped before display, matching or lookup.
+    const cleaned = [...rawStored, ...fresh, ...fromAnalysis]
+      .map((n) => cleanIngredientName(n))
+      .filter((n) => n.length > 0);
+    return Array.from(new Set(cleaned));
   }, [productRow, freshAnalysis, analysis?.ingredients]);
   const sensitivityHits = useTopicalAlert(inciNames);
   const hasSensitivity = sensitivityHits.length > 0;
@@ -1625,7 +1631,7 @@ const IngredientDetail = () => {
                                 aria-label="flagged ingredient"
                               />
                             )}
-                            <span className="truncate max-w-[180px]">{i.name}</span>
+                            <span className="max-w-[180px] break-words">{formatIngredientName(i.name)}</span>
                           </button>
                         );
                       })}
