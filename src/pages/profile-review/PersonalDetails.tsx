@@ -77,6 +77,9 @@ const PersonalDetailsReview = () => {
   const invalidate = () =>
     qc.invalidateQueries({ queryKey: ["profile-review", "personal"] });
 
+  const whatsappOptIn =
+    (profile as { whatsapp_opt_in?: boolean | null } | null)?.whatsapp_opt_in === true;
+
   const age = useMemo(() => {
     if (!profile?.birth_year) return null;
     return new Date().getFullYear() - profile.birth_year;
