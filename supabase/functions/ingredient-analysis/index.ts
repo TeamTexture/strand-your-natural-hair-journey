@@ -24,6 +24,7 @@ import { requireAuthedUser as requireSignedInUser, isServiceRoleCaller } from ".
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
+import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { callClaude } from "../_shared/anthropic-client.ts";
@@ -922,8 +923,12 @@ async function runLovable(args: {
 // Kept inline for the lovable path — persona must travel verbatim.
 const STRAND_PERSONA_INLINE = STRAND_PERSONA_WITH_RULES;
 
-Deno.serve(async (req) => {
+Deno.serve(withScanDiagnostics("ingredient-analysis", async (req) => {
   if (req.method === "OPTIONS") return preflight();
+
+  // Wall clock for diagnostics — set before ANYTHING can throw.
+  const requestStartedAt = Date.now();
+  let loggedIngredientCount: number | null = null;
 
   const kill = checkKillSwitch();
   if (kill) return kill;
@@ -2144,6 +2149,11 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
 
     return json(200, { cached: false, analysis });
   } catch (e) {
-    return aiErrorResponse(e, "ingredient-analysis");
+    return await scanErrorResponse(e, {
+      function_name: "ingredient-analysis",
+      phase: "analysis",
+      elapsed_ms: Date.now() - requestStartedAt,
+      ingredient_count: loggedIngredientCount,
+    });
   }
-});
+}));

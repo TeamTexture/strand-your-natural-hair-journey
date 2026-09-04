@@ -38,6 +38,7 @@ import { aiErrorResponse } from "../_shared/errors.ts";
 import {
   countPartialIngredients,
   scanErrorResponse,
+  withScanDiagnostics,
 } from "../_shared/scan-error-log.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
@@ -719,7 +720,7 @@ Return strict JSON matching the schema in your system prompt.`;
 }
 
 // ─── Edge function entry ───────────────────────────────────────────────
-Deno.serve(async (req: Request) => {
+Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
   if (req.method === "OPTIONS") return preflight();
 
   const kill = checkKillSwitch();
@@ -1391,4 +1392,4 @@ Deno.serve(async (req: Request) => {
       meta: { provider: diag.provider, attempt: diag.attempt, mode: "json" },
     });
   }
-});
+}));

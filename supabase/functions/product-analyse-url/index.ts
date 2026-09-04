@@ -39,6 +39,7 @@ import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
+import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -876,7 +877,8 @@ ${JSON.stringify(args.context ?? {}, null, 2)}`;
 }
 
 // ─── Edge function entry ───────────────────────────────────────────────
-Deno.serve(async (req: Request) => {
+Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
+  const requestStartedAt = Date.now();
   if (req.method === "OPTIONS") return preflight();
 
   const kill = checkKillSwitch();
@@ -1240,9 +1242,18 @@ Deno.serve(async (req: Request) => {
     }
     return sseResponse({
       pipeline: (emit) => pipeline(emit),
-      onError: (e) => aiErrorResponse(e, "product-analyse-url"),
+      onError: (e) =>
+        scanErrorResponse(e, {
+          function_name: "product-analyse-url",
+          phase: "stream",
+          elapsed_ms: Date.now() - requestStartedAt,
+        }),
     });
   } catch (e) {
-    return aiErrorResponse(e, "product-analyse-url");
+    return await scanErrorResponse(e, {
+      function_name: "product-analyse-url",
+      phase: "analysis",
+      elapsed_ms: Date.now() - requestStartedAt,
+    });
   }
-});
+}));
