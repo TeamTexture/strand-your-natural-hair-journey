@@ -108,12 +108,40 @@ export async function runGuardrailLoop<T, V>(
         attemptNumber,
         remainingMs: input.budget?.remaining() ?? 0,
       });
+
+      // The previous payload has already completed deterministic post-processing
+      // and is the safe fallback we are meant to serve. The old control flow
+      // only marked this next attempt as "final" but still called generate(),
+      // so a 40–50s model call started despite the budget rejection and the
+      // worker could be killed before it emitted the SSE complete/error event.
+      // Sanitise the held payload as a terminal attempt and return it instead.
+      if (payload !== null) {
+        const terminalInfo: GuardrailAttemptInfo = {
+          attemptNumber: Math.max(1, attemptNumber - 1),
+          isFinalAttempt: true,
+          retryInstruction: retryRules?.length
+            ? buildRejectionRetryInstruction(retryRules, input.functionName)
+            : "",
+          retryReason: retryReasonFromRules(retryRules),
+          generationId,
+        };
+        const rejected: string[] = [];
+        payload = await input.sanitise(payload, {
+          ...terminalInfo,
+          onRejected: (rules) => rejected.push(...rules),
+        });
+        return {
+          payload,
+          attempts: terminalInfo.attemptNumber,
+          generationId,
+          unresolvedRules: [...new Set([...(retryRules ?? []), ...rejected])],
+          violations,
+        };
+      }
     }
     const info: GuardrailAttemptInfo = {
       attemptNumber,
-      // A budget stop is treated exactly like the attempt cap: this attempt is
-      // sanitised and served (or degraded) rather than re-asked.
-      isFinalAttempt: attemptNumber === maxAttempts || !affordable,
+      isFinalAttempt: attemptNumber === maxAttempts,
       retryInstruction: retryRules?.length
         ? buildRejectionRetryInstruction(retryRules, input.functionName)
         : "",
