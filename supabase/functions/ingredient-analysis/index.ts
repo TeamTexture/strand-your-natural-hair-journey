@@ -999,7 +999,11 @@ Deno.serve(withScanDiagnostics("ingredient-analysis", async (req) => {
     } = body;
 
     if (!productKey || !productName) {
-      return json(400, { error: "Missing product info" });
+      return json(400, {
+        error: "Missing product info",
+        code: "missing_product_info",
+        message: "We couldn't tell which product to analyse. Nothing has been saved — please reopen it from your shelf and try again.",
+      });
     }
 
     // THE ingredient list. `user_products.ingredients` is the stored source of
