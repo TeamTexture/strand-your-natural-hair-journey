@@ -17,7 +17,7 @@
 
 /** Fixed SDK sentences that must never reach a member. */
 const SDK_NOISE =
-  /non-2xx status code|FunctionsHttpError|FunctionsRelayError|FunctionsFetchError/i;
+  /non-2xx status code|FunctionsHttpError|FunctionsRelayError|FunctionsFetchError|failed to fetch|networkerror|load failed|aborted|signal is aborted/i;
 
 /** Postgres / infrastructure shapes that read as gibberish to a member. */
 const TECHNICAL =
