@@ -504,7 +504,10 @@ NO SEARCH TOOL IS AVAILABLE ON THIS CALL. Ignore every instruction above that of
     // Note: NOT setting toolChoice. With server-side web_search, Anthropic
     // requires the model to remain free to invoke server tools, so we
     // describe the contract in the task instructions instead.
-    max_tokens: 4096,
+    // 4096 truncated the tool call on long INCI panels: the JSON arrived
+    // incomplete, parsing failed, and a whole retry (plus its model time)
+    // was spent re-writing an answer that was already correct.
+    max_tokens: 8192,
   });
 
   const result = await callClaude<ProductAnalysisPayload>({
