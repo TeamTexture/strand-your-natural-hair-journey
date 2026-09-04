@@ -39,6 +39,9 @@ import {
   countPartialIngredients,
   scanErrorResponse,
 } from "../_shared/scan-error-log.ts";
+import { logScanTiming } from "../_shared/scan-timing-log.ts";
+import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
+
 import { readAiProvider } from "../_shared/flags.ts";
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
@@ -766,7 +769,13 @@ Deno.serve(async (req: Request) => {
     const pipeline = async (
       emit: ((event: string, data: unknown) => void) | null,
     ): Promise<Record<string, unknown> | Response> => {
+    // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
+    // only: nothing below changes what is generated or how it is grounded.
+    const retrievalAtStart = retrievalStatsSnapshot();
+    let labelReadAt: number | null = null;
+    let analysisStartedAt: number | null = null;
     const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_PHOTO");
+
     diag.provider = provider;
 
 
@@ -828,6 +837,16 @@ Deno.serve(async (req: Request) => {
         : cached._model_version === LOVABLE_MODEL_VERSION;
       const hashOk = cached._profile_snapshot_hash === profileHash;
       if (versionOk && hashOk) {
+        void logScanTiming({
+          function_name: "product-analyse",
+          surface: "product-analyse",
+          user_id: user.id,
+          total_ms: Date.now() - startedAt,
+          cache_hit: true,
+          retrieval_call_count: 0,
+          retrieval_ms: 0,
+          meta: { provider },
+        });
         return await sanitiseAndLog(
           annotateProductSensitivities(
             cached as unknown as Record<string, unknown>,
@@ -837,6 +856,7 @@ Deno.serve(async (req: Request) => {
           "product-analyse",
         ) as unknown as Record<string, unknown>;
       }
+
 
     }
 
@@ -949,6 +969,8 @@ Deno.serve(async (req: Request) => {
       generate: async (info) => {
         diag.attempt = info.attemptNumber;
         diag.phase = `model_call_attempt_${info.attemptNumber}`;
+        if (analysisStartedAt === null) analysisStartedAt = Date.now();
+
 
         if (provider === "claude") {
           let { payload, web_search_invocations } = await runClaude({
@@ -968,10 +990,15 @@ Deno.serve(async (req: Request) => {
             onPartialJson: info.attemptNumber === 1
               ? (acc) => {
                 const n = countPartialIngredients(acc);
-                if (n !== null) diag.ingredientCount = n;
+                if (n !== null) {
+                  diag.ingredientCount = n;
+                  // First moment the label had been read off the photos.
+                  if (labelReadAt === null) labelReadAt = Date.now();
+                }
                 if (emit) emit("partial", { json: acc });
               }
               : undefined,
+
           });
           // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
           // Grant one searching pass ONLY when the pack could not be resolved
@@ -1257,7 +1284,33 @@ Deno.serve(async (req: Request) => {
         : [],
     );
 
+      // SUCCESS TIMINGS (2026-09-04) — fire-and-forget, admin-only.
+      {
+        const finishedAt = Date.now();
+        const retrieval = retrievalStatsSince(retrievalAtStart);
+        const ingredientCount = Array.isArray(
+          (analysis as { ingredients?: unknown }).ingredients,
+        )
+          ? ((analysis as { ingredients: unknown[] }).ingredients.length)
+          : diag.ingredientCount;
+        void logScanTiming({
+          function_name: "product-analyse",
+          surface: "product-analyse",
+          user_id: user.id,
+          ocr_ms: labelReadAt ? labelReadAt - startedAt : null,
+          retrieval_ms: retrieval.ms,
+          retrieval_call_count: retrieval.calls,
+          analysis_ms: analysisStartedAt ? finishedAt - analysisStartedAt : null,
+          total_ms: finishedAt - startedAt,
+          ingredient_count: ingredientCount,
+          attempts: loop.attempts,
+          cache_hit: false,
+          meta: { provider, streamed: wantsStream },
+        });
+      }
+
       return analysis as unknown as Record<string, unknown>;
+
     };
 
     if (!wantsStream) {

@@ -39,7 +39,10 @@ import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
+import { logScanTiming } from "../_shared/scan-timing-log.ts";
+import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
+
 import { buildTipsLevelBlock, coerceTipsLevel, type TipsLevel } from "../_shared/tips-level.ts";
 import { buildClaudeRequest } from "../_shared/build-prompt.ts";
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
@@ -904,6 +907,13 @@ Deno.serve(async (req: Request) => {
     const pipeline = async (
       emit: SseEmit | null,
     ): Promise<Record<string, unknown> | Response> => {
+    // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
+    // only: nothing below changes what is generated or how it is grounded.
+    const requestStartedAt = Date.now();
+    const retrievalAtStart = retrievalStatsSnapshot();
+    let labelReadAt: number | null = null;
+    let analysisStartedAt: number | null = null;
+
 
     // ── Input validation ────────────────────────────────────────────
     if (!body.url || typeof body.url !== "string") {
@@ -974,8 +984,11 @@ Deno.serve(async (req: Request) => {
       console.log(JSON.stringify({ tag: "url-debug", phase: "before prefetch", ms: Date.now() - t0 }));
       const resolvedUrl = await resolveShortLink(url);
       const pre = await prefetchPage(resolvedUrl);
+      labelReadAt = Date.now();
       const ogImage = pre.imageUrl;
+      analysisStartedAt = Date.now();
       console.log(JSON.stringify({ tag: "url-debug", phase: "before model", ms: Date.now() - t0 }));
+
       // ── TIERED PERSONALISATION DATA (Part 3, 2026-09-01) ──────────
       // The page is already fetched here, so this surface knows the product
       // before the writer call and gets the FULL health gate: her blood
@@ -1191,7 +1204,30 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // SUCCESS TIMINGS (2026-09-04) — fire-and-forget, admin-only.
+    {
+      const finishedAt = Date.now();
+      const retrieval = retrievalStatsSince(retrievalAtStart);
+      const a = analysis as Record<string, unknown>;
+      void logScanTiming({
+        function_name: "product-analyse-url",
+        surface: "product-analyse-url",
+        user_id: user.id,
+        ocr_ms: labelReadAt ? labelReadAt - requestStartedAt : null,
+        retrieval_ms: retrieval.ms,
+        retrieval_call_count: retrieval.calls,
+        analysis_ms: analysisStartedAt ? finishedAt - analysisStartedAt : null,
+        total_ms: finishedAt - requestStartedAt,
+        ingredient_count: Array.isArray(a.ingredients)
+          ? (a.ingredients as unknown[]).length
+          : null,
+        cache_hit: false,
+        meta: { provider, streamed: wantsStream },
+      });
+    }
+
     return analysis as unknown as Record<string, unknown>;
+
     };
 
     if (!wantsStream) {
