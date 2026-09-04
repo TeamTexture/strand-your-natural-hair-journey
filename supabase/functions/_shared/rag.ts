@@ -105,6 +105,9 @@ export async function retrievePassages(
 ): Promise<Passage[]> {
   if (!query || query.trim().length === 0) return [];
   const trimmedK = Math.max(1, Math.min(k, 10));
+  retrievalStats.calls += 1;
+  const retrievalStartedAt = Date.now();
+
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
