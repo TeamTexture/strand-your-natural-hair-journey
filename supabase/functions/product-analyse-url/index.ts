@@ -43,6 +43,7 @@ import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-lo
 import { createPartialEmitter } from "../_shared/partial-emitter.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { startCpuMeter } from "../_shared/cpu-meter.ts";
+import { saveScanRecovery } from "../_shared/scan-recovery.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
 
@@ -128,6 +129,9 @@ interface RequestBody {
     flagged_ingredients?: string[];
   };
   force?: boolean;
+  /** RECOVERY (2026-09-04): client-generated UUID; the finished payload is
+   *  persisted under it before `complete` is emitted. */
+  scan_id?: string;
   /** SPEED (2026-09-03): stream the analysis back as SSE (see _shared/sse.ts)
    *  so the member sees the real product details while the guarded verdict is
    *  still being written. Same pipeline either way. */
@@ -1235,6 +1239,15 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
       });
     }
 
+    // NEVER LOSE FINISHED WORK (2026-09-04) — persisted before streaming.
+    await saveScanRecovery({
+      supabase,
+      userId: user.id,
+      scanId: body.scan_id,
+      functionName: "product-analyse-url",
+      payload: analysis as unknown as Record<string, unknown>,
+    });
+
     return analysis as unknown as Record<string, unknown>;
 
     };
@@ -1248,6 +1261,7 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
         });
     }
     return sseResponse({
+      functionName: "product-analyse-url",
       pipeline: (emit) => pipeline(emit),
       onError: (e) =>
         scanErrorResponse(e, {

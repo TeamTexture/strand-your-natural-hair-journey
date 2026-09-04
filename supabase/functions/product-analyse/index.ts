@@ -38,6 +38,8 @@ import { aiErrorResponse } from "../_shared/errors.ts";
 import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { startCpuMeter } from "../_shared/cpu-meter.ts";
+import { saveScanRecovery } from "../_shared/scan-recovery.ts";
+import { logStreamOutcome, traceSse } from "../_shared/sse-log.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 
 import { readAiProvider } from "../_shared/flags.ts";
@@ -155,6 +157,10 @@ interface RequestBody {
    *  `complete` event carries the same fully guarded payload the plain JSON
    *  response returns. */
   stream?: boolean;
+  /** RECOVERY (2026-09-04): client-generated UUID for this scan. The finished
+   *  payload is persisted under it before `complete` is emitted, so a dropped
+   *  connection cannot discard finished work. */
+  scan_id?: string;
 
 }
 
@@ -1327,6 +1333,17 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         });
       }
 
+      // NEVER LOSE FINISHED WORK (2026-09-04) — the guarded payload is
+      // persisted under the client's scan id BEFORE it is streamed, so a
+      // dropped connection cannot discard a finished analysis.
+      await saveScanRecovery({
+        supabase,
+        userId: user.id,
+        scanId: body.scan_id,
+        functionName: "product-analyse",
+        payload: analysis as unknown as Record<string, unknown>,
+      });
+
       return analysis as unknown as Record<string, unknown>;
 
     };
@@ -1343,7 +1360,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
-        const send = (event: string, data: unknown) => {
+        const rawSend = (event: string, data: unknown) => {
           try {
             controller.enqueue(
               encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
@@ -1353,6 +1370,11 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             // writes its cache row so the next open is free.
           }
         };
+        // EVENT TRACE (2026-09-04): every emitted event is logged with a
+        // sequence number and a wall-clock offset, so "complete was never
+        // emitted" and "complete never arrived" are distinguishable.
+        const trace = traceSse(rawSend, "product-analyse", startedAt);
+        const send = trace.send;
         // Flush immediately so the browser opens the stream (and the member
         // sees the "reading the label" state) without waiting on the model.
         send("open", { ok: true });
@@ -1368,8 +1390,12 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               parsed = JSON.parse(text);
             } catch { /* non-JSON body */ }
             send("error", { status: result.status, body: parsed });
+            logStreamOutcome("product-analyse", "error", trace, startedAt);
           } else {
+            // `complete` is emitted directly on the stream — it never travels
+            // the throttled/deduplicated partial path and is never gated by it.
             send("complete", result);
+            logStreamOutcome("product-analyse", "complete", trace, startedAt);
           }
         } catch (e) {
           // STEP 1: the real error travels to the client and to scan_errors.
@@ -1386,7 +1412,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             parsed = JSON.parse(await resp.text());
           } catch { /* non-JSON body */ }
           send("error", { status: resp.status, body: parsed });
+          logStreamOutcome("product-analyse", "error", trace, startedAt);
         } finally {
+          // Heartbeat interval always cleared, on every exit path.
           stopHeartbeat();
           try {
             controller.close();

@@ -7,11 +7,13 @@ import { resolveBrandProductLink } from "@/lib/brandProductResolve";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import { currentProfileHash } from "@/lib/profileSnapshot";
 import { streamProductAnalyse } from "@/lib/streamProductAnalyse";
+import { fetchScanRecovery } from "@/lib/scanRecovery";
 import {
   endUrlScanProgress,
   setUrlScanPartial,
   startUrlScanProgress,
 } from "@/lib/urlScanProgress";
+import { uuid } from "@/lib/uuid";
 import { toast } from "sonner";
 
 /** Adds a product from a pasted product-page URL. The edge function fetches
@@ -100,10 +102,14 @@ export function useProductUrlScan() {
       startUrlScanProgress();
       let data: Record<string, unknown>;
       try {
+        // RECOVERY (2026-09-04): the finished analysis is persisted under this
+        // id before it is streamed, so a dropped stream is fetched, not lost.
+        const scanId = uuid();
         data = await streamProductAnalyse({
           fn: "product-analyse-url",
-          body: { url: normalised, context },
+          body: { url: normalised, context, scan_id: scanId },
           onPartial: setUrlScanPartial,
+          recover: () => fetchScanRecovery(scanId),
         });
       } finally {
         endUrlScanProgress();

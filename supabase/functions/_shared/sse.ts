@@ -19,6 +19,7 @@
 
 import { corsHeaders } from "./cors.ts";
 import { startHeartbeat } from "./partial-emitter.ts";
+import { logStreamOutcome, traceSse } from "./sse-log.ts";
 
 export type SseEmit = (event: string, data: unknown) => void;
 
@@ -27,11 +28,15 @@ export function sseResponse(opts: {
   pipeline: (emit: SseEmit) => Promise<Record<string, unknown> | Response>;
   /** Maps a thrown error to the function's normal error Response. */
   onError: (e: unknown) => Response | Promise<Response>;
+  /** Used to label the server-side event trace. */
+  functionName?: string;
 }): Response {
+  const fnName = opts.functionName ?? "sse";
+  const startedAt = Date.now();
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send: SseEmit = (event, data) => {
+      const rawSend: SseEmit = (event, data) => {
         try {
           controller.enqueue(
             encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
@@ -41,6 +46,9 @@ export function sseResponse(opts: {
           // its cache row so the next open is free.
         }
       };
+      // EVENT TRACE (2026-09-04): sequence number + wall-clock offset per event.
+      const trace = traceSse(rawSend, fnName, startedAt);
+      const send: SseEmit = trace.send;
       send("open", { ok: true });
       // Keep idle stretches (retries, post-processing) from being dropped by
       // mobile proxies. `ping` is unknown to the client, which ignores it.
@@ -54,8 +62,11 @@ export function sseResponse(opts: {
             parsed = JSON.parse(text);
           } catch { /* non-JSON body */ }
           send("error", { status: result.status, body: parsed });
+          logStreamOutcome(fnName, "error", trace, startedAt);
         } else {
+          // Emitted directly — never through the throttled partial path.
           send("complete", result);
+          logStreamOutcome(fnName, "complete", trace, startedAt);
         }
       } catch (e) {
         const resp = await opts.onError(e);
@@ -64,7 +75,9 @@ export function sseResponse(opts: {
           parsed = JSON.parse(await resp.text());
         } catch { /* non-JSON body */ }
         send("error", { status: resp.status, body: parsed });
+        logStreamOutcome(fnName, "error", trace, startedAt);
       } finally {
+        // Heartbeat interval always cleared, on every exit path.
         stopHeartbeat();
         try {
           controller.close();
