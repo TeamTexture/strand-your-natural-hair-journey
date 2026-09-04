@@ -427,16 +427,7 @@ export async function gatewayFetch(
     break;
   }
 
-    logAiCall({
-      ...meta,
-      provider: "lovable_gateway",
-      model: requestedModel,
-      outcome: "error",
-      duration_ms: Date.now() - t0,
-      error_text: e instanceof Error ? e.message : String(e),
-    });
-    throw e;
-  }
+
 
   const duration_ms = Date.now() - t0;
   if (!res.ok) {
