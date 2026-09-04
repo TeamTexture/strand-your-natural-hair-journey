@@ -66,6 +66,14 @@ export function retrievalStatsSince(from: RetrievalStats): RetrievalStats {
   };
 }
 
+/** Record a manuscript evidence gather performed outside retrievePassages().
+ * Named-surface scans use the whole-chapter evidence path in evidence.ts, so
+ * they must contribute to the same per-scan counter as vector retrieval. */
+export function recordManuscriptRetrieval(elapsedMs: number): void {
+  retrievalStats.calls += 1;
+  if (Number.isFinite(elapsedMs)) retrievalStats.ms += Math.max(0, elapsedMs);
+}
+
 
 // Embedding a query is a full OpenAI round-trip (~300-800ms) on the critical
 // path of every AI call. The same query strings recur constantly (same product,
