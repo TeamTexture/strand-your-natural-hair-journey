@@ -769,7 +769,13 @@ Deno.serve(async (req: Request) => {
     const pipeline = async (
       emit: ((event: string, data: unknown) => void) | null,
     ): Promise<Record<string, unknown> | Response> => {
+    // STEP 2 (2026-09-04) — per-phase timings for SUCCESSFUL scans. Counters
+    // only: nothing below changes what is generated or how it is grounded.
+    const retrievalAtStart = retrievalStatsSnapshot();
+    let labelReadAt: number | null = null;
+    let analysisStartedAt: number | null = null;
     const provider = readAiProvider("STRAND_AI_PROVIDER_PRODUCT_PHOTO");
+
     diag.provider = provider;
 
 
