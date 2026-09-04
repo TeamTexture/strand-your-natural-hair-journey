@@ -35,11 +35,7 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
-import {
-  countPartialIngredients,
-  scanErrorResponse,
-  withScanDiagnostics,
-} from "../_shared/scan-error-log.ts";
+import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 
