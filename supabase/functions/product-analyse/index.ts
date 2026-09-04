@@ -1348,6 +1348,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         // Flush immediately so the browser opens the stream (and the member
         // sees the "reading the label" state) without waiting on the model.
         send("open", { ok: true });
+        // Keep the stream alive through the silent stretches (guardrail
+        // retries, post-processing, cache writes) so mobile proxies don't drop it.
+        const stopHeartbeat = startHeartbeat(send);
         try {
           const result = await pipeline(send);
           if (result instanceof Response) {
