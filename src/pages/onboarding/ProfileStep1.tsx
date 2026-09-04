@@ -76,6 +76,8 @@ const ProfileStep1 = () => {
   // No default: country feeds the hard-water logic, so it must be an explicit answer.
   const [country, setCountry] = useState("");
   const [heritage, setHeritage] = useState("");
+  // WhatsApp marketing consent. Always starts false: consent must be affirmative.
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
 
   // Profile photo state
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
