@@ -40,6 +40,7 @@ import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
 import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
+import { createPartialEmitter } from "../_shared/partial-emitter.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 import { readAiProvider } from "../_shared/flags.ts";
@@ -1023,7 +1024,9 @@ Deno.serve(withScanDiagnostics("product-analyse-url", async (req: Request) => {
         pageText: pre.text,
         pageTitle: pre.title,
         tierBlock: `${tier1Block(tier1)}${tierRulesBlock(tiered)}`,
-        onPartialJson: emit ? (acc) => emit("partial", { json: acc }) : undefined,
+        // Throttled + preview-change gated: per-delta emission of the whole
+        // buffer spent the worker's CPU allowance and killed the isolate.
+        onPartialJson: emit ? createPartialEmitter(emit) : undefined,
       });
       const { payload, web_search_invocations, web_fetch_invocations } = claudeRes;
       console.log(JSON.stringify({

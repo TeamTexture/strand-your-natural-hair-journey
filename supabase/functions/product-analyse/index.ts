@@ -35,11 +35,7 @@ import {
 } from "../_shared/advice-ledger.ts";
 import { requireEntitledUser as requireAuthedUser } from "../_shared/entitlement.ts";
 import { aiErrorResponse } from "../_shared/errors.ts";
-import {
-  countPartialIngredients,
-  scanErrorResponse,
-  withScanDiagnostics,
-} from "../_shared/scan-error-log.ts";
+import { scanErrorResponse, withScanDiagnostics } from "../_shared/scan-error-log.ts";
 import { logScanTiming } from "../_shared/scan-timing-log.ts";
 import { retrievalStatsSince, retrievalStatsSnapshot } from "../_shared/rag.ts";
 
@@ -91,7 +87,8 @@ import {
 } from "../_shared/topical-sensitivity.ts";
 import { runGuardrailLoop } from "../_shared/guardrail-loop.ts";
 import { MAX_REJECTION_ATTEMPTS } from "../_shared/guardrail-retry.ts";
-import { startTimeBudget } from "../_shared/time-budget.ts";
+import { RETRY_TAIL_MS, startTimeBudget } from "../_shared/time-budget.ts";
+import { createPartialEmitter, startHeartbeat } from "../_shared/partial-emitter.ts";
 import { recordAiOutcome } from "../_shared/ai-meter.ts";
 
 import { backfillHollowSummary } from "../_shared/hollow-summary.ts";
@@ -987,20 +984,21 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
               ? { block: prefetchedEvidence.block, grounded: prefetchedEvidence.grounded }
               : undefined,
             // Only the first attempt streams: a retry would otherwise rewrite
-            // the preview the member is already reading.
-            onPartialJson: info.attemptNumber === 1
-              ? (acc) => {
-                const n = countPartialIngredients(acc);
-                if (n !== null) {
+            // the preview the member is already reading. Emission is throttled
+            // and stops once the ingredient array closes — per-delta emission
+            // spent the worker's 2s CPU allowance and killed the isolate.
+            onPartialJson: info.attemptNumber === 1 && emit
+              ? createPartialEmitter(emit, {
+                onCount: (n) => {
                   diag.ingredientCount = n;
                   // First moment the label had been read off the photos.
                   if (labelReadAt === null) labelReadAt = Date.now();
-                }
-                if (emit) emit("partial", { json: acc });
-              }
+                },
+              })
               : undefined,
 
           });
+          const firstReadMs = Date.now() - (analysisStartedAt ?? Date.now());
           // CONDITIONAL SEARCH (2026-09-01): the read above had no search tool.
           // Grant one searching pass ONLY when the pack could not be resolved
           // from the photos — the majority of scans never pay for it.
@@ -1011,7 +1009,18 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
             needed: searchRetry.needed,
             reason: searchRetry.reason,
           }));
-          if (searchRetry.needed) {
+          // A searching pass is a SECOND full model call inside one attempt.
+          // Only start it if the budget can still finish the tail afterwards.
+          const canAffordSearch = timeBudget.canAfford(firstReadMs + RETRY_TAIL_MS);
+          if (searchRetry.needed && !canAffordSearch) {
+            console.warn(JSON.stringify({
+              function: "product-analyse",
+              event: "search_retry_skipped_budget",
+              first_read_ms: firstReadMs,
+              remaining_ms: timeBudget.remaining(),
+            }));
+          }
+          if (searchRetry.needed && canAffordSearch) {
             const searched = await runClaude({
               front_image_url: frontPhoto!,
               back_image_url: backPhoto!,
@@ -1339,6 +1348,9 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
         // Flush immediately so the browser opens the stream (and the member
         // sees the "reading the label" state) without waiting on the model.
         send("open", { ok: true });
+        // Keep the stream alive through the silent stretches (guardrail
+        // retries, post-processing, cache writes) so mobile proxies don't drop it.
+        const stopHeartbeat = startHeartbeat(send);
         try {
           const result = await pipeline(send);
           if (result instanceof Response) {
@@ -1367,6 +1379,7 @@ Deno.serve(withScanDiagnostics("product-analyse", async (req: Request) => {
           } catch { /* non-JSON body */ }
           send("error", { status: resp.status, body: parsed });
         } finally {
+          stopHeartbeat();
           try {
             controller.close();
           } catch { /* already closed */ }

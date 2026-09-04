@@ -18,6 +18,7 @@
 // leave the worker.
 
 import { corsHeaders } from "./cors.ts";
+import { startHeartbeat } from "./partial-emitter.ts";
 
 export type SseEmit = (event: string, data: unknown) => void;
 
@@ -25,7 +26,7 @@ export function sseResponse(opts: {
   /** Runs the analysis. Receives the emitter; returns the payload or a Response. */
   pipeline: (emit: SseEmit) => Promise<Record<string, unknown> | Response>;
   /** Maps a thrown error to the function's normal error Response. */
-  onError: (e: unknown) => Response;
+  onError: (e: unknown) => Response | Promise<Response>;
 }): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -41,6 +42,9 @@ export function sseResponse(opts: {
         }
       };
       send("open", { ok: true });
+      // Keep idle stretches (retries, post-processing) from being dropped by
+      // mobile proxies. `ping` is unknown to the client, which ignores it.
+      const stopHeartbeat = startHeartbeat(send);
       try {
         const result = await opts.pipeline(send);
         if (result instanceof Response) {
@@ -54,13 +58,14 @@ export function sseResponse(opts: {
           send("complete", result);
         }
       } catch (e) {
-        const resp = opts.onError(e);
+        const resp = await opts.onError(e);
         let parsed: unknown = { error: "analysis_failed" };
         try {
           parsed = JSON.parse(await resp.text());
         } catch { /* non-JSON body */ }
         send("error", { status: resp.status, body: parsed });
       } finally {
+        stopHeartbeat();
         try {
           controller.close();
         } catch { /* already closed */ }
