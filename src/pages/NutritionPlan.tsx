@@ -39,6 +39,11 @@ import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
 import NutrientGapNote from "@/components/sensitivity/NutrientGapNote";
 import MySupplementsSection from "@/components/nutrition/MySupplementsSection";
 import MealLogZone from "@/components/nutrition/MealLogZone";
+import {
+  readNutritionInputs,
+  readConfirmedFingerprint,
+  writeConfirmedFingerprint,
+} from "@/lib/nutritionInputs";
 
 
 type Diet = DietaryPattern;
@@ -613,6 +618,13 @@ const NutritionPlan = () => {
   const { open: sensitivityAsk, close: dismissSensitivityAsk } = useSensitivityCapture("dietary");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
+  /**
+   * A warranted regeneration running BEHIND the stored plan. The existing plan
+   * stays on screen and readable; this only drives a small "Updating" chip.
+   * Never a blocking spinner, never an empty page.
+   */
+  const [refreshing, setRefreshing] = useState(false);
+  const inputsFpRef = useRef<string | null>(null);
   /** Real profile-completeness signals, so a request failure is never
    *  misreported to the member as "your profile is incomplete". */
   const [hasBloodPanel, setHasBloodPanel] = useState<boolean | null>(null);
@@ -766,11 +778,19 @@ const NutritionPlan = () => {
   const inFlightRef = useRef(false);
 
 
-  const fetchPlan = async (force = false, currentProfile = profile) => {
+  const fetchPlan = async (
+    force = false,
+    currentProfile = profile,
+    opts: { background?: boolean } = {},
+  ) => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
-    setAiLoading(true);
-    startProgress();
+    if (opts.background) {
+      setRefreshing(true);
+    } else {
+      setAiLoading(true);
+      startProgress();
+    }
     try {
       const context = await buildAiContext();
       const { data, error } = await aiInvoke<Record<string, unknown>>("nutrition-plan", {
@@ -794,6 +814,11 @@ const NutritionPlan = () => {
       const hasSupplements = Array.isArray(nextPlan?.supplements) && nextPlan.supplements.length > 0;
       if (nextPlan) setPlan(nextPlan);
       setPlanFailed(!hasSupplements);
+      // The stored plan is now current for this input set, so the next visit is
+      // a pure read even when the server answered from its own cache.
+      if (nextPlan && user && inputsFpRef.current) {
+        writeConfirmedFingerprint(user.id, "plan", inputsFpRef.current);
+      }
       stopProgress(100);
       await new Promise((r) => setTimeout(r, 400));
     } catch (e) {
@@ -804,6 +829,7 @@ const NutritionPlan = () => {
     } finally {
       inFlightRef.current = false;
       setAiLoading(false);
+      setRefreshing(false);
     }
   };
 
