@@ -17,12 +17,15 @@ import { BackButtonProvider } from "@/components/BackButtonContext";
 const inserted: Record<string, unknown>[] = [];
 
 vi.mock("@/integrations/supabase/client", () => {
-  const chain = () => {
+  const chain = (table: string) => {
     const api: Record<string, unknown> = {};
-    for (const k of ["select", "eq", "order", "limit"]) api[k] = () => api;
+    for (const k of ["select", "eq", "order", "limit", "in", "delete"]) api[k] = () => api;
     api.maybeSingle = async () => ({ data: null, error: null });
+    api.then = (res: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(res);
     api.insert = (payload: Record<string, unknown>) => {
-      inserted.push(payload);
+      // Only the goal row is under test — the user_challenges mirror is asserted
+      // separately and must not inflate this count.
+      if (table === "user_goals") inserted.push(payload);
       return {
         select: () => ({ maybeSingle: async () => ({ data: { id: "row-1" }, error: null }) }),
       };
@@ -33,7 +36,7 @@ vi.mock("@/integrations/supabase/client", () => {
   return {
     supabase: {
       auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
-      from: () => chain(),
+      from: (table: string) => chain(table),
     },
   };
 });
