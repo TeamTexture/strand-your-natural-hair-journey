@@ -2,8 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Send, Reply as ReplyIcon, X } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Reply as ReplyIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -19,6 +18,7 @@ import MentionTextarea, { type ResolvedMention } from "@/components/MentionTexta
 import VoteControl from "@/components/forum/VoteControl";
 import { renderMentions } from "@/lib/renderMentions";
 import { smartBack } from "@/lib/smartBack";
+import { authorMetaLine, isEmojiOnly, relativeTime } from "@/lib/forumMeta";
 
 type ReplyRow = {
   id: string;
@@ -214,13 +214,6 @@ const ForumThread = () => {
 
   const authorName = (uid: string) => (authorsQ.data?.get(uid)?.display_name ?? "Member").split(" ")[0];
   const authorAvatar = (uid: string) => authorsQ.data?.get(uid)?.avatar_url ?? null;
-  const authorMetaLine = (uid: string) => {
-    const a = authorsQ.data?.get(uid);
-    const parts: string[] = [];
-    if (a?.goal_title) parts.push(`Goal: ${a.goal_title}`);
-    if (a?.current_style) parts.push(`Current Style: ${a.current_style}`);
-    return parts.length > 0 ? parts.join(" · ") : null;
-  };
 
   const commentCount = repliesQ.data?.length ?? 0;
 
