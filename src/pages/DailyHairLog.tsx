@@ -289,12 +289,14 @@ const DailyHairLog = () => {
         </Button>
       </div>
 
-      <ProductPickerSheet
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
+      <AddProductSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
         selectedIds={selected}
         onToggle={(id) => toggle(id)}
+        returnTo="/daily-log"
       />
+
     </ScreenLayout>
   );
 };
