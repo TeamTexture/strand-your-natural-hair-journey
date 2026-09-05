@@ -37,6 +37,7 @@ const StyleProfilePrompt = () => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const qc = useQueryClient();
   const [current, setCurrent] = useState<string>("");
   const [currentAttrs, setCurrentAttrs] = useState<StyleAttributesValue>({
     tension: null,
