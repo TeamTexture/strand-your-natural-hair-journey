@@ -295,19 +295,57 @@ const WashLogStyleInner = () => {
     navigate("/wash-day");
   };
 
+  /** After the wash day is stored: favourites prompt, or straight out. */
+  const continueAfterStyle = () => {
+    const hasFavourites = Object.keys(favourites ?? {}).length > 0;
+    const hasPicks = buildSteps().length > 0;
+    if (!hasFavourites && hasPicks) {
+      setFavPrompt(true);
+      return;
+    }
+    finish();
+  };
+
   const save = async () => {
     if (saving) return;
+    if (
+      style &&
+      ((styleAsksTension(style) && !styleAttrs.tension) ||
+        (styleAsksExtensions(style) && styleAttrs.extensions === null))
+    ) {
+      setAttrError(true);
+      toast.error("Answer the tension and extensions questions for this style");
+      return;
+    }
+    setAttrError(false);
     setSaving(true);
     try {
       const id = await persist();
       if (!id) return;
-      const hasFavourites = Object.keys(favourites ?? {}).length > 0;
-      const hasPicks = buildSteps().length > 0;
-      if (!hasFavourites && hasPicks) {
-        setFavPrompt(true);
-        return;
+
+      // A new style is a change to her hair context: save it, restart the
+      // rotation count, and make every style-dependent surface regenerate.
+      if (styleChanged && user && !isViewingAs) {
+        try {
+          await saveCurrentStyle({
+            userId: user.id,
+            style,
+            tension: styleAttrs.tension,
+            extensions: styleAttrs.extensions,
+          });
+          announceStyleChange(qc);
+          toast.success(`Current style updated to ${style}`);
+          // Offer a photo for the Home card — skipping never blocks the save.
+          afterPhotoPrompt.current = continueAfterStyle;
+          setStylePhotoPrompt(true);
+          return;
+        } catch (err) {
+          console.error("[strand] style save failed", err);
+          toast.error("Wash day saved — we couldn't update your current style.");
+        }
       }
-      finish();
+
+      continueAfterStyle();
     } catch (e) {
       console.error("wash_days insert failed", e);
       toast.error(e instanceof Error ? e.message : "Could not save wash day");
@@ -315,6 +353,7 @@ const WashLogStyleInner = () => {
       setSaving(false);
     }
   };
+
 
   const acceptFavourites = async () => {
     const rows = stepsDraft.rows ?? {};
