@@ -490,26 +490,6 @@ const Home = () => {
       </div>
       <WhatsAppHelpCard />
 
-      <SectionHeader icon={ICONS.goal} className="px-5 pt-1 pb-2">More on your hair</SectionHeader>
-
-
-      {/* Anchor-first dashboard — the numbers that matter, tappable. */}
-      <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
-        <StatTile
-          square
-          icon={ICONS.washDay}
-          value={washDaysValue === "—" ? washDaysValue : `${washDaysValue}d`}
-          label="Last wash"
-          sub={washDaysSub}
-          tone={washDaysTone}
-          to="/wash-day"
-        />
-        {/* Blood work, shelf and the goal/length tile moved to the feature
-            directory ("Goals & length" under MY HAIR). Nothing deleted. */}
-
-      </div>
-
-
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="home" />
         {/* current style — editorial terra card */}
