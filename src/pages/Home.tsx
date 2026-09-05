@@ -21,6 +21,7 @@ import AcquisitionAskModal, { useAcquisitionAsk } from "@/components/onboarding/
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
 import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
 import WhatsAppHelpCard from "@/components/home/WhatsAppHelpCard";
+import DailyHairCard from "@/components/home/DailyHairCard";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
@@ -522,6 +523,9 @@ const Home = () => {
 
       {/* WhatsApp help — opens Paige's direct chat in a new tab. */}
       <WhatsAppHelpCard />
+
+      {/* The daily touchpoint between wash days — one card, dismissible for today. */}
+      <DailyHairCard />
 
       {/* Anchor-first dashboard — the numbers that matter, tappable. */}
       <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">

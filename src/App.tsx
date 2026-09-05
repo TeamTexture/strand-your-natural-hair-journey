@@ -202,6 +202,7 @@ const WashDayDetail = lazyRetry(() => import("./pages/WashDayDetail"));
 const WashLogSteps = lazyRetry(() => import("./pages/wash/WashLogSteps"));
 const WashLogStyle = lazyRetry(() => import("./pages/wash/WashLogStyle"));
 const WashFavourites = lazyRetry(() => import("./pages/wash/WashFavourites"));
+const DailyHairLog = lazyRetry(() => import("./pages/DailyHairLog"));
 const Products = lazyRetry(() => import("./pages/Products"));
 const IngredientDetail = lazyRetry(() => import("./pages/IngredientDetail"));
 const Wishlist = lazyRetry(() => import("./pages/Wishlist"));
@@ -401,6 +402,7 @@ const App = () => (
               <Route path="/wash/log" element={<Paid><WashLogSteps /></Paid>} />
               <Route path="/wash/log/style" element={<Paid><WashLogStyle /></Paid>} />
               <Route path="/wash/favourites" element={<Paid><WashFavourites /></Paid>} />
+              <Route path="/daily-log" element={<Paid><DailyHairLog /></Paid>} />
               {/* The logging flow is two pages. Old step links land on page 1. */}
               <Route path="/wash/step-1" element={<Navigate to="/wash/log" replace />} />
               <Route path="/wash/step-2" element={<Navigate to="/wash/log" replace />} />

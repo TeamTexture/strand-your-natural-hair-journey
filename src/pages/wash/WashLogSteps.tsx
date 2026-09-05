@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashFavourites } from "@/hooks/useWashFavourites";
+import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
 import { WASH_LOG_STEPS, friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
@@ -98,6 +99,11 @@ const WashLogStepsInner = () => {
           </button>
         </div>
       </div>
+
+      {/* What she did between washes — read-only, collapsed by default. */}
+      <SinceLastWashCard />
+
+
 
       <div className="px-5 pb-8 space-y-2.5">
         {WASH_LOG_STEPS.map((step) => {

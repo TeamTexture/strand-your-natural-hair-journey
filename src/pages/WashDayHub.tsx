@@ -17,6 +17,9 @@ import { AlertTriangle } from "lucide-react";
 import { WashDayCard } from "@/components/WashDayCard";
 import { loadClinicalContext, type ClinicalContext } from "@/lib/clinicalContext";
 import SponsoredWashDayTipCard from "@/components/washday/SponsoredWashDayTipCard";
+import DailyEntryRow from "@/components/washday/DailyEntryRow";
+import { useDailyHairEntries } from "@/hooks/useDailyHairEntries";
+import { useUserProducts } from "@/hooks/useUserProducts";
 import BrandBanner from "@/components/BrandBanner";
 import { useDynamicWashTip } from "@/hooks/useDynamicWashTip";
 import { Sparkles } from "lucide-react";
@@ -287,6 +290,39 @@ const fmtCardDate = (iso: string) => {
 const WashDayHub = () => {
   const navigate = useNavigate();
   const { washDays, loading } = useWashDays();
+  const { entries: dailyEntries } = useDailyHairEntries();
+  const { products: shelfProducts } = useUserProducts("all", { static: true });
+  const productsById = useMemo(
+    () => Object.fromEntries(shelfProducts.map((p) => [p.id, p])),
+    [shelfProducts],
+  );
+  /**
+   * One timeline — wash days and between-wash entries in date order. Wash-day
+   * numbering still counts wash days only, so a daily entry is never mistaken
+   * for a wash anywhere in the app.
+   */
+  const timeline = useMemo(() => {
+    type Item =
+      | {
+          kind: "wash";
+          date: string;
+          washDay: (typeof washDays)[number];
+          sequenceNumber: number;
+          previousWashDate: string | null;
+        }
+      | { kind: "daily"; date: string; entry: (typeof dailyEntries)[number] };
+    const items: Item[] = washDays.map((wd, i) => ({
+      kind: "wash" as const,
+      date: wd.wash_date,
+      washDay: wd,
+      sequenceNumber: washDays.length - i,
+      previousWashDate: washDays[i + 1]?.wash_date ?? null,
+    }));
+    for (const entry of dailyEntries) {
+      items.push({ kind: "daily" as const, date: entry.entry_date, entry });
+    }
+    return items.sort((a, b) => b.date.localeCompare(a.date));
+  }, [washDays, dailyEntries]);
   const { goals } = useGoals();
   const { user } = useAuth();
   const { level, showBeginnerHelp } = useTipsLevel();
@@ -540,27 +576,30 @@ const WashDayHub = () => {
         </div>
       )}
 
-      <SectionLabel>Previous wash days</SectionLabel>
+      <SectionLabel>Your hair history</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
         {loading ? (
           <LoadingDot label="Loading wash days…" />
-        ) : washDays.length === 0 ? (
+        ) : washDays.length === 0 && dailyEntries.length === 0 ? (
           <EmptyState
             message="No wash days logged yet"
             hint="Tap the button below to log your first wash day."
           />
         ) : (
-          washDays.map((wd, i) => {
-            // washDays is sorted desc — the next-older wash is at i+1.
-            const previous = washDays[i + 1] ?? null;
-            const sequenceNumber = washDays.length - i;
+          timeline.map((item) => {
+            if (item.kind === "daily") {
+              return (
+                <DailyEntryRow key={item.entry.id} entry={item.entry} byId={productsById} />
+              );
+            }
+            const wd = item.washDay;
             return (
               <WashDayCard
                 key={wd.id}
                 anchorId={wd.id}
                 washDay={wd}
-                sequenceNumber={sequenceNumber}
-                previousWashDate={previous?.wash_date ?? null}
+                sequenceNumber={item.sequenceNumber}
+                previousWashDate={item.previousWashDate}
                 onClick={() => navigate(`/wash-day/${wd.id}`)}
                 onSeeAll={() => navigate(`/wash-day/${wd.id}#transcript`)}
               />
