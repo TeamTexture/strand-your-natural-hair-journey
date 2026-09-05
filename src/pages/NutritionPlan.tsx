@@ -871,9 +871,13 @@ const NutritionPlan = () => {
     let cancelled = false;
     (async () => {
       try {
-        const blood = await readBloodData(user.id);
+        // Both reads in parallel — nothing here depends on the other, and this
+        // is the only wait before her stored plan appears.
+        const [blood, clinical] = await Promise.all([
+          readBloodData(user.id),
+          loadClinicalContext(),
+        ]);
         const flagged = new Set<string>(blood.flagged);
-        const clinical = await loadClinicalContext();
         const diet = canonDiet(clinical.health?.diet);
         const dietOther = clinical.health?.dietOther ?? "";
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
