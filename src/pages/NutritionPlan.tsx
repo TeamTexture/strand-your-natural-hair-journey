@@ -654,10 +654,15 @@ const NutritionPlan = () => {
     return set;
   }, [savedMealsQ.data]);
 
-  const fetchMeals = async (currentProfile = profile) => {
+  const fetchMeals = async (
+    currentProfile = profile,
+    opts: { background?: boolean } = {},
+  ) => {
     if (mealsInFlightRef.current) return;
     mealsInFlightRef.current = true;
-    setMealsLoading(true);
+    // A background refresh keeps the stored meals on screen; only a first run
+    // or an explicit "Generate new ideas" shows the progress bar.
+    if (!opts.background) setMealsLoading(true);
     setMealsProgress(0);
     const start = Date.now();
     const ticker = setInterval(() => {
@@ -889,27 +894,40 @@ const NutritionPlan = () => {
             setPlanFailed(
               !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
             );
-            if (await bloodTouchedSince(user.id, stored.generatedAt)) {
-              if (!cancelled) void fetchPlan(false, next);
-            }
-          } else {
-            void fetchPlan(false, next);
           }
-
-          // MEALS: read the permanently stored batch and render it instantly.
-          // A generation only happens when there is nothing stored yet, or when
-          // her blood data has actually changed since that batch was written.
           const storedMeals = await loadStoredMeals(user.id);
           if (cancelled) return;
-          if (storedMeals) {
-            setMeals(storedMeals.meals);
-            if (await bloodTouchedSince(user.id, storedMeals.generatedAt)) {
-              if (!cancelled) void fetchMeals(next);
-            }
+          if (storedMeals) setMeals(storedMeals.meals);
+
+          // Stored content is on screen now — stop the page-level wait before
+          // doing anything else.
+          setLoading(false);
+
+          // WHAT COUNTS AS A CHANGE (2026-09-05). Blood results, supplements,
+          // hair profile, goal/challenges/concerns and the health & diet
+          // answers. Compared against the fingerprint the stored plan was last
+          // confirmed against, so a cache hit does not leave the check failing
+          // for ever. When nothing moved, this visit is a pure read.
+          const inputs = await readNutritionInputs(user.id);
+          if (cancelled) return;
+          inputsFpRef.current = inputs.fingerprint;
+          const confirmedPlan = readConfirmedFingerprint(user.id, "plan");
+          const confirmedMeals = readConfirmedFingerprint(user.id, "meals");
+
+          if (!stored?.plan) {
+            // First plan for this member: the only case that shows the honest
+            // generation progress, because there is nothing to read.
+            void fetchPlan(false, next);
+          } else if (confirmedPlan !== inputs.fingerprint) {
+            // Something she changed genuinely affects the plan — refresh it
+            // behind the plan already on screen.
+            void fetchPlan(false, next, { background: true });
+          }
+
+          if (storedMeals && confirmedMeals !== inputs.fingerprint) {
+            void fetchMeals(next, { background: true });
           }
         }
-
-
 
       } finally {
         if (!cancelled) setLoading(false);
