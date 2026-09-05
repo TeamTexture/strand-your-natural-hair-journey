@@ -36,6 +36,14 @@ import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
 import { smartBack } from "@/lib/smartBack";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
+import MainPhotoPicker from "@/components/style/MainPhotoPicker";
+import { ICONS } from "@/lib/iconMap";
+import { loadClinicalContext } from "@/lib/clinicalContext";
+import { styleAsksTension, styleAsksExtensions } from "@/lib/hairstyles";
+import { saveCurrentStyle, announceStyleChange } from "@/lib/styleChange";
+
 
 const PHOTO_BUCKET = "journal-photos";
 const VIDEO_BUCKET = "journal-videos";
