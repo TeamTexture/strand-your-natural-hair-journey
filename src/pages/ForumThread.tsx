@@ -304,40 +304,39 @@ const ForumThread = () => {
         <TitleBar title="Thread" onBack={smartBack(nav, "/forum")} />
         <div className="px-4 pb-32 space-y-3">
           <article className="rounded-[14px] border border-border bg-card p-4">
-            <div className="flex items-start gap-3">
-              <div className="pt-0.5">
-                <VoteControl
-                  orientation="vertical"
-                  score={t.vote_count ?? 0}
-                  myVote={myVote("thread", t.id)}
-                  onVote={(n) => setVote("thread", t.id, n)}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />
-                <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight">{t.title}</h1>
-                {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{renderMentions(t.body)}</p>}
-                <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => report("thread", t.id)} className="inline-flex items-center gap-1 h-8 pr-2 rounded-full text-[11px] font-body font-semibold text-foreground/60 hover:text-alert-dark">
-                    <Flag className="size-3.5" /> Report
+            <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(authorsQ.data?.get(t.author_id))} />
+            <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight break-words">{t.title}</h1>
+            {t.body && (
+              <p className={cn("mt-2 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed break-words", isEmojiOnly(t.body) ? "text-[28px] leading-snug" : "text-[13.5px]")}>
+                {renderMentions(t.body)}
+              </p>
+            )}
+            <div className="mt-3 flex items-center gap-1.5">
+              <VoteControl
+                score={t.vote_count ?? 0}
+                myVote={myVote("thread", t.id)}
+                onVote={(n) => setVote("thread", t.id, n)}
+              />
+              <MessageLink uid={t.author_id} name={authorName(t.author_id)} />
+              <button onClick={() => report("thread", t.id)} className="inline-flex items-center gap-1 h-8 px-2 rounded-full text-[11px] font-body font-semibold text-foreground/60 hover:text-alert-dark">
+                <Flag className="size-3.5" /> Report
+              </button>
+              {isAdmin && (
+                <div className="ml-auto flex items-center gap-1">
+                  <button onClick={() => modAction("pin", t.id)} aria-label="Pin thread" className={cn("size-8 rounded-full flex items-center justify-center", t.is_pinned ? "bg-primary text-primary-foreground" : "text-foreground/60 hover:bg-muted")}>
+                    <Pin className="size-3.5" />
                   </button>
-                  {isAdmin && (
-                    <div className="ml-auto flex items-center gap-1">
-                      <button onClick={() => modAction("pin", t.id)} className={cn("size-8 rounded-full flex items-center justify-center", t.is_pinned ? "bg-primary text-primary-foreground" : "text-foreground/60 hover:bg-muted")}>
-                        <Pin className="size-3.5" />
-                      </button>
-                      <button onClick={() => modAction("lock", t.id)} className={cn("size-8 rounded-full flex items-center justify-center", t.is_locked ? "bg-brown text-brown-foreground" : "text-foreground/60 hover:bg-muted")}>
-                        <Lock className="size-3.5" />
-                      </button>
-                      <button onClick={() => modAction("delete_thread", t.id)} className="size-8 rounded-full flex items-center justify-center text-alert-dark hover:bg-alert-dark/10">
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <button onClick={() => modAction("lock", t.id)} aria-label="Lock thread" className={cn("size-8 rounded-full flex items-center justify-center", t.is_locked ? "bg-brown text-brown-foreground" : "text-foreground/60 hover:bg-muted")}>
+                    <Lock className="size-3.5" />
+                  </button>
+                  <button onClick={() => modAction("delete_thread", t.id)} aria-label="Delete thread" className="size-8 rounded-full flex items-center justify-center text-foreground/35 hover:text-alert-dark hover:bg-alert-dark/10">
+                    <Trash2 className="size-3.5" />
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </article>
+
 
 
           <div className="text-[11px] font-body font-bold uppercase tracking-wider text-foreground/60 px-1 flex items-center gap-1">
