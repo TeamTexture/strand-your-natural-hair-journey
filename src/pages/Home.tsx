@@ -170,13 +170,6 @@ const Home = () => {
       window.removeEventListener("strand:open-main-photo", openPhoto);
     };
   }, []);
-  const [bloodSummary, setBloodSummary] = useState<{
-    panelDate: string | null;
-    label: string | null;
-    total: number;
-    flagged: number;
-    insights: string[];
-  } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(() => {
     // Hydrate instantly from the local snapshot so the Home card never
     // flashes empty on first paint.
