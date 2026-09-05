@@ -30,6 +30,8 @@ export const WASH_LOCAL_KEYS = [
   "strand_wash_step2",
   "strand_wash_step3",
   "strand_wash_styling",
+  "strand_wash_log_steps",
+  "strand_wash_log_style",
   "strand_wash_date",
 ] as const;
 

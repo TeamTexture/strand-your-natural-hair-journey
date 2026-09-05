@@ -199,6 +199,9 @@ const Home = lazyRetry(() => import("./pages/Home"));
 const SetCurrentStyle = lazyRetry(() => import("./pages/SetCurrentStyle"));
 const WashDayHub = lazyRetry(() => import("./pages/WashDayHub"));
 const WashDayDetail = lazyRetry(() => import("./pages/WashDayDetail"));
+const WashLogSteps = lazyRetry(() => import("./pages/wash/WashLogSteps"));
+const WashLogStyle = lazyRetry(() => import("./pages/wash/WashLogStyle"));
+const WashFavourites = lazyRetry(() => import("./pages/wash/WashFavourites"));
 const WashStep1 = lazyRetry(() => import("./pages/wash/WashStep1"));
 const WashStep2 = lazyRetry(() => import("./pages/wash/WashStep2"));
 const WashStep3 = lazyRetry(() => import("./pages/wash/WashStep3"));
@@ -400,6 +403,9 @@ const App = () => (
               <Route path="/home/style" element={<Paid><SetCurrentStyle /></Paid>} />
               <Route path="/wash-day" element={<Paid><WashDayHub /></Paid>} />
               <Route path="/wash-day/:id" element={<Paid><WashDayDetail /></Paid>} />
+              <Route path="/wash/log" element={<Paid><WashLogSteps /></Paid>} />
+              <Route path="/wash/log/style" element={<Paid><WashLogStyle /></Paid>} />
+              <Route path="/wash/favourites" element={<Paid><WashFavourites /></Paid>} />
               <Route path="/wash/step-1" element={<Paid><WashStep1 /></Paid>} />
               <Route path="/wash/step-2" element={<Paid><WashStep2 /></Paid>} />
               <Route path="/wash/step-3" element={<Paid><WashStep3 /></Paid>} />

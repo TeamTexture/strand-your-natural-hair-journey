@@ -444,7 +444,7 @@ const WashDayHub = () => {
               footer={
                 <div className="space-y-2.5">
                   <button
-                    onClick={() => navigate("/wash/step-1")}
+                    onClick={() => navigate("/wash/log")}
                     className="min-h-[44px] w-full inline-flex items-center justify-center rounded-pill bg-primary px-4 text-[12.5px] font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition"
                   >
                     {OVERDUE_CTA} →
@@ -518,7 +518,7 @@ const WashDayHub = () => {
             onPrev={goPrev}
             onNext={goNext}
             onPickDate={(id) => navigate(`/wash-day/${id}`)}
-            onLogDate={(iso) => navigate(`/wash/step-1?date=${iso}`)}
+            onLogDate={(iso) => navigate(`/wash/log?date=${iso}`)}
             onScheduleDate={openScheduleDialog}
           />
         </div>
@@ -570,7 +570,7 @@ const WashDayHub = () => {
       </div>
 
       <div className="px-5 pb-6">
-        <Button variant="gold" size="pill" onClick={() => navigate("/wash/step-1")}>
+        <Button variant="gold" size="pill" onClick={() => navigate("/wash/log")}>
           + Log Today's Wash Day
         </Button>
       </div>
