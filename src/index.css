@@ -344,3 +344,19 @@ iframe {
   height: 100% !important;
   border: 0;
 }
+
+/* Toast layer: never wider than the phone column on a small screen. */
+@media (max-width: 480px) {
+  [data-sonner-toaster] {
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+}
+
+/* Touch device in landscape (or a very wide phone): keep the app in its
+   375-430px column instead of stretching to a desktop-shaped layout. */
+@media (min-width: 500px) and (hover: none) {
+  [data-app-frame] { max-width: 430px; margin-inline: auto; }
+}
+@media (min-width: 500px) and (pointer: coarse) {
+  [data-app-frame] { max-width: 430px; margin-inline: auto; }
+}

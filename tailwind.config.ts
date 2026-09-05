@@ -13,6 +13,15 @@ export default {
       },
     },
     extend: {
+      screens: {
+        /**
+         * "Real desktop" — a genuinely large window with a mouse. Touch devices
+         * never match, even in landscape or with "Request Desktop Site" on, so
+         * phones always get the mobile presentation.
+         */
+        desk: { raw: "(min-width: 640px) and (min-height: 700px) and (hover: hover) and (pointer: fine)" },
+      },
+
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

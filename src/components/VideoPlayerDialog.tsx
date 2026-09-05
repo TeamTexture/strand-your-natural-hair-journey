@@ -18,7 +18,7 @@ const VideoPlayerDialog = ({ url, title, onClose }: Props) => {
   const isAudio = /\.(mp3|m4a|wav|aac|ogg)(\?|$)/i.test(url);
   return (
     <Dialog open={!!url} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="p-0 overflow-hidden bg-black border-none max-w-[95vw] w-[95vw] sm:max-w-2xl">
+      <DialogContent className="p-0 overflow-hidden bg-black border-none max-w-[95vw] w-[95vw] desk:max-w-2xl">
         <VisuallyHidden asChild>
           <DialogTitle>{title ?? "Media player"}</DialogTitle>
         </VisuallyHidden>

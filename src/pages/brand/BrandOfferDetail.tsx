@@ -680,7 +680,7 @@ const BrandOfferDetail = () => {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={heroOpen} onOpenChange={setHeroOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-[720px] p-2 bg-background">
+        <DialogContent className="max-w-[95vw] desk:max-w-[720px] p-2 bg-background">
           {heroUrl && (
             <img src={heroUrl} alt={offer.headline ?? "Offer banner"} className="w-full h-auto rounded-lg" />
           )}
@@ -711,7 +711,7 @@ const ProductInfoDialog = ({ product, onClose }: { product: BrandProductRow | nu
   const images = product?.image_urls ?? [];
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[520px] max-h-[85vh] overflow-y-auto p-4 bg-background">
+      <DialogContent className="max-w-[95vw] desk:max-w-[520px] max-h-[85vh] overflow-y-auto p-4 bg-background">
         {product && (
           <div className="space-y-3">
             {images.length > 0 && (
