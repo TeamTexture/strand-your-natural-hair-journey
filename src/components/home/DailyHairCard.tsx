@@ -14,12 +14,15 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, Droplets, Plus } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import ProductThumb from "@/components/ProductThumb";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDailyHairEntries } from "@/hooks/useDailyHairEntries";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { localIsoDate } from "@/lib/washLogSteps";
 import { isDailyPromptCollapsed, setDailyPromptCollapsed } from "@/lib/dailyHairPrompt";
+
+const DailyLineIcon = ({ className }: { className?: string }) => (
+  <Droplets className={className} strokeWidth={1.6} aria-hidden />
+);
 
 const DailyHairCard = () => {
   const navigate = useNavigate();
@@ -45,46 +48,54 @@ const DailyHairCard = () => {
     setDailyPromptCollapsed(user?.id, today, next);
   };
 
+  const primaryCta = (
+    <button
+      type="button"
+      onClick={() => navigate("/daily-log")}
+      className="w-full rounded-[9px] bg-primary px-4 py-2.5 text-center font-body text-[10px] font-medium uppercase tracking-[0.15em] text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:bg-primary/90"
+    >
+      LOG IT NOW
+    </button>
+  );
+
   if (collapsed) {
     return (
       <div className="px-5 pb-2">
-        <SurfaceCard className="!py-[11px] !px-3.5">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => fold(false)}
-              className="shrink-0"
-              aria-label="Expand"
-            >
-              {logged && latest ? (
-                <ProductThumb
-                  imageUrl={latest.image_url}
-                  storagePath={latest.storage_path}
-                  alt={latest.name}
-                  cover
-                  wrapperClassName="size-7 rounded-[7px] overflow-hidden border-[0.5px] border-border bg-secondary shrink-0"
-                />
-              ) : (
-                <span className="size-7 rounded-full bg-secondary flex items-center justify-center">
-                  <Droplets className="size-3.5 text-primary" aria-hidden />
-                </span>
-              )}
-            </button>
-            <div className="min-w-0 flex-1">
-              <button
-                type="button"
-                onClick={() => fold(false)}
-                aria-expanded={false}
-                className="block w-full text-left font-body text-[13px] leading-snug text-foreground break-words"
-              >
+        <SurfaceCard className="p-3.5">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => fold(false)}
+            className="flex items-center gap-3"
+          >
+            {logged && latest ? (
+              <ProductThumb
+                imageUrl={latest.image_url}
+                storagePath={latest.storage_path}
+                alt={latest.name}
+                brand={latest.brand}
+                name={latest.name}
+                cover
+                wrapperClassName="size-7 rounded-[7px] overflow-hidden border-[0.5px] border-border bg-icon-muted shrink-0"
+              />
+            ) : (
+              <span className="size-[34px] rounded-full bg-icon-muted flex items-center justify-center shrink-0">
+                <DailyLineIcon className="size-5 text-primary" />
+              </span>
+            )}
+            <div className="min-w-0 flex-1 text-left">
+              <span className="block font-display text-[15px] leading-[1.3] text-foreground break-words">
                 {logged
                   ? `Logged today${latest ? ` \u00b7 ${latest.name}` : ""}`
-                  : "Log something you did today"}
-              </button>
+                  : "Did something to your hair today?"}
+              </span>
               {logged && (
                 <button
                   type="button"
-                  onClick={() => navigate("/daily-log")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate("/daily-log");
+                  }}
                   className="mt-0.5 block text-left font-body text-[11px] leading-snug text-primary"
                 >
                   Add another
@@ -94,12 +105,17 @@ const DailyHairCard = () => {
             <button
               type="button"
               aria-label="Expand"
-              onClick={() => fold(false)}
-              className="size-8 rounded-full flex items-center justify-center text-muted-foreground shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                fold(false);
+              }}
+              className="size-8 -mr-1 rounded-full flex items-center justify-center text-muted-foreground shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <ChevronDown className="size-4" aria-hidden />
+              <ChevronDown className="size-5" aria-hidden />
             </button>
           </div>
+
+          {!logged && <div className="mt-3">{primaryCta}</div>}
         </SurfaceCard>
       </div>
     );
@@ -107,24 +123,24 @@ const DailyHairCard = () => {
 
   return (
     <div className="px-5 pb-2">
-      <SurfaceCard className="py-4 relative">
+      <SurfaceCard className="p-3.5 relative">
         <button
           type="button"
           aria-label="Collapse"
           aria-expanded
           onClick={() => fold(true)}
-          className="absolute right-2.5 top-2.5 size-8 rounded-full flex items-center justify-center text-muted-foreground"
+          className="absolute right-2 top-2 size-8 rounded-full flex items-center justify-center text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <ChevronUp className="size-4" aria-hidden />
+          <ChevronUp className="size-5" aria-hidden />
         </button>
 
         <div className="flex items-start gap-3 pr-8">
-          <span className="size-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-            <Droplets className="size-5 text-primary" aria-hidden />
+          <span className="size-10 rounded-full bg-icon-muted flex items-center justify-center shrink-0">
+            <DailyLineIcon className="size-5 text-primary" />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[16px] leading-tight text-foreground break-words">
-              {logged ? "Logged today" : "Have you done anything with your hair today?"}
+              {logged ? "Logged today" : "Did something to your hair today?"}
             </h2>
             <p className="mt-1 font-body text-[12px] leading-snug text-muted-foreground">
               {logged
@@ -150,8 +166,10 @@ const DailyHairCard = () => {
                     imageUrl={p.image_url}
                     storagePath={p.storage_path}
                     alt={p.name}
+                    brand={p.brand}
+                    name={p.name}
                     cover
-                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
+                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden border-[0.5px] border-border bg-icon-muted shrink-0"
                   />
                   <span className="product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2">
                     {p.name}
@@ -167,21 +185,20 @@ const DailyHairCard = () => {
           </div>
         )}
 
-        <Button
-          variant="gold"
-          size="pill"
-          className="mt-3.5"
-          onClick={() => navigate("/daily-log")}
-        >
+        <div className="mt-3.5">
           {logged ? (
-            <>
-              <Plus className="size-4 mr-1.5" aria-hidden />
+            <button
+              type="button"
+              onClick={() => navigate("/daily-log")}
+              className="w-full rounded-[9px] bg-primary px-4 py-2.5 text-center font-body text-[10px] font-medium uppercase tracking-[0.15em] text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:bg-primary/90"
+            >
+              <Plus className="inline-block size-4 -mt-0.5 mr-1.5 align-middle" aria-hidden />
               Add another
-            </>
+            </button>
           ) : (
-            "Yes — log it"
+            primaryCta
           )}
-        </Button>
+        </div>
       </SurfaceCard>
     </div>
   );
