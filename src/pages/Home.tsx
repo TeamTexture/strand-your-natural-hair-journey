@@ -316,14 +316,6 @@ const Home = () => {
 
   const apptSub = nextAppt ? `Next: ${fmtDate(nextAppt.date)}` : "No upcoming appointments";
 
-  // ---- Dashboard stat tiles (anchor-first numbers, all from data already
-  // fetched above — no additional network calls). ----
-  const washDaysValue = lastWash ? `${daysSinceLast}` : "—";
-  const washDaysSub = lastWash
-    ? daysSinceLast === 0 ? "Today" : `day${daysSinceLast === 1 ? "" : "s"} ago`
-    : "Log your first wash day";
-  const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
-
   const goalName = (() => {
     if (!goal) return "No goal set yet";
     const title = goal.title?.trim();
