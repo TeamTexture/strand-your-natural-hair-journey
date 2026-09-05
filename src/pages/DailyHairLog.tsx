@@ -48,6 +48,8 @@ const DailyHairLog = () => {
   const { products } = useUserProducts("shelf");
   const { recentProductIds } = useDailyHairEntries();
   const create = useCreateDailyHairEntry();
+  // Read up front so the confirmation paints instantly on save.
+  const { data: hair } = useHairCharacteristics();
 
   const [when, setWhen] = useState(nowLocalValue);
   const [showWhen, setShowWhen] = useState(false);
@@ -55,6 +57,9 @@ const DailyHairLog = () => {
   const [note, setNote] = useState("");
   const [voicePath, setVoicePath] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Set once the entry is stored — the form is replaced by the confirmation.
+  const [saved, setSaved] = useState<{ productIds: string[]; at: string } | null>(null);
+
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
