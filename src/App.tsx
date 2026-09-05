@@ -9,6 +9,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
+
 import UrlScanProgressOverlay from "@/components/product/UrlScanProgressOverlay";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ViewAsProvider } from "@/hooks/useViewAs";
@@ -362,6 +363,7 @@ const App = () => (
               <Route path="/open" element={<OpenMessage />} />
               <Route path="/legal/:doc" element={<Legal />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
+
               
 
               {/* Onboarding (auth required so data persists) */}
