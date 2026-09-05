@@ -28,6 +28,7 @@ export interface WashStepEntry {
 export const WASH_STEP_LABEL: Record<string, string> = {
   "Pre-poo": "Pre-poo",
   Cleanse: "Cleanse",
+  "Moisturising cleanse": "Moisturising cleanse",
   "Co-wash": "Co-wash",
   Condition: "Condition",
   Treatment: "Treatment / Mask",
