@@ -1,6 +1,11 @@
 // Inline top bar with hamburger menu — part of the app layout, not a floating overlay.
 // Reserves its own row above page content so pages never sit under it.
 import { useEffect, useState } from "react";
+import FeatureDirectory from "@/components/nav/FeatureDirectory";
+
+/** Fired by Home's "Explore all features" button to open the directory sheet. */
+export const OPEN_MENU_EVENT = "strand:open-feature-directory";
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { routeToView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
