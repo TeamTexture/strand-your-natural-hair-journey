@@ -158,6 +158,7 @@ export function featureGroups({ treatmentTo, canSwitchView }: DirectoryOptions):
       label: "STRAND+",
       items: [
         { name: "Community forum", desc: "Talk to other members", icon: MessageSquare, to: "/forum" },
+        { name: "Start a discussion", desc: "Ask the community something", icon: NotebookPen, to: "/forum/new" },
         { name: "STRAND+ library", desc: "Guides, reads and collections", icon: Library, to: "/plus/library" },
         { name: "STRAND+ events", desc: "What is coming up", icon: CalendarDays, to: "/plus/events" },
         { name: "My tickets", desc: "Events you have booked", icon: Ticket, to: "/plus/tickets" },
