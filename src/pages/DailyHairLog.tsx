@@ -91,20 +91,62 @@ const DailyHairLog = () => {
     }
     try {
       const at = new Date(when);
+      const entryAt = (Number.isNaN(at.getTime()) ? new Date() : at).toISOString();
       await create.mutateAsync({
         entry_date: date,
-        entry_at: (Number.isNaN(at.getTime()) ? new Date() : at).toISOString(),
+        entry_at: entryAt,
         product_ids: selected,
         note: note.trim() || null,
         voice_path: voicePath,
       });
-      toast.success("Saved to your hair history.");
-      navigate("/home");
+      // Instead of bouncing straight to Home, confirm what was logged and why
+      // it suits her hair — assembled from stored analysis, no model call.
+      setSaved({ productIds: selected, at: entryAt });
+      window.scrollTo({ top: 0 });
     } catch (e) {
       console.error("daily_hair_entries insert failed", e);
       toast.error(e instanceof Error ? e.message : "Could not save that. Please try again.");
     }
   };
+
+  const savedProducts = useMemo(
+    () => (saved?.productIds ?? []).map((id) => byId[id]).filter(Boolean),
+    [saved, byId],
+  );
+
+  if (saved) {
+    return (
+      <ScreenLayout>
+        <TitleBar title="Logged" onBack={() => navigate("/home")} />
+        <div className="px-5 pb-6">
+          <DailySaveConfirmation
+            products={savedProducts}
+            loggedAt={saved.at}
+            hair={hair ?? null}
+          />
+        </div>
+        <div className="px-5 pb-8 space-y-2">
+          <Button variant="gold" size="pill" onClick={() => navigate("/home")}>
+            Done
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              setSaved(null);
+              setSelected([]);
+              setNote("");
+              setVoicePath(null);
+              setWhen(nowLocalValue());
+            }}
+            className="w-full min-h-[44px] font-body text-[12.5px] text-primary"
+          >
+            Log something else
+          </button>
+        </div>
+      </ScreenLayout>
+    );
+  }
+
 
   return (
     <ScreenLayout>
