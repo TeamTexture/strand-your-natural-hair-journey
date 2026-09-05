@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashFavourites, useSaveWashFavourites } from "@/hooks/useWashFavourites";
-import { WASH_LOG_STEPS } from "@/lib/washLogSteps";
+import { WASH_LOG_GROUPS, WASH_LOG_STEPS, visibleSlotCount } from "@/lib/washLogSteps";
 import { smartBack } from "@/lib/smartBack";
 
 const WashFavourites = () => {
@@ -61,48 +61,58 @@ const WashFavourites = () => {
           logs keep what you actually used.
         </p>
 
-        {WASH_LOG_STEPS.map((step) => {
-          const id = draft[step.stored] ?? null;
-          const product = id ? byId[id] : undefined;
+        {WASH_LOG_GROUPS.map((group) => {
+          const shown = visibleSlotCount(group, (stored) => !!draft[stored]);
           return (
-            <div key={step.stored} className="rounded-[14px] border border-border bg-card p-3">
-              <div className="flex items-center gap-3">
-                {product ? (
-                  <ProductThumb
-                    imageUrl={product.image_url}
-                    storagePath={product.storage_path}
-                    alt={product.name}
-                    cover
-                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
-                  />
-                ) : (
-                  <span className="size-[34px] rounded-[7px] border border-dashed border-border flex items-center justify-center shrink-0">
-                    <Plus className="size-3.5 text-muted-foreground" aria-hidden />
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
-                    {step.label}
-                  </p>
-                  {product ? (
-                    <Link
-                      to={`/products/profile/${product.id}`}
-                      className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
-                    >
-                      {product.name}
-                    </Link>
-                  ) : (
-                    <p className="font-body text-[12.5px] text-muted-foreground">Not set</p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPickerStep(step.stored)}
-                  className="shrink-0 min-h-[36px] px-3 rounded-pill border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.12em] font-medium"
-                >
-                  {product ? "Swap" : "Add"}
-                </button>
-              </div>
+            <div key={group.key} className="space-y-2.5">
+              <p className="pt-1 text-[10.5px] uppercase tracking-[0.18em] text-foreground/60 font-medium">
+                {group.label}
+              </p>
+              {group.slots.slice(0, shown).map((step) => {
+                const id = draft[step.stored] ?? null;
+                const product = id ? byId[id] : undefined;
+                return (
+                  <div key={step.stored} className="rounded-[14px] border border-border bg-card p-3">
+                    <div className="flex items-center gap-3">
+                      {product ? (
+                        <ProductThumb
+                          imageUrl={product.image_url}
+                          storagePath={product.storage_path}
+                          alt={product.name}
+                          cover
+                          wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
+                        />
+                      ) : (
+                        <span className="size-[34px] rounded-[7px] border border-dashed border-border flex items-center justify-center shrink-0">
+                          <Plus className="size-3.5 text-muted-foreground" aria-hidden />
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
+                          {step.label}
+                        </p>
+                        {product ? (
+                          <Link
+                            to={`/products/profile/${product.id}`}
+                            className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                          >
+                            {product.name}
+                          </Link>
+                        ) : (
+                          <p className="font-body text-[12.5px] text-muted-foreground">Not set</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPickerStep(step.stored)}
+                        className="shrink-0 min-h-[36px] px-3 rounded-pill border border-primary/30 bg-primary/10 text-primary text-[11px] uppercase tracking-[0.12em] font-medium"
+                      >
+                        {product ? "Swap" : "Add"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
