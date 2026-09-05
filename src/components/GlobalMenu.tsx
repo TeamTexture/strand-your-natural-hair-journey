@@ -516,7 +516,34 @@ const GlobalMenu = () => {
               </div>
             )}
             {showDirectory ? (
-              <FeatureDirectory onNavigate={() => setOpen(false)} />
+              <FeatureDirectory
+                onNavigate={() => setOpen(false)}
+                onSignOut={async () => {
+                  setOpen(false);
+                  try {
+                    await signOut();
+                    navigate("/");
+                  } catch (e) {
+                    console.error("[sign out] failed", e);
+                    toast.error("Sign out failed — check your connection and try again.");
+                  }
+                }}
+                onSwitchView={
+                  showViewSwitcher
+                    ? () => {
+                        // Head for the first other account view this user holds.
+                        const alt = isProfessional
+                          ? viewMeta.pro.to
+                          : isBrand
+                            ? viewMeta.brand.to
+                            : isAdmin
+                              ? viewMeta.admin.to
+                              : viewMeta.consumer.to;
+                        navigate(alt);
+                      }
+                    : undefined
+                }
+              />
             ) : (
               !isOnboarding &&
               navItems.map(({ label, to, icon: Icon, badge }) => {

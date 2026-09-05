@@ -3,17 +3,82 @@
 // Home deliberately shows only a handful of cards, so this is the place every
 // feature stays reachable from. It lives inside the existing hamburger sheet
 // and is also opened by the "Explore all features" button at the bottom of
-// Home. Account, membership and settings are untouched — they stay on Profile.
+// Home. Every row is audited against the real route table in App.tsx — a row is
+// only added when the destination renders a working page (routes that need a
+// query param or an id to make sense are deliberately not listed here).
+//
+// Row titles are uppercase + letter-spaced, matching the card-title treatment
+// used on Home. Descriptions stay in sentence case. Every row carries a gold
+// line icon — no emoji anywhere in this directory.
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
+import {
+  Search,
+  ClipboardList,
+  Target,
+  Repeat,
+  Activity,
+  Palette,
+  Droplets,
+  Heart,
+  NotebookPen,
+  BookOpen,
+  Camera,
+  LayoutGrid,
+  Upload,
+  Salad,
+  Apple,
+  Pill,
+  ShieldAlert,
+  ScanLine,
+  ShoppingBag,
+  Bookmark,
+  Archive,
+  FlaskConical,
+  Ban,
+  Library,
+  Store,
+  Microscope,
+  Users,
+  Calendar,
+  CalendarPlus,
+  IdCard,
+  Eye,
+  Inbox,
+  MessageCircle,
+  Sparkles,
+  HelpCircle,
+  Mail,
+  MessageSquare,
+  CalendarDays,
+  Ticket,
+  Plus,
+  CreditCard,
+  User,
+  Gift,
+  Megaphone,
+  Compass,
+  Scale,
+  ArrowLeftRight,
+  LogOut,
+} from "lucide-react";
 import { useActiveTreatmentPlans } from "@/hooks/useTreatmentPlans";
+
+const WHATSAPP_URL = "https://wa.me/447956790966";
 
 interface Feature {
   name: string;
   desc: string;
-  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  /** In-app destination. */
+  to?: string;
+  /** External destination — always opens in a new tab. */
+  href?: string;
+  /** Window event dispatched instead of navigating (e.g. the STRAND chat). */
+  event?: string;
+  /** Named action wired by the host (switch view / sign out). */
+  action?: "switch-view" | "sign-out";
 }
 
 interface Group {
@@ -21,72 +86,128 @@ interface Group {
   items: Feature[];
 }
 
-/** Grouped feature list. `treatmentTo` varies with whether a plan is running. */
-export function featureGroups(treatmentTo: string): Group[] {
-  return [
+interface DirectoryOptions {
+  /** Treatment destination varies with whether a plan is running. */
+  treatmentTo: string;
+  /** Only offer the view switcher when the account genuinely has another view. */
+  canSwitchView?: boolean;
+}
+
+/** Grouped feature list — every member-reachable page in the app. */
+export function featureGroups({ treatmentTo, canSwitchView }: DirectoryOptions): Group[] {
+  const groups: Group[] = [
     {
       label: "My hair",
       items: [
-        { name: "Treatment plan", desc: "Your plan, steps and check-ins", to: treatmentTo },
-        { name: "Goals & length", desc: "Your goals, challenges and progress photos", to: "/profile/milestones" },
-        { name: "Style & rotation", desc: "Set your current style and plan the next", to: "/home/style" },
-        { name: "Hair profile", desc: "Your Afro and textured hair details", to: "/profile/hair" },
-        { name: "Colour history", desc: "Colour, relaxer and chemical history", to: "/profile/colour" },
-        { name: "Wash day", desc: "Log a wash day and see your history", to: "/wash-day" },
-        { name: "Wash day favourites", desc: "Routines you save and reuse", to: "/wash/favourites" },
-        { name: "Daily hair log", desc: "A quick note between wash days", to: "/daily-log" },
-        { name: "Style journal", desc: "Document your styles over time", to: "/journal" },
+        { name: "Treatment plan", desc: "Your plan, steps and check-ins", icon: ClipboardList, to: treatmentTo },
+        { name: "Goals & length", desc: "Your goals, challenges and progress", icon: Target, to: "/profile/milestones" },
+        { name: "Style & rotation", desc: "Set your current style and plan the next", icon: Repeat, to: "/home/style" },
+        { name: "Hair profile", desc: "Your Afro and textured hair details", icon: Activity, to: "/profile/hair" },
+        { name: "Colour & chemical history", desc: "Colour, relaxer and styling history", icon: Palette, to: "/profile/colour" },
+        { name: "Wash day log & history", desc: "Log a wash day and look back at past ones", icon: Droplets, to: "/wash-day" },
+        { name: "Wash day favourites", desc: "Routines you save and reuse", icon: Heart, to: "/wash/favourites" },
+        { name: "Daily log", desc: "Quick notes between wash days", icon: NotebookPen, to: "/daily-log" },
+        { name: "Style journal", desc: "Document your styles over time", icon: BookOpen, to: "/journal" },
+        { name: "Milestone photos", desc: "Your length and progress pictures", icon: Camera, to: "/profile/milestones" },
+        { name: "Moodboards", desc: "Save style inspiration", icon: LayoutGrid, to: "/journal/moodboards" },
       ],
     },
     {
       label: "My health",
       items: [
-        { name: "Blood work", desc: "Your markers and what they mean", to: "/blood-history" },
-        { name: "Add a blood test", desc: "Upload results you already have", to: "/blood-upload?next=analysis" },
-        { name: "Supplements", desc: "What you take, and what it does for hair", to: "/profile/health" },
-        { name: "Diet & nutrition", desc: "Food and supplements for your hair", to: "/nutrition-plan" },
-        { name: "Allergies & sensitivities", desc: "Things to keep off your hair and scalp", to: "/profile/health" },
+        { name: "Blood work", desc: "Your markers and what they mean", icon: Activity, to: "/blood-history" },
+        { name: "Add a blood test", desc: "Upload results you already have", icon: Upload, to: "/blood-upload?next=analysis" },
+        { name: "Nutrition plan", desc: "Food guidance built around your results", icon: Salad, to: "/nutrition-plan" },
+        { name: "Diet & lifestyle", desc: "How you eat, sleep and live", icon: Apple, to: "/profile/health" },
+        { name: "Supplements & medications", desc: "What you take, and what it does for hair", icon: Pill, to: "/profile/health" },
+        { name: "Allergies & sensitivities", desc: "Things to keep off your hair and scalp", icon: ShieldAlert, to: "/profile/health" },
       ],
     },
     {
       label: "My products",
       items: [
-        { name: "My shelf", desc: "Everything you own, analysed for you", to: "/products" },
-        { name: "Scan a product", desc: "Read a label and get your fit", to: "/products" },
-        { name: "Homemade products", desc: "Your own mixes, analysed from the recipe", to: "/products/homemade/new" },
-        { name: "Wishlist", desc: "Products you are thinking about", to: "/products/wishlist" },
-        { name: "Favourites", desc: "The ones that work for you", to: "/products/favourites" },
-        { name: "Off the shelf", desc: "Products you have retired", to: "/products/off-shelf" },
-        { name: "Avoid list", desc: "Ingredients you would rather not use", to: "/products/avoidlist" },
-        { name: "Ingredient research", desc: "Look up an ingredient", to: "/products/ingredient-research" },
-        { name: "Product library", desc: "Browse products other members hold", to: "/products/repository" },
-        { name: "Brand directory", desc: "Explore the brands on STRAND", to: "/brands" },
-        { name: "Moodboards", desc: "Save style inspiration", to: "/journal/moodboards" },
+        { name: "Scan a product", desc: "Read a label and get your fit", icon: ScanLine, to: "/products" },
+        { name: "My shelf", desc: "Everything you own, analysed for you", icon: ShoppingBag, to: "/products" },
+        { name: "Favourites", desc: "The ones that work for you", icon: Heart, to: "/products/favourites" },
+        { name: "Wishlist", desc: "Products you are thinking about", icon: Bookmark, to: "/products/wishlist" },
+        { name: "Off the shelf", desc: "Products you have retired", icon: Archive, to: "/products/off-shelf" },
+        { name: "Homemade products", desc: "Your own mixes, analysed from the recipe", icon: FlaskConical, to: "/products/homemade/new" },
+        { name: "Avoid list", desc: "Ingredients you would rather not use", icon: Ban, to: "/products/avoidlist" },
+        { name: "Product library", desc: "Browse products other members hold", icon: Library, to: "/products/repository" },
+        { name: "Brand directory", desc: "Explore the brands on STRAND", icon: Store, to: "/brands" },
+        { name: "Ingredient research", desc: "Look up an ingredient", icon: Microscope, to: "/products/ingredient-research" },
       ],
     },
     {
       label: "Support",
       items: [
-        { name: "Find a professional", desc: "Trusted specialists near you", to: "/directory" },
-        { name: "Appointments", desc: "Book, log and review appointments", to: "/appointments" },
-        { name: "My enquiries", desc: "Requests you have sent to professionals", to: "/profile/enquiries" },
-        { name: "Message Paige", desc: "Talk to us directly", to: "/messages" },
-        { name: "Discounts & offers", desc: "Member-only perks", to: "/profile/discounts" },
-        { name: "Help", desc: "How STRAND works", to: "/help" },
-        { name: "Contact us", desc: "Send us a message", to: "/contact" },
+        { name: "Find a professional", desc: "Trusted specialists near you", icon: Users, to: "/directory" },
+        { name: "Appointments", desc: "Book, log and review appointments", icon: Calendar, to: "/appointments" },
+        { name: "Log an appointment", desc: "Record one you have already had", icon: CalendarPlus, to: "/appointments/log" },
+        { name: "Client passport", desc: "The summary a professional sees", icon: IdCard, to: "/profile/passport-preview" },
+        { name: "What professionals see", desc: "Choose which sections you share", icon: Eye, to: "/profile/passport-visibility" },
+        { name: "My enquiries", desc: "Requests you have sent to professionals", icon: Inbox, to: "/profile/enquiries" },
+        { name: "Message Paige on WhatsApp", desc: "A direct line for anything urgent", icon: MessageCircle, href: WHATSAPP_URL },
+        { name: "Speak to STRAND", desc: "Ask a question and get an answer here", icon: Sparkles, event: "strand:open-chat-widget" },
+        { name: "Help", desc: "How STRAND works", icon: HelpCircle, to: "/help" },
+        { name: "Contact us", desc: "Send us a message", icon: Mail, to: "/contact" },
+      ],
+    },
+    {
+      label: "STRAND+",
+      items: [
+        { name: "Community forum", desc: "Talk to other members", icon: MessageSquare, to: "/forum" },
+        { name: "STRAND+ library", desc: "Guides, reads and collections", icon: Library, to: "/plus/library" },
+        { name: "STRAND+ events", desc: "What is coming up", icon: CalendarDays, to: "/plus/events" },
+        { name: "My tickets", desc: "Events you have booked", icon: Ticket, to: "/plus/tickets" },
+        { name: "Messages", desc: "Your conversations on STRAND", icon: MessageCircle, to: "/messages" },
+        { name: "Upgrade to STRAND+", desc: "What is included and what it costs", icon: Plus, to: "/plus/upgrade" },
+      ],
+    },
+    {
+      label: "Account",
+      items: [
+        { name: "Membership & billing", desc: "Pause, resume or manage payment", icon: CreditCard, to: "/profile/data-access" },
+        { name: "Profile & settings", desc: "Your account in one place", icon: User, to: "/profile" },
+        { name: "Personal details", desc: "Name, age, postcode and photo", icon: User, to: "/profile/personal" },
+        { name: "Discounts & offers", desc: "Member-only perks", icon: Gift, to: "/profile/discounts" },
+        { name: "Personalised offers", desc: "Choose what brands may send you", icon: Megaphone, to: "/profile/personalised-offers" },
+        { name: "Email preferences", desc: "What lands in your inbox", icon: Mail, to: "/email-preferences" },
+        { name: "App tour", desc: "A quick walk through STRAND", icon: Compass, to: "/walkthrough" },
+        { name: "Terms & privacy", desc: "Legal documents and disclaimers", icon: Scale, to: "/legal/terms" },
+        ...(canSwitchView
+          ? [
+              {
+                name: "Switch view",
+                desc: "Move between your accounts",
+                icon: ArrowLeftRight,
+                action: "switch-view" as const,
+              },
+            ]
+          : []),
+        { name: "Sign out", desc: "Leave your account on this device", icon: LogOut, action: "sign-out" },
       ],
     },
   ];
+  return groups;
 }
 
-const FeatureDirectory = ({ onNavigate }: { onNavigate?: () => void }) => {
+const FeatureDirectory = ({
+  onNavigate,
+  onSignOut,
+  onSwitchView,
+}: {
+  onNavigate?: () => void;
+  onSignOut?: () => void;
+  onSwitchView?: () => void;
+}) => {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const { bundles } = useActiveTreatmentPlans();
   const treatmentTo = bundles?.[0]?.plan?.id ? `/treatment/${bundles[0].plan.id}` : "/treatment/new";
 
   const groups = useMemo(() => {
-    const all = featureGroups(treatmentTo);
+    const all = featureGroups({ treatmentTo, canSwitchView: !!onSwitchView });
     const term = q.trim().toLowerCase();
     if (!term) return all;
     return all
@@ -98,11 +219,32 @@ const FeatureDirectory = ({ onNavigate }: { onNavigate?: () => void }) => {
         ),
       }))
       .filter((g) => g.items.length > 0);
-  }, [q, treatmentTo]);
+  }, [q, treatmentTo, onSwitchView]);
 
-  const go = (to: string) => {
-    onNavigate?.();
-    navigate(to);
+  const select = (i: Feature) => {
+    if (i.action === "sign-out") {
+      onSignOut?.();
+      return;
+    }
+    if (i.action === "switch-view") {
+      onNavigate?.();
+      onSwitchView?.();
+      return;
+    }
+    if (i.href) {
+      window.open(i.href, "_blank", "noopener,noreferrer");
+      onNavigate?.();
+      return;
+    }
+    if (i.event) {
+      onNavigate?.();
+      window.dispatchEvent(new Event(i.event));
+      return;
+    }
+    if (i.to) {
+      onNavigate?.();
+      navigate(i.to);
+    }
   };
 
   return (
@@ -131,22 +273,28 @@ const FeatureDirectory = ({ onNavigate }: { onNavigate?: () => void }) => {
           <p className="px-5 pt-2 pb-1.5 text-[10px] uppercase tracking-[0.2em] text-primary font-body font-medium">
             {g.label}
           </p>
-          {g.items.map((i, idx) => (
-            <button
-              key={`${g.label}-${i.name}`}
-              onClick={() => go(i.to)}
-              className={`w-full text-left px-5 py-2.5 hover:bg-primary/[0.05] transition-colors ${
-                idx > 0 ? "border-t border-border/50" : ""
-              }`}
-            >
-              <span className="block text-[14px] font-body text-foreground leading-snug break-words">
-                {i.name}
-              </span>
-              <span className="block text-[12px] font-body text-muted-foreground leading-snug break-words mt-0.5">
-                {i.desc}
-              </span>
-            </button>
-          ))}
+          {g.items.map((i, idx) => {
+            const Icon = i.icon;
+            return (
+              <button
+                key={`${g.label}-${i.name}`}
+                onClick={() => select(i)}
+                className={`w-full text-left px-5 py-2.5 flex items-start gap-3 hover:bg-primary/[0.05] transition-colors ${
+                  idx > 0 ? "border-t border-border/50" : ""
+                }`}
+              >
+                <Icon className="size-4 shrink-0 mt-0.5 text-primary" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground leading-snug break-words">
+                    {i.name}
+                  </span>
+                  <span className="block text-[12px] font-body text-muted-foreground leading-snug break-words mt-0.5">
+                    {i.desc}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       ))}
     </div>
