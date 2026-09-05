@@ -1,33 +1,34 @@
-// THE QUICK LOG — one page, one tap in the common case.
+// THE QUICK LOG — one page, one add action.
 //
-// Speed rules: defaults to today and now, her most recently used between-wash
-// products sit at the top as one-tap toggles, the only required answer is a
-// product, and the note/voicenote are optional. No steps, no wizard.
+// This page used to open on a long list of "what you usually reach for", which
+// was more scrolling than choosing. It now opens on when + a single "Add
+// product" button; the products already on the entry sit above it. Choosing how
+// to add a product (scan, link, or her shelf) lives in AddProductSheet.
+//
+// Speed rules unchanged: defaults to today and now, the only required answer is
+// a product, and the note/voicenote are optional. No steps, no wizard.
 
-import { useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { CalendarDays, Check, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { CalendarDays, Plus, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import Eyebrow from "@/components/nav/Eyebrow";
 import ProductThumb from "@/components/ProductThumb";
-import ProductPickerSheet from "@/components/ProductPickerSheet";
+import AddProductSheet from "@/components/daily/AddProductSheet";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import DateTimePicker from "@/components/DateTimePicker";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUserProducts } from "@/hooks/useUserProducts";
-import {
-  useCreateDailyHairEntry,
-  useDailyHairEntries,
-} from "@/hooks/useDailyHairEntries";
+import { useCreateDailyHairEntry } from "@/hooks/useDailyHairEntries";
 import { useHairCharacteristics } from "@/hooks/useHairCharacteristics";
 import DailySaveConfirmation from "@/components/daily/DailySaveConfirmation";
 import WeeklyPatternCard from "@/components/daily/WeeklyPatternCard";
 import { friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
 import { smartBack } from "@/lib/smartBack";
-import { cn } from "@/lib/utils";
+
 
 
 const pad = (n: number) => String(n).padStart(2, "0");
