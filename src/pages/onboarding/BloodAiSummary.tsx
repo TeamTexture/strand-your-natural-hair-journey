@@ -242,7 +242,11 @@ const BloodAiSummary = () => {
     );
   }
 
-  const hasDeficiencies = summary.deficiencies && summary.deficiencies.length > 0;
+  // The model's JSON is not a contract: a missing or null array must render as
+  // "nothing flagged", never throw and dead-end her on an error card.
+  const deficiencies = Array.isArray(summary.deficiencies) ? summary.deficiencies : [];
+  const priorityActions = Array.isArray(summary.priority_actions) ? summary.priority_actions : [];
+  const hasDeficiencies = deficiencies.length > 0;
 
   return (
     <ScreenLayout>
@@ -252,9 +256,9 @@ const BloodAiSummary = () => {
 
         <SurfaceCard>
           <AnchorStat
-            value={summary.deficiencies.length}
+            value={deficiencies.length}
             context={
-              summary.deficiencies.length === 1
+              deficiencies.length === 1
                 ? "marker flagged from your results"
                 : "markers flagged from your results"
             }
@@ -266,7 +270,7 @@ const BloodAiSummary = () => {
         {hasDeficiencies ? (
           <SurfaceCard padded={false}>
             <div className="divide-y divide-border/60 px-4">
-              {summary.deficiencies.map((d) => {
+              {deficiencies.map((d) => {
                 const severity: MarkerSeverity =
                   d.status === "low" ? "deficient" : d.status === "high" ? "high" : "borderline";
                 return (
@@ -300,7 +304,7 @@ const BloodAiSummary = () => {
         <SurfaceCard>
           <ActionList
             idPrefix="blood-priority"
-            actions={summary.priority_actions.map((a) => ({ action: a }))}
+            actions={priorityActions.map((a) => ({ action: a }))}
             showWhy={false}
           />
         </SurfaceCard>
