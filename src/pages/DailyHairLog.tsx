@@ -22,9 +22,12 @@ import {
   useCreateDailyHairEntry,
   useDailyHairEntries,
 } from "@/hooks/useDailyHairEntries";
+import { useHairCharacteristics } from "@/hooks/useHairCharacteristics";
+import DailySaveConfirmation from "@/components/daily/DailySaveConfirmation";
 import { friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
 import { smartBack } from "@/lib/smartBack";
 import { cn } from "@/lib/utils";
+
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
