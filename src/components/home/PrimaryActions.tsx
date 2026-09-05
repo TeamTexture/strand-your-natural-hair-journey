@@ -67,7 +67,7 @@ const PrimaryActions = ({ lastWashSub }: { lastWashSub?: string }) => {
             {a.emoji}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-[15px] font-semibold leading-tight break-words">
+            <span className="card-title block font-display text-[14.5px] font-semibold leading-tight break-words">
               {a.title}
             </span>
             <span className="block text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">

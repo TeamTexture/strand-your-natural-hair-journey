@@ -1026,7 +1026,7 @@ const Directory = () => {
               <>
                 <div className="flex items-start gap-2">
                   <Tag className="size-4 text-primary shrink-0 mt-0.5" />
-                  <p className="font-display text-base leading-tight">Add a listing discount?</p>
+                  <p className="card-title font-display text-[15px] leading-tight">Add a listing discount?</p>
                 </div>
                 <p className="text-xs font-body text-muted-foreground leading-snug">
                   Members browsing this directory are already deciding who to book. A
@@ -1045,7 +1045,7 @@ const Directory = () => {
               <>
                 <div className="flex items-start gap-2">
                   <UserPlus className="size-4 text-primary shrink-0 mt-0.5" />
-                  <p className="font-display text-base leading-tight">Are you a professional?</p>
+                  <p className="card-title font-display text-[15px] leading-tight">Are you a professional?</p>
                 </div>
                 <p className="text-xs font-body text-muted-foreground leading-snug">
                   Join the STRAND directory and get discovered by members actively looking for

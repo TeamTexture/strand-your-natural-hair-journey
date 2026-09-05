@@ -616,20 +616,11 @@ const Home = () => {
           tone={washDaysTone}
           to="/wash-day"
         />
-        <StatTile
-          square
-          icon={ICONS.goal}
-          value={goalName}
-          valueClassName="text-[15px] leading-snug"
-          clampLines={goalIsLong ? 4 : undefined}
-          moreLabel={goalIsLong ? "See more" : undefined}
-          label="Goal focus"
-          tone={goal ? "good" : "muted"}
-          onClick={showGoalInFull}
-        />
-        {/* Blood work and shelf tiles moved to the feature directory. */}
+        {/* Blood work, shelf and the goal/length tile moved to the feature
+            directory ("Goals & length" under MY HAIR). Nothing deleted. */}
 
       </div>
+
 
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="home" />
