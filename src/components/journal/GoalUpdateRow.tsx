@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Mic } from "lucide-react";
-import VoicePlayer from "@/components/voice/VoicePlayer";
+import VoiceNotePlayerRow from "@/components/voice/VoiceNotePlayerRow";
+import TranscriptView from "@/components/voice/TranscriptView";
 import { supabase } from "@/integrations/supabase/client";
 import { signGoalAudio, type GoalProgressUpdate } from "@/hooks/useGoalProgressUpdates";
 
@@ -58,14 +59,12 @@ const GoalUpdateRow = ({ update }: { update: GoalProgressUpdate }) => {
           <span className="text-[11px] font-body text-muted-foreground inline-flex items-center gap-1">
             <Mic className="size-3" /> Voicenote
           </span>
-          <VoicePlayer url={audioUrl} variant="onSurface" className="mt-1" />
+          <VoiceNotePlayerRow url={audioUrl} className="mt-1" />
         </div>
       )}
 
       {update.transcription_text && (
-        <p className="text-[12px] font-body leading-relaxed text-muted-foreground mt-1.5 whitespace-pre-line">
-          {update.transcription_text}
-        </p>
+        <TranscriptView text={update.transcription_text} size="xs" className="mt-1.5" />
       )}
       {photoUrl && (
         <img

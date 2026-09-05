@@ -20,6 +20,8 @@ export interface WashDay {
   style_other_voice_url?: string | null;
   duration_min: number | null;
   stress_level: number | null;
+  /** Out of 10, from the wash day log. Older rows have none. */
+  rating: number | null;
   ai_insight: string | null;
   /** DEPRECATED — never written or rendered. Retained for historic rows only. */
   next_wash_tip: string | null;

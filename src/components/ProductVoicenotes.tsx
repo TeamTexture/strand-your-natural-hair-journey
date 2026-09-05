@@ -1,7 +1,8 @@
 import { uuid } from "@/lib/uuid";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Trash2, Loader2 } from "lucide-react";
-import VoicePlayer from "@/components/voice/VoicePlayer";
+import VoiceNotePlayerRow from "@/components/voice/VoiceNotePlayerRow";
+import TranscriptView from "@/components/voice/TranscriptView";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +13,7 @@ interface Voicenote {
   id: string;
   audio_url: string; // storage path
   duration_sec: number | null;
+  transcript: string | null;
   created_at: string;
   signedUrl?: string;
 }
@@ -53,7 +55,7 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
       setLoading(true);
       const { data, error } = await supabase
         .from("product_voicenotes")
-        .select("id, audio_url, duration_sec, created_at")
+        .select("id, audio_url, duration_sec, transcript, created_at")
         .eq("user_id", user.id)
         .eq("product_key", productKey)
         .order("created_at", { ascending: false });
@@ -157,7 +159,7 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
           audio_url: filename,
           duration_sec: duration,
         })
-        .select("id, audio_url, duration_sec, created_at")
+        .select("id, audio_url, duration_sec, transcript, created_at")
         .single();
       if (insErr) throw insErr;
 
@@ -254,30 +256,31 @@ const ProductVoicenotes = ({ productKey, productName, productBrand }: Props) => 
             return (
               <div
                 key={note.id}
-                className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-[10px]"
+                className="px-3 py-2.5 bg-card border border-border rounded-[10px] space-y-2"
               >
-                <VoicePlayer
+                <VoiceNotePlayerRow
                   url={note.signedUrl}
-                  durationMs={note.duration_sec != null ? note.duration_sec * 1000 : null}
-                  variant="onSurface"
-                  className="flex-1 min-w-0 text-foreground"
+                  durationSec={note.duration_sec}
                 />
-                <div className="shrink-0">
+                {note.transcript?.trim() && (
+                  <TranscriptView text={note.transcript} size="xs" />
+                )}
+                <div className="flex items-center justify-between">
                   <p className="text-[10px] text-muted-foreground">
                     {new Date(note.created_at).toLocaleDateString(undefined, {
                       day: "numeric",
                       month: "short",
                     })}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => deleteNote(note)}
+                    className="size-9 -mr-2 rounded-full text-muted-foreground hover:text-warn flex items-center justify-center shrink-0"
+                    aria-label="Delete voicenote"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteNote(note)}
-                  className="size-9 rounded-full text-muted-foreground hover:text-warn flex items-center justify-center shrink-0"
-                  aria-label="Delete voicenote"
-                >
-                  <Trash2 className="size-4" />
-                </button>
               </div>
             );
           })}

@@ -9,6 +9,7 @@ import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import VoiceNoteField from "@/components/VoiceNoteField";
+import VoiceNotePlayerRow from "@/components/voice/VoiceNotePlayerRow";
 import ProductPickerSheet from "@/components/ProductPickerSheet";
 import ToolPickerSheet from "@/components/ToolPickerSheet";
 import ProductThumb from "@/components/ProductThumb";
@@ -20,7 +21,7 @@ import { useUserTools } from "@/hooks/useUserTools";
 
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
-import { toParagraphs, transcriptPreview } from "@/lib/formatTranscript";
+import TranscriptView from "@/components/voice/TranscriptView";
 
 // Set when transcription is refused (e.g. AI credit limit) so background
 // auto-transcription stops instead of retrying on every step render.
@@ -30,32 +31,8 @@ const PHOTO_BUCKET = "journal-photos";
 const VIDEO_BUCKET = "journal-videos";
 
 /** Voice note transcript — a readable preview, expandable into paragraphs. */
-const TranscriptBody = ({ text }: { text: string }) => {
-  const [open, setOpen] = useState(false);
-  const preview = transcriptPreview(text);
-  if (!preview) return null;
-  const paragraphs = toParagraphs(text);
-  return (
-    <div className="space-y-1.5">
-      {open ? (
-        paragraphs.map((p, i) => (
-          <p key={i} className="text-[13px] leading-relaxed">{p}</p>
-        ))
-      ) : (
-        <p className="text-[13px] leading-relaxed">{preview.text}</p>
-      )}
-      {preview.truncated && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="text-[10px] uppercase tracking-[0.14em] text-primary"
-        >
-          {open ? "Show less" : `See all — ${preview.words} words`}
-        </button>
-      )}
-    </div>
-  );
-};
+const TranscriptBody = ({ text }: { text: string }) =>
+  text.trim() ? <TranscriptView text={text} /> : null;
 
 /** A square capture action — quiet until touched, so four of them read as one
  *  considered panel rather than a stack of shouting buttons. */
@@ -254,6 +231,20 @@ const JournalStepCard = ({
     })();
     return () => { alive = false; };
   }, [step.media, step.id, user]);
+
+  // Signed playback URL for the read-only view of a recorded note.
+  const [readVoiceUrl, setReadVoiceUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!step.voice_path) { setReadVoiceUrl(null); return; }
+      const { data } = await supabase.storage
+        .from("voicenotes")
+        .createSignedUrl(step.voice_path, 3600);
+      if (alive) setReadVoiceUrl(data?.signedUrl ?? null);
+    })();
+    return () => { alive = false; };
+  }, [step.voice_path]);
 
   // Older voice notes saved before auto-transcription: transcribe once, silently.
   const autoTranscribed = useRef<Set<string>>(new Set());
@@ -768,12 +759,15 @@ const JournalStepCard = ({
               ) : (
                 <p className="text-sm text-muted-foreground italic">No note for this step.</p>
               )}
-              {step.voice_transcript?.trim() && (
-                <div className="rounded-[12px] border border-border/60 bg-secondary/35 p-3 space-y-1.5">
+              {(step.voice_path || step.voice_transcript?.trim()) && (
+                <div className="rounded-[12px] border border-border/60 bg-secondary/35 p-3 space-y-2">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground flex items-center gap-1.5">
                     <Mic className="size-3 text-primary" /> Voice note
                   </p>
-                  <TranscriptBody text={step.voice_transcript} />
+                  {readVoiceUrl && <VoiceNotePlayerRow url={readVoiceUrl} mediaName="voice note" />}
+                  {step.voice_transcript?.trim() && (
+                    <TranscriptBody text={step.voice_transcript} />
+                  )}
                 </div>
               )}
               {mediaGrid && <StepSection label="Photos & video">{mediaGrid}</StepSection>}

@@ -3,12 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Play, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProductThumb from "@/components/ProductThumb";
-import VoicePlayer from "@/components/voice/VoicePlayer";
+import VoiceNotePlayerRow from "@/components/voice/VoiceNotePlayerRow";
 
 import MatchStars from "@/components/MatchStars";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
-import { toParagraphs, transcriptPreview } from "@/lib/formatTranscript";
+import TranscriptView from "@/components/voice/TranscriptView";
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
 const PHOTO_BUCKET = "journal-photos";
@@ -16,30 +16,13 @@ const VIDEO_BUCKET = "journal-videos";
 
 /** Transcript rendered as readable paragraphs, collapsed to a short preview. */
 const Transcript = ({ text }: { text: string }) => {
-  const [open, setOpen] = useState(false);
-  const preview = transcriptPreview(text);
-  if (!preview) return null;
+  if (!text.trim()) return null;
   return (
     <div className="rounded-[12px] bg-secondary/50 p-3 space-y-2">
       <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
         <Mic className="size-3 text-primary" /> Voice note
       </p>
-      {open ? (
-        toParagraphs(text).map((p, i) => (
-          <p key={i} className="text-[13px] leading-relaxed">{p}</p>
-        ))
-      ) : (
-        <p className="text-[13px] leading-relaxed">{preview.text}</p>
-      )}
-      {preview.truncated && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="text-[10px] uppercase tracking-[0.16em] text-primary"
-        >
-          {open ? "Show less" : `See all — ${preview.words} words`}
-        </button>
-      )}
+      <TranscriptView text={text} />
     </div>
   );
 };
@@ -130,11 +113,14 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
           <p className="text-[13px] text-muted-foreground">Nothing recorded on this step.</p>
         ) : null}
 
-        {step.voice_transcript?.trim() ? (
-          <Transcript text={step.voice_transcript} />
-        ) : voiceUrl ? (
-          <VoicePlayer url={voiceUrl} variant="onSurface" className="text-foreground" />
-        ) : null}
+        {(voiceUrl || step.voice_transcript?.trim()) && (
+          <div className="space-y-2">
+            {voiceUrl && <VoiceNotePlayerRow url={voiceUrl} mediaName="voice note" />}
+            {step.voice_transcript?.trim() ? (
+              <Transcript text={step.voice_transcript} />
+            ) : null}
+          </div>
+        )}
 
         {step.media.length > 0 && (
           <div className={step.media.length === 1 ? "" : "grid grid-cols-3 gap-1.5"}>
