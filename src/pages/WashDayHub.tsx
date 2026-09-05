@@ -292,6 +292,37 @@ const WashDayHub = () => {
   const { washDays, loading } = useWashDays();
   const { entries: dailyEntries } = useDailyHairEntries();
   const { products: shelfProducts } = useUserProducts("all", { static: true });
+  const productsById = useMemo(
+    () => Object.fromEntries(shelfProducts.map((p) => [p.id, p])),
+    [shelfProducts],
+  );
+  /**
+   * One timeline — wash days and between-wash entries in date order. Wash-day
+   * numbering still counts wash days only, so a daily entry is never mistaken
+   * for a wash anywhere in the app.
+   */
+  const timeline = useMemo(() => {
+    type Item =
+      | {
+          kind: "wash";
+          date: string;
+          washDay: (typeof washDays)[number];
+          sequenceNumber: number;
+          previousWashDate: string | null;
+        }
+      | { kind: "daily"; date: string; entry: (typeof dailyEntries)[number] };
+    const items: Item[] = washDays.map((wd, i) => ({
+      kind: "wash" as const,
+      date: wd.wash_date,
+      washDay: wd,
+      sequenceNumber: washDays.length - i,
+      previousWashDate: washDays[i + 1]?.wash_date ?? null,
+    }));
+    for (const entry of dailyEntries) {
+      items.push({ kind: "daily" as const, date: entry.entry_date, entry });
+    }
+    return items.sort((a, b) => b.date.localeCompare(a.date));
+  }, [washDays, dailyEntries]);
   const { goals } = useGoals();
   const { user } = useAuth();
   const { level, showBeginnerHelp } = useTipsLevel();
