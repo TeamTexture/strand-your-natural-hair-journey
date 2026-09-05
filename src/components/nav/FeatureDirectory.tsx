@@ -28,7 +28,7 @@ export function featureGroups(treatmentTo: string): Group[] {
       label: "My hair",
       items: [
         { name: "Treatment plan", desc: "Your plan, steps and check-ins", to: treatmentTo },
-        { name: "Goals & length", desc: "Progress photos and milestones", to: "/profile/milestones" },
+        { name: "Goals & length", desc: "Your goals, challenges and progress photos", to: "/profile/milestones" },
         { name: "Style & rotation", desc: "Set your current style and plan the next", to: "/home/style" },
         { name: "Hair profile", desc: "Your Afro and textured hair details", to: "/profile/hair" },
         { name: "Colour history", desc: "Colour, relaxer and chemical history", to: "/profile/colour" },
