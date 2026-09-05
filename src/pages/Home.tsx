@@ -343,14 +343,6 @@ const Home = () => {
     return null;
   })();
 
-  const flaggedCount = bloodSummary?.flagged ?? 0;
-  const flaggedValue = bloodSummary ? `${flaggedCount}` : "—";
-  const flaggedTone = flaggedCount > 0 ? "warning" : "good";
-  const flaggedSub = bloodSummary
-    ? `flagged marker${flaggedCount === 1 ? "" : "s"}`
-    : "No blood work logged yet";
-
-
   const shelfCount = shelfProducts.length;
 
   return (
