@@ -856,12 +856,12 @@ const Home = () => {
               </div>
             </SurfaceCard>
 
-            {/* Treatment plans are a STRAND+ feature — only + members see them */}
+            {/* Treatment plans moved to the feature directory. Only genuine
+                invitations still surface here — they are time-sensitive. */}
             <div className="space-y-3">
-              
               <PendingPlanInvites />
-              <TodayTreatmentCard />
             </div>
+
 
             </>
           );
