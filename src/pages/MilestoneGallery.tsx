@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
 import { useGoals } from "@/hooks/useGoals";
+import GoalsChallengesCard from "@/components/GoalsChallengesCard";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner } from "@/lib/tipsRender";
