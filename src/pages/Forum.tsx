@@ -155,13 +155,12 @@ const Forum = () => {
               {threadsQ.data.map((t) => {
                 const author = authorsQ.data?.get(t.author_id);
                 const firstName = (author?.display_name ?? "Member").split(" ")[0];
-                const metaParts: string[] = [];
-                if (author?.goal_title) metaParts.push(`Goal: ${author.goal_title}`);
-                if (author?.current_style) metaParts.push(`Current Style: ${author.current_style}`);
-                const metaLine = metaParts.length > 0 ? metaParts.join(" · ") : null;
+                const metaLine = authorMetaLine(author);
                 const isTrending = t.id === trendingId;
                 const cName = catName(t.category_id);
                 const cStyle = catStyle(cName);
+                const votes = t.vote_count ?? 0;
+                const replies = t.reply_count ?? 0;
                 return (
                   <li key={t.id}>
                     <Link
@@ -174,56 +173,51 @@ const Forum = () => {
                       )}
                     >
                       <div className="flex items-start gap-2.5 mb-2">
-                        <span
-                          className="rounded-full p-[2px] shrink-0"
-                          style={{ background: isTrending ? "hsl(var(--forum-ivory))" : cStyle.solid }}
-                        >
-                          <ForumAvatar
-                            path={author?.avatar_url}
-                            fallback={firstName[0]}
-                            className="size-9 text-[13px] border-2 border-[hsl(var(--surface-raised))]"
-                          />
-                        </span>
+                        <ForumAvatar
+                          path={author?.avatar_url}
+                          fallback={author?.display_name ?? "Member"}
+                          className="size-9 text-[12px]"
+                        />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <span
                               className={cn(
-                                "text-[12px] font-body font-semibold leading-tight",
+                                "text-[12px] font-body font-semibold leading-tight whitespace-nowrap truncate min-w-[52px] max-w-[120px]",
                                 isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-[hsl(var(--forum-charcoal))]",
                               )}
                             >
                               {firstName}
                             </span>
                             {isTrending ? (
-                              <span className="inline-flex items-center gap-0.5 text-[9.5px] font-body font-bold uppercase tracking-wider text-[hsl(var(--forum-espresso))] bg-[hsl(var(--forum-ivory))] rounded-full px-1.5 py-0.5 leading-none">
-                                <Flame className="size-2.5" /> Trending
+                              <span className="shrink-0 inline-flex items-center gap-0.5 whitespace-nowrap text-[9px] font-body font-bold uppercase tracking-wider text-[hsl(var(--forum-espresso))] bg-[hsl(var(--forum-ivory))] rounded-full px-1.5 py-0.5 leading-none">
+                                <TrendingUp className="size-2.5" /> Trending
                               </span>
                             ) : (
                               t.category_id && (
                                 <span
-                                  className="text-[9.5px] font-body font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.5 leading-none"
+                                  className="shrink-0 whitespace-nowrap text-[9px] font-body font-semibold uppercase tracking-wider rounded-full px-1.5 py-0.5 leading-none"
                                   style={{ background: cStyle.tint, color: cStyle.solid }}
                                 >
                                   {cName}
                                 </span>
                               )
                             )}
-                            {t.is_pinned && <Pin className={cn("size-3", isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-[hsl(var(--forum-espresso))]")} />}
-                            {t.is_locked && <Lock className={cn("size-3", isTrending ? "text-[hsl(var(--forum-ivory))]/70" : "text-muted-foreground")} />}
+                            {t.is_pinned && <Pin className={cn("size-3 shrink-0", isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-[hsl(var(--forum-espresso))]")} />}
+                            {t.is_locked && <Lock className={cn("size-3 shrink-0", isTrending ? "text-[hsl(var(--forum-ivory))]/70" : "text-muted-foreground")} />}
                             <span
                               className={cn(
-                                "ml-auto text-[10.5px] font-body whitespace-nowrap",
-                                isTrending ? "text-[hsl(var(--forum-ivory))]/75" : "text-foreground/55",
+                                "shrink-0 text-[10.5px] font-body whitespace-nowrap",
+                                isTrending ? "text-[hsl(var(--forum-ivory))]/80" : "text-foreground/55",
                               )}
                             >
-                              {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
+                              · {relativeTime(t.created_at)}
                             </span>
                           </div>
                           {metaLine && (
                             <p
                               className={cn(
-                                "text-[10.5px] font-body leading-tight truncate mt-0.5",
-                                isTrending ? "text-[hsl(var(--forum-ivory))]/70" : "text-foreground/60",
+                                "text-[10.5px] font-body leading-tight truncate mt-1.5",
+                                isTrending ? "text-[hsl(var(--forum-ivory))]/80" : "text-foreground/60",
                               )}
                             >
                               {metaLine}
@@ -243,7 +237,7 @@ const Forum = () => {
                         <p
                           className={cn(
                             "mt-1 font-body text-[12px] line-clamp-2 break-words",
-                            isTrending ? "text-[hsl(var(--forum-ivory))]/85" : "text-foreground/70",
+                            isTrending ? "text-[hsl(var(--forum-ivory))]" : "text-foreground/70",
                           )}
                         >
                           {renderMentions(t.body)}
@@ -254,29 +248,34 @@ const Forum = () => {
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-1",
                             isTrending
-                              ? "bg-[hsl(var(--forum-ivory))]/15 text-[hsl(var(--forum-ivory))]"
-                              : (t.vote_count ?? 0) > 0
-                                ? "bg-[hsl(var(--forum-terracotta-tint))] text-[hsl(var(--forum-espresso))]"
-                                : "bg-[hsl(var(--forum-ivory))] text-foreground/60",
+                              ? votes > 0
+                                ? "bg-[hsl(var(--forum-ivory))]/15 text-[hsl(var(--forum-ivory))]"
+                                : "bg-[hsl(var(--forum-ivory))]/10 text-[hsl(var(--forum-ivory))]/55"
+                              : votes > 0
+                                ? "bg-primary/12 text-[hsl(var(--gold-deep))]"
+                                : "bg-[hsl(var(--forum-ivory))] text-foreground/40",
                           )}
                         >
-                          <ArrowUp className={cn("size-3", !isTrending && (t.vote_count ?? 0) > 0 && "text-[hsl(var(--forum-espresso))]")} />
-                          <span className="font-semibold">{t.vote_count ?? 0}</span>
+                          <ArrowUp className="size-3" />
+                          <span className="font-semibold">{votes}</span>
                           <ArrowDown className="size-3 opacity-60" />
                         </span>
                         <span
                           className={cn(
                             "inline-flex items-center gap-1",
-                            isTrending ? "text-[hsl(var(--forum-ivory))]/75" : "text-muted-foreground",
+                            isTrending
+                              ? replies > 0 ? "text-[hsl(var(--forum-ivory))]/85" : "text-[hsl(var(--forum-ivory))]/55"
+                              : replies > 0 ? "text-muted-foreground" : "text-foreground/40",
                           )}
                         >
-                          <MessageSquare className="size-3" /> {t.reply_count ?? 0}
+                          <MessageSquare className="size-3" /> {replies}
                         </span>
                       </div>
                     </Link>
                   </li>
                 );
               })}
+
             </ul>
           ) : (
             <div className="text-center py-12 text-sm text-foreground/60 font-body">
