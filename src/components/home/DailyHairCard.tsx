@@ -1,13 +1,17 @@
 // HOME — the daily touchpoint between wash days.
 //
-// Three states, never more than one card:
-//   1. Nothing logged today → asks, with a one-tap yes and a dismiss for today.
-//   2. Logged today        → shows what she logged, plus "Add another".
-//   3. Dismissed today     → nothing at all, back tomorrow.
+// The card FOLDS, it never disappears. Nothing on Home vanishes — the chevron
+// collapses it to a single row, matching the WhatsApp card so Home has one
+// interaction language. The collapsed choice is remembered for the rest of the
+// day and opens fresh the next day: collapsing means "not now", not "never".
+//
+// Two contents, each with an expanded and a collapsed presentation:
+//   1. Nothing logged today → asks, with a one-tap yes.
+//   2. Logged today         → shows what she logged, plus "Add another".
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Droplets, Plus } from "lucide-react";
 import SurfaceCard from "@/components/SurfaceCard";
 import ProductThumb from "@/components/ProductThumb";
 import { Button } from "@/components/ui/button";
@@ -15,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDailyHairEntries } from "@/hooks/useDailyHairEntries";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { localIsoDate } from "@/lib/washLogSteps";
-import { dismissDailyPrompt, isDailyPromptDismissed } from "@/lib/dailyHairPrompt";
+import { isDailyPromptCollapsed, setDailyPromptCollapsed } from "@/lib/dailyHairPrompt";
 
 const DailyHairCard = () => {
   const navigate = useNavigate();
@@ -23,34 +27,102 @@ const DailyHairCard = () => {
   const today = localIsoDate();
   const { todaysEntries, isLoading } = useDailyHairEntries();
   const { products } = useUserProducts("all", { static: true });
-  const [dismissed, setDismissed] = useState(() => isDailyPromptDismissed(user?.id, today));
+  const [collapsed, setCollapsed] = useState(() => isDailyPromptCollapsed(user?.id, today));
 
   if (isLoading) return null;
 
   const logged = todaysEntries.length > 0;
-  if (!logged && dismissed) return null;
 
   const byId = Object.fromEntries(products.map((p) => [p.id, p]));
   const usedIds = Array.from(
     new Set(todaysEntries.flatMap((e) => e.product_ids ?? [])),
   );
+  // Most recent first — the collapsed row shows the latest thing she logged.
+  const latest = usedIds.length > 0 ? byId[usedIds[usedIds.length - 1]] : undefined;
+
+  const fold = (next: boolean) => {
+    setCollapsed(next);
+    setDailyPromptCollapsed(user?.id, today, next);
+  };
+
+  if (collapsed) {
+    return (
+      <div className="px-5 pb-2">
+        <SurfaceCard className="!py-[11px] !px-3.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fold(false)}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              aria-expanded={false}
+            >
+              {logged && latest ? (
+                <ProductThumb
+                  imageUrl={latest.image_url}
+                  storagePath={latest.storage_path}
+                  alt={latest.name}
+                  cover
+                  wrapperClassName="size-7 rounded-[7px] overflow-hidden border-[0.5px] border-border bg-secondary shrink-0"
+                />
+              ) : (
+                <span className="size-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                  <Droplets className="size-3.5 text-primary" aria-hidden />
+                </span>
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block font-body text-[13px] leading-snug text-foreground break-words">
+                  {logged
+                    ? `Logged today${latest ? ` · ${latest.name}` : ""}`
+                    : "Log something you did today"}
+                </span>
+                {logged && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate("/daily-log");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate("/daily-log");
+                      }
+                    }}
+                    className="mt-0.5 block font-body text-[11px] leading-snug text-primary"
+                  >
+                    Add another
+                  </span>
+                )}
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Expand"
+              onClick={() => fold(false)}
+              className="size-8 rounded-full flex items-center justify-center text-muted-foreground shrink-0"
+            >
+              <ChevronDown className="size-4" aria-hidden />
+            </button>
+          </div>
+        </SurfaceCard>
+      </div>
+    );
+  }
 
   return (
     <div className="px-5 pb-2">
       <SurfaceCard className="py-4 relative">
-        {!logged && (
-          <button
-            type="button"
-            aria-label="Not today"
-            onClick={() => {
-              dismissDailyPrompt(user?.id, today);
-              setDismissed(true);
-            }}
-            className="absolute right-2.5 top-2.5 size-8 rounded-full flex items-center justify-center text-muted-foreground"
-          >
-            <X className="size-4" aria-hidden />
-          </button>
-        )}
+        <button
+          type="button"
+          aria-label="Collapse"
+          aria-expanded
+          onClick={() => fold(true)}
+          className="absolute right-2.5 top-2.5 size-8 rounded-full flex items-center justify-center text-muted-foreground"
+        >
+          <ChevronUp className="size-4" aria-hidden />
+        </button>
 
         <div className="flex items-start gap-3 pr-8">
           <span className="size-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
