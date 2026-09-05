@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashFavourites } from "@/hooks/useWashFavourites";
+import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
 import { WASH_LOG_STEPS, friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
