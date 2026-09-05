@@ -13,6 +13,7 @@ import ListRow from "@/components/nav/ListRow";
 import PersonalisedOffersToggle from "@/components/profile/PersonalisedOffersToggle";
 import ChangePasswordSheet from "@/components/ChangePasswordSheet";
 import ManageSubscriptionSection from "@/components/profile/ManageSubscriptionSection";
+import PaigeWalkthroughCard from "@/components/profile/PaigeWalkthroughCard";
 import IconChipGrid from "@/components/nav/IconChipGrid";
 import Eyebrow from "@/components/nav/Eyebrow";
 import EmptyState from "@/components/EmptyState";
@@ -618,6 +619,9 @@ const Profile = () => {
       <div className="px-5 pb-3">
         <ListRow icon={HelpCircle} name="Help & Support" secondary="Install guide, FAQs and how to reach us." to="/help" />
       </div>
+
+      {/* Book a free 1:1 with Paige — moved from Home. */}
+      <PaigeWalkthroughCard />
 
       {/* App Walkthrough — re-runnable tour of the main screens */}
       <div className="px-5 pb-4">
