@@ -61,6 +61,7 @@ import {
   Compass,
   Scale,
   ArrowLeftRight,
+  ChevronDown,
   LogOut,
 } from "lucide-react";
 import { useActiveTreatmentPlans } from "@/hooks/useTreatmentPlans";
