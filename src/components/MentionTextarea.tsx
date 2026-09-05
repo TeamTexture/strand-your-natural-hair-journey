@@ -243,11 +243,16 @@ const MentionTextarea = ({
                           >
                             @{s.label}
                           </span>
-                          <span
-                            className={`shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider border ${KIND_TONE[s.kind]}`}
-                          >
-                            {KIND_LABEL[s.kind]}
-                          </span>
+                          {/* "Member" on every row says nothing — only badge the
+                              rows that are genuinely different. */}
+                          {s.kind !== "member" && (
+                            <span
+                              className={`shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider border ${KIND_TONE[s.kind]}`}
+                            >
+                              {KIND_LABEL[s.kind]}
+                            </span>
+                          )}
+
                         </div>
                         {subtitle && (
                           <p className="text-[11px] text-foreground/55 font-body truncate mt-0.5">{subtitle}</p>
