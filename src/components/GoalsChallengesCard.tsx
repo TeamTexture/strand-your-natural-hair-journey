@@ -3,7 +3,7 @@
 // entered numbers.
 //
 // Lifted out of Home (Sept 2026) so the same card — with the same editing —
-// lives on the "Goals & length" page reached from the Everything in STRAND
+// lives on the "Goals & challenges" page reached from the Everything in STRAND
 // directory. Content and behaviour are unchanged.
 import { useState } from "react";
 import SurfaceCard from "@/components/SurfaceCard";

@@ -61,6 +61,7 @@ import {
   Compass,
   Scale,
   ArrowLeftRight,
+  ChevronDown,
   LogOut,
 } from "lucide-react";
 import { useActiveTreatmentPlans } from "@/hooks/useTreatmentPlans";
@@ -100,15 +101,16 @@ export function featureGroups({ treatmentTo, canSwitchView }: DirectoryOptions):
       label: "My hair",
       items: [
         { name: "Treatment plan", desc: "Your plan, steps and check-ins", icon: ClipboardList, to: treatmentTo },
-        { name: "Goals & length", desc: "Your goals, challenges and progress", icon: Target, to: "/profile/milestones" },
+        { name: "Goals & challenges", desc: "Your goals, challenges and progress", icon: Target, to: "/profile/milestones" },
         { name: "Style & rotation", desc: "Set your current style and plan the next", icon: Repeat, to: "/home/style" },
         { name: "Hair profile", desc: "Your Afro and textured hair details", icon: Activity, to: "/profile/hair" },
         { name: "Colour & chemical history", desc: "Colour, relaxer and styling history", icon: Palette, to: "/profile/colour" },
         { name: "Wash day log & history", desc: "Log a wash day and look back at past ones", icon: Droplets, to: "/wash-day" },
+        { name: "Log a wash day", desc: "Walk through today's wash step by step", icon: Droplets, to: "/wash/log" },
         { name: "Wash day favourites", desc: "Routines you save and reuse", icon: Heart, to: "/wash/favourites" },
         { name: "Daily log", desc: "Quick notes between wash days", icon: NotebookPen, to: "/daily-log" },
         { name: "Style journal", desc: "Document your styles over time", icon: BookOpen, to: "/journal" },
-        { name: "Milestone photos", desc: "Your length and progress pictures", icon: Camera, to: "/profile/milestones" },
+        { name: "Progress photos", desc: "Your milestone pictures over time", icon: Camera, to: "/profile/milestones" },
         { name: "Moodboards", desc: "Save style inspiration", icon: LayoutGrid, to: "/journal/moodboards" },
       ],
     },
@@ -157,6 +159,7 @@ export function featureGroups({ treatmentTo, canSwitchView }: DirectoryOptions):
       label: "STRAND+",
       items: [
         { name: "Community forum", desc: "Talk to other members", icon: MessageSquare, to: "/forum" },
+        { name: "Start a discussion", desc: "Ask the community something", icon: NotebookPen, to: "/forum/new" },
         { name: "STRAND+ library", desc: "Guides, reads and collections", icon: Library, to: "/plus/library" },
         { name: "STRAND+ events", desc: "What is coming up", icon: CalendarDays, to: "/plus/events" },
         { name: "My tickets", desc: "Events you have booked", icon: Ticket, to: "/plus/tickets" },
@@ -175,6 +178,7 @@ export function featureGroups({ treatmentTo, canSwitchView }: DirectoryOptions):
         { name: "Email preferences", desc: "What lands in your inbox", icon: Mail, to: "/email-preferences" },
         { name: "App tour", desc: "A quick walk through STRAND", icon: Compass, to: "/walkthrough" },
         { name: "Terms & privacy", desc: "Legal documents and disclaimers", icon: Scale, to: "/legal/terms" },
+        { name: "Raise a data concern", desc: "Tell us about a data protection issue", icon: ShieldAlert, to: "/data-protection-complaint" },
         ...(canSwitchView
           ? [
               {
@@ -203,6 +207,7 @@ const FeatureDirectory = ({
 }) => {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const { bundles } = useActiveTreatmentPlans();
   const treatmentTo = bundles?.[0]?.plan?.id ? `/treatment/${bundles[0].plan.id}` : "/treatment/new";
 
@@ -220,6 +225,14 @@ const FeatureDirectory = ({
       }))
       .filter((g) => g.items.length > 0);
   }, [q, treatmentTo, onSwitchView]);
+
+  /** The three features members reach for most — surfaced above the groups. */
+  const quickPicks: Feature[] = [
+    { name: "Brand directory", desc: "Explore the brands on STRAND", icon: Store, to: "/brands" },
+    { name: "Style journal", desc: "Document your styles over time", icon: BookOpen, to: "/journal" },
+    { name: "Goals & challenges", desc: "Your goals, challenges and progress", icon: Target, to: "/profile/milestones" },
+  ];
+
 
   const select = (i: Feature) => {
     if (i.action === "sign-out") {
@@ -247,6 +260,30 @@ const FeatureDirectory = ({
     }
   };
 
+  const searching = !!q.trim();
+
+  const Row = ({ i, divided }: { i: Feature; divided: boolean }) => {
+    const Icon = i.icon;
+    return (
+      <button
+        onClick={() => select(i)}
+        className={`w-full text-left px-5 py-2.5 flex items-start gap-3 hover:bg-primary/[0.05] transition-colors ${
+          divided ? "border-t border-border/50" : ""
+        }`}
+      >
+        <Icon className="size-4 shrink-0 mt-0.5 text-primary" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground leading-snug break-words">
+            {i.name}
+          </span>
+          <span className="block text-[12px] font-body text-muted-foreground leading-snug break-words mt-0.5">
+            {i.desc}
+          </span>
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div>
       <div className="px-5 pb-3">
@@ -262,41 +299,48 @@ const FeatureDirectory = ({
         </div>
       </div>
 
-      {groups.length === 0 && (
+      {/* Quick picks — the three most-used features, always above the groups.
+          Hidden while searching so results are never duplicated. */}
+      {!searching && (
+        <>
+          {quickPicks.map((i, idx) => (
+            <Row key={`quick-${i.name}`} i={i} divided={idx > 0} />
+          ))}
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            aria-expanded={showAll}
+            className="w-full text-left px-5 py-3 mt-1 flex items-center gap-2 border-t border-border hover:bg-primary/[0.05] transition-colors"
+          >
+            <LayoutGrid className="size-4 shrink-0 text-primary" aria-hidden />
+            <span className="flex-1 text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground">
+              See all features
+            </span>
+            <ChevronDown
+              className={`size-4 shrink-0 text-primary transition-transform ${showAll ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+        </>
+      )}
+
+      {searching && groups.length === 0 && (
         <p className="px-5 py-4 text-[12px] font-body text-muted-foreground">
           Nothing matches that.
         </p>
       )}
 
-      {groups.map((g) => (
-        <div key={g.label} className="pb-2">
-          <p className="px-5 pt-2 pb-1.5 text-[10px] uppercase tracking-[0.2em] text-primary font-body font-medium">
-            {g.label}
-          </p>
-          {g.items.map((i, idx) => {
-            const Icon = i.icon;
-            return (
-              <button
-                key={`${g.label}-${i.name}`}
-                onClick={() => select(i)}
-                className={`w-full text-left px-5 py-2.5 flex items-start gap-3 hover:bg-primary/[0.05] transition-colors ${
-                  idx > 0 ? "border-t border-border/50" : ""
-                }`}
-              >
-                <Icon className="size-4 shrink-0 mt-0.5 text-primary" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground leading-snug break-words">
-                    {i.name}
-                  </span>
-                  <span className="block text-[12px] font-body text-muted-foreground leading-snug break-words mt-0.5">
-                    {i.desc}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+      {/* Searching always bypasses the collapse. */}
+      {(searching || showAll) &&
+        groups.map((g) => (
+          <div key={g.label} className="pb-2">
+            <p className="px-5 pt-2 pb-1.5 text-[10px] uppercase tracking-[0.2em] text-primary font-body font-medium">
+              {g.label}
+            </p>
+            {g.items.map((i, idx) => (
+              <Row key={`${g.label}-${i.name}`} i={i} divided={idx > 0} />
+            ))}
+          </div>
+        ))}
     </div>
   );
 };
