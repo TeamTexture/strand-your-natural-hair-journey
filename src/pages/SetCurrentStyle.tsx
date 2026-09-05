@@ -20,10 +20,9 @@ import {
 } from "@/lib/hairstyles";
 import { useStyleTip } from "@/hooks/useStyleTip";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  invalidateClinicalContextCache,
-  loadClinicalContext,
-} from "@/lib/clinicalContext";
+import { loadClinicalContext } from "@/lib/clinicalContext";
+import { announceStyleChange } from "@/lib/styleChange";
+import { useQueryClient } from "@tanstack/react-query";
 import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
 const UNIT_OPTIONS: Choice[] = [
@@ -57,6 +56,7 @@ const readExistingLocal = (): ExistingStyleLocal => {
 const SetCurrentStyle = () => {
   const navigate = useNavigate();
   const { data: styleTips = [] } = useStyleTip();
+  const qc = useQueryClient();
 
   const [style, setStyle] = useState<string>("");
   const [howLongNum, setHowLongNum] = useState("");
@@ -191,10 +191,9 @@ const SetCurrentStyle = () => {
       return;
     }
 
-    invalidateClinicalContextCache();
-    // Notify same-tab listeners (Home banner). The native `storage` event only
-    // fires in OTHER tabs, so we dispatch a custom event here too.
-    window.dispatchEvent(new Event("strand:style-updated"));
+    // One shared invalidation path: clinical context, stale guidance payloads,
+    // every style-dependent query key, and the same-tab listeners.
+    announceStyleChange(qc);
     toast.success("Style updated");
     navigate("/home");
   };

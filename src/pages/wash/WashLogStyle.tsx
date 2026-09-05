@@ -36,6 +36,14 @@ import { buildAiContext } from "@/lib/aiContext";
 import { aiInvoke } from "@/lib/aiInvoke";
 import { smartBack } from "@/lib/smartBack";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import StylePicker, { type StyleAttributesValue } from "@/components/style/StylePicker";
+import MainPhotoPicker from "@/components/style/MainPhotoPicker";
+import { ICONS } from "@/lib/iconMap";
+import { loadClinicalContext } from "@/lib/clinicalContext";
+import { styleAsksTension, styleAsksExtensions } from "@/lib/hairstyles";
+import { saveCurrentStyle, announceStyleChange } from "@/lib/styleChange";
+
 
 const PHOTO_BUCKET = "journal-photos";
 const VIDEO_BUCKET = "journal-videos";
@@ -88,6 +96,7 @@ const WashLogStyleInner = () => {
   const { products } = useUserProducts("shelf");
   const { data: favourites } = useWashFavourites();
   const saveFavourites = useSaveWashFavourites();
+  const qc = useQueryClient();
 
   const stepsDraft = readWashDraft<{ date?: string; rows?: Record<string, StepRow> }>(
     "strand_wash_log_steps",
@@ -114,8 +123,43 @@ const WashLogStyleInner = () => {
   const [saving, setSaving] = useState(false);
   const [favPrompt, setFavPrompt] = useState(false);
 
+  // Her current style, chosen right here — logging the style is the single
+  // source of truth, so she never has to go and edit her profile separately.
+  const [style, setStyle] = useState<string>("");
+  const [originalStyle, setOriginalStyle] = useState<string>("");
+  const [styleAttrs, setStyleAttrs] = useState<StyleAttributesValue>({
+    tension: null,
+    extensions: null,
+  });
+  const [attrError, setAttrError] = useState(false);
+  const [stylePhotoPrompt, setStylePhotoPrompt] = useState(false);
+  const afterPhotoPrompt = useRef<null | (() => void)>(null);
+
   const photoRef = useRef<HTMLInputElement | null>(null);
   const videoRef = useRef<HTMLInputElement | null>(null);
+
+  // Show her current style as selected by default.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ctx = await loadClinicalContext();
+      if (cancelled || !ctx.style) return;
+      const row = ctx.style as unknown as Record<string, unknown>;
+      const current = (row.current_hairstyle as string | null) ?? "";
+      setStyle((prev) => prev || current);
+      setOriginalStyle(current);
+      setStyleAttrs({
+        tension: (row.current_style_tension as string | null) ?? null,
+        extensions: (row.current_style_extensions as boolean | null) ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const styleChanged = !!style && style !== originalStyle;
+
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
@@ -215,12 +259,16 @@ const WashLogStyleInner = () => {
     const id = (data as { id?: string } | null)?.id ?? null;
 
     if (id) {
-      setPendingStylePrompt({
-        washDayId: id,
-        styleAfter: null,
-        styleExtensions: null,
-        styleTension: null,
-      });
+      // She already chose her style on this page — don't ask again afterwards.
+      if (!styleChanged) {
+        setPendingStylePrompt({
+          washDayId: id,
+          styleAfter: null,
+          styleExtensions: null,
+          styleTension: null,
+        });
+      }
+
       // Grounded wash-day observation, written in the background so saving is
       // never held open by a model call.
       void (async () => {
@@ -254,19 +302,57 @@ const WashLogStyleInner = () => {
     navigate("/wash-day");
   };
 
+  /** After the wash day is stored: favourites prompt, or straight out. */
+  const continueAfterStyle = () => {
+    const hasFavourites = Object.keys(favourites ?? {}).length > 0;
+    const hasPicks = buildSteps().length > 0;
+    if (!hasFavourites && hasPicks) {
+      setFavPrompt(true);
+      return;
+    }
+    finish();
+  };
+
   const save = async () => {
     if (saving) return;
+    if (
+      style &&
+      ((styleAsksTension(style) && !styleAttrs.tension) ||
+        (styleAsksExtensions(style) && styleAttrs.extensions === null))
+    ) {
+      setAttrError(true);
+      toast.error("Answer the tension and extensions questions for this style");
+      return;
+    }
+    setAttrError(false);
     setSaving(true);
     try {
       const id = await persist();
       if (!id) return;
-      const hasFavourites = Object.keys(favourites ?? {}).length > 0;
-      const hasPicks = buildSteps().length > 0;
-      if (!hasFavourites && hasPicks) {
-        setFavPrompt(true);
-        return;
+
+      // A new style is a change to her hair context: save it, restart the
+      // rotation count, and make every style-dependent surface regenerate.
+      if (styleChanged && user && !isViewingAs) {
+        try {
+          await saveCurrentStyle({
+            userId: user.id,
+            style,
+            tension: styleAttrs.tension,
+            extensions: styleAttrs.extensions,
+          });
+          announceStyleChange(qc);
+          toast.success(`Current style updated to ${style}`);
+          // Offer a photo for the Home card — skipping never blocks the save.
+          afterPhotoPrompt.current = continueAfterStyle;
+          setStylePhotoPrompt(true);
+          return;
+        } catch (err) {
+          console.error("[strand] style save failed", err);
+          toast.error("Wash day saved — we couldn't update your current style.");
+        }
       }
-      finish();
+
+      continueAfterStyle();
     } catch (e) {
       console.error("wash_days insert failed", e);
       toast.error(e instanceof Error ? e.message : "Could not save wash day");
@@ -274,6 +360,7 @@ const WashLogStyleInner = () => {
       setSaving(false);
     }
   };
+
 
   const acceptFavourites = async () => {
     const rows = stepsDraft.rows ?? {};
@@ -296,8 +383,41 @@ const WashLogStyleInner = () => {
     <ScreenLayout>
       <TitleBar title="Your style" onBack={smartBack(navigate, "/wash/log")} />
 
-      <div className="px-5 pb-8 space-y-4">
+      <div className="px-5 pt-4 pb-8 space-y-4">
+        {/* Choosing the style is the first decision on this page, and saving it
+            here updates her Current style everywhere — no separate profile edit. */}
         <SurfaceCard>
+          <Eyebrow icon={ICONS.style}>Your style today</Eyebrow>
+          <p className="mt-1.5 font-body text-[12.5px] text-muted-foreground leading-relaxed">
+            {originalStyle
+              ? "Change this if you've moved into a new style — we'll update your Current style card."
+              : "Pick the style you're wearing now."}
+          </p>
+          <div className="mt-3">
+            <StylePicker
+              value={style}
+              onChange={(v) => {
+                setStyle(v);
+                setAttrError(false);
+              }}
+              attributes={styleAttrs}
+              onAttributesChange={(v) => {
+                setStyleAttrs(v);
+                setAttrError(false);
+              }}
+              attributeError={attrError}
+              collapseOnSelect
+            />
+          </div>
+          {styleChanged && (
+            <p className="mt-3 font-body text-[12px] text-primary leading-relaxed">
+              Your guidance will refresh for {style} when you save.
+            </p>
+          )}
+        </SurfaceCard>
+
+        <SurfaceCard>
+
           <Eyebrow icon={Plus}>Style products used</Eyebrow>
           <div className="mt-2 space-y-2">
             {styleProductIds.length === 0 && (
@@ -470,6 +590,22 @@ const WashLogStyleInner = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Photo for the new style — becomes the image on the Home Current style
+          card. Closing the sheet is the skip, and never blocks the save. */}
+      <MainPhotoPicker
+        open={stylePhotoPrompt}
+        onOpenChange={(o) => {
+          if (o) return;
+          setStylePhotoPrompt(false);
+          const next = afterPhotoPrompt.current;
+          afterPhotoPrompt.current = null;
+          next?.();
+        }}
+        title="Add a photo of your new style"
+        description="It becomes the picture on your Current style card. You can skip this and add one later."
+      />
+
     </ScreenLayout>
   );
 };
