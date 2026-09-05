@@ -589,6 +589,22 @@ const WashLogStyleInner = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Photo for the new style — becomes the image on the Home Current style
+          card. Closing the sheet is the skip, and never blocks the save. */}
+      <MainPhotoPicker
+        open={stylePhotoPrompt}
+        onOpenChange={(o) => {
+          if (o) return;
+          setStylePhotoPrompt(false);
+          const next = afterPhotoPrompt.current;
+          afterPhotoPrompt.current = null;
+          next?.();
+        }}
+        title="Add a photo of your new style"
+        description="It becomes the picture on your Current style card. You can skip this and add one later."
+      />
+
     </ScreenLayout>
   );
 };
