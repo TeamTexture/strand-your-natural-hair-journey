@@ -94,6 +94,21 @@ const MyToolsSection = ({ open, onToggleOpen, searchTerm = "" }: MyToolsSectionP
   // and star mapping as products) and persists the result on the row.
   const { scores: aiScores, scoring, failed: scoringFailed } = useToolMatchScores(tools, reload);
 
+  // Fold state. Controlled by the Products page when it passes a handler;
+  // standalone use keeps the old always-open behaviour.
+  const [openLocal, setOpenLocal] = useState(false);
+  const controlled = typeof onToggleOpen === "function";
+  const term = searchTerm.trim().toLowerCase();
+  const searchHit =
+    term.length > 0 &&
+    tools.some(
+      (t) =>
+        t.name.toLowerCase().includes(term) ||
+        (t.brand ?? "").toLowerCase().includes(term),
+    );
+  const isOpen = controlled ? Boolean(open) || searchHit : openLocal || searchHit;
+  const toggleOpen = () => (controlled ? onToggleOpen!() : setOpenLocal((v) => !v));
+
   const [expanded, setExpanded] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<UserTool | null>(null);
