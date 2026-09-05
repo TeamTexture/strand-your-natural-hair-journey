@@ -256,9 +256,9 @@ const BloodAiSummary = () => {
 
         <SurfaceCard>
           <AnchorStat
-            value={summary.deficiencies.length}
+            value={deficiencies.length}
             context={
-              summary.deficiencies.length === 1
+              deficiencies.length === 1
                 ? "marker flagged from your results"
                 : "markers flagged from your results"
             }
@@ -270,7 +270,7 @@ const BloodAiSummary = () => {
         {hasDeficiencies ? (
           <SurfaceCard padded={false}>
             <div className="divide-y divide-border/60 px-4">
-              {summary.deficiencies.map((d) => {
+              {deficiencies.map((d) => {
                 const severity: MarkerSeverity =
                   d.status === "low" ? "deficient" : d.status === "high" ? "high" : "borderline";
                 return (
@@ -304,7 +304,7 @@ const BloodAiSummary = () => {
         <SurfaceCard>
           <ActionList
             idPrefix="blood-priority"
-            actions={summary.priority_actions.map((a) => ({ action: a }))}
+            actions={priorityActions.map((a) => ({ action: a }))}
             showWhy={false}
           />
         </SurfaceCard>
