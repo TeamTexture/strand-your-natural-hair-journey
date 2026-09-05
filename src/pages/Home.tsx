@@ -713,10 +713,24 @@ const Home = () => {
                       style={{ imageRendering: "auto" }}
                     />
                   ) : (
-                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                    /* Empty state — a gentle invitation, not a blank block. */
+                    <button
+                      type="button"
+                      onClick={() => setPhotoPickerOpen(true)}
+                      className="w-full h-full flex flex-col items-center justify-center gap-2.5 px-6 text-center"
+                    >
+                      <span className="size-11 rounded-full border border-[#C5A059]/40 flex items-center justify-center">
+                        <ImagePlus className="size-5 text-[#C5A059]" />
+                      </span>
+                      <span className="font-display text-white/90 text-[15px] leading-snug">
+                        Add a photo of this style
+                      </span>
+                      <span className="text-[#E0D7CC]/60 text-[11px] font-body">
+                        Tap to take one or choose from your camera roll
+                      </span>
+                    </button>
                   )}
+
                 </div>
               </div>
 
