@@ -39,6 +39,11 @@ import { useSensitivityCapture } from "@/hooks/useSensitivityCapture";
 import NutrientGapNote from "@/components/sensitivity/NutrientGapNote";
 import MySupplementsSection from "@/components/nutrition/MySupplementsSection";
 import MealLogZone from "@/components/nutrition/MealLogZone";
+import {
+  readNutritionInputs,
+  readConfirmedFingerprint,
+  writeConfirmedFingerprint,
+} from "@/lib/nutritionInputs";
 
 
 type Diet = DietaryPattern;
@@ -613,6 +618,13 @@ const NutritionPlan = () => {
   const { open: sensitivityAsk, close: dismissSensitivityAsk } = useSensitivityCapture("dietary");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
+  /**
+   * A warranted regeneration running BEHIND the stored plan. The existing plan
+   * stays on screen and readable; this only drives a small "Updating" chip.
+   * Never a blocking spinner, never an empty page.
+   */
+  const [refreshing, setRefreshing] = useState(false);
+  const inputsFpRef = useRef<string | null>(null);
   /** Real profile-completeness signals, so a request failure is never
    *  misreported to the member as "your profile is incomplete". */
   const [hasBloodPanel, setHasBloodPanel] = useState<boolean | null>(null);
@@ -642,10 +654,15 @@ const NutritionPlan = () => {
     return set;
   }, [savedMealsQ.data]);
 
-  const fetchMeals = async (currentProfile = profile) => {
+  const fetchMeals = async (
+    currentProfile = profile,
+    opts: { background?: boolean } = {},
+  ) => {
     if (mealsInFlightRef.current) return;
     mealsInFlightRef.current = true;
-    setMealsLoading(true);
+    // A background refresh keeps the stored meals on screen; only a first run
+    // or an explicit "Generate new ideas" shows the progress bar.
+    if (!opts.background) setMealsLoading(true);
     setMealsProgress(0);
     const start = Date.now();
     const ticker = setInterval(() => {
@@ -695,8 +712,13 @@ const NutritionPlan = () => {
         // if the model slips and returns it anyway.
         const savedKeys = new Set(savedNames.map(mealKey));
         const fresh = (data.meals as AiMeal[]).filter((m) => !savedKeys.has(mealKey(m.name)));
-        if (fresh.length > 0) setMeals(fresh);
-        else toast.error("No new meal ideas came back — try again.");
+        if (fresh.length > 0) {
+          setMeals(fresh);
+          // Stored batch is current for this input set — the next visit reads it.
+          if (user && inputsFpRef.current) {
+            writeConfirmedFingerprint(user.id, "meals", inputsFpRef.current);
+          }
+        } else toast.error("No new meal ideas came back — try again.");
       } else {
         toast.error("No new meal ideas came back — try again.");
       }
@@ -766,11 +788,19 @@ const NutritionPlan = () => {
   const inFlightRef = useRef(false);
 
 
-  const fetchPlan = async (force = false, currentProfile = profile) => {
+  const fetchPlan = async (
+    force = false,
+    currentProfile = profile,
+    opts: { background?: boolean } = {},
+  ) => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
-    setAiLoading(true);
-    startProgress();
+    if (opts.background) {
+      setRefreshing(true);
+    } else {
+      setAiLoading(true);
+      startProgress();
+    }
     try {
       const context = await buildAiContext();
       const { data, error } = await aiInvoke<Record<string, unknown>>("nutrition-plan", {
@@ -794,6 +824,11 @@ const NutritionPlan = () => {
       const hasSupplements = Array.isArray(nextPlan?.supplements) && nextPlan.supplements.length > 0;
       if (nextPlan) setPlan(nextPlan);
       setPlanFailed(!hasSupplements);
+      // The stored plan is now current for this input set, so the next visit is
+      // a pure read even when the server answered from its own cache.
+      if (nextPlan && user && inputsFpRef.current) {
+        writeConfirmedFingerprint(user.id, "plan", inputsFpRef.current);
+      }
       stopProgress(100);
       await new Promise((r) => setTimeout(r, 400));
     } catch (e) {
@@ -804,6 +839,7 @@ const NutritionPlan = () => {
     } finally {
       inFlightRef.current = false;
       setAiLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -835,9 +871,31 @@ const NutritionPlan = () => {
     let cancelled = false;
     (async () => {
       try {
-        const blood = await readBloodData(user.id);
+        // STORED CONTENT FIRST (2026-09-05). The plan and meals already written
+        // for her are one indexed read each and need no decryption, so they go
+        // on screen before anything else. The blood and health reads (which
+        // decrypt) follow and only fill in the flagged-marker chips.
+        const [stored, storedMeals] = await Promise.all([
+          loadStoredPlan(user.id),
+          loadStoredMeals(user.id),
+        ]);
+        if (cancelled) return;
+        if (stored?.plan) {
+          setPlan(stored.plan);
+          setPlanFailed(
+            !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
+          );
+          setHasBloodPanel(true);
+          // Her plan is readable now — nothing below may hold the page.
+          setLoading(false);
+        }
+        if (storedMeals) setMeals(storedMeals.meals);
+
+        const [blood, clinical] = await Promise.all([
+          readBloodData(user.id),
+          loadClinicalContext(),
+        ]);
         const flagged = new Set<string>(blood.flagged);
-        const clinical = await loadClinicalContext();
         const diet = canonDiet(clinical.health?.diet);
         const dietOther = clinical.health?.dietOther ?? "";
         const alcohol = ((clinical.health?.alcohol ?? "") as Alcohol) || "unknown";
@@ -847,43 +905,37 @@ const NutritionPlan = () => {
         setHasHealthProfile(!!clinical.health);
         const next = { diet, dietOther, alcohol, flagged };
         setProfile(next);
+        setLoading(false);
+
         // No bloods on file: this screen renders its locked state, so there is
         // nothing to generate. Blood work is optional; adding it later opens it.
-        //
-        // VIEWING NEVER SPENDS A TOKEN (2026-08-27). The stored plan is read
-        // straight from `ai_summaries` and rendered instantly. The edge function
-        // is only invoked when there is no stored plan, or when her blood data
-        // has actually been touched since that plan was written. Every other
-        // visit — a back-navigation, a tab switch, a reload — is a pure read.
         if (bloodOnFile) {
-          const stored = await loadStoredPlan(user.id);
+          // WHAT COUNTS AS A CHANGE (2026-09-05). Blood results, supplements,
+          // hair profile, goal/challenges/concerns and the health & diet
+          // answers. Compared against the fingerprint the stored plan was last
+          // confirmed against, so a cache hit does not leave the check failing
+          // for ever. When nothing moved, this visit is a pure read: no
+          // request, no model call, no spinner.
+          const inputs = await readNutritionInputs(user.id);
           if (cancelled) return;
-          if (stored?.plan) {
-            setPlan(stored.plan);
-            setPlanFailed(
-              !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
-            );
-            if (await bloodTouchedSince(user.id, stored.generatedAt)) {
-              if (!cancelled) void fetchPlan(false, next);
-            }
-          } else {
+          inputsFpRef.current = inputs.fingerprint;
+          const confirmedPlan = readConfirmedFingerprint(user.id, "plan");
+          const confirmedMeals = readConfirmedFingerprint(user.id, "meals");
+
+          if (!stored?.plan) {
+            // First plan for this member: the only case that shows the honest
+            // generation progress, because there is nothing to read.
             void fetchPlan(false, next);
+          } else if (confirmedPlan !== inputs.fingerprint) {
+            // Something she changed genuinely affects the plan — refresh it
+            // behind the plan already on screen.
+            void fetchPlan(false, next, { background: true });
           }
 
-          // MEALS: read the permanently stored batch and render it instantly.
-          // A generation only happens when there is nothing stored yet, or when
-          // her blood data has actually changed since that batch was written.
-          const storedMeals = await loadStoredMeals(user.id);
-          if (cancelled) return;
-          if (storedMeals) {
-            setMeals(storedMeals.meals);
-            if (await bloodTouchedSince(user.id, storedMeals.generatedAt)) {
-              if (!cancelled) void fetchMeals(next);
-            }
+          if (storedMeals && confirmedMeals !== inputs.fingerprint) {
+            void fetchMeals(next, { background: true });
           }
         }
-
-
 
       } finally {
         if (!cancelled) setLoading(false);
@@ -902,7 +954,7 @@ const NutritionPlan = () => {
         <TitleBar title="Nutrition Plan" tips />
         <div className="px-5 pt-10 space-y-3">
           <p className="font-body text-[13px] text-foreground/80">
-            Building your nutrition plan
+            Opening your nutrition plan
           </p>
           {/* nutrition-plan runs three model passes; summed per generation the
               measured wall clock is p50 129.9s / p75 136.7s / p90 141.1s. */}
@@ -1111,7 +1163,17 @@ const NutritionPlan = () => {
 
         {/* The ONLY path that spends tokens on this screen. Viewing, navigating
             back, or re-rendering always reads the stored plan. */}
-        {plan && !aiLoading && (
+        {/* A warranted refresh runs behind the plan she is already reading. */}
+        {refreshing && (
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-secondary text-[11px] font-body text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+              Updating your plan with your latest details
+            </span>
+          </div>
+        )}
+
+        {plan && !aiLoading && !refreshing && (
           <div className="mb-4 flex justify-center">
             <button
               type="button"

@@ -23,7 +23,8 @@ import { buildTipsLevelBlock } from "../_shared/tips-level.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 import { isEntitled, membershipRequired } from "../_shared/entitlement.ts";
 import { resolveAiRequestMode } from "../_shared/impersonation.ts";
-import { bloodFingerprint, readSurfaceCache, sha } from "../_shared/surface-cache.ts";
+import { bloodFingerprint, readSurfaceCache,
+  nutritionInputFingerprint, sha } from "../_shared/surface-cache.ts";
 
 declare const Deno: {
   env: { get(key: string): string | undefined };
@@ -736,6 +737,10 @@ Deno.serve(async (req: Request) => {
     // An explicit `force` (the member tapped "Generate a new plan") still
     // regenerates once.
     const bloodFp = await bloodFingerprint(dataClient, memberId);
+    // Supplements, hair profile, goal/challenges/concerns and the health & diet
+    // answers all change the plan too (2026-09-05). Read from the database so
+    // the signature only moves when one of them genuinely changed.
+    const inputsFp = await nutritionInputFingerprint(dataClient, memberId);
     const sig = await sha(JSON.stringify({
       schema_version: "v7-full-detail-2026-08-15",
       model_version: MODEL_VERSION,
@@ -749,6 +754,7 @@ Deno.serve(async (req: Request) => {
         .slice()
         .sort(),
       blood: bloodFp,
+      inputs: inputsFp,
       // Nutrition always renders at full detail, so the support level is
       // deliberately excluded from the cache signature.
       tipsLevel: "full",
