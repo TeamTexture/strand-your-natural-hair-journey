@@ -44,7 +44,7 @@ const SpeakToStrandCard = () => {
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-display text-[15px] leading-tight">Speak to STRAND</p>
+              <p className="card-title font-display text-[14.5px] leading-tight">Speak to STRAND</p>
               {unread > 0 && (
                 <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-body font-semibold leading-none">
                   {unread > 99 ? "99+" : unread}

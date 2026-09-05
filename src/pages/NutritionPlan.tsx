@@ -1149,7 +1149,7 @@ const NutritionPlan = () => {
               <div className="size-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                 <Sparkles className="size-3.5 text-primary" />
               </div>
-              <p className="font-display text-[15px] leading-tight text-foreground pt-1">Why this plan</p>
+              <p className="card-title font-display text-[14.5px] leading-tight text-foreground pt-1">Why this plan</p>
             </div>
             <AiProse text={plan.summary} />
           </div>
