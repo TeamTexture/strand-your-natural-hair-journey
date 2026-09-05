@@ -100,7 +100,7 @@ const Home = () => {
   const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts({ static: true });
   const { hasPlus } = usePlusAccess();
   const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
-  const { products: shelfProducts, loading: shelfLoading, sponsoredById: shelfSponsoredById } = useUserProducts("shelf", { static: true });
+  
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { goal } = useGoals();
   const { challenges } = useChallenges();
@@ -328,8 +328,6 @@ const Home = () => {
     }
     return null;
   })();
-
-  const shelfCount = shelfProducts.length;
 
   return (
     <ScreenLayout bottomNav>
