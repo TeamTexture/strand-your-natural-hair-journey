@@ -339,7 +339,11 @@ const GlobalMenu = () => {
   if (lockedPro && !showViewSwitcher) return null;
 
 
+  /** Members get the full feature directory instead of a short nav list. */
+  const showDirectory = activeView === "consumer" && !isOnboarding;
+
   const navItems: NavItem[] =
+
     activeView === "admin"
       ? ADMIN_NAV
       : activeView === "brand"
