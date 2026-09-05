@@ -543,27 +543,30 @@ const WashDayHub = () => {
         </div>
       )}
 
-      <SectionLabel>Previous wash days</SectionLabel>
+      <SectionLabel>Your hair history</SectionLabel>
       <div className="px-5 space-y-3 pb-4">
         {loading ? (
           <LoadingDot label="Loading wash days…" />
-        ) : washDays.length === 0 ? (
+        ) : washDays.length === 0 && dailyEntries.length === 0 ? (
           <EmptyState
             message="No wash days logged yet"
             hint="Tap the button below to log your first wash day."
           />
         ) : (
-          washDays.map((wd, i) => {
-            // washDays is sorted desc — the next-older wash is at i+1.
-            const previous = washDays[i + 1] ?? null;
-            const sequenceNumber = washDays.length - i;
+          timeline.map((item) => {
+            if (item.kind === "daily") {
+              return (
+                <DailyEntryRow key={item.entry.id} entry={item.entry} byId={productsById} />
+              );
+            }
+            const wd = item.washDay;
             return (
               <WashDayCard
                 key={wd.id}
                 anchorId={wd.id}
                 washDay={wd}
-                sequenceNumber={sequenceNumber}
-                previousWashDate={previous?.wash_date ?? null}
+                sequenceNumber={item.sequenceNumber}
+                previousWashDate={item.previousWashDate}
                 onClick={() => navigate(`/wash-day/${wd.id}`)}
                 onSeeAll={() => navigate(`/wash-day/${wd.id}#transcript`)}
               />
