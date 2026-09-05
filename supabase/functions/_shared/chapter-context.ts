@@ -39,7 +39,8 @@ export type SurfaceKey =
   | "meal-ideas"
   | "blood-ai-summary"
   | "blood-change-analysis"
-  | "journal-encouragement";
+  | "journal-encouragement"
+  | "daily-pattern-tip";
 
 /** Chapter 1 governs terminology; it is mandatory everywhere. */
 export const LANGUAGE_CHAPTER = 1;
@@ -102,6 +103,9 @@ export const SURFACE_CHAPTERS: Record<SurfaceKey, number[]> = {
   "blood-ai-summary": [8],
   "blood-change-analysis": [8],
   "journal-encouragement": [4],
+  // The weekly daily-log pattern card: between-wash moisture and product
+  // layering (14), the wash itself (13), and build-up on the scalp (12).
+  "daily-pattern-tip": [14, 13, 12],
 };
 
 export interface ChapterChunk {
