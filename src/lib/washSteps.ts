@@ -31,10 +31,17 @@ export const WASH_STEP_LABEL: Record<string, string> = {
   "Moisturising cleanse": "Moisturising cleanse",
   "Co-wash": "Co-wash",
   Condition: "Condition",
+  "Condition 2": "Condition",
+  Mask: "Mask",
+  "Mask 2": "Mask",
   Treatment: "Treatment / Mask",
   "Leave-in": "Leave-in",
   Moisturise: "Moisturise",
   Style: "Style",
+  "Style 2": "Style",
+  "Style 3": "Style",
+  "Style 4": "Style",
+  "Style 5": "Style",
 };
 
 /** Human label for a stored step name, falling back to the stored string. */
