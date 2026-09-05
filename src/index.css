@@ -363,3 +363,16 @@ iframe {
 @media (min-width: 500px) and (pointer: coarse) {
   [data-app-frame] { max-width: 430px; margin-inline: auto; }
 }
+
+/* Card / tile titles: uppercase Playfair with tracked caps, matching the
+   uppercase treatment used elsewhere in the app. Applied to STATIC titles
+   only — never to product names, ingredient names, style names, member text
+   or AI-generated copy. */
+.card-title {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.card-title-sm {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
