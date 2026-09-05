@@ -570,6 +570,13 @@ const WashDayHub = () => {
       </div>
 
       <div className="px-5 pb-6">
+        <button
+          type="button"
+          onClick={() => navigate("/wash/favourites")}
+          className="mb-3 w-full text-center text-[11.5px] font-body text-primary min-h-[36px]"
+        >
+          Wash Day Favourites
+        </button>
         <Button variant="gold" size="pill" onClick={() => navigate("/wash/log")}>
           + Log Today's Wash Day
         </Button>

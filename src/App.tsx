@@ -202,11 +202,6 @@ const WashDayDetail = lazyRetry(() => import("./pages/WashDayDetail"));
 const WashLogSteps = lazyRetry(() => import("./pages/wash/WashLogSteps"));
 const WashLogStyle = lazyRetry(() => import("./pages/wash/WashLogStyle"));
 const WashFavourites = lazyRetry(() => import("./pages/wash/WashFavourites"));
-const WashStep1 = lazyRetry(() => import("./pages/wash/WashStep1"));
-const WashStep2 = lazyRetry(() => import("./pages/wash/WashStep2"));
-const WashStep3 = lazyRetry(() => import("./pages/wash/WashStep3"));
-const WashStepStyling = lazyRetry(() => import("./pages/wash/WashStepStyling"));
-const WashStep4 = lazyRetry(() => import("./pages/wash/WashStep4"));
 const Products = lazyRetry(() => import("./pages/Products"));
 const IngredientDetail = lazyRetry(() => import("./pages/IngredientDetail"));
 const Wishlist = lazyRetry(() => import("./pages/Wishlist"));
@@ -406,11 +401,12 @@ const App = () => (
               <Route path="/wash/log" element={<Paid><WashLogSteps /></Paid>} />
               <Route path="/wash/log/style" element={<Paid><WashLogStyle /></Paid>} />
               <Route path="/wash/favourites" element={<Paid><WashFavourites /></Paid>} />
-              <Route path="/wash/step-1" element={<Paid><WashStep1 /></Paid>} />
-              <Route path="/wash/step-2" element={<Paid><WashStep2 /></Paid>} />
-              <Route path="/wash/step-3" element={<Paid><WashStep3 /></Paid>} />
-              <Route path="/wash/step-styling" element={<Paid><WashStepStyling /></Paid>} />
-              <Route path="/wash/step-4" element={<Paid><WashStep4 /></Paid>} />
+              {/* The logging flow is two pages. Old step links land on page 1. */}
+              <Route path="/wash/step-1" element={<Navigate to="/wash/log" replace />} />
+              <Route path="/wash/step-2" element={<Navigate to="/wash/log" replace />} />
+              <Route path="/wash/step-3" element={<Navigate to="/wash/log" replace />} />
+              <Route path="/wash/step-styling" element={<Navigate to="/wash/log" replace />} />
+              <Route path="/wash/step-4" element={<Navigate to="/wash/log" replace />} />
               <Route path="/products" element={<Paid><Products /></Paid>} />
               <Route path="/products/ingredient" element={<Paid><IngredientDetail /></Paid>} />
               <Route path="/products/wishlist" element={<Paid><Wishlist /></Paid>} />
