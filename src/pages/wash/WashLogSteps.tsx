@@ -116,11 +116,15 @@ const WashLogStepsInner = () => {
                   aria-label={`${step.label} used today`}
                 />
 
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   aria-label={`Swap the product for ${step.label}`}
                   onClick={() => setPickerStep(step.stored)}
-                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") setPickerStep(step.stored);
+                  }}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left cursor-pointer"
                 >
                   {product ? (
                     <span
@@ -162,7 +166,7 @@ const WashLogStepsInner = () => {
                       </span>
                     )}
                   </span>
-                </button>
+                </div>
               </div>
             </div>
           );
