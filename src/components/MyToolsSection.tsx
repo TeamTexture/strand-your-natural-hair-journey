@@ -11,7 +11,6 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
-import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import VoiceNoteField from "@/components/VoiceNoteField";
