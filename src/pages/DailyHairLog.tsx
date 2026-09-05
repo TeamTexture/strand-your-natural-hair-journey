@@ -1,0 +1,274 @@
+// THE QUICK LOG — one page, one tap in the common case.
+//
+// Speed rules: defaults to today and now, her most recently used between-wash
+// products sit at the top as one-tap toggles, the only required answer is a
+// product, and the note/voicenote are optional. No steps, no wizard.
+
+import { useMemo, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { CalendarDays, Check, Plus, X } from "lucide-react";
+import ScreenLayout from "@/components/ScreenLayout";
+import TitleBar from "@/components/TitleBar";
+import SurfaceCard from "@/components/SurfaceCard";
+import Eyebrow from "@/components/nav/Eyebrow";
+import ProductThumb from "@/components/ProductThumb";
+import ProductPickerSheet from "@/components/ProductPickerSheet";
+import VoiceNoteField from "@/components/VoiceNoteField";
+import DateTimePicker from "@/components/DateTimePicker";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useUserProducts } from "@/hooks/useUserProducts";
+import {
+  useCreateDailyHairEntry,
+  useDailyHairEntries,
+} from "@/hooks/useDailyHairEntries";
+import { friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
+import { smartBack } from "@/lib/smartBack";
+import { cn } from "@/lib/utils";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Local "YYYY-MM-DDTHH:mm" for right now. */
+const nowLocalValue = () => {
+  const d = new Date();
+  return `${localIsoDate(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const prettyTime = (value: string) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
+};
+
+const DailyHairLog = () => {
+  const navigate = useNavigate();
+  const { products } = useUserProducts("shelf");
+  const { recentProductIds } = useDailyHairEntries();
+  const create = useCreateDailyHairEntry();
+
+  const [when, setWhen] = useState(nowLocalValue);
+  const [showWhen, setShowWhen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [note, setNote] = useState("");
+  const [voicePath, setVoicePath] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const byId = useMemo(() => {
+    const map: Record<string, (typeof products)[number]> = {};
+    for (const p of products) map[p.id] = p;
+    return map;
+  }, [products]);
+
+  // Her between-wash regulars first; then the rest of the shelf by last used.
+  const quickPicks = useMemo(() => {
+    const ordered = [
+      ...recentProductIds.filter((id) => byId[id]),
+      ...products
+        .filter((p) => !recentProductIds.includes(p.id))
+        .sort((a, b) => (b.last_used_at ?? "").localeCompare(a.last_used_at ?? ""))
+        .map((p) => p.id),
+    ];
+    return ordered.slice(0, 6);
+  }, [recentProductIds, products, byId]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const date = when.slice(0, 10);
+
+  const save = async () => {
+    if (!selected.length) {
+      toast.error("Pick at least one product.");
+      return;
+    }
+    try {
+      const at = new Date(when);
+      await create.mutateAsync({
+        entry_date: date,
+        entry_at: (Number.isNaN(at.getTime()) ? new Date() : at).toISOString(),
+        product_ids: selected,
+        note: note.trim() || null,
+        voice_path: voicePath,
+      });
+      toast.success("Saved to your hair history.");
+      navigate("/home");
+    } catch (e) {
+      console.error("daily_hair_entries insert failed", e);
+      toast.error(e instanceof Error ? e.message : "Could not save that. Please try again.");
+    }
+  };
+
+  return (
+    <ScreenLayout>
+      <TitleBar title="What you did today" onBack={smartBack(navigate, "/home")} />
+
+      {/* WHEN — today and now by default; only opened if she wants to change it. */}
+      <div className="px-5 pb-3">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="size-3.5 text-primary shrink-0" aria-hidden />
+          <p className="font-body text-[12.5px] text-foreground/80">
+            {friendlyWashDate(date)}
+            {prettyTime(when) ? `, ${prettyTime(when)}` : ""}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowWhen((v) => !v)}
+            className="text-[11px] uppercase tracking-[0.14em] text-primary font-medium min-h-[32px]"
+          >
+            {showWhen ? "Done" : "Change"}
+          </button>
+        </div>
+        {showWhen && (
+          <div className="mt-2">
+            <DateTimePicker value={when} onChange={setWhen} />
+          </div>
+        )}
+      </div>
+
+      {/* QUICK PICKS — the whole point: one or two taps. */}
+      {quickPicks.length > 0 && (
+        <>
+          <div className="px-5">
+            <Eyebrow>What you usually reach for</Eyebrow>
+          </div>
+          <div className="px-5 pb-3 space-y-2">
+            {quickPicks.map((id) => {
+              const p = byId[id];
+              if (!p) return null;
+              const on = selected.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggle(id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-[14px] border p-3 text-left transition-colors",
+                    on ? "border-primary bg-primary/10" : "border-border bg-card",
+                  )}
+                >
+                  <ProductThumb
+                    imageUrl={p.image_url}
+                    storagePath={p.storage_path}
+                    alt={p.name}
+                    cover
+                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
+                  />
+                  <span className="flex-1 min-w-0">
+                    <Link
+                      to={`/products/profile/${p.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                    >
+                      {p.name}
+                    </Link>
+                    {p.brand && (
+                      <span className="block font-body text-[11.5px] text-muted-foreground break-words">
+                        {p.brand}
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "size-5 rounded-full border flex items-center justify-center shrink-0",
+                      on ? "bg-primary border-primary" : "border-border",
+                    )}
+                  >
+                    {on && <Check className="size-3 text-primary-foreground" aria-hidden />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Anything else she used, added from the shelf. */}
+      {selected.filter((id) => !quickPicks.includes(id)).length > 0 && (
+        <div className="px-5 pb-3 space-y-2">
+          {selected
+            .filter((id) => !quickPicks.includes(id))
+            .map((id) => {
+              const p = byId[id];
+              if (!p) return null;
+              return (
+                <div
+                  key={id}
+                  className="flex items-center gap-3 rounded-[14px] border border-primary bg-primary/10 p-3"
+                >
+                  <ProductThumb
+                    imageUrl={p.image_url}
+                    storagePath={p.storage_path}
+                    alt={p.name}
+                    cover
+                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
+                  />
+                  <Link
+                    to={`/products/profile/${p.id}`}
+                    className="flex-1 min-w-0 product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                  >
+                    {p.name}
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${p.name}`}
+                    onClick={() => toggle(id)}
+                    className="size-8 rounded-full flex items-center justify-center text-muted-foreground shrink-0"
+                  >
+                    <X className="size-4" aria-hidden />
+                  </button>
+                </div>
+              );
+            })}
+        </div>
+      )}
+
+      <div className="px-5 pb-4">
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="w-full inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-border bg-card min-h-[44px] font-body text-[12.5px] text-primary"
+        >
+          <Plus className="size-3.5" aria-hidden />
+          Add from your shelf
+        </button>
+      </div>
+
+      {/* Optional — never in the way of saving. */}
+      <div className="px-5 pb-4">
+        <SurfaceCard>
+          <VoiceNoteField
+            label="Anything to add? (optional)"
+            placeholder="How your hair felt, why you did it…"
+            value={note}
+            onChange={setNote}
+            audioPath={voicePath}
+            onAudioPathChange={setVoicePath}
+            folder="daily-hair"
+            rows={3}
+          />
+        </SurfaceCard>
+      </div>
+
+      <div className="px-5 pb-8">
+        <Button
+          variant="gold"
+          size="pill"
+          onClick={save}
+          disabled={create.isPending || !selected.length}
+        >
+          {create.isPending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+
+      <ProductPickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        selectedIds={selected}
+        onToggle={(id) => toggle(id)}
+      />
+    </ScreenLayout>
+  );
+};
+
+export default DailyHairLog;
