@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-/** Render text with @mentions in orange and #hashtags as clickable links. Preserves line breaks. */
+/** Render text with @mentions in gold and #hashtags as clickable links. Preserves line breaks. */
 export function renderMentions(text: string | null | undefined): React.ReactNode {
   if (!text) return null;
   // Split on mentions OR hashtags, capturing them so we can style/link.
@@ -15,7 +15,7 @@ export function renderMentions(text: string | null | undefined): React.ReactNode
     if (!p) return null;
     if (p === "@everyone") {
       return (
-        <span key={i} className="rounded px-1 py-0.5 bg-orange-500/15 text-orange-600 font-semibold">
+        <span key={i} className="rounded px-1 py-0.5 bg-primary/12 text-primary font-semibold">
           @everyone
         </span>
       );
@@ -24,7 +24,7 @@ export function renderMentions(text: string | null | undefined): React.ReactNode
       return (
         <span
           key={i}
-          className="inline-block rounded-full bg-orange-500/15 text-orange-600 font-semibold px-1.5 py-[1px] leading-snug"
+          className="inline-block rounded-full bg-primary/12 text-primary font-semibold px-1.5 py-[1px] leading-snug"
         >
           {p}
         </span>
