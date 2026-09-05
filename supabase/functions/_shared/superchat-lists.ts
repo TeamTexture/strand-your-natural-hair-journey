@@ -35,11 +35,13 @@ declare const Deno: { env: { get(key: string): string | undefined } };
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-/** Workspace list names. Overridable so a rename needs no code change. */
+// The two lists that already exist in the Superchat workspace. The Public API
+// cannot create a contact list, so these names must match the workspace exactly;
+// both are overridable by env var so a rename in Superchat needs no code change.
 export const SUPERCHAT_PAID_LIST_NAME =
-  Deno.env.get("SUPERCHAT_PAID_LIST_NAME") || "PAID";
+  Deno.env.get("SUPERCHAT_PAID_LIST_NAME") || "Paying STRAND Customers";
 export const SUPERCHAT_NON_PAID_LIST_NAME =
-  Deno.env.get("SUPERCHAT_NON_PAID_LIST_NAME") || "NON-PAID";
+  Deno.env.get("SUPERCHAT_NON_PAID_LIST_NAME") || "TRIAL/NOT SUBSCRIBED";
 
 /** Optional per-tier lists, used only when they exist in the workspace. */
 const TIER_LIST_NAME: Record<Tier, string> = {
