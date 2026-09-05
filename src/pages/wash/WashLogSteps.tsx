@@ -86,7 +86,7 @@ const WashLogStepsInner = () => {
     <ScreenLayout>
       <TitleBar title="Log a wash day" onBack={smartBack(navigate, "/wash-day")} />
 
-      <div className="px-5 pb-2">
+      <div className="px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <CalendarDays className="size-3.5 text-primary shrink-0" aria-hidden />
           <p className="font-body text-[12.5px] text-foreground/80">{friendlyWashDate(date)}</p>

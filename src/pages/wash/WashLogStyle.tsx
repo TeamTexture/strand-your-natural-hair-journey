@@ -96,6 +96,7 @@ const WashLogStyleInner = () => {
   const { products } = useUserProducts("shelf");
   const { data: favourites } = useWashFavourites();
   const saveFavourites = useSaveWashFavourites();
+  const qc = useQueryClient();
 
   const stepsDraft = readWashDraft<{ date?: string; rows?: Record<string, StepRow> }>(
     "strand_wash_log_steps",
