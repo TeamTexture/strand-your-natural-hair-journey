@@ -382,8 +382,41 @@ const WashLogStyleInner = () => {
     <ScreenLayout>
       <TitleBar title="Your style" onBack={smartBack(navigate, "/wash/log")} />
 
-      <div className="px-5 pb-8 space-y-4">
+      <div className="px-5 pt-4 pb-8 space-y-4">
+        {/* Choosing the style is the first decision on this page, and saving it
+            here updates her Current style everywhere — no separate profile edit. */}
         <SurfaceCard>
+          <Eyebrow icon={ICONS.style}>Your style today</Eyebrow>
+          <p className="mt-1.5 font-body text-[12.5px] text-muted-foreground leading-relaxed">
+            {originalStyle
+              ? "Change this if you've moved into a new style — we'll update your Current style card."
+              : "Pick the style you're wearing now."}
+          </p>
+          <div className="mt-3">
+            <StylePicker
+              value={style}
+              onChange={(v) => {
+                setStyle(v);
+                setAttrError(false);
+              }}
+              attributes={styleAttrs}
+              onAttributesChange={(v) => {
+                setStyleAttrs(v);
+                setAttrError(false);
+              }}
+              attributeError={attrError}
+              collapseOnSelect
+            />
+          </div>
+          {styleChanged && (
+            <p className="mt-3 font-body text-[12px] text-primary leading-relaxed">
+              Your guidance will refresh for {style} when you save.
+            </p>
+          )}
+        </SurfaceCard>
+
+        <SurfaceCard>
+
           <Eyebrow icon={Plus}>Style products used</Eyebrow>
           <div className="mt-2 space-y-2">
             {styleProductIds.length === 0 && (
