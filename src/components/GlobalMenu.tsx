@@ -506,29 +506,35 @@ const GlobalMenu = () => {
                 })}
               </div>
             )}
-            {!isOnboarding && navItems.map(({ label, to, icon: Icon, badge }) => {
-              const active =
-                to === "/home" || to === "/pro" || to === "/admin" || to === "/brand"
-                  ? location.pathname === to
-                  : location.pathname === to || location.pathname.startsWith(to + "/");
-              return (
-                <button
-                  key={to}
-                  onClick={() => go(to)}
-                  className={`w-full flex items-center gap-3 px-5 py-3 text-left text-sm font-body transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
-                  }`}
-                >
-                  <Icon className="size-4" />
-                  <span className="flex-1">{label}</span>
-                  {badge && badge > 0 ? (
-                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none bg-primary text-primary-foreground">
-                      {badge > 99 ? "99+" : badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
+            {showDirectory ? (
+              <FeatureDirectory onNavigate={() => setOpen(false)} />
+            ) : (
+              !isOnboarding &&
+              navItems.map(({ label, to, icon: Icon, badge }) => {
+                const active =
+                  to === "/home" || to === "/pro" || to === "/admin" || to === "/brand"
+                    ? location.pathname === to
+                    : location.pathname === to || location.pathname.startsWith(to + "/");
+                return (
+                  <button
+                    key={to}
+                    onClick={() => go(to)}
+                    className={`w-full flex items-center gap-3 px-5 py-3 text-left text-sm font-body transition-colors ${
+                      active ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <Icon className="size-4" />
+                    <span className="flex-1">{label}</span>
+                    {badge && badge > 0 ? (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none bg-primary text-primary-foreground">
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
+
           </nav>
           {showViewSwitcher && (
             <div className="border-t p-3 space-y-1">
