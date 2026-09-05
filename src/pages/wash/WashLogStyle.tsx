@@ -242,6 +242,11 @@ const WashLogStyleInner = () => {
       rating,
       media_path: mediaPath,
       media_type: mediaPath ? mediaType : null,
+      // The style she picked on this page belongs on the wash day record too —
+      // the history card and the detail page read these columns.
+      style_after: style || null,
+      style_tension: style && styleAsksTension(style) ? styleAttrs.tension : null,
+      style_extensions: style && styleAsksExtensions(style) ? styleAttrs.extensions : null,
       styling: {
         productIds: styleProductIds,
         productNames: styleNames,
@@ -249,6 +254,7 @@ const WashLogStyleInner = () => {
         ...(mediaPath && mediaType === "video" ? { videoPath: mediaPath } : {}),
       },
     };
+
 
     const { data, error } = await supabase
       .from("wash_days")
