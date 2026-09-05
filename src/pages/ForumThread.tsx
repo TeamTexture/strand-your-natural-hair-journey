@@ -227,51 +227,57 @@ const ForumThread = () => {
   const renderReply = (r: ReplyRow, nested: boolean) => (
     <div key={r.id} className={cn(nested && "ml-4 pl-3 border-l-2 border-primary/25")}>
       <div className={cn("rounded-[14px] border border-border bg-card", nested ? "p-2.5" : "p-3.5")}>
-        <div className="flex items-start gap-2.5">
-          {/* Reddit-style vote rail: stacked chevrons with the net score between them. */}
-          <div className="pt-0.5">
-            <VoteControl
-              orientation="vertical"
-              size={nested ? "sm" : "md"}
-              score={r.vote_count ?? 0}
-              myVote={myVote("reply", r.id)}
-              onVote={(n) => setVote("reply", r.id, n)}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <PosterRow
-              uid={r.author_id}
-              name={authorName(r.author_id)}
-              avatar={authorAvatar(r.author_id)}
-              createdAt={r.created_at}
-              meta={authorMetaLine(r.author_id)}
-              compact={nested}
-            />
-            <p className={cn("mt-1.5 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed", nested ? "text-[12px]" : "text-[13px]")}>
-              {renderMentions(r.body)}
-            </p>
-            <div className="mt-1.5 flex items-center gap-1">
-              {!t.is_locked && (
-                <button
-                  onClick={() => setReplyingTo(replyingTo === r.id ? null : r.id)}
-                  className={cn(
-                    "inline-flex items-center gap-1 h-7 pr-2 rounded-full font-body font-semibold text-foreground/65 hover:text-primary",
-                    nested ? "text-[10.5px]" : "text-[11px]",
-                  )}
-                >
-                  <ReplyIcon className="size-3.5" /> Reply
-                </button>
+        <PosterRow
+          uid={r.author_id}
+          name={authorName(r.author_id)}
+          avatar={authorAvatar(r.author_id)}
+          createdAt={r.created_at}
+          meta={authorMetaLine(authorsQ.data?.get(r.author_id))}
+          compact={nested}
+        />
+        <p
+          className={cn(
+            "mt-1.5 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed break-words",
+            isEmojiOnly(r.body)
+              ? "text-[26px] leading-snug"
+              : nested ? "text-[12px]" : "text-[13px]",
+          )}
+        >
+          {renderMentions(r.body)}
+        </p>
+        {/* Actions sit with the comment they belong to — the score no longer
+            floats in a rail away from the text. */}
+        <div className="mt-2 flex items-center gap-1.5">
+          <VoteControl
+            size={nested ? "sm" : "md"}
+            score={r.vote_count ?? 0}
+            myVote={myVote("reply", r.id)}
+            onVote={(n) => setVote("reply", r.id, n)}
+          />
+          {!t.is_locked && (
+            <button
+              onClick={() => setReplyingTo(replyingTo === r.id ? null : r.id)}
+              className={cn(
+                "inline-flex items-center h-7 px-2 rounded-full font-body font-semibold text-foreground/65 hover:text-primary",
+                nested ? "text-[10.5px]" : "text-[11px]",
               )}
-              <button onClick={() => report("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2 rounded-full text-[10.5px] font-body font-semibold text-foreground/50 hover:text-alert-dark">
-                <Flag className="size-3" /> Report
-              </button>
-              {isAdmin && (
-                <button onClick={() => modAction("delete_reply", r.id)} className="ml-auto size-7 rounded-full flex items-center justify-center text-alert-dark hover:bg-alert-dark/10">
-                  <Trash2 className="size-3" />
-                </button>
-              )}
-            </div>
-          </div>
+            >
+              Reply
+            </button>
+          )}
+          <MessageLink uid={r.author_id} name={authorName(r.author_id)} />
+          <button onClick={() => report("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2 rounded-full text-[10.5px] font-body font-semibold text-foreground/50 hover:text-alert-dark">
+            <Flag className="size-3" /> Report
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => modAction("delete_reply", r.id)}
+              aria-label="Delete comment"
+              className="ml-auto size-7 rounded-full flex items-center justify-center text-foreground/35 hover:text-alert-dark hover:bg-alert-dark/10"
+            >
+              <Trash2 className="size-3" />
+            </button>
+          )}
         </div>
       </div>
       {replyingTo === r.id && (
@@ -289,6 +295,7 @@ const ForumThread = () => {
       )}
     </div>
   );
+
 
 
   return (
