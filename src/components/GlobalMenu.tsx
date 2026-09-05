@@ -1,6 +1,11 @@
 // Inline top bar with hamburger menu — part of the app layout, not a floating overlay.
 // Reserves its own row above page content so pages never sit under it.
 import { useEffect, useState } from "react";
+import FeatureDirectory from "@/components/nav/FeatureDirectory";
+
+/** Fired by Home's "Explore all features" button to open the directory sheet. */
+export const OPEN_MENU_EVENT = "strand:open-feature-directory";
+
 import { useLocation, useNavigate } from "react-router-dom";
 import { routeToView } from "@/hooks/useActiveRoleView";
 import { allowsMemberFeatures } from "@/lib/viewFeatures";
@@ -134,6 +139,14 @@ const GlobalMenu = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  // Home's "Explore all features" button opens this same sheet.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_MENU_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_MENU_EVENT, onOpen);
+  }, []);
+
   const { hasPageBackButton } = useBackButtonContext();
   // Paywall / onboarding chrome lock — see useMemberAppUnlocked.
   const {
@@ -326,7 +339,11 @@ const GlobalMenu = () => {
   if (lockedPro && !showViewSwitcher) return null;
 
 
+  /** Members get the full feature directory instead of a short nav list. */
+  const showDirectory = activeView === "consumer" && !isOnboarding;
+
   const navItems: NavItem[] =
+
     activeView === "admin"
       ? ADMIN_NAV
       : activeView === "brand"
@@ -467,8 +484,11 @@ const GlobalMenu = () => {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
           <SheetHeader className="px-5 pt-5 pb-3 border-b">
-            <SheetTitle className="font-display text-xl">Menu</SheetTitle>
+            <SheetTitle className="font-display text-xl">
+              {showDirectory ? "Everything in STRAND" : "Menu"}
+            </SheetTitle>
           </SheetHeader>
+
           <nav className="flex-1 overflow-y-auto py-2">
             {!isOnboarding && activeView === "consumer" && hasPlus && (
               <div className="mx-3 mb-3 rounded-[14px] border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent overflow-hidden">
@@ -495,29 +515,35 @@ const GlobalMenu = () => {
                 })}
               </div>
             )}
-            {!isOnboarding && navItems.map(({ label, to, icon: Icon, badge }) => {
-              const active =
-                to === "/home" || to === "/pro" || to === "/admin" || to === "/brand"
-                  ? location.pathname === to
-                  : location.pathname === to || location.pathname.startsWith(to + "/");
-              return (
-                <button
-                  key={to}
-                  onClick={() => go(to)}
-                  className={`w-full flex items-center gap-3 px-5 py-3 text-left text-sm font-body transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
-                  }`}
-                >
-                  <Icon className="size-4" />
-                  <span className="flex-1">{label}</span>
-                  {badge && badge > 0 ? (
-                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none bg-primary text-primary-foreground">
-                      {badge > 99 ? "99+" : badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
+            {showDirectory ? (
+              <FeatureDirectory onNavigate={() => setOpen(false)} />
+            ) : (
+              !isOnboarding &&
+              navItems.map(({ label, to, icon: Icon, badge }) => {
+                const active =
+                  to === "/home" || to === "/pro" || to === "/admin" || to === "/brand"
+                    ? location.pathname === to
+                    : location.pathname === to || location.pathname.startsWith(to + "/");
+                return (
+                  <button
+                    key={to}
+                    onClick={() => go(to)}
+                    className={`w-full flex items-center gap-3 px-5 py-3 text-left text-sm font-body transition-colors ${
+                      active ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <Icon className="size-4" />
+                    <span className="flex-1">{label}</span>
+                    {badge && badge > 0 ? (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold leading-none bg-primary text-primary-foreground">
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
+
           </nav>
           {showViewSwitcher && (
             <div className="border-t p-3 space-y-1">

@@ -3,7 +3,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Compass, HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
+import { ChevronRight, Compass, Droplet, HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
@@ -72,7 +72,7 @@ import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 import BrandBanner from "@/components/BrandBanner";
 import { titleCase } from "@/lib/humanise";
-import HomeBloodSummary from "@/components/blood/HomeBloodSummary";
+import { OPEN_MENU_EVENT } from "@/components/GlobalMenu";
 import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
 import LevelGate from "@/components/tips/LevelGate";
@@ -627,24 +627,8 @@ const Home = () => {
           tone={goal ? "good" : "muted"}
           onClick={showGoalInFull}
         />
-        <StatTile
-          square
-          icon={ICONS.blood}
-          value={flaggedValue}
-          label="Blood work"
-          sub={flaggedSub}
-          tone={bloodSummary ? flaggedTone : "muted"}
-          to="/blood-history"
-        />
-        <StatTile
-          square
-          icon={ICONS.products}
-          value={`${shelfCount}`}
-          label="On my shelf"
-          sub={shelfCount > 0 ? "products" : "Add your first product"}
-          tone={shelfCount > 0 ? "good" : "muted"}
-          to="/products"
-        />
+        {/* Blood work and shelf tiles moved to the feature directory. */}
+
       </div>
 
       <div className="px-5 space-y-4 pb-6">
@@ -856,12 +840,12 @@ const Home = () => {
               </div>
             </SurfaceCard>
 
-            {/* Treatment plans are a STRAND+ feature — only + members see them */}
+            {/* Treatment plans moved to the feature directory. Only genuine
+                invitations still surface here — they are time-sensitive. */}
             <div className="space-y-3">
-              
               <PendingPlanInvites />
-              <TodayTreatmentCard />
             </div>
+
 
             </>
           );
@@ -1083,243 +1067,53 @@ const Home = () => {
         )}
 
 
-        {/* My Blood Work */}
-        <div {...anchorProps("home-blood-work")}>
-        <HomeBloodSummary
-          summary={bloodSummary}
-          tipsLevel={tipsLevel}
-          onOpen={() => navigate("/blood-history")}
-        />
-        </div>
-
-
-
-
-
-      </div>
-
-
-
-
-      <SectionHeader icon={ICONS.style} className="px-5 pt-1 pb-2">Quick actions</SectionHeader>
-
-      <div data-tour="quick-actions" className="px-5 grid grid-cols-2 gap-2.5">
-
-        <button
-          data-tour="qa-wash"
-          onClick={() => navigate("/wash-day")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">💧</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Log Wash Day</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">{lastWashSub}</p>
-        </button>
-        <button
-          data-tour="qa-product"
-          onClick={() => navigate("/products")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">📸</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Add Product</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Scan or screenshot</p>
-        </button>
-        <button
-          data-tour="qa-journal"
-          onClick={() => navigate("/journal")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">📖</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Style Journal</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Document your favourite styles</p>
-        </button>
-        <button
-          data-tour="qa-appt"
-          onClick={() => navigate("/appointments")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">📅</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Appointments</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">{apptSub}</p>
-        </button>
-        <button
-          data-tour="qa-brands"
-          onClick={() => navigate("/brands")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">✨</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Brand directory</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Explore STRAND brands</p>
-        </button>
-        <button
-          data-tour="qa-pros"
-          onClick={() => navigate("/directory")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">💇🏾‍♀️</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Professional directory</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Find a trusted specialist</p>
-        </button>
-        <button
-          data-tour="qa-moodboards"
-          onClick={() => navigate("/journal/moodboards")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">🖼️</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Moodboards</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Save style inspiration</p>
-        </button>
-        <button
-          data-tour="qa-discounts"
-          onClick={() => navigate("/profile/discounts")}
-          className="text-left p-3 rounded-[14px] border border-border bg-card hover:border-primary/50 transition-colors"
-        >
-          <div className="text-xl mb-1.5">🎁</div>
-          <p className="text-[13px] font-medium font-body leading-tight">Discounts & offers</p>
-          <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">Member-only perks</p>
-        </button>
-
-      </div>
-
-      <SectionHeader icon={ICONS.products} className="px-5 pt-1 pb-2">My shelf</SectionHeader>
-      <div data-tour="my-shelf" className="px-5 pb-6 space-y-2">
-        {shelfLoading ? (
-          <div className="p-4 text-[11px] text-muted-foreground">Loading…</div>
-        ) : shelfProducts.length === 0 ? (
+        {/* Blood work now lives in the feature directory. The ONE exception:
+            when markers are flagged, a slim alert stays on Home. */}
+        {bloodSummary && bloodSummary.flagged > 0 && (
           <button
-            onClick={() => navigate("/products")}
-            className="w-full p-4 text-left text-xs text-muted-foreground hover:bg-primary/5 transition-colors rounded-[14px] border border-border bg-card"
+            onClick={() => navigate("/blood-history")}
+            {...anchorProps("home-blood-work")}
+            className="w-full flex items-center gap-3 rounded-[14px] border border-destructive/40 bg-card px-4 py-3 text-left hover:border-destructive/70 transition-colors"
           >
-            Your shelf is empty. Tap + to add your first product.
+            <span className="size-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+              <Droplet className="size-4 text-destructive" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-body font-semibold text-foreground leading-snug">
+                {bloodSummary.flagged} blood marker{bloodSummary.flagged === 1 ? "" : "s"} flagged
+              </span>
+              <span className="block text-[11px] font-body text-muted-foreground leading-snug mt-0.5">
+                Tap to see what it means for your hair
+              </span>
+            </span>
+            <ChevronRight className="size-4 text-primary shrink-0" aria-hidden />
           </button>
-        ) : (
-          <>
-            {/* Homemade products live in their own group, never mixed into the
-                store-bought strip — they are a different kind of thing. */}
-            {(() => {
-              const { storeBought, homemade } = splitByHomemade(shelfProducts);
-              return (
-                <>
-                  {storeBought.slice(0, 4).map((s) => {
-                    const sp = shelfSponsoredById[s.id];
-                    const goToOffer = () => {
-                      if (sp && s.linked_brand_product_id) {
-                        navigate(`/offers/${sp.offerId}/product/${sp.brandProductId}`);
-                        return;
-                      }
-                      if (sp) { navigate(`/offers/${sp.offerId}`); return; }
-                      navigate(`/products/profile/${s.id}`);
-                    };
-                    return (
-                      // SAFETY: the Home shelf strip renders the same passive allergen
-                      // alert as every other product surface.
-                      <div
-                        key={s.id}
-                        className="overflow-hidden rounded-[14px] border border-border bg-card"
-                      >
-                        <SensitivityShelfAlert ingredients={s.ingredients as string[] | null} />
-                        <ListRow
-                          onClick={goToOffer}
-                          className="rounded-none border-0"
-                          leading={
-                          <span className="relative shrink-0">
-                            <ProductThumb
-                              imageUrl={s.image_url}
-                              storagePath={s.storage_path}
-                              brand={s.brand}
-                              name={s.name}
-                              alt={s.name}
-                              cover
-                              wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
-                            />
-                            {sp && (
-                              <span className="absolute -top-1.5 -left-1.5 inline-flex items-center gap-0.5 rounded-pill bg-primary px-1.5 py-[2px] text-[8px] font-body font-semibold uppercase tracking-[0.1em] text-primary-foreground shadow-sm">
-                                <Tag className="size-2" /> Offer
-                              </span>
-                            )}
-                          </span>
-                        }
-                        name={
-                          <span className="inline-flex items-center gap-1.5">
-                            {s.name}
-                            {s.on_favourite && (
-                              <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
-                            )}
-                          </span>
-                        }
-                        secondary={
-                          sp ? (
-                            <span className="inline-flex flex-wrap items-center gap-1.5">
-                              <BrandLink brand={s.brand} />
-                              <span className="inline-flex items-center gap-1 rounded-pill border border-primary/40 bg-primary/10 px-2 py-[1px] text-[10px] font-body font-semibold text-primary">
-                                View offer →
-                              </span>
-                            </span>
-                          ) : (
-                            <BrandLink brand={s.brand} />
-                          )
-                        }
-                          trailing={<MatchStars item={s} />}
-                        />
-                      </div>
-                    );
-                  })}
-
-                  {homemade.length > 0 && (
-                    <HomemadeProductsSection
-                      products={homemade.slice(0, 4)}
-                      label={`Homemade (${homemade.length})`}
-                      showExplainer={false}
-                      renderRow={(s) => (
-                        <div
-                          key={s.id}
-                          className="overflow-hidden rounded-[14px] border border-border bg-card"
-                        >
-                          <SensitivityShelfAlert ingredients={s.ingredients as string[] | null} />
-                          <ListRow
-                            onClick={() => navigate(`/products/profile/${s.id}`)}
-                            className="rounded-none border-0"
-                            leading={
-                              <ProductThumb
-                                imageUrl={s.image_url}
-                                storagePath={s.storage_path}
-                                brand={s.brand}
-                                name={s.name}
-                                alt={s.name}
-                                cover
-                                wrapperClassName="size-11 rounded-[10px] overflow-hidden bg-primary/15 shrink-0"
-                              />
-                            }
-                            name={
-                              <span className="inline-flex items-center gap-1.5">
-                                {s.name}
-                                {s.on_favourite && (
-                                  <Heart className="size-3 shrink-0 fill-current text-destructive" aria-label="Favourite" />
-                                )}
-                              </span>
-                            }
-                            secondary={<BrandLink brand={s.brand} />}
-                            trailing={<MatchStars item={s} />}
-                          />
-                        </div>
-                      )}
-                    />
-                  )}
-
-                  {shelfProducts.length > 4 && (
-                    <button
-                      onClick={() => navigate("/products")}
-                      className="w-full p-3.5 flex items-center justify-center gap-2 text-left text-xs uppercase tracking-[0.15em] text-primary font-medium hover:bg-primary/5 transition-colors rounded-[14px] border border-border bg-card"
-                    >
-                      <span>See Full Shelf</span>
-                      <span aria-hidden>→</span>
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </>
         )}
+
+
+
+
+
+
       </div>
+
+
+
+
+      {/* Everything else in STRAND lives in the feature directory — Home stays
+          short on purpose. Quick actions, the shelf strip and the homemade
+          strip were removed here (Sep 2026 beta feedback); nothing was
+          deleted, they are all reachable from the directory. */}
+      <div className="px-5 pb-8 pt-1">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(OPEN_MENU_EVENT))}
+          className="w-full h-11 rounded-[10px] border-[0.5px] border-primary bg-transparent text-primary text-[11px] font-body font-medium uppercase tracking-[0.18em] hover:bg-primary/5 transition-colors"
+        >
+          Explore all features
+        </button>
+      </div>
+
 
       <GoalEditorSheet
         open={goalEditorOpen}
