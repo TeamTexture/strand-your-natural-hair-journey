@@ -7230,6 +7230,41 @@ export type Database = {
           },
         ]
       }
+      wash_day_favourites: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          step: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          step: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          step?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wash_day_favourites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wash_day_schedules: {
         Row: {
           completed_wash_day_id: string | null
@@ -7290,8 +7325,11 @@ export type Database = {
           hair_feel_voice_url: string | null
           heat_treatment: Json | null
           id: string
+          media_path: string | null
+          media_type: string | null
           next_wash_tip: string | null
           product_ids: string[]
+          rating: number | null
           scalp_feel: string | null
           steps: Json
           stress_level: number | null
@@ -7314,8 +7352,11 @@ export type Database = {
           hair_feel_voice_url?: string | null
           heat_treatment?: Json | null
           id?: string
+          media_path?: string | null
+          media_type?: string | null
           next_wash_tip?: string | null
           product_ids?: string[]
+          rating?: number | null
           scalp_feel?: string | null
           steps?: Json
           stress_level?: number | null
@@ -7338,8 +7379,11 @@ export type Database = {
           hair_feel_voice_url?: string | null
           heat_treatment?: Json | null
           id?: string
+          media_path?: string | null
+          media_type?: string | null
           next_wash_tip?: string | null
           product_ids?: string[]
+          rating?: number | null
           scalp_feel?: string | null
           steps?: Json
           stress_level?: number | null
