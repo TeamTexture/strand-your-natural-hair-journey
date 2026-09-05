@@ -482,8 +482,9 @@ const Products = () => {
                   (x) => !(x as UserProduct & { is_homemade?: boolean }).is_homemade,
                 )}
                 sections={groups.map((g) => ({ slug: g.key, label: g.label, products: g.items }))}
-                // Her own shelf: everything OPEN on arrival, collapsing is opt-in.
-                defaultOpen="all"
+                // Her own shelf: everything CLOSED on arrival, opening is opt-in.
+                defaultOpen="none"
+
                 flatBelow={0}
                 countStyle="parens"
                 collapsedSlugs={collapsedCategories}
