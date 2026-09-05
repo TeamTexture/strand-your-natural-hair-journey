@@ -712,8 +712,13 @@ const NutritionPlan = () => {
         // if the model slips and returns it anyway.
         const savedKeys = new Set(savedNames.map(mealKey));
         const fresh = (data.meals as AiMeal[]).filter((m) => !savedKeys.has(mealKey(m.name)));
-        if (fresh.length > 0) setMeals(fresh);
-        else toast.error("No new meal ideas came back — try again.");
+        if (fresh.length > 0) {
+          setMeals(fresh);
+          // Stored batch is current for this input set — the next visit reads it.
+          if (user && inputsFpRef.current) {
+            writeConfirmedFingerprint(user.id, "meals", inputsFpRef.current);
+          }
+        } else toast.error("No new meal ideas came back — try again.");
       } else {
         toast.error("No new meal ideas came back — try again.");
       }
