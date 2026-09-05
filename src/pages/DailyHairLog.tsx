@@ -45,23 +45,36 @@ const prettyTime = (value: string) => {
   return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
 };
 
+/** Draft held only for the round trip out to a scan and back. */
+const DRAFT_KEY = "strand_daily_log_draft";
+
 const DailyHairLog = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { products } = useUserProducts("shelf");
-  const { recentProductIds } = useDailyHairEntries();
   const create = useCreateDailyHairEntry();
   // Read up front so the confirmation paints instantly on save.
   const { data: hair } = useHairCharacteristics();
 
-  const [when, setWhen] = useState(nowLocalValue);
+  // A scan or link takes her off this page and back again, so the half-written
+  // entry is kept for the trip and cleared the moment it is saved.
+  const draft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? (JSON.parse(raw) as { when?: string; selected?: string[]; note?: string }) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const [when, setWhen] = useState(draft?.when || nowLocalValue);
   const [showWhen, setShowWhen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [note, setNote] = useState("");
+  const [selected, setSelected] = useState<string[]>(draft?.selected ?? []);
+  const [note, setNote] = useState(draft?.note ?? "");
   const [voicePath, setVoicePath] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   // Set once the entry is stored — the form is replaced by the confirmation.
   const [saved, setSaved] = useState<{ productIds: string[]; at: string } | null>(null);
-
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
@@ -69,22 +82,27 @@ const DailyHairLog = () => {
     return map;
   }, [products]);
 
-  // Her between-wash regulars first; then the rest of the shelf by last used.
-  const quickPicks = useMemo(() => {
-    const ordered = [
-      ...recentProductIds.filter((id) => byId[id]),
-      ...products
-        .filter((p) => !recentProductIds.includes(p.id))
-        .sort((a, b) => (b.last_used_at ?? "").localeCompare(a.last_used_at ?? ""))
-        .map((p) => p.id),
-    ];
-    return ordered.slice(0, 6);
-  }, [recentProductIds, products, byId]);
-
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  // A product scanned or linked from this page comes back attached.
+  const returnedId = (location.state as { dailyAddProductId?: string } | null)?.dailyAddProductId;
+  useEffect(() => {
+    if (!returnedId) return;
+    setSelected((prev) => (prev.includes(returnedId) ? prev : [...prev, returnedId]));
+    navigate(location.pathname, { replace: true, state: null });
+  }, [returnedId, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (saved) {
+      sessionStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ when, selected, note }));
+  }, [when, selected, note, saved]);
+
   const date = when.slice(0, 10);
+
 
   const save = async () => {
     if (!selected.length) {
