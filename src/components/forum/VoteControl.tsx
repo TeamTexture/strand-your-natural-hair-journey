@@ -66,6 +66,8 @@ const VoteControl = ({
           text,
           myVote === 1 && "text-primary",
           myVote === -1 && "text-alert-dark",
+          // A zero score should not read as loudly as a real number.
+          myVote === 0 && (score === 0 ? "text-foreground/35" : "text-foreground/70"),
         )}
       >
         {score}

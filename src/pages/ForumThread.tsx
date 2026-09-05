@@ -2,8 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Send, Reply as ReplyIcon, X } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, Flag, Lock, Pin, Trash2, Loader2, Reply as ReplyIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -19,6 +18,7 @@ import MentionTextarea, { type ResolvedMention } from "@/components/MentionTexta
 import VoteControl from "@/components/forum/VoteControl";
 import { renderMentions } from "@/lib/renderMentions";
 import { smartBack } from "@/lib/smartBack";
+import { authorMetaLine, isEmojiOnly, relativeTime } from "@/lib/forumMeta";
 
 type ReplyRow = {
   id: string;
@@ -214,64 +214,63 @@ const ForumThread = () => {
 
   const authorName = (uid: string) => (authorsQ.data?.get(uid)?.display_name ?? "Member").split(" ")[0];
   const authorAvatar = (uid: string) => authorsQ.data?.get(uid)?.avatar_url ?? null;
-  const authorMetaLine = (uid: string) => {
-    const a = authorsQ.data?.get(uid);
-    const parts: string[] = [];
-    if (a?.goal_title) parts.push(`Goal: ${a.goal_title}`);
-    if (a?.current_style) parts.push(`Current Style: ${a.current_style}`);
-    return parts.length > 0 ? parts.join(" · ") : null;
-  };
 
   const commentCount = repliesQ.data?.length ?? 0;
 
   const renderReply = (r: ReplyRow, nested: boolean) => (
     <div key={r.id} className={cn(nested && "ml-4 pl-3 border-l-2 border-primary/25")}>
       <div className={cn("rounded-[14px] border border-border bg-card", nested ? "p-2.5" : "p-3.5")}>
-        <div className="flex items-start gap-2.5">
-          {/* Reddit-style vote rail: stacked chevrons with the net score between them. */}
-          <div className="pt-0.5">
-            <VoteControl
-              orientation="vertical"
-              size={nested ? "sm" : "md"}
-              score={r.vote_count ?? 0}
-              myVote={myVote("reply", r.id)}
-              onVote={(n) => setVote("reply", r.id, n)}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <PosterRow
-              uid={r.author_id}
-              name={authorName(r.author_id)}
-              avatar={authorAvatar(r.author_id)}
-              createdAt={r.created_at}
-              meta={authorMetaLine(r.author_id)}
-              compact={nested}
-            />
-            <p className={cn("mt-1.5 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed", nested ? "text-[12px]" : "text-[13px]")}>
-              {renderMentions(r.body)}
-            </p>
-            <div className="mt-1.5 flex items-center gap-1">
-              {!t.is_locked && (
-                <button
-                  onClick={() => setReplyingTo(replyingTo === r.id ? null : r.id)}
-                  className={cn(
-                    "inline-flex items-center gap-1 h-7 pr-2 rounded-full font-body font-semibold text-foreground/65 hover:text-primary",
-                    nested ? "text-[10.5px]" : "text-[11px]",
-                  )}
-                >
-                  <ReplyIcon className="size-3.5" /> Reply
-                </button>
+        <PosterRow
+          uid={r.author_id}
+          name={authorName(r.author_id)}
+          avatar={authorAvatar(r.author_id)}
+          createdAt={r.created_at}
+          meta={authorMetaLine(authorsQ.data?.get(r.author_id))}
+          compact={nested}
+        />
+        <p
+          className={cn(
+            "mt-1.5 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed break-words",
+            isEmojiOnly(r.body)
+              ? "text-[26px] leading-snug"
+              : nested ? "text-[12px]" : "text-[13px]",
+          )}
+        >
+          {renderMentions(r.body)}
+        </p>
+        {/* Actions sit with the comment they belong to — the score no longer
+            floats in a rail away from the text. */}
+        <div className="mt-2 flex items-center gap-1.5">
+          <VoteControl
+            size={nested ? "sm" : "md"}
+            score={r.vote_count ?? 0}
+            myVote={myVote("reply", r.id)}
+            onVote={(n) => setVote("reply", r.id, n)}
+          />
+          {!t.is_locked && (
+            <button
+              onClick={() => setReplyingTo(replyingTo === r.id ? null : r.id)}
+              className={cn(
+                "inline-flex items-center h-7 px-2 rounded-full font-body font-semibold text-foreground/65 hover:text-primary",
+                nested ? "text-[10.5px]" : "text-[11px]",
               )}
-              <button onClick={() => report("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2 rounded-full text-[10.5px] font-body font-semibold text-foreground/50 hover:text-alert-dark">
-                <Flag className="size-3" /> Report
-              </button>
-              {isAdmin && (
-                <button onClick={() => modAction("delete_reply", r.id)} className="ml-auto size-7 rounded-full flex items-center justify-center text-alert-dark hover:bg-alert-dark/10">
-                  <Trash2 className="size-3" />
-                </button>
-              )}
-            </div>
-          </div>
+            >
+              Reply
+            </button>
+          )}
+          <MessageLink uid={r.author_id} name={authorName(r.author_id)} />
+          <button onClick={() => report("reply", r.id)} className="inline-flex items-center gap-1 h-7 px-2 rounded-full text-[10.5px] font-body font-semibold text-foreground/50 hover:text-alert-dark">
+            <Flag className="size-3" /> Report
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => modAction("delete_reply", r.id)}
+              aria-label="Delete comment"
+              className="ml-auto size-7 rounded-full flex items-center justify-center text-foreground/35 hover:text-alert-dark hover:bg-alert-dark/10"
+            >
+              <Trash2 className="size-3" />
+            </button>
+          )}
         </div>
       </div>
       {replyingTo === r.id && (
@@ -291,46 +290,46 @@ const ForumThread = () => {
   );
 
 
+
   return (
     <PlusGate title="Thread">
       <ScreenLayout>
         <TitleBar title="Thread" onBack={smartBack(nav, "/forum")} />
         <div className="px-4 pb-32 space-y-3">
           <article className="rounded-[14px] border border-border bg-card p-4">
-            <div className="flex items-start gap-3">
-              <div className="pt-0.5">
-                <VoteControl
-                  orientation="vertical"
-                  score={t.vote_count ?? 0}
-                  myVote={myVote("thread", t.id)}
-                  onVote={(n) => setVote("thread", t.id, n)}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(t.author_id)} />
-                <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight">{t.title}</h1>
-                {t.body && <p className="mt-2 whitespace-pre-wrap font-body text-[13.5px] text-foreground/85 leading-relaxed">{renderMentions(t.body)}</p>}
-                <div className="mt-3 flex items-center gap-2">
-                  <button onClick={() => report("thread", t.id)} className="inline-flex items-center gap-1 h-8 pr-2 rounded-full text-[11px] font-body font-semibold text-foreground/60 hover:text-alert-dark">
-                    <Flag className="size-3.5" /> Report
+            <PosterRow uid={t.author_id} name={authorName(t.author_id)} avatar={authorAvatar(t.author_id)} createdAt={t.created_at} meta={authorMetaLine(authorsQ.data?.get(t.author_id))} />
+            <h1 className="mt-2 font-display text-[19px] font-semibold leading-tight break-words">{t.title}</h1>
+            {t.body && (
+              <p className={cn("mt-2 whitespace-pre-wrap font-body text-foreground/85 leading-relaxed break-words", isEmojiOnly(t.body) ? "text-[28px] leading-snug" : "text-[13.5px]")}>
+                {renderMentions(t.body)}
+              </p>
+            )}
+            <div className="mt-3 flex items-center gap-1.5">
+              <VoteControl
+                score={t.vote_count ?? 0}
+                myVote={myVote("thread", t.id)}
+                onVote={(n) => setVote("thread", t.id, n)}
+              />
+              <MessageLink uid={t.author_id} name={authorName(t.author_id)} />
+              <button onClick={() => report("thread", t.id)} className="inline-flex items-center gap-1 h-8 px-2 rounded-full text-[11px] font-body font-semibold text-foreground/60 hover:text-alert-dark">
+                <Flag className="size-3.5" /> Report
+              </button>
+              {isAdmin && (
+                <div className="ml-auto flex items-center gap-1">
+                  <button onClick={() => modAction("pin", t.id)} aria-label="Pin thread" className={cn("size-8 rounded-full flex items-center justify-center", t.is_pinned ? "bg-primary text-primary-foreground" : "text-foreground/60 hover:bg-muted")}>
+                    <Pin className="size-3.5" />
                   </button>
-                  {isAdmin && (
-                    <div className="ml-auto flex items-center gap-1">
-                      <button onClick={() => modAction("pin", t.id)} className={cn("size-8 rounded-full flex items-center justify-center", t.is_pinned ? "bg-primary text-primary-foreground" : "text-foreground/60 hover:bg-muted")}>
-                        <Pin className="size-3.5" />
-                      </button>
-                      <button onClick={() => modAction("lock", t.id)} className={cn("size-8 rounded-full flex items-center justify-center", t.is_locked ? "bg-brown text-brown-foreground" : "text-foreground/60 hover:bg-muted")}>
-                        <Lock className="size-3.5" />
-                      </button>
-                      <button onClick={() => modAction("delete_thread", t.id)} className="size-8 rounded-full flex items-center justify-center text-alert-dark hover:bg-alert-dark/10">
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <button onClick={() => modAction("lock", t.id)} aria-label="Lock thread" className={cn("size-8 rounded-full flex items-center justify-center", t.is_locked ? "bg-brown text-brown-foreground" : "text-foreground/60 hover:bg-muted")}>
+                    <Lock className="size-3.5" />
+                  </button>
+                  <button onClick={() => modAction("delete_thread", t.id)} aria-label="Delete thread" className="size-8 rounded-full flex items-center justify-center text-foreground/35 hover:text-alert-dark hover:bg-alert-dark/10">
+                    <Trash2 className="size-3.5" />
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </article>
+
 
 
           <div className="text-[11px] font-body font-bold uppercase tracking-wider text-foreground/60 px-1 flex items-center gap-1">
@@ -351,24 +350,29 @@ const ForumThread = () => {
           </div>
         ) : (
           <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t border-border p-3">
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <MentionTextarea
-                  rows={2}
-                  value={reply}
-                  onChange={setReply}
-                  threadId={t.id}
-                  onMention={(m) => { rootMentions.current = [...rootMentions.current, m]; }}
-                  placeholder="Add a comment… type @ to tag"
-                  maxLength={2000}
-                  className="resize-none min-h-[44px]"
-                />
-              </div>
-              <Button variant="gold" size="icon" className="rounded-full size-11 shrink-0" onClick={postRootReply} disabled={busy || !reply.trim()}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            <MentionTextarea
+              rows={2}
+              value={reply}
+              onChange={setReply}
+              threadId={t.id}
+              onMention={(m) => { rootMentions.current = [...rootMentions.current, m]; }}
+              placeholder="Add a comment… type @ to tag"
+              maxLength={2000}
+              className="resize-none min-h-[44px] rounded-[10px] border-border bg-card focus-visible:border-primary"
+            />
+            <div className="mt-2 flex justify-end">
+              <Button
+                variant="gold"
+                size="sm"
+                className="rounded-[10px] h-9 px-5 text-[11px] font-semibold uppercase tracking-wider"
+                onClick={postRootReply}
+                disabled={busy || !reply.trim()}
+              >
+                {busy ? <Loader2 className="size-4 animate-spin" /> : "Post comment"}
               </Button>
             </div>
           </div>
+
         )}
       </ScreenLayout>
     </PlusGate>
@@ -393,8 +397,8 @@ const InlineComposer = ({
   const mentions = useRef<ResolvedMention[]>([]);
 
   return (
-    <div className="mt-2 ml-4 pl-3 border-l-2 border-primary/50">
-      <div className="rounded-[12px] border-2 border-primary/40 bg-muted/40 p-2.5 shadow-sm">
+    <div className="mt-2 ml-4 pl-3 border-l-2 border-primary/25">
+      <div className="rounded-[14px] border border-border bg-card p-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <p className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-body font-bold uppercase tracking-wider text-primary">
             <ReplyIcon className="size-3" /> Replying to {replyingToName}
@@ -412,13 +416,13 @@ const InlineComposer = ({
           onMention={(m) => { mentions.current = [...mentions.current, m]; }}
           placeholder="Write a reply… type @ to tag"
           maxLength={2000}
-          className="resize-none min-h-[40px] bg-card"
+          className="resize-none min-h-[40px] rounded-[10px] border-border bg-[hsl(var(--surface-raised))] focus-visible:border-primary"
         />
         <div className="mt-2 flex justify-end">
           <Button
             variant="gold"
             size="sm"
-            className="rounded-pill h-8 px-4 text-[11px] font-semibold uppercase tracking-wider"
+            className="rounded-[10px] h-8 px-4 text-[11px] font-semibold uppercase tracking-wider"
             disabled={busy || !body.trim()}
             onClick={async () => {
               const ok = await onSubmit(body, mentions.current);
@@ -433,11 +437,13 @@ const InlineComposer = ({
   );
 };
 
-const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null; compact?: boolean }) => {
+/** Open a direct message with a member — a plain text action, so the only
+ *  reply control on a comment is the "Reply" link. */
+const MessageLink = ({ uid, name }: { uid: string; name: string }) => {
   const nav = useNavigate();
   const { user } = useAuth();
   const [opening, setOpening] = useState(false);
-  const isMe = user?.id === uid;
+  if (user?.id === uid) return null;
 
   const message = async () => {
     setOpening(true);
@@ -452,36 +458,42 @@ const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { ui
   };
 
   return (
-    <div className="flex items-start gap-2">
-      <Link to={`/member/${uid}`} className="flex items-center gap-2 min-w-0 flex-1 group">
-        <ForumAvatar path={avatar} fallback={name[0]} className={compact ? "size-6 text-[11px]" : "size-8 text-[12px]"} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-            <span className={cn("font-body font-semibold text-foreground/85 group-hover:text-primary", compact ? "text-[11.5px]" : "text-[12.5px]")}>{name}</span>
-            <span className={cn("font-body text-foreground/45", compact ? "text-[10px]" : "text-[10.5px]")}>· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
-            {meta && (
-              <span className={cn("font-body text-foreground/45 min-w-0 truncate", compact ? "text-[10px]" : "text-[10.5px]")}>· {meta}</span>
-            )}
-          </div>
-        </div>
-      </Link>
-      {!isMe && (
-        <button
-          type="button"
-          onClick={message}
-          disabled={opening}
-          aria-label={`Message ${name}`}
-          className={cn(
-            "shrink-0 rounded-full border border-border bg-card flex items-center justify-center text-foreground/60 hover:text-primary hover:bg-primary/10 disabled:opacity-50",
-            compact ? "size-7" : "size-8",
-          )}
-        >
-          {opening ? <Loader2 className="size-3.5 animate-spin" /> : <MessageSquare className="size-3.5" />}
-        </button>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={message}
+      disabled={opening}
+      aria-label={`Message ${name}`}
+      className="inline-flex items-center h-7 px-2 rounded-full text-[10.5px] font-body font-semibold text-foreground/55 hover:text-primary disabled:opacity-50"
+    >
+      {opening ? <Loader2 className="size-3 animate-spin" /> : "Message"}
+    </button>
   );
 };
+
+const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null; compact?: boolean }) => (
+  <Link to={`/member/${uid}`} className="flex items-start gap-2 min-w-0 group">
+    <ForumAvatar path={avatar} fallback={name} className={compact ? "size-6 text-[10px]" : "size-8 text-[11px]"} />
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-1.5 leading-tight min-w-0">
+        <span
+          className={cn(
+            "font-body font-semibold text-foreground/85 group-hover:text-primary whitespace-nowrap truncate min-w-[52px] max-w-[140px]",
+            compact ? "text-[11.5px]" : "text-[12.5px]",
+          )}
+        >
+          {name}
+        </span>
+        <span className={cn("shrink-0 font-body text-foreground/45 whitespace-nowrap", compact ? "text-[10px]" : "text-[10.5px]")}>
+          · {relativeTime(createdAt)}
+        </span>
+      </div>
+      {meta && (
+        <p className={cn("font-body text-foreground/50 truncate mt-1.5", compact ? "text-[10px]" : "text-[10.5px]")}>{meta}</p>
+      )}
+    </div>
+  </Link>
+);
+
 
 
 

@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import ForumAvatar from "@/components/ForumAvatar";
+import { mentionMatchRank } from "@/lib/forumMeta";
 
 type Suggestion = {
   kind: "everyone" | "member" | "pro" | "brand";
@@ -35,13 +37,13 @@ const KIND_LABEL: Record<Suggestion["kind"], string> = {
 };
 
 const KIND_TONE: Record<Suggestion["kind"], string> = {
-  everyone: "bg-orange-500/15 text-orange-600 border-orange-500/40",
+  everyone: "bg-primary/12 text-primary border-primary/30",
   member: "bg-primary/10 text-primary border-primary/30",
-  pro: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
-  brand: "bg-purple-500/10 text-purple-700 border-purple-500/30",
+  pro: "bg-brown/10 text-brown border-brown/25",
+  brand: "bg-[hsl(var(--icon-muted))] text-[hsl(var(--gold-deep))] border-border",
 };
 
-/** Textarea with universal @-tagging (members, pros, brands, @everyone) and orange selection highlight. */
+/** Textarea with universal @-tagging (members, pros, brands, @everyone). */
 const MentionTextarea = ({
   value,
   onChange,
@@ -56,7 +58,7 @@ const MentionTextarea = ({
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [rawRows, setRawRows] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [atStart, setAtStart] = useState<number | null>(null);
@@ -78,26 +80,43 @@ const MentionTextarea = ({
       if (res.error) {
         // Never fail silently — a broken search used to render as "No matches".
         console.error("[MentionTextarea] mention search failed", res.error);
-        setSuggestions([]);
+        setRawRows([]);
         setFailed(true);
         setLoading(false);
         return;
       }
-      const rows = ((res.data as Suggestion[]) ?? []).filter((r) => !!r.label);
-      const everyone: Suggestion = {
-        kind: "everyone",
-        entity_id: null,
-        label: "everyone",
-        subtitle: "Notify all STRAND+ members",
-        avatar_url: null,
-      };
-      const matchesEveryone = "everyone".startsWith(query.toLowerCase()) || query === "";
-      setSuggestions(matchesEveryone ? [everyone, ...rows] : rows);
+      setRawRows(((res.data as Suggestion[]) ?? []).filter((r) => !!r.label));
       setActiveIdx(0);
       setLoading(false);
     }, 150);
     return () => { cancelled = true; window.clearTimeout(t); };
   }, [open, query, threadId]);
+
+  /**
+   * The search function matches a substring anywhere in the full name, which
+   * surfaced people whose name only contains the letters mid-word. Keep only
+   * prefix matches (first name, any other name word, or the handle) and rank
+   * exact then prefix matches first.
+   */
+  const suggestions = useMemo<Suggestion[]>(() => {
+    const q = query.trim();
+    const ranked = rawRows
+      .map((r) => ({ r, rank: mentionMatchRank(r.label, q) }))
+      .filter((x): x is { r: Suggestion; rank: number } => x.rank !== null)
+      .sort((a, b) => a.rank - b.rank || a.r.label.localeCompare(b.r.label))
+      .map((x) => x.r);
+    const everyone: Suggestion = {
+      kind: "everyone",
+      entity_id: null,
+      label: "everyone",
+      subtitle: "Notify all STRAND+ members",
+      avatar_url: null,
+    };
+    const matchesEveryone = q === "" || "everyone".startsWith(q.toLowerCase());
+    return matchesEveryone ? [everyone, ...ranked] : ranked;
+  }, [rawRows, query]);
+
+  useEffect(() => { setActiveIdx(0); }, [suggestions.length]);
 
   const closeMenu = () => { setOpen(false); setAtStart(null); setActiveIdx(0); setFailed(false); };
 
@@ -153,6 +172,14 @@ const MentionTextarea = ({
 
   return (
     <div className="relative">
+      {/* While the picker is open, what is behind it is dimmed and inert, so a
+          delete control or a half-hidden comment can never be tapped by mistake. */}
+      {open && (
+        <div
+          className="fixed inset-0 z-20 bg-foreground/25"
+          onMouseDown={(e) => { e.preventDefault(); closeMenu(); }}
+        />
+      )}
       <Textarea
         ref={ref}
         value={value}
@@ -165,13 +192,15 @@ const MentionTextarea = ({
         className={className}
       />
       {flashLabel && (
-        <div className="pointer-events-none absolute -top-7 right-2 rounded-full bg-orange-500 text-white text-[11px] font-body px-2.5 py-1 shadow animate-in fade-in slide-in-from-bottom-1">
+        <div className="pointer-events-none absolute -top-7 right-2 z-30 rounded-full bg-primary text-primary-foreground text-[11px] font-body px-2.5 py-1 shadow animate-in fade-in slide-in-from-bottom-1">
           Tagged @{flashLabel}
         </div>
       )}
       {open && (
-        <div className={`absolute z-30 left-0 right-0 rounded-lg border border-border bg-card shadow-lg max-h-72 overflow-auto ${dropUp ? "bottom-full mb-1" : "mt-1"}`}>
-          <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-body text-foreground/50 border-b border-border">
+        <div
+          className={`absolute z-30 left-0 right-0 rounded-[10px] border border-border bg-card shadow-lg max-h-64 overflow-auto ${dropUp ? "bottom-full mb-1.5" : "mt-1.5"}`}
+        >
+          <p className="sticky top-0 bg-card px-3 py-2 text-[10px] uppercase tracking-wider font-body font-semibold text-foreground/55 border-b border-border">
             Tag someone
           </p>
           {loading ? (
@@ -182,41 +211,57 @@ const MentionTextarea = ({
             <p className="p-3 text-[12px] font-body text-foreground/60">No matches</p>
           ) : (
             <ul>
-              {suggestions.map((s, i) => (
-                <li key={`${s.kind}-${s.entity_id ?? "all"}-${i}`}>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setActiveIdx(i)}
-                    onMouseDown={(e) => { e.preventDefault(); insertMention(s); }}
-                    className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
-                      i === activeIdx ? "bg-orange-500/15" : "hover:bg-primary/5"
-                    }`}
-                  >
-                    <div className="size-7 rounded-full bg-muted overflow-hidden shrink-0 flex items-center justify-center">
-                      {s.avatar_url ? (
-                        <img src={s.avatar_url} alt="" className="w-full h-full object-cover" />
+              {suggestions.map((s, i) => {
+                // The pill already says what she is — don't repeat it underneath.
+                const subtitle =
+                  s.subtitle && s.subtitle.trim().toLowerCase() !== KIND_LABEL[s.kind].toLowerCase()
+                    ? s.subtitle
+                    : null;
+                return (
+                  <li key={`${s.kind}-${s.entity_id ?? "all"}-${i}`}>
+                    <button
+                      type="button"
+                      onMouseEnter={() => setActiveIdx(i)}
+                      onMouseDown={(e) => { e.preventDefault(); insertMention(s); }}
+                      className={`w-full text-left px-3 py-2 flex items-center gap-2.5 transition-colors ${
+                        i === activeIdx ? "bg-primary/12" : "hover:bg-primary/5"
+                      }`}
+                    >
+                      {s.kind === "everyone" ? (
+                        <div className="size-7 rounded-full bg-[hsl(var(--icon-muted))] text-primary flex items-center justify-center text-[11px] font-body font-semibold shrink-0">
+                          @
+                        </div>
                       ) : (
-                        <span className="text-[11px] font-semibold text-foreground/60">
-                          {s.kind === "everyone" ? "★" : s.label.slice(0, 1).toUpperCase()}
-                        </span>
+                        <ForumAvatar path={s.avatar_url} fallback={s.label} className="size-7 text-[10.5px]" />
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[13px] font-body font-semibold truncate ${i === activeIdx ? "text-orange-600" : ""}`}>
-                          @{s.label}
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider border ${KIND_TONE[s.kind]}`}>
-                          {KIND_LABEL[s.kind]}
-                        </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[13px] font-body font-semibold truncate whitespace-nowrap ${
+                              i === activeIdx ? "text-primary" : ""
+                            }`}
+                          >
+                            @{s.label}
+                          </span>
+                          {/* "Member" on every row says nothing — only badge the
+                              rows that are genuinely different. */}
+                          {s.kind !== "member" && (
+                            <span
+                              className={`shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider border ${KIND_TONE[s.kind]}`}
+                            >
+                              {KIND_LABEL[s.kind]}
+                            </span>
+                          )}
+
+                        </div>
+                        {subtitle && (
+                          <p className="text-[11px] text-foreground/55 font-body truncate mt-0.5">{subtitle}</p>
+                        )}
                       </div>
-                      {s.subtitle && (
-                        <p className="text-[11px] text-foreground/55 font-body truncate">{s.subtitle}</p>
-                      )}
-                    </div>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
