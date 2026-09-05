@@ -55,6 +55,37 @@ export async function bloodFingerprint(
   return sha(`${panelPart}#${resultPart}`);
 }
 
+/**
+ * A stable fingerprint of the OTHER member data that legitimately changes a
+ * nutrition plan (2026-09-05): her supplements, her hair profile, her goal /
+ * challenges / areas of concern, and her health & diet answers. Read from the
+ * database, never from the request body, so an incidental client field can
+ * never move it.
+ */
+export async function nutritionInputFingerprint(
+  supabase: Client,
+  userId: string,
+): Promise<string> {
+  const [supplements, hair, goals, health] = await Promise.all([
+    supabase.from("user_supplements").select("id, name, dose, frequency").eq("user_id", userId),
+    supabase.from("user_hair_profile").select("updated_at").eq("user_id", userId).maybeSingle(),
+    supabase.from("user_goals").select("id, updated_at").eq("user_id", userId),
+    supabase.from("user_health_profile").select("updated_at").eq("user_id", userId).maybeSingle(),
+  ]);
+
+  const parts: string[] = [];
+  for (const s of (supplements.data ?? []) as Array<Record<string, unknown>>) {
+    parts.push(`sup:${s.id}:${s.name ?? ""}:${s.dose ?? ""}:${s.frequency ?? ""}`);
+  }
+  if (hair.data?.updated_at) parts.push(`hair:${hair.data.updated_at}`);
+  for (const g of (goals.data ?? []) as Array<Record<string, unknown>>) {
+    parts.push(`goal:${g.id}:${g.updated_at ?? ""}`);
+  }
+  if (health.data?.updated_at) parts.push(`health:${health.data.updated_at}`);
+
+  return sha(parts.sort().join("|"));
+}
+
 /** Short, stable SHA-256 hex digest. */
 export async function sha(input: string): Promise<string> {
   try {
