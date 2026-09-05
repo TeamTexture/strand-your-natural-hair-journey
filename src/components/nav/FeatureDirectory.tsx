@@ -250,6 +250,30 @@ const FeatureDirectory = ({
     }
   };
 
+  const searching = !!q.trim();
+
+  const Row = ({ i, divided }: { i: Feature; divided: boolean }) => {
+    const Icon = i.icon;
+    return (
+      <button
+        onClick={() => select(i)}
+        className={`w-full text-left px-5 py-2.5 flex items-start gap-3 hover:bg-primary/[0.05] transition-colors ${
+          divided ? "border-t border-border/50" : ""
+        }`}
+      >
+        <Icon className="size-4 shrink-0 mt-0.5 text-primary" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground leading-snug break-words">
+            {i.name}
+          </span>
+          <span className="block text-[12px] font-body text-muted-foreground leading-snug break-words mt-0.5">
+            {i.desc}
+          </span>
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div>
       <div className="px-5 pb-3">
@@ -265,41 +289,48 @@ const FeatureDirectory = ({
         </div>
       </div>
 
-      {groups.length === 0 && (
+      {/* Quick picks — the three most-used features, always above the groups.
+          Hidden while searching so results are never duplicated. */}
+      {!searching && (
+        <>
+          {quickPicks.map((i, idx) => (
+            <Row key={`quick-${i.name}`} i={i} divided={idx > 0} />
+          ))}
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            aria-expanded={showAll}
+            className="w-full text-left px-5 py-3 mt-1 flex items-center gap-2 border-t border-border hover:bg-primary/[0.05] transition-colors"
+          >
+            <LayoutGrid className="size-4 shrink-0 text-primary" aria-hidden />
+            <span className="flex-1 text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground">
+              See all features
+            </span>
+            <ChevronDown
+              className={`size-4 shrink-0 text-primary transition-transform ${showAll ? "rotate-180" : ""}`}
+              aria-hidden
+            />
+          </button>
+        </>
+      )}
+
+      {searching && groups.length === 0 && (
         <p className="px-5 py-4 text-[12px] font-body text-muted-foreground">
           Nothing matches that.
         </p>
       )}
 
-      {groups.map((g) => (
-        <div key={g.label} className="pb-2">
-          <p className="px-5 pt-2 pb-1.5 text-[10px] uppercase tracking-[0.2em] text-primary font-body font-medium">
-            {g.label}
-          </p>
-          {g.items.map((i, idx) => {
-            const Icon = i.icon;
-            return (
-              <button
-                key={`${g.label}-${i.name}`}
-                onClick={() => select(i)}
-                className={`w-full text-left px-5 py-2.5 flex items-start gap-3 hover:bg-primary/[0.05] transition-colors ${
-                  idx > 0 ? "border-t border-border/50" : ""
-                }`}
-              >
-                <Icon className="size-4 shrink-0 mt-0.5 text-primary" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12px] font-body font-semibold uppercase tracking-[0.08em] text-foreground leading-snug break-words">
-                    {i.name}
-                  </span>
-                  <span className="block text-[12px] font-body text-muted-foreground leading-snug break-words mt-0.5">
-                    {i.desc}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ))}
+      {/* Searching always bypasses the collapse. */}
+      {(searching || showAll) &&
+        groups.map((g) => (
+          <div key={g.label} className="pb-2">
+            <p className="px-5 pt-2 pb-1.5 text-[10px] uppercase tracking-[0.2em] text-primary font-body font-medium">
+              {g.label}
+            </p>
+            {g.items.map((i, idx) => (
+              <Row key={`${g.label}-${i.name}`} i={i} divided={idx > 0} />
+            ))}
+          </div>
+        ))}
     </div>
   );
 };
