@@ -37,7 +37,6 @@ import {
 import { cn } from "@/lib/utils";
 import { anchorProps } from "@/lib/scrollMemory";
 import CategoryProductPanels from "@/components/CategoryProductPanels";
-import { readViewPref, writeViewPref } from "@/lib/viewPrefs";
 import { useAuth } from "@/hooks/useAuth";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
