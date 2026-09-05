@@ -22,6 +22,7 @@ import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
 import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
 import WhatsAppHelpCard from "@/components/home/WhatsAppHelpCard";
 import DailyHairCard from "@/components/home/DailyHairCard";
+import PrimaryActions from "@/components/home/PrimaryActions";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
@@ -516,16 +517,93 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Direct line to the STRAND team — deliberately above the dashboard. */}
+      {/* THE FIVE PRIMARY CARDS (beta feedback, Sep 2026) — daily touchpoint,
+          wash day, product scan, diet and nutrition, professional directory.
+          Everything else on Home now sits below these, under "More on your
+          hair". Nothing was removed — only reordered. */}
+      <DailyHairCard />
+      <PrimaryActions lastWashSub={lastWashSub} />
+
+      {/* Alerts stay high on the page — never buried under the reorder. */}
+      <div className="px-5 pb-2">
+        <SurfaceCard data-tour="alerts" id="section-alerts" data-scroll-section tone="dark" padded={false}>
+          <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
+              🔔 Alerts {displayedAlerts.length > 0 && `(${displayedAlerts.length})`}
+            </span>
+            {displayedAlerts.length > 0 && (
+              <button
+                onClick={() => {
+                  dismissAll();
+                  toast("All alerts cleared");
+                }}
+                className="text-[11px] uppercase tracking-[0.15em] text-primary"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+          <div className="px-3 pb-3 space-y-2">
+            {alertsLoading ? (
+              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/60">
+                Checking your data…
+              </p>
+            ) : displayedAlerts.length === 0 ? (
+              <div className="mx-1 my-1 p-3 rounded-[10px] border border-good/40 bg-good/10">
+                <p className="text-xs text-good font-medium">
+                  No alerts right now. Your hair is on track ✓
+                </p>
+              </div>
+            ) : (
+              displayedAlerts.map((a) => {
+                const isDanger = a.tone === "danger";
+                return (
+                <div
+                  key={a.id}
+                  {...anchorProps(`alert-${a.id}`)}
+                  className={
+                    isDanger
+                      ? "relative w-full p-3 pr-9 rounded-[10px] border-2 border-red-600/70 bg-red-600/20 hover:border-red-600 transition-colors"
+                      : "relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
+                  }
+                >
+                  <button
+                    onClick={() => navigate(a.to)}
+                    className="w-full text-left"
+                  >
+                    <p className={`text-xs font-medium leading-tight ${isDanger ? "text-red-100" : "text-alert-dark-foreground"}`}>
+                      {a.emoji} {a.title}
+                    </p>
+                    <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismiss(a.id);
+                      toast("Alert cleared");
+                    }}
+                    aria-label="Dismiss alert"
+                    className={`absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center transition-colors ${isDanger ? "text-red-100/60 hover:text-red-100" : "text-alert-dark-foreground/50 hover:text-alert-dark-foreground"}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+                );
+              })
+            )}
+          </div>
+        </SurfaceCard>
+      </div>
+
+
+      {/* Support stays reachable, just below the five. */}
       <div className="px-5 pb-2">
         <SpeakToStrandCard />
       </div>
-
-      {/* WhatsApp help — opens Paige's direct chat in a new tab. */}
       <WhatsAppHelpCard />
 
-      {/* The daily touchpoint between wash days — one card, dismissible for today. */}
-      <DailyHairCard />
+      <SectionHeader icon={ICONS.goal} className="px-5 pt-1 pb-2">More on your hair</SectionHeader>
+
 
       {/* Anchor-first dashboard — the numbers that matter, tappable. */}
       <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
@@ -1004,73 +1082,6 @@ const Home = () => {
 
 
 
-        <SurfaceCard data-tour="alerts" id="section-alerts" data-scroll-section tone="dark" padded={false}>
-          <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-            <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
-              🔔 Alerts {displayedAlerts.length > 0 && `(${displayedAlerts.length})`}
-            </span>
-            {displayedAlerts.length > 0 && (
-              <button
-                onClick={() => {
-                  dismissAll();
-                  toast("All alerts cleared");
-                }}
-                className="text-[11px] uppercase tracking-[0.15em] text-primary"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-          <div className="px-3 pb-3 space-y-2">
-            {alertsLoading ? (
-              <p className="px-2 py-3 text-[11px] text-alert-dark-foreground/60">
-                Checking your data…
-              </p>
-            ) : displayedAlerts.length === 0 ? (
-              <div className="mx-1 my-1 p-3 rounded-[10px] border border-good/40 bg-good/10">
-                <p className="text-xs text-good font-medium">
-                  No alerts right now. Your hair is on track ✓
-                </p>
-              </div>
-            ) : (
-              displayedAlerts.map((a) => {
-                const isDanger = a.tone === "danger";
-                return (
-                <div
-                  key={a.id}
-                  {...anchorProps(`alert-${a.id}`)}
-                  className={
-                    isDanger
-                      ? "relative w-full p-3 pr-9 rounded-[10px] border-2 border-red-600/70 bg-red-600/20 hover:border-red-600 transition-colors"
-                      : "relative w-full p-3 pr-9 rounded-[10px] border border-primary/30 bg-alert-dark/40 hover:border-primary/60 transition-colors"
-                  }
-                >
-                  <button
-                    onClick={() => navigate(a.to)}
-                    className="w-full text-left"
-                  >
-                    <p className={`text-xs font-medium leading-tight ${isDanger ? "text-red-100" : "text-alert-dark-foreground"}`}>
-                      {a.emoji} {a.title}
-                    </p>
-                    <p className={`text-[11px] mt-1 ${isDanger ? "text-red-100/85" : "text-alert-dark-foreground/70"}`}>{a.body}</p>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      dismiss(a.id);
-                      toast("Alert cleared");
-                    }}
-                    aria-label="Dismiss alert"
-                    className={`absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center transition-colors ${isDanger ? "text-red-100/60 hover:text-red-100" : "text-alert-dark-foreground/50 hover:text-alert-dark-foreground"}`}
-                  >
-                    ✕
-                  </button>
-                </div>
-                );
-              })
-            )}
-          </div>
-        </SurfaceCard>
       </div>
 
 
