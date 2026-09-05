@@ -14,6 +14,9 @@ const VERY_LONG = [
   "Then I put it away in two twists and slept in a bonnet, which held really well.",
   "Also I want to remember that the leave-in went on while my hair was still dripping.",
   "Overall this is the version of wash day I want to repeat next time.",
+  "One thing I would change is doing the parting cleanse before anything else.",
+  "Next time I will also leave the twists in a bit longer before I take them down.",
+  "Finally, my ends felt smoother than they have in weeks and I want that again.",
 ].join(" ");
 
 describe("VoiceNoteBlock", () => {
