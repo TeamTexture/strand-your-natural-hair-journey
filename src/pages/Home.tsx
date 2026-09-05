@@ -11,8 +11,6 @@ import {
   OPEN_MAIN_PHOTO_EVENT,
   MAIN_PHOTO_CLOSED_EVENT,
 } from "@/lib/firstRunTour";
-import StatTile from "@/components/nav/StatTile";
-import SectionHeader from "@/components/nav/SectionHeader";
 import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
 
 
@@ -43,7 +41,6 @@ import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
-import { readBloodData, resolveStatus } from "@/lib/bloodRead";
 
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
