@@ -134,6 +134,14 @@ const GlobalMenu = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  // Home's "Explore all features" button opens this same sheet.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_MENU_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_MENU_EVENT, onOpen);
+  }, []);
+
   const { hasPageBackButton } = useBackButtonContext();
   // Paywall / onboarding chrome lock — see useMemberAppUnlocked.
   const {
