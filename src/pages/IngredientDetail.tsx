@@ -277,11 +277,17 @@ const IngredientDetail = () => {
       if (!returnTo) return;
       navigate(returnTo, {
         replace: true,
-        state: isJournalReturn && productId ? { journalAddProductId: productId } : undefined,
+        state:
+          productId && isJournalReturn
+            ? { journalAddProductId: productId }
+            : productId && isDailyReturn
+              ? { dailyAddProductId: productId }
+              : undefined,
       });
     },
-    [isJournalReturn, navigate, returnTo],
+    [isJournalReturn, isDailyReturn, navigate, returnTo],
   );
+
 
   // Initial loading state: only show the spinner when we have no fresh
   // analysis to render immediately.
