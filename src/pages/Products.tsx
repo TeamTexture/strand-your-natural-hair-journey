@@ -37,7 +37,6 @@ import {
 import { cn } from "@/lib/utils";
 import { anchorProps } from "@/lib/scrollMemory";
 import CategoryProductPanels from "@/components/CategoryProductPanels";
-import { readViewPref, writeViewPref } from "@/lib/viewPrefs";
 import { useAuth } from "@/hooks/useAuth";
 import { useVoicenoteCounts } from "@/hooks/useVoicenoteCounts";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
@@ -115,24 +114,46 @@ const Products = () => {
   }, [filteredProducts]);
 
 
-  // Which shelf categories she has folded away. A view preference, so it lives
-  // in namespaced browser storage (per user id, cleared on sign-out) rather than
-  // a database column. Everything starts OPEN — collapsing is opt-in.
-  const [collapsedCategories, setCollapsedCategories] = useState<string[]>(() =>
-    readViewPref<string[]>(user?.id, "shelfCollapsedCategories", []),
+  // Category panels open CLOSED so the page reads as a scannable list of
+  // categories. What she opens is remembered for the session only (sessionStorage),
+  // so stepping into a product and back doesn't re-collapse it, while a fresh
+  // visit starts clean again.
+  const expandedStorageKey = `strand:${user?.id ?? "anon"}:shelfExpandedCategories`;
+  const readExpanded = (key: string): string[] => {
+    try {
+      const raw = sessionStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return [];
+    }
+  };
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(() =>
+    readExpanded(expandedStorageKey),
   );
   // Re-read once the signed-in user is known (auth resolves after first paint).
   useEffect(() => {
-    setCollapsedCategories(readViewPref<string[]>(user?.id, "shelfCollapsedCategories", []));
-  }, [user?.id]);
+    setExpandedCategories(readExpanded(expandedStorageKey));
+  }, [expandedStorageKey]);
 
   const toggleCategoryCollapsed = (slug: string) => {
-    setCollapsedCategories((prev) => {
+    setExpandedCategories((prev) => {
       const next = prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug];
-      writeViewPref(user?.id, "shelfCollapsedCategories", next);
+      try {
+        sessionStorage.setItem(expandedStorageKey, JSON.stringify(next));
+      } catch {
+        /* storage unavailable — session memory only */
+      }
       return next;
     });
   };
+
+  // The panel component is collapse-driven, so hand it everything she has NOT opened.
+  const collapsedCategories = useMemo(
+    () => groups.map((g) => g.key).filter((k) => !expandedCategories.includes(k)),
+    [groups, expandedCategories],
+  );
+
 
   // Search / filters run across EVERY product regardless of fold state; while
   // either is active the panels are forced open so a match in a collapsed group
@@ -460,8 +481,9 @@ const Products = () => {
                   (x) => !(x as UserProduct & { is_homemade?: boolean }).is_homemade,
                 )}
                 sections={groups.map((g) => ({ slug: g.key, label: g.label, products: g.items }))}
-                // Her own shelf: everything OPEN on arrival, collapsing is opt-in.
-                defaultOpen="all"
+                // Her own shelf: everything CLOSED on arrival, opening is opt-in.
+                defaultOpen="none"
+
                 flatBelow={0}
                 countStyle="parens"
                 collapsedSlugs={collapsedCategories}
