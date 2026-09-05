@@ -12,6 +12,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { dispatchEmail } from "../_shared/app-email/core.ts";
+import { removeSuperchatLists } from "../_shared/superchat-lists.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -218,6 +219,9 @@ Deno.serve(async (req) => {
     }
 
     // ---- 4. Delete the account ----
+    // Off both Superchat lists first: the contact id lives on the profile row,
+    // which the auth delete cascades away.
+    await removeSuperchatLists(admin, targetUserId, "admin_delete_user");
     const { error: delErr } = await admin.auth.admin.deleteUser(targetUserId);
     if (delErr) return json({ error: delErr.message }, 400);
 
