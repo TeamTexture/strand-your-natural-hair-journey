@@ -202,6 +202,7 @@ const WashDayDetail = lazyRetry(() => import("./pages/WashDayDetail"));
 const WashLogSteps = lazyRetry(() => import("./pages/wash/WashLogSteps"));
 const WashLogStyle = lazyRetry(() => import("./pages/wash/WashLogStyle"));
 const WashFavourites = lazyRetry(() => import("./pages/wash/WashFavourites"));
+const DailyHairLog = lazyRetry(() => import("./pages/DailyHairLog"));
 const Products = lazyRetry(() => import("./pages/Products"));
 const IngredientDetail = lazyRetry(() => import("./pages/IngredientDetail"));
 const Wishlist = lazyRetry(() => import("./pages/Wishlist"));
