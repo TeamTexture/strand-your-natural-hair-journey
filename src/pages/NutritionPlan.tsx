@@ -1160,7 +1160,17 @@ const NutritionPlan = () => {
 
         {/* The ONLY path that spends tokens on this screen. Viewing, navigating
             back, or re-rendering always reads the stored plan. */}
-        {plan && !aiLoading && (
+        {/* A warranted refresh runs behind the plan she is already reading. */}
+        {refreshing && (
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-secondary text-[11px] font-body text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+              Updating your plan with your latest details
+            </span>
+          </div>
+        )}
+
+        {plan && !aiLoading && !refreshing && (
           <div className="mb-4 flex justify-center">
             <button
               type="button"
