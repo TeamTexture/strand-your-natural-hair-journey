@@ -53,8 +53,8 @@ const DailyHairCard = () => {
             <button
               type="button"
               onClick={() => fold(false)}
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              aria-expanded={false}
+              className="shrink-0"
+              aria-label="Expand"
             >
               {logged && latest ? (
                 <ProductThumb
@@ -65,38 +65,32 @@ const DailyHairCard = () => {
                   wrapperClassName="size-7 rounded-[7px] overflow-hidden border-[0.5px] border-border bg-secondary shrink-0"
                 />
               ) : (
-                <span className="size-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <span className="size-7 rounded-full bg-secondary flex items-center justify-center">
                   <Droplets className="size-3.5 text-primary" aria-hidden />
                 </span>
               )}
-              <span className="min-w-0 flex-1">
-                <span className="block font-body text-[13px] leading-snug text-foreground break-words">
-                  {logged
-                    ? `Logged today${latest ? ` · ${latest.name}` : ""}`
-                    : "Log something you did today"}
-                </span>
-                {logged && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate("/daily-log");
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        navigate("/daily-log");
-                      }
-                    }}
-                    className="mt-0.5 block font-body text-[11px] leading-snug text-primary"
-                  >
-                    Add another
-                  </span>
-                )}
-              </span>
             </button>
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => fold(false)}
+                aria-expanded={false}
+                className="block w-full text-left font-body text-[13px] leading-snug text-foreground break-words"
+              >
+                {logged
+                  ? `Logged today${latest ? ` \u00b7 ${latest.name}` : ""}`
+                  : "Log something you did today"}
+              </button>
+              {logged && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/daily-log")}
+                  className="mt-0.5 block text-left font-body text-[11px] leading-snug text-primary"
+                >
+                  Add another
+                </button>
+              )}
+            </div>
             <button
               type="button"
               aria-label="Expand"
