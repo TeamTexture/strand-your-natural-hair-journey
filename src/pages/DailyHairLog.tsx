@@ -203,70 +203,14 @@ const DailyHairLog = () => {
         )}
       </div>
 
-      {/* QUICK PICKS — the whole point: one or two taps. */}
-      {quickPicks.length > 0 && (
+      {/* WHAT SHE USED — only what's on this entry, above the add action. */}
+      {selected.length > 0 && (
         <>
           <div className="px-5">
-            <Eyebrow>What you usually reach for</Eyebrow>
+            <Eyebrow>What you used</Eyebrow>
           </div>
           <div className="px-5 pb-3 space-y-2">
-            {quickPicks.map((id) => {
-              const p = byId[id];
-              if (!p) return null;
-              const on = selected.includes(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggle(id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 rounded-[14px] border p-3 text-left transition-colors",
-                    on ? "border-primary bg-primary/10" : "border-border bg-card",
-                  )}
-                >
-                  <ProductThumb
-                    imageUrl={p.image_url}
-                    storagePath={p.storage_path}
-                    alt={p.name}
-                    cover
-                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
-                  />
-                  <span className="flex-1 min-w-0">
-                    <Link
-                      to={`/products/profile/${p.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
-                    >
-                      {p.name}
-                    </Link>
-                    {p.brand && (
-                      <span className="block font-body text-[11.5px] text-muted-foreground break-words">
-                        {p.brand}
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      "size-5 rounded-full border flex items-center justify-center shrink-0",
-                      on ? "bg-primary border-primary" : "border-border",
-                    )}
-                  >
-                    {on && <Check className="size-3 text-primary-foreground" aria-hidden />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Anything else she used, added from the shelf. */}
-      {selected.filter((id) => !quickPicks.includes(id)).length > 0 && (
-        <div className="px-5 pb-3 space-y-2">
-          {selected
-            .filter((id) => !quickPicks.includes(id))
-            .map((id) => {
+            {selected.map((id) => {
               const p = byId[id];
               if (!p) return null;
               return (
@@ -281,12 +225,19 @@ const DailyHairLog = () => {
                     cover
                     wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
                   />
-                  <Link
-                    to={`/products/profile/${p.id}`}
-                    className="flex-1 min-w-0 product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
-                  >
-                    {p.name}
-                  </Link>
+                  <span className="flex-1 min-w-0">
+                    <Link
+                      to={`/products/profile/${p.id}`}
+                      className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                    >
+                      {p.name}
+                    </Link>
+                    {p.brand && (
+                      <span className="block font-body text-[11.5px] text-muted-foreground break-words">
+                        {p.brand}
+                      </span>
+                    )}
+                  </span>
                   <button
                     type="button"
                     aria-label={`Remove ${p.name}`}
@@ -298,19 +249,18 @@ const DailyHairLog = () => {
                 </div>
               );
             })}
-        </div>
+          </div>
+        </>
       )}
 
+      {/* THE ONE ADD ACTION — scan, link, or her shelf. */}
       <div className="px-5 pb-4">
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="w-full inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-border bg-card min-h-[44px] font-body text-[12.5px] text-primary"
-        >
-          <Plus className="size-3.5" aria-hidden />
-          Add from your shelf
-        </button>
+        <Button variant="gold" size="pill" onClick={() => setAddOpen(true)}>
+          <Plus className="size-4" aria-hidden />
+          Add product
+        </Button>
       </div>
+
 
       {/* Optional — never in the way of saving. */}
       <div className="px-5 pb-4">
