@@ -2333,6 +2333,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_hair_entries: {
+        Row: {
+          created_at: string
+          entry_at: string
+          entry_date: string
+          id: string
+          note: string | null
+          product_ids: string[]
+          updated_at: string
+          user_id: string
+          voice_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          entry_at?: string
+          entry_date: string
+          id?: string
+          note?: string | null
+          product_ids?: string[]
+          updated_at?: string
+          user_id: string
+          voice_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          entry_at?: string
+          entry_date?: string
+          id?: string
+          note?: string | null
+          product_ids?: string[]
+          updated_at?: string
+          user_id?: string
+          voice_path?: string | null
+        }
+        Relationships: []
+      }
       data_protection_complaints: {
         Row: {
           acknowledged_at: string | null
