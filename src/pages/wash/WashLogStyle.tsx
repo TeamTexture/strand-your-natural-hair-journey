@@ -157,6 +157,8 @@ const WashLogStyleInner = () => {
     };
   }, []);
 
+  const styleChanged = !!style && style !== originalStyle;
+
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
