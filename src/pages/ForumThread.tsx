@@ -404,8 +404,8 @@ const InlineComposer = ({
   const mentions = useRef<ResolvedMention[]>([]);
 
   return (
-    <div className="mt-2 ml-4 pl-3 border-l-2 border-primary/50">
-      <div className="rounded-[12px] border-2 border-primary/40 bg-muted/40 p-2.5 shadow-sm">
+    <div className="mt-2 ml-4 pl-3 border-l-2 border-primary/25">
+      <div className="rounded-[14px] border border-border bg-card p-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <p className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-body font-bold uppercase tracking-wider text-primary">
             <ReplyIcon className="size-3" /> Replying to {replyingToName}
@@ -423,13 +423,13 @@ const InlineComposer = ({
           onMention={(m) => { mentions.current = [...mentions.current, m]; }}
           placeholder="Write a reply… type @ to tag"
           maxLength={2000}
-          className="resize-none min-h-[40px] bg-card"
+          className="resize-none min-h-[40px] rounded-[10px] border-border bg-[hsl(var(--surface-raised))] focus-visible:border-primary"
         />
         <div className="mt-2 flex justify-end">
           <Button
             variant="gold"
             size="sm"
-            className="rounded-pill h-8 px-4 text-[11px] font-semibold uppercase tracking-wider"
+            className="rounded-[10px] h-8 px-4 text-[11px] font-semibold uppercase tracking-wider"
             disabled={busy || !body.trim()}
             onClick={async () => {
               const ok = await onSubmit(body, mentions.current);
@@ -444,11 +444,13 @@ const InlineComposer = ({
   );
 };
 
-const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null; compact?: boolean }) => {
+/** Open a direct message with a member — a plain text action, so the only
+ *  reply control on a comment is the "Reply" link. */
+const MessageLink = ({ uid, name }: { uid: string; name: string }) => {
   const nav = useNavigate();
   const { user } = useAuth();
   const [opening, setOpening] = useState(false);
-  const isMe = user?.id === uid;
+  if (user?.id === uid) return null;
 
   const message = async () => {
     setOpening(true);
@@ -463,36 +465,42 @@ const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { ui
   };
 
   return (
-    <div className="flex items-start gap-2">
-      <Link to={`/member/${uid}`} className="flex items-center gap-2 min-w-0 flex-1 group">
-        <ForumAvatar path={avatar} fallback={name[0]} className={compact ? "size-6 text-[11px]" : "size-8 text-[12px]"} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-            <span className={cn("font-body font-semibold text-foreground/85 group-hover:text-primary", compact ? "text-[11.5px]" : "text-[12.5px]")}>{name}</span>
-            <span className={cn("font-body text-foreground/45", compact ? "text-[10px]" : "text-[10.5px]")}>· {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
-            {meta && (
-              <span className={cn("font-body text-foreground/45 min-w-0 truncate", compact ? "text-[10px]" : "text-[10.5px]")}>· {meta}</span>
-            )}
-          </div>
-        </div>
-      </Link>
-      {!isMe && (
-        <button
-          type="button"
-          onClick={message}
-          disabled={opening}
-          aria-label={`Message ${name}`}
-          className={cn(
-            "shrink-0 rounded-full border border-border bg-card flex items-center justify-center text-foreground/60 hover:text-primary hover:bg-primary/10 disabled:opacity-50",
-            compact ? "size-7" : "size-8",
-          )}
-        >
-          {opening ? <Loader2 className="size-3.5 animate-spin" /> : <MessageSquare className="size-3.5" />}
-        </button>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={message}
+      disabled={opening}
+      aria-label={`Message ${name}`}
+      className="inline-flex items-center h-7 px-2 rounded-full text-[10.5px] font-body font-semibold text-foreground/55 hover:text-primary disabled:opacity-50"
+    >
+      {opening ? <Loader2 className="size-3 animate-spin" /> : "Message"}
+    </button>
   );
 };
+
+const PosterRow = ({ uid, name, avatar, createdAt, meta, compact = false }: { uid: string; name: string; avatar: string | null; createdAt: string; meta?: string | null; compact?: boolean }) => (
+  <Link to={`/member/${uid}`} className="flex items-start gap-2 min-w-0 group">
+    <ForumAvatar path={avatar} fallback={name} className={compact ? "size-6 text-[10px]" : "size-8 text-[11px]"} />
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-1.5 leading-tight min-w-0">
+        <span
+          className={cn(
+            "font-body font-semibold text-foreground/85 group-hover:text-primary whitespace-nowrap truncate min-w-[52px] max-w-[140px]",
+            compact ? "text-[11.5px]" : "text-[12.5px]",
+          )}
+        >
+          {name}
+        </span>
+        <span className={cn("shrink-0 font-body text-foreground/45 whitespace-nowrap", compact ? "text-[10px]" : "text-[10.5px]")}>
+          · {relativeTime(createdAt)}
+        </span>
+      </div>
+      {meta && (
+        <p className={cn("font-body text-foreground/50 truncate mt-1.5", compact ? "text-[10px]" : "text-[10.5px]")}>{meta}</p>
+      )}
+    </div>
+  </Link>
+);
+
 
 
 
