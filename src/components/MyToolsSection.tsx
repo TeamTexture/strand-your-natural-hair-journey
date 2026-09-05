@@ -11,7 +11,6 @@ import EmptyState from "@/components/EmptyState";
 import LoadingDot from "@/components/LoadingDot";
 import ProductVoicenotes from "@/components/ProductVoicenotes";
 import FilePickerButton from "@/components/FilePickerButton";
-import SectionLabel from "@/components/SectionLabel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import VoiceNoteField from "@/components/VoiceNoteField";
@@ -70,7 +69,19 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
   </span>
 );
 
-const MyToolsSection = () => {
+interface MyToolsSectionProps {
+  /**
+   * Controlled fold state. My Tools opens CLOSED like every other section on
+   * the Products page; the page owns the memory (session-only) so a fresh
+   * visit starts collapsed again.
+   */
+  open?: boolean;
+  onToggleOpen?: () => void;
+  /** Live search on the Products page — a matching tool forces the section open. */
+  searchTerm?: string;
+}
+
+const MyToolsSection = ({ open, onToggleOpen, searchTerm = "" }: MyToolsSectionProps = {}) => {
   const navigate = useNavigate();
   const { tools: allTools, loading, addTool, updateTool, setFavourite, deleteTool, reload } = useUserTools();
   // Wishlisted tools live on the Wishlist screen, not in My Tools (owned).
@@ -81,6 +92,21 @@ const MyToolsSection = () => {
   // unscored. This scores them against the member's profile (same 0–100 scale
   // and star mapping as products) and persists the result on the row.
   const { scores: aiScores, scoring, failed: scoringFailed } = useToolMatchScores(tools, reload);
+
+  // Fold state. Controlled by the Products page when it passes a handler;
+  // standalone use keeps the old always-open behaviour.
+  const [openLocal, setOpenLocal] = useState(false);
+  const controlled = typeof onToggleOpen === "function";
+  const term = searchTerm.trim().toLowerCase();
+  const searchHit =
+    term.length > 0 &&
+    tools.some(
+      (t) =>
+        t.name.toLowerCase().includes(term) ||
+        (t.brand ?? "").toLowerCase().includes(term),
+    );
+  const isOpen = controlled ? Boolean(open) || searchHit : openLocal || searchHit;
+  const toggleOpen = () => (controlled ? onToggleOpen!() : setOpenLocal((v) => !v));
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -216,9 +242,27 @@ const MyToolsSection = () => {
 
   return (
     <>
-      <SectionLabel>My Tools</SectionLabel>
+      <section className="mx-5 mt-2 mb-6 rounded-[12px] border border-border bg-card overflow-hidden">
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          onClick={toggleOpen}
+          className="w-full min-h-[48px] px-3 py-2.5 flex items-center gap-2 text-left"
+        >
+          <Wrench className="size-4 text-primary shrink-0" />
+          <span className="text-[13px] font-medium text-foreground">My Tools</span>
+          <span className="text-[12px] text-muted-foreground">({tools.length})</span>
+          <ChevronDown
+            className={cn(
+              "size-4 text-primary ml-auto shrink-0 transition-transform",
+              isOpen && "rotate-180",
+            )}
+          />
+        </button>
 
-      <div className="px-5 space-y-3 pb-4">
+        {isOpen && (
+        <div className="border-t border-border/60 pt-2">
+          <div className="px-3 space-y-3 pb-4">
         {loading ? (
           <LoadingDot label="Loading your tools…" />
         ) : tools.length === 0 ? (
@@ -368,18 +412,21 @@ const MyToolsSection = () => {
             );
           })
         )}
-      </div>
+          </div>
 
-      <div className="px-5 pb-6">
-        <Button
-          variant="gold"
-          size="pill"
-          onClick={() => setAddOpen(true)}
-          className="w-full"
-        >
-          <Wrench className="size-4 mr-1.5" /> + Add a Tool
-        </Button>
-      </div>
+          <div className="px-3 pb-3">
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={() => setAddOpen(true)}
+              className="w-full"
+            >
+              <Wrench className="size-4 mr-1.5" /> + Add a Tool
+            </Button>
+          </div>
+        </div>
+      )}
+      </section>
 
       {/* Add tool sheet */}
       <Sheet

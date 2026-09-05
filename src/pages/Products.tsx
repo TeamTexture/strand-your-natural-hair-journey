@@ -496,33 +496,64 @@ const Products = () => {
               />
             )}
 
-            {homemadeProducts.length > 0 && (
-              <section
-                id="section-products-homemade"
-                className="rounded-[18px] border border-primary/30 bg-primary/[0.05] p-3 space-y-2.5 mt-1"
-              >
-                <div className="flex items-center gap-2 px-0.5">
-                  <FlaskConical className="size-4 text-primary shrink-0" />
-                  <SectionLabel className="!mt-0 !mb-0 !px-0">
-                    My homemade mixes ({homemadeProducts.length})
-                  </SectionLabel>
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-snug px-0.5">
-                  Made by you — no label to read, so the analysis works from your
-                  recipe and how much of each thing went in.
-                </p>
-                <div className="space-y-3">
-                  {homemadeProducts.map(renderProductRow)}
-                </div>
-              </section>
-            )}
+            {homemadeProducts.length > 0 && (() => {
+              // Homemade mixes fold exactly like a category panel: a single
+              // clean row (name + count + chevron) until she opens it. The
+              // explanatory line belongs to the OPEN state, not the row.
+              const homemadeOpen =
+                filtersActive || expandedCategories.includes("homemade");
+              return (
+                <section
+                  id="section-products-homemade"
+                  className="rounded-[18px] border border-primary/30 bg-primary/[0.05] overflow-hidden mt-1"
+                >
+                  <button
+                    type="button"
+                    aria-expanded={homemadeOpen}
+                    onClick={() => toggleCategoryCollapsed("homemade")}
+                    className="w-full min-h-[48px] px-3 py-2.5 flex items-center gap-2 text-left"
+                  >
+                    <FlaskConical className="size-4 text-primary shrink-0" />
+                    <span className="text-[13px] font-medium text-foreground">
+                      My homemade mixes
+                    </span>
+                    <span className="text-[12px] text-muted-foreground">
+                      ({homemadeProducts.length})
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "size-4 text-primary ml-auto shrink-0 transition-transform",
+                        homemadeOpen && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  {homemadeOpen && (
+                    <div className="px-3 pb-3 pt-2 space-y-2.5 border-t border-primary/20">
+                      <p className="text-[11px] text-muted-foreground leading-snug px-0.5">
+                        Made by you — no label to read, so the analysis works from your
+                        recipe and how much of each thing went in.
+                      </p>
+                      <div className="space-y-3">
+                        {homemadeProducts.map(renderProductRow)}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
           </>
         )}
 
 
       </div>
 
-      {!batch.selectMode && <MyToolsSection />}
+      {!batch.selectMode && (
+        <MyToolsSection
+          open={expandedCategories.includes("tools")}
+          onToggleOpen={() => toggleCategoryCollapsed("tools")}
+          searchTerm={filterState.search}
+        />
+      )}
 
       {batch.selectMode && (
         <BatchActionBar
