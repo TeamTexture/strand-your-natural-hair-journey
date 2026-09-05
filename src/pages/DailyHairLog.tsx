@@ -1,33 +1,34 @@
-// THE QUICK LOG — one page, one tap in the common case.
+// THE QUICK LOG — one page, one add action.
 //
-// Speed rules: defaults to today and now, her most recently used between-wash
-// products sit at the top as one-tap toggles, the only required answer is a
-// product, and the note/voicenote are optional. No steps, no wizard.
+// This page used to open on a long list of "what you usually reach for", which
+// was more scrolling than choosing. It now opens on when + a single "Add
+// product" button; the products already on the entry sit above it. Choosing how
+// to add a product (scan, link, or her shelf) lives in AddProductSheet.
+//
+// Speed rules unchanged: defaults to today and now, the only required answer is
+// a product, and the note/voicenote are optional. No steps, no wizard.
 
-import { useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { CalendarDays, Check, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { CalendarDays, Plus, X } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import SurfaceCard from "@/components/SurfaceCard";
 import Eyebrow from "@/components/nav/Eyebrow";
 import ProductThumb from "@/components/ProductThumb";
-import ProductPickerSheet from "@/components/ProductPickerSheet";
+import AddProductSheet from "@/components/daily/AddProductSheet";
 import VoiceNoteField from "@/components/VoiceNoteField";
 import DateTimePicker from "@/components/DateTimePicker";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUserProducts } from "@/hooks/useUserProducts";
-import {
-  useCreateDailyHairEntry,
-  useDailyHairEntries,
-} from "@/hooks/useDailyHairEntries";
+import { useCreateDailyHairEntry } from "@/hooks/useDailyHairEntries";
 import { useHairCharacteristics } from "@/hooks/useHairCharacteristics";
 import DailySaveConfirmation from "@/components/daily/DailySaveConfirmation";
 import WeeklyPatternCard from "@/components/daily/WeeklyPatternCard";
 import { friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
 import { smartBack } from "@/lib/smartBack";
-import { cn } from "@/lib/utils";
+
 
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -44,23 +45,36 @@ const prettyTime = (value: string) => {
   return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" });
 };
 
+/** Draft held only for the round trip out to a scan and back. */
+const DRAFT_KEY = "strand_daily_log_draft";
+
 const DailyHairLog = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { products } = useUserProducts("shelf");
-  const { recentProductIds } = useDailyHairEntries();
   const create = useCreateDailyHairEntry();
   // Read up front so the confirmation paints instantly on save.
   const { data: hair } = useHairCharacteristics();
 
-  const [when, setWhen] = useState(nowLocalValue);
+  // A scan or link takes her off this page and back again, so the half-written
+  // entry is kept for the trip and cleared the moment it is saved.
+  const draft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      return raw ? (JSON.parse(raw) as { when?: string; selected?: string[]; note?: string }) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const [when, setWhen] = useState(draft?.when || nowLocalValue);
   const [showWhen, setShowWhen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [note, setNote] = useState("");
+  const [selected, setSelected] = useState<string[]>(draft?.selected ?? []);
+  const [note, setNote] = useState(draft?.note ?? "");
   const [voicePath, setVoicePath] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   // Set once the entry is stored — the form is replaced by the confirmation.
   const [saved, setSaved] = useState<{ productIds: string[]; at: string } | null>(null);
-
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
@@ -68,22 +82,27 @@ const DailyHairLog = () => {
     return map;
   }, [products]);
 
-  // Her between-wash regulars first; then the rest of the shelf by last used.
-  const quickPicks = useMemo(() => {
-    const ordered = [
-      ...recentProductIds.filter((id) => byId[id]),
-      ...products
-        .filter((p) => !recentProductIds.includes(p.id))
-        .sort((a, b) => (b.last_used_at ?? "").localeCompare(a.last_used_at ?? ""))
-        .map((p) => p.id),
-    ];
-    return ordered.slice(0, 6);
-  }, [recentProductIds, products, byId]);
-
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  // A product scanned or linked from this page comes back attached.
+  const returnedId = (location.state as { dailyAddProductId?: string } | null)?.dailyAddProductId;
+  useEffect(() => {
+    if (!returnedId) return;
+    setSelected((prev) => (prev.includes(returnedId) ? prev : [...prev, returnedId]));
+    navigate(location.pathname, { replace: true, state: null });
+  }, [returnedId, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (saved) {
+      sessionStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ when, selected, note }));
+  }, [when, selected, note, saved]);
+
   const date = when.slice(0, 10);
+
 
   const save = async () => {
     if (!selected.length) {
@@ -184,70 +203,14 @@ const DailyHairLog = () => {
         )}
       </div>
 
-      {/* QUICK PICKS — the whole point: one or two taps. */}
-      {quickPicks.length > 0 && (
+      {/* WHAT SHE USED — only what's on this entry, above the add action. */}
+      {selected.length > 0 && (
         <>
           <div className="px-5">
-            <Eyebrow>What you usually reach for</Eyebrow>
+            <Eyebrow>What you used</Eyebrow>
           </div>
           <div className="px-5 pb-3 space-y-2">
-            {quickPicks.map((id) => {
-              const p = byId[id];
-              if (!p) return null;
-              const on = selected.includes(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggle(id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 rounded-[14px] border p-3 text-left transition-colors",
-                    on ? "border-primary bg-primary/10" : "border-border bg-card",
-                  )}
-                >
-                  <ProductThumb
-                    imageUrl={p.image_url}
-                    storagePath={p.storage_path}
-                    alt={p.name}
-                    cover
-                    wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
-                  />
-                  <span className="flex-1 min-w-0">
-                    <Link
-                      to={`/products/profile/${p.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
-                    >
-                      {p.name}
-                    </Link>
-                    {p.brand && (
-                      <span className="block font-body text-[11.5px] text-muted-foreground break-words">
-                        {p.brand}
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      "size-5 rounded-full border flex items-center justify-center shrink-0",
-                      on ? "bg-primary border-primary" : "border-border",
-                    )}
-                  >
-                    {on && <Check className="size-3 text-primary-foreground" aria-hidden />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Anything else she used, added from the shelf. */}
-      {selected.filter((id) => !quickPicks.includes(id)).length > 0 && (
-        <div className="px-5 pb-3 space-y-2">
-          {selected
-            .filter((id) => !quickPicks.includes(id))
-            .map((id) => {
+            {selected.map((id) => {
               const p = byId[id];
               if (!p) return null;
               return (
@@ -262,12 +225,19 @@ const DailyHairLog = () => {
                     cover
                     wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
                   />
-                  <Link
-                    to={`/products/profile/${p.id}`}
-                    className="flex-1 min-w-0 product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
-                  >
-                    {p.name}
-                  </Link>
+                  <span className="flex-1 min-w-0">
+                    <Link
+                      to={`/products/profile/${p.id}`}
+                      className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                    >
+                      {p.name}
+                    </Link>
+                    {p.brand && (
+                      <span className="block font-body text-[11.5px] text-muted-foreground break-words">
+                        {p.brand}
+                      </span>
+                    )}
+                  </span>
                   <button
                     type="button"
                     aria-label={`Remove ${p.name}`}
@@ -279,19 +249,18 @@ const DailyHairLog = () => {
                 </div>
               );
             })}
-        </div>
+          </div>
+        </>
       )}
 
+      {/* THE ONE ADD ACTION — scan, link, or her shelf. */}
       <div className="px-5 pb-4">
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="w-full inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-border bg-card min-h-[44px] font-body text-[12.5px] text-primary"
-        >
-          <Plus className="size-3.5" aria-hidden />
-          Add from your shelf
-        </button>
+        <Button variant="gold" size="pill" onClick={() => setAddOpen(true)}>
+          <Plus className="size-4" aria-hidden />
+          Add product
+        </Button>
       </div>
+
 
       {/* Optional — never in the way of saving. */}
       <div className="px-5 pb-4">
@@ -320,12 +289,14 @@ const DailyHairLog = () => {
         </Button>
       </div>
 
-      <ProductPickerSheet
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
+      <AddProductSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
         selectedIds={selected}
         onToggle={(id) => toggle(id)}
+        returnTo="/daily-log"
       />
+
     </ScreenLayout>
   );
 };

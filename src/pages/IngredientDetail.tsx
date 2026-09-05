@@ -246,6 +246,10 @@ const IngredientDetail = () => {
   const brandProductId = navState?.brand_product_id ?? null;
   const brandBuyUrl = navState?.external_url ?? null;
   const isJournalReturn = !!returnTo?.startsWith("/journal/entry/");
+  // The daily log holds a half-written entry, so a product scanned from there
+  // must come back attached to it rather than needing a second look-up.
+  const isDailyReturn = !!returnTo?.startsWith("/daily-log");
+
 
   const { photos, uploadPhoto, removePhoto } = useProductPhotos([productKey]);
   const [productPhotoUrl, setProductPhotoUrl] = useState<string | null>(
@@ -273,11 +277,17 @@ const IngredientDetail = () => {
       if (!returnTo) return;
       navigate(returnTo, {
         replace: true,
-        state: isJournalReturn && productId ? { journalAddProductId: productId } : undefined,
+        state:
+          productId && isJournalReturn
+            ? { journalAddProductId: productId }
+            : productId && isDailyReturn
+              ? { dailyAddProductId: productId }
+              : undefined,
       });
     },
-    [isJournalReturn, navigate, returnTo],
+    [isJournalReturn, isDailyReturn, navigate, returnTo],
   );
+
 
   // Initial loading state: only show the spinner when we have no fresh
   // analysis to render immediately.
