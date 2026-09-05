@@ -475,8 +475,11 @@ const GlobalMenu = () => {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
           <SheetHeader className="px-5 pt-5 pb-3 border-b">
-            <SheetTitle className="font-display text-xl">Menu</SheetTitle>
+            <SheetTitle className="font-display text-xl">
+              {showDirectory ? "Everything in STRAND" : "Menu"}
+            </SheetTitle>
           </SheetHeader>
+
           <nav className="flex-1 overflow-y-auto py-2">
             {!isOnboarding && activeView === "consumer" && hasPlus && (
               <div className="mx-3 mb-3 rounded-[14px] border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent overflow-hidden">
