@@ -22,6 +22,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { isServiceRoleCaller } from "../_shared/auth.ts";
+import { removeSuperchatLists } from "../_shared/superchat-lists.ts";
 
 /** Live deletion is NOT armed in this build. */
 const DRY_RUN = true;
@@ -126,6 +127,9 @@ Deno.serve(async (req) => {
       };
 
       if (live) {
+        // Off both Superchat lists BEFORE the row disappears — the contact id
+        // lives on the profile, so this cannot be done after the cascade.
+        await removeSuperchatLists(admin, userId, "account_erasure");
         // Detach the retained rows from the cascade before removing the user.
         await admin
           .from("data_protection_complaints")

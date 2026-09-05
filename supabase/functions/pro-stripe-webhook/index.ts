@@ -2,6 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { recordSubscriptionCancellation } from "../_shared/cancellation-capture.ts";
+import { syncSuperchatLists } from "../_shared/superchat-lists.ts";
 
 // Public endpoint — Stripe cannot present a Supabase JWT. We verify with
 // STRIPE_WEBHOOK_SECRET instead. Configure verify_jwt = false in config.toml.
@@ -114,6 +115,10 @@ async function upsertFromSubscription(
 
   // Cancellation audit (admin-only table). Always captures the timing data,
   // with reason/comment null when Stripe supplies none.
+  // Superchat PAID / NON-PAID routing: an active professional subscription is
+  // PAID. Consent-gated and non-throwing inside the helper.
+  await syncSuperchatLists(admin, proUserId, `stripe_pro_${sub.status}`);
+
   await recordSubscriptionCancellation(admin, {
     userId: proUserId,
     accountType: "professional",

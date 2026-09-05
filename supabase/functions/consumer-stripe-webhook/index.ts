@@ -10,6 +10,7 @@ import {
   KLAVIYO_PAID_MEMBER_LIST_ID,
 } from "../_shared/klaviyo.ts";
 import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
+import { syncSuperchatLists } from "../_shared/superchat-lists.ts";
 import { sendWelcomeVoicenote } from "../_shared/welcome-dm.ts";
 import {
   PAYWALL_STATUSES,
@@ -202,6 +203,14 @@ async function upsertFromSubscription(
   if ((PAYWALL_STATUSES as readonly string[]).includes(sub.status) && sub.id) {
     await syncPaywallStatusMember(admin as any, userId, "paywall_list_webhook", sub.status);
   }
+
+  // Superchat PAID / NON-PAID routing, recomputed from the row we just wrote.
+  // A trial is NON-PAID here (unlike the Klaviyo paid list below, which
+  // deliberately includes trialing members). WhatsApp-consent gated inside the
+  // helper and never throws, so a Superchat outage cannot cause Stripe retries.
+  await syncSuperchatLists(admin as any, userId, `stripe_${sub.status}`);
+
+
 
 
 
