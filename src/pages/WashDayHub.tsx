@@ -576,14 +576,28 @@ const WashDayHub = () => {
         </div>
       )}
 
+      <div className="px-5 pb-5 space-y-3">
+        <Button variant="gold" size="pill" onClick={() => navigate("/wash/log")}>
+          + Log Today's Wash Day
+        </Button>
+        <Button
+          variant="outline"
+          size="pill"
+          onClick={() => navigate("/wash/favourites")}
+          className="border-[0.5px] border-primary bg-transparent text-primary font-body text-[13px] font-semibold uppercase tracking-[0.08em] hover:bg-transparent hover:text-primary"
+        >
+          Wash Day Favourites
+        </Button>
+      </div>
+
       <SectionLabel>Your hair history</SectionLabel>
-      <div className="px-5 space-y-3 pb-4">
+      <div className="px-5 space-y-3 pb-6">
         {loading ? (
           <LoadingDot label="Loading wash days…" />
         ) : washDays.length === 0 && dailyEntries.length === 0 ? (
           <EmptyState
             message="No wash days logged yet"
-            hint="Tap the button below to log your first wash day."
+            hint="Tap the button above to log your first wash day."
           />
         ) : (
           timeline.map((item) => {
@@ -608,18 +622,6 @@ const WashDayHub = () => {
         )}
       </div>
 
-      <div className="px-5 pb-6">
-        <button
-          type="button"
-          onClick={() => navigate("/wash/favourites")}
-          className="mb-3 w-full text-center text-[11.5px] font-body text-primary min-h-[36px]"
-        >
-          Wash Day Favourites
-        </button>
-        <Button variant="gold" size="pill" onClick={() => navigate("/wash/log")}>
-          + Log Today's Wash Day
-        </Button>
-      </div>
 
       <Dialog open={scheduleDialogIso !== null} onOpenChange={(o) => { if (!o) setScheduleDialogIso(null); }}>
         <DialogContent className="max-w-[340px] rounded-2xl">
