@@ -18,7 +18,11 @@ export interface WashLogStep {
 
 export const WASH_LOG_STEPS: readonly WashLogStep[] = [
   { stored: "Pre-poo", label: "Pre-poo", hint: "prepoo" },
-  { stored: "Cleanse", label: "Cleanse", hint: "cleanse" },
+  // Cleanse holds TWO slots. "Cleanse" keeps the historical stored name and is
+  // always first; "Moisturising cleanse" is additive and always second. Both are
+  // optional and are ticked independently on a log.
+  { stored: "Cleanse", label: "All-purpose cleanse", hint: "cleanse" },
+  { stored: "Moisturising cleanse", label: "Moisturising cleanse", hint: "cleanse" },
   { stored: "Condition", label: "Deep condition", hint: "condition" },
   { stored: "Leave-in", label: "Leave-in", hint: "condition" },
   { stored: "Moisturise", label: "Moisturise", hint: "condition" },
