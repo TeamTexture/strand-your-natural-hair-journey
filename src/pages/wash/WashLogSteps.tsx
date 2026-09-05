@@ -100,6 +100,11 @@ const WashLogStepsInner = () => {
         </div>
       </div>
 
+      {/* What she did between washes — read-only, collapsed by default. */}
+      <SinceLastWashCard />
+
+
+
       <div className="px-5 pb-8 space-y-2.5">
         {WASH_LOG_STEPS.map((step) => {
           const row = rows[step.stored] ?? { productId: null, used: false };
