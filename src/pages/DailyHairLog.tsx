@@ -24,6 +24,7 @@ import {
 } from "@/hooks/useDailyHairEntries";
 import { useHairCharacteristics } from "@/hooks/useHairCharacteristics";
 import DailySaveConfirmation from "@/components/daily/DailySaveConfirmation";
+import WeeklyPatternCard from "@/components/daily/WeeklyPatternCard";
 import { friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
 import { smartBack } from "@/lib/smartBack";
 import { cn } from "@/lib/utils";
