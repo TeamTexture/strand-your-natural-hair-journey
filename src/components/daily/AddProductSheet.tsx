@@ -33,7 +33,7 @@ import CategoryProductPanels from "@/components/CategoryProductPanels";
 import { useUserProducts, type UserProduct } from "@/hooks/useUserProducts";
 import { useProductScan } from "@/hooks/useProductScan";
 import { useProductUrlScan } from "@/hooks/useProductUrlScan";
-import { n as categoryBucket, CATEGORY_ORDER } from "@/components/ProductsHeader";
+import { categoryBucket, CATEGORY_ORDER } from "@/components/ProductsHeader";
 import { cn } from "@/lib/utils";
 
 interface Props {
