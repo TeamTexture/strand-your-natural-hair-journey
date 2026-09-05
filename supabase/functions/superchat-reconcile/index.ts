@@ -16,7 +16,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAdminOrService } from "../_shared/auth.ts";
+import { sc, superchatKey } from "../_shared/superchat.ts";
 import {
+  SUPERCHAT_NON_PAID_LIST_NAME,
+  SUPERCHAT_PAID_LIST_NAME,
   removeSuperchatLists,
   syncSuperchatLists,
   type SyncOutcome,
@@ -38,6 +41,25 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const mode = typeof body?.mode === "string" ? body.mode : "all";
+
+  // Diagnostics: the Public API cannot CREATE a contact list, so this reports
+  // the list names that actually exist in the Superchat workspace.
+  if (mode === "lists") {
+    const key = superchatKey();
+    if (!key) return json(500, { error: "SUPERCHAT_API_KEY is not configured" });
+    const { ok, data } = await sc(key, "GET", "/contact-lists?limit=100");
+    if (!ok) return json(502, { error: "could not read Superchat contact lists" });
+    const lists = ((data as { results?: Array<{ id: string; name: string }> } | null)
+      ?.results ?? []).map((l) => l.name);
+    return json(200, {
+      mode,
+      lists,
+      expects: [SUPERCHAT_PAID_LIST_NAME, SUPERCHAT_NON_PAID_LIST_NAME],
+      missing: [SUPERCHAT_PAID_LIST_NAME, SUPERCHAT_NON_PAID_LIST_NAME].filter(
+        (n) => !lists.some((l) => l.trim().toLowerCase() === n.trim().toLowerCase()),
+      ),
+    });
+  }
 
   if (mode === "user") {
     const userId = typeof body?.user_id === "string" ? body.user_id : "";
