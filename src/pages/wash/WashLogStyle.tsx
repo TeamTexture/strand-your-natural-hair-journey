@@ -258,12 +258,16 @@ const WashLogStyleInner = () => {
     const id = (data as { id?: string } | null)?.id ?? null;
 
     if (id) {
-      setPendingStylePrompt({
-        washDayId: id,
-        styleAfter: null,
-        styleExtensions: null,
-        styleTension: null,
-      });
+      // She already chose her style on this page — don't ask again afterwards.
+      if (!styleChanged) {
+        setPendingStylePrompt({
+          washDayId: id,
+          styleAfter: null,
+          styleExtensions: null,
+          styleTension: null,
+        });
+      }
+
       // Grounded wash-day observation, written in the background so saving is
       // never held open by a model call.
       void (async () => {
