@@ -45,3 +45,21 @@ export function writeLastGood<T>(
     /* private mode / quota */
   }
 }
+
+/**
+ * Drop every stored last-good payload. Called on a style change: a payload
+ * written for the previous style must never be rendered as placeholder data,
+ * so the surface shows its honest updating state while it regenerates.
+ */
+export function clearAllLastGood() {
+  try {
+    const doomed: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("strand:last-good:")) doomed.push(k);
+    }
+    for (const k of doomed) localStorage.removeItem(k);
+  } catch {
+    /* private mode / quota */
+  }
+}
