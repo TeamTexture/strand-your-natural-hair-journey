@@ -344,3 +344,10 @@ iframe {
   height: 100% !important;
   border: 0;
 }
+
+/* Toast layer: never wider than the phone column on a small screen. */
+@media (max-width: 480px) {
+  [data-sonner-toaster] {
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+}
