@@ -9,6 +9,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PhoneShell from "@/components/PhoneShell";
+import TempPreview from "@/pages/TempPreview";
+
 import UrlScanProgressOverlay from "@/components/product/UrlScanProgressOverlay";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ViewAsProvider } from "@/hooks/useViewAs";
