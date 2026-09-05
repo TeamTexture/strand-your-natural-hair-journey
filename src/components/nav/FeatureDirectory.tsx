@@ -226,6 +226,14 @@ const FeatureDirectory = ({
       .filter((g) => g.items.length > 0);
   }, [q, treatmentTo, onSwitchView]);
 
+  /** The three features members reach for most — surfaced above the groups. */
+  const quickPicks: Feature[] = [
+    { name: "Brand directory", desc: "Explore the brands on STRAND", icon: Store, to: "/brands" },
+    { name: "Style journal", desc: "Document your styles over time", icon: BookOpen, to: "/journal" },
+    { name: "Goals & challenges", desc: "Your goals, challenges and progress", icon: Target, to: "/profile/milestones" },
+  ];
+
+
   const select = (i: Feature) => {
     if (i.action === "sign-out") {
       onSignOut?.();
