@@ -627,24 +627,8 @@ const Home = () => {
           tone={goal ? "good" : "muted"}
           onClick={showGoalInFull}
         />
-        <StatTile
-          square
-          icon={ICONS.blood}
-          value={flaggedValue}
-          label="Blood work"
-          sub={flaggedSub}
-          tone={bloodSummary ? flaggedTone : "muted"}
-          to="/blood-history"
-        />
-        <StatTile
-          square
-          icon={ICONS.products}
-          value={`${shelfCount}`}
-          label="On my shelf"
-          sub={shelfCount > 0 ? "products" : "Add your first product"}
-          tone={shelfCount > 0 ? "good" : "muted"}
-          to="/products"
-        />
+        {/* Blood work and shelf tiles moved to the feature directory. */}
+
       </div>
 
       <div className="px-5 space-y-4 pb-6">
