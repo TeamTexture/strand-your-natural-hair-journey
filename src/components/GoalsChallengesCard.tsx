@@ -137,7 +137,7 @@ const GoalsChallengesCard = () => {
         )}
       </SurfaceCard>
 
-      <GoalEditorSheet open={goalEditorOpen} onOpenChange={setGoalEditorOpen} />
+      <GoalEditorSheet open={goalEditorOpen} onOpenChange={setGoalEditorOpen} goal={goal} />
       <ChallengesEditorSheet open={challengesOpen} onOpenChange={setChallengesOpen} />
     </>
   );
