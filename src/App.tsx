@@ -362,6 +362,8 @@ const App = () => (
               <Route path="/open" element={<OpenMessage />} />
               <Route path="/legal/:doc" element={<Legal />} />
               <Route path="/walkthrough" element={<Onboard><Walkthrough /></Onboard>} />
+              <Route path="/__tmp-preview" element={<TempPreview />} />
+
               
 
               {/* Onboarding (auth required so data persists) */}
