@@ -70,7 +70,19 @@ const Stars = ({ n, onChange }: { n: number; onChange?: (n: number) => void }) =
   </span>
 );
 
-const MyToolsSection = () => {
+interface MyToolsSectionProps {
+  /**
+   * Controlled fold state. My Tools opens CLOSED like every other section on
+   * the Products page; the page owns the memory (session-only) so a fresh
+   * visit starts collapsed again.
+   */
+  open?: boolean;
+  onToggleOpen?: () => void;
+  /** Live search on the Products page — a matching tool forces the section open. */
+  searchTerm?: string;
+}
+
+const MyToolsSection = ({ open, onToggleOpen, searchTerm = "" }: MyToolsSectionProps = {}) => {
   const navigate = useNavigate();
   const { tools: allTools, loading, addTool, updateTool, setFavourite, deleteTool, reload } = useUserTools();
   // Wishlisted tools live on the Wishlist screen, not in My Tools (owned).
