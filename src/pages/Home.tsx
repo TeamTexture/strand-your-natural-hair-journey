@@ -801,28 +801,6 @@ const Home = () => {
         )}
 
 
-        {/* Blood work now lives in the feature directory. The ONE exception:
-            when markers are flagged, a slim alert stays on Home. */}
-        {bloodSummary && bloodSummary.flagged > 0 && (
-          <button
-            onClick={() => navigate("/blood-history")}
-            {...anchorProps("home-blood-work")}
-            className="w-full flex items-center gap-3 rounded-[14px] border border-destructive/40 bg-card px-4 py-3 text-left hover:border-destructive/70 transition-colors"
-          >
-            <span className="size-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-              <Droplet className="size-4 text-destructive" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-body font-semibold text-foreground leading-snug">
-                {bloodSummary.flagged} blood marker{bloodSummary.flagged === 1 ? "" : "s"} flagged
-              </span>
-              <span className="block text-[11px] font-body text-muted-foreground leading-snug mt-0.5">
-                Tap to see what it means for your hair
-              </span>
-            </span>
-            <ChevronRight className="size-4 text-primary shrink-0" aria-hidden />
-          </button>
-        )}
 
 
 
