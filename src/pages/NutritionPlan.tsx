@@ -871,8 +871,26 @@ const NutritionPlan = () => {
     let cancelled = false;
     (async () => {
       try {
-        // Both reads in parallel — nothing here depends on the other, and this
-        // is the only wait before her stored plan appears.
+        // STORED CONTENT FIRST (2026-09-05). The plan and meals already written
+        // for her are one indexed read each and need no decryption, so they go
+        // on screen before anything else. The blood and health reads (which
+        // decrypt) follow and only fill in the flagged-marker chips.
+        const [stored, storedMeals] = await Promise.all([
+          loadStoredPlan(user.id),
+          loadStoredMeals(user.id),
+        ]);
+        if (cancelled) return;
+        if (stored?.plan) {
+          setPlan(stored.plan);
+          setPlanFailed(
+            !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
+          );
+          setHasBloodPanel(true);
+          // Her plan is readable now — nothing below may hold the page.
+          setLoading(false);
+        }
+        if (storedMeals) setMeals(storedMeals.meals);
+
         const [blood, clinical] = await Promise.all([
           readBloodData(user.id),
           loadClinicalContext(),
@@ -887,36 +905,17 @@ const NutritionPlan = () => {
         setHasHealthProfile(!!clinical.health);
         const next = { diet, dietOther, alcohol, flagged };
         setProfile(next);
+        setLoading(false);
+
         // No bloods on file: this screen renders its locked state, so there is
         // nothing to generate. Blood work is optional; adding it later opens it.
-        //
-        // VIEWING NEVER SPENDS A TOKEN (2026-08-27). The stored plan is read
-        // straight from `ai_summaries` and rendered instantly. The edge function
-        // is only invoked when there is no stored plan, or when her blood data
-        // has actually been touched since that plan was written. Every other
-        // visit — a back-navigation, a tab switch, a reload — is a pure read.
         if (bloodOnFile) {
-          const stored = await loadStoredPlan(user.id);
-          if (cancelled) return;
-          if (stored?.plan) {
-            setPlan(stored.plan);
-            setPlanFailed(
-              !Array.isArray(stored.plan.supplements) || stored.plan.supplements.length === 0,
-            );
-          }
-          const storedMeals = await loadStoredMeals(user.id);
-          if (cancelled) return;
-          if (storedMeals) setMeals(storedMeals.meals);
-
-          // Stored content is on screen now — stop the page-level wait before
-          // doing anything else.
-          setLoading(false);
-
           // WHAT COUNTS AS A CHANGE (2026-09-05). Blood results, supplements,
           // hair profile, goal/challenges/concerns and the health & diet
           // answers. Compared against the fingerprint the stored plan was last
           // confirmed against, so a cache hit does not leave the check failing
-          // for ever. When nothing moved, this visit is a pure read.
+          // for ever. When nothing moved, this visit is a pure read: no
+          // request, no model call, no spinner.
           const inputs = await readNutritionInputs(user.id);
           if (cancelled) return;
           inputsFpRef.current = inputs.fingerprint;
@@ -955,7 +954,7 @@ const NutritionPlan = () => {
         <TitleBar title="Nutrition Plan" tips />
         <div className="px-5 pt-10 space-y-3">
           <p className="font-body text-[13px] text-foreground/80">
-            Building your nutrition plan
+            Opening your nutrition plan
           </p>
           {/* nutrition-plan runs three model passes; summed per generation the
               measured wall clock is p50 129.9s / p75 136.7s / p90 141.1s. */}
