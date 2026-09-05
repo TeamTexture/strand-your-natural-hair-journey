@@ -242,7 +242,11 @@ const BloodAiSummary = () => {
     );
   }
 
-  const hasDeficiencies = summary.deficiencies && summary.deficiencies.length > 0;
+  // The model's JSON is not a contract: a missing or null array must render as
+  // "nothing flagged", never throw and dead-end her on an error card.
+  const deficiencies = Array.isArray(summary.deficiencies) ? summary.deficiencies : [];
+  const priorityActions = Array.isArray(summary.priority_actions) ? summary.priority_actions : [];
+  const hasDeficiencies = deficiencies.length > 0;
 
   return (
     <ScreenLayout>
