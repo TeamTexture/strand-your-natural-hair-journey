@@ -290,6 +290,8 @@ const fmtCardDate = (iso: string) => {
 const WashDayHub = () => {
   const navigate = useNavigate();
   const { washDays, loading } = useWashDays();
+  const { entries: dailyEntries } = useDailyHairEntries();
+  const { products: shelfProducts } = useUserProducts("all", { static: true });
   const { goals } = useGoals();
   const { user } = useAuth();
   const { level, showBeginnerHelp } = useTipsLevel();
