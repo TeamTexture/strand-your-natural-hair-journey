@@ -547,7 +547,13 @@ const Products = () => {
 
       </div>
 
-      {!batch.selectMode && <MyToolsSection />}
+      {!batch.selectMode && (
+        <MyToolsSection
+          open={expandedCategories.includes("tools")}
+          onToggleOpen={() => toggleCategoryCollapsed("tools")}
+          searchTerm={filterState.search}
+        />
+      )}
 
       {batch.selectMode && (
         <BatchActionBar
