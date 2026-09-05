@@ -516,16 +516,21 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Direct line to the STRAND team — deliberately above the dashboard. */}
+      {/* THE FIVE PRIMARY CARDS (beta feedback, Sep 2026) — daily touchpoint,
+          wash day, product scan, diet and nutrition, professional directory.
+          Everything else on Home now sits below these, under "More on your
+          hair". Nothing was removed — only reordered. */}
+      <DailyHairCard />
+      <PrimaryActions lastWashSub={lastWashSub} />
+
+      {/* Support stays reachable, just below the five. */}
       <div className="px-5 pb-2">
         <SpeakToStrandCard />
       </div>
-
-      {/* WhatsApp help — opens Paige's direct chat in a new tab. */}
       <WhatsAppHelpCard />
 
-      {/* The daily touchpoint between wash days — one card, dismissible for today. */}
-      <DailyHairCard />
+      <SectionHeader icon={ICONS.goal} className="px-5 pt-1 pb-2">More on your hair</SectionHeader>
+
 
       {/* Anchor-first dashboard — the numbers that matter, tappable. */}
       <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
