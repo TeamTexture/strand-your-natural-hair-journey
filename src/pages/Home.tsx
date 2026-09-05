@@ -3,7 +3,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useMemo, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ChevronRight, Compass, Droplet, HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
+import { Compass, HelpCircle, ImagePlus, Tag } from "lucide-react";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
@@ -11,9 +11,6 @@ import {
   OPEN_MAIN_PHOTO_EVENT,
   MAIN_PHOTO_CLOSED_EVENT,
 } from "@/lib/firstRunTour";
-import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
-
-
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
 import AcquisitionAskModal, { useAcquisitionAsk } from "@/components/onboarding/AcquisitionAskPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
@@ -24,15 +21,9 @@ import PrimaryActions from "@/components/home/PrimaryActions";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
-import ListRow from "@/components/nav/ListRow";
-import { ICONS } from "@/lib/iconMap";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
-import ProductThumb from "@/components/ProductThumb";
-import MatchStars from "@/components/MatchStars";
-import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
-import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,7 +48,7 @@ import {
   loadClinicalContextLocal,
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
-import BrandLink from "@/components/BrandLink";
+
 import GoalEditorSheet from "@/components/GoalEditorSheet";
 import ChallengesEditorSheet from "@/components/journal/ChallengesEditorSheet";
 import FirstRunSequence from "@/components/firstrun/FirstRunSequence";
