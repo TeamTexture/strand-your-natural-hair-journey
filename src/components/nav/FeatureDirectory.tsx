@@ -177,6 +177,7 @@ export function featureGroups({ treatmentTo, canSwitchView }: DirectoryOptions):
         { name: "Email preferences", desc: "What lands in your inbox", icon: Mail, to: "/email-preferences" },
         { name: "App tour", desc: "A quick walk through STRAND", icon: Compass, to: "/walkthrough" },
         { name: "Terms & privacy", desc: "Legal documents and disclaimers", icon: Scale, to: "/legal/terms" },
+        { name: "Raise a data concern", desc: "Tell us about a data protection issue", icon: ShieldAlert, to: "/data-protection-complaint" },
         ...(canSwitchView
           ? [
               {
