@@ -144,7 +144,12 @@ const MilestoneGallery = () => {
       </LevelGate>
 
       <div className="px-5 pb-6 space-y-4">
+        {/* Her goals and challenges live here now (moved off Home, Sept 2026) —
+            same card, same editing. */}
+        <GoalsChallengesCard />
+
         <SurfaceCard tone="gold">
+
           {daysSinceLast === null ? (
             <p className="text-sm">
               <span className="font-semibold">📸 Start your progress timeline.</span>{" "}
