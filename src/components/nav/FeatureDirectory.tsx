@@ -206,6 +206,7 @@ const FeatureDirectory = ({
 }) => {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const { bundles } = useActiveTreatmentPlans();
   const treatmentTo = bundles?.[0]?.plan?.id ? `/treatment/${bundles[0].plan.id}` : "/treatment/new";
 
