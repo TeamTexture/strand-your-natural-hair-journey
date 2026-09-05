@@ -345,7 +345,7 @@ const Journal = () => {
           <EmptyState
             icon="🎯"
             message="Set your first goal"
-            hint="Track length retention or any hair challenge you're working on."
+            hint="Whatever you're working on — thickness, retention, scalp health, definition."
             action={
               <Button variant="gold" size="pill" onClick={() => openEditor(null)}>
                 + Add a goal
