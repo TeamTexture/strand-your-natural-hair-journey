@@ -216,9 +216,27 @@ const MyToolsSection = () => {
 
   return (
     <>
-      <SectionLabel>My Tools</SectionLabel>
+      <section className="mx-5 mt-2 mb-6 rounded-[12px] border border-border bg-card overflow-hidden">
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          onClick={toggleOpen}
+          className="w-full min-h-[48px] px-3 py-2.5 flex items-center gap-2 text-left"
+        >
+          <Wrench className="size-4 text-primary shrink-0" />
+          <span className="text-[13px] font-medium text-foreground">My Tools</span>
+          <span className="text-[12px] text-muted-foreground">({tools.length})</span>
+          <ChevronDown
+            className={cn(
+              "size-4 text-primary ml-auto shrink-0 transition-transform",
+              isOpen && "rotate-180",
+            )}
+          />
+        </button>
 
-      <div className="px-5 space-y-3 pb-4">
+        {isOpen && (
+        <div className="border-t border-border/60 pt-2">
+          <div className="px-3 space-y-3 pb-4">
         {loading ? (
           <LoadingDot label="Loading your tools…" />
         ) : tools.length === 0 ? (
