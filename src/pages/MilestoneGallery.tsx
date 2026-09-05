@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
 import { useGoals } from "@/hooks/useGoals";
+import GoalsChallengesCard from "@/components/GoalsChallengesCard";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner } from "@/lib/tipsRender";
@@ -144,7 +145,12 @@ const MilestoneGallery = () => {
       </LevelGate>
 
       <div className="px-5 pb-6 space-y-4">
+        {/* Her goals and challenges live here now (moved off Home, Sept 2026) —
+            same card, same editing. */}
+        <GoalsChallengesCard />
+
         <SurfaceCard tone="gold">
+
           {daysSinceLast === null ? (
             <p className="text-sm">
               <span className="font-semibold">📸 Start your progress timeline.</span>{" "}
