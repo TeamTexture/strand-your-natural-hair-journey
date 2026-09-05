@@ -368,18 +368,21 @@ const MyToolsSection = () => {
             );
           })
         )}
-      </div>
+          </div>
 
-      <div className="px-5 pb-6">
-        <Button
-          variant="gold"
-          size="pill"
-          onClick={() => setAddOpen(true)}
-          className="w-full"
-        >
-          <Wrench className="size-4 mr-1.5" /> + Add a Tool
-        </Button>
-      </div>
+          <div className="px-3 pb-3">
+            <Button
+              variant="gold"
+              size="pill"
+              onClick={() => setAddOpen(true)}
+              className="w-full"
+            >
+              <Wrench className="size-4 mr-1.5" /> + Add a Tool
+            </Button>
+          </div>
+        </div>
+      )}
+      </section>
 
       {/* Add tool sheet */}
       <Sheet
