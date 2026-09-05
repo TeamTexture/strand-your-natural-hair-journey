@@ -1,6 +1,6 @@
 import { SHOW_STRAND_TIP } from "@/lib/featureFlags";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Compass, HelpCircle, ImagePlus, Tag } from "lucide-react";
@@ -58,12 +58,8 @@ import { consumeHelloKleanPrompt } from "@/lib/discounts";
 import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 import BrandBanner from "@/components/BrandBanner";
-import { titleCase } from "@/lib/humanise";
 import { OPEN_MENU_EVENT } from "@/components/GlobalMenu";
-import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
-import LevelGate from "@/components/tips/LevelGate";
-import { type GuidanceTip } from "@/lib/tipsRender";
 import AiProgressBar from "@/components/AiProgressBar";
 
 
