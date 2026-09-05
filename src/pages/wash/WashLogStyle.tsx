@@ -114,8 +114,41 @@ const WashLogStyleInner = () => {
   const [saving, setSaving] = useState(false);
   const [favPrompt, setFavPrompt] = useState(false);
 
+  // Her current style, chosen right here — logging the style is the single
+  // source of truth, so she never has to go and edit her profile separately.
+  const [style, setStyle] = useState<string>("");
+  const [originalStyle, setOriginalStyle] = useState<string>("");
+  const [styleAttrs, setStyleAttrs] = useState<StyleAttributesValue>({
+    tension: null,
+    extensions: null,
+  });
+  const [attrError, setAttrError] = useState(false);
+  const [stylePhotoPrompt, setStylePhotoPrompt] = useState(false);
+  const afterPhotoPrompt = useRef<null | (() => void)>(null);
+
   const photoRef = useRef<HTMLInputElement | null>(null);
   const videoRef = useRef<HTMLInputElement | null>(null);
+
+  // Show her current style as selected by default.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ctx = await loadClinicalContext();
+      if (cancelled || !ctx.style) return;
+      const row = ctx.style as unknown as Record<string, unknown>;
+      const current = (row.current_hairstyle as string | null) ?? "";
+      setStyle((prev) => prev || current);
+      setOriginalStyle(current);
+      setStyleAttrs({
+        tension: (row.current_style_tension as string | null) ?? null,
+        extensions: (row.current_style_extensions as boolean | null) ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
