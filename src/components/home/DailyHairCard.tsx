@@ -62,12 +62,7 @@ const DailyHairCard = () => {
     return (
       <div className="px-5 pb-2">
         <SurfaceCard className="p-3.5">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => fold(false)}
-            className="flex items-center gap-3"
-          >
+          <div className="flex items-center gap-3">
             {logged && latest ? (
               <ProductThumb
                 imageUrl={latest.image_url}
@@ -92,10 +87,7 @@ const DailyHairCard = () => {
               {logged && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate("/daily-log");
-                  }}
+                  onClick={() => navigate("/daily-log")}
                   className="mt-0.5 block text-left font-body text-[11px] leading-snug text-primary"
                 >
                   Add another
@@ -105,10 +97,7 @@ const DailyHairCard = () => {
             <button
               type="button"
               aria-label="Expand"
-              onClick={(e) => {
-                e.stopPropagation();
-                fold(false);
-              }}
+              onClick={() => fold(false)}
               className="size-8 -mr-1 rounded-full flex items-center justify-center text-muted-foreground shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <ChevronDown className="size-5" aria-hidden />
