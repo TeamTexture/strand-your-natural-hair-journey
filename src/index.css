@@ -14,6 +14,8 @@
     /* Warm sand background #F2E8D9 */
 
     --background: 37 44% 90%;
+    /* Muted icon fill #EDE3D2 */
+    --icon-muted: 38 43% 87%;
     /* Dark charcoal text #2C2416 */
     --foreground: 36 32% 13%;
 
@@ -98,6 +100,7 @@
 
   .dark {
     --background: 222.2 84% 4.9%;
+    --icon-muted: 38 10% 20%;
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
