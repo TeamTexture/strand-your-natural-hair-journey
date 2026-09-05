@@ -18,7 +18,7 @@ import { useWashFavourites } from "@/hooks/useWashFavourites";
 import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
-import { WASH_LOG_STEPS, friendlyWashDate, localIsoDate } from "@/lib/washLogSteps";
+import { WASH_LOG_GROUPS, WASH_LOG_STEPS, friendlyWashDate, localIsoDate, visibleSlotCount } from "@/lib/washLogSteps";
 import { smartBack } from "@/lib/smartBack";
 
 interface RowState {
@@ -106,74 +106,84 @@ const WashLogStepsInner = () => {
 
 
       <div className="px-5 pb-8 space-y-2.5">
-        {WASH_LOG_STEPS.map((step) => {
-          const row = rows[step.stored] ?? { productId: null, used: false };
-          const product = row.productId ? byId[row.productId] : undefined;
+        {WASH_LOG_GROUPS.map((group) => {
+          const shown = visibleSlotCount(group, (stored) => !!rows[stored]?.productId);
           return (
-            <div
-              key={step.stored}
-              className="rounded-[14px] border border-border bg-card p-3"
-            >
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  checked={row.used}
-                  disabled={!row.productId}
-                  onCheckedChange={(v) => setRow(step.stored, { used: v === true })}
-                  aria-label={`${step.label} used today`}
-                />
-
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Swap the product for ${step.label}`}
-                  onClick={() => setPickerStep(step.stored)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") setPickerStep(step.stored);
-                  }}
-                  className="flex-1 min-w-0 flex items-center gap-3 text-left cursor-pointer"
-                >
-                  {product ? (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/products/profile/${product.id}`);
-                      }}
-                      className="shrink-0"
-                    >
-                      <ProductThumb
-                        imageUrl={product.image_url}
-                        storagePath={product.storage_path}
-                        alt={product.name}
-                        cover
-                        wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
+            <div key={group.key} className="space-y-2.5">
+              <p className="pt-1 text-[10.5px] uppercase tracking-[0.18em] text-foreground/60 font-medium">
+                {group.label}
+              </p>
+              {group.slots.slice(0, shown).map((step) => {
+                const row = rows[step.stored] ?? { productId: null, used: false };
+                const product = row.productId ? byId[row.productId] : undefined;
+                return (
+                  <div
+                    key={step.stored}
+                    className="rounded-[14px] border border-border bg-card p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={row.used}
+                        disabled={!row.productId}
+                        onCheckedChange={(v) => setRow(step.stored, { used: v === true })}
+                        aria-label={`${step.label} used today`}
                       />
-                    </span>
-                  ) : (
-                    <span className="size-[34px] rounded-[7px] border border-dashed border-border flex items-center justify-center shrink-0">
-                      <Plus className="size-3.5 text-muted-foreground" aria-hidden />
-                    </span>
-                  )}
 
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
-                      {step.label}
-                    </span>
-                    {product ? (
-                      <Link
-                        to={`/products/profile/${product.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Choose the product for ${step.label}`}
+                        onClick={() => setPickerStep(step.stored)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") setPickerStep(step.stored);
+                        }}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left cursor-pointer"
                       >
-                        {product.name}
-                      </Link>
-                    ) : (
-                      <span className="block font-body text-[12.5px] text-muted-foreground">
-                        Not used today — tap to add a product
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
+                        {product ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/products/profile/${product.id}`);
+                            }}
+                            className="shrink-0"
+                          >
+                            <ProductThumb
+                              imageUrl={product.image_url}
+                              storagePath={product.storage_path}
+                              alt={product.name}
+                              cover
+                              wrapperClassName="size-[34px] rounded-[7px] overflow-hidden bg-secondary shrink-0"
+                            />
+                          </span>
+                        ) : (
+                          <span className="size-[34px] rounded-[7px] border border-dashed border-border flex items-center justify-center shrink-0">
+                            <Plus className="size-3.5 text-muted-foreground" aria-hidden />
+                          </span>
+                        )}
+
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
+                            {step.label}
+                          </span>
+                          {product ? (
+                            <Link
+                              to={`/products/profile/${product.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="block product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere] underline decoration-primary/40 underline-offset-2"
+                            >
+                              {product.name}
+                            </Link>
+                          ) : (
+                            <span className="block font-body text-[12.5px] text-muted-foreground">
+                              Not set — tap to add from your shelf
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
