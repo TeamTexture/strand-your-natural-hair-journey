@@ -203,6 +203,14 @@ async function upsertFromSubscription(
     await syncPaywallStatusMember(admin as any, userId, "paywall_list_webhook", sub.status);
   }
 
+  // Superchat PAID / NON-PAID routing, recomputed from the row we just wrote.
+  // A trial is NON-PAID here (unlike the Klaviyo paid list below, which
+  // deliberately includes trialing members). WhatsApp-consent gated inside the
+  // helper and never throws, so a Superchat outage cannot cause Stripe retries.
+  await syncSuperchatLists(admin as any, userId, `stripe_${sub.status}`);
+
+
+
 
 
   // Paying AND trialing members are mirrored onto the Klaviyo paid-members list.
