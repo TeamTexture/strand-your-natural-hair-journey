@@ -3,8 +3,7 @@ import { useState } from "react";
 import { markPlusSurfaceSeen } from "@/hooks/usePlusAlerts";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, MessageSquare, ArrowUp, ArrowDown, Pin, Lock, Flame } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Plus, MessageSquare, ArrowUp, ArrowDown, Pin, Lock, TrendingUp } from "lucide-react";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
 import PlusGate from "@/components/PlusGate";
@@ -14,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import ForumAvatar from "@/components/ForumAvatar";
 import { renderMentions } from "@/lib/renderMentions";
+import { authorMetaLine, relativeTime } from "@/lib/forumMeta";
 
 type Sort = "new" | "top";
 
@@ -305,7 +305,7 @@ const Chip = ({
     onClick={onClick}
     style={active ? activeStyle : idleStyle}
     className={cn(
-      "shrink-0 h-8 px-3 rounded-full text-[11.5px] font-body font-semibold border transition-colors",
+      "shrink-0 h-8 px-3 rounded-full text-[11px] font-body font-semibold border transition-colors whitespace-nowrap leading-none",
       active ? "border-transparent" : "border-transparent",
     )}
   >
@@ -317,7 +317,7 @@ const SortBtn = ({ active, onClick, children }: { active: boolean; onClick: () =
     onClick={onClick}
     className={cn(
       "px-3 h-7 rounded-full font-semibold uppercase tracking-wider text-[10px]",
-      active ? "bg-[hsl(var(--forum-espresso))] text-[hsl(var(--forum-ivory))]" : "text-foreground/60",
+      active ? "bg-primary text-primary-foreground" : "text-foreground/60",
     )}
   >
     {children}
