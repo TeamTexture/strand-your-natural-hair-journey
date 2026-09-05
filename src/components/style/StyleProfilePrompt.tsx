@@ -9,7 +9,8 @@ import {
   HAIRSTYLE_OPTIONS,
 } from "@/lib/hairstyles";
 import { supabase } from "@/integrations/supabase/client";
-import { invalidateClinicalContextCache } from "@/lib/clinicalContext";
+import { announceStyleChange } from "@/lib/styleChange";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   clearPendingStylePrompt,
   dismissStylePrompt,
@@ -152,9 +153,7 @@ const StyleProfilePrompt = () => {
       );
       if (error) throw error;
 
-      invalidateClinicalContextCache();
-      window.dispatchEvent(new Event("strand:style-updated"));
-      window.dispatchEvent(new Event("strand:data-changed"));
+      announceStyleChange(qc);
       clearPendingStylePrompt();
       dismissStylePrompt(pending.washDayId);
       setPending(null);
