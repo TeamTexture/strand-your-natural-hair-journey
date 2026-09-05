@@ -1,9 +1,9 @@
 import { SHOW_STRAND_TIP } from "@/lib/featureFlags";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ChevronRight, Compass, Droplet, HelpCircle, Heart, ImagePlus, RefreshCw, Tag } from "lucide-react";
+import { Compass, HelpCircle, ImagePlus, Tag } from "lucide-react";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
@@ -11,11 +11,6 @@ import {
   OPEN_MAIN_PHOTO_EVENT,
   MAIN_PHOTO_CLOSED_EVENT,
 } from "@/lib/firstRunTour";
-import StatTile from "@/components/nav/StatTile";
-import SectionHeader from "@/components/nav/SectionHeader";
-import TodayTreatmentCard from "@/components/treatment/TodayTreatmentCard";
-
-
 import ProfileReconfirmPrompt from "@/components/ProfileReconfirmPrompt";
 import AcquisitionAskModal, { useAcquisitionAsk } from "@/components/onboarding/AcquisitionAskPrompt";
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
@@ -26,15 +21,9 @@ import PrimaryActions from "@/components/home/PrimaryActions";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
-import ListRow from "@/components/nav/ListRow";
-import { ICONS } from "@/lib/iconMap";
 import { useQueryClient } from "@tanstack/react-query";
 import ScreenLayout from "@/components/ScreenLayout";
 import SurfaceCard from "@/components/SurfaceCard";
-import ProductThumb from "@/components/ProductThumb";
-import MatchStars from "@/components/MatchStars";
-import SensitivityShelfAlert from "@/components/sensitivity/SensitivityShelfAlert";
-import { splitByHomemade, HomemadeProductsSection } from "@/components/product/HomemadeProductsSection";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,12 +32,10 @@ import { useWarmSponsoredWashDayTip } from "@/hooks/useWarmSponsoredWashDayTip";
 import { useMyProfile } from "@/hooks/useMyProfile";
 import UserAvatar from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
-import { readBloodData, resolveStatus } from "@/lib/bloodRead";
 
 import { useHomeAlerts } from "@/hooks/useHomeAlerts";
 import { usePlusAlerts } from "@/hooks/usePlusAlerts";
 import { usePlusAccess } from "@/hooks/usePlusAccess";
-import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashDays } from "@/hooks/useWashDays";
 import { useGoals } from "@/hooks/useGoals";
 import { useGoalTip } from "@/hooks/useGoalTip";
@@ -60,7 +47,7 @@ import {
   loadClinicalContextLocal,
   invalidateClinicalContextCache,
 } from "@/lib/clinicalContext";
-import BrandLink from "@/components/BrandLink";
+
 import GoalEditorSheet from "@/components/GoalEditorSheet";
 import ChallengesEditorSheet from "@/components/journal/ChallengesEditorSheet";
 import FirstRunSequence from "@/components/firstrun/FirstRunSequence";
@@ -71,12 +58,8 @@ import { consumeHelloKleanPrompt } from "@/lib/discounts";
 import { lookupHardWater } from "@/lib/hardWater";
 import { useSmartInline } from "@/lib/smartInline";
 import BrandBanner from "@/components/BrandBanner";
-import { titleCase } from "@/lib/humanise";
 import { OPEN_MENU_EVENT } from "@/components/GlobalMenu";
-import TipsBlock from "@/components/tips/TipsBlock";
 import AiProse from "@/components/tips/AiProse";
-import LevelGate from "@/components/tips/LevelGate";
-import { type GuidanceTip } from "@/lib/tipsRender";
 import AiProgressBar from "@/components/AiProgressBar";
 
 
@@ -117,7 +100,7 @@ const Home = () => {
   const { visibleAlerts, loading: alertsLoading, dismiss, dismissAll } = useHomeAlerts({ static: true });
   const { hasPlus } = usePlusAccess();
   const { alerts: plusAlerts, counts: plusCounts, dismiss: dismissPlus, dismissAll: dismissAllPlus } = usePlusAlerts();
-  const { products: shelfProducts, loading: shelfLoading, sponsoredById: shelfSponsoredById } = useUserProducts("shelf", { static: true });
+  
   const { last: lastWash, daysSinceLast } = useWashDays({ static: true });
   const { goal } = useGoals();
   const { challenges } = useChallenges();
@@ -173,13 +156,6 @@ const Home = () => {
       window.removeEventListener("strand:open-main-photo", openPhoto);
     };
   }, []);
-  const [bloodSummary, setBloodSummary] = useState<{
-    panelDate: string | null;
-    label: string | null;
-    total: number;
-    flagged: number;
-    insights: string[];
-  } | null>(null);
   const [style, setStyle] = useState<ProfileStyle>(() => {
     // Hydrate instantly from the local snapshot so the Home card never
     // flashes empty on first paint.
@@ -307,92 +283,6 @@ const Home = () => {
   }, [user, location.key]);
 
 
-  // Latest blood panel summary for the "My Blood Work" home section.
-  // Reads through the single canonical blood reader (`readBloodData`) so Home,
-  // the Nutrition Plan and `buildAiContext` can never disagree about the same
-  // member's results.
-  useEffect(() => {
-    if (!user) { setBloodSummary(null); return; }
-    let cancelled = false;
-    (async () => {
-      const blood = await readBloodData(user.id, { panelLimit: 2 });
-      const panelRows = blood.panels;
-      const panel = panelRows[0];
-      const prevPanel = panelRows[1];
-      if (!panel?.id) {
-        if (!cancelled) setBloodSummary(null);
-        return;
-      }
-      const rows = blood.results.map((r) => ({
-        marker: r.marker,
-        value: r.value,
-        status: resolveStatus(r),
-        panel_id: r.panel_id ?? "",
-      }));
-      const current = rows.filter((r) => r.panel_id === panel.id);
-
-      const previous = prevPanel ? rows.filter((r) => r.panel_id === prevPanel.id) : [];
-      const prevByMarker = new Map(previous.map((r) => [r.marker, r]));
-
-      const prettyMarker = (m: string) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      const insights: string[] = [];
-
-      // 1) Positive: markers that moved from flagged → normal since last test
-      for (const r of current) {
-        const p = prevByMarker.get(r.marker);
-        if (!p) continue;
-        const wasFlagged = p.status === "low" || p.status === "high";
-        // `resolveStatus` always returns a concrete status, so "in range" is
-        // simply anything that is not low or high.
-        const nowNormal = r.status !== "low" && r.status !== "high";
-        if (wasFlagged && nowNormal) {
-          insights.push(`${prettyMarker(r.marker)} back in range vs last test`);
-        }
-      }
-
-      // 2) Negative: currently flagged markers (prioritise ones that worsened)
-      const flaggedRows = current.filter((r) => r.status === "low" || r.status === "high");
-      const worsened = flaggedRows.filter((r) => {
-        const p = prevByMarker.get(r.marker);
-        return !p || (p.status !== "low" && p.status !== "high");
-      });
-
-      const orderedFlagged = [...worsened, ...flaggedRows.filter((r) => !worsened.includes(r))];
-      for (const r of orderedFlagged) {
-        const dir = r.status === "low" ? "Low" : "High";
-        insights.push(`${dir} ${prettyMarker(r.marker)}`);
-      }
-
-      // 3) Fallback: notable movement in a normal marker
-      if (insights.length === 0 && previous.length > 0) {
-        for (const r of current) {
-          const p = prevByMarker.get(r.marker);
-          if (!p || r.value == null || p.value == null || p.value === 0) continue;
-          const pct = ((Number(r.value) - Number(p.value)) / Number(p.value)) * 100;
-          if (Math.abs(pct) >= 15) {
-            insights.push(`${prettyMarker(r.marker)} ${pct > 0 ? "up" : "down"} ${Math.round(Math.abs(pct))}% vs last test`);
-            if (insights.length >= 3) break;
-          }
-        }
-      }
-
-      if (insights.length === 0) {
-        insights.push("All results within normal range");
-      }
-
-      if (!cancelled) {
-        setBloodSummary({
-          panelDate: panel.panel_date ?? null,
-          label: panel.label ?? null,
-          total: current.length,
-          flagged: flaggedRows.length,
-          insights: insights.slice(0, 3),
-        });
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user]);
-
   // Days in style
   const daysInStyle = style.style_set_at
     ? Math.max(0, Math.floor((Date.now() - new Date(style.style_set_at).getTime()) / 86_400_000))
@@ -411,14 +301,6 @@ const Home = () => {
     : "Tap to log your first wash day";
 
   const apptSub = nextAppt ? `Next: ${fmtDate(nextAppt.date)}` : "No upcoming appointments";
-
-  // ---- Dashboard stat tiles (anchor-first numbers, all from data already
-  // fetched above — no additional network calls). ----
-  const washDaysValue = lastWash ? `${daysSinceLast}` : "—";
-  const washDaysSub = lastWash
-    ? daysSinceLast === 0 ? "Today" : `day${daysSinceLast === 1 ? "" : "s"} ago`
-    : "Log your first wash day";
-  const washDaysTone = lastWash && daysSinceLast != null && daysSinceLast > 7 ? "warning" : "good";
 
   const goalName = (() => {
     if (!goal) return "No goal set yet";
@@ -446,16 +328,6 @@ const Home = () => {
     }
     return null;
   })();
-
-  const flaggedCount = bloodSummary?.flagged ?? 0;
-  const flaggedValue = bloodSummary ? `${flaggedCount}` : "—";
-  const flaggedTone = flaggedCount > 0 ? "warning" : "good";
-  const flaggedSub = bloodSummary
-    ? `flagged marker${flaggedCount === 1 ? "" : "s"}`
-    : "No blood work logged yet";
-
-
-  const shelfCount = shelfProducts.length;
 
   return (
     <ScreenLayout bottomNav>
@@ -601,26 +473,6 @@ const Home = () => {
         <SpeakToStrandCard />
       </div>
       <WhatsAppHelpCard />
-
-      <SectionHeader icon={ICONS.goal} className="px-5 pt-1 pb-2">More on your hair</SectionHeader>
-
-
-      {/* Anchor-first dashboard — the numbers that matter, tappable. */}
-      <div className="px-5 pb-1 grid grid-cols-2 gap-2.5">
-        <StatTile
-          square
-          icon={ICONS.washDay}
-          value={washDaysValue === "—" ? washDaysValue : `${washDaysValue}d`}
-          label="Last wash"
-          sub={washDaysSub}
-          tone={washDaysTone}
-          to="/wash-day"
-        />
-        {/* Blood work, shelf and the goal/length tile moved to the feature
-            directory ("Goals & length" under MY HAIR). Nothing deleted. */}
-
-      </div>
-
 
       <div className="px-5 space-y-4 pb-6">
         <BrandBanner slot="home" />
@@ -933,28 +785,6 @@ const Home = () => {
         )}
 
 
-        {/* Blood work now lives in the feature directory. The ONE exception:
-            when markers are flagged, a slim alert stays on Home. */}
-        {bloodSummary && bloodSummary.flagged > 0 && (
-          <button
-            onClick={() => navigate("/blood-history")}
-            {...anchorProps("home-blood-work")}
-            className="w-full flex items-center gap-3 rounded-[14px] border border-destructive/40 bg-card px-4 py-3 text-left hover:border-destructive/70 transition-colors"
-          >
-            <span className="size-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-              <Droplet className="size-4 text-destructive" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-body font-semibold text-foreground leading-snug">
-                {bloodSummary.flagged} blood marker{bloodSummary.flagged === 1 ? "" : "s"} flagged
-              </span>
-              <span className="block text-[11px] font-body text-muted-foreground leading-snug mt-0.5">
-                Tap to see what it means for your hair
-              </span>
-            </span>
-            <ChevronRight className="size-4 text-primary shrink-0" aria-hidden />
-          </button>
-        )}
 
 
 

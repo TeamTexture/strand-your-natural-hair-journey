@@ -42,7 +42,7 @@ const WhatsAppHelpCard = () => {
               aria-expanded={false}
               className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
             >
-              <span className="font-body text-[13px] leading-snug text-foreground break-words">
+              <span className="card-title-sm font-display text-[13px] leading-snug text-foreground break-words">
                 Message Paige on WhatsApp
               </span>
               <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
@@ -64,8 +64,8 @@ const WhatsAppHelpCard = () => {
             <WhatsAppGlyph className="size-5 text-white" />
           </span>
           <div className="min-w-0 flex-1 pr-6">
-            <h2 className="font-display text-[16px] leading-tight text-foreground break-words">
-              Need some help?
+            <h2 className="card-title font-display text-[14.5px] leading-tight text-foreground break-words">
+              Message Paige on WhatsApp
             </h2>
             <p className="mt-0.5 font-body text-[12.5px] leading-snug text-muted-foreground">
               Drop Paige a WhatsApp
