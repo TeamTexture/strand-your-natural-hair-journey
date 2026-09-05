@@ -1,4 +1,5 @@
-import { Package, Clock, Mic, ListChecks, Sparkles, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Package, Mic, ListChecks, Sparkles, Star, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { anchorProps } from "@/lib/scrollMemory";
 import { stripStaleDates } from "@/lib/stripStaleDates";
@@ -51,16 +52,6 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick, onSeeAll, anchor
   })();
   const stepCount = (washDay.steps ?? []).filter((s) => s.name?.trim()).length;
 
-  // ---------- Duration ----------
-  const durationLabel = (() => {
-    const m = washDay.duration_min;
-    if (!m || m <= 0) return null;
-    if (m < 60) return `${m} min`;
-    const h = Math.floor(m / 60);
-    const rem = m % 60;
-    return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
-  })();
-
   // ---------- Style ----------
   const style =
     washDay.style_after && washDay.style_after.trim().length > 0
@@ -107,131 +98,164 @@ export const WashDayCard = ({ washDay, sequenceNumber, onClick, onSeeAll, anchor
 
   const hasVoiceNote = Boolean(washDay.hair_feel_voice_url);
 
+  // Rating out of 10 from the wash day log. Historic rows have none.
+  const ratingLabel =
+    typeof washDay.rating === "number" && Number.isFinite(washDay.rating)
+      ? `${Math.round(washDay.rating)}/10`
+      : "—";
+
+  // Cards open closed: date, style and three stats. Everything else is one tap
+  // away. State is local, so a fresh visit to the page starts collapsed again.
+  const [open, setOpen] = useState(false);
+
   return (
-    <button
-      onClick={onClick}
+    <div
       {...anchorProps(anchorId)}
       className={cn(
-        "w-full text-left rounded-[24px] border border-foreground/[0.07] bg-card p-5",
+        "rounded-[24px] border border-foreground/[0.07] bg-card p-5",
         "shadow-[0_4px_20px_-8px_rgba(74,55,40,0.10)]",
-        "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-10px_rgba(74,55,40,0.18)] hover:border-primary/40",
-        "active:translate-y-0",
+        "transition-colors duration-200",
+        open && "border-primary/30",
       )}
-      aria-label={`View wash day #${sequenceNumber}, ${dateLabel}`}
     >
-      {/* Header: relative time */}
-      <div className="flex justify-end items-center mb-3">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground font-body">
-          {relative}
-        </span>
-      </div>
-
-
-      {/* Date + style */}
-      <div className="mb-4">
-        <h3 className="font-display text-[22px] leading-tight text-foreground break-words">
-          {dateLabel}
-        </h3>
-        <p className="text-[15px] font-medium text-foreground/85 mt-1 font-body break-words">
-          {style}
-        </p>
-      </div>
-
-      {/* Stat grid: products / steps / duration */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
-          <div className="flex items-center gap-1 text-primary">
-            <Package className="w-3.5 h-3.5" strokeWidth={2} />
-            <span className="font-display text-[18px] leading-none">{productCount}</span>
-          </div>
-          <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
-            Product{productCount === 1 ? "" : "s"}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full text-left"
+        aria-label={`${open ? "Collapse" : "Expand"} wash day, ${dateLabel}`}
+      >
+        {/* Header: relative time */}
+        <div className="flex justify-between items-center mb-3">
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 text-primary transition-transform duration-200",
+              open && "rotate-180",
+            )}
+            strokeWidth={2}
+          />
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground font-body">
+            {relative}
           </span>
         </div>
-        <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
-          <div className="flex items-center gap-1 text-primary">
-            <ListChecks className="w-3.5 h-3.5" strokeWidth={2} />
-            <span className="font-display text-[18px] leading-none">{stepCount}</span>
-          </div>
-          <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
-            Step{stepCount === 1 ? "" : "s"}
-          </span>
-        </div>
-        <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
-          <div className="flex items-center gap-1 text-primary">
-            <Clock className="w-3.5 h-3.5" strokeWidth={2} />
-            <span className="font-display text-[15px] leading-none">
-              {durationLabel ?? "—"}
-            </span>
-          </div>
-          <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
-            Duration
-          </span>
-        </div>
-      </div>
 
-      {/* Key insight */}
-      {insight && (
-        <div className="rounded-xl bg-gradient-to-br from-primary/[0.09] to-primary/[0.03] border border-primary/20 px-3 py-2.5 mb-4">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles className="w-3 h-3 text-primary" strokeWidth={2.5} />
-            <span className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-primary font-body">
-              Key insight
-            </span>
-          </div>
-          <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words whitespace-pre-line">
-            {renderInline(preview?.text ?? insight, `wd-insight-${washDay.id}`)}
+        {/* Date + style */}
+        <div className="mb-4">
+          <h3 className="font-display text-[22px] leading-tight text-foreground break-words">
+            {dateLabel}
+          </h3>
+          <p className="text-[15px] font-medium text-foreground/85 mt-1 font-body break-words">
+            {style}
           </p>
-          {preview?.truncated && (
-            <span
-              role="link"
-              tabIndex={0}
-              onClick={(e) => {
-                if (!onSeeAll) return;
-                e.stopPropagation();
-                onSeeAll();
-              }}
-              onKeyDown={(e) => {
-                if (!onSeeAll) return;
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onSeeAll();
-                }
-              }}
-              className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-primary font-body hover:underline cursor-pointer"
-            >
-              See all
-              <span className="normal-case tracking-normal font-medium text-foreground/50">
-                ({preview.words} words)
-              </span>
-              <ChevronRight className="w-3 h-3" strokeWidth={2.5} />
-            </span>
-          )}
         </div>
-      )}
 
-      {/* Health chips + voice note */}
-      {(scalpTone || breakageTone || hasVoiceNote) && (
-        <div className="flex items-center justify-between border-t border-foreground/[0.06] pt-3 gap-3">
-          <div className="flex flex-wrap gap-2 flex-1 min-w-0">
-            {scalpTone && (
-              <span className={chipClass(scalpTone)}>Scalp: {washDay.scalp_feel}</span>
-            )}
-            {breakageTone && (
-              <span className={chipClass(breakageTone)}>
-                {/^(none|no)/i.test(washDay.breakage || "") ? "No breakage" : `Breakage: ${washDay.breakage}`}
-              </span>
-            )}
+        {/* Stat grid: products / steps / rating */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
+            <div className="flex items-center gap-1 text-primary">
+              <Package className="w-3.5 h-3.5" strokeWidth={2} />
+              <span className="font-display text-[18px] leading-none">{productCount}</span>
+            </div>
+            <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
+              Product{productCount === 1 ? "" : "s"}
+            </span>
           </div>
-          {hasVoiceNote && (
-            <div className="shrink-0 flex items-center gap-1 text-primary" aria-label="Voice note attached">
-              <Mic className="w-4 h-4" strokeWidth={2} />
+          <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
+            <div className="flex items-center gap-1 text-primary">
+              <ListChecks className="w-3.5 h-3.5" strokeWidth={2} />
+              <span className="font-display text-[18px] leading-none">{stepCount}</span>
+            </div>
+            <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
+              Step{stepCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="rounded-xl bg-primary/[0.06] border border-primary/15 px-2.5 py-2 flex flex-col items-start">
+            <div className="flex items-center gap-1 text-primary">
+              <Star className="w-3.5 h-3.5" strokeWidth={2} />
+              <span className="font-display text-[15px] leading-none">{ratingLabel}</span>
+            </div>
+            <span className="text-[9.5px] uppercase tracking-[0.14em] text-foreground/60 font-body mt-1">
+              Rating
+            </span>
+          </div>
+        </div>
+      </button>
+
+      {open && (
+        <div className="mt-4">
+          {/* Key insight */}
+          {insight && (
+            <div className="rounded-xl bg-gradient-to-br from-primary/[0.09] to-primary/[0.03] border border-primary/20 px-3 py-2.5 mb-4">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Sparkles className="w-3 h-3 text-primary" strokeWidth={2.5} />
+                <span className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-primary font-body">
+                  Key insight
+                </span>
+              </div>
+              <p className="text-[12.5px] leading-snug text-foreground/85 font-body break-words whitespace-pre-line">
+                {renderInline(preview?.text ?? insight, `wd-insight-${washDay.id}`)}
+              </p>
+              {preview?.truncated && (
+                <span
+                  role="link"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    if (!onSeeAll) return;
+                    e.stopPropagation();
+                    onSeeAll();
+                  }}
+                  onKeyDown={(e) => {
+                    if (!onSeeAll) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSeeAll();
+                    }
+                  }}
+                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-primary font-body hover:underline cursor-pointer"
+                >
+                  See all
+                  <span className="normal-case tracking-normal font-medium text-foreground/50">
+                    ({preview.words} words)
+                  </span>
+                  <ChevronRight className="w-3 h-3" strokeWidth={2.5} />
+                </span>
+              )}
             </div>
           )}
+
+          {/* Health chips + voice note */}
+          {(scalpTone || breakageTone || hasVoiceNote) && (
+            <div className="flex items-center justify-between border-t border-foreground/[0.06] pt-3 gap-3">
+              <div className="flex flex-wrap gap-2 flex-1 min-w-0">
+                {scalpTone && (
+                  <span className={chipClass(scalpTone)}>Scalp: {washDay.scalp_feel}</span>
+                )}
+                {breakageTone && (
+                  <span className={chipClass(breakageTone)}>
+                    {/^(none|no)/i.test(washDay.breakage || "") ? "No breakage" : `Breakage: ${washDay.breakage}`}
+                  </span>
+                )}
+              </div>
+              {hasVoiceNote && (
+                <div className="shrink-0 flex items-center gap-1 text-primary" aria-label="Voice note attached">
+                  <Mic className="w-4 h-4" strokeWidth={2} />
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onClick}
+            className="mt-3 w-full flex items-center justify-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary font-body"
+          >
+            Open this wash day
+            <ChevronRight className="w-3 h-3" strokeWidth={2.5} />
+          </button>
         </div>
       )}
-    </button>
+    </div>
   );
 };
 

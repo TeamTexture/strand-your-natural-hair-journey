@@ -156,3 +156,64 @@ export function transcriptPreview(
   }
   return { text: out, truncated: true, words };
 }
+
+/* ------------------------------------------------------------------ */
+/* Light clean-up of spoken transcripts                                */
+/* ------------------------------------------------------------------ */
+//
+// Transcription returns speech verbatim: filler words, false starts and
+// stammered repeats, often with almost no punctuation. This tidies the text for
+// reading WITHOUT rewriting it — her words, her order, her voice. Nothing is
+// paraphrased, reordered or summarised, and the raw transcript is always kept
+// alongside so the original record is never lost.
+
+/** Filler words removed when they are standing alone as filler. */
+const FILLER_WORDS = ["um", "umm", "uh", "uhh", "erm", "er", "ah", "hmm", "mm", "mmm"];
+
+/**
+ * Cleans a spoken transcript: drops filler, collapses stammered repeats,
+ * removes false starts and normalises spacing/punctuation.
+ */
+export function cleanTranscript(text: string | null | undefined): string {
+  let out = (text ?? "").replace(/\r\n/g, "\n").trim();
+  if (!out) return "";
+
+  // Bare filler words, wherever they sit.
+  const fillerRe = new RegExp(`\\b(?:${FILLER_WORDS.join("|")})\\b[,.]?\\s*`, "gi");
+  out = out.replace(fillerRe, "");
+
+  // "basically" and filler "like" — only when used as filler, i.e. followed by
+  // a comma or sitting between two clauses. "I like this" and "like a combo"
+  // (comparison) are left alone.
+  out = out.replace(/\b(?:basically|literally)\b,?\s*/gi, "");
+  out = out.replace(/,\s*like,\s*/gi, ", ");
+  out = out.replace(/\bit'?s\s+like,\s*/gi, "it's ");
+  out = out.replace(/\byou know\b,\s*/gi, "");
+  out = out.replace(/\bsort of\b,\s*/gi, "");
+  out = out.replace(/\bkind of\b,\s*/gi, "");
+  out = out.replace(/\bI mean\b,\s*/gi, "");
+
+  // Stammered repeats: "the the", "I I", "and and".
+  out = out.replace(/\b([A-Za-z']+)(\s+\1\b)+/gi, "$1");
+
+  // False starts: a one- or two-word fragment abandoned before a dash.
+  out = out.replace(/\b[A-Za-z']+\s?[-–—]{1,2}\s+/g, "");
+
+  // Spacing and punctuation hygiene.
+  out = out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .replace(/([,.!?;:])(?=[A-Za-z])/g, "$1 ")
+    .replace(/,\s*,+/g, ",")
+    .replace(/\.\s*\.(?!\.)/g, ".")
+    .replace(/^\s*[,.;:]\s*/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  // Capitalise the opening letter of each sentence that lost it, and make sure
+  // the note ends on a full stop.
+  out = out.replace(/(^|[.!?]\s+|\n)([a-z])/g, (_m, lead: string, ch: string) => lead + ch.toUpperCase());
+  if (/[A-Za-z0-9)]$/.test(out)) out = `${out}.`;
+
+  return out;
+}

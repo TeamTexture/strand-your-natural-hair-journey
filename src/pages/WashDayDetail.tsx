@@ -49,6 +49,8 @@ import AddToCalendarButton from "@/components/AddToCalendarButton";
 import BrandLink from "@/components/BrandLink";
 import ProductThumb from "@/components/ProductThumb";
 import VoiceNoteBlock from "@/components/VoiceNoteBlock";
+import VoiceNotePlayerRow from "@/components/voice/VoiceNotePlayerRow";
+import TranscriptView from "@/components/voice/TranscriptView";
 import { stripStaleDates } from "@/lib/stripStaleDates";
 import { toParagraphs } from "@/lib/formatTranscript";
 import AiProse from "@/components/tips/AiProse";
@@ -189,6 +191,7 @@ const WashDayDetail = () => {
   const [wd, setWd] = useState<WashDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [styleVoiceUrl, setStyleVoiceUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -235,6 +238,12 @@ const WashDayDetail = () => {
             .from("voicenotes")
             .createSignedUrl(data.hair_feel_voice_url, 3600);
           setVoiceUrl(sig?.signedUrl ?? null);
+        }
+        if (data?.style_other_voice_url) {
+          const { data: sig } = await supabase.storage
+            .from("voicenotes")
+            .createSignedUrl(data.style_other_voice_url, 3600);
+          setStyleVoiceUrl(sig?.signedUrl ?? null);
         }
         // Resolve product_ids → names/brands for a clear "Products used" list
         const ids = (next?.product_ids ?? []).filter(Boolean);
@@ -365,6 +374,23 @@ const WashDayDetail = () => {
     );
   }
 
+  // Captured style attributes read as chips, not loose lines.
+  const styleDetailChips = [
+    wd.style_extensions != null
+      ? wd.style_extensions
+        ? "With extensions"
+        : "Without extensions"
+      : null,
+    wd.style_tension
+      ? `${wd.style_tension.charAt(0).toUpperCase()}${wd.style_tension.slice(1)} tension`
+      : null,
+    describeStylingHeat(stylingHeatOf((wd as unknown as { styling?: unknown }).styling))
+      ? `Heat styling: ${describeStylingHeat(stylingHeatOf((wd as unknown as { styling?: unknown }).styling))}`
+      : null,
+  ].filter((c): c is string => !!c);
+
+
+
   return (
     <ScreenLayout bottomNav>
       <TitleBar title="Wash Day" back />
@@ -422,22 +448,22 @@ const WashDayDetail = () => {
             <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium mb-2">
               Style detail
             </p>
-            <div className="space-y-1 text-[13px]">
-              {wd.style_other_note && <p className="leading-snug">{wd.style_other_note}</p>}
-              {wd.style_extensions != null && (
-                <p className="text-muted-foreground">
-                  {wd.style_extensions ? "With extensions" : "Without extensions"}
-                </p>
+            <div className="space-y-2.5">
+              {styleVoiceUrl && (
+                <VoiceNotePlayerRow url={styleVoiceUrl} mediaName="style note" />
               )}
-              {wd.style_tension && (
-                <p className="text-muted-foreground">
-                  {wd.style_tension.charAt(0).toUpperCase() + wd.style_tension.slice(1)} tension
-                </p>
-              )}
-              {describeStylingHeat(stylingHeatOf((wd as unknown as { styling?: unknown }).styling)) && (
-                <p className="text-muted-foreground">
-                  Heat styling: {describeStylingHeat(stylingHeatOf((wd as unknown as { styling?: unknown }).styling))}
-                </p>
+              {wd.style_other_note && <TranscriptView text={wd.style_other_note} />}
+              {styleDetailChips.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {styleDetailChips.map((c) => (
+                    <span
+                      key={c}
+                      className="rounded-[20px] bg-secondary px-[11px] py-[5px] text-[12px] text-foreground font-body break-words"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </SurfaceCard>
