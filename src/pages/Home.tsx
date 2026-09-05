@@ -21,6 +21,7 @@ import AcquisitionAskModal, { useAcquisitionAsk } from "@/components/onboarding/
 import PersonalisedOffersCard from "@/components/home/PersonalisedOffersCard";
 import SpeakToStrandCard from "@/components/home/SpeakToStrandCard";
 import WhatsAppHelpCard from "@/components/home/WhatsAppHelpCard";
+import DailyHairCard from "@/components/home/DailyHairCard";
 
 import PendingPlanInvites from "@/components/treatment/PendingPlanInvites";
 
