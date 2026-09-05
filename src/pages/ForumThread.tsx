@@ -357,24 +357,29 @@ const ForumThread = () => {
           </div>
         ) : (
           <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t border-border p-3">
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <MentionTextarea
-                  rows={2}
-                  value={reply}
-                  onChange={setReply}
-                  threadId={t.id}
-                  onMention={(m) => { rootMentions.current = [...rootMentions.current, m]; }}
-                  placeholder="Add a comment… type @ to tag"
-                  maxLength={2000}
-                  className="resize-none min-h-[44px]"
-                />
-              </div>
-              <Button variant="gold" size="icon" className="rounded-full size-11 shrink-0" onClick={postRootReply} disabled={busy || !reply.trim()}>
-                {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            <MentionTextarea
+              rows={2}
+              value={reply}
+              onChange={setReply}
+              threadId={t.id}
+              onMention={(m) => { rootMentions.current = [...rootMentions.current, m]; }}
+              placeholder="Add a comment… type @ to tag"
+              maxLength={2000}
+              className="resize-none min-h-[44px] rounded-[10px] border-border bg-card focus-visible:border-primary"
+            />
+            <div className="mt-2 flex justify-end">
+              <Button
+                variant="gold"
+                size="sm"
+                className="rounded-[10px] h-9 px-5 text-[11px] font-semibold uppercase tracking-wider"
+                onClick={postRootReply}
+                disabled={busy || !reply.trim()}
+              >
+                {busy ? <Loader2 className="size-4 animate-spin" /> : "Post comment"}
               </Button>
             </div>
           </div>
+
         )}
       </ScreenLayout>
     </PlusGate>
