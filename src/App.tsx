@@ -327,8 +327,6 @@ const RouteCrashGuard = ({ children }: { children: ReactNode }) => {
 };
 
 
-import TempStylePreview from "@/pages/TempStylePreview";
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -355,7 +353,6 @@ const App = () => (
                 <RouteCrashGuard>
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
-            <Route path="/__tmp-style" element={<TempStylePreview />} />
               <Route path="/" element={<Index />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/setup" element={<Onboard><SetupGuide /></Onboard>} />
