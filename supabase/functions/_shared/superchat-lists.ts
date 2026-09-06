@@ -197,14 +197,9 @@ async function ensureContact(
 
 /** Best-effort tier tag: a custom field plus a per-tier list when one exists. */
 async function tagTier(key: string, contactId: string, state: SubscriptionState) {
-  // Custom fields are workspace-configured; a rejection here is not a failure.
-  await sc(key, "PATCH", `/contacts/${contactId}`, {
-    custom_attributes: {
-      strand_tier: state.tier,
-      strand_paid: state.paid ? "true" : "false",
-      strand_status: state.status,
-    },
-  }).catch(() => undefined);
+  // NOTE: the Superchat Public API rejects `custom_attributes` on PATCH
+  // /contacts (400 Invalid parameter), so tier is carried by the per-tier list
+  // alone. Do not reintroduce the custom-field write until the API supports it.
 
   const wanted = TIER_LIST_NAME[state.tier];
   const wantedId = await resolveListIdByName(key, wanted);
