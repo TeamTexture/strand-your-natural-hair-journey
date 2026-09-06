@@ -14,6 +14,8 @@ import PasswordField from "@/components/PasswordField";
 import PasswordErrorNotice from "@/components/PasswordErrorNotice";
 import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
+import { normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
 import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
@@ -79,6 +81,13 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
+  // Mobile number is collected here so it exists for every registered account,
+  // not only for the members who finish onboarding.
+  const [phone, setPhone] = useState("");
+  // WhatsApp messaging consent. ALWAYS starts false — affirmative opt-in only,
+  // never pre-ticked, and deliberately separate from accepting the terms.
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pwError, setPwError] = useState<MappedPasswordError | null>(null);
 
@@ -140,9 +149,37 @@ const Auth = () => {
   };
 
 
+  const phoneError = mode === "signup" ? ukMobileError(phone) : "";
+
+  /**
+   * Writes the mobile number and the WhatsApp answer onto the fresh profile row.
+   * The row is created by a database trigger a moment after sign-up, so this
+   * retries briefly rather than assuming it is already there. This write is what
+   * fires the Superchat sync — consent false means nothing is ever pushed.
+   */
+  const saveRegistrationContact = async (uid: string) => {
+    const stored = normaliseUkMobile(phone);
+    if (!stored) return;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({
+          phone_number: stored,
+          whatsapp_opt_in: whatsappOptIn,
+          whatsapp_opt_in_at: whatsappOptIn ? new Date().toISOString() : null,
+        } as never)
+        .eq("user_id", uid)
+        .select("user_id");
+      if (!error && (data?.length ?? 0) > 0) return;
+      if (error) console.error("[auth] couldn't save mobile/WhatsApp consent", error);
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
+    setSubmitted(true);
     if (!email) {
       toast.error("Enter your email address.");
       return;
@@ -155,6 +192,10 @@ const Auth = () => {
       }
       if (password !== confirmPassword) {
         setPwError({ kind: "generic", message: "Passwords don't match." });
+        return;
+      }
+      if (phoneError) {
+        toast.error(phoneError);
         return;
       }
     } else if (!password) {
@@ -213,6 +254,9 @@ const Auth = () => {
         // New accounts enter their registration details first, then see the
         // 3-day free trial paywall before the rest of onboarding.
         if (data.session && uid) {
+          // Before the trial stamp: the number and the WhatsApp answer are
+          // saved while the profile is still freely writable.
+          await saveRegistrationContact(uid);
           await markTrialOffer(uid);
           // The stamp happens here and nowhere else, so this is the one place
           // the paywall nurture list is reported from. Never awaited.
@@ -286,6 +330,26 @@ const Auth = () => {
               placeholder="you@example.com"
             />
           </div>
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Mobile number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="07700 900123"
+                aria-invalid={submitted && !!phoneError}
+              />
+              {submitted && phoneError && (
+                <p className="text-[11px] text-destructive font-body" role="alert">
+                  {phoneError}
+                </p>
+              )}
+            </div>
+          )}
           {mode === "signup" ? (
             <PasswordField
               id="password"
@@ -332,7 +396,33 @@ const Auth = () => {
             </div>
           )}
 
+          {/* WhatsApp consent — affirmative only, never pre-ticked, never
+              bundled with the terms, and never required to register. */}
+          {mode === "signup" && (
+            <button
+              type="button"
+              onClick={() => setWhatsappOptIn((v) => !v)}
+              aria-pressed={whatsappOptIn}
+              className="w-full flex items-start gap-3 text-left"
+            >
+              <span
+                className={`mt-0.5 size-5 shrink-0 rounded-[6px] border flex items-center justify-center transition-colors ${
+                  whatsappOptIn ? "bg-primary border-primary" : "bg-transparent border-primary/60"
+                }`}
+              >
+                {whatsappOptIn && (
+                  <Check className="size-3.5 text-primary-foreground" strokeWidth={3} />
+                )}
+              </span>
+              <span className="font-body text-[12px] leading-snug text-foreground/80">
+                Message me on WhatsApp with hair care support and updates from Paige. Optional — you
+                can reply STOP or turn this off in your profile at any time.
+              </span>
+            </button>
+          )}
+
           <PasswordErrorNotice error={pwError} />
+
 
           <Button variant="gold" size="pill" type="submit">
             {loading ? "Please wait…" : mode === "signup" ? "Create Account →" : "Sign In →"}
