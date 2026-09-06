@@ -15,7 +15,8 @@ import PasswordErrorNotice from "@/components/PasswordErrorNotice";
 import { mapPasswordError, passwordProblem, type MappedPasswordError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
-import { normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
+import PhoneField from "@/components/PhoneField";
+import { DEFAULT_DIAL, phoneError as phoneProblem, toE164 } from "@/lib/phone";
 import { useAuth } from "@/hooks/useAuth";
 import { getBrandEntryPath, getConsumerOnboardingStatus } from "@/lib/consumerOnboarding";
 import { notifyAdminSignup } from "@/lib/notifyAdminSignup";
@@ -84,6 +85,7 @@ const Auth = () => {
   // Mobile number is collected here so it exists for every registered account,
   // not only for the members who finish onboarding.
   const [phone, setPhone] = useState("");
+  const [dial, setDial] = useState(DEFAULT_DIAL);
   // WhatsApp messaging consent. ALWAYS starts false — affirmative opt-in only,
   // never pre-ticked, and deliberately separate from accepting the terms.
   const [whatsappOptIn, setWhatsappOptIn] = useState(false);
@@ -149,7 +151,7 @@ const Auth = () => {
   };
 
 
-  const phoneError = mode === "signup" ? ukMobileError(phone) : "";
+  const phoneError = mode === "signup" ? phoneProblem(dial, phone) : "";
 
   /**
    * Writes the mobile number and the WhatsApp answer onto the fresh profile row.
@@ -158,7 +160,7 @@ const Auth = () => {
    * fires the Superchat sync — consent false means nothing is ever pushed.
    */
   const saveRegistrationContact = async (uid: string) => {
-    const stored = normaliseUkMobile(phone);
+    const stored = toE164(dial, phone);
     if (!stored) return;
     for (let attempt = 0; attempt < 4; attempt++) {
       const { data, error } = await supabase
@@ -333,15 +335,12 @@ const Auth = () => {
           {mode === "signup" && (
             <div className="space-y-1.5">
               <Label htmlFor="phone" className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Mobile number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="07700 900123"
-                aria-invalid={submitted && !!phoneError}
+              <PhoneField
+                dial={dial}
+                local={phone}
+                onDialChange={setDial}
+                onLocalChange={setPhone}
+                invalid={submitted && !!phoneError}
               />
               {submitted && phoneError && (
                 <p className="text-[11px] text-destructive font-body" role="alert">
