@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
-import { formatUkMobile, normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
+import PhoneReviewRow from "@/components/PhoneReviewRow";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
