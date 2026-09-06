@@ -8106,6 +8106,7 @@ export type Database = {
         }[]
       }
       my_plus_status: { Args: never; Returns: boolean }
+      normalise_phone_e164: { Args: { raw: string }; Returns: string }
       note_booking_link_opened: {
         Args: { _thread_id: string }
         Returns: undefined

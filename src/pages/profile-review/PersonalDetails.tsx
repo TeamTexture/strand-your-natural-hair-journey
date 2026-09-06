@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { uuid } from "@/lib/uuid";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
-import { formatUkMobile, normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
+import PhoneReviewRow from "@/components/PhoneReviewRow";
 import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
@@ -264,22 +264,12 @@ const PersonalDetailsReview = () => {
           onSave={(v) => saveField({ display_name: String(v).trim() })}
         />
 
-        <ReviewField
-          label="Mobile number"
-          value={formatUkMobile(
-            (profile as { phone_number?: string | null } | null)?.phone_number ?? "",
-          )}
-          kind={{ type: "text", placeholder: "e.g. 07700 900123", maxLength: 20 }}
+        <PhoneReviewRow
+          stored={(profile as { phone_number?: string | null } | null)?.phone_number ?? ""}
           autoEdit={editKey === "phone"}
-          onSave={(v) => {
-            const problem = ukMobileError(String(v));
-            if (problem) {
-              toast.error(problem);
-              throw new Error("invalid phone");
-            }
-            return saveField({ phone_number: normaliseUkMobile(String(v)) });
-          }}
+          onSave={(e164) => saveField({ phone_number: e164 })}
         />
+
 
         {/* WhatsApp consent — she can turn it off here at any time. */}
         <div className="rounded-[14px] border border-border bg-card p-4">
