@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/data/countries";
 import { formatPostalInput, postalCodeError, postalConfigFor } from "@/lib/postalCode";
-import { formatUkMobile, isUkMobile, normaliseUkMobile, ukMobileError } from "@/lib/ukMobile";
+import PhoneField from "@/components/PhoneField";
+import { DEFAULT_DIAL, phoneError as phoneProblem, splitStoredPhone, toE164 } from "@/lib/phone";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import { getTrialOfferState } from "@/lib/trialOffer";
 import { walledDestination } from "@/lib/trialWall";
@@ -71,6 +72,7 @@ const ProfileStep1 = () => {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [dial, setDial] = useState(DEFAULT_DIAL);
   const [age, setAge] = useState("");
   const [postcode, setPostcode] = useState("");
   // No default: country feeds the hard-water logic, so it must be an explicit answer.
@@ -117,7 +119,14 @@ const ProfileStep1 = () => {
           heritage: string;
         }>;
         if (p.name) setName((c) => (c.trim() ? c : p.name!));
-        if (p.phone) setPhone((c) => (c.trim() ? c : String(p.phone)));
+        if (p.phone) {
+          const split = splitStoredPhone(String(p.phone));
+          setPhone((c) => {
+            if (c.trim()) return c;
+            setDial(split.dial);
+            return split.local;
+          });
+        }
         // Prefer birth_year so age auto-increments each year on birthday rollover.
         if (p.birth_year && Number.isFinite(p.birth_year)) {
           const derived = new Date().getFullYear() - Number(p.birth_year);
@@ -160,9 +169,9 @@ const ProfileStep1 = () => {
         setName((current) => (current.trim() ? current : prefillName));
       }
       if (data?.phone_number) {
-        setPhone((current) =>
-          current.trim() ? current : formatUkMobile(String(data.phone_number)) || String(data.phone_number),
-        );
+        const split = splitStoredPhone(String(data.phone_number));
+        setDial(split.dial);
+        setPhone((current) => (current.trim() ? current : split.local));
       }
       if (data?.birth_year && Number.isFinite(data.birth_year)) {
         const derivedAge = new Date().getFullYear() - data.birth_year;
@@ -205,7 +214,11 @@ const ProfileStep1 = () => {
     { name, phone, age, postcode, country, heritage, whatsappOptIn },
     (d) => {
       if (d.name) setName(d.name);
-      if (d.phone) setPhone(d.phone);
+      if (d.phone) {
+        const split = splitStoredPhone(d.phone);
+        setDial(split.dial);
+        setPhone(split.local);
+      }
       if (d.age) setAge(d.age);
       if (d.postcode) setPostcode(d.postcode);
       if (d.country) setCountry(d.country);
@@ -289,13 +302,13 @@ const ProfileStep1 = () => {
 
   const postalConfig = postalConfigFor(country);
   // Per-field validity (only surface errors after submit-attempt).
-  // UK mobile only: validated inline here and mirrored by a CHECK constraint
-  // on profiles.phone_number, so the stored value is always +447XXXXXXXXX.
-  const phoneValid = isUkMobile(phone);
+  // One shared phone rule: country code + local number, normalised to E.164
+  // here AND again by the server trigger on profiles.phone_number.
+  const phoneValid = !!toE164(dial, phone);
   const errors = {
     photo: !avatarPath ? "Add a profile photo to continue" : "",
     name: name.trim().length === 0 ? "Enter your full name" : "",
-    phone: ukMobileError(phone),
+    phone: phoneProblem(dial, phone),
     age: age === "" ? "Select your age" : "",
     // Postcode rules follow the declared country: strict for the UK (it drives
     // the hard-water lookup) and permissive for formats we haven't mapped.
@@ -335,9 +348,9 @@ const ProfileStep1 = () => {
       ageNumForPayload != null && Number.isFinite(ageNumForPayload) && ageNumForPayload >= 1 && ageNumForPayload <= 120
         ? new Date().getFullYear() - ageNumForPayload
         : null;
-    const trimmedPhone = normaliseUkMobile(phone) ?? "";
+    const trimmedPhone = toE164(dial, phone) ?? "";
     if (!trimmedPhone) {
-      toast.error("Enter a valid UK mobile number.");
+      toast.error("Enter your mobile number with the right country code.");
       return;
     }
     const payload = {
@@ -586,31 +599,15 @@ const ProfileStep1 = () => {
         {/* Mobile Number */}
         <label className="block">
           <FieldLabel>Mobile Number <span className="text-primary">*</span></FieldLabel>
-          <FieldFrame
-            filled={phoneValid}
+          <PhoneField
+            dial={dial}
+            local={phone}
+            onDialChange={setDial}
+            onLocalChange={setPhone}
             invalid={submitted && !!errors.phone}
-          >
-            <input
-              ref={phoneRef}
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 07700 900123"
-              onBlur={() => setPhone((v) => formatUkMobile(v) || v)}
-              maxLength={20}
-              autoComplete="tel"
-              inputMode="tel"
-              enterKeyHint="next"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  ageRef.current?.focus();
-                }
-              }}
-              className="w-full bg-transparent px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-[10px] min-h-[44px]"
-            />
-            {phoneValid && <Check className="size-4 text-good mr-3 shrink-0" />}
-          </FieldFrame>
+            inputRef={phoneRef}
+            onEnter={() => ageRef.current?.focus()}
+          />
           {submitted && errors.phone && <FieldError>{errors.phone}</FieldError>}
         </label>
 
