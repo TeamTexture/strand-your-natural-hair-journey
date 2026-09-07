@@ -1978,9 +1978,46 @@ export type Database = {
           },
         ]
       }
+      complimentary_grants: {
+        Row: {
+          action: string
+          created_at: string
+          end_date: string | null
+          id: string
+          note: string | null
+          reason: string | null
+          set_by: string
+          stripe_subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          note?: string | null
+          reason?: string | null
+          set_by: string
+          stripe_subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          note?: string | null
+          reason?: string | null
+          set_by?: string
+          stripe_subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       consumer_subscriptions: {
         Row: {
           cancel_at_period_end: boolean
+          complimentary_until: string | null
           created_at: string
           current_period_end: string | null
           id: string
@@ -2000,6 +2037,7 @@ export type Database = {
         }
         Insert: {
           cancel_at_period_end?: boolean
+          complimentary_until?: string | null
           created_at?: string
           current_period_end?: string | null
           id?: string
@@ -2019,6 +2057,7 @@ export type Database = {
         }
         Update: {
           cancel_at_period_end?: boolean
+          complimentary_until?: string | null
           created_at?: string
           current_period_end?: string | null
           id?: string
