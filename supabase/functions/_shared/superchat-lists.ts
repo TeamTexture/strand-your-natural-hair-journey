@@ -75,7 +75,7 @@ export async function readSubscriptionState(
 ): Promise<SubscriptionState> {
   const [consumerRes, proRes, profileRes] = await Promise.all([
     admin.from("consumer_subscriptions")
-      .select("status, tier, paused").eq("user_id", userId).maybeSingle(),
+      .select("status, tier, paused, complimentary_until").eq("user_id", userId).maybeSingle(),
     admin.from("pro_subscriptions")
       .select("status").eq("pro_user_id", userId).maybeSingle(),
     admin.from("profiles")
@@ -83,7 +83,12 @@ export async function readSubscriptionState(
   ]);
 
   const consumer = (consumerRes?.data ?? null) as
-    | { status?: string | null; tier?: string | null; paused?: boolean | null }
+    | {
+      status?: string | null;
+      tier?: string | null;
+      paused?: boolean | null;
+      complimentary_until?: string | null;
+    }
     | null;
   const pro = (proRes?.data ?? null) as { status?: string | null } | null;
   const complimentary =
@@ -93,10 +98,19 @@ export async function readSubscriptionState(
   const consumerStatus = (consumer?.status ?? "none").toLowerCase();
   const proStatus = (pro?.status ?? "none").toLowerCase();
 
+  // A GIFTED free period is complimentary access, not a signup trial, so it
+  // routes PAID. The ordinary 3-day trial stays NON-PAID.
+  const giftedUntil = consumer?.complimentary_until
+    ? new Date(consumer.complimentary_until)
+    : null;
+  const giftedLive = !!giftedUntil && giftedUntil.getTime() > Date.now() &&
+    consumer?.paused !== true &&
+    (consumerStatus === "trialing" || consumerStatus === "active");
+
   // A free trial is NOT paid. Only a live, unpaused, paying subscription is.
   const consumerPaying = consumerStatus === "active" && consumer?.paused !== true;
   const proPaying = proStatus === "active";
-  const paid = consumerPaying || proPaying || complimentary;
+  const paid = consumerPaying || proPaying || complimentary || giftedLive;
 
   const tier: Tier = proPaying
     ? "pro"
@@ -111,6 +125,7 @@ export async function readSubscriptionState(
       : complimentary
         ? "complimentary"
         : "none";
+
 
   return { paid, tier, status };
 }
