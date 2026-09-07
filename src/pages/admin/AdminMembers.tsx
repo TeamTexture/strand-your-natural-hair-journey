@@ -33,6 +33,7 @@ import AccountTypeControl, { AccountTypeBadge } from "@/components/admin/Account
 import AccountDeletionControl from "@/components/admin/AccountDeletionControl";
 import { deriveAccountType, type AccountType } from "@/hooks/useAccountTypes";
 import { useMemberCancellations, cancellationReasonLabel } from "@/hooks/useMemberCancellation";
+import ComplimentaryUntilControl from "@/components/admin/ComplimentaryUntilControl";
 
 interface MemberRow {
   user_id: string;
@@ -50,6 +51,7 @@ interface MemberRow {
   retention_offer_used: boolean;
   retention_offer_claimed_at: string | null;
   has_billing_account: boolean;
+  complimentary_until: string | null;
   session_count: number;
   last_session: string | null;
   sessions_last_30d: number;
@@ -205,7 +207,7 @@ const AdminMembers = () => {
         }>((from, to) =>
           supabase
             .from("consumer_subscriptions")
-            .select("user_id, status, current_period_end, cancel_at_period_end, tier, retention_offer_used, retention_offer_claimed_at, stripe_customer_id")
+            .select("user_id, status, current_period_end, cancel_at_period_end, tier, retention_offer_used, retention_offer_claimed_at, stripe_customer_id, complimentary_until")
             .range(from, to),
         ),
         supabase.rpc("admin_list_member_emails"),
@@ -238,6 +240,7 @@ const AdminMembers = () => {
             retention_offer_used: !!s.retention_offer_used,
             retention_offer_claimed_at: s.retention_offer_claimed_at ?? null,
             has_billing_account: !!s.stripe_customer_id,
+            complimentary_until: (s as { complimentary_until?: string | null }).complimentary_until ?? null,
           },
         ]),
       );
@@ -284,6 +287,7 @@ const AdminMembers = () => {
           retention_offer_used: subMap.get(p.user_id)?.retention_offer_used ?? false,
           retention_offer_claimed_at: subMap.get(p.user_id)?.retention_offer_claimed_at ?? null,
           has_billing_account: !!subMap.get(p.user_id)?.has_billing_account,
+          complimentary_until: subMap.get(p.user_id)?.complimentary_until ?? null,
           session_count: act?.session_count ?? 0,
           last_session: act?.last_session ?? null,
           sessions_last_30d: act?.sessions_last_30d ?? 0,
@@ -873,6 +877,11 @@ const AdminMembers = () => {
                     onCheckedChange={(v) => toggle.mutate({ userId: r.user_id, value: v })}
                   />
                 </div>
+                <ComplimentaryUntilControl
+                  userId={r.user_id}
+                  name={r.display_name}
+                  complimentaryUntil={r.complimentary_until}
+                />
                 <div className="mt-3 pt-3 border-t border-border">
                   {r.access_restricted ? (
                     <Button
