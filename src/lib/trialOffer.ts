@@ -81,7 +81,7 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
       .maybeSingle(),
     supabase
       .from("consumer_subscriptions")
-      .select("status, current_period_end, paused, stripe_subscription_id, trial_end")
+      .select("status, current_period_end, paused, stripe_subscription_id, trial_end, complimentary_until")
       .eq("user_id", userId)
       .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
