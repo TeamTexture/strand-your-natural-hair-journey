@@ -11,6 +11,7 @@ import {
 } from "../_shared/klaviyo.ts";
 import { removeFromNurtureLists } from "../_shared/klaviyo-nurture.ts";
 import { syncSuperchatLists } from "../_shared/superchat-lists.ts";
+import { complimentaryUntilIso, COMPLIMENTARY_META_KEY } from "../_shared/complimentary.ts";
 import { sendWelcomeVoicenote } from "../_shared/welcome-dm.ts";
 import {
   PAYWALL_STATUSES,
