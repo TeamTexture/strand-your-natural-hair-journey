@@ -1,7 +1,9 @@
 import { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import ViewAsBanner from "@/components/ViewAsBanner";
+import DesktopSiteNotice from "@/components/DesktopSiteNotice";
 import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
+
 
 interface Props {
   children: ReactNode;
@@ -30,7 +32,10 @@ const PhoneShell = ({ children }: Props) => {
     >
       {/* iOS notch (desktop only) */}
       <div className="hidden desk:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-foreground/90 rounded-b-2xl z-30 pointer-events-none" />
+      {/* Shown only when the browser is laying the page out at desktop width. */}
+      <DesktopSiteNotice />
       <div className="relative z-10 h-full desk:h-[calc(100%-2rem)] desk:pt-8 flex flex-col">
+
         {/* Admin "View as user" banner — renders only when active. */}
         {!isChromeFreeRoute(pathname) && <ViewAsBanner />}
         <div className="flex-1 min-h-0">

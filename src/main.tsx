@@ -2,10 +2,16 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { applyFontScale, getFontScale } from "./lib/fontScale";
+import { watchViewportZoom } from "./lib/viewportZoom";
 
 // Apply the user's saved text size before React mounts so there's no flash
 // of the default size on first paint.
 applyFontScale(getFontScale());
+
+// Flag a browser that is laying the page out at desktop width on a phone
+// ("Desktop site" mode), so the frame cap can be lifted and a notice shown.
+watchViewportZoom();
+
 
 // NOTE: this file used to monkey-patch Storage.prototype.removeItem and listen
 // for cross-tab `storage` events so that ANY removal of a Supabase auth-token

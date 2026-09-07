@@ -34,6 +34,8 @@ import BookingReturnPrompt from "@/components/booking/BookingReturnPrompt";
 import { useKeyboardAwareInputs } from "@/hooks/useKeyboardAwareInputs";
 import { useTrackInAppHistory } from "@/hooks/useTrackInAppHistory";
 import { useResponsiveTipRefresh } from "@/hooks/useResponsiveTipRefresh";
+import { useDeviceSnapshot } from "@/hooks/useDeviceSnapshot";
+
 import { isChromeFreeRoute } from "@/lib/chromeFreeRoutes";
 
 import { TipsLevelProvider } from "@/hooks/useTipsLevel";
@@ -302,8 +304,10 @@ const GlobalEffects = () => {
   useKeyboardAwareInputs();
   useTrackInAppHistory();
   useResponsiveTipRefresh();
+  useDeviceSnapshot();
   return null;
 };
+
 
 // These components can surface names, message previews, professional enquiries,
 // or booking controls. Do not merely hide their DOM: keep them unmounted so

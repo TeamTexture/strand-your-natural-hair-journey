@@ -2417,6 +2417,54 @@ export type Database = {
         }
         Relationships: []
       }
+      device_snapshots: {
+        Row: {
+          created_at: string
+          device_pixel_ratio: number | null
+          id: string
+          inner_height: number | null
+          inner_width: number | null
+          pointer_coarse: boolean | null
+          screen_height: number | null
+          screen_width: number | null
+          snapshot_day: string | null
+          user_agent: string | null
+          user_id: string
+          vv_scale: number | null
+          zoomed_out: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          device_pixel_ratio?: number | null
+          id?: string
+          inner_height?: number | null
+          inner_width?: number | null
+          pointer_coarse?: boolean | null
+          screen_height?: number | null
+          screen_width?: number | null
+          snapshot_day?: string | null
+          user_agent?: string | null
+          user_id: string
+          vv_scale?: number | null
+          zoomed_out?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          device_pixel_ratio?: number | null
+          id?: string
+          inner_height?: number | null
+          inner_width?: number | null
+          pointer_coarse?: boolean | null
+          screen_height?: number | null
+          screen_width?: number | null
+          snapshot_day?: string | null
+          user_agent?: string | null
+          user_id?: string
+          vv_scale?: number | null
+          zoomed_out?: boolean | null
+        }
+        Relationships: []
+      }
       email_log: {
         Row: {
           attempts: number
