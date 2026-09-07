@@ -26,8 +26,12 @@ describe("android quick fixes", () => {
 
   it("no picker accepting PDFs uses capture", () => {
     const src = read("src/pages/BloodUpload.tsx");
-    expect(src).toContain('accept="application/pdf,image/*"');
-    expect(src).not.toContain("capture=");
+    const pdfInput = src.slice(
+      src.lastIndexOf("<input", src.indexOf('accept="application/pdf,image/*"')),
+      src.indexOf("/>", src.indexOf('accept="application/pdf,image/*"')),
+    );
+    expect(pdfInput).toContain('accept="application/pdf,image/*"');
+    expect(pdfInput).not.toContain("capture=");
   });
 
   it("hover is gated to hover-capable devices", async () => {
