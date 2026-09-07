@@ -44,7 +44,7 @@ const BottomNav = () => {
     aria-label="Primary"
     data-tour="bottom-nav"
     className="shrink-0 border-t border-border bg-card/95 backdrop-blur-sm grid grid-cols-5 select-none"
-    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
   >
     {tabs.map(({ to, label, Icon }) => (
       <NavLink

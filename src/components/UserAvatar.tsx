@@ -145,6 +145,7 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
         ref={inputRef}
         type="file"
         accept="image/*,.heic,.heif"
+        capture="user"
         className="hidden"
         onChange={async (e) => {
           const f = e.target.files?.[0];
