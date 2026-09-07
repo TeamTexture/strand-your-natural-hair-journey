@@ -263,7 +263,6 @@ const ComplimentaryUntilControl = ({ userId, name, complimentaryUntil }: Props) 
               End free access
             </Button>
           </AlertDialogFooter>
-        </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

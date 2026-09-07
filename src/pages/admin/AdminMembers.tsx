@@ -877,6 +877,11 @@ const AdminMembers = () => {
                     onCheckedChange={(v) => toggle.mutate({ userId: r.user_id, value: v })}
                   />
                 </div>
+                <ComplimentaryUntilControl
+                  userId={r.user_id}
+                  name={r.display_name}
+                  complimentaryUntil={r.complimentary_until}
+                />
                 <div className="mt-3 pt-3 border-t border-border">
                   {r.access_restricted ? (
                     <Button
