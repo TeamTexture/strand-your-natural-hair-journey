@@ -67,6 +67,53 @@ async function ensureFreshSession(): Promise<boolean> {
   return !!refreshed.session;
 }
 
+/**
+ * REAL REASON, NOT "non-2xx" (2026-09-07). `supabase.functions.invoke` throws a
+ * `FunctionsHttpError` whose message is always "Edge Function returned a
+ * non-2xx status code", so a member hitting a daily cap, the global AI ceiling
+ * or a genuine server fault saw the same blank wall. The response body is still
+ * attached, and our functions always answer `{ error: "<plain sentence>" }`, so
+ * that sentence becomes the error message when it is there.
+ */
+async function enrichInvokeError(error: unknown): Promise<unknown> {
+  if (!error) return error;
+  const res = (error as { context?: unknown }).context;
+  const canRead = !!res && typeof (res as { text?: unknown }).text === "function";
+  if (!canRead) return error;
+  try {
+    const raw = await (res as Response).clone().text();
+    const parsed = raw ? JSON.parse(raw) : null;
+    const message = (parsed as { error?: unknown } | null)?.error;
+    if (typeof message === "string" && message.trim()) {
+      const out = new Error(message.trim());
+      out.name = (error as Error).name ?? "Error";
+      return out;
+    }
+  } catch {
+    /* unreadable or non-JSON body — keep the original error */
+  }
+  return error;
+}
+
+/** Machine wording a member must never read. */
+const TECHNICAL = /non-2xx|FunctionsHttpError|FunctionsFetchError|status code|\bhttp\b|\b[45]\d{2}\b|Error:|\bat \S+:\d+/i;
+
+/**
+ * The second line of a failure card: the server's own sentence when it sent
+ * one, otherwise a plain apology. Never a status code, a function name or a
+ * stack trace.
+ */
+export function memberFacingAiError(error: unknown): string {
+  const fallback = "Something went wrong on our side. Please try again in a few minutes.";
+  const msg = typeof error === "string"
+    ? error
+    : ((error as { message?: unknown } | null)?.message as string | undefined) ?? "";
+  const trimmed = msg.trim();
+  if (!trimmed || trimmed.length > 240) return fallback;
+  if (TECHNICAL.test(trimmed)) return fallback;
+  return trimmed;
+}
+
 /** Invoke an AI edge function, sharing any identical call already in flight. */
 export async function aiInvoke<T = unknown>(
   fn: string,
@@ -89,11 +136,15 @@ export async function aiInvoke<T = unknown>(
         res = await supabase.functions.invoke(fn, { body: invokeBody });
       }
     }
-    return { data: (res.data ?? null) as T | null, error: res.error };
+    return {
+      data: (res.data ?? null) as T | null,
+      error: res.error ? await enrichInvokeError(res.error) : res.error,
+    };
   })().finally(() => {
     inflight.delete(key);
   });
   inflight.set(key, run);
   return run as Promise<{ data: T | null; error: unknown }>;
 }
+
 

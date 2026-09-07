@@ -1559,6 +1559,23 @@ Deno.serve(async (req) => {
     };
     for (let attemptNumber = 1; attemptNumber <= MAX_REJECTION_ATTEMPTS; attemptNumber++) {
       const attemptStartedAt = Date.now();
+      // CPU TRACE (2026-09-07). This function was being killed with "CPU Time
+      // exceeded" AFTER the model had answered, so the member saw a failure
+      // card for a generation that had already been paid for. One line per
+      // attempt records where the post-model CPU actually goes.
+      const stepMs: Record<string, number> = {};
+      const timeStep = <T>(label: string, fn: () => T): T => {
+        const t0 = performance.now();
+        const out = fn();
+        stepMs[label] = Math.round(performance.now() - t0);
+        return out;
+      };
+      const timeStepAsync = async <T>(label: string, fn: () => Promise<T>): Promise<T> => {
+        const t0 = performance.now();
+        const out = await fn();
+        stepMs[label] = Math.round(performance.now() - t0);
+        return out;
+      };
 
       const baseRetryPayload = retryRules?.length
         ? {
@@ -1740,16 +1757,17 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // ONE shared guardrail — closed vocabulary + ingredient-name lockdown,
       // identical to every other member-facing surface. See
       // _shared/content-integrity.ts.
-      const structuralViolations = checkContentIntegrity({
-        functionName: "ingredient-analysis",
-        userId: memberId,
-        subject: productKey ?? null,
-        fields: termFields,
-        cards: analysis.ingredients,
-        allowedIngredients: nameLock.allowed,
-        ingredientVocabulary: nameLock.vocabulary,
-        attempt: attemptNumber,
-      }).violations;
+      const structuralViolations = timeStep("content_integrity", () =>
+        checkContentIntegrity({
+          functionName: "ingredient-analysis",
+          userId: memberId,
+          subject: productKey ?? null,
+          fields: termFields,
+          cards: analysis.ingredients,
+          allowedIngredients: nameLock.allowed,
+          ingredientVocabulary: nameLock.vocabulary,
+          attempt: attemptNumber,
+        }).violations);
       retryViolations = structuralViolations;
       const structuralProblems = structuralViolations.map((v) => v.rule);
       if (structuralProblems.length) {
@@ -1903,13 +1921,13 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // physically does and where, and the verdict must name the actives that
       // actually drive the fit. Generic category filler ("a conditioning
       // agent") and a verdict built on glycerin are re-asked, not served.
-      const substanceProblems = [
+      const substanceProblems = timeStep("mechanism_and_hero_actives", () => [
         ...validateMechanismSpecificity(benign.cards).map((v) => v.rule),
         ...heroActiveOmissions(
           sanitiseScoreReasons(analysis.score_reasons),
           rawIngredients,
         ),
-      ];
+      ]);
       if (substanceProblems.length && canRetry(attemptNumber)) {
         console.log(JSON.stringify({
           function: "ingredient-analysis",
@@ -1941,34 +1959,46 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
       // stripped sentence could empty the whole array and leave the member with
       // a verdict card carrying no reasoning at all. Row-level rescue below.
       const preReasons = sanitiseScoreReasons(analysis.score_reasons);
-      analysis = await sanitiseAndLog(analysis, "ingredient-analysis", {
-        surface: "ingredient-analysis",
-        userId: memberId,
-        generationId,
-        attemptNumber,
-        maxAttempts: MAX_REJECTION_ATTEMPTS,
-        retryReason,
-        dryRun: mode.dryRun,
-        onRejected: (rules) => rejected.push(...rules),
-      }) as AnalysisPayload;
+      analysis = await timeStepAsync("sanitise_and_log", async () =>
+        await sanitiseAndLog(analysis, "ingredient-analysis", {
+          surface: "ingredient-analysis",
+          userId: memberId,
+          generationId,
+          attemptNumber,
+          maxAttempts: MAX_REJECTION_ATTEMPTS,
+          retryReason,
+          dryRun: mode.dryRun,
+          onRejected: (rules) => rejected.push(...rules),
+        }) as AnalysisPayload);
       const postReasons = sanitiseScoreReasons(analysis.score_reasons);
       if (postReasons.length < preReasons.length && preReasons.length > 0) {
-        // Re-run the bullets one row at a time so only the row that actually
-        // breached a rule is dropped and every clean row still renders. Runs
-        // on ANY shrinkage, not just a total wipe: the ranked verdict card is
-        // the standing design, and losing a row silently thins it.
+        // Re-check the bullets with ROW ATTRIBUTION so only the row that
+        // actually breached a rule is dropped and every clean row still
+        // renders. Runs on ANY shrinkage, not just a total wipe: the ranked
+        // verdict card is the standing design, and losing a row silently thins
+        // it.
+        //
+        // BOUNDED (2026-09-07): the rows travel as ONE keyed object through a
+        // SINGLE sanitiseAndLog pass, so the whole guardrail can never run once
+        // per bullet inside an attempt. Keys (not array positions) carry the
+        // attribution, so a pruned row is identified rather than shifting the
+        // ones after it.
+        const bag: Record<string, ScoreReason> = {};
+        preReasons.forEach((row, i) => {
+          bag[`row${i}`] = row;
+        });
+        const checkedBag = (await timeStepAsync("score_reason_row_rescue", async () =>
+          await sanitiseAndLog(bag, "ingredient-analysis", {
+            surface: "ingredient-analysis",
+            userId: memberId,
+            generationId,
+            dryRun: true,
+          }))) as Record<string, unknown>;
         const survivors: ScoreReason[] = [];
-        for (const row of preReasons) {
-          const checked = sanitiseScoreReasons(
-            (await sanitiseAndLog([row], "ingredient-analysis", {
-              surface: "ingredient-analysis",
-              userId: memberId,
-              generationId,
-              dryRun: true,
-            })) as unknown,
-          );
+        preReasons.forEach((_, i) => {
+          const checked = sanitiseScoreReasons([checkedBag?.[`row${i}`]]);
           if (checked.length === 1) survivors.push(checked[0]);
-        }
+        });
         console.warn(JSON.stringify({
           function: "ingredient-analysis",
           event: "score_reasons_row_rescue",
@@ -1979,6 +2009,14 @@ ${buildTaskInstructions(productBrand, productName, ingredientCount, tipsLevel, r
         if (survivors.length > postReasons.length) analysis.score_reasons = survivors;
       }
 
+
+      console.log(JSON.stringify({
+        function: "ingredient-analysis",
+        event: "post_model_step_ms",
+        attempt: attemptNumber,
+        steps: stepMs,
+        total_ms: Object.values(stepMs).reduce((a, b) => a + b, 0),
+      }));
       console.log(JSON.stringify({
         function: "ingredient-analysis",
         event: "score_reasons_stage",

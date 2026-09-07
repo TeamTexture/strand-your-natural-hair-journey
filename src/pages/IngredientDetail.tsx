@@ -69,7 +69,7 @@ import {
   type AnalysisTrigger,
 } from "@/lib/analysisGate";
 
-import { aiInvoke } from "@/lib/aiInvoke";
+import { aiInvoke, memberFacingAiError } from "@/lib/aiInvoke";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import ScoreReasons, {
@@ -653,9 +653,10 @@ const IngredientDetail = () => {
         }
 
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Could not analyse this product.";
-        setError(msg);
-        toast.error(msg);
+        const msg = e instanceof Error ? e.message : "";
+        setError(msg || "Could not analyse this product.");
+        toast.error(memberFacingAiError(msg));
+
       } finally {
         setLoading(false);
       }
@@ -1289,6 +1290,9 @@ const IngredientDetail = () => {
           ) : (
             <SurfaceCard tone="orange" className="space-y-2">
               <p className="text-sm">Could not analyse this product.</p>
+              <p className="font-body text-[13px] text-foreground/70">
+                {memberFacingAiError(error)}
+              </p>
               <Button
                 variant="goldGhost"
                 size="pill"
@@ -1298,6 +1302,7 @@ const IngredientDetail = () => {
               </Button>
             </SurfaceCard>
           )
+
         )}
 
 

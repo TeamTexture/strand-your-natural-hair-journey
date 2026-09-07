@@ -49,8 +49,8 @@ const allowedKeys = (ctx: NameLockContext) =>
  *
  * The haystack keeps EVERY word of the supplied list — parenthetical common
  * names, "/"-separated bilingual synonyms and all — so a vocabulary name counts
- * as supplied whenever its own words appear, in order, inside one of the
- * product's own ingredient strings.
+ * as supplied whenever its own words appear inside one of the product's own
+ * ingredient strings.
  */
 const allowedHaystacks = (ctx: NameLockContext): string[] =>
   ctx.allowed
@@ -74,32 +74,98 @@ const allowedHaystacks = (ctx: NameLockContext): string[] =>
     })
     .filter(Boolean);
 
-/**
- * True when the vocabulary name's words all appear in one supplied name.
- *
- * ORDER-INSENSITIVE FIX (2026-09-03). Labels and models write the same
- * ingredient with the common name on either side — the pack says
- * "butyrospermum parkii (shea) butter", the write-up says "Shea butter
- * (Butyrospermum parkii)". The word-order requirement rejected that as an
- * ingredient not in the formula and threw the whole generation away, so the
- * match now only requires that EVERY word of the name is present in the same
- * supplied ingredient string. That cannot admit an ingredient the product does
- * not hold: an unrelated name still has words the supplied string lacks.
- */
-function isSuppliedName(name: string, haystacks: string[]): boolean {
-  const key = name
+const flatKey = (name: string) =>
+  name
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
+
+/**
+ * PERFORMANCE (2026-09-07). The checks below are unchanged in what they
+ * reject; only the arithmetic behind them is cheaper. A 35-ingredient product
+ * with ~1,000 known molecule names in the detection vocabulary and ~54 prose
+ * fields spent 4.4 SECONDS of worker CPU here, which killed the isolate with
+ * "CPU Time exceeded" after the model had already answered. Three changes, all
+ * output-identical:
+ *
+ *   1. The supplied-name haystacks are reduced to word SETS once per context.
+ *      The old test was `haystack.includes(key) || sequenceRegex.test(h) ||
+ *      everyWordPresent(h)`; the first two conditions each imply the third
+ *      (a haystack is space-separated alphanumeric words, so a `\b`-bounded
+ *      word test and set membership decide the same thing), so the union of
+ *      the three is exactly `everyWordPresent`.
+ *   2. The vocabulary is filtered ONCE per context rather than once per field.
+ *      Nothing in that filter (length, ambiguity, already-supplied) depends on
+ *      the text being checked.
+ *   3. A phrase can only match `\bphrase\b` if the text contains the phrase as
+ *      a substring, so a lower-cased `includes` prefilter runs before any
+ *      regex — and the regexes themselves are compiled once, not per field.
+ */
+interface PreparedLock {
+  allow: Set<string>;
+  /** One word-set per supplied ingredient string variant. */
+  haystacks: Array<Set<string>>;
+  /** Every word appearing in any haystack — a cheap early reject. */
+  anyWord: Set<string>;
+  /** Vocabulary names that are candidates for a violation, in vocabulary order. */
+  candidates: Array<{
+    key: string;
+    name: string;
+    surfaces: Array<{ form: string; lower: string; re: RegExp }>;
+  }>;
+}
+
+const prepared = new WeakMap<NameLockContext, PreparedLock>();
+
+function prepare(ctx: NameLockContext): PreparedLock {
+  const cached = prepared.get(ctx);
+  if (cached) return cached;
+
+  const allow = allowedKeys(ctx);
+  const haystacks = allowedHaystacks(ctx).map((h) => new Set(h.split(" ")));
+  const anyWord = new Set<string>();
+  for (const h of haystacks) for (const w of h) anyWord.add(w);
+
+  const supplied = (name: string) => isSupplied(name, haystacks, anyWord);
+
+  const candidates: PreparedLock["candidates"] = [];
+  for (const known of ctx.vocabulary) {
+    const name = known.trim();
+    if (name.length < 5) continue;
+    if (AMBIGUOUS.has(name.toLowerCase())) continue;
+    const key = normaliseInciKey(name);
+    if (!key || allow.has(key)) continue;
+    if (supplied(name)) continue;
+    const surfaces = [name, ...(PROSE_ALIASES[key] ?? [])]
+      .filter((form) => form === name || !supplied(form))
+      .map((form) => ({
+        form,
+        lower: form.toLowerCase(),
+        re: new RegExp(`\\b${escape(form)}\\b`, "i"),
+      }));
+    candidates.push({ key, name, surfaces });
+  }
+
+  const out: PreparedLock = { allow, haystacks, anyWord, candidates };
+  prepared.set(ctx, out);
+  return out;
+}
+
+/** True when every word of the name appears in one supplied ingredient string. */
+function isSupplied(
+  name: string,
+  haystacks: Array<Set<string>>,
+  anyWord: Set<string>,
+): boolean {
+  const key = flatKey(name);
   if (!key) return false;
   const words = key.split(" ");
-  const seq = new RegExp(`\\b${words.map(escape).join("\\s+(?:\\w+\\s+){0,2}")}\\b`);
-  const allWordsPresent = (h: string) =>
-    words.every((w) => new RegExp(`\\b${escape(w)}\\b`).test(h));
-  return haystacks.some((h) => h.includes(key) || seq.test(h) || allWordsPresent(h));
+  for (const w of words) if (!anyWord.has(w)) return false;
+  return haystacks.some((h) => words.every((w) => h.has(w)));
 }
+
 
 
 
@@ -142,16 +208,18 @@ export function validateIngredientCardNames(
   cardsField = "ingredients",
 ): NameLockViolation[] {
   if (!Array.isArray(cards)) return [];
-  const allow = allowedKeys(ctx);
-  if (allow.size === 0) return [];
-  const haystacks = allowedHaystacks(ctx);
+  const lock = prepare(ctx);
+  if (lock.allow.size === 0) return [];
   const out: NameLockViolation[] = [];
   cards.forEach((raw, i) => {
     const name = typeof (raw as { name?: unknown })?.name === "string"
       ? (raw as { name: string }).name.trim()
       : "";
     if (!name) return;
-    if (!allow.has(normaliseInciKey(name)) && !isSuppliedName(name, haystacks)) {
+    if (
+      !lock.allow.has(normaliseInciKey(name)) &&
+      !isSupplied(name, lock.haystacks, lock.anyWord)
+    ) {
       out.push({
         field: `${cardsField}[${i}].name`,
         phrase: name,
@@ -174,28 +242,23 @@ export function validateIngredientMentions(
   ctx: NameLockContext,
 ): NameLockViolation[] {
   if (typeof text !== "string" || !text.trim()) return [];
-  const allow = allowedKeys(ctx);
-  if (allow.size === 0) return [];
-  const haystacks = allowedHaystacks(ctx);
+  const lock = prepare(ctx);
+  if (lock.allow.size === 0) return [];
+  const lower = text.toLowerCase();
   const out: NameLockViolation[] = [];
   const seen = new Set<string>();
-  for (const known of ctx.vocabulary) {
-    const name = known.trim();
-    if (name.length < 5) continue;
-    if (AMBIGUOUS.has(name.toLowerCase())) continue;
-    const key = normaliseInciKey(name);
-    if (!key || allow.has(key) || seen.has(key)) continue;
-    if (isSuppliedName(name, haystacks)) continue;
-    // The INCI display name plus its everyday English renderings. An alias is
-    // only a candidate when its own words are not in the supplied list.
-    const surfaces = [name, ...(PROSE_ALIASES[key] ?? [])]
-      .filter((form) => form === name || !isSuppliedName(form, haystacks));
-    const hit = surfaces.find((form) => new RegExp(`\\b${escape(form)}\\b`, "i").test(text));
+  for (const candidate of lock.candidates) {
+    if (seen.has(candidate.key)) continue;
+    // A `\bphrase\b` match requires the phrase as a substring, so the cheap
+    // `includes` runs first and the compiled regex only settles boundaries.
+    const hit = candidate.surfaces.find(
+      (s) => lower.includes(s.lower) && s.re.test(text),
+    )?.form;
     if (hit) {
-      seen.add(key);
+      seen.add(candidate.key);
       out.push({
         field,
-        phrase: name,
+        phrase: candidate.name,
         rule:
           `${field} names "${hit}", which is NOT in this product's ingredient list. You may only name ingredients that literally appear in the supplied list. Remove it or rewrite the sentence around an ingredient that is actually in the formula.`,
       });
@@ -203,6 +266,7 @@ export function validateIngredientMentions(
   }
   return out;
 }
+
 
 export function validateNameLockFields(
   fields: Array<{ field: string; text: unknown }>,
