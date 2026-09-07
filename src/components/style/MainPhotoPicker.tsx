@@ -134,6 +134,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
               ref={fileRef}
               type="file"
               accept="image/*,.heic,.heif"
+              capture="environment"
               multiple
               className="hidden"
               onChange={(e) => {

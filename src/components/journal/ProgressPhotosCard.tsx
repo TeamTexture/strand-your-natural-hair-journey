@@ -224,6 +224,7 @@ const ProgressPhotosCard = () => {
         ref={fileRef}
         type="file"
         accept="image/*,.heic,.heif"
+        capture="environment"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

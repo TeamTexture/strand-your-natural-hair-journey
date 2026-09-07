@@ -132,6 +132,7 @@ const CheckinPhotos = ({
         // iPhone photos are HEIC; some pickers grey those out when the accept
         // list is image/* alone, which reads as "it won't let me pick".
         accept="image/*,.heic,.HEIC,.heif,.HEIF"
+        capture="environment"
         multiple
         className="hidden"
         onChange={(e) => void pick(e.target.files)}

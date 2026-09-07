@@ -158,6 +158,7 @@ const PlanProgressPhotos = ({ userId, planId, media, onChanged, disabled }: Prop
         ref={inputRef}
         type="file"
         accept="image/*,.heic,.heif"
+        capture="environment"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0] ?? null;
