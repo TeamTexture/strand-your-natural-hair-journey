@@ -113,13 +113,18 @@ export async function getTrialOfferState(userId: string): Promise<TrialOfferStat
     paused?: boolean | null;
     stripe_subscription_id?: string | null;
     trial_end?: string | null;
+    complimentary_until?: string | null;
   } | null;
   if (s?.paused) return none;
   if (rowGrantsAccess(s)) return none;
 
-  const trialEligible =
-    !s?.stripe_subscription_id && !s?.trial_end && (!s?.status || s.status === "none");
+  // A GIFTED free period is not her one free trial. When the only trial on the
+  // record came from an admin grant, she keeps her own 3-day trial.
+  const giftedTrial = !!s?.complimentary_until;
+  const trialEligible = giftedTrial ||
+    (!s?.stripe_subscription_id && !s?.trial_end && (!s?.status || s.status === "none"));
   return { walled: true, trialEligible, goalCaptured, acquisitionAnswered };
+
 }
 
 /**
