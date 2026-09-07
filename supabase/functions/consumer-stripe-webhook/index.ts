@@ -176,11 +176,16 @@ async function upsertFromSubscription(
       // Persisted so the app can say when the free period ends and so a second
       // trial is never granted to the same account.
       trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+      // A gifted (admin-granted) free period, tagged in Stripe metadata. Set
+      // means "this trial was a gift", which the trial offer and the WhatsApp
+      // list routing read to tell it apart from the ordinary signup trial.
+      complimentary_until: complimentaryUntilIso(sub.metadata as Record<string, string> | null),
       tier,
       paused: !!pause,
       pause_resumes_at: pause?.resumes_at
         ? new Date(pause.resumes_at * 1000).toISOString()
         : null,
+
     },
     { onConflict: "user_id" },
   );
