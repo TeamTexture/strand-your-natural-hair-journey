@@ -241,6 +241,14 @@ export default function AppointmentFollowUpDialog() {
           >
             It didn't happen
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleCancelled}
+            className="w-full rounded-pill min-h-[44px]"
+          >
+            It was cancelled
+          </Button>
+
           <Button variant="ghost" onClick={handleLater} className="w-full rounded-pill min-h-[44px]">
             Not yet — ask me later
           </Button>
