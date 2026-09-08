@@ -22,6 +22,8 @@ import { WASH_LOG_GROUPS, WASH_LOG_STEPS, friendlyWashDate, localIsoDate, visibl
 import StepSkipRow from "@/components/washday/StepSkipRow";
 import { cn } from "@/lib/utils";
 import { smartBack } from "@/lib/smartBack";
+import { toast } from "sonner";
+
 
 interface RowState {
   productId: string | null;
