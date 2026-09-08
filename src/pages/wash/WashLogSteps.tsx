@@ -22,6 +22,8 @@ import { WASH_LOG_GROUPS, WASH_LOG_STEPS, friendlyWashDate, localIsoDate, visibl
 import StepSkipRow from "@/components/washday/StepSkipRow";
 import { cn } from "@/lib/utils";
 import { smartBack } from "@/lib/smartBack";
+import { toast } from "sonner";
+
 
 interface RowState {
   productId: string | null;
@@ -36,8 +38,9 @@ const WashLogStepsInner = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { products } = useUserProducts("shelf");
-  const { data: favourites, isLoading: favsLoading } = useWashFavourites();
-  const { data: favSkips } = useWashFavouriteSkips();
+  const { data: favourites, isLoading: favsLoading, refetch: refetchFavs } = useWashFavourites();
+  const { data: favSkips, refetch: refetchSkips } = useWashFavouriteSkips();
+
 
   const dateFromQuery = params.get("date");
   const saved = readWashDraft<{ date?: string; rows?: RowMap }>("strand_wash_log_steps", {});
@@ -71,11 +74,35 @@ const WashLogStepsInner = () => {
     setSeeded(true);
   }, [favourites, favSkips, favsLoading, seeded]);
 
+  /**
+   * Re-apply the LATEST saved favourites over this log on demand. The auto
+   * pre-fill above only runs once (and never when a draft already exists), so
+   * this is how an edit made in the favourites builder reaches an open log.
+   */
+  const applyFavourites = async () => {
+    const [favRes, skipRes] = await Promise.all([refetchFavs(), refetchSkips()]);
+    const favMap = favRes.data ?? {};
+    const skips = skipRes.data ?? [];
+    setRows((prev) => {
+      const next: RowMap = { ...prev };
+      for (const step of WASH_LOG_STEPS) {
+        const fav = favMap[step.stored] ?? null;
+        const skip = !fav && skips.includes(step.stored);
+        if (!fav && !skip) continue;
+        next[step.stored] = { productId: fav, used: !!fav, skipped: skip };
+      }
+      return next;
+    });
+    setSeeded(true);
+    toast.success("Updated from your Wash Day Favourites");
+  };
+
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
     for (const p of products) map[p.id] = p;
     return map;
   }, [products]);
+
 
   const setRow = (step: string, patch: Partial<RowState>) =>
     setRows((prev) => ({
@@ -109,8 +136,17 @@ const WashLogStepsInner = () => {
         </div>
       </div>
 
+      <div className="px-5 pb-1">
+        <Button variant="gold" size="pill" onClick={() => void applyFavourites()}>
+          <Heart className="size-4" aria-hidden />
+          Update from favourites
+        </Button>
+      </div>
+
       {/* What she did between washes — read-only, collapsed by default. */}
       <SinceLastWashCard />
+
+
 
 
 
@@ -225,14 +261,8 @@ const WashLogStepsInner = () => {
           );
         })}
 
-        <button
-          type="button"
-          onClick={() => navigate("/wash/favourites")}
-          className="w-full inline-flex items-center justify-center gap-1.5 pt-1 text-[11.5px] font-body text-primary min-h-[40px]"
-        >
-          <Heart className="size-3.5" aria-hidden />
-          From your Wash Day Favourites
-        </button>
+
+
 
         <Button variant="gold" size="pill" className="mt-2" onClick={next}>
           Next
