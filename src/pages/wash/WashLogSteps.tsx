@@ -36,8 +36,9 @@ const WashLogStepsInner = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { products } = useUserProducts("shelf");
-  const { data: favourites, isLoading: favsLoading } = useWashFavourites();
-  const { data: favSkips } = useWashFavouriteSkips();
+  const { data: favourites, isLoading: favsLoading, refetch: refetchFavs } = useWashFavourites();
+  const { data: favSkips, refetch: refetchSkips } = useWashFavouriteSkips();
+
 
   const dateFromQuery = params.get("date");
   const saved = readWashDraft<{ date?: string; rows?: RowMap }>("strand_wash_log_steps", {});
