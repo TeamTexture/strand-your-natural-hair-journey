@@ -58,8 +58,10 @@ export default function AppointmentFollowUpDialog() {
   const navigate = useNavigate();
   const { loaded, isDismissed, dismiss } = useAlertDismissals();
   const [pending, setPending] = useState<PendingAppt | null>(null);
-  // Second step, shown after "It didn't happen" so the answer isn't a dead end.
-  const [step, setStep] = useState<"ask" | "didnt-happen">("ask");
+  // Second step, shown after "It didn't happen"/"It was cancelled" so the
+  // answer isn't a dead end.
+  const [step, setStep] = useState<"ask" | "didnt-happen" | "cancelled">("ask");
+
 
   useEffect(() => {
     if (!user || !loaded) return;
@@ -150,6 +152,25 @@ export default function AppointmentFollowUpDialog() {
     if (error) console.error("Appointment not-attended update failed:", error);
   };
 
+  // Distinct from "didn't happen": the visit was called off, by her or the pro.
+  // Writes the SAME `cancelled` status the professional's diary already sets, so
+  // both dashboards render it through their existing status badge.
+  const handleCancelled = async () => {
+    const id = pending.id;
+    void silenceForever(id);
+    setStep("cancelled");
+    const { error } = await supabase
+      .from("appointments")
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: user?.id ?? null,
+      })
+      .eq("id", id);
+    if (error) console.error("Appointment cancellation update failed:", error);
+  };
+
+
   const handleFindAnother = () => {
     setPending(null);
     setStep("ask");
@@ -162,17 +183,21 @@ export default function AppointmentFollowUpDialog() {
     setStep("ask");
   };
 
-  if (step === "didnt-happen") {
+  if (step === "didnt-happen" || step === "cancelled") {
+    const wasCancelled = step === "cancelled";
     return (
       <Dialog open onOpenChange={(open) => { if (!open) handleNoThanks(); }}>
         <DialogContent className="max-w-[320px]">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
-              That appointment didn't go ahead
+              {wasCancelled
+                ? "That appointment was cancelled"
+                : "That appointment didn't go ahead"}
             </DialogTitle>
             <DialogDescription>
-              We've marked it as not attended, so we won't ask about it again.
-              Would you like to see other professionals?
+              {wasCancelled
+                ? "We've marked it as cancelled — you and your professional will both see that. Would you like to book something else?"
+                : "We've marked it as not attended, so we won't ask about it again. Would you like to see other professionals?"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
@@ -191,6 +216,7 @@ export default function AppointmentFollowUpDialog() {
       </Dialog>
     );
   }
+
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) handleLater(); }}>
@@ -215,6 +241,14 @@ export default function AppointmentFollowUpDialog() {
           >
             It didn't happen
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleCancelled}
+            className="w-full rounded-pill min-h-[44px]"
+          >
+            It was cancelled
+          </Button>
+
           <Button variant="ghost" onClick={handleLater} className="w-full rounded-pill min-h-[44px]">
             Not yet — ask me later
           </Button>
