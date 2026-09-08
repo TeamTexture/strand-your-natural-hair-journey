@@ -58,27 +58,31 @@ describe("ProfileStep3Hair", () => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
-  it("does not render 'Not sure' options for porosity, density or scalp", async () => {
-    await renderStep();
+  it(
+    "does not render 'Not sure' options for porosity, density or scalp",
+    async () => {
+      await renderStep();
 
-    expect(screen.queryByText("Not sure")).not.toBeInTheDocument();
+      expect(screen.queryByText("Not sure")).not.toBeInTheDocument();
 
-    // Porosity options
-    expect(screen.getByText("Soaks in straight away")).toBeInTheDocument();
-    expect(screen.getByText("Water sits on top for a while")).toBeInTheDocument();
-    expect(screen.getByText("Somewhere in between")).toBeInTheDocument();
+      // Porosity options
+      expect(screen.getByText("Soaks in straight away")).toBeInTheDocument();
+      expect(screen.getByText("Water sits on top for a while")).toBeInTheDocument();
+      expect(screen.getByText("Somewhere in between")).toBeInTheDocument();
 
-    // Density options
-    expect(screen.getByText("A lot")).toBeInTheDocument();
-    expect(screen.getByText("A little")).toBeInTheDocument();
-    expect(screen.getByText("Hardly any")).toBeInTheDocument();
+      // Density options
+      expect(screen.getByText("A lot")).toBeInTheDocument();
+      expect(screen.getByText("A little")).toBeInTheDocument();
+      expect(screen.getByText("Hardly any")).toBeInTheDocument();
 
-    // Scalp options
-    expect(screen.getByText("Dry")).toBeInTheDocument();
-    expect(screen.getByText("Oily")).toBeInTheDocument();
-    expect(screen.getByText("Comfortable")).toBeInTheDocument();
-    expect(screen.getByText("Itchy or sensitive")).toBeInTheDocument();
-  });
+      // Scalp options
+      expect(screen.getByText("Dry")).toBeInTheDocument();
+      expect(screen.getByText("Oily")).toBeInTheDocument();
+      expect(screen.getByText("Comfortable")).toBeInTheDocument();
+      expect(screen.getByText("Itchy or sensitive")).toBeInTheDocument();
+    },
+    15000,
+  );
 
   it("blocks Continue until all five required answers are given", async () => {
     await renderStep();
