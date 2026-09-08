@@ -544,6 +544,26 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     () => ({ label: "View appointments", path: "/appointments" }),
     "appointment_reminders",
   ),
+  // Sent once, a day after a completed appointment with a STRAND professional.
+  "appointment-review-request": t(
+    "appointment-review-request",
+    "transactional",
+    false,
+    (d) =>
+      s(d.pro_name)
+        ? `How was your appointment with ${s(d.pro_name)}?`
+        : "How was your appointment?",
+    (d) => [
+      `Hi ${s(d.name, "there")},`,
+      `Your appointment${s(d.pro_name) ? ` with ${s(d.pro_name)}` : ""}${s(d.when) ? ` on ${s(d.when)}` : ""} has passed.`,
+      "If you have a couple of minutes, leaving a review helps other members choose who to see.",
+    ],
+    (d) => ({
+      label: "Leave a review",
+      path: s(d.review_path, "/appointments"),
+    }),
+    "appointment_reminders",
+  ),
 
   // ---------------- Member lifecycle (optional, switchable) ----------------
   "wash-day-reminder": t(
