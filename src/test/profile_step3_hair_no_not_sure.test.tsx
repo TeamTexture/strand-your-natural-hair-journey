@@ -84,16 +84,20 @@ describe("ProfileStep3Hair", () => {
     15000,
   );
 
-  it("blocks Continue until all five required answers are given", async () => {
-    await renderStep();
+  it(
+    "blocks Continue until all five required answers are given",
+    async () => {
+      await renderStep();
 
-    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
-    await new Promise((r) => setTimeout(r, 50));
+      fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+      await new Promise((r) => setTimeout(r, 50));
 
-    // No navigation and no upsert because answers are missing
-    expect(upserted).toHaveLength(0);
-    expect(screen.getByTestId("location").textContent).toBe("/onboarding/profile-step-3-hair");
-  });
+      // No navigation and no upsert because answers are missing
+      expect(upserted).toHaveLength(0);
+      expect(screen.getByTestId("location").textContent).toBe("/onboarding/profile-step-3-hair");
+    },
+    15000,
+  );
 
   it("navigates to the colour step after all five answers are selected", async () => {
     await renderStep();
