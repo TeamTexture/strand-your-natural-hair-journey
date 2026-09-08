@@ -240,7 +240,13 @@ export async function sanitiseAndLog<T>(
     );
     out = stripDeep(out, clarCheck.strip.map((v) => v.claim));
   }
-  const clarRejections = [...clarCheck.strip, ...clarCheck.log];
+  // Only the STRIP bucket is a rejection (retry + "rejected" outcome). The LOG
+  // bucket (omissions such as clarification-scalp-cleanliness-why) is written to
+  // tip_generation_rejections for the author's review and does nothing else —
+  // no retry, no rejected outcome, the served copy is unchanged. (2026-09-08:
+  // merging the two buckets here made every log-only note burn the retry budget.)
+  const clarRejections = clarCheck.strip;
+  const clarForReview = [...clarCheck.strip, ...clarCheck.log];
 
   if (!onEvidencePath) {
     // COST METER (Phase 2) — observation only. Attaches the guardrail outcome
@@ -263,10 +269,10 @@ export async function sanitiseAndLog<T>(
       max_attempts: opts?.maxAttempts ?? null,
       retry_reason: opts?.retryReason ?? null,
     });
-    if (clarRejections.length > 0 && !opts?.dryRun) {
+    if (clarForReview.length > 0 && !opts?.dryRun) {
       await logGenerationRejections(
         functionName,
-        clarRejections.map((v) => ({
+        clarForReview.map((v) => ({
           stage: "deterministic" as const,
           rule: v.rule,
           detail: v.reason,
@@ -281,6 +287,7 @@ export async function sanitiseAndLog<T>(
     await applyContentIntegrity(
       await verifyStage3(out, functionName, evidenceSet, opts, {
         rejections: clarRejections,
+        review: clarCheck.log,
         governed: clarCheck.governed,
       }),
       functionName,
@@ -376,7 +383,13 @@ async function verifyStage3<T>(
     dryRun?: boolean;
     onRejected?: (rules: string[]) => void;
   },
-  clar: { rejections: ClarificationViolation[]; governed: string[] } = {
+  clar: {
+    /** STRIP bucket only — these retry and mark the outcome rejected. */
+    rejections: ClarificationViolation[];
+    /** LOG-only omissions — written for review, never a rejection. */
+    review?: ClarificationViolation[];
+    governed: string[];
+  } = {
     rejections: [],
     governed: [],
   },
@@ -538,7 +551,7 @@ async function verifyStage3<T>(
         detail: v.reason,
         offendingText: v.claim,
       })),
-      ...clar.rejections.map((v) => ({
+      ...[...clar.rejections, ...(clar.review ?? [])].map((v) => ({
         stage: "deterministic" as const,
         rule: v.rule,
         detail: v.reason,
