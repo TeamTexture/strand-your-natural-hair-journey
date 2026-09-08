@@ -55,6 +55,7 @@ export const WASH_LOG_GROUPS: readonly WashLogGroup[] = [
     key: "prepoo",
     label: "Pre-poo",
     hint: "prepoo",
+    skippable: true,
     slots: [{ stored: "Pre-poo", label: "Pre-poo", hint: "prepoo" }],
   },
   {
@@ -79,6 +80,7 @@ export const WASH_LOG_GROUPS: readonly WashLogGroup[] = [
     key: "mask",
     label: "Mask",
     hint: "condition",
+    skippable: true,
     slots: [
       { stored: "Mask", label: "Mask", hint: "condition" },
       { stored: "Mask 2", label: "Second mask", hint: "condition" },
@@ -106,6 +108,11 @@ export const WASH_LOG_GROUPS: readonly WashLogGroup[] = [
 ] as const;
 
 /** Flat ordered slot list — save, pre-fill and favourites all iterate this. */
+/** Steps that may be marked skipped — Pre-poo and Mask slots only. */
+export const SKIPPABLE_STEPS: ReadonlySet<string> = new Set(
+  WASH_LOG_GROUPS.filter((g) => g.skippable).flatMap((g) => g.slots.map((s) => s.stored)),
+);
+
 export const WASH_LOG_STEPS: readonly WashLogStep[] = WASH_LOG_GROUPS.flatMap(
   (g) => g.slots,
 );
