@@ -33,6 +33,7 @@ import {
   EXERCISE_OPTIONS,
   SLEEP_OPTIONS,
   toggleCondition,
+  toggleWithNone,
   healthOptionLabel,
 } from "@/lib/healthOptions";
 import { getDisplayedAuthUser } from "@/lib/displayedUser";
@@ -116,6 +117,7 @@ const ProfileStep2 = () => {
   const [lifeStage, setLifeStage] = useState<string[]>([]);
   const [contraception, setContraception] = useState<string[]>([]);
   const [conditions, setConditions] = useState<string[]>([]);
+  const [diagnosed, setDiagnosed] = useState<string[]>([]);
   const [diet, setDiet] = useState<string | null>(null);
   const [dietBalance, setDietBalance] = useState<string | null>(null);
   const [smoke, setSmoke] = useState<string | null>(null);
@@ -136,11 +138,12 @@ const ProfileStep2 = () => {
   // Keep everything typed on this step if the member navigates back and forth.
   useOnboardingDraft(
     "profile-step-2",
-    { lifeStage, contraception, conditions, diet, dietOther, dietBalance, smoke, alcohol, water, exercise, sleep, meds },
+    { lifeStage, contraception, conditions, diagnosed, diet, dietOther, dietBalance, smoke, alcohol, water, exercise, sleep, meds },
     (d) => {
       if (Array.isArray(d.lifeStage)) setLifeStage(d.lifeStage.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.contraception)) setContraception(d.contraception.filter((v): v is string => typeof v === "string"));
       if (Array.isArray(d.conditions)) setConditions(d.conditions.filter((v): v is string => typeof v === "string"));
+      if (Array.isArray(d.diagnosed)) setDiagnosed(d.diagnosed.filter((v): v is string => typeof v === "string"));
       if (typeof d.diet === "string") setDiet(d.diet);
       if (d.dietOther) setDietOther(d.dietOther);
       if (typeof d.dietBalance === "string") setDietBalance(d.dietBalance);
@@ -163,6 +166,7 @@ const ProfileStep2 = () => {
     if (lifeStage.length === 0) m.push({ id: "lifeStage", label: "Life stage" });
     if (contraception.length === 0) m.push({ id: "contraception", label: "Contraception" });
     if (conditions.length === 0) m.push({ id: "conditions", label: "Medical conditions" });
+    if (diagnosed.length === 0) m.push({ id: "diagnosed", label: "Diagnosed hair or scalp conditions" });
     if (!diet) m.push({ id: "diet", label: "Diet type" });
     if (!dietBalance) m.push({ id: "dietBalance", label: "Diet balance" });
     if (!smoke) m.push({ id: "smoke", label: "Smoking" });
@@ -171,7 +175,7 @@ const ProfileStep2 = () => {
     if (!exercise) m.push({ id: "exercise", label: "Exercise" });
     if (!sleep) m.push({ id: "sleep", label: "Sleep quality" });
     return m;
-  }, [lifeStage, contraception, conditions, diet, dietBalance, smoke, alcohol, water, exercise, sleep]);
+  }, [lifeStage, contraception, conditions, diagnosed, diet, dietBalance, smoke, alcohol, water, exercise, sleep]);
 
   const invalid = (id: string) => showErrors && missing.some((m) => m.id === id);
 
@@ -234,6 +238,20 @@ const ProfileStep2 = () => {
             { onConflict: "user_id" },
           );
         if (healthErr) throw healthErr;
+
+        // ── user_hair_profile: diagnosed hair/scalp conditions only ──
+        // This screen owns that one column now. Nothing else on the hair row is
+        // touched here, so a member's other characteristics stay as they are.
+        const hairEnc = await encryptForStorage([
+          { id: "diagnosed", plaintext: JSON.stringify(diagnosed) },
+        ]);
+        const { error: hairErr } = await supabase
+          .from("user_hair_profile")
+          .upsert(
+            { user_id: userId, diagnosed_conditions_enc: hairEnc.diagnosed } as never,
+            { onConflict: "user_id" },
+          );
+        if (hairErr) throw hairErr;
 
         // ── user_medications (replace + dual-write encrypted name/category) ──
         await supabase.from("user_medications").delete().eq("user_id", userId);
@@ -313,6 +331,20 @@ const ProfileStep2 = () => {
           value={conditions}
           onToggle={(opt) => setConditions(toggleCondition(conditions, opt))}
           invalid={invalid("conditions")}
+          registerRef={registerRef}
+        />
+        <ChipField
+          id="diagnosed"
+          label="Diagnosed hair or scalp conditions"
+          hint="Tap “None diagnosed” if nothing applies — we will not assume it."
+          options={[
+            "Traction alopecia", "Androgenetic alopecia", "Alopecia areata", "CCCA",
+            "Telogen effluvium", "Seborrheic dermatitis", "Folliculitis",
+            "Scalp psoriasis", "Scalp eczema", "None diagnosed",
+          ]}
+          value={diagnosed}
+          onToggle={(opt) => setDiagnosed(toggleWithNone(diagnosed, opt, "None diagnosed"))}
+          invalid={invalid("diagnosed")}
           registerRef={registerRef}
         />
           </div>

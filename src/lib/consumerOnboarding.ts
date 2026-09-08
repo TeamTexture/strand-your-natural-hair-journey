@@ -112,18 +112,23 @@ export async function getConsumerOnboardingStatus(userId: string) {
     profile?.avatar_url && profile.display_name?.trim() && profile.phone_number?.trim() &&
     profile.birth_year && profile.postcode?.trim() && profile.country?.trim()
   );
+  // Diagnosed hair/scalp conditions are asked on the HEALTH screen now, so the
+  // health requirement owns that column. It must never be required by the hair
+  // check as well, or a member who answers it on the health screen alone could
+  // never complete onboarding.
   const healthFieldsComplete = !!(
     health?.life_stage_enc && health.contraception_enc && health.medical_conditions_enc &&
     health.diet && health.diet_balance && health.smoke && health.alcohol &&
-    health.daily_water && health.exercise && health.sleep_quality
+    health.daily_water && health.exercise && health.sleep_quality &&
+    hair?.diagnosed_conditions_enc
   );
-  // The six self-answerable questions. diameter/surface_texture/density and
-  // elasticity all offer "Not sure", which writes null — none of them may ever
-  // be required here, or a member who honestly answers "Not sure" is blocked
-  // from completing onboarding for good.
+  // The five self-answerable hair questions. porosity/density both offer
+  // "Not sure", which writes null — density may never be required here, or a
+  // member who honestly answers "Not sure" is blocked from completing
+  // onboarding for good.
   const hairFieldsComplete = !!(
     hair?.porosity &&
-    hair.scalp_condition_enc && hair.diagnosed_conditions_enc &&
+    hair.scalp_condition_enc &&
     Array.isArray(hair.areas_of_concern) && hair.areas_of_concern.length > 0
   );
 
