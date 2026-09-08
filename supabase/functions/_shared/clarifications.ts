@@ -193,7 +193,7 @@ function endsNotMergedWithScalp(text: string): ClarificationViolation[] {
  * the member's goal. Absence cannot be stripped, so it is logged as a rejection
  * for the author's review rather than removed.
  */
-function scalpCleanlinessWhy(
+export function scalpCleanlinessWhy(
   text: string,
   goalLabel: string | null,
 ): ClarificationViolation[] {
@@ -209,7 +209,12 @@ function scalpCleanlinessWhy(
   const namesGoal =
     /\blength retention\b|\bretain\w*\s+length\b|\bgrowth\b|\byour goal\b/.test(l) ||
     goalWords.some((w) => l.includes(w));
-  const hasWhy = /\bbecause\b|\bso that\b|\bwhich\b|\bkeeps?\b|\ballows?\b|\bhelps?\b/.test(l);
+  // Whole-word, case-insensitive (text is already lower-cased). Widened
+  // 2026-09-08: "prevents … protecting …", "maintains … to support …" are real
+  // explanations and were being rejected by the shorter list.
+  const hasWhy =
+    /\b(because|so that|which|keeps?|allows?|helps?|prevents?|protects?|protecting|maintains?|to support|supports?|reduces?|stops?|avoids?)\b/
+      .test(l);
   if (namesGoal && hasWhy) return [];
   return [
     {
