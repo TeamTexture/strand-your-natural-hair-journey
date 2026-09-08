@@ -72,11 +72,35 @@ const WashLogStepsInner = () => {
     setSeeded(true);
   }, [favourites, favSkips, favsLoading, seeded]);
 
+  /**
+   * Re-apply the LATEST saved favourites over this log on demand. The auto
+   * pre-fill above only runs once (and never when a draft already exists), so
+   * this is how an edit made in the favourites builder reaches an open log.
+   */
+  const applyFavourites = async () => {
+    const [favRes, skipRes] = await Promise.all([refetchFavs(), refetchSkips()]);
+    const favMap = favRes.data ?? {};
+    const skips = skipRes.data ?? [];
+    setRows((prev) => {
+      const next: RowMap = { ...prev };
+      for (const step of WASH_LOG_STEPS) {
+        const fav = favMap[step.stored] ?? null;
+        const skip = !fav && skips.includes(step.stored);
+        if (!fav && !skip) continue;
+        next[step.stored] = { productId: fav, used: !!fav, skipped: skip };
+      }
+      return next;
+    });
+    setSeeded(true);
+    toast.success("Updated from your Wash Day Favourites");
+  };
+
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
     for (const p of products) map[p.id] = p;
     return map;
   }, [products]);
+
 
   const setRow = (step: string, patch: Partial<RowState>) =>
     setRows((prev) => ({
