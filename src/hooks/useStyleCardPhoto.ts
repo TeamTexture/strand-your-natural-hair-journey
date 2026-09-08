@@ -18,7 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export type PhotoSource = "before" | "milestone";
+export type PhotoSource = "before" | "milestone" | "wash";
 
 export interface MilestonePhoto {
   id: string;
@@ -33,6 +33,8 @@ export interface MilestonePhoto {
 const BUCKET: Record<PhotoSource, string> = {
   before: "before-photos",
   milestone: "milestone-photos",
+  // Photos attached to a wash day log live with the journal media.
+  wash: "journal-photos",
 };
 
 export const styleCardPhotoKey = (userId?: string) => ["style-card-photo", userId ?? "anon"];
@@ -82,21 +84,29 @@ export function useStyleCardPhoto() {
     queryFn: async () => {
       if (!user) return { mainPhotoId: null as string | null, photos: [] as MilestonePhoto[] };
 
-      const [{ data: styleRow }, { data: milestoneRows }, { data: beforeRows }] = await Promise.all([
-        supabase
-          .from("user_style_profile")
-          .select("main_photo_id")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("user_milestone_photos")
-          .select("id, storage_path, caption, taken_on, created_at")
-          .eq("user_id", user.id),
-        supabase
-          .from("user_before_photos")
-          .select("id, storage_path, caption, created_at")
-          .eq("user_id", user.id),
-      ]);
+      const [{ data: styleRow }, { data: milestoneRows }, { data: beforeRows }, { data: washRows }] =
+        await Promise.all([
+          supabase
+            .from("user_style_profile")
+            .select("main_photo_id")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("user_milestone_photos")
+            .select("id, storage_path, caption, taken_on, created_at")
+            .eq("user_id", user.id),
+          supabase
+            .from("user_before_photos")
+            .select("id, storage_path, caption, created_at")
+            .eq("user_id", user.id),
+          // Photos she added on a wash day log count as progress photos too.
+          supabase
+            .from("wash_days")
+            .select("id, media_path, media_type, wash_date, created_at")
+            .eq("user_id", user.id)
+            .eq("media_type", "photo")
+            .not("media_path", "is", null),
+        ]);
 
       const combined: Omit<MilestonePhoto, "url">[] = [
         ...((milestoneRows ?? []) as Array<{
@@ -117,7 +127,23 @@ export function useStyleCardPhoto() {
           taken_on: r.created_at ? r.created_at.slice(0, 10) : null,
           source: "before" as const,
         })),
+        ...((washRows ?? []) as Array<{
+          id: string;
+          media_path: string | null;
+          wash_date: string | null;
+          created_at: string | null;
+        }>)
+          .filter((r) => !!r.media_path)
+          .map((r) => ({
+            id: r.id,
+            storage_path: r.media_path as string,
+            caption: null,
+            taken_on: r.wash_date ?? (r.created_at ? r.created_at.slice(0, 10) : null),
+            created_at: r.created_at,
+            source: "wash" as const,
+          })),
       ];
+
 
       const base = sortProgressPhotos(combined);
       const signed = await Promise.all(

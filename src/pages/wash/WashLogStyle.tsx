@@ -44,6 +44,7 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { styleAsksTension, styleAsksExtensions } from "@/lib/hairstyles";
 import { saveCurrentStyle, announceStyleChange } from "@/lib/styleChange";
 import SafeImage from "@/components/SafeImage";
+import { styleCardPhotoKey } from "@/hooks/useStyleCardPhoto";
 
 
 const PHOTO_BUCKET = "journal-photos";
@@ -305,9 +306,17 @@ const WashLogStyleInner = () => {
     localStorage.setItem("strand_last_wash_date", new Date().toISOString());
     clearWashDrafts();
     window.dispatchEvent(new Event("strand:data-changed"));
+    // A photo added on this log is a progress photo — let the Current style
+    // card picker pick it up straight away.
+    void qc.invalidateQueries({ queryKey: styleCardPhotoKey(user?.id) });
     toast("💧 Wash day saved!");
+    // The log flow is finished: rewrite the last history entry to Home so
+    // pressing back from Wash Day exits to Home instead of walking back into
+    // the completed log steps.
+    navigate("/home", { replace: true });
     navigate("/wash-day");
   };
+
 
   /** After the wash day is stored: favourites prompt, or straight out. */
   const continueAfterStyle = () => {

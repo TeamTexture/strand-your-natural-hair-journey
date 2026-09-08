@@ -457,8 +457,20 @@ const WashDayHub = () => {
   const [sponsoredTipShown, setSponsoredTipShown] = useState(false);
   const cadenceReasoningTaken = Boolean(overdue) || dynamicTipShown;
 
-  // Suggested next wash date — used to prefill the STRAND scheduling box.
-  const nextIso = educational.nextDateIso;
+  // Suggested next wash date — the scheduling box prefills with 7 days after
+  // the wash day she just logged, and stays fully editable. If that day has
+  // already passed, today is the earliest the picker allows.
+  const nextIso = useMemo(() => {
+    const lastIso = washDays[0]?.wash_date ?? null;
+    if (!lastIso) return educational.nextDateIso;
+    const d = new Date(lastIso);
+    if (Number.isNaN(d.getTime())) return educational.nextDateIso;
+    d.setDate(d.getDate() + 7);
+    const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const todayIsoStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    return iso < todayIsoStr ? todayIsoStr : iso;
+  }, [washDays, educational.nextDateIso, today]);
+
 
 
   return (

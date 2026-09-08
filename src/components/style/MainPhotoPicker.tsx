@@ -94,7 +94,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
           <SheetTitle className="font-display">{title ?? "Change your main photo"}</SheetTitle>
           <SheetDescription>
             {description ??
-              "Pick the progress photo you want on your Current style card, add a new one, or let it follow your most recent."}
+              "Pick the photo you want on your Current style card — including ones you added on a wash day — add a new one, or let it follow your most recent."}
           </SheetDescription>
         </SheetHeader>
 
@@ -176,7 +176,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
                     onClick={() => void choose(p.id)}
                     disabled={setMainPhoto.isPending}
                     className="space-y-1.5 text-left"
-                    aria-label={`Use photo from ${fmt(p.taken_on)}`}
+                    aria-label={`Use ${p.source === "wash" ? "wash day" : "progress"} photo from ${fmt(p.taken_on)}`}
                   >
                     <span
                       className={`relative block aspect-square overflow-hidden rounded-[14px] bg-muted ${
@@ -186,7 +186,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
                       {p.url ? (
                         <SafeImage
                           src={p.url}
-                          alt={`Progress photo from ${fmt(p.taken_on)}`}
+                          alt={`${p.source === "wash" ? "Wash day" : "Progress"} photo from ${fmt(p.taken_on)}`}
                           className="absolute inset-0 size-full object-cover"
                         />
                       ) : (
@@ -202,6 +202,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
                     </span>
                     <span className="block text-[11px] text-muted-foreground">
                       {fmt(p.taken_on)}
+                      {p.source === "wash" ? " · Wash day" : ""}
                       {inUse ? (pinned ? " · In use" : " · In use (most recent)") : ""}
                     </span>
                   </button>
