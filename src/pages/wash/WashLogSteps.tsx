@@ -136,8 +136,17 @@ const WashLogStepsInner = () => {
         </div>
       </div>
 
+      <div className="px-5 pb-1">
+        <Button variant="gold" size="pill" onClick={() => void applyFavourites()}>
+          <Heart className="size-4" aria-hidden />
+          Update from favourites
+        </Button>
+      </div>
+
       {/* What she did between washes — read-only, collapsed by default. */}
       <SinceLastWashCard />
+
+
 
 
 
