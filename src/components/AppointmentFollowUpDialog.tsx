@@ -51,9 +51,8 @@ export default function AppointmentFollowUpDialog() {
   const navigate = useNavigate();
   const { loaded, isDismissed, dismiss } = useAlertDismissals();
   const [pending, setPending] = useState<PendingAppt | null>(null);
-  // Second step, shown after "It didn't happen"/"It was cancelled" so the
-  // answer isn't a dead end.
-  const [step, setStep] = useState<"ask" | "didnt-happen" | "cancelled">("ask");
+
+
 
 
   useEffect(() => {
