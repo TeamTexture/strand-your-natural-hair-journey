@@ -181,7 +181,7 @@ const ResumeOnboarding = () => {
               <div className="min-w-0">
                 <p className="font-display text-base font-semibold">Hair characteristics</p>
                 <p className="text-xs text-foreground/75 font-body mt-1 leading-snug">
-                  Six quick questions about your hair and scalp — everything you've already
+                  Five quick questions about your hair and scalp — everything you've already
                   entered is saved.
                 </p>
               </div>
