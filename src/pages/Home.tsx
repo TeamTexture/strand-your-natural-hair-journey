@@ -53,6 +53,7 @@ import ChallengesEditorSheet from "@/components/journal/ChallengesEditorSheet";
 import FirstRunSequence from "@/components/firstrun/FirstRunSequence";
 import { useChallenges } from "@/hooks/useChallenges";
 import AppointmentFollowUpDialog from "@/components/AppointmentFollowUpDialog";
+import EnquiryBookingCheckDialog from "@/components/booking/EnquiryBookingCheckDialog";
 import HelloKleanDialog from "@/components/HelloKleanDialog";
 import { consumeHelloKleanPrompt } from "@/lib/discounts";
 import { lookupHardWater } from "@/lib/hardWater";
