@@ -24,8 +24,8 @@ import { getDisplayedAuthUser } from "@/lib/displayedUser";
 /**
  * Maps the self-assessment labels a member picks to the column values a
  * professional would enter, so the stored data stays in the same convention
- * regardless of who captured it. "Not sure" maps to null (unknown) — it
- * satisfies validation without forcing a guess.
+ * regardless of who captured it. Every question on this screen now requires a
+ * real answer.
  */
 export const HAIR_FEEL_MAP = {
   diameter: {
@@ -173,20 +173,18 @@ const TagGroup = ({
 /**
  * The simplified self-answer maps for this screen. They write the SAME columns
  * as before, in the same convention a professional would enter, so nothing
- * downstream changes. "Not sure" is a real answer and stores null.
+ * downstream changes.
  */
 const POROSITY_ANSWERS: Record<string, string | null> = {
   "Soaks in straight away": "High",
   "Water sits on top for a while": "Low",
   "Somewhere in between": "Medium",
-  "Not sure": null,
 };
 
 const SCALP_SHOWN_ANSWERS: Record<string, string | null> = {
   "A lot": "Low",
   "A little": "Medium",
   "Hardly any": "High",
-  "Not sure": null,
 };
 
 const LENGTH_BUCKETS = ["Short", "Medium", "Long"];
@@ -284,7 +282,7 @@ const ProfileStep3Hair = () => {
               label="When you wet your hair, what happens?"
               term="porosity"
               definition="Porosity is how readily your hair takes in water and lets it go again."
-              options={["Soaks in straight away", "Water sits on top for a while", "Somewhere in between", "Not sure"]}
+              options={["Soaks in straight away", "Water sits on top for a while", "Somewhere in between"]}
               value={porosity} onChange={setPorosity}
               invalid={invalid("porosity")} registerRef={registerRef}
             />
@@ -294,7 +292,7 @@ const ProfileStep3Hair = () => {
               label="How much scalp shows when you part your hair?"
               term="density"
               definition="Density is how many strands grow on your head — not how thick each one is."
-              options={["A lot", "A little", "Hardly any", "Not sure"]}
+              options={["A lot", "A little", "Hardly any"]}
               value={density} onChange={setDensity}
               invalid={invalid("density")} registerRef={registerRef}
             />
@@ -302,7 +300,7 @@ const ProfileStep3Hair = () => {
               id="scalp"
               multi={false}
               label="Scalp Condition"
-              options={["Dry", "Oily", "Comfortable", "Itchy or sensitive", "Not sure"]}
+              options={["Dry", "Oily", "Comfortable", "Itchy or sensitive"]}
               value={scalp} onChange={setScalp}
               invalid={invalid("scalp")} registerRef={registerRef}
             />
