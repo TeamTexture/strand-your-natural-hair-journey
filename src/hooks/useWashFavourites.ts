@@ -34,18 +34,52 @@ export function useWashFavourites() {
   });
 }
 
+/**
+ * Steps she has marked as skipped by default. Stored as a favourites row with
+ * no product against it, so nothing else about the table changes.
+ */
+export function useWashFavouriteSkips() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["wash-favourite-skips", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from("wash_day_favourites")
+        .select("step, product_id")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return ((data ?? []) as WashFavourite[])
+        .filter((row) => !row.product_id)
+        .map((row) => row.step);
+    },
+  });
+}
+
 /** Replace the whole favourites set. Applies from the next wash day forward. */
 export function useSaveWashFavourites() {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (map: Record<string, string | null>) => {
+    mutationFn: async (input: Record<string, string | null> | {
+      map: Record<string, string | null>;
+      /** Steps marked "skip by default" — kept as a product-less row. */
+      skipped?: readonly string[];
+    }) => {
       if (!user) throw new Error("Please sign in first.");
+      const map = "map" in input ? input.map : input;
+      const skipped = new Set(("map" in input ? input.skipped : undefined) ?? []);
       const entries = Object.entries(map);
       const setRows = entries
-        .filter(([, id]) => !!id)
-        .map(([step, id]) => ({ user_id: user.id, step, product_id: id as string }));
-      const clearSteps = entries.filter(([, id]) => !id).map(([step]) => step);
+        .filter(([step, id]) => !!id || skipped.has(step))
+        .map(([step, id]) => ({
+          user_id: user.id,
+          step,
+          product_id: skipped.has(step) ? null : (id as string),
+        }));
+      const clearSteps = entries
+        .filter(([step, id]) => !id && !skipped.has(step))
+        .map(([step]) => step);
 
       if (setRows.length) {
         const { error } = await supabase
@@ -64,6 +98,7 @@ export function useSaveWashFavourites() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["wash-favourites", user?.id] });
+      void qc.invalidateQueries({ queryKey: ["wash-favourite-skips", user?.id] });
     },
   });
 }

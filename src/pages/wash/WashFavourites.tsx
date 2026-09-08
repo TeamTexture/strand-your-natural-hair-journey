@@ -12,24 +12,31 @@ import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUserProducts } from "@/hooks/useUserProducts";
-import { useWashFavourites, useSaveWashFavourites } from "@/hooks/useWashFavourites";
+import { useWashFavourites, useWashFavouriteSkips, useSaveWashFavourites } from "@/hooks/useWashFavourites";
 import { WASH_LOG_GROUPS, WASH_LOG_STEPS, visibleSlotCount } from "@/lib/washLogSteps";
+import StepSkipRow from "@/components/washday/StepSkipRow";
+import { cn } from "@/lib/utils";
 import { smartBack } from "@/lib/smartBack";
 
 const WashFavourites = () => {
   const navigate = useNavigate();
   const { products } = useUserProducts("shelf");
   const { data: favourites, isLoading } = useWashFavourites();
+  const { data: savedSkips } = useWashFavouriteSkips();
   const save = useSaveWashFavourites();
   const [draft, setDraft] = useState<Record<string, string | null>>({});
   const [pickerStep, setPickerStep] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (isLoading) return;
     const next: Record<string, string | null> = {};
     for (const step of WASH_LOG_STEPS) next[step.stored] = favourites?.[step.stored] ?? null;
     setDraft(next);
-  }, [favourites, isLoading]);
+    const skips: Record<string, boolean> = {};
+    for (const step of savedSkips ?? []) skips[step] = true;
+    setSkipped(skips);
+  }, [favourites, savedSkips, isLoading]);
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
@@ -41,7 +48,10 @@ const WashFavourites = () => {
 
   const onSave = async () => {
     try {
-      await save.mutateAsync(draft);
+      await save.mutateAsync({
+        map: draft,
+        skipped: Object.keys(skipped).filter((s) => skipped[s]),
+      });
       toast.success("Wash Day Favourites saved");
       navigate(-1);
     } catch (e) {
@@ -71,8 +81,29 @@ const WashFavourites = () => {
               {group.slots.slice(0, shown).map((step) => {
                 const id = draft[step.stored] ?? null;
                 const product = id ? byId[id] : undefined;
+                const isSkipped = !!skipped[step.stored];
                 return (
-                  <div key={step.stored} className="rounded-[14px] border border-border bg-card p-3">
+                  <div
+                    key={step.stored}
+                    className={cn(
+                      "rounded-[14px] border border-border bg-card p-3",
+                      isSkipped && "opacity-60",
+                    )}
+                  >
+                    {isSkipped ? (
+                      <>
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
+                          {step.label}
+                        </p>
+                        <StepSkipRow
+                          label={step.label}
+                          skipped
+                          skippedLabel="Skipped every wash"
+                          onSkip={() => setSkipped((p) => ({ ...p, [step.stored]: true }))}
+                          onUndo={() => setSkipped((p) => ({ ...p, [step.stored]: false }))}
+                        />
+                      </>
+                    ) : (
                     <div className="flex items-center gap-3">
                       {product ? (
                         <ProductThumb
@@ -110,6 +141,16 @@ const WashFavourites = () => {
                         {product ? "Swap" : "Add"}
                       </button>
                     </div>
+                    )}
+                    {group.skippable && !isSkipped && !id && (
+                      <StepSkipRow
+                        label={step.label}
+                        skipped={false}
+                        skippedLabel="Skipped every wash"
+                        onSkip={() => setSkipped((p) => ({ ...p, [step.stored]: true }))}
+                        onUndo={() => setSkipped((p) => ({ ...p, [step.stored]: false }))}
+                      />
+                    )}
                   </div>
                 );
               })}
