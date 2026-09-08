@@ -19,11 +19,15 @@ import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
 import { WASH_LOG_GROUPS, WASH_LOG_STEPS, friendlyWashDate, localIsoDate, visibleSlotCount } from "@/lib/washLogSteps";
+import StepSkipRow from "@/components/washday/StepSkipRow";
+import { cn } from "@/lib/utils";
 import { smartBack } from "@/lib/smartBack";
 
 interface RowState {
   productId: string | null;
   used: boolean;
+  /** Deliberately skipped this wash — Pre-poo and Mask only. */
+  skipped?: boolean;
 }
 
 type RowMap = Record<string, RowState>;
@@ -116,11 +120,29 @@ const WashLogStepsInner = () => {
               {group.slots.slice(0, shown).map((step) => {
                 const row = rows[step.stored] ?? { productId: null, used: false };
                 const product = row.productId ? byId[row.productId] : undefined;
+                const skipped = !!row.skipped;
                 return (
                   <div
                     key={step.stored}
-                    className="rounded-[14px] border border-border bg-card p-3"
+                    className={cn(
+                      "rounded-[14px] border border-border bg-card p-3",
+                      skipped && "opacity-60",
+                    )}
                   >
+                    {skipped ? (
+                      <>
+                        <span className="block text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
+                          {step.label}
+                        </span>
+                        <StepSkipRow
+                          label={step.label}
+                          skipped
+                          skippedLabel="Skipped this wash"
+                          onSkip={() => setRow(step.stored, { skipped: true })}
+                          onUndo={() => setRow(step.stored, { skipped: false })}
+                        />
+                      </>
+                    ) : (
                     <div className="flex items-center gap-3">
                       <Checkbox
                         checked={row.used}
@@ -181,6 +203,16 @@ const WashLogStepsInner = () => {
                         </span>
                       </div>
                     </div>
+                    )}
+                    {group.skippable && !skipped && !row.productId && (
+                      <StepSkipRow
+                        label={step.label}
+                        skipped={false}
+                        skippedLabel="Skipped this wash"
+                        onSkip={() => setRow(step.stored, { skipped: true, productId: null, used: false })}
+                        onUndo={() => setRow(step.stored, { skipped: false })}
+                      />
+                    )}
                   </div>
                 );
               })}
