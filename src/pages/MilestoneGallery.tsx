@@ -33,6 +33,7 @@ import GoalsChallengesCard from "@/components/GoalsChallengesCard";
 import LevelGate from "@/components/tips/LevelGate";
 import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { wantsBeginner } from "@/lib/tipsRender";
+import SafeImage from "@/components/SafeImage";
 
 interface Row {
   id: string;
@@ -249,7 +250,7 @@ const MilestoneGallery = () => {
             {rows.map((r) => (
               <div key={r.id} className="space-y-1.5">
                 <div className="relative aspect-square rounded-[14px] overflow-hidden bg-muted">
-                  <img src={r.url} alt={`Milestone ${r.taken_on}`} className="absolute inset-0 size-full object-cover" />
+                  <SafeImage src={r.url} alt={`Milestone ${r.taken_on}`} className="absolute inset-0 size-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeRow(r)}

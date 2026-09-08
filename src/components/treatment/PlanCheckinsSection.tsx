@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Camera, Check, ChevronDown, ClipboardCheck } from "lucide-react";
@@ -156,7 +157,7 @@ const PlanCheckinsSection = ({
                       </span>
                     )}
                     {photo && urls[photo.storage_path] && (
-                      <img
+                      <SafeImage
                         src={urls[photo.storage_path]}
                         alt={`Cycle ${c.cycle} photo`}
                         loading="lazy"

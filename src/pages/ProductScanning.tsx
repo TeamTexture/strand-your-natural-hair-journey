@@ -16,6 +16,7 @@ import {
   type PartialAnalysis,
 } from "@/lib/streamProductAnalyse";
 import { toast } from "sonner";
+import SafeImage from "@/components/SafeImage";
 
 
 /** Nav state shape produced by useProductScan after the dual-photo upload. */
@@ -285,21 +286,21 @@ const ProductScanning = () => {
          *  one is present (legacy nav-state). */}
         <div className="flex gap-2 w-full max-w-[280px] justify-center">
           {state?.front_preview_url && (
-            <img
+            <SafeImage
               src={state.front_preview_url}
               alt="Product front"
               className="flex-1 aspect-square object-cover rounded-[14px] border border-border"
             />
           )}
           {state?.back_preview_url && (
-            <img
+            <SafeImage
               src={state.back_preview_url}
               alt="Product back"
               className="flex-1 aspect-square object-cover rounded-[14px] border border-border"
             />
           )}
           {!state?.front_preview_url && !state?.back_preview_url && state?.preview_url && (
-            <img
+            <SafeImage
               src={state.preview_url}
               alt="Product"
               className="w-full aspect-square object-cover rounded-[18px] border border-border"

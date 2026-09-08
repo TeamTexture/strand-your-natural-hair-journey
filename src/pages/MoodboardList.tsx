@@ -18,6 +18,7 @@ import { useMoodboards, type Moodboard } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import SafeImage from "@/components/SafeImage";
 
 const GRADIENTS = [
   "from-[#6B4423] to-[#3E2410]",
@@ -239,7 +240,7 @@ const MoodboardList = () => {
             className={`w-full aspect-[4/5] rounded-[16px] bg-gradient-to-br ${favourites.gradient} text-primary-foreground flex flex-col justify-end text-left overflow-hidden relative shadow-lg`}
           >
             {favourites.coverUrl && (
-              <img
+              <SafeImage
                 src={favourites.coverUrl}
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover"
@@ -276,7 +277,7 @@ const MoodboardList = () => {
               className={`relative h-36 rounded-[14px] bg-gradient-to-br ${b.gradient} p-3 flex flex-col justify-between text-left text-white overflow-hidden group`}
             >
               {b.coverUrl && (
-                <img
+                <SafeImage
                   src={b.coverUrl}
                   alt=""
                   className="absolute inset-0 size-full object-cover"

@@ -430,8 +430,9 @@ const Directory = () => {
 
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               <span className="text-[11px] text-muted-foreground">{p.title}</span>
-              <span className="bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
-                {p.verified} ✓
+              <span className="inline-flex items-center gap-1 bg-good/15 text-good text-[10px] font-medium px-1.5 py-0.5 rounded">
+                {p.verified}
+                <BadgeCheck className="size-3 shrink-0" aria-hidden />
               </span>
               {/* Verified capabilities only — claims never render. */}
               <CapabilityBadges

@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMoodboardImages, type MoodboardImage } from "@/hooks/useMoodboards";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
+import SafeImage from "@/components/SafeImage";
 
 interface BoardMeta {
   id: string;
@@ -136,7 +137,7 @@ const MoodboardBoard = () => {
   const handleFav = async (img: MoodboardImage) => {
     try {
       await toggleFavourite(img);
-      toast(img.is_favourite ? "Removed from Favourites" : "❤️ Added to Favourites board");
+      toast(img.is_favourite ? "Removed from Favourites" : "Added to Favourites board");
     } catch {
       toast.error("Could not update");
     }
@@ -248,8 +249,8 @@ const MoodboardBoard = () => {
         <p className="text-[11px] text-muted-foreground text-center pb-3 px-5">
         {images.length} {images.length === 1 ? "image" : "images"}
         {board.is_favourites
-          ? " · Tap ♥ to remove from Favourites"
-          : " · Tap ♡ to add to Favourites"}
+          ? " · Tap the heart to remove from Favourites"
+          : " · Tap the heart to add to Favourites"}
         <span className="hidden sm:inline"> · Drag &amp; drop photos anywhere</span>
       </p>
 
@@ -265,7 +266,7 @@ const MoodboardBoard = () => {
             <p className="text-3xl mb-2">{board.emoji}</p>
             {board.is_favourites ? (
               <p className="text-sm text-muted-foreground max-w-[280px] mx-auto leading-relaxed">
-                No favourites yet. Tap ♡ on any image in your mood boards to save it here.
+                No favourites yet. Tap the heart on any image in your mood boards to save it here.
               </p>
             ) : (
               <>
@@ -283,7 +284,7 @@ const MoodboardBoard = () => {
               className="relative aspect-[3/4] rounded-[12px] bg-secondary overflow-hidden group"
             >
               {img.signedUrl ? (
-                <img
+                <SafeImage
                   src={img.signedUrl}
                   alt={img.caption ?? "Mood board image"}
                   className="absolute inset-0 size-full object-cover"

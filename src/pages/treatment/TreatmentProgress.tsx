@@ -17,6 +17,7 @@ import { useTreatmentCheckins } from "@/hooks/useTreatmentCheckin";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
 import { formatClock, type TreatmentMediaRow } from "@/lib/treatmentMedia";
 import { fromDateKey, toDateKey, weekBreakdown, weekNumberFor } from "@/lib/treatmentSchedule";
+import SafeImage from "@/components/SafeImage";
 
 /**
  * Progress view. Oldest first everywhere — the sequence is the point.
@@ -224,7 +225,7 @@ const TreatmentProgress = () => {
                           )}
                         >
                           {urls[p.storage_path] ? (
-                            <img
+                            <SafeImage
                               src={urls[p.storage_path]}
                               alt={`Week ${g.week} progress photo`}
                               loading="lazy"
@@ -264,7 +265,7 @@ const TreatmentProgress = () => {
                 const row = photos.find((p) => p.storage_path === path)!;
                 return (
                   <div key={path} className="space-y-1">
-                    <img
+                    <SafeImage
                       src={urls[path]}
                       alt="Comparison photo"
                       className="w-full aspect-[3/4] object-cover rounded-[10px] bg-muted"

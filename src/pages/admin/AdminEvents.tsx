@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import DateTimePicker from "@/components/DateTimePicker";
+import SafeImage from "@/components/SafeImage";
 
 const AdminEvents = () => {
   const qc = useQueryClient();
@@ -133,7 +134,7 @@ const AdminEvents = () => {
               <Label>Cover image <span className="text-foreground/50">(optional)</span></Label>
               {coverPreview ? (
                 <div className="relative rounded-[10px] overflow-hidden border border-border">
-                  <img src={coverPreview} alt="" className="w-full aspect-[16/9] object-cover" />
+                  <SafeImage src={coverPreview} alt="" className="w-full aspect-[16/9] object-cover" />
                   <button
                     type="button"
                     onClick={() => onCoverPick(null)}

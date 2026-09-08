@@ -36,6 +36,7 @@ import LevelGate from "@/components/tips/LevelGate";
 import SectionHeader from "@/components/nav/SectionHeader";
 import EmptyState from "@/components/EmptyState";
 import { ICONS } from "@/lib/iconMap";
+import SafeImage from "@/components/SafeImage";
 
 const PHOTO_BUCKET = "journal-photos";
 
@@ -434,7 +435,7 @@ const Journal = () => {
                         <span className="absolute bottom-1 left-1 text-[9px] uppercase tracking-[0.12em] font-semibold bg-black/55 text-white px-1.5 py-0.5 rounded">Video</span>
                       </>
                     ) : (
-                      <img src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover object-[center_20%]" loading="lazy" />
+                      <SafeImage src={s.coverUrl} alt={displayTitle} className="absolute inset-0 size-full object-cover object-[center_20%]" loading="lazy" />
                     )
                   ) : (
                     <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 font-medium">
@@ -547,7 +548,7 @@ const Journal = () => {
                     aria-label={`Open ${b.name} mood board`}
                   >
                     {b.coverUrl ? (
-                      <img src={b.coverUrl} alt={b.name} className="absolute inset-0 size-full object-cover" loading="lazy" />
+                      <SafeImage src={b.coverUrl} alt={b.name} className="absolute inset-0 size-full object-cover" loading="lazy" />
                     ) : (
                       <span>{b.emoji}</span>
                     )}

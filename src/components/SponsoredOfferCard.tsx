@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdViewTracker, useLogAdEvent } from "@/hooks/useBrandOffers";
+import SafeImage from "@/components/SafeImage";
 
 export interface SponsoredOffer {
   id: string;
@@ -99,7 +100,7 @@ const SponsoredOfferCard = ({ offer }: { offer: SponsoredOffer }) => {
           className="block w-full"
           aria-label={`View ${brand?.brand_name ?? "brand"} offer`}
         >
-          <img
+          <SafeImage
             src={heroUrl}
             alt={offer.headline ?? `${brand?.brand_name ?? "Brand"} offer`}
             loading="lazy"

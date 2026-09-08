@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { smartBack } from "@/lib/smartBack";
@@ -264,7 +265,7 @@ const BrandProductPage = () => {
       <div className="px-5 pb-24 space-y-4">
         <SurfaceCard padded={false} className="overflow-hidden">
           {heroImage ? (
-            <img src={heroImage} alt="" className="w-full aspect-square object-cover" />
+            <SafeImage src={heroImage} alt="" className="w-full aspect-square object-cover" />
           ) : (
             <div className="w-full aspect-square bg-muted flex items-center justify-center text-muted-foreground text-xs">
               No image

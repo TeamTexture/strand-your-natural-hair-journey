@@ -3,6 +3,7 @@ import { Star, UtensilsCrossed, Plus } from "lucide-react";
 import { toast } from "sonner";
 import MealLogSheet from "@/components/nutrition/MealLogSheet";
 import { useMealCookLogs, signMealLogPhoto, type MealCookLog } from "@/hooks/useMealCookLogs";
+import SafeImage from "@/components/SafeImage";
 
 const relativeDate = (iso: string) => {
   const then = new Date(iso).getTime();
@@ -34,7 +35,7 @@ const LogThumb = ({ log }: { log: MealCookLog }) => {
     <div className="shrink-0 w-[84px] space-y-1">
       <div className="w-[84px] h-[84px] rounded-[10px] bg-secondary border border-border overflow-hidden flex items-center justify-center">
         {url ? (
-          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <SafeImage src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <UtensilsCrossed className="size-5 text-muted-foreground/60" />
         )}

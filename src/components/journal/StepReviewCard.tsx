@@ -10,6 +10,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useUserTools } from "@/hooks/useUserTools";
 import TranscriptView from "@/components/voice/TranscriptView";
 import type { JournalStep } from "@/hooks/useJournalSteps";
+import SafeImage from "@/components/SafeImage";
 
 const PHOTO_BUCKET = "journal-photos";
 const VIDEO_BUCKET = "journal-videos";
@@ -133,7 +134,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
               >
                 {m.kind === "photo" ? (
                   urls[m.id] ? (
-                    <img
+                    <SafeImage
                       src={urls[m.id]}
                       alt={`Step ${index + 1}`}
                       loading="lazy"
@@ -157,7 +158,7 @@ const StepReviewCard = ({ step, index }: { step: JournalStep; index: number }) =
                     aria-label={`Play step ${index + 1} video`}
                   >
                     {posters[m.id] ? (
-                      <img src={posters[m.id]} alt="" className="size-full object-cover" />
+                      <SafeImage src={posters[m.id]} alt="" className="size-full object-cover" />
                     ) : (
                       <span className="absolute inset-0 bg-foreground/10" />
                     )}

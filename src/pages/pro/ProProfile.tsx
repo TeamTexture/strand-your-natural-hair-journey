@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 import { smartBack } from "@/lib/smartBack";
 import TimeSelect from "@/components/TimeSelect";
 import { useEffect, useState } from "react";
@@ -490,7 +491,7 @@ const ProProfile = () => {
         <div className="flex items-center gap-4">
           <div className="size-20 rounded-full overflow-hidden bg-primary/10 border border-border shrink-0 flex items-center justify-center">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+              <SafeImage src={avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-xs text-muted-foreground">No photo</span>
             )}
@@ -974,7 +975,7 @@ const PhotoTile = ({ path, onRemove }: { path: string; onRemove: () => void }) =
   const url = useSignedUrl(path);
   return (
     <div className="relative aspect-square rounded-[12px] overflow-hidden bg-secondary">
-      {url && <img src={url} alt="" className="w-full h-full object-cover" />}
+      {url && <SafeImage src={url} alt="" className="w-full h-full object-cover" />}
       <button
         onClick={onRemove}
         className="absolute top-1 right-1 size-6 rounded-full bg-black/60 text-white flex items-center justify-center"

@@ -22,6 +22,7 @@ import { useUserTools } from "@/hooks/useUserTools";
 import type { JournalStep } from "@/hooks/useJournalSteps";
 
 import TranscriptView from "@/components/voice/TranscriptView";
+import SafeImage from "@/components/SafeImage";
 
 // Set when transcription is refused (e.g. AI credit limit) so background
 // auto-transcription stops instead of retrying on every step render.
@@ -340,7 +341,7 @@ const JournalStepCard = ({
         >
           {m.kind === "photo" ? (
             urls[m.id] ? (
-              <img src={urls[m.id]} alt={`Step ${index + 1} photo`} className="size-full object-cover" />
+              <SafeImage src={urls[m.id]} alt={`Step ${index + 1} photo`} className="size-full object-cover" />
             ) : null
           ) : urls[m.id] ? (
             <video
@@ -492,7 +493,7 @@ const JournalStepCard = ({
           {index + 1}
         </span>
         {!isOpen && coverUrl && (
-          <img
+          <SafeImage
             src={coverUrl}
             alt={`Step ${index + 1} preview`}
             className="size-12 shrink-0 rounded-[10px] object-cover ring-1 ring-border/60"

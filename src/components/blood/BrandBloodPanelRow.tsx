@@ -4,6 +4,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { matchedMarkers, priceLabel, type BrandBloodPanel } from "@/lib/bloodTestBrands";
+import SafeImage from "@/components/SafeImage";
 
 /**
  * THE shared blood panel row. Every surface that offers an at-home blood test
@@ -56,7 +57,7 @@ const BrandBloodPanelRow = ({
       <div className="flex items-start gap-3">
         <div className="size-10 rounded-[10px] bg-muted border border-border overflow-hidden shrink-0 flex items-center justify-center">
           {logoUrl ? (
-            <img
+            <SafeImage
               src={logoUrl}
               alt={`${panel.brand_name} logo`}
               loading="lazy"

@@ -13,6 +13,7 @@ import SurfaceCard from "@/components/SurfaceCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
+import SafeImage from "@/components/SafeImage";
 
 const MAX_PHOTOS = 5;
 
@@ -144,7 +145,7 @@ const ProgressPhotosCard = () => {
                 <div className="flex -space-x-2 shrink-0">
                   {preview.map((p) => (
                     <div key={p.id} className="size-11 rounded-[10px] overflow-hidden border-2 border-card bg-muted">
-                      <img src={p.url} alt="Progress" className="size-full object-cover" loading="lazy" />
+                      <SafeImage src={p.url} alt="Progress" className="size-full object-cover" loading="lazy" />
                     </div>
                   ))}
                   {extra > 0 && (
@@ -167,7 +168,7 @@ const ProgressPhotosCard = () => {
                     {items.map((p) => (
                       <div key={p.id} className="space-y-1">
                         <div className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
-                          <img src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" loading="lazy" />
+                          <SafeImage src={p.url} alt="Progress" className="absolute inset-0 size-full object-cover" loading="lazy" />
                           <button
                             type="button"
                             onClick={() => removePhoto(p)}

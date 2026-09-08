@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { EMPTY_METRICS, formatEngagementRate, type OfferMetrics } from "@/lib/brandMetrics";
 import { format } from "date-fns";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   id: string;
@@ -70,7 +71,7 @@ const LiveOfferCard = ({
       {/* Hero thumbnail */}
       <div className="relative h-[92px] w-full bg-muted overflow-hidden">
         {heroUrl ? (
-          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/25 to-primary/5" />
         )}

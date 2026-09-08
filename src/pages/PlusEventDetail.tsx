@@ -82,7 +82,9 @@ const PlusEventDetail = () => {
                   {e.ends_at && ` – ${format(new Date(e.ends_at), "HH:mm")}`}
                 </p>
                 {e.kind === "in_person" && (e.venue || e.address) && (
-                  <p className="font-body text-[12px] text-foreground/70">📍 {[e.venue, e.address].filter(Boolean).join(", ")}</p>
+                  <p className="font-body text-[12px] text-foreground/70 flex items-start gap-1">
+                    <MapPin className="size-3 shrink-0 mt-0.5" aria-hidden /> {[e.venue, e.address].filter(Boolean).join(", ")}
+                  </p>
                 )}
                 {e.capacity && (
                   <p className="font-body text-[11px] text-foreground/60 flex items-center gap-1">

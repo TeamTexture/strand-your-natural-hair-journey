@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 // PROGRESS PHOTOS — retrospective, and entirely on the member's terms.
 //
 // Photos used to be reachable only inside a check-in, which meant a photo taken
@@ -104,7 +105,7 @@ const PlanProgressPhotos = ({ userId, planId, media, onChanged, disabled }: Prop
             <div key={p.id} className="space-y-1">
               <div className="relative aspect-square rounded-[10px] overflow-hidden bg-secondary">
                 {urls[p.storage_path] && (
-                  <img
+                  <SafeImage
                     src={urls[p.storage_path]}
                     alt={`Progress photo from ${format(parseISO(p.captured_at), "d MMM yyyy")}`}
                     loading="lazy"
