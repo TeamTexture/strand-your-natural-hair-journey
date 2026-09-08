@@ -42,10 +42,10 @@ export interface WashLogGroup {
 
 
 const styleSlots: WashLogStep[] = [
-  { stored: "Style", label: "Style product", hint: "treatment" },
+  { stored: "Style", label: "Styler", hint: "treatment" },
   ...[2, 3, 4, 5].map((i) => ({
     stored: `Style ${i}`,
-    label: "Style product",
+    label: "Styler",
     hint: "treatment" as StepProductHint,
   })),
 ];
