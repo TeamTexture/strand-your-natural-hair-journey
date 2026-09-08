@@ -120,17 +120,25 @@ Deno.serve(async (req) => {
     await stamp(skip);
     if (due.length === 0) return json(out);
 
-    // Recipients' names and emails in one round trip.
+    // Recipients: the email lives on the auth user, the first name on the
+    // profile (there is no email column on profiles).
+    const userIds = [...new Set(due.map((r) => r.user_id))];
     const { data: profiles } = await admin
       .from("profiles")
-      .select("user_id, first_name, email")
-      .in("user_id", due.map((r) => r.user_id));
-    const profileMap = new Map(
+      .select("user_id, display_name")
+      .in("user_id", userIds);
+    const nameMap = new Map(
       (profiles ?? []).map((p) => [
         (p as { user_id: string }).user_id,
-        p as { first_name: string | null; email: string | null },
+        ((p as { display_name: string | null }).display_name ?? "").split(" ")[0],
       ]),
     );
+    const emailMap = new Map<string, string>();
+    for (const id of userIds) {
+      const { data: u } = await admin.auth.admin.getUserById(id);
+      const email = u?.user?.email ?? null;
+      if (email) emailMap.set(id, email);
+    }
 
     for (const r of due) {
       const proName = (r.professional_name ?? "").trim() || "your professional";
@@ -149,19 +157,19 @@ Deno.serve(async (req) => {
       if (nErr) out.errors.push(`notify ${r.id}: ${nErr.message}`);
       else out.notified++;
 
-      const p = profileMap.get(r.user_id);
-      if (p?.email) {
+      const email = emailMap.get(r.user_id);
+      if (email) {
         try {
           const res = await dispatchEmail({
             templateKey: "appointment-review-request",
-            to: p.email,
+            to: email,
             recipientUserId: r.user_id,
             triggerEvent: "appointment_review_request",
             relatedTable: "appointments",
             relatedId: r.id,
             idempotencyKey: `appointment-review-request:${r.id}`,
             data: {
-              name: p.first_name ?? "",
+              name: nameMap.get(r.user_id) ?? "",
               pro_name: proName,
               when: friendlyDate(r.appointment_date),
               review_path: reviewPath,
