@@ -19,7 +19,6 @@ import { COUNTRIES } from "@/data/countries";
 import { HERITAGE_OPTIONS } from "@/data/heritage";
 import HealthFieldsSection from "@/components/profile-review/HealthFieldsSection";
 import HardWaterHint from "@/components/HardWaterHint";
-import SafeImage from "@/components/SafeImage";
 
 const AVATAR_BUCKET = "avatars";
 
@@ -211,7 +210,7 @@ const PersonalDetailsReview = () => {
               {avatarBusy ? (
                 <Loader2 className="size-5 text-primary animate-spin" />
               ) : avatarUrl ? (
-                <SafeImage
+                <img
                   src={avatarUrl}
                   alt="Your profile"
                   className="size-full object-cover"

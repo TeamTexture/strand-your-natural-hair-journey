@@ -25,7 +25,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
-import SafeImage from "@/components/SafeImage";
 
 const AVATAR_BUCKET = "avatars";
 
@@ -522,7 +521,7 @@ const ProfileStep1 = () => {
               {avatarBusy ? (
                 <Loader2 className="size-5 text-primary animate-spin" />
               ) : avatarUrl ? (
-                <SafeImage src={avatarUrl} alt="Your profile" className="size-full object-cover" />
+                <img src={avatarUrl} alt="Your profile" className="size-full object-cover" />
               ) : (
                 <Camera className="size-6 text-primary/70" />
               )}
