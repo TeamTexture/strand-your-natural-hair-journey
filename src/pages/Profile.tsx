@@ -716,7 +716,13 @@ const Profile = () => {
       {chips.length > 0 && (
         <div className="px-5 pb-4 flex flex-wrap gap-2">
           {chips.map((c) => (
-            <span key={c} className="bg-secondary text-foreground/80 text-[13px] px-2.5 py-1.5 rounded-full">{c}</span>
+            <span
+              key={c.label}
+              className="inline-flex items-center gap-1.5 bg-secondary text-foreground/80 text-[13px] px-2.5 py-1.5 rounded-full"
+            >
+              <c.icon className="size-3.5 shrink-0" aria-hidden />
+              {c.label}
+            </span>
           ))}
         </div>
       )}
