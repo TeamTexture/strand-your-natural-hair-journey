@@ -122,10 +122,8 @@ export async function getConsumerOnboardingStatus(userId: string) {
     health.daily_water && health.exercise && health.sleep_quality &&
     hair?.diagnosed_conditions_enc
   );
-  // The five self-answerable hair questions. porosity/density both offer
-  // "Not sure", which writes null — density may never be required here, or a
-  // member who honestly answers "Not sure" is blocked from completing
-  // onboarding for good.
+  // The five self-answerable hair questions. Porosity is required and can no
+  // longer be null from the hair screen; density is not part of this gate.
   const hairFieldsComplete = !!(
     hair?.porosity &&
     hair.scalp_condition_enc &&
