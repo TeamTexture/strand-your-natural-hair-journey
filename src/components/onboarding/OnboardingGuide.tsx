@@ -72,7 +72,7 @@ const GUIDES: Record<string, Guide> = {
   "/onboarding/profile-step-3-hair": {
     step: 5,
     label: "Hair characteristics",
-    what: "Answer six questions about your hair and scalp — porosity, elasticity, scalp condition and the rest.",
+    what: "Answer five questions about your hair and scalp.",
     next: "Next: colour and your current style.",
   },
   "/onboarding/profile-step-4-colour": {
