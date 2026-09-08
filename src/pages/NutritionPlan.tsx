@@ -10,7 +10,7 @@ import RichBody from "@/components/RichBody";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import LoadingDot from "@/components/LoadingDot";
-import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle, Lock } from "lucide-react";
+import { Pill, Leaf, Ban, Sparkles, Info, ChefHat, Heart, ChevronDown, Clock, Trash2, AlertTriangle, Lock, type LucideIcon } from "lucide-react";
 import { capitaliseSentences } from "@/lib/paragraphs";
 
 import { readBloodData } from "@/lib/bloodRead";
@@ -258,7 +258,7 @@ const SupplementCard = ({ s, isFallback }: { s: AiSupplement; isFallback?: boole
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex items-start gap-2.5">
-        <IconBubble emoji={s.emoji || "💊"} tone="gold" />
+        <IconBubble icon={Pill} tone="gold" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-[17px] leading-tight text-foreground break-words [overflow-wrap:anywhere] min-w-0">
@@ -290,7 +290,7 @@ const DietCard = ({ c }: { c: AiCard }) => {
   return (
     <SurfaceCard className="border-l-4 border-l-good">
       <div className="flex items-center gap-2.5">
-        <IconBubble emoji={c.emoji || "🥗"} tone="good" />
+        <IconBubble icon={Leaf} tone="good" />
         <p className="flex-1 min-w-0 font-display text-[17px] leading-tight text-foreground break-words [overflow-wrap:anywhere]">
           {c.name}
         </p>
@@ -306,7 +306,7 @@ const AvoidCard = ({ c }: { c: AiCard }) => {
   return (
     <SurfaceCard className={`border-l-4 ${c.severity === "high" ? "border-l-destructive" : "border-l-warn"}`}>
       <div className="flex items-start gap-2.5">
-        <IconBubble emoji={c.emoji || "⚠️"} tone={c.severity === "high" ? "destructive" : "warn"} />
+        <IconBubble icon={AlertTriangle} tone={c.severity === "high" ? "destructive" : "warn"} />
         <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
           <p className="font-display text-[17px] leading-tight text-foreground break-words [overflow-wrap:anywhere] min-w-0">
             {c.name}
@@ -354,7 +354,7 @@ const MealCard = ({
   return (
     <SurfaceCard className="border-l-4 border-l-primary">
       <div className="flex items-start gap-2.5">
-        <IconBubble emoji={meal.emoji || "🍽️"} tone="gold" />
+        <IconBubble icon={ChefHat} tone="gold" />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
