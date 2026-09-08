@@ -25,15 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlertDismissals } from "@/hooks/useAlertDismissals";
 import { ALERT_KEYS, alertSignature } from "@/lib/alertKeys";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import AppointmentOutcomeDialog from "@/components/AppointmentOutcomeDialog";
+
 
 /** Trigger an hour after the scheduled time — she may still be at the chair. */
 const DELAY_MS = 60 * 60 * 1000;
