@@ -425,7 +425,7 @@ const WashLogStyleInner = () => {
 
         <SurfaceCard>
 
-          <Eyebrow icon={Plus}>Style products used</Eyebrow>
+          <Eyebrow icon={Plus}>Stylers used</Eyebrow>
           <div className="mt-2 space-y-2">
             {styleProductIds.length === 0 && (
               <p className="font-body text-[12.5px] text-muted-foreground">
