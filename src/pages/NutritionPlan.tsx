@@ -77,23 +77,23 @@ const SourceNote = ({ children }: { children?: React.ReactNode }) => (
 
 
 const IconBubble = ({
-  emoji,
+  icon: Icon,
   tone,
 }: {
-  emoji: string;
+  icon: LucideIcon;
   tone: "gold" | "good" | "destructive" | "warn";
 }) => {
   const toneCls: Record<string, string> = {
-    gold: "bg-primary/15 ring-1 ring-primary/30",
-    good: "bg-good/15 ring-1 ring-good/30",
-    destructive: "bg-destructive/10 ring-1 ring-destructive/30",
-    warn: "bg-warn/15 ring-1 ring-warn/30",
+    gold: "bg-primary/15 ring-1 ring-primary/30 text-primary",
+    good: "bg-good/15 ring-1 ring-good/30 text-good",
+    destructive: "bg-destructive/10 ring-1 ring-destructive/30 text-destructive",
+    warn: "bg-warn/15 ring-1 ring-warn/30 text-warn",
   };
   return (
     <div
-      className={`size-11 shrink-0 rounded-full flex items-center justify-center text-[22px] ${toneCls[tone]}`}
+      className={`size-11 shrink-0 rounded-full flex items-center justify-center ${toneCls[tone]}`}
     >
-      <span aria-hidden>{emoji}</span>
+      <Icon className="size-5" aria-hidden />
     </div>
   );
 };
