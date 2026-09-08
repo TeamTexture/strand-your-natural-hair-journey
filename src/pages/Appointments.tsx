@@ -398,7 +398,14 @@ const Appointments = () => {
                           appointmentId={a.id}
                           status={a.status}
                           linkedProUserId={a.linked_pro_user_id}
+                          professionalName={a.professional_name || a.clinic_name}
+                          onStatusChange={(status) =>
+                            setAppts((prev) =>
+                              prev.map((p) => (p.id === a.id ? { ...p, status } : p)),
+                            )
+                          }
                         />
+
                       </AppointmentCard>
                     </div>
                   );
