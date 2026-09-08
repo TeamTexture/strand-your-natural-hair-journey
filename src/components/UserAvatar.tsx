@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { useMyProfile, useInvalidateMyProfile } from "@/hooks/useMyProfile";
 import { getSignedUrl } from "@/lib/signedUrlCache";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   name: string;
