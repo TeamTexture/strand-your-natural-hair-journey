@@ -2031,6 +2031,9 @@ export type Database = {
           stripe_subscription_id: string | null
           tier: string
           trial_end: string | null
+          trial_save_offer_claimed_at: string | null
+          trial_save_offer_fact: string | null
+          trial_save_offer_used: boolean
           updated_at: string
           user_id: string
           welcome_dm_sent_at: string | null
@@ -2051,6 +2054,9 @@ export type Database = {
           stripe_subscription_id?: string | null
           tier?: string
           trial_end?: string | null
+          trial_save_offer_claimed_at?: string | null
+          trial_save_offer_fact?: string | null
+          trial_save_offer_used?: boolean
           updated_at?: string
           user_id: string
           welcome_dm_sent_at?: string | null
@@ -2071,6 +2077,9 @@ export type Database = {
           stripe_subscription_id?: string | null
           tier?: string
           trial_end?: string | null
+          trial_save_offer_claimed_at?: string | null
+          trial_save_offer_fact?: string | null
+          trial_save_offer_used?: boolean
           updated_at?: string
           user_id?: string
           welcome_dm_sent_at?: string | null
