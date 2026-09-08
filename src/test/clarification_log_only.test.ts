@@ -6,7 +6,7 @@
 // 2. A LOG-only clarification note is written for the author's review and does
 //    nothing else: no retry, no "rejected" outcome, served copy unchanged. Only
 //    the STRIP bucket is a rejection.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { recordAiOutcome, logGenerationRejections, checkClarifications } = vi.hoisted(() => ({
   recordAiOutcome: vi.fn(),
@@ -56,7 +56,17 @@ vi.mock("../../supabase/functions/_shared/clarifications.ts", async (importOrigi
 });
 
 import { scalpCleanlinessWhy } from "../../supabase/functions/_shared/clarifications.ts";
-import { sanitiseAndLog } from "../../supabase/functions/_shared/citation-log.ts";
+
+// Loaded by path at runtime so the Deno-only import chain under citation-log
+// (esm.sh URLs) stays out of the app typecheck. The vi.mock calls above still
+// apply to the module graph.
+const CITATION_LOG = "../../supabase/functions/_shared/citation-log.ts";
+type Sanitise = <T>(value: T, fn: string, opts?: Record<string, unknown>) => Promise<T>;
+let sanitiseAndLog: Sanitise;
+beforeAll(async () => {
+  const mod = (await import(/* @vite-ignore */ CITATION_LOG)) as { sanitiseAndLog: Sanitise };
+  sanitiseAndLog = mod.sanitiseAndLog;
+});
 
 const GOAL = "length retention";
 
