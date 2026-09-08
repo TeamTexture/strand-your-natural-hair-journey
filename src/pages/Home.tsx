@@ -829,6 +829,7 @@ const Home = () => {
       <ChallengesEditorSheet open={challengesOpen} onOpenChange={setChallengesOpen} />
       <FirstRunSequence />
       <AppointmentFollowUpDialog />
+      <EnquiryBookingCheckDialog />
       <HelloKleanDialog open={helloKleanOpen} onOpenChange={setHelloKleanOpen} userId={user?.id} />
     </ScreenLayout>
 
