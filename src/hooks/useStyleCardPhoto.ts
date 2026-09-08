@@ -18,7 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export type PhotoSource = "before" | "milestone";
+export type PhotoSource = "before" | "milestone" | "wash";
 
 export interface MilestonePhoto {
   id: string;
@@ -33,6 +33,8 @@ export interface MilestonePhoto {
 const BUCKET: Record<PhotoSource, string> = {
   before: "before-photos",
   milestone: "milestone-photos",
+  // Photos attached to a wash day log live with the journal media.
+  wash: "journal-photos",
 };
 
 export const styleCardPhotoKey = (userId?: string) => ["style-card-photo", userId ?? "anon"];
