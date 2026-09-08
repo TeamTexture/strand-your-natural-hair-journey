@@ -183,17 +183,21 @@ export default function AppointmentFollowUpDialog() {
     setStep("ask");
   };
 
-  if (step === "didnt-happen") {
+  if (step === "didnt-happen" || step === "cancelled") {
+    const wasCancelled = step === "cancelled";
     return (
       <Dialog open onOpenChange={(open) => { if (!open) handleNoThanks(); }}>
         <DialogContent className="max-w-[320px]">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
-              That appointment didn't go ahead
+              {wasCancelled
+                ? "That appointment was cancelled"
+                : "That appointment didn't go ahead"}
             </DialogTitle>
             <DialogDescription>
-              We've marked it as not attended, so we won't ask about it again.
-              Would you like to see other professionals?
+              {wasCancelled
+                ? "We've marked it as cancelled — you and your professional will both see that. Would you like to book something else?"
+                : "We've marked it as not attended, so we won't ask about it again. Would you like to see other professionals?"}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
@@ -212,6 +216,7 @@ export default function AppointmentFollowUpDialog() {
       </Dialog>
     );
   }
+
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) handleLater(); }}>
