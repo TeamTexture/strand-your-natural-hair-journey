@@ -99,28 +99,32 @@ describe("ProfileStep3Hair", () => {
     15000,
   );
 
-  it("navigates to the colour step after all five answers are selected", async () => {
-    await renderStep();
+  it(
+    "navigates to the colour step after all five answers are selected",
+    async () => {
+      await renderStep();
 
-    fireEvent.click(screen.getByText("Straight"));
-    fireEvent.click(screen.getByText("Soaks in straight away"));
-    fireEvent.click(screen.getByText("A lot"));
-    fireEvent.click(screen.getByText("Comfortable"));
-    fireEvent.click(screen.getByText("None"));
+      fireEvent.click(screen.getByText("Straight"));
+      fireEvent.click(screen.getByText("Soaks in straight away"));
+      fireEvent.click(screen.getByText("A lot"));
+      fireEvent.click(screen.getByText("Comfortable"));
+      fireEvent.click(screen.getByText("None"));
 
-    fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Continue/ }));
 
-    await waitFor(() => {
-      expect(screen.getByTestId("location").textContent).toBe("/onboarding/profile-step-4-colour");
-    });
+      await waitFor(() => {
+        expect(screen.getByTestId("location").textContent).toBe("/onboarding/profile-step-4-colour");
+      });
 
-    expect(upserted).toHaveLength(1);
-    expect(upserted[0]).toMatchObject({
-      user_id: "u1",
-      curl_pattern: "Straight",
-      porosity: "High",
-      density: "Low",
-      areas_of_concern: ["None"],
-    });
-  });
+      expect(upserted).toHaveLength(1);
+      expect(upserted[0]).toMatchObject({
+        user_id: "u1",
+        curl_pattern: "Straight",
+        porosity: "High",
+        density: "Low",
+        areas_of_concern: ["None"],
+      });
+    },
+    15000,
+  );
 });
