@@ -112,10 +112,16 @@ const UserAvatar = ({ name, size = "size-14", editable = true, plus = false }: P
     }
   };
 
+  const initialsInner = <span className="font-display text-lg font-semibold">{initials}</span>;
   const inner = signedUrl ? (
-    <img src={signedUrl} alt={name} className="size-full object-cover" />
+    <SafeImage
+      src={signedUrl}
+      alt={name}
+      className="size-full object-cover"
+      fallback={initialsInner}
+    />
   ) : (
-    <span className="font-display text-lg font-semibold">{initials}</span>
+    initialsInner
   );
 
   if (!editable) {
