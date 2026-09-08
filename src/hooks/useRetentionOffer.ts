@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { assertNotViewingAs } from "@/lib/viewAsReadOnly";
 import { friendlyInvokeError } from "@/lib/invokeError";
+import type { TrialSavePersonalisation } from "@/hooks/useTrialSaveOffer";
 
 /**
  * One-time "keep my discount" retention offer: half price for 3 months.
@@ -23,6 +24,10 @@ export interface RetentionOfferCheck {
   price: number;
   discounted_price: number;
   months: number;
+  /** True once the 7-free-days trial save screen has been shown and answered. */
+  trial_save_offer_used?: boolean;
+  /** Personal line for the trial "are you sure?" screen (screen-2 fact only). */
+  personalisation?: TrialSavePersonalisation | null;
 }
 
 /**

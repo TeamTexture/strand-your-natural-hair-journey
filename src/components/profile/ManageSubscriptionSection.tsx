@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import RetentionOfferDialog from "@/components/profile/RetentionOfferDialog";
+import TrialSaveOfferDialog from "@/components/profile/TrialSaveOfferDialog";
+import TrialAreYouSureDialog from "@/components/profile/TrialAreYouSureDialog";
 import { useRetentionOffer } from "@/hooks/useRetentionOffer";
+import { useTrialSaveOffer } from "@/hooks/useTrialSaveOffer";
 import { memberSafeMessage } from "@/lib/invokeError";
 
 const PLUS_PRICE = 14.99;
@@ -93,17 +96,37 @@ const ManageSubscriptionSection = () => {
   const [pauseOpen, setPauseOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [retentionOpen, setRetentionOpen] = useState(false);
+  const [trialSaveOpen, setTrialSaveOpen] = useState(false);
+  const [trialSureOpen, setTrialSureOpen] = useState(false);
   // Server-side eligibility for the one-time half-price retention offer. Never a
   // client-only check: the same verdict is re-run when the offer is claimed.
   const retention = useRetentionOffer();
+  // Server-side eligibility for the one-time 7-free-days trial save screen
+  // (still trialing, never charged, not used before).
+  const trialSave = useTrialSaveOffer();
 
   /**
-   * Cancel tap. If the SERVER says the member still has the retention offer,
-   * show it first; if they have already used it, still show the "Before you
-   * cancel" dialog so the feedback section is reachable. Otherwise go straight
-   * to the existing cancellation confirmation, unchanged.
+   * Cancel tap, in order:
+   *  1. Still on the initial free trial, never charged, 7-free-days screen not
+   *     yet used → that screen. Declining it burns it and goes to the real cancel.
+   *  2. Trial member who already answered that screen and still has the one-time
+   *     half-price offer → the trial "Are you sure?" screen.
+   *  3. Otherwise the existing paid-member retention/feedback dialog, unchanged.
+   *  4. Otherwise straight to the existing cancellation confirmation.
    */
   const startCancel = () => {
+    if (trialSave.data?.eligible) {
+      setTrialSaveOpen(true);
+      return;
+    }
+    const trialingSure =
+      !!retention.data?.trialing &&
+      !!retention.data?.trial_save_offer_used &&
+      !!retention.data?.eligible;
+    if (trialingSure) {
+      setTrialSureOpen(true);
+      return;
+    }
     if (retention.data?.eligible || retention.data?.already_used) setRetentionOpen(true);
     else setCancelOpen(true);
   };
@@ -364,7 +387,7 @@ const ManageSubscriptionSection = () => {
                         : "Runs to the end of your paid period, then stops"
                   }
                   onClick={startCancel}
-                  disabled={portal.isPending || retention.isLoading}
+                  disabled={portal.isPending || retention.isLoading || trialSave.isLoading}
                 />
               )}
             </div>
@@ -415,6 +438,26 @@ const ManageSubscriptionSection = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Trial save screen 1 — 7 more free days, before any charge */}
+      {trialSave.data?.eligible && (
+        <TrialSaveOfferDialog
+          open={trialSaveOpen}
+          onOpenChange={setTrialSaveOpen}
+          offer={trialSave.data}
+          onCancelAnyway={() => setCancelOpen(true)}
+        />
+      )}
+
+      {/* Trial save screen 2 — "Are you sure?", half price for 3 months */}
+      {retention.data?.trialing && retention.data.trial_save_offer_used && retention.data.eligible && (
+        <TrialAreYouSureDialog
+          open={trialSureOpen}
+          onOpenChange={setTrialSureOpen}
+          offer={retention.data}
+          onCancelAnyway={() => setCancelOpen(true)}
+        />
+      )}
 
       {/* Retention offer / feedback — shown before cancellation */}
       {retention.data && (retention.data.eligible || retention.data.already_used) && (

@@ -16,6 +16,16 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "npm:stripe@17";
 import { preflight, json } from "../_shared/cors.ts";
 import { requireAuthedUser } from "../_shared/auth.ts";
+// ADDITIVE (2026-09-08): the trial "are you sure?" save screen reuses this
+// offer, so `check` also returns a personalisation line — excluding whichever
+// fact the first trial save screen already used. Eligibility, the coupon and the
+// one-time flag are untouched.
+import { decryptText } from "../_shared/scalp-decrypt.ts";
+import {
+  chooseTrialSavePersonalisation,
+  loadTrialSaveSignals,
+  type TrialFactCategory,
+} from "../_shared/trial-save-personalisation.ts";
 
 /** 50% off, repeating for 3 months. Created in Stripe. */
 const RETENTION_COUPON = "0ajj1XVm";
@@ -31,7 +41,34 @@ type Row = {
   cancel_at_period_end: boolean | null;
   stripe_subscription_id: string | null;
   retention_offer_used: boolean | null;
+  trial_save_offer_used?: boolean | null;
+  trial_save_offer_fact?: string | null;
 };
+
+/**
+ * The trial "are you sure?" screen's personalisation: the same picker the first
+ * trial save screen uses, on screen-2 priority, excluding whichever fact screen
+ * one already showed. Never throws — no personalisation is a fine answer.
+ */
+async function buildScreenTwoPersonalisation(
+  admin: any,
+  userId: string,
+  usedFact: string | null,
+) {
+  try {
+    const signals = await loadTrialSaveSignals(admin, userId, decryptText);
+    return chooseTrialSavePersonalisation(signals, {
+      screen: 2,
+      exclude: (usedFact as TrialFactCategory | null) ?? null,
+    });
+  } catch (e) {
+    console.error(
+      "[consumer-retention-offer] personalisation failed",
+      e instanceof Error ? e.message : "unknown",
+    );
+    return null;
+  }
+}
 
 /**
  * FAILURE CONTRACT (2026-09-04): every non-2xx response from this function
@@ -94,7 +131,7 @@ Deno.serve(async (req) => {
     const { data, error } = await admin
       .from("consumer_subscriptions")
       .select(
-        "status, trial_end, tier, paused, cancel_at_period_end, stripe_subscription_id, retention_offer_used",
+        "status, trial_end, tier, paused, cancel_at_period_end, stripe_subscription_id, retention_offer_used, trial_save_offer_used, trial_save_offer_fact",
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -123,6 +160,18 @@ Deno.serve(async (req) => {
     const trialEnd = trialing ? (row?.trial_end ?? null) : null;
 
     if (action === "check") {
+      // Personalisation for the trial "are you sure?" screen. Only assembled
+      // for a trialing member; it never affects eligibility or the discount.
+      let personalisation = null as
+        | Awaited<ReturnType<typeof buildScreenTwoPersonalisation>>
+        | null;
+      if (trialing) {
+        personalisation = await buildScreenTwoPersonalisation(
+          admin,
+          userId,
+          (row as any)?.trial_save_offer_fact ?? null,
+        );
+      }
       return json(200, {
         eligible: verdict.eligible,
         reason: verdict.reason,
@@ -133,6 +182,8 @@ Deno.serve(async (req) => {
         price,
         discounted_price: discountedPrice,
         months: RETENTION_MONTHS,
+        trial_save_offer_used: (row as any)?.trial_save_offer_used ?? false,
+        personalisation,
       });
     }
 
