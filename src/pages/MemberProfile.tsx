@@ -55,7 +55,7 @@ const MemberProfile = () => {
         {profileQ.isLoading ? <LoadingDot /> : (
           <div className="px-5 pt-4 pb-10 text-center space-y-4">
             {profileQ.data?.avatar_url ? (
-              <SafeImage src={profileQ.data.avatar_url} alt="" className="mx-auto size-24 rounded-full object-cover" />
+              <SafeImage src={profileQ.data.avatar_url} alt={profileQ.data?.display_name ? `${profileQ.data.display_name} profile photo` : "Member profile photo"} className="mx-auto size-24 rounded-full object-cover" />
             ) : (
               <div className="mx-auto size-24 rounded-full bg-primary/15 text-primary text-3xl flex items-center justify-center font-display font-semibold">
                 {firstName[0]}

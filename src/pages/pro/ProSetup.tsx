@@ -168,7 +168,7 @@ const PhotoTile = ({
   const url = useSignedUrl(path);
   return (
     <div className="relative aspect-square rounded-[12px] overflow-hidden bg-secondary">
-      {url && <SafeImage src={url} alt="" className="w-full h-full object-cover" />}
+      {url && <SafeImage src={url} alt="Portfolio photo" className="w-full h-full object-cover" />}
       <button
         onClick={onRemove}
         className="absolute top-1 right-1 size-6 rounded-full bg-black/60 text-white flex items-center justify-center"
@@ -600,7 +600,7 @@ const ProSetup = () => {
                 {avatarUrl ? (
                   <SafeImage
                     src={avatarUrl}
-                    alt=""
+                    alt="Your profile photo"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -1027,7 +1027,7 @@ const ProSetup = () => {
                 {coverUrl ? (
                   <SafeImage
                     src={coverUrl}
-                    alt=""
+                    alt="Your cover image"
                     className="w-full h-full object-cover"
                   />
                 ) : (

@@ -134,7 +134,7 @@ const AdminEvents = () => {
               <Label>Cover image <span className="text-foreground/50">(optional)</span></Label>
               {coverPreview ? (
                 <div className="relative rounded-[10px] overflow-hidden border border-border">
-                  <SafeImage src={coverPreview} alt="" className="w-full aspect-[16/9] object-cover" />
+                  <SafeImage src={coverPreview} alt="Event cover image" className="w-full aspect-[16/9] object-cover" />
                   <button
                     type="button"
                     onClick={() => onCoverPick(null)}
