@@ -36,15 +36,19 @@ export const recordAppointmentOutcome = async (
   outcome: AppointmentOutcome,
   userId?: string | null,
 ): Promise<void> => {
-  const patch: Record<string, unknown> = { status: outcomeStatus[outcome] };
-  if (outcome === "cancelled") {
-    patch.cancelled_at = new Date().toISOString();
-    patch.cancelled_by = userId ?? null;
-  }
+  const patch =
+    outcome === "cancelled"
+      ? {
+          status: outcomeStatus.cancelled,
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: userId ?? null,
+        }
+      : { status: outcomeStatus[outcome] };
   const { error } = await supabase
     .from("appointments")
     .update(patch)
     .eq("id", appointmentId);
+
   if (error) console.error("Appointment outcome update failed:", error);
 };
 
