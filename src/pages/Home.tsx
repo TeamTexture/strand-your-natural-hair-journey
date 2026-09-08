@@ -502,7 +502,9 @@ const Home = () => {
                     {style.current_hairstyle}
                   </h2>
                   <p className="text-[#E0D7CC]/80 text-xs font-body mt-1">
-                    {daysInStyle != null ? `Day ${daysInStyle} in rotation` : "Just set"}
+                    {daysInStyle != null && style.style_set_at
+                      ? `Day ${daysInStyle} in rotation · since ${fmtDate(style.style_set_at)}`
+                      : "Just set"}
                   </p>
                 </div>
                 <div className="shrink-0 flex items-center gap-2">

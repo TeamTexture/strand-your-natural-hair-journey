@@ -44,6 +44,7 @@ import { loadClinicalContext } from "@/lib/clinicalContext";
 import { styleAsksTension, styleAsksExtensions } from "@/lib/hairstyles";
 import { saveCurrentStyle, announceStyleChange } from "@/lib/styleChange";
 import SafeImage from "@/components/SafeImage";
+import { styleCardPhotoKey } from "@/hooks/useStyleCardPhoto";
 
 
 const PHOTO_BUCKET = "journal-photos";
