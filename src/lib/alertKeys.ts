@@ -26,6 +26,10 @@ export const ALERT_KEYS = {
   // "Did this appointment happen?" — signature is the appointment id, so a
   // dismissal is permanent and per-appointment, never a global mute.
   APPOINTMENT_FOLLOW_UP: "appointment_follow_up",
+  // "Did you book with them?" after a professional accepted her enquiry and no
+  // appointment with that professional exists. Signature is the enquiry id, so
+  // an answer is permanent for that enquiry and never a global mute.
+  APPOINTMENT_BOOK_CHECK: "appointment_book_check",
   BREAKAGE_LOGGED: "breakage_logged",
   LOW_RATED_ON_SHELF: "low_rated_on_shelf",
   GOAL_TARGET_PASSED: "goal_target_passed",
