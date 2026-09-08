@@ -401,6 +401,16 @@ const GlobalMenu = () => {
             )}
           </div>
           <div className="flex items-center gap-1 min-w-0 shrink justify-end">
+            {showBackToHome && (
+              <button
+                type="button"
+                aria-label="Back to home"
+                onClick={() => navigate(viewHome)}
+                className="h-9 px-3 rounded-full bg-brown text-primary text-[11px] font-body font-bold uppercase tracking-wide whitespace-nowrap hover:opacity-90 transition-opacity shrink-0"
+              >
+                Back to home
+              </button>
+            )}
             {allowsMemberFeatures(activeView) && !isDirectoryPage && (
               <TipsLevelButton className="shrink-0" />
             )}
