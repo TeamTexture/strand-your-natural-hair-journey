@@ -374,17 +374,20 @@ const Profile = () => {
 
   // Build chips list — ONLY from real data
   const chips = useMemo(() => {
-    const out: string[] = [];
+    const out: { label: string; icon: LucideIcon }[] = [];
     flaggedBlood.slice(0, 3).forEach((b) => {
-      out.push(`🩸 ${b.status === "low" ? "Low" : "High"} ${b.marker.toLowerCase()}`);
+      out.push({ label: `${b.status === "low" ? "Low" : "High"} ${b.marker.toLowerCase()}`, icon: Droplet });
     });
     if (Array.isArray(health.medications) && health.medications.length === 0) {
-      out.push("💊 No medications");
+      out.push({ label: "No medications", icon: Pill });
     } else if (Array.isArray(health.medications) && health.medications.length > 0) {
-      out.push(`💊 ${health.medications.length} medication${health.medications.length === 1 ? "" : "s"}`);
+      out.push({
+        label: `${health.medications.length} medication${health.medications.length === 1 ? "" : "s"}`,
+        icon: Pill,
+      });
     }
     if (Array.isArray(hair.diagnosed)) {
-      hair.diagnosed.slice(0, 2).forEach((d) => out.push(`🩺 ${d}`));
+      hair.diagnosed.slice(0, 2).forEach((d) => out.push({ label: d, icon: Stethoscope }));
     }
     return out;
   }, [flaggedBlood, health.medications, hair.diagnosed]);
