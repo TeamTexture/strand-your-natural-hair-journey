@@ -12,12 +12,12 @@ import OnboardingSectionCard from "@/components/onboarding/OnboardingSectionCard
 import RequiredField, { MissingAnswersCard } from "@/components/onboarding/RequiredField";
 import Tag from "@/components/Tag";
 import CurlPatternPicker from "@/components/onboarding/CurlPatternPicker";
+import { Sparkles } from "lucide-react";
 
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptForStorage } from "@/lib/clinicalContext";
-import HairLengthPicker from "@/components/HairLengthPicker";
 import { toast } from "sonner";
 import { getDisplayedAuthUser } from "@/lib/displayedUser";
 
