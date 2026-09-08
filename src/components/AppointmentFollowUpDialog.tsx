@@ -58,8 +58,10 @@ export default function AppointmentFollowUpDialog() {
   const navigate = useNavigate();
   const { loaded, isDismissed, dismiss } = useAlertDismissals();
   const [pending, setPending] = useState<PendingAppt | null>(null);
-  // Second step, shown after "It didn't happen" so the answer isn't a dead end.
-  const [step, setStep] = useState<"ask" | "didnt-happen">("ask");
+  // Second step, shown after "It didn't happen"/"It was cancelled" so the
+  // answer isn't a dead end.
+  const [step, setStep] = useState<"ask" | "didnt-happen" | "cancelled">("ask");
+
 
   useEffect(() => {
     if (!user || !loaded) return;
@@ -149,6 +151,25 @@ export default function AppointmentFollowUpDialog() {
       .eq("id", id);
     if (error) console.error("Appointment not-attended update failed:", error);
   };
+
+  // Distinct from "didn't happen": the visit was called off, by her or the pro.
+  // Writes the SAME `cancelled` status the professional's diary already sets, so
+  // both dashboards render it through their existing status badge.
+  const handleCancelled = async () => {
+    const id = pending.id;
+    void silenceForever(id);
+    setStep("cancelled");
+    const { error } = await supabase
+      .from("appointments")
+      .update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: user?.id ?? null,
+      })
+      .eq("id", id);
+    if (error) console.error("Appointment cancellation update failed:", error);
+  };
+
 
   const handleFindAnother = () => {
     setPending(null);
