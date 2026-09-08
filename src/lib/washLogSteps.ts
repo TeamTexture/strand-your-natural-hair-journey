@@ -33,7 +33,13 @@ export interface WashLogGroup {
    * once every slot is filled (Style, up to five products).
    */
   dynamic?: boolean;
+  /**
+   * Optional steps she can mark as deliberately skipped instead of leaving
+   * blank. ONLY Pre-poo and Mask — Cleanse and Condition never offer a skip.
+   */
+  skippable?: boolean;
 }
+
 
 const styleSlots: WashLogStep[] = [
   { stored: "Style", label: "Style product", hint: "treatment" },
