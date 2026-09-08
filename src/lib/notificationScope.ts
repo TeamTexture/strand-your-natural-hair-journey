@@ -16,6 +16,7 @@ const KIND_VIEWS: Record<string, ActiveRoleView[]> = {
   enquiry_declined: ["consumer"],
   appointment: ["consumer"],
   appointment_reminder: ["consumer"],
+  appointment_review: ["consumer"],
   appointment_logged: ["consumer"],
   review_approved: ["consumer"],
   review_denied: ["consumer"],

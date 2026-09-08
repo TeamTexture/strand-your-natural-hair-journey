@@ -171,6 +171,20 @@ const LogAppointment = () => {
     setPickedFromDirectory(p);
   };
 
+  // Arriving from the "Did you book with them?" prompt: ?pro=<pro user id>
+  // preselects that professional so she only fills in the date. Additive — when
+  // the id doesn't match a live listing the form simply opens blank as before.
+  const prefillProUserId = searchParams.get("pro");
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current || fromId || !prefillProUserId || pros.length === 0) return;
+    const match = pros.find((p) => p.proUserId === prefillProUserId);
+    if (!match) return;
+    prefilledRef.current = true;
+    applyPro(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pros, prefillProUserId, fromId]);
+
   const clearPick = () => {
     setPickedFromDirectory(null);
     setQuery("");
