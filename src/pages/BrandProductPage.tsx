@@ -265,7 +265,7 @@ const BrandProductPage = () => {
       <div className="px-5 pb-24 space-y-4">
         <SurfaceCard padded={false} className="overflow-hidden">
           {heroImage ? (
-            <SafeImage src={heroImage} alt={productName ? `${productName}` : "Product image"} className="w-full aspect-square object-cover" />
+            <SafeImage src={heroImage} alt={product.name ?? "Product image"} className="w-full aspect-square object-cover" />
           ) : (
             <div className="w-full aspect-square bg-muted flex items-center justify-center text-muted-foreground text-xs">
               No image
