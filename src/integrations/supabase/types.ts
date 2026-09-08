@@ -792,6 +792,7 @@ export type Database = {
           professional_type: string | null
           reason: string | null
           reminder_sent_at: string | null
+          review_request_sent_at: string | null
           service: string | null
           status: string
           treatment_plan_id: string | null
@@ -820,6 +821,7 @@ export type Database = {
           professional_type?: string | null
           reason?: string | null
           reminder_sent_at?: string | null
+          review_request_sent_at?: string | null
           service?: string | null
           status?: string
           treatment_plan_id?: string | null
@@ -848,6 +850,7 @@ export type Database = {
           professional_type?: string | null
           reason?: string | null
           reminder_sent_at?: string | null
+          review_request_sent_at?: string | null
           service?: string | null
           status?: string
           treatment_plan_id?: string | null
