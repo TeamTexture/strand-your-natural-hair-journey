@@ -71,7 +71,7 @@ const LiveOfferCard = ({
       {/* Hero thumbnail */}
       <div className="relative h-[92px] w-full bg-muted overflow-hidden">
         {heroUrl ? (
-          <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <SafeImage src={heroUrl} alt={headline ? `${headline} — advert image` : "Live advert image"} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/25 to-primary/5" />
         )}

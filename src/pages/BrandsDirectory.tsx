@@ -39,7 +39,7 @@ const BrandListItem = ({ brand, onOpen }: { brand: BrandCard; onOpen: () => void
       <div className="flex items-center gap-3">
         <div className="size-11 rounded-xl bg-muted border border-border overflow-hidden shrink-0 flex items-center justify-center">
           {logoUrl ? (
-            <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+            <img src={logoUrl} alt={`${brand.brand_name} logo`} className="w-full h-full object-cover" />
           ) : (
             <span className="font-display text-primary text-sm">{brand.brand_name[0] ?? "✦"}</span>
           )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   /** Full professional/client name — used to derive initials. */
@@ -55,12 +56,26 @@ const ProAvatar = ({ name, photoUrl, size = "size-12", className }: Props) => {
     };
   }, [photoUrl, isHttp]);
 
+  const initialsTile = (
+    <div
+      className={cn(
+        size,
+        "rounded-[12px] bg-primary/15 text-primary flex items-center justify-center shrink-0 font-display font-semibold",
+        className,
+      )}
+      aria-label={name}
+    >
+      <span className="text-sm tracking-wide">{initialsFor(name)}</span>
+    </div>
+  );
+
   if (resolved) {
     return (
-      <img
+      <SafeImage
         src={resolved}
         alt={name}
         className={cn(size, "rounded-[12px] object-cover shrink-0", className)}
+        fallback={initialsTile}
       />
     );
   }

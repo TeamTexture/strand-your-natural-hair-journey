@@ -160,7 +160,7 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
       >
         <div className="relative" style={{ height: 96 }}>
           {heroUrl ? (
-            <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+            <SafeImage src={heroUrl} alt={brandName ? `${brandName} advert image` : "Advert image"} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
           )}

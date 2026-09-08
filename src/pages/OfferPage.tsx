@@ -300,7 +300,7 @@ const OfferPage = () => {
       <TitleBar title="Offer" />
       <div className="px-5 pb-8 space-y-4">
         <SurfaceCard padded={false} className="overflow-hidden">
-          {heroUrl && <SafeImage src={heroUrl} alt="" className="w-full aspect-[16/9] object-cover" />}
+          {heroUrl && <SafeImage src={heroUrl} alt="Offer image" className="w-full aspect-[16/9] object-cover" />}
           <div className="p-4">
             <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-body">Sponsored</p>
             <p className="font-display text-xl mt-1">{offer.headline || (offer.brand_profiles as { brand_name?: string } | null)?.brand_name || "Featured offer"}</p>
@@ -348,7 +348,7 @@ const OfferPage = () => {
                 >
                   <div className="flex gap-3">
                     <div className="w-[72px] h-[72px] shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
-                      {thumb && <SafeImage src={thumb} alt="" className="w-full h-full object-cover" />}
+                      {thumb && <SafeImage src={thumb} alt={p.name ?? "Product image"} className="w-full h-full object-cover" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">

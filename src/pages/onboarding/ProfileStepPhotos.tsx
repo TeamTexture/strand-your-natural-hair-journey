@@ -16,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { toast } from "sonner";
-import SafeImage from "@/components/SafeImage";
 
 const MAX_PHOTOS = 4;
 
@@ -100,7 +99,7 @@ const ProfileStepPhotos = () => {
         <div className="grid grid-cols-2 gap-3">
           {items.map((i) => (
             <div key={i.path} className="relative aspect-square rounded-[14px] overflow-hidden bg-muted">
-              <SafeImage src={i.url} alt="Before" className="absolute inset-0 size-full object-cover" />
+              <img src={i.url} alt="Before" className="absolute inset-0 size-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeItem(i.path)}

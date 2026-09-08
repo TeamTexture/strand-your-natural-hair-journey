@@ -687,7 +687,7 @@ const ItemRow = ({
       <div className="flex items-center gap-2">
         <div className="w-14 h-10 rounded-md bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center">
           {thumbUrl ? (
-            <SafeImage src={thumbUrl} alt="" className="w-full h-full object-cover" />
+            <SafeImage src={thumbUrl} alt="Library item cover" className="w-full h-full object-cover" />
           ) : (
             <Film className="size-4 text-foreground/40" />
           )}

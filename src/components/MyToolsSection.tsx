@@ -331,7 +331,7 @@ const MyToolsSection = ({ open, onToggleOpen, searchTerm = "" }: MyToolsSectionP
                 <div className="p-3 flex items-start gap-3">
                   <div className="size-14 rounded-[10px] overflow-hidden bg-secondary shrink-0">
                     {t.image_url ? (
-                      <SafeImage src={t.image_url} alt="" className="size-full object-cover" />
+                      <SafeImage src={t.image_url} alt={t.name} className="size-full object-cover" />
                     ) : (
                       <div className="size-full flex items-center justify-center bg-primary/15 text-primary">
                         <Wrench className="size-5" />
