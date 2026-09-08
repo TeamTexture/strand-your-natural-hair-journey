@@ -364,6 +364,17 @@ const GlobalMenu = () => {
   // rendered one (e.g. via TitleBar), so the user never sees two back buttons.
   const canGoBack = location.pathname !== "/home" && !hasPageBackButton;
 
+  // Persistent "Back to home" escape hatch for beta testers stuck mid-flow.
+  // Shown on every post-onboarding app screen except the view's own home
+  // (no point there), and never during onboarding. No screen in the app
+  // intercepts in-app navigation with an unsaved-changes guard (the only
+  // guards are tab-close warnings), so this is an unconditional jump.
+  const viewHome = viewMeta[activeView].to;
+  const showBackToHome =
+    !isOnboarding &&
+    location.pathname !== viewHome &&
+    !(viewHome === "/home" && location.pathname === "/");
+
 
   return (
       <div className="shrink-0 border-b border-border/40 bg-background">
@@ -390,6 +401,16 @@ const GlobalMenu = () => {
             )}
           </div>
           <div className="flex items-center gap-1 min-w-0 shrink justify-end">
+            {showBackToHome && (
+              <button
+                type="button"
+                aria-label="Back to home"
+                onClick={() => navigate(viewHome)}
+                className="h-9 px-3 rounded-full bg-brown text-primary text-[11px] font-body font-bold uppercase tracking-wide whitespace-nowrap hover:opacity-90 transition-opacity shrink-0"
+              >
+                Back to home
+              </button>
+            )}
             {allowsMemberFeatures(activeView) && !isDirectoryPage && (
               <TipsLevelButton className="shrink-0" />
             )}
