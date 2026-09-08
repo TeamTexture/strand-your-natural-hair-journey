@@ -252,14 +252,8 @@ const WashLogStepsInner = () => {
           );
         })}
 
-        <button
-          type="button"
-          onClick={() => navigate("/wash/favourites")}
-          className="w-full inline-flex items-center justify-center gap-1.5 pt-1 text-[11.5px] font-body text-primary min-h-[40px]"
-        >
-          <Heart className="size-3.5" aria-hidden />
-          From your Wash Day Favourites
-        </button>
+
+
 
         <Button variant="gold" size="pill" className="mt-2" onClick={next}>
           Next
