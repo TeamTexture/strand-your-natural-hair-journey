@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMyOfferInterest, useRegisterOfferInterest } from "@/hooks/useBrandOfferInterest";
 import BrandShelfSection from "@/components/brand/BrandShelfSection";
 import BrandOfferBanner, { BannerOffer } from "@/components/brand/BrandOfferBanner";
+import SafeImage from "@/components/SafeImage";
 
 interface PastOffer {
   id: string;
@@ -51,7 +52,7 @@ const PastOfferRow = ({ offer }: { offer: PastOffer }) => {
     <SurfaceCard className="p-0 overflow-hidden min-w-0 opacity-95">
       <div className="relative h-[76px] w-full bg-muted">
         {heroUrl ? (
-          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[45%] opacity-80" />
+          <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover grayscale-[45%] opacity-80" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50" />
         )}

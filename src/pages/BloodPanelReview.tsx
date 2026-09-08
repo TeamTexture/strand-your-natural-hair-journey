@@ -61,6 +61,7 @@ import { shortForm, type GuidanceTip } from "@/lib/tipsRender";
 import AnchorStat from "@/components/guidance/AnchorStat";
 import ActionList from "@/components/guidance/ActionList";
 import MarkerBadgeRow, { type MarkerSeverity } from "@/components/blood/MarkerBadgeRow";
+import SafeImage from "@/components/SafeImage";
 
 interface PanelRow {
   id: string;
@@ -341,7 +342,7 @@ export default function BloodPanelReview() {
             <SurfaceCard>
               <div className="flex items-start gap-3">
                 {thumbUrl ? (
-                  <img
+                  <SafeImage
                     src={thumbUrl}
                     alt=""
                     className="size-12 rounded-[14px] object-cover border border-border/60 shrink-0"

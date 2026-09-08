@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BrandLink from "@/components/BrandLink";
 import DetailCard from "@/components/tips/DetailCard";
 import LevelGate from "@/components/tips/LevelGate";
+import SafeImage from "@/components/SafeImage";
 
 const Avoidlist = () => {
   const [exporting, setExporting] = useState(false);
@@ -279,7 +280,7 @@ const IngredientRow = ({
                   className="w-full flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-background text-left transition-colors"
                 >
                   {p.image_url ? (
-                    <img
+                    <SafeImage
                       src={p.image_url}
                       alt=""
                       className="size-8 rounded object-cover shrink-0"

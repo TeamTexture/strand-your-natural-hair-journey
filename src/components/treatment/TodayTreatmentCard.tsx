@@ -28,6 +28,7 @@ import TreatmentReadOnlyNotice from "@/components/treatment/TreatmentReadOnlyNot
 import StepLogSheet from "@/components/treatment/StepLogSheet";
 import { alertAnchorId, ALERT_KEYS } from "@/lib/alertKeys";
 import { skipLabel, slotLabel } from "@/lib/treatmentSchedule";
+import SafeImage from "@/components/SafeImage";
 
 
 /**
@@ -165,7 +166,7 @@ const TodayTreatmentCard = () => {
             aria-label={`Open ${plan.title}`}
           >
             {heroImage ? (
-              <img
+              <SafeImage
                 src={heroImage}
                 alt=""
                 loading="lazy"
@@ -215,7 +216,7 @@ const TodayTreatmentCard = () => {
                 const inner = (
                   <>
                     {p.image_url ? (
-                      <img
+                      <SafeImage
                         src={p.image_url}
                         alt=""
                         loading="lazy"
@@ -374,7 +375,7 @@ const TodayTreatmentCard = () => {
                 {startingPhotos.map((p) => {
                   const url = startingUrls[p.storage_path];
                   return url ? (
-                    <img
+                    <SafeImage
                       key={p.id}
                       src={url}
                       alt=""

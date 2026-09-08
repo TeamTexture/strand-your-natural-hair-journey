@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 import { useRef, useState } from "react";
 import { Camera, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -102,7 +103,7 @@ const CheckinPhotos = ({
           {shown.map((p) => (
             <div key={p.id} className="relative aspect-square rounded-[10px] overflow-hidden bg-muted">
               {urls[p.storage_path] ? (
-                <img
+                <SafeImage
                   src={urls[p.storage_path]}
                   alt="Check-in photo"
                   loading="lazy"

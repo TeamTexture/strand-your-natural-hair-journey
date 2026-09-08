@@ -43,6 +43,7 @@ import { ICONS } from "@/lib/iconMap";
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { styleAsksTension, styleAsksExtensions } from "@/lib/hairstyles";
 import { saveCurrentStyle, announceStyleChange } from "@/lib/styleChange";
+import SafeImage from "@/components/SafeImage";
 
 
 const PHOTO_BUCKET = "journal-photos";
@@ -508,7 +509,7 @@ const WashLogStyleInner = () => {
               {mediaType === "video" ? (
                 mediaUrl && <video src={mediaUrl} controls className="w-full" />
               ) : (
-                mediaUrl && <img src={mediaUrl} alt="This wash day" className="w-full" />
+                mediaUrl && <SafeImage src={mediaUrl} alt="This wash day" className="w-full" />
               )}
               <button
                 type="button"

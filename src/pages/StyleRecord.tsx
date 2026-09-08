@@ -45,6 +45,7 @@ import BrandTagControl from "@/components/brand/BrandTagControl";
 import PendingStepProducts from "@/components/journal/PendingStepProducts";
 import StepReviewCard from "@/components/journal/StepReviewCard";
 import CoverPicker from "@/components/journal/CoverPicker";
+import SafeImage from "@/components/SafeImage";
 
 /** One at-a-glance figure, matching the wash day detail screen. */
 const Stat = ({
@@ -452,7 +453,7 @@ const StyleRecordSteps = ({ entryId }: { entryId: string }) => {
         {coverUrl && (
           <div className="relative -mx-5 mb-1">
             <div className="relative h-44 overflow-hidden bg-secondary">
-              <img
+              <SafeImage
                 src={coverUrl}
                 alt={entry.style_name ? `${entry.style_name} cover` : "Journal cover"}
                 className="absolute inset-0 size-full object-cover object-[center_25%]"

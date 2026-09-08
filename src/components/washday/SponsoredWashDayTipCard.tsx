@@ -11,6 +11,7 @@ import { resolveBrandColours, tint } from "@/lib/brandColour";
 import AiProgressBar from "@/components/AiProgressBar";
 import { hasFitContent } from "@/components/guidance/AdFitLine";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
+import SafeImage from "@/components/SafeImage";
 
 /**
  * SponsoredWashDayTipCard — the sponsored tip on the Wash Day screen.
@@ -214,7 +215,7 @@ const SponsoredWashDayTipCard = ({ preview = false, previewOfferId, onRendered }
         <div className="mt-2.5 flex gap-2.5 rounded-[10px] bg-card/70 px-2.5 py-2">
           <div className="size-[58px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted/40">
             {product.image_urls?.[0] ? (
-              <img
+              <SafeImage
                 src={product.image_urls[0]}
                 alt={product.name}
                 loading="lazy"

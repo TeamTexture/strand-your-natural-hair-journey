@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SurfaceCard from "@/components/SurfaceCard";
 import SectionLabel from "@/components/SectionLabel";
 import VoicePlayer from "@/components/voice/VoicePlayer";
+import SafeImage from "@/components/SafeImage";
 
 import { CHECKIN_METRICS, ratingLabel } from "@/lib/treatmentCheckin";
 import { signedMediaUrls } from "@/lib/treatmentMedia";
@@ -90,9 +91,9 @@ const CheckinReview = ({
               {media
                 .filter((m) => m.media_type === "photo")
                 .map((m) => (
-                  <img
+                  <SafeImage
                     key={m.id}
-                    src={urls[m.storage_path] ?? ""}
+                    src={urls[m.storage_path] ?? null}
                     alt={`Week ${weekNumber} photo`}
                     loading="lazy"
                     className="aspect-square w-full rounded-xl object-cover bg-muted"

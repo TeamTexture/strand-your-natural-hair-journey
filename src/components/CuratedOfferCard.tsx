@@ -2,6 +2,7 @@ import { ExternalLink, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { useCuratedOfferImage, type CuratedOffer } from "@/hooks/useCuratedOffers";
+import SafeImage from "@/components/SafeImage";
 
 /** Friendly "ends 3 September" for the member, never a raw date string. */
 function endsLabel(endsOn: string | null): string | null {
@@ -20,7 +21,7 @@ const CuratedOfferCard = ({ offer }: { offer: CuratedOffer }) => {
   return (
     <div className="rounded-[18px] border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent overflow-hidden">
       {imageUrl && (
-        <img
+        <SafeImage
           src={imageUrl}
           alt={`${offer.brand_name} offer`}
           loading="lazy"

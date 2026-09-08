@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { tusUpload } from "@/lib/tusUpload";
 import VideoThumbnailPicker from "@/components/VideoThumbnailPicker";
 import MentionTextarea from "@/components/MentionTextarea";
+import SafeImage from "@/components/SafeImage";
 
 const KINDS = ["course", "ebook", "video", "article"] as const;
 const ITEM_KINDS = ["video", "pdf", "text", "audio", "image", "post", "article"] as const;
@@ -686,7 +687,7 @@ const ItemRow = ({
       <div className="flex items-center gap-2">
         <div className="w-14 h-10 rounded-md bg-muted overflow-hidden shrink-0 border border-border flex items-center justify-center">
           {thumbUrl ? (
-            <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+            <SafeImage src={thumbUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <Film className="size-4 text-foreground/40" />
           )}

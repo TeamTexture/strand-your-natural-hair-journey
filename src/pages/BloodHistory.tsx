@@ -70,6 +70,7 @@ import { limitSupporting } from "@/lib/tipsRender";
 import KeyFactChips from "@/components/guidance/KeyFactChips";
 import EmptyState from "@/components/EmptyState";
 import BloodTestRoutesSheet from "@/components/blood/BloodTestRoutesSheet";
+import SafeImage from "@/components/SafeImage";
 
 type PanelStatus = "logged" | "scheduled";
 
@@ -554,7 +555,7 @@ const BloodHistory = () => {
                 >
                   <div className="flex items-start gap-3">
                     {p.thumbnail_path && thumbUrls[p.thumbnail_path] ? (
-                      <img
+                      <SafeImage
                         src={thumbUrls[p.thumbnail_path]}
                         alt=""
                         className="size-11 rounded-[12px] object-cover border border-border/60 shrink-0"

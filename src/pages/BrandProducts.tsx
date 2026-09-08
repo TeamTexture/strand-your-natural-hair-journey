@@ -18,6 +18,7 @@ import MatchStars from "@/components/MatchStars";
 import { starsForItem } from "@/lib/matchStars";
 import SectionLabel from "@/components/SectionLabel";
 import { Wrench } from "lucide-react";
+import SafeImage from "@/components/SafeImage";
 
 const statusLabel = (p: { on_shelf: boolean; on_wishlist: boolean; previously_on_shelf: boolean }) => {
   if (p.on_shelf) return { label: "On shelf", tone: "text-good" };
@@ -138,7 +139,7 @@ const BrandProducts = () => {
                   <div className="flex items-start gap-3">
                     <div className="size-12 rounded-[10px] overflow-hidden bg-secondary shrink-0">
                       {t.image_url ? (
-                        <img src={t.image_url} alt="" className="size-full object-cover" />
+                        <SafeImage src={t.image_url} alt="" className="size-full object-cover" />
                       ) : (
                         <div className="size-full flex items-center justify-center bg-primary/15 text-primary">
                           <Wrench className="size-4" />

@@ -13,6 +13,7 @@ import { usePhotoUploader } from "@/hooks/usePhotoUploader";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import SafeImage from "@/components/SafeImage";
 
 const fmt = (iso: string | null) => {
   if (!iso) return "Undated";
@@ -183,7 +184,7 @@ const MainPhotoPicker = ({ open, onOpenChange, title, description }: Props) => {
                       }`}
                     >
                       {p.url ? (
-                        <img
+                        <SafeImage
                           src={p.url}
                           alt={`Progress photo from ${fmt(p.taken_on)}`}
                           className="absolute inset-0 size-full object-cover"

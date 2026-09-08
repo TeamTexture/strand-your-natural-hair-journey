@@ -11,6 +11,7 @@ import AdFitLine from "@/components/guidance/AdFitLine";
 import { adFallbackFitLine } from "@/lib/adFallbackCopy";
 import { validFitLine } from "@/components/guidance/AdFitLine";
 import type { BannerProductRow } from "@/components/brand/BrandOfferBanner";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   offerId: string;
@@ -110,7 +111,7 @@ const BannerProductBlock = ({ offerId, slot, product, brandName = null, expanded
         className="w-full text-left flex items-start gap-3 min-w-0"
       >
         <div className="size-[72px] shrink-0 rounded-[10px] overflow-hidden bg-muted border border-border">
-          {imageUrl && <img src={imageUrl} alt="" className="w-full h-full object-cover" />}
+          {imageUrl && <SafeImage src={imageUrl} alt="" className="w-full h-full object-cover" />}
         </div>
         <div className="flex-1 min-w-0">
           {/* Full product name — wraps, never ellipsis-truncated. */}

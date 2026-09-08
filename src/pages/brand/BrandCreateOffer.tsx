@@ -43,6 +43,7 @@ import {
 } from "@/lib/adPricing";
 
 import { SLOT_AUDIENCE } from "@/hooks/useBrandOffers";
+import SafeImage from "@/components/SafeImage";
 
 const SLOTS: PlacementSlot[] = ["home", "products", "wash_day", "pro_welcome"];
 
@@ -984,7 +985,7 @@ const BrandCreateOffer = () => {
               </Label>
               <div className="flex gap-2 mt-1 items-start">
                 <div className="size-16 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
-                  {p.image_urls[0] && <img src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />}
+                  {p.image_urls[0] && <SafeImage src={p.image_urls[0]} alt="" className="w-full h-full object-cover" />}
                 </div>
                 <label className="flex-1 flex items-center gap-2 p-2 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50">
                   <Plus className="size-3.5 text-muted-foreground" />

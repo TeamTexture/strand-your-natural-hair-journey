@@ -3,7 +3,7 @@ import { useTipsLevel } from "@/hooks/useTipsLevel";
 import { useEffect, useState } from "react";
 import PlusBadge from "@/components/PlusBadge";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Compass, HelpCircle, ImagePlus, Tag } from "lucide-react";
+import { Bell, Calendar, Check, Compass, HelpCircle, ImagePlus, Library, Mail, MessageCircle, Tag, X } from "lucide-react";
 import { useStyleCardPhoto } from "@/hooks/useStyleCardPhoto";
 import { anchorProps } from "@/lib/scrollMemory";
 import MainPhotoPicker from "@/components/style/MainPhotoPicker";
@@ -400,8 +400,9 @@ const Home = () => {
       <div className="px-5 pb-2">
         <SurfaceCard data-tour="alerts" id="section-alerts" data-scroll-section tone="dark" padded={false}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-            <span className="text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
-              🔔 Alerts {displayedAlerts.length > 0 && `(${displayedAlerts.length})`}
+            <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-alert-dark-foreground font-medium">
+              <Bell className="size-3.5 shrink-0" aria-hidden />
+              Alerts {displayedAlerts.length > 0 && `(${displayedAlerts.length})`}
             </span>
             {displayedAlerts.length > 0 && (
               <button
@@ -422,8 +423,9 @@ const Home = () => {
               </p>
             ) : displayedAlerts.length === 0 ? (
               <div className="mx-1 my-1 p-3 rounded-[10px] border border-good/40 bg-good/10">
-                <p className="text-xs text-good font-medium">
-                  No alerts right now. Your hair is on track ✓
+                <p className="flex items-center gap-1.5 text-xs text-good font-medium">
+                  <Check className="size-3.5 shrink-0" aria-hidden />
+                  No alerts right now. Your hair is on track
                 </p>
               </div>
             ) : (
@@ -457,7 +459,7 @@ const Home = () => {
                     aria-label="Dismiss alert"
                     className={`absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center transition-colors ${isDanger ? "text-red-100/60 hover:text-red-100" : "text-alert-dark-foreground/50 hover:text-alert-dark-foreground"}`}
                   >
-                    ✕
+                    <X className="size-3.5" aria-hidden />
                   </button>
                 </div>
                 );
@@ -613,19 +615,20 @@ const Home = () => {
 
         {hasPlus && (() => {
           const totalCount = plusCounts.forum + plusCounts.events + plusCounts.messages + plusCounts.library;
-          const tiles: Array<{ key: string; label: string; sub: string; emoji: string; count: number; to: string }> = [
-            { key: "forum", label: "Forum", sub: "Threads & replies", emoji: "💬", count: plusCounts.forum, to: "/forum" },
-            { key: "events", label: "Events", sub: "See upcoming", emoji: "📅", count: plusCounts.events, to: "/plus/events" },
-            { key: "library", label: "Library", sub: "New uploads", emoji: "📚", count: plusCounts.library, to: "/plus/library" },
-            { key: "messages", label: "Messages", sub: "Member DMs", emoji: "✉️", count: plusCounts.messages, to: "/messages" },
+          const tiles: Array<{ key: string; label: string; sub: string; Icon: typeof MessageCircle; count: number; to: string }> = [
+            { key: "forum", label: "Forum", sub: "Threads & replies", Icon: MessageCircle, count: plusCounts.forum, to: "/forum" },
+            { key: "events", label: "Events", sub: "See upcoming", Icon: Calendar, count: plusCounts.events, to: "/plus/events" },
+            { key: "library", label: "Library", sub: "New uploads", Icon: Library, count: plusCounts.library, to: "/plus/library" },
+            { key: "messages", label: "Messages", sub: "Member DMs", Icon: Mail, count: plusCounts.messages, to: "/messages" },
           ];
           return (
             <>
             <SurfaceCard padded={false} className="border-2 border-primary/60 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent">
 
               <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
-                <span className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
-                  ✦ STRAND+ Alerts{totalCount > 0 ? ` (${totalCount})` : ""}
+                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">
+                  <Sparkles className="size-3.5 shrink-0" aria-hidden />
+                  STRAND+ Alerts{totalCount > 0 ? ` (${totalCount})` : ""}
                 </span>
                 {totalCount > 0 && (
                   <button
@@ -649,7 +652,7 @@ const Home = () => {
                           {t.count > 99 ? "99+" : t.count}
                         </span>
                       )}
-                      <p className="text-base leading-none">{t.emoji}</p>
+                      <t.Icon className="size-4 shrink-0 text-primary" aria-hidden />
                       <p className="text-[10.5px] mt-1.5 uppercase tracking-[0.12em] text-primary font-semibold">{t.label}</p>
                       <p className="text-[10px] mt-0.5 text-foreground/60 leading-tight">
                         {t.count > 0 ? `${t.count} new` : t.sub}
@@ -671,8 +674,15 @@ const Home = () => {
                           onClick={() => { dismissPlus(a.id); navigate(a.to); }}
                           className="w-full text-left p-2.5 rounded-[10px] border border-primary/30 bg-card/60 hover:border-primary/60 transition-colors"
                         >
-                          <p className="text-[11.5px] font-medium leading-tight text-foreground">
-                            {a.kind === "thread" ? "💬" : a.kind === "event" ? "📅" : "✉️"} {a.title}
+                          <p className="flex items-start gap-1.5 text-[11.5px] font-medium leading-tight text-foreground">
+                            {a.kind === "thread" ? (
+                              <MessageCircle className="size-3.5 shrink-0 mt-px text-primary" aria-hidden />
+                            ) : a.kind === "event" ? (
+                              <Calendar className="size-3.5 shrink-0 mt-px text-primary" aria-hidden />
+                            ) : (
+                              <Mail className="size-3.5 shrink-0 mt-px text-primary" aria-hidden />
+                            )}
+                            {a.title}
                           </p>
                           <p className="text-[10.5px] mt-0.5 text-foreground/65 line-clamp-1">{a.body}</p>
                         </button>

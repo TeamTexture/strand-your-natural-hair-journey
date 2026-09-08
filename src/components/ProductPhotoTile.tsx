@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,12 @@ const ProductPhotoTile = ({
   preferCamera = false,
 }: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  // A stored photo URL can expire or fail; treat that exactly like "no photo"
+  // so the tile shows its placeholder instead of a broken-image glyph.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [imageUrl]);
+  const shownUrl = failed ? null : imageUrl;
+
 
   return (
     <div
@@ -65,35 +71,42 @@ const ProductPhotoTile = ({
           inputRef.current?.click();
         }}
         disabled={busy}
-        aria-label={imageUrl ? "Replace photo" : "Add photo"}
+        aria-label={shownUrl ? "Replace photo" : "Add photo"}
         className={cn(
-          "size-full rounded-[10px] overflow-hidden flex items-center justify-center transition-all",
-          imageUrl
+          "size-full rounded-[10px] overflow-hidden flex items-center justify-center transition-all [container-type:size]",
+          shownUrl
             ? "bg-transparent"
             : "bg-primary/15 hover:bg-primary/25 border border-dashed border-primary/40",
         )}
       >
-        {imageUrl ? (
+        {shownUrl ? (
           // object-contain so the bottle/jar shows fully without crop, and
           // mix-blend-multiply hides flat white studio backgrounds against
           // the cream app surface for a clean float-on-cream look.
-          <img src={imageUrl} alt="" className="size-full object-contain mix-blend-multiply" />
+          <img
+            src={shownUrl}
+            alt=""
+            onError={() => setFailed(true)}
+            className="size-full object-contain mix-blend-multiply"
+          />
         ) : (
-          <span className="text-2xl leading-none">{fallbackEmoji}</span>
+          // Scales with the tile so the placeholder is never a tiny glyph
+          // floating in a large hero tile.
+          <span className="leading-none text-2xl text-[42cqmin]">{fallbackEmoji}</span>
         )}
         {busy && (
           <span className="absolute inset-0 bg-black/30 flex items-center justify-center rounded-[10px]">
             <Loader2 className="size-4 text-white animate-spin" />
           </span>
         )}
-        {!imageUrl && !busy && (
+        {!shownUrl && !busy && (
           <span className="absolute bottom-0.5 right-0.5 size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
             <Camera className="size-2.5" />
           </span>
         )}
       </button>
 
-      {imageUrl && onRemove && !busy && (
+      {shownUrl && onRemove && !busy && (
         <button
           type="button"
           onClick={(e) => {

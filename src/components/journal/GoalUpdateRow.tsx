@@ -4,6 +4,7 @@ import VoiceNotePlayerRow from "@/components/voice/VoiceNotePlayerRow";
 import TranscriptView from "@/components/voice/TranscriptView";
 import { supabase } from "@/integrations/supabase/client";
 import { signGoalAudio, type GoalProgressUpdate } from "@/hooks/useGoalProgressUpdates";
+import SafeImage from "@/components/SafeImage";
 
 
 const PHOTO_BUCKET = "journal-photos";
@@ -67,7 +68,7 @@ const GoalUpdateRow = ({ update }: { update: GoalProgressUpdate }) => {
         <TranscriptView text={update.transcription_text} size="xs" className="mt-1.5" />
       )}
       {photoUrl && (
-        <img
+        <SafeImage
           src={photoUrl}
           alt="Progress photo"
           loading="lazy"

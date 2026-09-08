@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -60,7 +61,7 @@ function toForm(o: CuratedOffer): FormState {
 const Thumb = ({ path }: { path: string | null }) => {
   const { data: url } = useCuratedOfferImage(path);
   if (!url) return null;
-  return <img src={url} alt="" className="size-12 rounded-[10px] object-cover shrink-0" />;
+  return <SafeImage src={url} alt="" className="size-12 rounded-[10px] object-cover shrink-0" />;
 };
 
 /** Human status for an offer row — never a raw column value. */
@@ -288,7 +289,7 @@ const AdminCuratedOffers = () => {
                 />
               </label>
               {imagePreview && (
-                <img src={imagePreview} alt="" className="w-full h-28 object-cover rounded-[12px]" />
+                <SafeImage src={imagePreview} alt="" className="w-full h-28 object-cover rounded-[12px]" />
               )}
             </div>
 

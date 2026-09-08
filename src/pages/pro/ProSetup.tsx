@@ -1,3 +1,4 @@
+import SafeImage from "@/components/SafeImage";
 import { useEffect, useMemo, useState } from "react";
 import TimeSelect from "@/components/TimeSelect";
 import { useNavigate } from "react-router-dom";
@@ -167,7 +168,7 @@ const PhotoTile = ({
   const url = useSignedUrl(path);
   return (
     <div className="relative aspect-square rounded-[12px] overflow-hidden bg-secondary">
-      {url && <img src={url} alt="" className="w-full h-full object-cover" />}
+      {url && <SafeImage src={url} alt="" className="w-full h-full object-cover" />}
       <button
         onClick={onRemove}
         className="absolute top-1 right-1 size-6 rounded-full bg-black/60 text-white flex items-center justify-center"
@@ -597,7 +598,7 @@ const ProSetup = () => {
             <div className="flex items-center gap-4">
               <div className="size-20 rounded-full overflow-hidden bg-primary/10 border border-border shrink-0 flex items-center justify-center">
                 {avatarUrl ? (
-                  <img
+                  <SafeImage
                     src={avatarUrl}
                     alt=""
                     className="w-full h-full object-cover"
@@ -1024,7 +1025,7 @@ const ProSetup = () => {
               </Label>
               <div className="rounded-[14px] overflow-hidden border border-border bg-secondary aspect-[16/9] flex items-center justify-center">
                 {coverUrl ? (
-                  <img
+                  <SafeImage
                     src={coverUrl}
                     alt=""
                     className="w-full h-full object-cover"

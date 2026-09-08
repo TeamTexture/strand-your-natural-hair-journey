@@ -5,6 +5,7 @@ import { SLOT_LABEL, type PlacementSlot } from "@/hooks/useBrandOffers";
 import { format } from "date-fns";
 import { money as baseMoney } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   headline: string | null;
@@ -73,7 +74,7 @@ const UpcomingOfferCard = ({
     >
       <div className="relative h-[92px] w-full bg-muted overflow-hidden">
         {heroUrl ? (
-          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}

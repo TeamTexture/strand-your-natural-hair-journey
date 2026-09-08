@@ -56,6 +56,7 @@ import { toParagraphs } from "@/lib/formatTranscript";
 import AiProse from "@/components/tips/AiProse";
 import GuidanceCard from "@/components/guidance/GuidanceCard";
 import LevelGate from "@/components/tips/LevelGate";
+import SafeImage from "@/components/SafeImage";
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -644,7 +645,7 @@ const WashDayDetail = () => {
               <div className="grid grid-cols-3 gap-2">
                 {stylingPhotoUrls.map((url) => (
                   <a key={url} href={url} target="_blank" rel="noreferrer" className="block aspect-square overflow-hidden rounded-xl bg-muted">
-                    <img src={url} alt="Style" className="w-full h-full object-cover" loading="lazy" />
+                    <SafeImage src={url} alt="Style" className="w-full h-full object-cover" loading="lazy" />
                   </a>
                 ))}
               </div>

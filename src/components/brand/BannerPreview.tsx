@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   heroUrl: string | null;
@@ -33,7 +34,7 @@ const BannerPreview = ({
       {/* Collapsed strip — full-width, ~80px tall, brand image as backdrop. */}
       <div className="relative rounded-t-[12px] overflow-hidden border border-primary/20 bg-card" style={{ height: 80 }}>
         {heroUrl ? (
-          <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
@@ -95,7 +96,7 @@ const BannerPreview = ({
               <div className="w-[82px] shrink-0">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border">
                   {productImageUrl && (
-                    <img src={productImageUrl} alt="" className="w-full h-full object-cover" />
+                    <SafeImage src={productImageUrl} alt="" className="w-full h-full object-cover" />
                   )}
                 </div>
                 {productName && (

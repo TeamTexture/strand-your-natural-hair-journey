@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { money as baseMoney } from "@/lib/adPricing";
 import TrialPriceTag from "@/components/brand/TrialPriceTag";
 import { EMPTY_METRICS, type OfferMetrics } from "@/lib/brandMetrics";
+import SafeImage from "@/components/SafeImage";
 
 interface Props {
   headline: string | null;
@@ -72,7 +73,7 @@ const PastOfferCard = ({
       {/* Hero — preserved after expiry, softened with grayscale + veil */}
       <div className="relative h-[92px] w-full bg-muted overflow-hidden">
         {heroUrl ? (
-          <img
+          <SafeImage
             src={heroUrl}
             alt=""
             className="absolute inset-0 w-full h-full object-cover grayscale-[35%] opacity-90"

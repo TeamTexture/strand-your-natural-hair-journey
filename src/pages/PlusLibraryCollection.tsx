@@ -14,8 +14,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { renderMentions } from "@/lib/renderMentions";
 import { smartBack } from "@/lib/smartBack";
+import SafeImage from "@/components/SafeImage";
 
 const ITEM_ICON: Record<string, typeof BookOpen> = { video: Play, pdf: BookOpen, text: FileText, url: FileText, article: FileText, audio: Play, post: FileText, image: FileText };
+
+/**
+ * Collection cover. `cover_path` is a private storage path, so it has to be
+ * signed before it can load — the same route the library list uses. Renders
+ * nothing until a URL resolves, and nothing at all if signing fails.
+ */
+const CollectionCover = ({ path, title }: { path: string; title: string }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (/^https?:\/\//i.test(path)) { setUrl(path); return; }
+      const { data, error } = await supabase.functions.invoke("library-signed-url", {
+        body: { bucket: "strand-plus-library", path },
+      });
+      if (cancelled) return;
+      if (error) {
+        console.error("[library collection cover] signed url failed", error);
+        setUrl(null);
+        return;
+      }
+      setUrl((data?.url as string) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [path]);
+  if (!url) return null;
+  return <SafeImage src={url} alt={`${title} cover`} className="w-full rounded-[14px] object-cover" />;
+};
 
 const PlusLibraryCollection = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,9 +130,7 @@ const PlusLibraryCollection = () => {
         <TitleBar title={c?.title ?? "Library"} onBack={smartBack(nav, "/plus/library")} />
         {collectionQ.isLoading || itemsQ.isLoading ? <LoadingDot /> : (
           <div className="px-4 pb-16 space-y-4">
-            {c?.cover_path && (
-              <img src={c.cover_path} alt="" className="w-full rounded-[14px] object-cover" />
-            )}
+            {c?.cover_path && <CollectionCover path={c.cover_path} title={c?.title ?? "Library"} />}
             {c?.description && (
               <p className="font-body text-[13px] text-foreground/75 leading-relaxed">{c.description}</p>
             )}

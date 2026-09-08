@@ -9,6 +9,7 @@ import { useLogAdEvent, useAdViewTracker } from "@/hooks/useBrandOffers";
 import DiscountCodeChip from "@/components/DiscountCodeChip";
 import { getSignedUrl } from "@/lib/signedUrlCache";
 import BannerProductBlock from "@/components/brand/BannerProductBlock";
+import SafeImage from "@/components/SafeImage";
 
 
 
@@ -159,7 +160,7 @@ const BrandOfferBanner = ({ offer, slot, wasMatched = false, matchReason = null,
       >
         <div className="relative" style={{ height: 96 }}>
           {heroUrl ? (
-            <img src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+            <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
           )}
