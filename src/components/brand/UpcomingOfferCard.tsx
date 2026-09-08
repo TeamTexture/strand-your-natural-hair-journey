@@ -74,7 +74,7 @@ const UpcomingOfferCard = ({
     >
       <div className="relative h-[92px] w-full bg-muted overflow-hidden">
         {heroUrl ? (
-          <SafeImage src={heroUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <SafeImage src={heroUrl} alt={headline ? `${headline} — campaign image` : "Upcoming campaign image"} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
