@@ -130,130 +130,31 @@ export default function AppointmentFollowUpDialog() {
 
   const handleLog = () => {
     const id = pending.id;
-    void silenceForever(id);
     setPending(null);
     navigate(`/appointments/log?fromId=${id}`);
   };
 
   // Snooze only — no dismissal written, so it may ask again another day.
-  const handleLater = () => {
+  const handleClose = () => {
     setPending(null);
-    setStep("ask");
   };
 
-  const handleDidntHappen = async () => {
-    const id = pending.id;
-    void silenceForever(id);
-    setStep("didnt-happen");
-    const { error } = await supabase
-      .from("appointments")
-      .update({ status: "no_show" })
-      .eq("id", id);
-    if (error) console.error("Appointment not-attended update failed:", error);
-  };
-
-  // Distinct from "didn't happen": the visit was called off, by her or the pro.
-  // Writes the SAME `cancelled` status the professional's diary already sets, so
-  // both dashboards render it through their existing status badge.
-  const handleCancelled = async () => {
-    const id = pending.id;
-    void silenceForever(id);
-    setStep("cancelled");
-    const { error } = await supabase
-      .from("appointments")
-      .update({
-        status: "cancelled",
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: user?.id ?? null,
-      })
-      .eq("id", id);
-    if (error) console.error("Appointment cancellation update failed:", error);
-  };
-
-
-  const handleFindAnother = () => {
-    setPending(null);
-    setStep("ask");
-    navigate("/directory");
-  };
-
-  const handleNoThanks = () => {
-    // Already silenced when she answered "It didn't happen"; closing is final.
-    setPending(null);
-    setStep("ask");
-  };
-
-  if (step === "didnt-happen" || step === "cancelled") {
-    const wasCancelled = step === "cancelled";
-    return (
-      <Dialog open onOpenChange={(open) => { if (!open) handleNoThanks(); }}>
-        <DialogContent className="max-w-[320px]">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              {wasCancelled
-                ? "That appointment was cancelled"
-                : "That appointment didn't go ahead"}
-            </DialogTitle>
-            <DialogDescription>
-              {wasCancelled
-                ? "We've marked it as cancelled — you and your professional will both see that. Would you like to book something else?"
-                : "We've marked it as not attended, so we won't ask about it again. Would you like to see other professionals?"}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button onClick={handleFindAnother} className="w-full rounded-pill min-h-[44px]">
-              Find another professional
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleNoThanks}
-              className="w-full rounded-pill min-h-[44px]"
-            >
-              No thanks
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-
+  // The three-way confirmation itself lives in ONE shared component, which also
+  // owns the status write, so this nudge and the retrospective "Leave a review"
+  // button on a past appointment card behave identically.
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) handleLater(); }}>
-      <DialogContent className="max-w-[320px]">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl">
-            How was your appointment with {who}?
-          </DialogTitle>
-          <DialogDescription>
-            {dateLabel} — log how it went and we'll pre-fill everything we already
-            know from your booking.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button onClick={handleLog} className="w-full rounded-pill min-h-[44px]">
-            Log appointment
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDidntHappen}
-            className="w-full rounded-pill min-h-[44px]"
-          >
-            It didn't happen
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleCancelled}
-            className="w-full rounded-pill min-h-[44px]"
-          >
-            It was cancelled
-          </Button>
-
-          <Button variant="ghost" onClick={handleLater} className="w-full rounded-pill min-h-[44px]">
-            Not yet — ask me later
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <AppointmentOutcomeDialog
+      appointmentId={pending.id}
+      who={who}
+      dateLabel={dateLabel}
+      title={`How was your appointment with ${who}?`}
+      description={`${dateLabel} — log how it went and we'll pre-fill everything we already know from your booking.`}
+      happenedLabel="Log appointment"
+      laterLabel="Not yet — ask me later"
+      onSilence={() => void silenceForever(pending.id)}
+      onHappened={handleLog}
+      onClose={handleClose}
+    />
   );
 }
+
