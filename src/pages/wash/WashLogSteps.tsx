@@ -14,7 +14,7 @@ import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useUserProducts } from "@/hooks/useUserProducts";
-import { useWashFavourites } from "@/hooks/useWashFavourites";
+import { useWashFavourites, useWashFavouriteSkips } from "@/hooks/useWashFavourites";
 import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft } from "@/lib/washDraft";
@@ -37,6 +37,7 @@ const WashLogStepsInner = () => {
   const [params] = useSearchParams();
   const { products } = useUserProducts("shelf");
   const { data: favourites, isLoading: favsLoading } = useWashFavourites();
+  const { data: favSkips } = useWashFavouriteSkips();
 
   const dateFromQuery = params.get("date");
   const saved = readWashDraft<{ date?: string; rows?: RowMap }>("strand_wash_log_steps", {});
@@ -60,11 +61,15 @@ const WashLogStepsInner = () => {
     const next: RowMap = {};
     for (const step of WASH_LOG_STEPS) {
       const fav = favourites?.[step.stored] ?? null;
-      next[step.stored] = { productId: fav, used: !!fav };
+      next[step.stored] = {
+        productId: fav,
+        used: !!fav,
+        skipped: !fav && !!favSkips?.includes(step.stored),
+      };
     }
     setRows(next);
     setSeeded(true);
-  }, [favourites, favsLoading, seeded]);
+  }, [favourites, favSkips, favsLoading, seeded]);
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
