@@ -2,7 +2,7 @@ import { displayDiet } from "@/lib/dietaryPattern";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, type LucideIcon , Megaphone, Scale, Eye } from "lucide-react";
+import { Shield, LogOut, Calendar, Droplet, Sparkles, AlertCircle, Pill, Pencil, RefreshCw, HelpCircle, User, Heart, Palette, FlaskConical, Activity, ChevronRight, Compass, ArrowLeftRight, ShieldCheck, Mail, KeyRound, Gift, MessageCircle, Ruler, Layers, Wind, Stethoscope, Salad, type LucideIcon , Megaphone, Scale, Eye } from "lucide-react";
 import { useRoles } from "@/hooks/useRoles";
 import ScreenLayout from "@/components/ScreenLayout";
 import TitleBar from "@/components/TitleBar";
@@ -730,27 +730,27 @@ const Profile = () => {
       {/* Quick actions */}
       <div className="px-5 grid grid-cols-2 gap-3 pb-2">
         <button onClick={() => navigate("/appointments")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
-          <div className="text-2xl mb-1.5">📅</div>
+          <Calendar className="size-6 mb-1.5 text-primary" aria-hidden />
           <p className="text-base font-medium leading-tight">Appointments</p>
           <p className="text-[13px] text-muted-foreground">{appts.length > 0 ? `${appts.length} upcoming` : "Tap to log"}</p>
         </button>
         <button onClick={() => navigate("/directory")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
-          <div className="text-2xl mb-1.5">🩺</div>
+          <Stethoscope className="size-6 mb-1.5 text-primary" aria-hidden />
           <p className="text-base font-medium leading-tight">Find Professionals</p>
           <p className="text-[13px] text-muted-foreground">Verified directory</p>
         </button>
         <button onClick={() => navigate("/brands")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
-          <div className="text-2xl mb-1.5">✦</div>
+          <Sparkles className="size-6 mb-1.5 text-primary" aria-hidden />
           <p className="text-base font-medium leading-tight">STRAND Brands</p>
           <p className="text-[13px] text-muted-foreground">Trusted directory</p>
         </button>
         <button onClick={() => navigate("/nutrition-plan")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
-          <div className="text-2xl mb-1.5">🥗</div>
+          <Salad className="size-6 mb-1.5 text-primary" aria-hidden />
           <p className="text-base font-medium leading-tight">Nutrition Plan</p>
           <p className="text-[13px] text-muted-foreground">Personalised</p>
         </button>
         <button onClick={() => navigate("/onboarding/blood-ai-summary")} className="text-left p-4 rounded-[14px] border border-border bg-card min-h-[44px]">
-          <div className="text-2xl mb-1.5">🧪</div>
+          <FlaskConical className="size-6 mb-1.5 text-primary" aria-hidden />
           <p className="text-base font-medium leading-tight">Blood Summary</p>
           <p className="text-[13px] text-muted-foreground">
             {flaggedBlood.length > 0 ? `${flaggedBlood.length} flagged` : "AI-generated"}
