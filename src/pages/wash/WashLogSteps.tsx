@@ -21,7 +21,14 @@ import { useAuth } from "@/hooks/useAuth";
 import type { WashStepEntry } from "@/lib/washSteps";
 import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
-import { readWashDraft, writeWashDraft, clearWashDraft } from "@/lib/washDraft";
+import {
+  readWashDraft,
+  writeWashDraft,
+  clearWashDrafts,
+  ensureWashDraftScope,
+  washDraftScope,
+} from "@/lib/washDraft";
+
 import { WASH_LOG_GROUPS, WASH_LOG_STEPS, friendlyWashDate, localIsoDate, visibleSlotCount } from "@/lib/washLogSteps";
 import StepSkipRow from "@/components/washday/StepSkipRow";
 import { cn } from "@/lib/utils";
@@ -68,6 +75,14 @@ const WashLogStepsInner = () => {
 
   const dateFromQuery = params.get("date");
   const editId = params.get("edit");
+
+  /**
+   * The draft on this device may belong to something else — an edit the member
+   * backed out of, or a new log she abandoned. Claim it for THIS entry (which
+   * wipes it when it was someone else's) before a single slice is read.
+   */
+  const [scopeReset] = useState(() => ensureWashDraftScope(washDraftScope(editId)));
+
   const saved = readWashDraft<{ date?: string; rows?: RowMap; toolIds?: string[] }>(
     "strand_wash_log_steps",
     {},
@@ -83,6 +98,7 @@ const WashLogStepsInner = () => {
   const [pickerStep, setPickerStep] = useState<string | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(!!editId);
 
+
   // Keep the chosen date on the draft so page 2 saves against it.
   useEffect(() => {
     setDate((cur) => cur || localIsoDate());
@@ -93,12 +109,8 @@ const WashLogStepsInner = () => {
    * actually logged that day. Favourites never overwrite an edit.
    */
   useEffect(() => {
-    if (!editId) {
-      // Starting a fresh log: drop any leftover edit snapshot.
-      const stale = readWashDraft<Partial<WashEditSnapshot>>("strand_wash_log_edit", {});
-      if (stale.id) clearWashDraft("strand_wash_log_edit");
-      return;
-    }
+    if (!editId) return;
+
     if (!user) return;
     let cancelled = false;
     void (async () => {
@@ -234,14 +246,25 @@ const WashLogStepsInner = () => {
 
   const activeStep = WASH_LOG_STEPS.find((s) => s.stored === pickerStep) ?? null;
 
+  /**
+   * Leaving an edit without saving throws that draft away, so nothing from the
+   * wash day she was editing can turn up on her next log. A new log keeps its
+   * draft — that is the in-progress log she can come back and finish.
+   */
+  const back = () => {
+    if (editId) clearWashDrafts();
+    smartBack(navigate, editId ? `/wash-day/${editId}` : "/wash-day")();
+  };
+
   if (loadingEdit) return <LoadingDot />;
 
   return (
     <ScreenLayout>
       <TitleBar
         title={editId ? "Edit wash day" : "Log a wash day"}
-        onBack={smartBack(navigate, editId ? `/wash-day/${editId}` : "/wash-day")}
+        onBack={back}
       />
+
 
       <div className="px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">

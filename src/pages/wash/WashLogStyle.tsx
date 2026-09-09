@@ -28,7 +28,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashFavourites, useSaveWashFavourites } from "@/hooks/useWashFavourites";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
-import { readWashDraft, writeWashDraft, clearWashDrafts } from "@/lib/washDraft";
+import {
+  readWashDraft,
+  writeWashDraft,
+  clearWashDrafts,
+  readWashDraftScope,
+} from "@/lib/washDraft";
+
 import { incompleteWashLogKey } from "@/hooks/useIncompleteWashLog";
 import { WASH_LOG_STEPS, localIsoDate } from "@/lib/washLogSteps";
 import type { WashEditSnapshot } from "@/pages/wash/WashLogSteps";
@@ -102,14 +108,18 @@ const WashLogStyleInner = () => {
   const saveFavourites = useSaveWashFavourites();
   const qc = useQueryClient();
 
+  // WHOSE DRAFT IS THIS? The scope recorded by page 1 is the only thing that
+  // decides whether this run updates an existing wash day or inserts a new
+  // one — never a leftover snapshot, which is how an abandoned new log's
+  // photo, note and rating used to land on an older entry.
+  const scope = readWashDraftScope();
   const stepsDraft = readWashDraft<{
     date?: string;
     rows?: Record<string, StepRow>;
     toolIds?: string[];
   }>("strand_wash_log_steps", {});
-  // Set when this run is an EDIT of an existing wash day, not a new log.
   const edit = readWashDraft<Partial<WashEditSnapshot>>("strand_wash_log_edit", {});
-  const editId = edit.id ?? null;
+  const editId = scope.startsWith("edit:") ? scope.slice(5) : null;
   const saved = readWashDraft<{
     styleProductIds?: string[];
     note?: string;
@@ -118,6 +128,7 @@ const WashLogStyleInner = () => {
     mediaType?: "photo" | "video" | null;
     rating?: number | null;
   }>("strand_wash_log_style", {});
+
 
   const editStyling = (edit.styling ?? null) as
     | { productIds?: string[]; photoPaths?: string[]; videoPath?: string }
