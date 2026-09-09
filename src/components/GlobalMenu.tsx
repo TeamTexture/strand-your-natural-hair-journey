@@ -394,7 +394,7 @@ const GlobalMenu = () => {
                 onClick={() => navigate(viewHome)}
                 className="h-9 px-3 rounded-full bg-brown text-primary text-[11px] font-body font-bold uppercase tracking-wide whitespace-nowrap hover:opacity-90 transition-opacity shrink-0"
               >
-                Back to home
+                Home
               </button>
             )}
             {allowsMemberFeatures(activeView) && !isDirectoryPage && (
