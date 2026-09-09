@@ -29,6 +29,7 @@ import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashFavourites, useSaveWashFavourites } from "@/hooks/useWashFavourites";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft, clearWashDrafts } from "@/lib/washDraft";
+import { incompleteWashLogKey } from "@/hooks/useIncompleteWashLog";
 import { WASH_LOG_STEPS, localIsoDate } from "@/lib/washLogSteps";
 import type { WashEditSnapshot } from "@/pages/wash/WashLogSteps";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
@@ -340,6 +341,8 @@ const WashLogStyleInner = () => {
     // A photo added on this log is a progress photo — let the Current style
     // card picker pick it up straight away.
     void qc.invalidateQueries({ queryKey: styleCardPhotoKey(user?.id) });
+    // The draft is gone — drop the "Incomplete" card on the Wash Day page.
+    void qc.invalidateQueries({ queryKey: incompleteWashLogKey(user?.id) });
     toast(editId ? "Wash day updated" : "💧 Wash day saved!");
     if (editId) {
       navigate("/wash-day", { replace: true });

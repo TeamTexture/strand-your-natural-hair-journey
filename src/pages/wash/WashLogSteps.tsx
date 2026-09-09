@@ -214,6 +214,18 @@ const WashLogStepsInner = () => {
       [step]: { productId: null, used: false, ...prev[step], ...patch },
     }));
 
+  /**
+   * AUTOSAVE — every answer is written to the durable draft as she gives it,
+   * not only when she taps Next. A member who closes the app mid-log keeps
+   * what she entered, and the Wash Day page can offer it back as an
+   * "Incomplete" wash day. Nothing is written to `wash_days` until she saves.
+   */
+  useEffect(() => {
+    if (loadingEdit || !seeded) return;
+    writeWashDraft("strand_wash_log_steps", { date, rows, toolIds });
+    writeWashDraft("strand_wash_date", date);
+  }, [date, rows, toolIds, seeded, loadingEdit]);
+
   const next = () => {
     writeWashDraft("strand_wash_log_steps", { date, rows, toolIds });
     writeWashDraft("strand_wash_date", date);

@@ -38,6 +38,7 @@ import { useWashDaySchedules } from "@/hooks/useWashDaySchedules";
 import NextWashDayBox, { washDayCalendarEvent } from "@/components/wash/NextWashDayBox";
 import { googleCalendarUrl } from "@/lib/addToCalendar";
 import StyleProfilePrompt from "@/components/style/StyleProfilePrompt";
+import IncompleteWashDayCard from "@/components/washday/IncompleteWashDayCard";
 import AiProgressBar from "@/components/AiProgressBar";
 
 
@@ -479,6 +480,8 @@ const WashDayHub = () => {
       <TitleBar title="Wash Day" back={false} tips />
       <div className="px-5 space-y-4 pb-6">
         <StyleProfilePrompt />
+        {/* An unfinished log, offered back before anything else on the page. */}
+        <IncompleteWashDayCard />
         {overdue && (
 
 
