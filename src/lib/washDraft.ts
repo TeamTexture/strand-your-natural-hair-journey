@@ -97,6 +97,44 @@ export function clearWashDrafts(): void {
   WASH_LOCAL_KEYS.forEach(clearWashDraft);
 }
 
+/**
+ * WHICH ENTRY THIS DRAFT BELONGS TO.
+ *
+ * The draft keys are fixed, so a draft left behind by one thing used to be
+ * read straight back by the next: backing out of an EDIT without saving left
+ * that wash day's products and its past date sitting there, and the next "Log
+ * a wash day" opened pre-filled with them (an easy duplicate on the wrong
+ * date). The same leftovers in the other direction let an abandoned new log's
+ * photo, note and rating land on an older entry opened for editing.
+ *
+ * Every draft therefore records its owner — `"new"` for a fresh log, or
+ * `edit:<wash day id>` — and a screen that opens for a different owner wipes
+ * the draft before reading anything from it.
+ */
+export type WashDraftScope = "new" | `edit:${string}`;
+
+export const washDraftScope = (editId?: string | null): WashDraftScope =>
+  editId ? `edit:${editId}` : "new";
+
+/** The owner of the draft currently on this device ("" when there isn't one). */
+export function readWashDraftScope(): string {
+  return readWashDraft<string>("strand_wash_log_scope", "");
+}
+
+/**
+ * Make the stored draft belong to `scope`, discarding it entirely when it
+ * belonged to something else. Returns true when a foreign draft was dropped.
+ * Call this BEFORE reading any draft slice.
+ */
+export function ensureWashDraftScope(scope: WashDraftScope): boolean {
+  const current = readWashDraftScope();
+  if (current === scope) return false;
+  clearWashDrafts();
+  writeWashDraft("strand_wash_log_scope", scope);
+  return current !== "";
+}
+
+
 const isEmptyPayload = (value: unknown) =>
   !value || typeof value !== "object" || Object.keys(value as object).length === 0;
 
