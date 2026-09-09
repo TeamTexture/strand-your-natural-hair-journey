@@ -7371,6 +7371,7 @@ export type Database = {
           id: string
           product_id: string | null
           step: string
+          tool_id: string | null
           updated_at: string
           user_id: string
         }
@@ -7379,6 +7380,7 @@ export type Database = {
           id?: string
           product_id?: string | null
           step: string
+          tool_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -7387,6 +7389,7 @@ export type Database = {
           id?: string
           product_id?: string | null
           step?: string
+          tool_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -7396,6 +7399,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "user_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wash_day_favourites_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "user_tools"
             referencedColumns: ["id"]
           },
         ]
@@ -7474,6 +7484,7 @@ export type Database = {
           style_other_voice_url: string | null
           style_tension: string | null
           styling: Json | null
+          tool_ids: string[]
           updated_at: string
           user_id: string
           wash_date: string
@@ -7501,6 +7512,7 @@ export type Database = {
           style_other_voice_url?: string | null
           style_tension?: string | null
           styling?: Json | null
+          tool_ids?: string[]
           updated_at?: string
           user_id: string
           wash_date?: string
@@ -7528,6 +7540,7 @@ export type Database = {
           style_other_voice_url?: string | null
           style_tension?: string | null
           styling?: Json | null
+          tool_ids?: string[]
           updated_at?: string
           user_id?: string
           wash_date?: string
