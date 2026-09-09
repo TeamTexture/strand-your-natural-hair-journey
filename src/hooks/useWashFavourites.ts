@@ -96,7 +96,9 @@ export function useSaveWashFavourites() {
       if (!user) throw new Error("Please sign in first.");
       const map = "map" in input ? input.map : input;
       const skipped = new Set(("map" in input ? input.skipped : undefined) ?? []);
-      const tools = "map" in input ? input.tools : undefined;
+      const tools = ("map" in input ? (input as { tools?: readonly string[] }).tools : undefined) as
+        | readonly string[]
+        | undefined;
       const entries = Object.entries(map);
       const setRows: Array<{
         user_id: string;
