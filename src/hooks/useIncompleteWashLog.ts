@@ -16,7 +16,9 @@ import {
   readWashDraft,
   clearWashDrafts,
   hydrateWashDrafts,
+  readWashDraftScope,
 } from "@/lib/washDraft";
+
 import { WASH_LOG_STEPS } from "@/lib/washLogSteps";
 import { WASH_STEP_LABEL } from "@/lib/washSteps";
 
