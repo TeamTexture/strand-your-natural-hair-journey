@@ -10,6 +10,7 @@ import {
   Gauge,
   Clock,
   Package,
+  Wrench,
   ListOrdered,
   Sparkles,
   Mic,
