@@ -68,6 +68,14 @@ const WashLogStepsInner = () => {
 
   const dateFromQuery = params.get("date");
   const editId = params.get("edit");
+
+  /**
+   * The draft on this device may belong to something else — an edit the member
+   * backed out of, or a new log she abandoned. Claim it for THIS entry (which
+   * wipes it when it was someone else's) before a single slice is read.
+   */
+  const [scopeReset] = useState(() => ensureWashDraftScope(washDraftScope(editId)));
+
   const saved = readWashDraft<{ date?: string; rows?: RowMap; toolIds?: string[] }>(
     "strand_wash_log_steps",
     {},
@@ -82,6 +90,7 @@ const WashLogStepsInner = () => {
   const [seeded, setSeeded] = useState(!!saved.rows);
   const [pickerStep, setPickerStep] = useState<string | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(!!editId);
+
 
   // Keep the chosen date on the draft so page 2 saves against it.
   useEffect(() => {
