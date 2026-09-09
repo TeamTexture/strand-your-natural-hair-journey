@@ -119,6 +119,15 @@ export const WASH_LOG_STEPS: readonly WashLogStep[] = WASH_LOG_GROUPS.flatMap(
   (g) => g.slots,
 );
 
+/** Tools used on a wash day — up to three, from her own shelf of tools. */
+export const MAX_WASH_TOOLS = 3;
+
+/**
+ * Favourite tool slots, stored as `wash_day_favourites` rows carrying a
+ * `tool_id` instead of a `product_id`. Never part of WASH_LOG_STEPS.
+ */
+export const WASH_TOOL_SLOTS: readonly string[] = ["Tool 1", "Tool 2", "Tool 3"];
+
 /**
  * How many slots of a dynamic group to render: every filled slot plus one
  * empty, capped at the group's slot count.
