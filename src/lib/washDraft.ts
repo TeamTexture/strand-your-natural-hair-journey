@@ -33,6 +33,7 @@ export const WASH_LOCAL_KEYS = [
   "strand_wash_log_steps",
   "strand_wash_log_style",
   "strand_wash_date",
+  "strand_wash_log_edit",
 ] as const;
 
 export type WashLocalKey = (typeof WASH_LOCAL_KEYS)[number];
