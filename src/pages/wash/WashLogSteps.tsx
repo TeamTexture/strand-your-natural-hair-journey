@@ -21,7 +21,14 @@ import { useAuth } from "@/hooks/useAuth";
 import type { WashStepEntry } from "@/lib/washSteps";
 import SinceLastWashCard from "@/components/washday/SinceLastWashCard";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
-import { readWashDraft, writeWashDraft, clearWashDraft } from "@/lib/washDraft";
+import {
+  readWashDraft,
+  writeWashDraft,
+  clearWashDrafts,
+  ensureWashDraftScope,
+  washDraftScope,
+} from "@/lib/washDraft";
+
 import { WASH_LOG_GROUPS, WASH_LOG_STEPS, friendlyWashDate, localIsoDate, visibleSlotCount } from "@/lib/washLogSteps";
 import StepSkipRow from "@/components/washday/StepSkipRow";
 import { cn } from "@/lib/utils";
