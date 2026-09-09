@@ -102,14 +102,18 @@ const WashLogStyleInner = () => {
   const saveFavourites = useSaveWashFavourites();
   const qc = useQueryClient();
 
+  // WHOSE DRAFT IS THIS? The scope recorded by page 1 is the only thing that
+  // decides whether this run updates an existing wash day or inserts a new
+  // one — never a leftover snapshot, which is how an abandoned new log's
+  // photo, note and rating used to land on an older entry.
+  const scope = readWashDraftScope();
   const stepsDraft = readWashDraft<{
     date?: string;
     rows?: Record<string, StepRow>;
     toolIds?: string[];
   }>("strand_wash_log_steps", {});
-  // Set when this run is an EDIT of an existing wash day, not a new log.
   const edit = readWashDraft<Partial<WashEditSnapshot>>("strand_wash_log_edit", {});
-  const editId = edit.id ?? null;
+  const editId = scope.startsWith("edit:") ? scope.slice(5) : null;
   const saved = readWashDraft<{
     styleProductIds?: string[];
     note?: string;
@@ -118,6 +122,7 @@ const WashLogStyleInner = () => {
     mediaType?: "photo" | "video" | null;
     rating?: number | null;
   }>("strand_wash_log_style", {});
+
 
   const editStyling = (edit.styling ?? null) as
     | { productIds?: string[]; photoPaths?: string[]; videoPath?: string }
