@@ -89,12 +89,20 @@ export function useSaveWashFavourites() {
       map: Record<string, string | null>;
       /** Steps marked "skip by default" — kept as a product-less row. */
       skipped?: readonly string[];
+      /** Her default tools, in order — up to three. */
+      tools?: readonly string[];
     }) => {
       if (!user) throw new Error("Please sign in first.");
       const map = "map" in input ? input.map : input;
       const skipped = new Set(("map" in input ? input.skipped : undefined) ?? []);
+      const tools = "map" in input ? input.tools : undefined;
       const entries = Object.entries(map);
-      const setRows = entries
+      const setRows: Array<{
+        user_id: string;
+        step: string;
+        product_id: string | null;
+        tool_id?: string | null;
+      }> = entries
         .filter(([step, id]) => !!id || skipped.has(step))
         .map(([step, id]) => ({
           user_id: user.id,
@@ -104,6 +112,20 @@ export function useSaveWashFavourites() {
       const clearSteps = entries
         .filter(([step, id]) => !id && !skipped.has(step))
         .map(([step]) => step);
+
+      // Tool slots are only touched when the caller passed a tools list.
+      if (tools) {
+        const picked = tools.filter(Boolean).slice(0, WASH_TOOL_SLOTS.length);
+        WASH_TOOL_SLOTS.forEach((slot, i) => {
+          const toolId = picked[i];
+          if (toolId) {
+            setRows.push({ user_id: user.id, step: slot, product_id: null, tool_id: toolId });
+          } else {
+            clearSteps.push(slot);
+          }
+        });
+      }
+
 
       if (setRows.length) {
         const { error } = await supabase
