@@ -42,9 +42,13 @@ export const incompleteWashLogKey = (userId?: string) => ["incomplete-wash-log",
 
 const summarise = (): IncompleteWashLog | null => {
   // Editing a saved wash day reuses the same draft keys — that is not an
-  // unfinished new log and must never surface as one.
+  // unfinished new log and must never surface as one. The draft's own scope is
+  // the authority on who it belongs to.
+  const scope = readWashDraftScope();
+  if (scope && scope !== "new") return null;
   const edit = readWashDraft<{ id?: string }>("strand_wash_log_edit", {});
   if (edit?.id) return null;
+
 
   const steps = readWashDraft<{
     date?: string;
