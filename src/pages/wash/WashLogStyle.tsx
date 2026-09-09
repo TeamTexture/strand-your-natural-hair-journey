@@ -28,7 +28,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserProducts } from "@/hooks/useUserProducts";
 import { useWashFavourites, useSaveWashFavourites } from "@/hooks/useWashFavourites";
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
-import { readWashDraft, writeWashDraft, clearWashDrafts } from "@/lib/washDraft";
+import {
+  readWashDraft,
+  writeWashDraft,
+  clearWashDrafts,
+  readWashDraftScope,
+} from "@/lib/washDraft";
+
 import { incompleteWashLogKey } from "@/hooks/useIncompleteWashLog";
 import { WASH_LOG_STEPS, localIsoDate } from "@/lib/washLogSteps";
 import type { WashEditSnapshot } from "@/pages/wash/WashLogSteps";
