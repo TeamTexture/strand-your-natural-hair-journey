@@ -781,10 +781,10 @@ const NutritionPlan = () => {
    * supplements. With the old volatile cache signature every one of those was a
    * cold generation — 17 calls / 380k tokens in eleven minutes for one member.
    *
-   * Now: one request per view at most, collapsed through an in-flight ref, and
-   * `force` is set ONLY from the explicit "Generate a new plan" control. A
-   * failure surfaces a "Try again" button instead of silently re-spending.
-   */
+ * Now: one request per view at most, collapsed through an in-flight ref, and
+ * `force` is set from the explicit "Try again" failure control. A failure
+ * surfaces that same control instead of silently re-spending.
+ */
   const inFlightRef = useRef(false);
 
 
