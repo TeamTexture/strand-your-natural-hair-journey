@@ -781,10 +781,10 @@ const NutritionPlan = () => {
    * supplements. With the old volatile cache signature every one of those was a
    * cold generation — 17 calls / 380k tokens in eleven minutes for one member.
    *
-   * Now: one request per view at most, collapsed through an in-flight ref, and
-   * `force` is set ONLY from the explicit "Generate a new plan" control. A
-   * failure surfaces a "Try again" button instead of silently re-spending.
-   */
+ * Now: one request per view at most, collapsed through an in-flight ref, and
+ * `force` is set from the explicit "Try again" failure control. A failure
+ * surfaces that same control instead of silently re-spending.
+ */
   const inFlightRef = useRef(false);
 
 
@@ -1161,9 +1161,9 @@ const NutritionPlan = () => {
           </div>
         </div>
 
-        {/* The ONLY path that spends tokens on this screen. Viewing, navigating
-            back, or re-rendering always reads the stored plan. */}
-        {/* A warranted refresh runs behind the plan she is already reading. */}
+        {/* The only voluntary paths that spend tokens on this screen now are
+            the failure "Try again" control and background refreshes. Viewing,
+            navigating back, or re-rendering always reads the stored plan. */}
         {refreshing && (
           <div className="mb-4 flex justify-center">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-secondary text-[11px] font-body text-muted-foreground">
@@ -1173,17 +1173,6 @@ const NutritionPlan = () => {
           </div>
         )}
 
-        {plan && !aiLoading && !refreshing && (
-          <div className="mb-4 flex justify-center">
-            <button
-              type="button"
-              onClick={() => void fetchPlan(true, profile)}
-              className="px-4 py-2 rounded-pill border border-border bg-background text-[11px] font-body font-semibold tracking-wide uppercase"
-            >
-              Generate a new plan
-            </button>
-          </div>
-        )}
 
         <div className="mb-4 space-y-2">
           {sensitivityAsk && (
