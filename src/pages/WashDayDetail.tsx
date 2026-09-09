@@ -406,7 +406,8 @@ const WashDayDetail = () => {
           </div>
           {!editing && (
             <button
-              onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(true); }}
+              // Editing reuses the real wash day log flow, pre-filled.
+              onClick={() => navigate(`/wash/log?edit=${wd.id}`)}
               className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
               aria-label="Edit wash day"
             >
