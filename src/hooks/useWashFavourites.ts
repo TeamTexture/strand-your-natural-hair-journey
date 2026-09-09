@@ -11,6 +11,8 @@ import { useAuth } from "@/hooks/useAuth";
 export interface WashFavourite {
   step: string;
   product_id: string | null;
+  /** Set only on the "Tool 1".."Tool 3" slots. */
+  tool_id?: string | null;
 }
 
 /** step → product id, for the signed-in member. */
