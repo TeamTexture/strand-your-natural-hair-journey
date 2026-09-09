@@ -7,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { WASH_TOOL_SLOTS } from "@/lib/washLogSteps";
 
 export interface WashFavourite {
   step: string;
@@ -145,6 +146,7 @@ export function useSaveWashFavourites() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["wash-favourites", user?.id] });
       void qc.invalidateQueries({ queryKey: ["wash-favourite-skips", user?.id] });
+      void qc.invalidateQueries({ queryKey: ["wash-favourite-tools", user?.id] });
     },
   });
 }
