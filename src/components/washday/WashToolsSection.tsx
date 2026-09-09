@@ -17,7 +17,7 @@ interface Props {
 }
 
 const WashToolsSection = ({ toolIds, onChange, description }: Props) => {
-  const { tools, load } = useUserTools();
+  const { tools, reload } = useUserTools();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const byId = useMemo(() => {
@@ -107,7 +107,7 @@ const WashToolsSection = ({ toolIds, onChange, description }: Props) => {
           toggle(id);
           setPickerOpen(false);
         }}
-        onToolsChanged={() => void load()}
+        onToolsChanged={() => void reload()}
       />
     </div>
   );
