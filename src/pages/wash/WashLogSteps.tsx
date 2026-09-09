@@ -222,6 +222,8 @@ const WashLogStepsInner = () => {
 
   const activeStep = WASH_LOG_STEPS.find((s) => s.stored === pickerStep) ?? null;
 
+  if (loadingEdit) return <LoadingDot />;
+
   return (
     <ScreenLayout>
       <TitleBar
@@ -243,6 +245,7 @@ const WashLogStepsInner = () => {
         </div>
       </div>
 
+      {!editId && (
       <div className="px-5 pb-1">
         <Button variant="gold" size="pill" onClick={() => void applyFavourites()}>
           <Heart className="size-4" aria-hidden />
