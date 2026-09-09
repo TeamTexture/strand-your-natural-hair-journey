@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useUserTools } from "@/hooks/useUserTools";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -194,6 +195,7 @@ const WashDayDetail = () => {
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
   const [styleVoiceUrl, setStyleVoiceUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const { tools } = useUserTools();
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -578,6 +580,43 @@ const WashDayDetail = () => {
             </StatusCallout>
           )}
 
+
+        {/* ── Tools used ─────────────────────── */}
+        {!editing && (wd.tool_ids ?? []).length > 0 && (
+          <SurfaceCard padded={false} className="divide-y divide-border/60">
+            <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+              <Wrench className="size-3.5 text-primary" /> Tools used
+            </div>
+            {(wd.tool_ids ?? []).map((id) => {
+              const tool = tools.find((t) => t.id === id);
+              if (!tool) return null;
+              return (
+                <Link
+                  key={id}
+                  to={`/tools/${tool.id}`}
+                  className="flex items-center gap-3 p-3 hover:bg-primary/5 transition"
+                >
+                  <ProductThumb
+                    imageUrl={tool.image_url}
+                    storagePath={tool.storage_path}
+                    name={tool.name}
+                    alt={tool.name}
+                    cover
+                    wrapperClassName="size-[38px] rounded-[8px] overflow-hidden bg-secondary shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
+                      {tool.category}
+                    </p>
+                    <p className="product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere]">
+                      {tool.name}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </SurfaceCard>
+        )}
 
         {/* ── Products used ──────────────────── */}
         {!editing && products.length > 0 && (

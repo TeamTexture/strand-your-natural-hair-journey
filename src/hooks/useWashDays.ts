@@ -26,6 +26,8 @@ export interface WashDay {
   /** DEPRECATED — never written or rendered. Retained for historic rows only. */
   next_wash_tip: string | null;
   product_ids: string[];
+  /** Tools she used on this wash day — up to three. */
+  tool_ids?: string[] | null;
   created_at: string;
 }
 
