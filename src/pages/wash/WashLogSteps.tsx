@@ -109,12 +109,8 @@ const WashLogStepsInner = () => {
    * actually logged that day. Favourites never overwrite an edit.
    */
   useEffect(() => {
-    if (!editId) {
-      // Starting a fresh log: drop any leftover edit snapshot.
-      const stale = readWashDraft<Partial<WashEditSnapshot>>("strand_wash_log_edit", {});
-      if (stale.id) clearWashDraft("strand_wash_log_edit");
-      return;
-    }
+    if (!editId) return;
+
     if (!user) return;
     let cancelled = false;
     void (async () => {
