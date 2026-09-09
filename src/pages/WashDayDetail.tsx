@@ -690,63 +690,6 @@ const WashDayDetail = () => {
         ) : null}
 
 
-        {/* ── Edit form ──────────────────────── */}
-        {editing && draft && (
-          <SurfaceCard className="space-y-3">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
-              Edit details
-            </p>
-
-            <div>
-              <Label htmlFor="wash_date" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Date</Label>
-              <Input
-                id="wash_date"
-                type="date"
-                value={draft.wash_date}
-                onChange={(e) => setDraft({ ...draft, wash_date: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="scalp" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Scalp feel</Label>
-                <Input id="scalp" value={draft.scalp_feel} onChange={(e) => setDraft({ ...draft, scalp_feel: e.target.value })} placeholder="e.g. Calm" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="breakage" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Breakage</Label>
-                <Input id="breakage" value={draft.breakage} onChange={(e) => setDraft({ ...draft, breakage: e.target.value })} placeholder="e.g. Minimal" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="style" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Style after</Label>
-                <Input id="style" value={draft.style_after} onChange={(e) => setDraft({ ...draft, style_after: e.target.value })} placeholder="e.g. Twist-out" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="duration" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Duration (min)</Label>
-                <Input id="duration" type="number" inputMode="numeric" min={0} value={draft.duration_min} onChange={(e) => setDraft({ ...draft, duration_min: e.target.value })} className="mt-1" />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="stress" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Stress level (1–5)</Label>
-                <Input id="stress" type="number" inputMode="numeric" min={1} max={5} value={draft.stress_level} onChange={(e) => setDraft({ ...draft, stress_level: e.target.value })} className="mt-1" />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="feel" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Hair feel note</Label>
-              <Textarea id="feel" value={draft.hair_feel_note} onChange={(e) => setDraft({ ...draft, hair_feel_note: e.target.value })} placeholder="How did your hair feel after this wash?" rows={3} className="mt-1" />
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="gold" size="pill" onClick={handleSave} disabled={saving} className="flex-1 min-w-0">
-                {saving ? "Saving…" : "Save changes"}
-              </Button>
-              <Button variant="goldOutline" size="pill" onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(false); }} disabled={saving} className="flex-1 min-w-0">
-                Cancel
-              </Button>
-            </div>
-          </SurfaceCard>
-        )}
-
         {/* ── Hair feel note + voice ─────────── */}
         {!editing && (wd.hair_feel_note || voiceUrl) && (
           <SurfaceCard>
