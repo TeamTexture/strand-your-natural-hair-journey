@@ -36,7 +36,7 @@ const IncompleteWashDayCard = () => {
 
   return (
     <>
-      <SurfaceCard className="border-primary/40">
+      <SurfaceCard tone="gold">
         <div className="flex items-start gap-3">
           <span className="mt-[2px] inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/12">
             <Droplets className="size-3.5 text-primary" aria-hidden />
