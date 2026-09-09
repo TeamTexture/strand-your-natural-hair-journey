@@ -48,12 +48,34 @@ export function useWashFavouriteSkips() {
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase
         .from("wash_day_favourites")
-        .select("step, product_id")
+        .select("step, product_id, tool_id")
         .eq("user_id", user!.id);
       if (error) throw error;
       return ((data ?? []) as WashFavourite[])
-        .filter((row) => !row.product_id)
+        // A tool slot carries no product — it is not a skipped step.
+        .filter((row) => !row.product_id && !row.tool_id && !WASH_TOOL_SLOTS.includes(row.step))
         .map((row) => row.step);
+    },
+  });
+}
+
+/** Her default tools, in slot order — up to three, may be empty. */
+export function useWashFavouriteTools() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["wash-favourite-tools", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from("wash_day_favourites")
+        .select("step, product_id, tool_id")
+        .eq("user_id", user!.id)
+        .in("step", WASH_TOOL_SLOTS as string[]);
+      if (error) throw error;
+      const rows = (data ?? []) as WashFavourite[];
+      return WASH_TOOL_SLOTS.map(
+        (slot) => rows.find((r) => r.step === slot)?.tool_id ?? null,
+      ).filter((id): id is string => !!id);
     },
   });
 }
