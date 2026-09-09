@@ -252,9 +252,10 @@ const WashLogStepsInner = () => {
           Update from favourites
         </Button>
       </div>
+      )}
 
       {/* What she did between washes — read-only, collapsed by default. */}
-      <SinceLastWashCard />
+      {!editId && <SinceLastWashCard />}
 
 
 
