@@ -34,14 +34,16 @@ export const WASH_LOCAL_KEYS = [
   "strand_wash_log_style",
   "strand_wash_date",
   "strand_wash_log_edit",
+  "strand_wash_log_scope",
 ] as const;
 
 export type WashLocalKey = (typeof WASH_LOCAL_KEYS)[number];
 
 /** Keys whose stored value is a bare string rather than a JSON object. */
-const SCALAR_KEYS: readonly WashLocalKey[] = ["strand_wash_date"];
+const SCALAR_KEYS: readonly WashLocalKey[] = ["strand_wash_date", "strand_wash_log_scope"];
 
 const remoteKey = (key: WashLocalKey) => `wash:${key.replace(/^strand_wash_/, "")}`;
+
 
 const setLocal = (key: string, raw: string) => {
   try {
