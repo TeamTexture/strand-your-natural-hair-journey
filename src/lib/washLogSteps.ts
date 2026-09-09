@@ -93,10 +93,12 @@ export const WASH_LOG_GROUPS: readonly WashLogGroup[] = [
     slots: [{ stored: "Leave-in", label: "Leave-in", hint: "condition" }],
   },
   {
-    key: "moisturise",
-    label: "Moisturise",
+    // Replaces the old "Moisturise" slot. Historical logs and favourites still
+    // hold the string "Moisturise" and keep rendering through WASH_STEP_LABEL.
+    key: "oil",
+    label: "Oil (Sealant)",
     hint: "condition",
-    slots: [{ stored: "Moisturise", label: "Moisturise", hint: "condition" }],
+    slots: [{ stored: "Oil (Sealant)", label: "Oil (Sealant)", hint: "condition" }],
   },
   {
     key: "style",
@@ -116,6 +118,15 @@ export const SKIPPABLE_STEPS: ReadonlySet<string> = new Set(
 export const WASH_LOG_STEPS: readonly WashLogStep[] = WASH_LOG_GROUPS.flatMap(
   (g) => g.slots,
 );
+
+/** Tools used on a wash day — up to three, from her own shelf of tools. */
+export const MAX_WASH_TOOLS = 3;
+
+/**
+ * Favourite tool slots, stored as `wash_day_favourites` rows carrying a
+ * `tool_id` instead of a `product_id`. Never part of WASH_LOG_STEPS.
+ */
+export const WASH_TOOL_SLOTS: readonly string[] = ["Tool 1", "Tool 2", "Tool 3"];
 
 /**
  * How many slots of a dynamic group to render: every filled slot plus one

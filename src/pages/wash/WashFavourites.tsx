@@ -12,7 +12,8 @@ import ProductPickerSheet from "@/components/ProductPickerSheet";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUserProducts } from "@/hooks/useUserProducts";
-import { useWashFavourites, useWashFavouriteSkips, useSaveWashFavourites } from "@/hooks/useWashFavourites";
+import { useWashFavourites, useWashFavouriteSkips, useWashFavouriteTools, useSaveWashFavourites } from "@/hooks/useWashFavourites";
+import WashToolsSection from "@/components/washday/WashToolsSection";
 import { WASH_LOG_GROUPS, WASH_LOG_STEPS, visibleSlotCount } from "@/lib/washLogSteps";
 import StepSkipRow from "@/components/washday/StepSkipRow";
 import { cn } from "@/lib/utils";
@@ -23,10 +24,12 @@ const WashFavourites = () => {
   const { products } = useUserProducts("shelf");
   const { data: favourites, isLoading } = useWashFavourites();
   const { data: savedSkips } = useWashFavouriteSkips();
+  const { data: savedTools } = useWashFavouriteTools();
   const save = useSaveWashFavourites();
   const [draft, setDraft] = useState<Record<string, string | null>>({});
   const [pickerStep, setPickerStep] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<Record<string, boolean>>({});
+  const [toolIds, setToolIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -36,7 +39,8 @@ const WashFavourites = () => {
     const skips: Record<string, boolean> = {};
     for (const step of savedSkips ?? []) skips[step] = true;
     setSkipped(skips);
-  }, [favourites, savedSkips, isLoading]);
+    setToolIds(savedTools ?? []);
+  }, [favourites, savedSkips, savedTools, isLoading]);
 
   const byId = useMemo(() => {
     const map: Record<string, (typeof products)[number]> = {};
@@ -51,6 +55,7 @@ const WashFavourites = () => {
       await save.mutateAsync({
         map: draft,
         skipped: Object.keys(skipped).filter((s) => skipped[s]),
+        tools: toolIds,
       });
       toast.success("Wash Day Favourites saved");
       navigate(-1);
@@ -157,6 +162,12 @@ const WashFavourites = () => {
             </div>
           );
         })}
+
+        <WashToolsSection
+          toolIds={toolIds}
+          onChange={setToolIds}
+          description="Your usual tools — up to three. They pre-fill each new wash day log."
+        />
 
         <Button
           variant="gold"

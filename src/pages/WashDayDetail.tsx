@@ -10,6 +10,7 @@ import {
   Gauge,
   Clock,
   Package,
+  Wrench,
   ListOrdered,
   Sparkles,
   Mic,
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useUserTools } from "@/hooks/useUserTools";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -194,6 +196,7 @@ const WashDayDetail = () => {
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
   const [styleVoiceUrl, setStyleVoiceUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const { tools } = useUserTools();
   const [draft, setDraft] = useState<EditDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -406,7 +409,8 @@ const WashDayDetail = () => {
           </div>
           {!editing && (
             <button
-              onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(true); }}
+              // Editing reuses the real wash day log flow, pre-filled.
+              onClick={() => navigate(`/wash/log?edit=${wd.id}`)}
               className="flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary px-3 py-2 rounded-full border border-primary/30 hover:bg-primary/5 shrink-0"
               aria-label="Edit wash day"
             >
@@ -578,6 +582,43 @@ const WashDayDetail = () => {
           )}
 
 
+        {/* ── Tools used ─────────────────────── */}
+        {!editing && (wd.tool_ids ?? []).length > 0 && (
+          <SurfaceCard padded={false} className="divide-y divide-border/60">
+            <div className="p-3.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+              <Wrench className="size-3.5 text-primary" /> Tools used
+            </div>
+            {(wd.tool_ids ?? []).map((id) => {
+              const tool = tools.find((t) => t.id === id);
+              if (!tool) return null;
+              return (
+                <Link
+                  key={id}
+                  to={`/tools/${tool.id}`}
+                  className="flex items-center gap-3 p-3 hover:bg-primary/5 transition"
+                >
+                  <ProductThumb
+                    imageUrl={tool.image_url}
+                    storagePath={tool.storage_path}
+                    name={tool.name}
+                    alt={tool.name}
+                    cover
+                    wrapperClassName="size-[38px] rounded-[8px] overflow-hidden bg-secondary shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-primary font-medium">
+                      {tool.category}
+                    </p>
+                    <p className="product-title text-[13px] leading-snug break-words [overflow-wrap:anywhere]">
+                      {tool.name}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </SurfaceCard>
+        )}
+
         {/* ── Products used ──────────────────── */}
         {!editing && products.length > 0 && (
           <SurfaceCard padded={false} className="divide-y divide-border/60">
@@ -689,63 +730,6 @@ const WashDayDetail = () => {
           </SurfaceCard>
         ) : null}
 
-
-        {/* ── Edit form ──────────────────────── */}
-        {editing && draft && (
-          <SurfaceCard className="space-y-3">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
-              Edit details
-            </p>
-
-            <div>
-              <Label htmlFor="wash_date" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Date</Label>
-              <Input
-                id="wash_date"
-                type="date"
-                value={draft.wash_date}
-                onChange={(e) => setDraft({ ...draft, wash_date: e.target.value })}
-                className="mt-1"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="scalp" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Scalp feel</Label>
-                <Input id="scalp" value={draft.scalp_feel} onChange={(e) => setDraft({ ...draft, scalp_feel: e.target.value })} placeholder="e.g. Calm" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="breakage" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Breakage</Label>
-                <Input id="breakage" value={draft.breakage} onChange={(e) => setDraft({ ...draft, breakage: e.target.value })} placeholder="e.g. Minimal" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="style" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Style after</Label>
-                <Input id="style" value={draft.style_after} onChange={(e) => setDraft({ ...draft, style_after: e.target.value })} placeholder="e.g. Twist-out" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="duration" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Duration (min)</Label>
-                <Input id="duration" type="number" inputMode="numeric" min={0} value={draft.duration_min} onChange={(e) => setDraft({ ...draft, duration_min: e.target.value })} className="mt-1" />
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="stress" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Stress level (1–5)</Label>
-                <Input id="stress" type="number" inputMode="numeric" min={1} max={5} value={draft.stress_level} onChange={(e) => setDraft({ ...draft, stress_level: e.target.value })} className="mt-1" />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="feel" className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Hair feel note</Label>
-              <Textarea id="feel" value={draft.hair_feel_note} onChange={(e) => setDraft({ ...draft, hair_feel_note: e.target.value })} placeholder="How did your hair feel after this wash?" rows={3} className="mt-1" />
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="gold" size="pill" onClick={handleSave} disabled={saving} className="flex-1 min-w-0">
-                {saving ? "Saving…" : "Save changes"}
-              </Button>
-              <Button variant="goldOutline" size="pill" onClick={() => { setDraft(draftFromWashDay(wd)); setEditing(false); }} disabled={saving} className="flex-1 min-w-0">
-                Cancel
-              </Button>
-            </div>
-          </SurfaceCard>
-        )}
 
         {/* ── Hair feel note + voice ─────────── */}
         {!editing && (wd.hair_feel_note || voiceUrl) && (

@@ -1,0 +1,2 @@
+ALTER TABLE public.wash_days ADD COLUMN IF NOT EXISTS tool_ids uuid[] NOT NULL DEFAULT '{}'::uuid[];
+ALTER TABLE public.wash_day_favourites ADD COLUMN IF NOT EXISTS tool_id uuid REFERENCES public.user_tools(id) ON DELETE SET NULL;

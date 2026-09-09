@@ -37,6 +37,7 @@ export const WASH_STEP_LABEL: Record<string, string> = {
   Treatment: "Treatment / Mask",
   "Leave-in": "Leave-in",
   Moisturise: "Moisturise",
+  "Oil (Sealant)": "Oil (Sealant)",
   Style: "Style",
   "Style 2": "Style",
   "Style 3": "Style",

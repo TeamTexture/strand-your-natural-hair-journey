@@ -30,6 +30,7 @@ import { useWashFavourites, useSaveWashFavourites } from "@/hooks/useWashFavouri
 import { useWashDraftHydration } from "@/hooks/useWashDraftHydration";
 import { readWashDraft, writeWashDraft, clearWashDrafts } from "@/lib/washDraft";
 import { WASH_LOG_STEPS, localIsoDate } from "@/lib/washLogSteps";
+import type { WashEditSnapshot } from "@/pages/wash/WashLogSteps";
 import { convertHeicToJpeg } from "@/lib/imagePrep";
 import { setPendingStylePrompt } from "@/lib/styleProfilePrompt";
 import { buildAiContext } from "@/lib/aiContext";
@@ -100,10 +101,14 @@ const WashLogStyleInner = () => {
   const saveFavourites = useSaveWashFavourites();
   const qc = useQueryClient();
 
-  const stepsDraft = readWashDraft<{ date?: string; rows?: Record<string, StepRow> }>(
-    "strand_wash_log_steps",
-    {},
-  );
+  const stepsDraft = readWashDraft<{
+    date?: string;
+    rows?: Record<string, StepRow>;
+    toolIds?: string[];
+  }>("strand_wash_log_steps", {});
+  // Set when this run is an EDIT of an existing wash day, not a new log.
+  const edit = readWashDraft<Partial<WashEditSnapshot>>("strand_wash_log_edit", {});
+  const editId = edit.id ?? null;
   const saved = readWashDraft<{
     styleProductIds?: string[];
     note?: string;
@@ -113,13 +118,26 @@ const WashLogStyleInner = () => {
     rating?: number | null;
   }>("strand_wash_log_style", {});
 
-  const [styleProductIds, setStyleProductIds] = useState<string[]>(saved.styleProductIds ?? []);
-  const [note, setNote] = useState(saved.note ?? "");
-  const [audioPath, setAudioPath] = useState<string | null>(saved.audioPath ?? null);
-  const [mediaPath, setMediaPath] = useState<string | null>(saved.mediaPath ?? null);
-  const [mediaType, setMediaType] = useState<"photo" | "video" | null>(saved.mediaType ?? null);
+  const editStyling = (edit.styling ?? null) as
+    | { productIds?: string[]; photoPaths?: string[]; videoPath?: string }
+    | null;
+  const [styleProductIds, setStyleProductIds] = useState<string[]>(
+    saved.styleProductIds ?? (editId ? editStyling?.productIds ?? [] : []),
+  );
+  const [note, setNote] = useState(saved.note ?? (editId ? edit.note ?? "" : ""));
+  const [audioPath, setAudioPath] = useState<string | null>(
+    saved.audioPath ?? (editId ? edit.audioPath ?? null : null),
+  );
+  const [mediaPath, setMediaPath] = useState<string | null>(
+    saved.mediaPath ?? (editId ? edit.mediaPath ?? null : null),
+  );
+  const [mediaType, setMediaType] = useState<"photo" | "video" | null>(
+    saved.mediaType ?? (editId ? edit.mediaType ?? null : null),
+  );
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [rating, setRating] = useState<number | null>(saved.rating ?? null);
+  const [rating, setRating] = useState<number | null>(
+    saved.rating ?? (editId ? edit.rating ?? null : null),
+  );
   const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -148,7 +166,7 @@ const WashLogStyleInner = () => {
       if (cancelled || !ctx.style) return;
       const row = ctx.style as unknown as Record<string, unknown>;
       const current = (row.current_hairstyle as string | null) ?? "";
-      setStyle((prev) => prev || current);
+      setStyle((prev) => prev || (editId ? edit.styleAfter ?? "" : "") || current);
       setOriginalStyle(current);
       setStyleAttrs({
         tension: (row.current_style_tension as string | null) ?? null,
@@ -258,9 +276,22 @@ const WashLogStyleInner = () => {
     };
 
 
+    const withTools = { ...payload, tool_ids: stepsDraft.toolIds ?? [] };
+
+    if (editId) {
+      const { user_id: _ignored, ...updates } = withTools;
+      const { error: updateError } = await supabase
+        .from("wash_days")
+        .update(updates as never)
+        .eq("id", editId)
+        .eq("user_id", user.id);
+      if (updateError) throw updateError;
+      return editId;
+    }
+
     const { data, error } = await supabase
       .from("wash_days")
-      .insert(payload as never)
+      .insert(withTools as never)
       .select("id")
       .maybeSingle();
     if (error) throw error;
@@ -309,7 +340,12 @@ const WashLogStyleInner = () => {
     // A photo added on this log is a progress photo — let the Current style
     // card picker pick it up straight away.
     void qc.invalidateQueries({ queryKey: styleCardPhotoKey(user?.id) });
-    toast("💧 Wash day saved!");
+    toast(editId ? "Wash day updated" : "💧 Wash day saved!");
+    if (editId) {
+      navigate("/wash-day", { replace: true });
+      navigate(`/wash-day/${editId}`);
+      return;
+    }
     // The log flow is finished: rewrite the last history entry to Home so
     // pressing back from Wash Day exits to Home instead of walking back into
     // the completed log steps.
@@ -322,7 +358,7 @@ const WashLogStyleInner = () => {
   const continueAfterStyle = () => {
     const hasFavourites = Object.keys(favourites ?? {}).length > 0;
     const hasPicks = buildSteps().length > 0;
-    if (!hasFavourites && hasPicks) {
+    if (!editId && !hasFavourites && hasPicks) {
       setFavPrompt(true);
       return;
     }
@@ -397,7 +433,10 @@ const WashLogStyleInner = () => {
 
   return (
     <ScreenLayout>
-      <TitleBar title="Your style" onBack={smartBack(navigate, "/wash/log")} />
+      <TitleBar
+        title="Your style"
+        onBack={smartBack(navigate, editId ? `/wash/log?edit=${editId}` : "/wash/log")}
+      />
 
       <div className="px-5 pt-4 pb-8 space-y-4">
         {/* Choosing the style is the first decision on this page, and saving it
