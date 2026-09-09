@@ -246,14 +246,25 @@ const WashLogStepsInner = () => {
 
   const activeStep = WASH_LOG_STEPS.find((s) => s.stored === pickerStep) ?? null;
 
+  /**
+   * Leaving an edit without saving throws that draft away, so nothing from the
+   * wash day she was editing can turn up on her next log. A new log keeps its
+   * draft — that is the in-progress log she can come back and finish.
+   */
+  const back = () => {
+    if (editId) clearWashDrafts();
+    smartBack(navigate, editId ? `/wash-day/${editId}` : "/wash-day")();
+  };
+
   if (loadingEdit) return <LoadingDot />;
 
   return (
     <ScreenLayout>
       <TitleBar
         title={editId ? "Edit wash day" : "Log a wash day"}
-        onBack={smartBack(navigate, editId ? `/wash-day/${editId}` : "/wash-day")}
+        onBack={back}
       />
+
 
       <div className="px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">
