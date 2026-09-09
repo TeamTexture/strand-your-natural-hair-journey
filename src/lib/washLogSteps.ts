@@ -93,10 +93,12 @@ export const WASH_LOG_GROUPS: readonly WashLogGroup[] = [
     slots: [{ stored: "Leave-in", label: "Leave-in", hint: "condition" }],
   },
   {
-    key: "moisturise",
-    label: "Moisturise",
+    // Replaces the old "Moisturise" slot. Historical logs and favourites still
+    // hold the string "Moisturise" and keep rendering through WASH_STEP_LABEL.
+    key: "oil",
+    label: "Oil (Sealant)",
     hint: "condition",
-    slots: [{ stored: "Moisturise", label: "Moisturise", hint: "condition" }],
+    slots: [{ stored: "Oil (Sealant)", label: "Oil (Sealant)", hint: "condition" }],
   },
   {
     key: "style",
