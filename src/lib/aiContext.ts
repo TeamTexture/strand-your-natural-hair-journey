@@ -42,7 +42,18 @@ export interface AiContext {
     planned_next_style: string | null;
     planned_change_date: string | null;
     default_style: string | null;
+    /** ADDITIVE (2026-09-11). Everything else she recorded about the style she
+     *  is in and what has been done to her hair chemically. Empty arrays mean
+     *  genuinely nothing recorded. */
+    default_styles?: string[];
+    colour_status?: string | null;
+    chemical_history?: string[];
+    colour_type?: string | null;
+    colour_last_treated?: string | null;
+    colour_reaction?: boolean | null;
+    plans_to_change?: boolean;
   } | null;
+
   healthProfile: Record<string, unknown> | null;
   /** Supplements the member says she is ALREADY taking. Guidance must build on
    *  these rather than repeat them back. */
@@ -62,10 +73,30 @@ export interface AiContext {
     professional_type: string | null;
     last_consultation_date: string | null;
     professional_notes: string | null;
+    /** ADDITIVE. Consultation notes merged with the notes on her recent
+     *  appointments. Omitted when nothing was written down. */
+    recommendations?: string;
   } | null;
   location: {
     postcode: string | null;
+    /** ADDITIVE — from her saved profile, never inferred. */
+    country?: string | null;
+    water_hardness_band?: string | null;
+    water_hardness_mg_l?: number | null;
+    water_supplier?: string | null;
   };
+  /** ADDITIVE. Heritage and age as she recorded them. Omitted when unknown. */
+  demographics?: {
+    heritage?: string[];
+    age?: number | null;
+  };
+  /** ADDITIVE. Behaviour derived from her logged wash days — cadence,
+   *  consistency, thermal-styling heat, air-dry share, breakage pattern.
+   *  Omitted entirely when she has no logs. */
+  behaviour?: import("@/lib/aiBehaviour").BehaviourSlice;
+  /** ADDITIVE. Products she actually used in recent washes, newest first. */
+  recentProductsUsed?: Array<import("@/lib/aiBehaviour").RecentProductUse>;
+
   history: {
     last_3_wash_days: Array<Record<string, unknown>>;
     /** Single unified list of ingredients that appear in 3+ of the user's
