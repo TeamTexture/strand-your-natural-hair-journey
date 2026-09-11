@@ -618,8 +618,22 @@ async function buildAiContextUncached(): Promise<AiContext> {
         planned_next_style: clinical.style.planned_next_style,
         planned_change_date: clinical.style.planned_change_date,
         default_style: clinical.style.default_styles[0] ?? null,
+        default_styles: clinical.style.default_styles ?? [],
+        colour_status: clinical.style.colour?.[0] ?? null,
+        chemical_history: clinical.style.chemical_history ?? [],
+        colour_type: clinical.style.colour_type ?? null,
+        colour_last_treated: clinical.style.colour_last_treated ?? null,
+        colour_reaction: clinical.style.colour_reaction ?? null,
+        plans_to_change: Boolean(
+          clinical.style.planned_next_style || clinical.style.planned_change_date,
+        ),
       }
     : null;
+
+  const professionalRecommendations = mergeProfessionalRecommendations(
+    clinical.professional?.notes,
+    appointmentRows,
+  );
 
   const professional = clinical.professional
     ? {
@@ -628,6 +642,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
         // Null here can mean "not recorded" OR "decrypt failed" — read it
         // together with `decryptStatus`, never on its own.
         professional_notes: clinical.professional.notes,
+        ...(professionalRecommendations ? { recommendations: professionalRecommendations } : {}),
       }
     : null;
 
@@ -641,6 +656,14 @@ async function buildAiContextUncached(): Promise<AiContext> {
     last3.push({ date: lastWashIso });
   }
 
+  const demographics =
+    clinical.basic && ((clinical.basic.heritage?.length ?? 0) > 0 || clinical.basic.age != null)
+      ? {
+          ...(clinical.basic.heritage?.length ? { heritage: clinical.basic.heritage } : {}),
+          ...(clinical.basic.age != null ? { age: clinical.basic.age } : {}),
+        }
+      : undefined;
+
   const result: AiContext = {
     decryptStatus: clinical.decryptStatus,
     ...(clinical.decryptFailedFields.length
@@ -653,9 +676,17 @@ async function buildAiContextUncached(): Promise<AiContext> {
     bloodResults,
     bloodPanels,
     professional,
+    ...(demographics ? { demographics } : {}),
+    ...(behaviour ? { behaviour } : {}),
+    ...(recentProductsUsed ? { recentProductsUsed } : {}),
     location: {
       postcode: postcode ?? null,
+      country: clinical.basic?.country ?? null,
+      water_hardness_band: clinical.basic?.water_hardness_band ?? null,
+      water_hardness_mg_l: clinical.basic?.water_hardness_mg_l ?? null,
+      water_supplier: clinical.basic?.water_supplier ?? null,
     },
+
     history: {
       last_3_wash_days: last3,
       flagged_ingredients: flaggedIngredients,
