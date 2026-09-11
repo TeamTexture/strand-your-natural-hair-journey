@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Droplets, ShieldCheck, LockKeyhole } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
@@ -29,6 +29,12 @@ interface BenefitCardState {
 }
 
 const EMPTY_CARD: BenefitCardState = { expanded: false, loading: false, science: null };
+
+const BENEFIT_ICONS: Record<IngredientBenefitRole, typeof Droplets> = {
+  hydration: Droplets,
+  protection: ShieldCheck,
+  "moisture-lock": LockKeyhole,
+};
 
 const firstString = (value: unknown): string => {
   if (Array.isArray(value)) return String(value[0] ?? "");
@@ -190,6 +196,7 @@ export default function IngredientBenefitCards({
       </p>
       <div className="space-y-2">
         {INGREDIENT_BENEFITS.map((benefit) => {
+          const BenefitIcon = BENEFIT_ICONS[benefit.role];
           const selected = selections[benefit.role];
           const lead = selected[0];
           const state = cards[benefit.role];
@@ -215,7 +222,7 @@ export default function IngredientBenefitCards({
               className="rounded-[12px] border border-border/60 bg-background/70 px-3 py-3"
             >
               <div className="flex items-start gap-2.5">
-                <span className="text-xl leading-none" aria-hidden>{benefit.emoji}</span>
+                <BenefitIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <h3 className="font-display text-[15px] font-semibold leading-tight text-foreground">
                     {benefit.title}
