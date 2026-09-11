@@ -57,6 +57,7 @@ const deriveHeatFrequency = (context: AiContext): string => {
 
 export function ingredientBenefitProfile(context: AiContext): IngredientPersonalizationProfile {
   const hair = context.hairProfile ?? {};
+  const behaviour = context.behaviour;
   return {
     porosity: firstString(hair.porosity),
     goals: context.goals
@@ -67,9 +68,14 @@ export function ingredientBenefitProfile(context: AiContext): IngredientPersonal
     climate: "",
     stylingHabits: context.currentStyle?.current_hairstyle ?? "",
     density: firstString(hair.density),
-    heatFrequency: deriveHeatFrequency(context),
+    heatFrequency: behaviour?.heat_frequency ?? deriveHeatFrequency(context),
+    currentHairstyle: context.currentStyle?.current_hairstyle ?? "",
+    daysInStyle: context.currentStyle?.days_in_style ?? null,
+    chemicalHistory: context.currentStyle?.chemical_history ?? [],
+    airDryPercentage: behaviour?.air_dry_percentage ?? null,
   };
 }
+
 
 const scienceText = (science: IngredientExplainer | null): string =>
   [science?.glossary?.what_it_is, science?.role_in_product]

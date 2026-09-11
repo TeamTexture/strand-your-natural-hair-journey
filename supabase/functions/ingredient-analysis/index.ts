@@ -16,6 +16,7 @@
 //     regenerated rather than served stale.
 //   - Logging: usage tokens only, never the analysis body.
 
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
@@ -609,7 +610,9 @@ YOUR ONLY TASK NOW: return personalised_guidance. Every other field of the analy
 
 // ── Task instructions (shared text — minus the brittle EXACTLY prose) ──
 function buildTaskInstructions(productBrand: string, productName: string, ingredientCount: number, level: TipsLevel = DEFAULT_TIPS_LEVEL, allowedIngredients: string[] = []): string {
-  return `You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
+  return `${contextPrioritySuffix("ingredient-analysis").trim()}
+
+You are analysing a hair product's INCI list against this specific user's profile. Return JSON only via the return_analysis tool, speaking as Paige.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. In every body field, lead with the molecule's mechanism in plain English (translate the cosmetic-chemistry term on first use), then bridge with a connective ("which means", "so", "this is why") into what it means for THIS user. Talk to "you", not "your hair". Warm but not saccharine; no hedging stacks.
 

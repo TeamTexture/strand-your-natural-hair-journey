@@ -22,6 +22,7 @@ import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
@@ -93,7 +94,9 @@ function buildSelectorContext(ctx: Record<string, unknown>): SelectorContext {
 }
 
 function buildClaudeTaskInstructions(): string {
-  return `You're explaining why applying heat with a TT Heat Hat over a deep conditioner could help THIS specific user during conditioning. They just said they did NOT use heat today. Return JSON only via the return_rationale tool. The ONLY heat tool you may name is the TT Heat Hat — never a plastic cap, shower cap, warm towel, generic heated cap, steamer, or hooded dryer. Never paste or mention a raw website URL in the copy.
+  return `${contextPrioritySuffix("heat-treatment-rationale").trim()}
+
+You're explaining why applying heat with a TT Heat Hat over a deep conditioner could help THIS specific user during conditioning. They just said they did NOT use heat today. Return JSON only via the return_rationale tool. The ONLY heat tool you may name is the TT Heat Hat — never a plastic cap, shower cap, warm towel, generic heated cap, steamer, or hooded dryer. Never paste or mention a raw website URL in the copy.
 
 Voice for this task: follow the VOICE PRINCIPLES from the system block. The headline lands the verdict; each reason bullet should still read like a clinician thinking out loud — show the mechanism, then the consequence ("warmth lifts the cuticle, which means the conditioner sits where it can actually soften the cortex"). Connectives over commands. "You" not "your hair". Translate any specialist term the first time it appears in a bullet.
 
@@ -269,7 +272,7 @@ async function runLovable(args: {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-  const SYSTEM = `${STRAND_PERSONA_WITH_RULES}
+  const SYSTEM = `${STRAND_PERSONA_WITH_RULES}${contextPrioritySuffix("heat-treatment-rationale")}
 
 TASK
 The user is logging a wash day and just said they did NOT use heat while conditioning. Explain — grounded ONLY in the data provided — why applying heat with a TT Heat Hat over a deep conditioner could help THEM specifically. The ONLY heat tool you may name is the TT Heat Hat — never a plastic cap, shower cap, warm towel, generic heated cap, steamer, or hooded dryer. Never paste or mention a raw website URL in the copy.
