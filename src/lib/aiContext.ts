@@ -245,6 +245,15 @@ async function buildAiContextUncached(): Promise<AiContext> {
   let tools: Array<Record<string, unknown>> = [];
   let wishlist: Array<Record<string, unknown>> = [];
   let supplements: AiContext["supplements"] = [];
+  let behaviour: AiContext["behaviour"] | undefined;
+  let recentProductsUsed: AiContext["recentProductsUsed"] | undefined;
+  let appointmentRows: Array<{
+    appointment_date?: string | null;
+    professional_name?: string | null;
+    notes?: string | null;
+    outcome_notes?: string | null;
+  }> = [];
+
 
   try {
     if (userId) {
@@ -485,6 +494,40 @@ async function buildAiContextUncached(): Promise<AiContext> {
       standaloneChallenges = ((challengeRows.data ?? []) as Array<{ label: string | null }>)
         .map((r) => String(r.label ?? "").trim())
         .filter(Boolean);
+
+      // ADDITIVE — behaviour + products actually used. Derivations are pure and
+      // never throw on partial rows; a failure leaves both fields undefined.
+      try {
+        const behaviourLogs = ((behaviourWashRows.data ?? []) as Array<Record<string, unknown>>).map(
+          (r) => ({
+            id: String(r.id ?? ""),
+            wash_date: String(r.wash_date ?? ""),
+            steps: (r.steps ?? null) as never,
+            heat_treatment: r.heat_treatment ?? null,
+            styling: r.styling ?? null,
+            breakage: (r.breakage as string | null) ?? null,
+            product_ids: (r.product_ids as string[] | null) ?? null,
+          }),
+        );
+        behaviour = deriveBehaviour(behaviourLogs);
+        const productRows = ((allProductRows.data ?? []) as Array<Record<string, unknown>>).map((p) => ({
+          id: String(p.id ?? ""),
+          name: (p.name as string | null) ?? null,
+          brand: (p.brand as string | null) ?? null,
+          category: (p.category as string | null) ?? null,
+        }));
+        const used = deriveRecentProductsUsed(behaviourLogs, productRows);
+        if (used.length > 0) recentProductsUsed = used;
+      } catch (e) {
+        console.warn("buildAiContext: behaviour derivation failed", e);
+      }
+      appointmentRows = ((apptRows.data ?? []) as Array<Record<string, unknown>>).map((a) => ({
+        appointment_date: (a.appointment_date as string | null) ?? null,
+        professional_name: (a.professional_name as string | null) ?? null,
+        notes: (a.notes as string | null) ?? null,
+        outcome_notes: (a.outcome_notes as string | null) ?? null,
+      }));
+
     }
   } catch (e) {
     console.warn("buildAiContext: backend fetch failed", e);
