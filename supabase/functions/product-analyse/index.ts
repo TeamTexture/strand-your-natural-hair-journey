@@ -25,6 +25,7 @@
 // CRITICAL: do NOT remove the Lovable+Gemini path. The flag defaults to
 // "lovable"; Paige flips to "claude" only after manual verification.
 
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
@@ -202,7 +203,9 @@ function toAnthropicImageSource(image_url: string): ImageBlockSource {
 // ─── Task instructions for Claude ──────────────────────────────────────
 function buildTaskInstructions(tipsLevel: TipsLevel): string {
   const cap = levelCap(tipsLevel);
-  return `You're looking at two photos of the same product — front (brand + product name) and back (ingredient panel + usage instructions). Read both photos carefully. Return JSON only via the return_product_analysis tool.
+  return `${contextPrioritySuffix("product-analyse").trim()}
+
+You're looking at two photos of the same product — front (brand + product name) and back (ingredient panel + usage instructions). Read both photos carefully. Return JSON only via the return_product_analysis tool.
 
 Voice for this task: every prose field (ai_summary, key_ingredients[].reason, use_cases, tips) follows the VOICE PRINCIPLES from the system block. In short — explain the mechanism FIRST and land the verdict second; use connectives like "this means", "which is why", "so"; talk to "you" not "your hair"; translate any cosmetic-chemistry term the first time it appears in a field; professional, direct, and never over-familiar.
 
@@ -574,7 +577,7 @@ const AI_METER_META = { function_name: "product-analyse", stage: 2 } as const;
 
 function buildLovableSystem(tipsLevel: TipsLevel): string {
   const cap = levelCap(tipsLevel);
-  return `${STRAND_PERSONA_WITH_RULES}
+  return `${STRAND_PERSONA_WITH_RULES}${contextPrioritySuffix("product-analyse")}
 
 TASK
 You are analysing a single product photo for THIS user.

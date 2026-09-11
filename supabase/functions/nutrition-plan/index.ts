@@ -6,6 +6,7 @@
 // gated by STRAND_AI_PROVIDER_NUTRITION. Defaults to "lovable".
 // Same response shape: { summary, diet[], avoid[] } so the existing
 // NutritionPlan.tsx renderer is unchanged.
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
@@ -571,7 +572,7 @@ async function runLovable(
         body: JSON.stringify({
           model: "google/gemini-3.6-flash",
           messages: [
-            { role: "system", content: `${STRAND_PERSONA}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}${retryNote}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list (no dosing figures), the full list of meal ideas, the full list of pairing and timing notes, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
+            { role: "system", content: `${STRAND_PERSONA}${contextPrioritySuffix("nutrition-plan")}\n\n${CHAPTER_WHITELIST_PROMPT}\n\n${TASK_PROMPT_LOVABLE}\n\n${dietConstraintBlock(body.diet, body.dietOther)}${sensitivityBlock}${retryNote}${grounding.block}\n\n${buildTipsLevelBlock(3)}\n\nNUTRITION IS EXEMPT FROM THE SUPPORT-LEVEL SCALE. Always answer at full detail regardless of the member's guidance level: the complete personalised supplement list (no dosing figures), the full list of meal ideas, the full list of pairing and timing notes, and the full dietary reasoning. Never abbreviate, never defer detail to a higher level, and never mention guidance levels.` },
             { role: "user", content: JSON.stringify(userPayload) },
           ],
           tools: [

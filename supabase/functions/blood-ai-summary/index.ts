@@ -12,6 +12,7 @@
 //
 // Same response shape: { deficiencies[], overall_summary, priority_actions[] }
 // so the existing BloodAiSummary.tsx renderer is unchanged.
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
@@ -318,7 +319,7 @@ async function runLovable(body: RequestBody, ledgerBlock = ""): Promise<{
     context: body.context ?? null,
   };
 
-  const systemPrompt = `${STRAND_PERSONA}
+  const systemPrompt = `${STRAND_PERSONA}${contextPrioritySuffix("blood-ai-summary")}
 
 ${CHAPTER_WHITELIST_PROMPT}
 

@@ -7,6 +7,7 @@
 // observation is retained for storage/provenance. Wash days are one-shot per
 // save → no caching.
 
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import { json, preflight } from "../_shared/cors.ts";
 import { checkKillSwitch } from "../_shared/kill-switch.ts";
 import { checkDailyCap, checkGlobalCeiling } from "../_shared/usage-cap.ts";
@@ -286,7 +287,7 @@ async function runLovable(args: {
     context: args.body.context ?? null,
   };
 
-  const systemPrompt = `${STRAND_PERSONA_WITH_RULES}
+  const systemPrompt = `${STRAND_PERSONA_WITH_RULES}${contextPrioritySuffix("wash-day-observation")}
 
 ${CHAPTER_WHITELIST_PROMPT}
 
