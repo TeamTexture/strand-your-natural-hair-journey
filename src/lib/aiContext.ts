@@ -19,6 +19,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { allChallenges, challengesOf } from "@/lib/goalChallenges";
 import { pickCurrentGoal } from "@/lib/currentGoal";
 import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
+import {
+  deriveBehaviour,
+  deriveRecentProductsUsed,
+  mergeProfessionalRecommendations,
+} from "@/lib/aiBehaviour";
+
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsLevel } from "@/lib/tipsLevel";
