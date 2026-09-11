@@ -16,13 +16,20 @@ export interface IngredientPersonalizationProfile {
   density: string;
   heatFrequency: string;
   /** ADDITIVE — recorded style, how long it has been worn, what has been done
-   *  chemically, and her air-dry share. All optional: absent means NOT
-   *  ESTABLISHED and is never named or guessed at. */
+   *  chemically, strand elasticity, her air-dry share and water intake. All
+   *  optional: absent means NOT ESTABLISHED and is never named or guessed at. */
   currentHairstyle?: string;
   daysInStyle?: number | null;
-  chemicalHistory?: string[];
+  /** Alias accepted for the same recorded fact. */
+  daysInCurrentStyle?: number | null;
+  chemicalHistory?:
+    | string[]
+    | { relaxers?: boolean; permanents?: boolean; color?: boolean };
+  elasticity?: string;
+  waterIntake?: string;
   airDryPercentage?: number | null;
 }
+
 
 
 export interface BenefitIngredientCandidate {
