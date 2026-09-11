@@ -27,8 +27,8 @@ export interface BehaviourSlice {
 
 export interface RecentProductUse {
   name: string;
-  brand?: string | null;
-  category?: string | null;
+  brand: string | null;
+  category: string | null;
   last_used: string;
 }
 
