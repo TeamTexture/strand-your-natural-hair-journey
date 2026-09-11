@@ -13,6 +13,8 @@ export interface IngredientPersonalizationProfile {
   challenges: string[];
   climate: string;
   stylingHabits: string;
+  density: string;
+  heatFrequency: string;
 }
 
 export interface BenefitIngredientCandidate {
@@ -44,30 +46,8 @@ const cleanSignal = (value: string): string =>
     .replace(/^[\s,;:–—-]+|[\s,;:–—-]+$/g, "")
     .slice(0, 48);
 
-const firstSignal = (profile: IngredientPersonalizationProfile): string => {
-  const challenge = profile.challenges.map(cleanSignal).find(Boolean);
-  if (challenge) return challenge;
-  return profile.goals.map((goal) => cleanSignal(goal.title)).find(Boolean) ?? "healthy hair";
-};
-
-const porositySentence = (porosity: string): string => {
-  const level = cleanSignal(porosity).toLowerCase();
-  if (level.includes("high")) return "Your high-porosity hair loses water quickly.";
-  if (level.includes("low")) return "Your low-porosity hair can be weighed down by heavy layers.";
-  if (level.includes("medium")) return "Your medium-porosity hair still loses water between wash days.";
-  return "Your hair profile makes steady water retention important.";
-};
-
-const mechanismFor = (ingredient: IngredientPersonalizationInput): string => {
-  const name = simplifyIngredientName(ingredient.name || ingredient.INCI) || "This ingredient";
-  if (ingredient.role === "protection") {
-    return `${name} forms a light film that reduces strand friction`;
-  }
-  if (ingredient.role === "moisture-lock") {
-    return `${name} seals the strand surface to slow water loss`;
-  }
-  return `${name} helps water stay in each strand for longer`;
-};
+const firstGoalTitle = (profile: IngredientPersonalizationProfile): string =>
+  profile.goals.map((goal) => cleanSignal(goal.title)).find(Boolean) ?? "healthy hair";
 
 const clampSentencePair = (value: string, max = 149): string => {
   const cleaned = value.replace(FORBIDDEN, "").replace(/\s+/g, " ").trim();
@@ -91,13 +71,77 @@ export function ingredientPersonalizationText(
   ingredient: IngredientPersonalizationInput,
   userProfile: IngredientPersonalizationProfile,
 ): string {
-  const signal = firstSignal(userProfile);
-  const relevance = signal === "healthy hair"
-    ? "supporting your healthy-hair goal"
-    : `supporting your ${signal} goal`;
-  return clampSentencePair(
-    `${porositySentence(userProfile.porosity)} ${mechanismFor(ingredient)}, ${relevance}.`,
-  );
+  const name = simplifyIngredientName(ingredient.name || ingredient.INCI) || "This ingredient";
+  const porosity = cleanSignal(userProfile.porosity).toLowerCase();
+  const climate = cleanSignal(userProfile.climate).toLowerCase();
+  const density = cleanSignal(userProfile.density).toLowerCase();
+  const heatFrequency = cleanSignal(userProfile.heatFrequency).toLowerCase();
+  const stylingHabits = cleanSignal(userProfile.stylingHabits).toLowerCase();
+  const hasChallenge = (term: string): boolean =>
+    userProfile.challenges.some((c) => cleanSignal(c).toLowerCase().includes(term));
+
+  switch (ingredient.role) {
+    case "hydration": {
+      const goal = firstGoalTitle(userProfile);
+      if (porosity.includes("high")) {
+        return clampSentencePair(
+          `Your high-porosity hair loses water quickly. ${name} helps water stay in each strand for longer, supporting your ${goal} goal.`,
+        );
+      }
+      if (porosity.includes("low")) {
+        return clampSentencePair(
+          `Your low-porosity hair struggles to absorb moisture. ${name} adds water without buildup, supporting your ${goal} goal.`,
+        );
+      }
+      return clampSentencePair(
+        `${name} balances moisture throughout your curls, supporting your ${goal} goal.`,
+      );
+    }
+    case "protection": {
+      if (hasChallenge("breakage")) {
+        return clampSentencePair(
+          `Your breakage challenge needs strand strengthening. ${name} forms a protective film that reduces friction, keeping fragile ends intact and supporting your growth goals.`,
+        );
+      }
+      if (heatFrequency.includes("daily")) {
+        return clampSentencePair(
+          `Your daily heat styling stresses the strand surface. ${name} shields each strand from heat damage and friction, protecting your curl pattern.`,
+        );
+      }
+      if (density.includes("low")) {
+        return clampSentencePair(
+          `Your finer strands need gentle reinforcement. ${name} strengthens without weighing down, protecting delicate hair from damage.`,
+        );
+      }
+      const goal = firstGoalTitle(userProfile);
+      return clampSentencePair(
+        `${name} protects your strands from daily stress, supporting your ${goal} goal.`,
+      );
+    }
+    case "moisture-lock": {
+      if (climate.includes("humid")) {
+        return clampSentencePair(
+          `Your humid climate causes moisture imbalance and frizz. ${name} seals the strand surface to lock moisture at the right level, keeping curls defined all day.`,
+        );
+      }
+      if (heatFrequency.includes("daily")) {
+        return clampSentencePair(
+          `Your daily heat styling leaves curls vulnerable to water loss. ${name} seals the strand surface against heat stress, locking moisture in and supporting your style longevity.`,
+        );
+      }
+      if (stylingHabits.includes("weekly") || stylingHabits.includes("multi-day")) {
+        return clampSentencePair(
+          `Your multi-day styles need lasting hydration. ${name} locks moisture into each strand so your curls stay soft and bouncy throughout the week.`,
+        );
+      }
+      const goal = firstGoalTitle(userProfile);
+      return clampSentencePair(
+        `${name} locks moisture into each strand, supporting your ${goal} goal.`,
+      );
+    }
+    default:
+      return clampSentencePair(`${name} supports your ${firstGoalTitle(userProfile)} goal.`);
+  }
 }
 
 export function simplifyIngredientName(value: string): string {

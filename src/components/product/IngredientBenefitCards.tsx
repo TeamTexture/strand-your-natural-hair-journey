@@ -41,6 +41,20 @@ const firstString = (value: unknown): string => {
   return typeof value === "string" ? value : "";
 };
 
+const deriveHeatFrequency = (context: AiContext): string => {
+  const washes = context.history?.last_3_wash_days ?? [];
+  let used = 0;
+  for (const wash of washes) {
+    const heat = (wash as Record<string, unknown>)?.thermal_styling_heat as
+      | Record<string, unknown>
+      | undefined;
+    if (heat?.used === true) used++;
+  }
+  if (used >= 2) return "daily";
+  if (used === 1) return "weekly";
+  return "never";
+};
+
 export function ingredientBenefitProfile(context: AiContext): IngredientPersonalizationProfile {
   const hair = context.hairProfile ?? {};
   return {
@@ -52,6 +66,8 @@ export function ingredientBenefitProfile(context: AiContext): IngredientPersonal
     challenges: context.challenges,
     climate: "",
     stylingHabits: context.currentStyle?.current_hairstyle ?? "",
+    density: firstString(hair.density),
+    heatFrequency: deriveHeatFrequency(context),
   };
 }
 
