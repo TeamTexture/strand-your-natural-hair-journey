@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import IngredientBenefitCards from "@/components/product/IngredientBenefitCards";
 
@@ -82,22 +82,32 @@ describe("IngredientBenefitCards", () => {
 
   it("waits one second, prefetches per card, and reveals cached science on tap", async () => {
     renderCards();
-    await vi.advanceTimersByTimeAsync(1000);
-    await waitFor(() => expect(mocks.fetchIngredientExplainer).toHaveBeenCalledTimes(3));
-    fireEvent.click(screen.getAllByRole("button", { name: /show ingredient science/i })[1]);
-    await waitFor(() => {
-      expect(screen.getByText(/forms a flexible film around each strand/i)).toBeTruthy();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await Promise.resolve();
     });
+    expect(mocks.fetchIngredientExplainer).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole("button", { name: /show ingredient science/i })[1]);
+      await Promise.resolve();
+    });
+    expect(screen.getByText(/forms a flexible film around each strand/i)).toBeTruthy();
     expect(mocks.fetchIngredientExplainer).toHaveBeenCalledTimes(3);
   });
 
   it("keeps a quiet analysing state when prefetch and tap retrieval fail", async () => {
     mocks.fetchIngredientExplainer.mockRejectedValue(new Error("gateway unavailable"));
     renderCards();
-    await vi.advanceTimersByTimeAsync(1000);
-    await waitFor(() => expect(mocks.fetchIngredientExplainer).toHaveBeenCalledTimes(3));
-    fireEvent.click(screen.getAllByRole("button", { name: /show ingredient science/i })[0]);
-    await waitFor(() => expect(screen.getByText("Analysing for you…")).toBeTruthy());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await Promise.resolve();
+    });
+    expect(mocks.fetchIngredientExplainer).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole("button", { name: /show ingredient science/i })[0]);
+      await Promise.resolve();
+    });
+    expect(screen.getByText("Analysing for you…")).toBeTruthy();
     expect(screen.queryByText(/error|failed|unavailable/i)).toBeNull();
   });
 });
