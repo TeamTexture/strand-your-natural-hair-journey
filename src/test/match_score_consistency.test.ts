@@ -34,6 +34,17 @@ describe("one score per product, across every surface", () => {
     expect(card).toBe(62);
   });
 
+  it("ingredient benefit and explainer payloads cannot replace the stored score", () => {
+    const detailRow = {
+      ...row,
+      ai_analysis: { match_score: 88 },
+      ingredient_benefits: { hydration: "Personalised copy with no score authority" },
+      ingredient_explainer: { match_score: 91 },
+    };
+    expect(matchScoreOf(detailRow)).toBe(62);
+    expect(starsForItem(detailRow)).toBe(starsForItem(row));
+  });
+
   it("stars agree everywhere and never contradict the verdict label", () => {
     const stars = starsForItem(row);
     expect(stars).toBe(3);

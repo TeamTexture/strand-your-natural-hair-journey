@@ -1,6 +1,8 @@
 # Roadmap
 
 ## Open
+- [ ] Personalised ingredient benefit cards — three fixed profile-aware cards, delayed
+      per-card science prefetch, poor-match screenshot, and score-stability regressions.
 - [ ] Paywall bypass fix (awaiting approval) — ownership check in `consumer-verify-subscription`,
       sign-in destination order in `SplashScreen.tsx`, repair the affected live subscription row,
       regression test. Plan written in `.lovable/plan.md`.
