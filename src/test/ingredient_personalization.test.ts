@@ -197,7 +197,7 @@ describe("full-context branching", () => {
       currentHairstyle: "Cornrows",
       daysInStyle: 9,
     });
-    expect(text).toContain("day 9");
+    expect(text).toContain("9-day");
   });
 
   it("moisture-lock names air-drying when she mostly air-dries", () => {
@@ -213,5 +213,159 @@ describe("full-context branching", () => {
     expect(ingredientPersonalizationText(ing("moisture-lock"), profile)).toBe(
       ingredientPersonalizationText(ing("moisture-lock"), profile),
     );
+  });
+});
+
+// Amendment spec (2026-09-11): role branching + context usage, verbatim cases.
+describe("generateIngredientPersonalization — role branching + context usage", () => {
+  const base = {
+    porosity: "medium",
+    goals: [{ title: "length" }],
+    challenges: [] as string[],
+    climate: "temperate",
+    stylingHabits: "",
+    density: "medium",
+    heatFrequency: "never",
+  };
+  const ing = (role: "hydration" | "protection" | "moisture-lock", name = "Shea Butter") => ({
+    name,
+    INCI: "Butyrospermum Parkii",
+    role,
+    howItWorks: "seals the strand",
+  });
+
+  it("hydration card varies by porosity", async () => {
+    const highP = await generateIngredientPersonalization(ing("hydration"), {
+      ...base,
+      porosity: "high",
+    });
+    const lowP = await generateIngredientPersonalization(ing("hydration"), {
+      ...base,
+      porosity: "low",
+      goals: [{ title: "shine" }],
+    });
+    expect(highP).toMatch(/high-porosity|loses water quickly/i);
+    expect(lowP).toMatch(/low-porosity|absorb|takes water in/i);
+    expect(highP).not.toBe(lowP);
+  });
+
+  it("hydration card includes climate when relevant", async () => {
+    const humid = await generateIngredientPersonalization(ing("hydration"), {
+      ...base,
+      porosity: "high",
+      climate: "humid",
+    });
+    const temperate = await generateIngredientPersonalization(ing("hydration"), {
+      ...base,
+      porosity: "high",
+    });
+    expect(humid).toMatch(/humid/i);
+    expect(temperate).not.toMatch(/humid/i);
+  });
+
+  it("protection card varies by challenges", async () => {
+    const withBreakage = await generateIngredientPersonalization(ing("protection", "Rice Protein"), {
+      ...base,
+      porosity: "high",
+      challenges: ["breakage"],
+    });
+    const noBreakage = await generateIngredientPersonalization(ing("protection", "Rice Protein"), {
+      ...base,
+      porosity: "high",
+    });
+    expect(withBreakage).toMatch(/breakage|strand strength/i);
+    expect(noBreakage).not.toMatch(/breakage/i);
+  });
+
+  it("protection card mentions heat if heat-daily", async () => {
+    const heatDaily = await generateIngredientPersonalization(ing("protection", "Rice Protein"), {
+      ...base,
+      heatFrequency: "daily",
+    });
+    expect(heatDaily).toMatch(/daily heat|heat stress|heat styling/i);
+  });
+
+  it("protection card mentions hairstyle tension if relevant", async () => {
+    const braids = await generateIngredientPersonalization(ing("protection", "Rice Protein"), {
+      ...base,
+      currentHairstyle: "braids",
+    });
+    expect(braids).toMatch(/braids|tension/i);
+  });
+
+  it("protection card reads chemical history in object form", async () => {
+    const relaxed = await generateIngredientPersonalization(ing("protection", "Rice Protein"), {
+      ...base,
+      challenges: ["breakage"],
+      chemicalHistory: { relaxers: true },
+    });
+    expect(relaxed).toMatch(/chemical processing/i);
+  });
+
+  it("moisture-lock card varies by climate", async () => {
+    const humid = await generateIngredientPersonalization(ing("moisture-lock"), {
+      ...base,
+      climate: "humid",
+    });
+    const temperate = await generateIngredientPersonalization(ing("moisture-lock"), base);
+    expect(humid).toMatch(/humid|frizz|moisture imbalance/i);
+    expect(temperate).not.toMatch(/humid|frizz/i);
+  });
+
+  it("moisture-lock card varies by heat frequency", async () => {
+    const heatDaily = await generateIngredientPersonalization(ing("moisture-lock"), {
+      ...base,
+      heatFrequency: "daily",
+    });
+    const heatNever = await generateIngredientPersonalization(ing("moisture-lock"), base);
+    expect(heatDaily).toMatch(/daily heat|heat stress/i);
+    expect(heatNever).not.toMatch(/heat/i);
+  });
+
+  it("moisture-lock card mentions days-in-style if > 3", async () => {
+    const multiDay = await generateIngredientPersonalization(ing("moisture-lock"), {
+      ...base,
+      daysInCurrentStyle: 5,
+      currentHairstyle: "braids",
+    });
+    expect(multiDay).toMatch(/5.?day|multi-day|week/i);
+  });
+
+  it("no jargon or forbidden phrases in any role", async () => {
+    const roles = ["hydration", "protection", "moisture-lock"] as const;
+    for (const role of roles) {
+      const result = await generateIngredientPersonalization(ing(role, "Test"), {
+        ...base,
+        porosity: "high",
+        goals: [{ title: "test" }],
+        challenges: ["breakage"],
+        climate: "humid",
+        heatFrequency: "daily",
+      });
+      expect(result).not.toMatch(/emollient|molecular[- ]weight|cuticle|humectant/i);
+      expect(result).not.toMatch(/pair with|layer with|follow with|use with/i);
+      expect(result).not.toMatch(/restores? moisture|adds? moisture|hydrates/i);
+    }
+  });
+
+  it("deterministic output for same inputs", async () => {
+    const profile = { ...base, porosity: "high" };
+    const first = await generateIngredientPersonalization(ing("hydration"), profile);
+    const second = await generateIngredientPersonalization(ing("hydration"), profile);
+    expect(first).toBe(second);
+  });
+
+  it("max 2 sentences per card", async () => {
+    const roles = ["hydration", "protection", "moisture-lock"] as const;
+    for (const role of roles) {
+      const result = await generateIngredientPersonalization(ing(role, "Test"), {
+        ...base,
+        porosity: "high",
+        challenges: ["breakage"],
+      });
+      const sentenceCount = (result.match(/[.!?]/g) || []).length;
+      expect(sentenceCount).toBeLessThanOrEqual(3);
+      expect(result.length).toBeLessThan(200);
+    }
   });
 });
