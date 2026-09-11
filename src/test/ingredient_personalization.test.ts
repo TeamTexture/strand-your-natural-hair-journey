@@ -3,6 +3,7 @@ import {
   generateIngredientPersonalization,
   ingredientPersonalizationText,
   selectBenefitIngredients,
+  type IngredientBenefitRole,
   type IngredientPersonalizationInput,
   type IngredientPersonalizationProfile,
 } from "@/lib/ingredientPersonalization";
@@ -20,6 +21,8 @@ const profile: IngredientPersonalizationProfile = {
   challenges: [],
   climate: "humid",
   stylingHabits: "daily",
+  density: "medium",
+  heatFrequency: "weekly",
 };
 
 describe("generateIngredientPersonalization", () => {
@@ -69,5 +72,81 @@ describe("generateIngredientPersonalization", () => {
     expect(selectBenefitIngredients(ingredients, "moisture-lock").map((item) => item.name)).toEqual([
       "Shea Butter",
     ]);
+  });
+});
+
+describe("generateIngredientPersonalization — role branching", () => {
+  it("hydration card varies by porosity", async () => {
+    const highP = await generateIngredientPersonalization(
+      { name: "Shea", INCI: "...", role: "hydration", howItWorks: "emollient" },
+      { ...profile, porosity: "high", goals: [{ title: "length" }] },
+    );
+    const lowP = await generateIngredientPersonalization(
+      { name: "Shea", INCI: "...", role: "hydration", howItWorks: "emollient" },
+      { ...profile, porosity: "low", goals: [{ title: "shine" }] },
+    );
+    expect(highP).toMatch(/high-porosity|loses water quickly/i);
+    expect(lowP).toMatch(/low-porosity|absorb moisture/i);
+    expect(highP).not.toBe(lowP);
+  });
+
+  it("protection card varies by challenges", async () => {
+    const withBreakage = await generateIngredientPersonalization(
+      { name: "Rice Protein", INCI: "...", role: "protection", howItWorks: "protein" },
+      { ...profile, challenges: ["breakage"] },
+    );
+    const noBreakage = await generateIngredientPersonalization(
+      { name: "Rice Protein", INCI: "...", role: "protection", howItWorks: "protein" },
+      { ...profile, challenges: [] },
+    );
+    expect(withBreakage).toMatch(/breakage|strand strength/i);
+    expect(noBreakage).not.toMatch(/breakage/i);
+  });
+
+  it("moisture-lock card varies by climate", async () => {
+    const humid = await generateIngredientPersonalization(
+      { name: "Shea", INCI: "...", role: "moisture-lock", howItWorks: "occlusive" },
+      { ...profile, climate: "humid" },
+    );
+    const heatDaily = await generateIngredientPersonalization(
+      { name: "Shea", INCI: "...", role: "moisture-lock", howItWorks: "occlusive" },
+      { ...profile, climate: "temperate", heatFrequency: "daily" },
+    );
+    expect(humid).toMatch(/humid|frizz|moisture imbalance/i);
+    expect(heatDaily).toMatch(/heat|daily heat styling/i);
+  });
+
+  it("same ingredient + role + user profile always produces same output", async () => {
+    const sameProfile = { ...profile, goals: [{ title: "length" }] };
+    const result1 = await generateIngredientPersonalization(
+      { name: "Shea", INCI: "...", role: "hydration", howItWorks: "emollient" },
+      sameProfile,
+    );
+    const result2 = await generateIngredientPersonalization(
+      { name: "Shea", INCI: "...", role: "hydration", howItWorks: "emollient" },
+      sameProfile,
+    );
+    expect(result1).toBe(result2);
+  });
+
+  it("no jargon or forbidden phrases in any role", async () => {
+    const roles: IngredientBenefitRole[] = ["hydration", "protection", "moisture-lock"];
+    const testProfile: IngredientPersonalizationProfile = {
+      ...profile,
+      goals: [{ title: "test" }],
+      challenges: ["breakage"],
+      climate: "humid",
+      stylingHabits: "weekly braids",
+      density: "low",
+      heatFrequency: "daily",
+    };
+    for (const role of roles) {
+      const result = await generateIngredientPersonalization(
+        { name: "Test", INCI: "...", role, howItWorks: "test" },
+        testProfile,
+      );
+      expect(result).not.toMatch(/emollient|molecular-weight|cuticle|humectant/i);
+      expect(result).not.toMatch(/pair with|layer with|follow with/i);
+    }
   });
 });
