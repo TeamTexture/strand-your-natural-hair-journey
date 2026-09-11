@@ -46,6 +46,17 @@ export interface ShelfMatch {
   on_shelf: boolean | null;
 }
 
+export async function fetchIngredientExplainer(
+  name: string,
+  userProductId?: string | null,
+): Promise<IngredientExplainer> {
+  const { data, error } = await supabase.functions.invoke("ingredient-explainer", {
+    body: { mode: "sheet", name, userProductId: userProductId ?? null },
+  });
+  if (error) throw error;
+  return data as IngredientExplainer;
+}
+
 /**
  * Loads the three layers behind the ingredient explainer sheet. Layers 1 and 3
  * come from the `ingredient-explainer` function (which caches them in the
@@ -67,13 +78,7 @@ export function useIngredientExplainer(
     // "we couldn't load this ingredient" — retry quietly before showing that.
     retry: 2,
     retryDelay: (attempt) => 600 * (attempt + 1),
-    queryFn: async (): Promise<IngredientExplainer> => {
-      const { data, error } = await supabase.functions.invoke("ingredient-explainer", {
-        body: { mode: "sheet", name, userProductId: userProductId ?? null },
-      });
-      if (error) throw error;
-      return data as IngredientExplainer;
-    },
+    queryFn: () => fetchIngredientExplainer(name ?? "", userProductId),
   });
 
   const shelf = useQuery({

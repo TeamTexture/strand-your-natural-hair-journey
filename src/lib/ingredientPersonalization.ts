@@ -84,6 +84,13 @@ export async function generateIngredientPersonalization(
   ingredient: IngredientPersonalizationInput,
   userProfile: IngredientPersonalizationProfile,
 ): Promise<string> {
+  return ingredientPersonalizationText(ingredient, userProfile);
+}
+
+export function ingredientPersonalizationText(
+  ingredient: IngredientPersonalizationInput,
+  userProfile: IngredientPersonalizationProfile,
+): string {
   const signal = firstSignal(userProfile);
   const relevance = signal === "healthy hair"
     ? "supporting your healthy-hair goal"
