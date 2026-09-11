@@ -150,3 +150,68 @@ describe("generateIngredientPersonalization — role branching", () => {
     }
   });
 });
+
+// Full-context branching (2026-09-11): the cards must reach past porosity into
+// chemical history, style, days-in-style and air-dry share.
+describe("full-context branching", () => {
+  const base = {
+    porosity: "medium",
+    goals: [{ title: "length retention" }],
+    challenges: [] as string[],
+    climate: "",
+    stylingHabits: "",
+    density: "medium",
+    heatFrequency: "never",
+  };
+  const ing = (role: "hydration" | "protection" | "moisture-lock") => ({
+    name: "Shea Butter",
+    INCI: "Butyrospermum Parkii",
+    role,
+    howItWorks: "seals",
+  });
+
+  it("hydration names the climate when porosity is medium", () => {
+    const text = ingredientPersonalizationText(ing("hydration"), { ...base, climate: "humid" });
+    expect(text.toLowerCase()).toContain("humid");
+  });
+
+  it("protection names chemical history when there is no breakage challenge", () => {
+    const text = ingredientPersonalizationText(ing("protection"), {
+      ...base,
+      chemicalHistory: ["Relaxer"],
+    });
+    expect(text.toLowerCase()).toContain("chemically treated");
+  });
+
+  it("protection names the style tension when nothing else applies", () => {
+    const text = ingredientPersonalizationText(ing("protection"), {
+      ...base,
+      currentHairstyle: "Box braids",
+    });
+    expect(text.toLowerCase()).toContain("box braids");
+  });
+
+  it("moisture-lock names days in style", () => {
+    const text = ingredientPersonalizationText(ing("moisture-lock"), {
+      ...base,
+      currentHairstyle: "Cornrows",
+      daysInStyle: 9,
+    });
+    expect(text).toContain("day 9");
+  });
+
+  it("moisture-lock names air-drying when she mostly air-dries", () => {
+    const text = ingredientPersonalizationText(ing("moisture-lock"), {
+      ...base,
+      airDryPercentage: 90,
+    });
+    expect(text.toLowerCase()).toContain("air-dry");
+  });
+
+  it("stays deterministic with the fuller profile", () => {
+    const profile = { ...base, chemicalHistory: ["Colour"], daysInStyle: 12, currentHairstyle: "Twists" };
+    expect(ingredientPersonalizationText(ing("moisture-lock"), profile)).toBe(
+      ingredientPersonalizationText(ing("moisture-lock"), profile),
+    );
+  });
+});
