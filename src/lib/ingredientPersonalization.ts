@@ -126,10 +126,11 @@ export function ingredientPersonalizationText(
       if (porosity.includes("high")) {
         if (climate.includes("humid")) {
           return clampSentencePair(
-            `Your high-porosity hair loses water quickly, even in a humid climate. ${name} helps water stay in each strand for longer, supporting your ${goal} goal.`,
-            190,
+            `Your high-porosity hair loses water fast, even in humid air. ${name} helps water stay in each strand longer, for your ${goal}.`,
+            149,
           );
         }
+
         const extra = styleProtects
           ? ` Your ${style} also shields strands from drying air.`
           : "";
