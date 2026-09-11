@@ -105,7 +105,7 @@ function heatFrequencyFrom(
   // scaled by how often heat appears in a wash.
   const daysBetweenHeat = gap / Math.max(share, 0.01);
   if (daysBetweenHeat <= 2) return "daily";
-  if (daysBetweenHeat <= 12) return "weekly";
+  if (daysBetweenHeat <= 16) return "weekly";
   return "monthly";
 }
 
