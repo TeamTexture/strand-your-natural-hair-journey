@@ -6,6 +6,10 @@
       regression test. Plan written in `.lovable/plan.md`.
 
 ## Done
+- [x] Expanded the shared AI context: chemical/colour history, default styles, heritage/age,
+      water supply, wash cadence + consistency, thermal-heat frequency, air-dry share,
+      breakage pattern, products used in recent washes, merged professional recommendations.
+
 - [x] Personalised ingredient benefit cards — three fixed profile-aware cards, delayed
       per-card science prefetch, quiet failure fallback, and score/sensitivity regressions.
 - [x] "Book your free 1:1 with Paige" dashboard card with inline Calendly embed, shown after

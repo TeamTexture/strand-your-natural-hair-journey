@@ -19,6 +19,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { allChallenges, challengesOf } from "@/lib/goalChallenges";
 import { pickCurrentGoal } from "@/lib/currentGoal";
 import { stylingHeatOf, describeStylingHeat } from "@/lib/stylingHeat";
+import {
+  deriveBehaviour,
+  deriveRecentProductsUsed,
+  mergeProfessionalRecommendations,
+} from "@/lib/aiBehaviour";
+
 
 import { loadClinicalContext } from "@/lib/clinicalContext";
 import { DEFAULT_TIPS_LEVEL, coerceTipsLevel, TIPS_LEVEL_STORAGE_KEY, type TipsLevel } from "@/lib/tipsLevel";
@@ -42,7 +48,18 @@ export interface AiContext {
     planned_next_style: string | null;
     planned_change_date: string | null;
     default_style: string | null;
+    /** ADDITIVE (2026-09-11). Everything else she recorded about the style she
+     *  is in and what has been done to her hair chemically. Empty arrays mean
+     *  genuinely nothing recorded. */
+    default_styles?: string[];
+    colour_status?: string | null;
+    chemical_history?: string[];
+    colour_type?: string | null;
+    colour_last_treated?: string | null;
+    colour_reaction?: boolean | null;
+    plans_to_change?: boolean;
   } | null;
+
   healthProfile: Record<string, unknown> | null;
   /** Supplements the member says she is ALREADY taking. Guidance must build on
    *  these rather than repeat them back. */
@@ -62,10 +79,30 @@ export interface AiContext {
     professional_type: string | null;
     last_consultation_date: string | null;
     professional_notes: string | null;
+    /** ADDITIVE. Consultation notes merged with the notes on her recent
+     *  appointments. Omitted when nothing was written down. */
+    recommendations?: string;
   } | null;
   location: {
     postcode: string | null;
+    /** ADDITIVE — from her saved profile, never inferred. */
+    country?: string | null;
+    water_hardness_band?: string | null;
+    water_hardness_mg_l?: number | null;
+    water_supplier?: string | null;
   };
+  /** ADDITIVE. Heritage and age as she recorded them. Omitted when unknown. */
+  demographics?: {
+    heritage?: string[];
+    age?: number | null;
+  };
+  /** ADDITIVE. Behaviour derived from her logged wash days — cadence,
+   *  consistency, thermal-styling heat, air-dry share, breakage pattern.
+   *  Omitted entirely when she has no logs. */
+  behaviour?: import("@/lib/aiBehaviour").BehaviourSlice;
+  /** ADDITIVE. Products she actually used in recent washes, newest first. */
+  recentProductsUsed?: Array<import("@/lib/aiBehaviour").RecentProductUse>;
+
   history: {
     last_3_wash_days: Array<Record<string, unknown>>;
     /** Single unified list of ingredients that appear in 3+ of the user's
@@ -214,10 +251,19 @@ async function buildAiContextUncached(): Promise<AiContext> {
   let tools: Array<Record<string, unknown>> = [];
   let wishlist: Array<Record<string, unknown>> = [];
   let supplements: AiContext["supplements"] = [];
+  let behaviour: AiContext["behaviour"] | undefined;
+  let recentProductsUsed: AiContext["recentProductsUsed"] | undefined;
+  let appointmentRows: Array<{
+    appointment_date?: string | null;
+    professional_name?: string | null;
+    notes?: string | null;
+    outcome_notes?: string | null;
+  }> = [];
+
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows, suppRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows, suppRows, behaviourWashRows, allProductRows, apptRows] = await Promise.all([
         // Only LOGGED panels count. A scheduled panel is an appointment with no
         // results in it, and it used to be able to fill all three slots here —
         // starving the AI of the member's actual blood work.
@@ -272,7 +318,28 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .select("name, dose, frequency")
           .eq("user_id", userId)
           .order("created_at", { ascending: true }),
+        // ADDITIVE (2026-09-11) — behaviour derivation. A slim slice of the
+        // wash history (no notes, no media) used only to compute cadence,
+        // heat, air-dry share, breakage pattern and products actually used.
+        supabase
+          .from("wash_days")
+          .select("id, wash_date, breakage, steps, heat_treatment, styling, product_ids")
+          .eq("user_id", userId)
+          .order("wash_date", { ascending: false })
+          .limit(40),
+        supabase
+          .from("user_products")
+          .select("id, name, brand, category")
+          .eq("user_id", userId)
+          .limit(300),
+        supabase
+          .from("appointments")
+          .select("appointment_date, professional_name, notes, outcome_notes, status")
+          .eq("user_id", userId)
+          .order("appointment_date", { ascending: false })
+          .limit(5),
       ]);
+
 
       supplements = ((suppRows as { data?: Array<{ name: string; dose: string | null; frequency: string | null }> }).data ?? [])
         .map((r) => ({
@@ -433,6 +500,40 @@ async function buildAiContextUncached(): Promise<AiContext> {
       standaloneChallenges = ((challengeRows.data ?? []) as Array<{ label: string | null }>)
         .map((r) => String(r.label ?? "").trim())
         .filter(Boolean);
+
+      // ADDITIVE — behaviour + products actually used. Derivations are pure and
+      // never throw on partial rows; a failure leaves both fields undefined.
+      try {
+        const behaviourLogs = ((behaviourWashRows.data ?? []) as Array<Record<string, unknown>>).map(
+          (r) => ({
+            id: String(r.id ?? ""),
+            wash_date: String(r.wash_date ?? ""),
+            steps: (r.steps ?? null) as never,
+            heat_treatment: r.heat_treatment ?? null,
+            styling: r.styling ?? null,
+            breakage: (r.breakage as string | null) ?? null,
+            product_ids: (r.product_ids as string[] | null) ?? null,
+          }),
+        );
+        behaviour = deriveBehaviour(behaviourLogs);
+        const productRows = ((allProductRows.data ?? []) as Array<Record<string, unknown>>).map((p) => ({
+          id: String(p.id ?? ""),
+          name: (p.name as string | null) ?? null,
+          brand: (p.brand as string | null) ?? null,
+          category: (p.category as string | null) ?? null,
+        }));
+        const used = deriveRecentProductsUsed(behaviourLogs, productRows);
+        if (used.length > 0) recentProductsUsed = used;
+      } catch (e) {
+        console.warn("buildAiContext: behaviour derivation failed", e);
+      }
+      appointmentRows = ((apptRows.data ?? []) as Array<Record<string, unknown>>).map((a) => ({
+        appointment_date: (a.appointment_date as string | null) ?? null,
+        professional_name: (a.professional_name as string | null) ?? null,
+        notes: (a.notes as string | null) ?? null,
+        outcome_notes: (a.outcome_notes as string | null) ?? null,
+      }));
+
     }
   } catch (e) {
     console.warn("buildAiContext: backend fetch failed", e);
@@ -517,8 +618,22 @@ async function buildAiContextUncached(): Promise<AiContext> {
         planned_next_style: clinical.style.planned_next_style,
         planned_change_date: clinical.style.planned_change_date,
         default_style: clinical.style.default_styles[0] ?? null,
+        default_styles: clinical.style.default_styles ?? [],
+        colour_status: clinical.style.colour?.[0] ?? null,
+        chemical_history: clinical.style.chemical_history ?? [],
+        colour_type: clinical.style.colour_type ?? null,
+        colour_last_treated: clinical.style.colour_last_treated ?? null,
+        colour_reaction: clinical.style.colour_reaction ?? null,
+        plans_to_change: Boolean(
+          clinical.style.planned_next_style || clinical.style.planned_change_date,
+        ),
       }
     : null;
+
+  const professionalRecommendations = mergeProfessionalRecommendations(
+    clinical.professional?.notes,
+    appointmentRows,
+  );
 
   const professional = clinical.professional
     ? {
@@ -527,6 +642,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
         // Null here can mean "not recorded" OR "decrypt failed" — read it
         // together with `decryptStatus`, never on its own.
         professional_notes: clinical.professional.notes,
+        ...(professionalRecommendations ? { recommendations: professionalRecommendations } : {}),
       }
     : null;
 
@@ -540,6 +656,14 @@ async function buildAiContextUncached(): Promise<AiContext> {
     last3.push({ date: lastWashIso });
   }
 
+  const demographics =
+    clinical.basic && ((clinical.basic.heritage?.length ?? 0) > 0 || clinical.basic.age != null)
+      ? {
+          ...(clinical.basic.heritage?.length ? { heritage: clinical.basic.heritage } : {}),
+          ...(clinical.basic.age != null ? { age: clinical.basic.age } : {}),
+        }
+      : undefined;
+
   const result: AiContext = {
     decryptStatus: clinical.decryptStatus,
     ...(clinical.decryptFailedFields.length
@@ -552,9 +676,17 @@ async function buildAiContextUncached(): Promise<AiContext> {
     bloodResults,
     bloodPanels,
     professional,
+    ...(demographics ? { demographics } : {}),
+    ...(behaviour ? { behaviour } : {}),
+    ...(recentProductsUsed ? { recentProductsUsed } : {}),
     location: {
       postcode: postcode ?? null,
+      country: clinical.basic?.country ?? null,
+      water_hardness_band: clinical.basic?.water_hardness_band ?? null,
+      water_hardness_mg_l: clinical.basic?.water_hardness_mg_l ?? null,
+      water_supplier: clinical.basic?.water_supplier ?? null,
     },
+
     history: {
       last_3_wash_days: last3,
       flagged_ingredients: flaggedIngredients,
