@@ -15,7 +15,15 @@ export interface IngredientPersonalizationProfile {
   stylingHabits: string;
   density: string;
   heatFrequency: string;
+  /** ADDITIVE — recorded style, how long it has been worn, what has been done
+   *  chemically, and her air-dry share. All optional: absent means NOT
+   *  ESTABLISHED and is never named or guessed at. */
+  currentHairstyle?: string;
+  daysInStyle?: number | null;
+  chemicalHistory?: string[];
+  airDryPercentage?: number | null;
 }
+
 
 export interface BenefitIngredientCandidate {
   name: string;
