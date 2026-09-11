@@ -6,8 +6,7 @@
 //
 // Also fixes two bugs from the legacy file flagged in PHASE_2_AUDIT.md
 // lines 572-573:
-//   1. broken `corsHeaders` import { contextPrioritySuffix } from "../_shared/context-priority.ts";
-import from `@supabase/supabase-js/cors`
+//   1. broken `corsHeaders` import from `@supabase/supabase-js/cors`
 //      → now uses the standard _shared/cors.ts helpers
 //   2. hardcoded fake fallback rationale on AI failure
 //      → now surfaces a real error via aiErrorResponse
