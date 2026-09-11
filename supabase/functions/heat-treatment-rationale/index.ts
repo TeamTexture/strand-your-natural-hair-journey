@@ -22,6 +22,7 @@ import { callClaude, type ContentBlockInput } from "../_shared/anthropic-client.
 import { STRAND_PERSONA_WITH_RULES } from "../_shared/strand-persona.ts";
 import { STYLE_WEIGHTING_RULES } from "../_shared/style-weighting.ts";
 import { sanitiseAndLog } from "../_shared/citation-log.ts";
+import { contextPrioritySuffix } from "../_shared/context-priority.ts";
 import type { SelectorContext } from "../_shared/knowledge/index.ts";
 
 declare const Deno: {
