@@ -93,21 +93,43 @@ export function ingredientPersonalizationText(
   const heatFrequency = cleanSignal(userProfile.heatFrequency).toLowerCase();
   const stylingHabits = cleanSignal(userProfile.stylingHabits).toLowerCase();
   const style = cleanSignal(userProfile.currentHairstyle ?? "").toLowerCase();
-  const daysInStyle = userProfile.daysInStyle ?? null;
-  const chemical = (userProfile.chemicalHistory ?? [])
-    .map((c) => cleanSignal(c).toLowerCase())
-    .filter(Boolean);
+  const daysInStyle = userProfile.daysInStyle ?? userProfile.daysInCurrentStyle ?? null;
+  const rawChemical = userProfile.chemicalHistory;
+  const chemical = Array.isArray(rawChemical)
+    ? rawChemical.map((c) => cleanSignal(c).toLowerCase()).filter(Boolean)
+    : rawChemical
+      ? Object.entries(rawChemical)
+          .filter(([, on]) => on === true)
+          .map(([key]) => key.toLowerCase())
+      : [];
+  const elasticity = cleanSignal(userProfile.elasticity ?? "").toLowerCase();
+  const waterIntake = cleanSignal(userProfile.waterIntake ?? "").toLowerCase();
   const airDry = userProfile.airDryPercentage ?? null;
   const hasChallenge = (term: string): boolean =>
     userProfile.challenges.some((c) => cleanSignal(c).toLowerCase().includes(term));
   const hasChemical = (...terms: string[]): boolean =>
     chemical.some((entry) => terms.some((t) => entry.includes(t)));
+  const chemicallyTreated = hasChemical(
+    "relax",
+    "colour",
+    "color",
+    "dye",
+    "bleach",
+    "perm",
+    "keratin",
+  );
   const styleProtects = /braid|twist|loc|cornrow|weave|wig|bun|protective/.test(style);
 
   switch (ingredient.role) {
     case "hydration": {
       const goal = firstGoalTitle(userProfile);
       if (porosity.includes("high")) {
+        if (climate.includes("humid")) {
+          return clampSentencePair(
+            `Your high-porosity hair loses water quickly, even in a humid climate. ${name} helps water stay in each strand for longer, supporting your ${goal} goal.`,
+            190,
+          );
+        }
         const extra = styleProtects
           ? ` Your ${style} also shields strands from drying air.`
           : "";
@@ -131,18 +153,27 @@ export function ingredientPersonalizationText(
           `Your water balance is even, but ${heatFrequency} heat styling dries strands out. ${name} keeps that balance steady between washes.`,
         );
       }
+      if (waterIntake.includes("low")) {
+        return clampSentencePair(
+          `Your water intake on file is low, so strands have less to draw on. ${name} helps what you do drink stay where it counts.`,
+        );
+      }
       return clampSentencePair(
         `${name} balances water throughout your curls, supporting your ${goal} goal.`,
       );
     }
     case "protection": {
       if (hasChallenge("breakage")) {
-        const after = hasChemical("relax", "colour", "color", "dye", "bleach", "perm", "keratin")
-          ? ` It matters more on chemically treated strands.`
-          : "";
+        const reason = chemicallyTreated
+          ? " after chemical processing"
+          : heatFrequency.includes("daily")
+            ? " from daily heat styling"
+            : styleProtects
+              ? ` from the tension of your ${style}`
+              : "";
         return clampSentencePair(
-          `Your breakage challenge needs strand strengthening. ${name} forms a protective film that reduces friction, keeping fragile ends intact.${after}`,
-          190,
+          `Your breakage challenge${reason} needs strand strengthening. ${name} forms a protective film that reduces friction, keeping fragile ends intact.`,
+          195,
         );
       }
       if (heatFrequency.includes("daily")) {
@@ -150,19 +181,19 @@ export function ingredientPersonalizationText(
           `Your daily heat styling stresses the strand surface. ${name} shields each strand from heat damage and friction, protecting your curl pattern.`,
         );
       }
-      if (hasChemical("relax", "colour", "color", "dye", "bleach", "perm", "keratin")) {
+      if (chemicallyTreated) {
         return clampSentencePair(
           `Chemically treated strands are already fragile. ${name} reinforces the strand surface so processed lengths take less daily wear.`,
         );
       }
-      if (density.includes("low") || density.includes("fine")) {
+      if (density.includes("low") || density.includes("fine") || elasticity.includes("low")) {
         return clampSentencePair(
-          `Your finer strands need gentle reinforcement. ${name} strengthens without weighing down, protecting delicate hair from damage.`,
+          `Your finer, less springy strands need gentle reinforcement. ${name} strengthens without weighing down, protecting delicate hair from damage.`,
         );
       }
       if (styleProtects) {
         return clampSentencePair(
-          `Your ${style} puts steady pull on the same points. ${name} reinforces strands where that tension lands.`,
+          `Your ${style} puts steady tension on the same points. ${name} reinforces strands where that tension lands.`,
         );
       }
       const goal = firstGoalTitle(userProfile);
@@ -182,13 +213,23 @@ export function ingredientPersonalizationText(
         );
       }
       if (daysInStyle != null && daysInStyle > 3) {
-        const label = style ? `${style}` : "current style";
+        const label = style ? `${daysInStyle}-day ${style}` : `${daysInStyle}-day style`;
         return clampSentencePair(
-          `Your ${label} is on day ${daysInStyle} and needs lasting water retention. ${name} locks moisture into strands so they stay soft this far in.`,
+          `Your ${label} needs lasting water retention. ${name} locks moisture into strands so they stay soft this far in.`,
           190,
         );
       }
-      if (airDry != null && airDry >= 60) {
+      if (styleProtects) {
+        const days = daysInStyle != null ? ` through day ${daysInStyle}` : "";
+        return clampSentencePair(
+          `${name} locks moisture into strands worn in ${style}, keeping them soft${days}.`,
+        );
+      }
+      if (
+        (airDry != null && airDry >= 60) ||
+        stylingHabits.includes("air") ||
+        heatFrequency.includes("never")
+      ) {
         return clampSentencePair(
           `You air-dry most wash days. ${name} locks in what your conditioner left behind so curls stay soft between washes.`,
         );
@@ -203,6 +244,7 @@ export function ingredientPersonalizationText(
         `${name} locks moisture into each strand, supporting your ${goal} goal.`,
       );
     }
+
 
     default:
       return clampSentencePair(`${name} supports your ${firstGoalTitle(userProfile)} goal.`);
