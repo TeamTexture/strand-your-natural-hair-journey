@@ -15,6 +15,11 @@ describe("CANTU Ultra Moisture Nourishing on Paige's account", () => {
     const stars = starsFromScore(shown)!;
     console.log({ stored, shown, stars: formatStars(stars), tone: scoreTone(shown), oldVerdict: verdictForStars(starsFromScore(stored)!), newVerdict: verdictForStars(stars) });
     expect(shown).toBe(18);
+    expect(formatStars(stars)).toBe("1");
+    expect(scoreTone(shown)).toBe("warning");
+    expect(`Best avoided — contains ${entries[0].label}`).toBe(
+      "Best avoided — contains Fragrance / parfum",
+    );
     expect(verdictForStars(stars)).not.toMatch(/Excellent/);
   });
 });
