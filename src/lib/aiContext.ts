@@ -248,7 +248,7 @@ async function buildAiContextUncached(): Promise<AiContext> {
 
   try {
     if (userId) {
-      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows, suppRows] = await Promise.all([
+      const [panels, ingLists, washes, shelfRows, wishRows, ratings, goalRows, toolRows, challengeRows, suppRows, behaviourWashRows, allProductRows, apptRows] = await Promise.all([
         // Only LOGGED panels count. A scheduled panel is an appointment with no
         // results in it, and it used to be able to fill all three slots here —
         // starving the AI of the member's actual blood work.
@@ -303,7 +303,28 @@ async function buildAiContextUncached(): Promise<AiContext> {
           .select("name, dose, frequency")
           .eq("user_id", userId)
           .order("created_at", { ascending: true }),
+        // ADDITIVE (2026-09-11) — behaviour derivation. A slim slice of the
+        // wash history (no notes, no media) used only to compute cadence,
+        // heat, air-dry share, breakage pattern and products actually used.
+        supabase
+          .from("wash_days")
+          .select("id, wash_date, breakage, steps, heat_treatment, styling, product_ids")
+          .eq("user_id", userId)
+          .order("wash_date", { ascending: false })
+          .limit(40),
+        supabase
+          .from("user_products")
+          .select("id, name, brand, category")
+          .eq("user_id", userId)
+          .limit(300),
+        supabase
+          .from("appointments")
+          .select("appointment_date, professional_name, notes, outcome_notes, status")
+          .eq("user_id", userId)
+          .order("appointment_date", { ascending: false })
+          .limit(5),
       ]);
+
 
       supplements = ((suppRows as { data?: Array<{ name: string; dose: string | null; frequency: string | null }> }).data ?? [])
         .map((r) => ({
