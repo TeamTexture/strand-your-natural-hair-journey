@@ -75,9 +75,9 @@ import { buildProductSaveFields } from "@/lib/productAnalysisSave";
 import ScoreReasons, {
   parseScoreReasons,
   cautionReasonsHeading,
-  formulationReasonsHeading,
   type ScoreReason,
 } from "@/components/product/ScoreReasons";
+import IngredientBenefitCards from "@/components/product/IngredientBenefitCards";
 import GlossaryRichText from "@/components/ingredients/GlossaryRichText";
 
 import StrandTipNotes, { parseStrandTips, type StrandTipNote } from "@/components/product/StrandTipNotes";
@@ -1390,7 +1390,6 @@ const IngredientDetail = () => {
                     // numbering; neutral frequency observations keep their
                     // styling inside the shared ScoreReasons renderer.
                     const cautionReasons = reasons.filter((r) => r.direction === "minus");
-                    const formulationReasons = reasons.filter((r) => r.direction === "plus");
                     return (
                       <>
                         {cautionReasons.length > 0 && (
@@ -1399,12 +1398,10 @@ const IngredientDetail = () => {
                             heading={cautionReasonsHeading()}
                           />
                         )}
-                        {formulationReasons.length > 0 && (
-                          <ScoreReasons
-                            reasons={formulationReasons}
-                            heading={formulationReasonsHeading()}
-                          />
-                        )}
+                        <IngredientBenefitCards
+                          ingredients={analysis.ingredients}
+                          productId={productRow?.id ?? null}
+                        />
                       </>
                     );
                   })()}
