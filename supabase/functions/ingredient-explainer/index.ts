@@ -1231,55 +1231,71 @@ Deno.serve(async (req) => {
     });
 
     type SheetResponse = ReturnType<typeof buildResponse>;
-    let sanitised = await sanitiseAndLog(
-      buildResponse(fitResult.fit, fitResult.note),
-      "ingredient-explainer",
-    ) as SheetResponse;
-
-    // A guardrail can legitimately strip the ONLY sentence in the personalised
-    // line (e.g. the author's rejection of "locks moisture in"), which would
-    // leave the member with an empty block. When that happens, regenerate once
-    // — the prompt is told the rule — and re-run the guardrails on the result.
     const blank = (f: FitPayload | null | undefined) => !((f?.for_you ?? "").trim());
-    if (!blank(fitResult.fit) && blank(sanitised.fit)) {
-      console.log(JSON.stringify({
-        function: "ingredient-explainer",
-        layer: "fit",
-        event: "regenerate_after_guardrail_stripped_for_you",
-        term: entry.inci_key,
-      }));
-      body.force = true;
-      try {
-        const fresh = await resolveProfileFit();
-        sanitised = await sanitiseAndLog(
-          buildResponse(fresh, fitResult.note),
-          "ingredient-explainer",
-        ) as SheetResponse;
-      } catch { /* deterministic fallback below still prevents a hollow block */ }
-    }
-    if (blank(sanitised.fit)) {
-      const { hair } = await profileFingerprint(supabase, user.id);
-      const { data: goals } = await supabase.from("user_goals")
-        .select("title, target_text, status")
-        .eq("user_id", user.id).neq("status", "complete");
-      const fallback: FitPayload = {
-        tone: "warn",
-        for_you: deterministicProfileFit({
-          hair,
-          goals: (goals ?? []) as Array<Record<string, unknown>>,
-          ingredientCategory: entry.category,
-        }),
-        usage_tip: "",
-        _source: "profile",
-      };
+    let sanitised: SheetResponse;
+    // RELIABILITY: the guardrail sanitiser and the deterministic fallback both
+    // touch the network (rejection logging, profile + goals reads). A failure
+    // there must never turn a tap into a 500 / blank sheet — the member still
+    // gets the verified glossary content with no personalised line.
+    try {
       sanitised = await sanitiseAndLog(
-        buildResponse(fallback, fitResult.note),
+        buildResponse(fitResult.fit, fitResult.note),
         "ingredient-explainer",
       ) as SheetResponse;
+
+      // A guardrail can legitimately strip the ONLY sentence in the personalised
+      // line (e.g. the author's rejection of "locks moisture in"), which would
+      // leave the member with an empty block. When that happens, regenerate once
+      // — the prompt is told the rule — and re-run the guardrails on the result.
+      if (!blank(fitResult.fit) && blank(sanitised.fit)) {
+        console.log(JSON.stringify({
+          function: "ingredient-explainer",
+          layer: "fit",
+          event: "regenerate_after_guardrail_stripped_for_you",
+          term: entry.inci_key,
+        }));
+        body.force = true;
+        try {
+          const fresh = await resolveProfileFit();
+          sanitised = await sanitiseAndLog(
+            buildResponse(fresh, fitResult.note),
+            "ingredient-explainer",
+          ) as SheetResponse;
+        } catch { /* deterministic fallback below still prevents a hollow block */ }
+      }
+      if (blank(sanitised.fit)) {
+        const { hair } = await profileFingerprint(supabase, user.id);
+        const { data: goals } = await supabase.from("user_goals")
+          .select("title, target_text, status")
+          .eq("user_id", user.id).neq("status", "complete");
+        const fallback: FitPayload = {
+          tone: "warn",
+          for_you: deterministicProfileFit({
+            hair,
+            goals: (goals ?? []) as Array<Record<string, unknown>>,
+            ingredientCategory: entry.category,
+          }),
+          usage_tip: "",
+          _source: "profile",
+        };
+        sanitised = await sanitiseAndLog(
+          buildResponse(fallback, fitResult.note),
+          "ingredient-explainer",
+        ) as SheetResponse;
+      }
+    } catch (e) {
+      console.log(JSON.stringify({
+        function: "ingredient-explainer",
+        layer: "sanitise",
+        soft_error: e instanceof Error ? e.message : String(e),
+        term: entry.inci_key,
+      }));
+      sanitised = buildResponse(null, fitResult.note);
     }
     // Never serve a hollow block — the client renders its own honest line.
     if (blank(sanitised.fit)) sanitised = { ...sanitised, fit: null };
     return json(200, sanitised);
+
   } catch (e) {
     return aiErrorResponse(e, "ingredient-explainer");
   }
